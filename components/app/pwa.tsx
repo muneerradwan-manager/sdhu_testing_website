@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Emblem } from "@/components/brand/logo";
+import { asset } from "@/lib/utils";
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 
@@ -16,7 +17,7 @@ export function PwaSupport() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => {});
+      navigator.serviceWorker.register(asset("/sw.js"), { scope: asset("/"), updateViaCache: "none" }).catch(() => {});
     }
 
     let dismissed = false;
@@ -28,7 +29,7 @@ export function PwaSupport() {
     const standalone = window.matchMedia("(display-mode: standalone)").matches;
     // Phones only, and never on the staff desk — desktops get the browser's own install button
     const phone = window.matchMedia("(max-width: 767px) and (pointer: coarse)").matches;
-    if (dismissed || standalone || !phone || location.pathname.startsWith("/staff")) return;
+    if (dismissed || standalone || !phone || location.pathname.startsWith(asset("/staff"))) return;
 
     let promptTimer: ReturnType<typeof setTimeout> | undefined;
     const onPrompt = (e: Event) => {

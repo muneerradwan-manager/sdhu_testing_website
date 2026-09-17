@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/widgets";
 import { CITIES, PRAYERS, formatTime, nextPrayer, prayerTimes } from "@/lib/prayer";
 import { useHydrated } from "@/lib/store";
-import { cn, hijriDate } from "@/lib/utils";
+import { asset, cn, hijriDate } from "@/lib/utils";
 
 const ICONS = { fajr: MoonStar, sunrise: Sunrise, dhuhr: Sun, asr: Sun, maghrib: Sunset, isha: MoonStar } as const;
 const PICK = ["damascus", "aleppo", "makkah", "madinah"];
@@ -111,7 +111,7 @@ export function AcademyTeaser() {
         </div>
       </button>
       <Modal open={open} onClose={() => setOpen(false)} className="max-w-4xl bg-ink p-2 sm:p-3">
-        <video src="/videos/tawaf-ifadha.webm" poster="/images/tawaf-night.jpg" controls autoPlay playsInline className="aspect-video w-full rounded-2xl bg-black" />
+        <video src={asset("/videos/tawaf-ifadha.webm")} poster={asset("/images/tawaf-night.jpg")} controls autoPlay playsInline className="aspect-video w-full rounded-2xl bg-black" />
       </Modal>
     </>
   );

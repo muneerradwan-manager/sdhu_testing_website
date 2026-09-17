@@ -7,6 +7,7 @@ import { PwaSupport } from "@/components/app/pwa";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/widgets";
+import { asset } from "@/lib/utils";
 import "./globals.css";
 
 /** itf Qomra — the platform's brand typeface (same as the mobile app) */
@@ -35,8 +36,8 @@ export const metadata: Metadata = {
   description: "منصة تجريبية تعرض رحلة الحاج السوري كاملة: الأكاديمية، مواقيت الصلاة، الأخبار، التسجيل والقرعة ومتابعة الطلب. جميع البيانات وهمية.",
   applicationName: "منصة الحج",
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    icon: [{ url: asset("/icons/icon-192.png"), sizes: "192x192", type: "image/png" }],
+    apple: [{ url: asset("/icons/apple-touch-icon.png"), sizes: "180x180" }],
   },
   appleWebApp: { capable: true, title: "منصة الحج", statusBarStyle: "black-translucent" },
   robots: { index: false, follow: false },

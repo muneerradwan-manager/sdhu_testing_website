@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { formatClock, minutesLabel, type Lesson, type Lecturer } from "@/lib/data/academy";
-import { seeded, cn } from "@/lib/utils";
+import { asset, seeded, cn } from "@/lib/utils";
 import { useVideoEngine, type PlayerEngine } from "./player-engine";
 
 export type PlayerLesson = Pick<Lesson, "slug" | "title" | "minutes" | "media" | "poster" | "gallery" | "videoSrc" | "summary" | "points" | "hasAudio">;
@@ -92,7 +92,7 @@ function useCues(base?: string) {
   useEffect(() => {
     if (!base) return;
     let alive = true;
-    fetch(`${base}.json`)
+    fetch(asset(`${base}.json`))
       .then((r) => (r.ok ? (r.json() as Promise<Cue[]>) : null))
       .then((raw) => {
         if (alive && raw) setCues(splitCues(raw));
@@ -133,8 +133,8 @@ function RealVideoPlayer({ lesson, lecturer, nextHref, nextTitle, nextLabel, cla
     >
       <video
         ref={videoRef}
-        src={lesson.videoSrc}
-        poster={lesson.poster}
+        src={lesson.videoSrc ? asset(lesson.videoSrc) : undefined}
+        poster={asset(lesson.poster)}
         preload="metadata"
         playsInline
         className="absolute inset-0 size-full object-cover"
@@ -169,7 +169,7 @@ function SimVideoPlayer({ lesson, lecturer, fallbackGallery, nextHref, nextTitle
       badge="ملخص الدرس مسموعاً"
     >
       <KenBurns images={images} time={engine.time} />
-      <audio ref={audioRef} src={narration ? `${narration}.mp3` : undefined} preload="metadata" {...handlers} />
+      <audio ref={audioRef} src={narration ? asset(`${narration}.mp3`) : undefined} preload="metadata" {...handlers} />
     </PlayerFrame>
   );
 }
@@ -740,7 +740,7 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
 
   return (
     <div className={cn("relative isolate overflow-hidden rounded-3xl bg-green-dark p-5 text-white shadow-[0_30px_80px_-30px_rgba(0,89,79,.8)] ring-1 ring-gold/30 sm:p-8", className)}>
-      <audio ref={audioRef} src={narration ? `${narration}.mp3` : undefined} preload="metadata" {...handlers} />
+      <audio ref={audioRef} src={narration ? asset(`${narration}.mp3`) : undefined} preload="metadata" {...handlers} />
       <Image src={lesson.poster} alt="" fill sizes="(min-width: 1024px) 800px, 100vw" quality={70} className="-z-20 object-cover opacity-20 blur-sm" />
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-green-dark via-green-dark/95 to-maroon-dark/90" />
       <div className="bg-pattern absolute inset-0 -z-10 opacity-15" />
@@ -854,7 +854,7 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
           </CtrlButton>
         </div>
         {narration && (
-          <a href={`${narration}.mp3`} download className="hidden items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/20 sm:flex" dir="rtl">
+          <a href={asset(`${narration}.mp3`)} download className="hidden items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/20 sm:flex" dir="rtl">
             <Download className="size-4" /> تحميل MP3
           </a>
         )}

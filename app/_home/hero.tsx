@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, ChevronDown, ShieldCheck, Sparkles, Volume2, Volum
 import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { useHydrated } from "@/lib/store";
+import { asset } from "@/lib/utils";
 
 /** Day of Arafah 1447 AH = Saturday 15 May 2027 (Umm al-Qura) */
 const ARAFAH = new Date("2027-05-15T05:00:00+03:00");
@@ -75,8 +76,8 @@ export function Hero() {
         <video
           ref={videoRef}
           className="size-full object-cover"
-          src="/videos/kaaba-night.webm"
-          poster="/images/kaaba-hajj.jpg"
+          src={asset("/videos/kaaba-night.webm")}
+          poster={asset("/images/kaaba-hajj.jpg")}
           autoPlay
           muted
           loop

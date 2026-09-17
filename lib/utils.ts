@@ -1,3 +1,13 @@
+/** Prefixes a public-folder path with the deployment base path (GitHub Pages serves the site under a sub-path) */
+export function asset(path: string) {
+  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  if (!path.startsWith("/") || (base && path.startsWith(base + "/"))) return path;
+  return `${base}${path}`;
+}
+
+/** true on the static GitHub Pages build (no server routes) */
+export const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
+
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }

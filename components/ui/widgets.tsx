@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, Loader2, MapPin, Star, Volume2, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { STATIC_EXPORT, cn } from "@/lib/utils";
 
 // ───────────────────────── Map ─────────────────────────
 
@@ -90,6 +90,8 @@ export function SpeakButton({ text, className, label = "استمع", voice = "f"
     if (speaking) return stop();
     activeStop?.();
     activeStop = stop;
+    // The static GitHub Pages build has no server route — use the device's own voice there
+    if (STATIC_EXPORT) return browserSpeak();
     setState("loading");
     const audio = new Audio(`/api/tts?voice=${voice}&text=${encodeURIComponent(text)}`);
     audioRef.current = audio;
