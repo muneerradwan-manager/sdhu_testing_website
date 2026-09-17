@@ -6,6 +6,7 @@ import {
   BookOpenText,
   CalendarDays,
   Clock3,
+  Hourglass,
   FileSearch,
   Landmark,
   Megaphone,
@@ -107,6 +108,27 @@ export default function Home() {
             );
           })}
         </Stagger>
+
+        <Reveal delay={0.1} className="mt-5">
+          <Link
+            href="/umrah"
+            className="group relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl border border-dashed border-gold-dark/60 bg-gold-light/50 p-5 transition duration-500 hover:border-gold-dark hover:bg-gold-light md:flex-row md:items-center md:p-6"
+          >
+            <span className="grid size-13 shrink-0 place-items-center rounded-2xl bg-white text-maroon shadow-sm">
+              <Hourglass className="size-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-center gap-2 font-display text-xl font-bold text-green-dark">
+                خدمات العمرة
+                <span className="rounded-full bg-maroon px-2.5 py-0.5 text-xs font-bold text-white">قريباً</span>
+              </p>
+              <p className="mt-1 text-ink-soft">نعمل على إضافة التسجيل في رحلات العمرة والجهات المعتمدة ومتابعة الطلب. وحتى ذلك الحين، مسار «فقه العمرة» متاح في الأكاديمية.</p>
+            </div>
+            <span className="flex items-center gap-1.5 font-bold text-green-dark transition group-hover:gap-3">
+              اعرف المزيد <ArrowLeft className="size-5" />
+            </span>
+          </Link>
+        </Reveal>
       </section>
 
       <Journey />

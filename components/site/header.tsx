@@ -12,6 +12,10 @@ import { getPerson } from "@/lib/registry";
 import { MORE, NAV } from "@/lib/nav";
 import { cn, hijriDate } from "@/lib/utils";
 
+function SoonBadge() {
+  return <span className="rounded-full bg-gold/35 px-2 py-0.5 text-[11px] font-bold text-maroon">قريباً</span>;
+}
+
 function TopBar() {
   const hydrated = useHydrated();
   const [now, setNow] = useState(() => new Date());
@@ -141,7 +145,10 @@ export function Header() {
                     <div className="overflow-hidden rounded-2xl border border-gold/30 bg-white p-2 shadow-2xl">
                       {MORE.map((m) => (
                         <Link key={m.href} href={m.href} className="block rounded-xl p-3 hover:bg-sand">
-                          <span className="block font-bold text-green-dark">{m.label}</span>
+                          <span className="flex items-center gap-2 font-bold text-green-dark">
+                            {m.label}
+                            {m.soon && <SoonBadge />}
+                          </span>
                           <span className="text-xs text-hint">{m.note}</span>
                         </Link>
                       ))}
@@ -201,7 +208,7 @@ export function Header() {
               className="overflow-hidden xl:hidden"
             >
               <div className="mx-auto grid max-w-7xl gap-1 px-4 pb-6">
-                {[...NAV, ...MORE].map((item, i) => (
+                {[...NAV.map((n) => ({ ...n, soon: false })), ...MORE].map((item, i) => (
                   <motion.div key={item.href} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
                     <Link
                       href={item.href}
@@ -210,7 +217,10 @@ export function Header() {
                         isActive(item.href) ? "bg-green-dark text-white" : "text-ink hover:bg-sand",
                       )}
                     >
-                      {item.label}
+                      <span className="flex items-center gap-2">
+                        {item.label}
+                        {item.soon && <SoonBadge />}
+                      </span>
                     </Link>
                   </motion.div>
                 ))}

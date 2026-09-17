@@ -8,7 +8,10 @@ export const NAV = [
   { href: "/about", label: "من نحن" },
 ];
 
-export const MORE = [
+export type MoreItem = { href: string; label: string; note: string; soon?: boolean };
+
+export const MORE: MoreItem[] = [
+  { href: "/umrah", label: "العمرة", note: "خدمات العمرة على المنصة", soon: true },
   { href: "/conditions", label: "شروط التسجيل والتكاليف", note: "مع فحص أهلية مبدئي" },
   { href: "/verify", label: "التحقق من الجهات والوثائق", note: "حملات معتمدة، إيصالات، شهادات" },
   { href: "/administrator", label: "بوابة الإداريين", note: "التقديم، الامتحان، تشكيل المجموعة" },

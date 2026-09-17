@@ -64,8 +64,14 @@ export function Footer() {
             <li><Link href="/portal/apply" className="transition hover:text-gold">تقديم طلب حج</Link></li>
             <li><Link href="/portal/application" className="transition hover:text-gold">متابعة الطلب</Link></li>
             {MORE.map((m) => (
-              <li key={m.href}><Link href={m.href} className="transition hover:text-gold">{m.label}</Link></li>
-            ))}          </ul>
+              <li key={m.href}>
+                <Link href={m.href} className="inline-flex items-center gap-2 transition hover:text-gold">
+                  {m.label}
+                  {m.soon && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-gold">قريباً</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div>
