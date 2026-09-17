@@ -23,7 +23,7 @@ import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
 import { PERMISSION_LABELS, type Permission, type StaffUser } from "@/lib/staff";
 import { actions, useHydrated } from "@/lib/store";
-import { cn, hijriDate } from "@/lib/utils";
+import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useReviewQueue, useTicketQueue } from "./data";
 import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
 
@@ -45,7 +45,7 @@ export function StaffFrame({ children }: { children: ReactNode }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const user = useStaffUser();
-  const isLogin = pathname === "/staff";
+  const isLogin = samePath(pathname, "/staff");
 
   useEffect(() => {
     if (hydrated && !user && !isLogin) router.replace("/staff");

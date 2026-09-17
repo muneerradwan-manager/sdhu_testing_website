@@ -5,6 +5,12 @@ export function asset(path: string) {
   return `${base}${path}`;
 }
 
+/** Path equality that ignores a trailing slash — GitHub Pages serves "/staff/" where the dev server serves "/staff" */
+export function samePath(a: string, b: string) {
+  const norm = (p: string) => p.replace(/\/+$/, "") || "/";
+  return norm(a) === norm(b);
+}
+
 /** true on the static GitHub Pages build (no server routes) */
 export const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === "true";
 

@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Briefcase, Compass, Landmark, Loader2, UserRound
 import { useCallback, useEffect, useState } from "react";
 import { SpeakButton } from "@/components/ui/widgets";
 import { actions, useHydrated, useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, samePath } from "@/lib/utils";
 
 /**
  * Guided tour (جولة تعريفية) — an onboarding walkthrough, not a page of its own.
@@ -30,8 +30,6 @@ const HEADER = 84; // fixed header height once collapsed
 const PAD = 10;
 const CARD_HEIGHT = 250; // estimate before the card has rendered
 
-/** GitHub Pages serves "/academy/", locally it is "/academy" */
-const samePath = (a: string, b: string) => (a.replace(/\/+$/, "") || "/") === (b.replace(/\/+$/, "") || "/");
 
 type Box = { top: number; left: number; width: number; height: number };
 

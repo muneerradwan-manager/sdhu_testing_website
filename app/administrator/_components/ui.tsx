@@ -21,7 +21,7 @@ import { Emblem } from "@/components/brand/logo";
 import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { actions, useHydrated, useStore } from "@/lib/store";
-import { cn, formatUSD } from "@/lib/utils";
+import { cn, formatUSD, samePath } from "@/lib/utils";
 import { logAdmin, useAdmin } from "../_lib/admin";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -70,7 +70,7 @@ export function AdminNav() {
     <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
       <nav aria-label="أقسام حساب الإداري" className="scrollbar-none -mx-4 flex max-w-full gap-1 overflow-x-auto px-4 md:mx-0 md:rounded-2xl md:border md:border-white/15 md:bg-white/8 md:p-1 md:px-1 md:backdrop-blur-md">
         {NAV.map((n) => {
-          const active = pathname === n.href;
+          const active = samePath(pathname, n.href);
           return (
             <Link
               key={n.href}
