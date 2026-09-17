@@ -1,26 +1,152 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ───────────────────────── Brand tokens ───────────────────────── */
+@theme {
+  --color-green-dark: #00594f;
+  --color-green: #016d5d;
+  --color-green-light: #289e92;
+  --color-maroon-dark: #420023;
+  --color-maroon: #672146;
+  --color-maroon-light: #7a2631;
+  --color-gold-dark: #ad9e6e;
+  --color-gold: #d9c89e;
+  --color-gold-light: #e4ddd3;
+  --color-ink: #021526;
+  --color-ink-soft: #4a4a4a;
+  --color-hint: #62748e99;
+  --color-sand: #f7f4ef;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-qomra), system-ui, sans-serif;
+  --font-display: var(--font-qomra), system-ui, sans-serif;
+  --font-quran: var(--font-amiri), serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-spin-slow: spin 40s linear infinite;
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-pulse-ring: pulse-ring 2s var(--ease-out-expo) infinite;
+
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(50%); }
+  }
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 45%, transparent); }
+    100% { box-shadow: 0 0 0 18px transparent; }
   }
 }
 
+/* ───────────────────────── Base ───────────────────────── */
+:root {
+  /* Elderly-friendly text scaling, driven by the accessibility bar */
+  --text-scale: 1;
+  color-scheme: light;
+}
+
+html {
+  font-size: calc(16px * var(--text-scale));
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-sand);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-green-light);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ───────────────────────── Utilities ───────────────────────── */
+@utility text-balance {
+  text-wrap: balance;
+}
+
+/* Islamic 8-point star lattice, tinted with currentColor */
+@utility bg-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%23D9C89E' stroke-width='1' opacity='.55'%3E%3Cpath d='M40 8l9.4 22.6L72 40l-22.6 9.4L40 72l-9.4-22.6L8 40l22.6-9.4z'/%3E%3Cpath d='M17.4 17.4h45.2v45.2H17.4z'/%3E%3Ccircle cx='40' cy='40' r='6'/%3E%3Cpath d='M0 0l17.4 17.4M80 0L62.6 17.4M0 80l17.4-17.4M80 80L62.6 62.6'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 80px 80px;
+}
+
+@utility bg-pattern-dark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%2300594F' stroke-width='1' opacity='.09'%3E%3Cpath d='M40 8l9.4 22.6L72 40l-22.6 9.4L40 72l-9.4-22.6L8 40l22.6-9.4z'/%3E%3Cpath d='M17.4 17.4h45.2v45.2H17.4z'/%3E%3Ccircle cx='40' cy='40' r='6'/%3E%3Cpath d='M0 0l17.4 17.4M80 0L62.6 17.4M0 80l17.4-17.4M80 80L62.6 62.6'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 80px 80px;
+}
+
+@utility text-gold-shine {
+  background: linear-gradient(100deg, #ad9e6e 20%, #fff6dc 40%, #d9c89e 60%, #ad9e6e 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-shimmer);
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, #e4ddd3 25%, #f7f4ef 50%, #e4ddd3 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Ticket perforation used by boarding passes and receipts */
+@utility perforated {
+  background-image: radial-gradient(circle at 0 50%, var(--color-sand) 10px, transparent 11px),
+    radial-gradient(circle at 100% 50%, var(--color-sand) 10px, transparent 11px);
+}
+
+/* ───────────────────────── View transitions ───────────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+}
+
+::view-transition-old(.page) {
+  animation: 180ms ease-in both vt-fade-out, 220ms ease-in both vt-slide-out;
+}
+::view-transition-new(.page) {
+  animation: 320ms var(--ease-out-expo) 60ms both vt-fade-in, 420ms var(--ease-out-expo) 60ms both vt-slide-in;
+}
+
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
+@keyframes vt-slide-out { to { transform: translateY(-12px); } }
+@keyframes vt-slide-in { from { transform: translateY(18px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
