@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Amiri } from "next/font/google";
 import localFont from "next/font/local";
 import { ViewTransition } from "react";
+import { GuidedTour } from "@/components/app/tour";
+import { PwaSupport } from "@/components/app/pwa";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/widgets";
@@ -31,6 +33,13 @@ export const metadata: Metadata = {
     template: "%s | المنصة الوطنية للحج",
   },
   description: "منصة تجريبية تعرض رحلة الحاج السوري كاملة: الأكاديمية، مواقيت الصلاة، الأخبار، التسجيل والقرعة ومتابعة الطلب. جميع البيانات وهمية.",
+  applicationName: "منصة الحج",
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  appleWebApp: { capable: true, title: "منصة الحج", statusBarStyle: "black-translucent" },
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
@@ -47,6 +56,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <main className="flex-1">{children}</main>
           </ViewTransition>
           <Footer />
+          <GuidedTour />
+          <PwaSupport />
         </ToastProvider>
       </body>
     </html>

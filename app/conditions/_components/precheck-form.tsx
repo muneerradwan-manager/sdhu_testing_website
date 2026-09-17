@@ -5,6 +5,7 @@ import { CircleCheck, CircleX, Info, LoaderCircle, RotateCcw, ShieldCheck, Steth
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { precheck } from "@/lib/rules";
 import { SEASON } from "@/lib/season";
+import { useSeason } from "@/lib/season-live";
 import { cn } from "@/lib/utils";
 
 type Result = ReturnType<typeof precheck>;
@@ -40,6 +41,7 @@ function Field({ label, children, hint }: { label: string; children: ReactNode; 
 }
 
 export function PrecheckForm() {
+  const season = useSeason();
   const [birthYear, setBirthYear] = useState("1948");
   const [gender, setGender] = useState<"M" | "F">("F");
   const [role, setRole] = useState<"applicant" | "companion">("applicant");
@@ -78,7 +80,7 @@ export function PrecheckForm() {
           hajjBefore: hajjBefore === "yes",
           escortingMotherOrWife: hajjBefore === "yes" && gender === "M" && escorting === "yes",
           terminal: terminal === "yes",
-        }),
+        }, season.rules),
       );
       setChecking(false);
     }, 900);

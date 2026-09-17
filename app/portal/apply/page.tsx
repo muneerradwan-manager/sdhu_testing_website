@@ -25,7 +25,8 @@ import { Badge, useToast } from "@/components/ui/widgets";
 import { applicationNumberFor } from "@/lib/journey";
 import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
 import { evaluate, type Member } from "@/lib/rules";
-import { OFFICES, SEASON } from "@/lib/season";
+import { OFFICES } from "@/lib/season";
+import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { BookletPicker, type Book } from "./_components/booklet";
@@ -79,6 +80,7 @@ export default function ApplyPage() {
   const existing = useStore((s) => s.applications[s.sessionId ?? ""]);
   const scale = useStore((s) => s.textScale);
   const me = getPerson(sessionId)!;
+  const season = useSeason();
 
   const [history, setHistory] = useState<Screen[]>(["intro"]);
   const screen = history[history.length - 1];
@@ -92,7 +94,7 @@ export default function ApplyPage() {
 
   const applicant = members.find((m) => m.relation === "self")?.person ?? null;
   const companions = members.filter((m) => m.relation !== "self");
-  const result = useMemo(() => evaluate(members), [members]);
+  const result = useMemo(() => evaluate(members, season.rules), [members, season.rules]);
   const number = applicant ? applicationNumberFor(sessionId) : "";
   const receipt = `1448-R-${number.padStart(6, "0")}`;
   const scenario = DEMO_SCENARIOS.find((s) => s.id === (applicant?.id ?? sessionId));
@@ -110,7 +112,7 @@ export default function ApplyPage() {
     setMembers((ms) => ms.filter((m) => m.person.id !== id).map((m) => (m.companionId === id ? { ...m, companionId: undefined } : m)));
   const patchMember = (id: string, patch: Partial<Member>) => setMembers((ms) => ms.map((m) => (m.person.id === id ? { ...m, ...patch } : m)));
 
-  const elderly = members.filter((m) => birthYear(m.person) <= SEASON.rules.elderlyNeedsCompanionMaxBirthYear);
+  const elderly = members.filter((m) => birthYear(m.person) <= season.rules.elderlyNeedsCompanionMaxBirthYear);
   const unresolvedElderly = elderly.find((e) => !e.companionId || !members.some((m) => m.person.id === e.companionId));
 
   const afterHealth = () => go(elderly.length ? "elderly" : "eligibility");
@@ -128,9 +130,16 @@ export default function ApplyPage() {
       governorate: office.governorate,
       office: office.office || OFFICES.find((o) => o.governorate === office.governorate)?.offices[0] || "",
       receipt,
-      paid: members.length * SEASON.fees.registrationPerPerson,
+      paid: members.length * season.fees.registrationPerPerson,
       payMethod: method,
       ratings: {},
+    });
+    actions.logEvent({
+      actor: me.firstName + " " + me.lastName,
+      role: "حاج",
+      action: "تقديم طلب حج",
+      target: `طلب ${number}`,
+      detail: `${members.length} أفراد — ${result.members.some((m) => m.checks.some((c) => c.status === "warn")) ? "يحتاج مراجعة" : "مستوفٍ تلقائياً"} — الإيصال ${receipt}`,
     });
     confetti({ particleCount: 180, spread: 100, origin: { y: 0.35 }, colors: ["#D9C89E", "#00594F", "#289E92", "#AD9E6E", "#672146"] });
     toast({ title: `تم استلام طلبك رقم ${number}`, body: `لـ ${members.length} أفراد، وتم تسديد رسم التسجيل الأولي (الإيصال ${receipt}).`, icon: "📨", tone: "success" });
@@ -197,7 +206,7 @@ export default function ApplyPage() {
             )}
             {members.length > 0 && (
               <p className="mt-3 border-t border-gold-light pt-3 text-sm">
-                رسم التسجيل: <span className="font-bold text-green-dark">{members.length * SEASON.fees.registrationPerPerson} $</span>
+                رسم التسجيل: <span className="font-bold text-green-dark">{members.length * season.fees.registrationPerPerson} $</span>
               </p>
             )}
           </div>
@@ -251,7 +260,7 @@ export default function ApplyPage() {
                     {[
                       { e: "🪪", t: "بطاقتك الشخصية", s: "وبطاقات مرافقيك أو دفتر العائلة" },
                       { e: "📷", t: "صور الجوازات", s: "والصور الشخصية" },
-                      { e: "💳", t: `${SEASON.fees.registrationPerPerson} دولاراً للفرد`, s: "رسم التسجيل الأولي" },
+                      { e: "💳", t: `${season.fees.registrationPerPerson} دولاراً للفرد`, s: "رسم التسجيل الأولي" },
                     ].map((x, i) => (
                       <motion.div key={x.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.08 }} className="rounded-3xl bg-sand p-5">
                         <span className="text-3xl">{x.e}</span>
@@ -376,7 +385,7 @@ export default function ApplyPage() {
                 <Question
                   step="السؤال 2"
                   title={applicant.id === sessionId ? "هل تود أن تصطحب أحداً معك؟" : `هل سيرافق ${applicant.firstName} أحد؟`}
-                  hint={`يمكن إضافة حتى ${SEASON.rules.maxCompanions} مرافقين، وحتى ${SEASON.rules.maxCompanionsFamily} للرجل مع زوجته وأولاده. الطلب العائلي يُقبل كوحدة واحدة.`}
+                  hint={`يمكن إضافة حتى ${season.rules.maxCompanions} مرافقين، وحتى ${season.rules.maxCompanionsFamily} للرجل مع زوجته وأولاده. الطلب العائلي يُقبل كوحدة واحدة.`}
                   speak="هل تود أن تصطحب أحداً معك؟ نعم، أو لا."
                 >
                   <div className="grid gap-4 md:grid-cols-2">
@@ -448,7 +457,7 @@ export default function ApplyPage() {
                 <Question step="السؤال 4" title="كم شخصاً تريد أن تصطحب؟" speak="كم شخصاً تريد أن تصطحب؟ واحد، اثنان، أو ثلاثة." hint="العدد 4 و5 متاح فقط للرجل مع زوجته وأولاده.">
                   <div className="grid grid-cols-3 gap-3 md:grid-cols-5">
                     {[1, 2, 3, 4, 5].map((n, i) => {
-                      const locked = n > SEASON.rules.maxCompanions && applicant.gender !== "M";
+                      const locked = n > season.rules.maxCompanions && applicant.gender !== "M";
                       return (
                         <motion.button
                           key={n}
@@ -464,7 +473,7 @@ export default function ApplyPage() {
                           }}
                           className={cn(
                             "aspect-square rounded-3xl border-2 font-display text-5xl font-bold transition disabled:opacity-30",
-                            n > SEASON.rules.maxCompanions ? "border-dashed border-gold-dark text-gold-dark" : "border-gold/60 bg-white text-green-dark hover:border-green-dark hover:bg-green-dark hover:text-white",
+                            n > season.rules.maxCompanions ? "border-dashed border-gold-dark text-gold-dark" : "border-gold/60 bg-white text-green-dark hover:border-green-dark hover:bg-green-dark hover:text-white",
                           )}
                         >
                           {n}
@@ -535,7 +544,7 @@ export default function ApplyPage() {
                       </motion.div>
                     ))}
                   </div>
-                  {companions.length < SEASON.rules.maxCompanionsFamily && (
+                  {companions.length < season.rules.maxCompanionsFamily && (
                     <button
                       onClick={() => {
                         setAdderReturn("review");
@@ -677,8 +686,8 @@ export default function ApplyPage() {
                   const candidates = members.filter(
                     (m) =>
                       m.person.id !== target.person.id &&
-                      birthYear(m.person) > SEASON.rules.elderlyNeedsCompanionMaxBirthYear &&
-                      birthYear(m.person) <= SEASON.rules.companionMaxBirthYear &&
+                      birthYear(m.person) > season.rules.elderlyNeedsCompanionMaxBirthYear &&
+                      birthYear(m.person) <= season.rules.companionMaxBirthYear &&
                       !taken.includes(m.person.id),
                   );
                   const t = target.person;
@@ -703,7 +712,7 @@ export default function ApplyPage() {
                         </div>
                       ) : (
                         <div className="rounded-3xl bg-gold/20 p-5">
-                          <p className="font-bold text-maroon">لا يوجد في الطلب شخص يمكنه أن يكون مرافقاً ({SEASON.rules.companionMaxBirthYear} فما قبل، ودون 69 عاماً، وغير مرافق لشخص آخر).</p>
+                          <p className="font-bold text-maroon">لا يوجد في الطلب شخص يمكنه أن يكون مرافقاً ({season.rules.companionMaxBirthYear} فما قبل، ودون 69 عاماً، وغير مرافق لشخص آخر).</p>
                           <Button
                             className="mt-4"
                             onClick={() => {

@@ -62,6 +62,10 @@ const PEOPLE: Person[] = [
   P({ id: "02033300552", firstName: "ريم", fatherName: "سامر", motherName: "منى", lastName: "النجار", gender: "F", birthDate: "1990-10-10", birthPlace: "حلب", governorate: "حلب", registry: "الجميلية 0550", maritalStatus: "عزباء", familyBookNo: "33300550", fatherId: "02033300550", motherId: "02033300551", phoneTail: "552" }),
   P({ id: "02033300553", firstName: "مازن", fatherName: "سامر", motherName: "منى", lastName: "النجار", gender: "M", birthDate: "1994-04-04", birthPlace: "حلب", governorate: "حلب", registry: "الجميلية 0550", maritalStatus: "عازب", familyBookNo: "33300550", fatherId: "02033300550", motherId: "02033300551", phoneTail: "553" }),
 
+  // ── الإداريون (الجزء الثاني) — أحمد رئيس المجموعة 27 ──
+  P({ id: "01033300871", firstName: "أحمد", fatherName: "سليمان", motherName: "رجاء", lastName: "الحمصي", gender: "M", birthDate: "1990-02-14", birthPlace: "دمشق", governorate: "دمشق", registry: "كفرسوسة 0871", maritalStatus: "متزوج", familyBookNo: "56000871", phoneTail: "871" }),
+  P({ id: "01033300872", firstName: "ياسر", fatherName: "عبد الله", motherName: "هدى", lastName: "العبد الله", gender: "M", birthDate: "1986-09-03", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0872", maritalStatus: "متزوج", familyBookNo: "56000872", phoneTail: "872" }),
+
   // ── ياسين، جار محمد — مسجّل في طلب آخر هذا الموسم ──
   P({ id: "01011100208", firstName: "ياسين", fatherName: "خليل", motherName: "مريم", lastName: "العمر", gender: "M", birthDate: "1970-03-21", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 3981", maritalStatus: "متزوج", familyBookNo: "12003981", otherApplication: "3981", phoneTail: "208" }),
 ];

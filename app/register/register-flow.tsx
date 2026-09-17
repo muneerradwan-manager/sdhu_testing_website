@@ -35,6 +35,7 @@ export function RegisterFlow() {
   const router = useRouter();
   const toast = useToast();
   const accounts = useStore((s) => s.accounts);
+  const admins = useStore((s) => s.admins);
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [form, setForm] = useState({ nationalId: "", phone: "", email: "", password: "" });
@@ -61,6 +62,8 @@ export function RegisterFlow() {
     password: form.password.length < 6 && "كلمة المرور 6 أحرف على الأقل",
   };
   const exists = isValidNationalId(form.nationalId) && accounts[form.nationalId];
+  /** One account type per person: an administrator cannot also hold a pilgrim account */
+  const isAdmin = isValidNationalId(form.nationalId) && !!admins[form.nationalId];
   const strength = Math.min(4, [/.{8,}/, /\d/, /[A-Za-z]/, /[^A-Za-z0-9]/].filter((r) => r.test(form.password)).length);
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export function RegisterFlow() {
 
   const sendOtp = () => {
     setTouched(true);
-    if (Object.values(errors).some(Boolean) || exists) return;
+    if (Object.values(errors).some(Boolean) || exists || isAdmin) return;
     setOtp("");
     setResendIn(60);
     go(2);
@@ -193,14 +196,22 @@ export function RegisterFlow() {
                       متابعة <ArrowLeft className="size-5 transition group-hover:-translate-x-1" />
                     </span>
                   </motion.button>
-                  <div className="relative rounded-3xl border-2 border-dashed border-gold/60 bg-sand p-7 text-right opacity-80">
-                    <span className="grid size-16 place-items-center rounded-2xl bg-white text-green-dark">
-                      <Briefcase className="size-8" />
-                    </span>
-                    <p className="mt-5 font-display text-3xl font-bold text-ink">إداري</p>
-                    <p className="mt-2 leading-7 text-ink-soft">رئيس مجموعة، معاون، موجّه، منسق تقني... للعمل مع الحجاج في الموسم.</p>
-                    <span className="mt-5 inline-block rounded-full bg-maroon/10 px-3 py-1 text-xs font-bold text-maroon">غير متاح في هذه النسخة التجريبية</span>
-                  </div>
+                  <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} className="h-full">
+                    <Link
+                      href="/administrator/register"
+                      className="group relative block h-full overflow-hidden rounded-3xl border-2 border-maroon bg-gradient-to-br from-maroon-dark to-maroon p-7 text-right text-white shadow-xl"
+                    >
+                      <div className="bg-pattern absolute inset-0 opacity-15" />
+                      <span className="relative grid size-16 place-items-center rounded-2xl bg-gold text-maroon-dark">
+                        <Briefcase className="size-8" />
+                      </span>
+                      <p className="relative mt-5 font-display text-3xl font-bold">إداري</p>
+                      <p className="relative mt-2 leading-7 text-white/75">رئيس مجموعة، معاون، موجّه، منسق تقني... للعمل مع الحجاج في الموسم.</p>
+                      <span className="relative mt-5 inline-flex items-center gap-2 font-bold text-gold">
+                        متابعة <ArrowLeft className="size-5 transition group-hover:-translate-x-1" />
+                      </span>
+                    </Link>
+                  </motion.div>
                 </div>
                 <p className="mt-6 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
                   لماذا لا يوجد خيار «موظف»؟ لأن حساب الموظف لا يُنشأ ذاتياً؛ بل يُنشئه له موظف يملك هذه الصلاحية ويمنحه صلاحياته واحدة واحدة.
@@ -223,7 +234,7 @@ export function RegisterFlow() {
                 <Field
                   label="الرقم الوطني"
                   hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية"
-                  error={touched && (errors.nationalId || (exists ? "هذا الرقم لديه حساب بالفعل، سجّل الدخول بدلاً من ذلك" : false))}
+                  error={touched && (errors.nationalId || (exists ? "هذا الرقم لديه حساب بالفعل، سجّل الدخول بدلاً من ذلك" : isAdmin ? "هذا الرقم مسجّل بحساب «إداري». لكل شخص نوع حساب واحد فقط في المنصة" : false))}
                 >
                   <div className="relative">
                     <IdCard className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-gold-dark" />

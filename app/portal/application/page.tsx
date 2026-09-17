@@ -16,7 +16,8 @@ import {
   FileSignature,
   Home,
   Landmark,
-  Loader2,
+  Lock,
+  MapPinned,
   MessageCircle,
   Moon,
   Phone,
@@ -35,12 +36,16 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { CLUSTER, FLIGHTS, GROUP, ITINERARY, PLACES, REVEAL, TRACK, assign, costsFor } from "@/lib/journey";
+import { CLUSTER, FLIGHTS, GROUP, ITINERARY, PLACES, TRACK, assign } from "@/lib/journey";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
+import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { BoardingPass, HajjCard } from "./_components/cards";
+import { PostChecklist } from "./_components/post/checklist";
+import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines } from "./_components/post/model";
+import { ReviewBanner } from "./_components/review-banner";
 import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageSubmitted } from "./_components/stages";
 
 const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon: string; tone: "success" | "info" | "gold" }> = {
@@ -51,19 +56,27 @@ const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon:
   accepted: { title: "مبارك! تم قبول طلبك", body: (n) => `تم اختيار طلبك رقم ${n} لأداء فريضة الحج لموسم 1448هـ.`, icon: "🕋", tone: "success" },
 };
 
-const SECTIONS = [
-  { id: "steps", label: "الخطوات" },
-  { id: "cards", label: "البطاقات" },
-  { id: "flights", label: "الرحلات" },
-  { id: "makkah", label: "فندق مكة" },
-  { id: "madinah", label: "فندق المدينة" },
-  { id: "mashaer", label: "المشاعر" },
-  { id: "itinerary", label: "البرنامج" },
-  { id: "group", label: "المجموعة" },
-  { id: "payments", label: "الإيصالات" },
+type Unlock = "always" | "group" | "payments" | "trip";
+
+const SECTIONS: { id: string; label: string; unlock: Unlock }[] = [
+  { id: "steps", label: "الخطوات", unlock: "always" },
+  { id: "cards", label: "البطاقات", unlock: "trip" },
+  { id: "flights", label: "الرحلات", unlock: "trip" },
+  { id: "makkah", label: "فندق مكة", unlock: "trip" },
+  { id: "madinah", label: "فندق المدينة", unlock: "trip" },
+  { id: "mashaer", label: "المشاعر", unlock: "trip" },
+  { id: "itinerary", label: "البرنامج", unlock: "trip" },
+  { id: "group", label: "المجموعة", unlock: "group" },
+  { id: "payments", label: "الإيصالات", unlock: "payments" },
 ];
 
-function Section({ id, title, icon, children, ready, eyebrow }: { id: string; title: string; icon: ReactNode; children: ReactNode; ready: boolean; eyebrow?: string }) {
+const LOCK_HINT: Record<Exclude<Unlock, "always">, string> = {
+  group: "يُفتح بعد موافقة رئيس المجموعة على انتسابكم (الخطوة 3)",
+  payments: "يُفتح بعد التسديد وتوقيع العقد (الخطوة 4)",
+  trip: "يُفتح بعد صدور التأشيرة (الخطوة 5)",
+};
+
+function Section({ id, title, icon, children, ready, eyebrow, lockedHint }: { id: string; title: string; icon: ReactNode; children: ReactNode; ready: boolean; eyebrow?: string; lockedHint?: string }) {
   return (
     <section id={id} className="scroll-mt-40">
       <div className="mb-5 flex items-center gap-3">
@@ -79,9 +92,13 @@ function Section({ id, title, icon, children, ready, eyebrow }: { id: string; ti
             {children}
           </motion.div>
         ) : (
-          <motion.div key="loading" exit={{ opacity: 0 }} className="rounded-[2rem] border border-dashed border-gold-dark/50 bg-white/60 p-8">
-            <div className="flex items-center gap-3 text-gold-dark">
-              <Loader2 className="size-5 animate-spin" /> <span className="font-bold">جارٍ التخصيص... لم يُحدَّد بعد</span>
+          <motion.div key="loading" exit={{ opacity: 0, scale: 0.98 }} className="rounded-[2rem] border border-dashed border-gold-dark/50 bg-white/60 p-8">
+            <div className="flex flex-wrap items-center gap-3 text-gold-dark">
+              <span className="grid size-9 place-items-center rounded-full bg-gold/25">
+                <Lock className="size-4" />
+              </span>
+              <span className="text-lg font-bold">لم يُحدَّد بعد</span>
+              {lockedHint && <span className="text-sm text-ink-soft">— {lockedHint}</span>}
             </div>
             <div className="mt-4 space-y-3">
               <div className="skeleton h-5 w-3/4 rounded-full" />
@@ -109,6 +126,10 @@ export default function ApplicationPage() {
   const sessionId = useStore((s) => s.sessionId)!;
   const app = useStore((s) => s.applications[s.sessionId ?? ""]);
   const account = useStore((s) => s.accounts[s.sessionId ?? ""]);
+  const post = useStore((s) => s.post[s.sessionId ?? ""]) ?? EMPTY_POST;
+  const review = useStore((s) => s.reviews[s.sessionId ?? ""]);
+  const admins = useStore((s) => s.admins);
+  const { fees } = useSeason();
   const [now, setNow] = useState(() => Date.now());
   const [mashaer, setMashaer] = useState<"mina" | "arafat" | "muzdalifah" | "jamarat">("mina");
   const [sos, setSos] = useState<null | "pick" | "sent">(null);
@@ -132,7 +153,7 @@ export default function ApplicationPage() {
     () => (app ? assign(app.members, (m) => (m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender))) : []),
     [app],
   );
-  const costs = useMemo(() => (app ? costsFor(app.members) : null), [app]);
+  const lines = useMemo(() => (app ? costLines(app, fees) : []), [app, fees]);
 
   // Notifications + celebration on live transitions
   useEffect(() => {
@@ -154,7 +175,7 @@ export default function ApplicationPage() {
     lastStage.current = stage.key;
   }, [stage.key, app, toast]);
 
-  if (!app || !applicant || !costs) {
+  if (!app || !applicant) {
     return (
       <PortalShell title="متابعة الطلب">
         <Card className="text-center">
@@ -168,7 +189,9 @@ export default function ApplicationPage() {
     );
   }
 
-  const revealed = (k: keyof typeof REVEAL) => elapsed >= REVEAL[k];
+  const unlocked: Record<Unlock, boolean> = { always: true, group: !!post.groupApprovedAt, payments: !!post.contractSignedAt, trip: !!post.visaAt };
+  const rejected = review?.status === "rejected";
+  const total = lines.reduce((a, l) => a + l.amount, 0);
   const emergency = account?.emergencyName ? `${account.emergencyName} ${account.emergencyPhone ?? ""}` : "غرفة العمليات 920-1448";
   const women = assignments.filter((a) => a.person.gender === "F");
   const men = assignments.filter((a) => a.person.gender === "M");
@@ -198,6 +221,8 @@ export default function ApplicationPage() {
         </span>
       }
     >
+      {review && <ReviewBanner app={app} review={review} sessionId={sessionId} />}
+
       {/* ── Status tracker ── */}
       <Card className="relative overflow-hidden md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -211,6 +236,9 @@ export default function ApplicationPage() {
             variant="ghost"
             onClick={() => {
               actions.restartTracking(sessionId);
+              actions.setPost(sessionId, RESET_POST);
+              clearJoinDecisions(sessionId, admins);
+              actions.setInSeason(sessionId, { day: 0, ratings: {}, lostReports: 0 });
               celebrated.current = false;
               lastStage.current = "submitted";
             }}
@@ -262,7 +290,16 @@ export default function ApplicationPage() {
               {stage.key === "eligible" && <StageEligible app={app} />}
               {stage.key === "direct" && <StageDirect age={ageOf(applicant.person)} />}
               {stage.key === "lottery" && <StageLottery number={app.number} elapsed={elapsed} direct={direct} />}
-              {accepted && (
+              {accepted && rejected && (
+                <div className="flex items-center gap-4 rounded-3xl bg-white p-6 ring-1 ring-maroon/20">
+                  <AlertOctagon className="size-12 shrink-0 text-maroon" />
+                  <div>
+                    <p className="font-display text-2xl font-bold text-maroon">النتيجة معلّقة بقرار المراجعة</p>
+                    <p className="mt-1 text-lg text-ink-soft">راجع سبب القرار في الأعلى، ويمكنك تقديم اعتراض.</p>
+                  </div>
+                </div>
+              )}
+              {accepted && !rejected && (
                 <div className="relative overflow-hidden rounded-3xl bg-green-dark p-6 text-white md:p-10">
                   <div className="bg-pattern absolute inset-0 opacity-20" />
                   <motion.div className="absolute -left-24 -top-24 size-72 rounded-full bg-gold/30 blur-3xl" animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 4 }} />
@@ -274,7 +311,7 @@ export default function ApplicationPage() {
                       <p className="text-gold">{direct ? "مقبول مباشرة وفق الأكبر سناً" : "تم اختيارك بالقرعة الإلكترونية"}</p>
                       <p className="mt-1 font-display text-3xl font-bold md:text-5xl">مبارك! تم قبول طلبك</p>
                       <p className="mt-3 max-w-2xl leading-8 text-white/80">
-                        طلب عائلي رقم {app.number} ({app.members.length} أفراد) لأداء فريضة الحج لموسم 1448هـ. أدناه كل ما يخص رحلتكم، ويُملأ تباعاً.
+                        طلب عائلي رقم {app.number} ({app.members.length} أفراد) لأداء فريضة الحج لموسم 1448هـ. أكملوا الخطوات أدناه، فتُفتح تفاصيل رحلتكم خطوة بخطوة.
                       </p>
                     </div>
                     <div className="rounded-3xl bg-white/10 p-5 text-center backdrop-blur">
@@ -290,43 +327,52 @@ export default function ApplicationPage() {
       </Card>
 
       {/* ── Dossier ── */}
-      {accepted && (
+      {accepted && !rejected && (
         <div className="mt-8">
           {/* Sticky section nav */}
           <motion.nav initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="scrollbar-none sticky top-20 z-30 -mx-4 mb-8 overflow-x-auto px-4 py-2">
             <div className="flex w-max gap-1.5 rounded-2xl border border-gold/40 bg-white/90 p-1.5 shadow-lg backdrop-blur">
               {SECTIONS.map((s) => (
-                <a key={s.id} href={`#${s.id}`} className="rounded-xl px-3.5 py-2 text-sm font-bold text-ink-soft transition hover:bg-green-dark hover:text-white">
+                <a key={s.id} href={`#${s.id}`} className={cn("flex items-center gap-1 rounded-xl px-3.5 py-2 text-sm font-bold transition hover:bg-green-dark hover:text-white", unlocked[s.unlock] ? "text-ink-soft" : "text-hint")}>
+                  {!unlocked[s.unlock] && <Lock className="size-3" />}
                   {s.label}
                 </a>
               ))}
+              {post.visaAt && (
+                <Link href="/portal/season" className="flex items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-dark hover:text-white">
+                  <MapPinned className="size-4" /> حالتي الآن
+                </Link>
+              )}
             </div>
           </motion.nav>
 
           <div className="space-y-16">
-            <Section id="steps" title="بعد القبول: كل شيء جاهز" icon={<CheckCircle2 className="size-6" />} ready eyebrow="اختصرت المحاكاة أشهر التجهيز">
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-                {[
-                  { t: "تأكيد القبول", d: "4 شعبان", k: "group" as const },
-                  { t: "استكمال الأوراق", d: "اللقاحات والتقرير الطبي", k: "group" as const },
-                  { t: "الانتساب للمجموعة", d: `المجموعة ${GROUP.number}`, k: "group" as const },
-                  { t: "التسديد والعقد", d: "3 إيصالات + عقد موقّع", k: "makkah" as const },
-                  { t: "التأشيرة", d: "صادرة لجميع الأفراد", k: "flights" as const },
-                  { t: "بطاقة الحاج", d: "رقمية + سوار", k: "card" as const },
-                ].map((s, i) => {
-                  const ok = revealed(s.k);
-                  return (
-                    <motion.div key={s.t} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className={cn("rounded-3xl border-2 p-4 transition-colors duration-500", ok ? "border-green-light/50 bg-white" : "border-dashed border-gold/60 bg-white/50")}>
-                      {ok ? <CheckCircle2 className="size-7 text-green-light" /> : <Loader2 className="size-7 animate-spin text-gold-dark" />}
-                      <p className="mt-2 font-bold">{s.t}</p>
-                      <p className="text-xs text-ink-soft">{ok ? s.d : "قيد التنفيذ..."}</p>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </Section>
+            <section id="steps" className="scroll-mt-40">
+              <PostChecklist app={app} post={post} sessionId={sessionId} lines={lines} />
+              <AnimatePresence>
+                {post.visaAt && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative mt-6 overflow-hidden rounded-[2rem] bg-gradient-to-l from-gold-dark via-gold to-gold-light p-6 md:p-8">
+                    <div className="bg-pattern-dark absolute inset-0" />
+                    <div className="relative flex flex-wrap items-center justify-between gap-5">
+                      <div className="flex items-center gap-4">
+                        <motion.span animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.4 }} className="grid size-16 place-items-center rounded-2xl bg-green-dark text-gold shadow-xl">
+                          <MapPinned className="size-8" />
+                        </motion.span>
+                        <div>
+                          <p className="font-display text-2xl font-bold text-green-dark md:text-3xl">«حالتي الآن» — رفيقك في الموسم</p>
+                          <p className="text-lg text-ink">أين أنت، وجبتك، حافلتك، الطوارئ، الشكاوى، والمفقودات — يوماً بيوم.</p>
+                        </div>
+                      </div>
+                      <ButtonLink href="/portal/season" size="xl">
+                        افتح حالتي الآن
+                      </ButtonLink>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
 
-            <Section id="cards" title="بطاقات الحجاج الرقمية" icon={<Sparkles className="size-6" />} ready={revealed("card")} eyebrow="تُطبع أيضاً على سوار المعصم">
+            <Section id="cards" title="بطاقات الحجاج الرقمية" icon={<Sparkles className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="تُطبع أيضاً على سوار المعصم">
               <div className="scrollbar-none -mx-4 flex snap-x gap-5 overflow-x-auto px-4 pb-6 pt-2">
                 {assignments.map((a, i) => (
                   <HajjCard key={a.person.id} a={a} emergency={emergency} index={i} />
@@ -335,7 +381,7 @@ export default function ApplicationPage() {
               <p className="text-sm text-hint">عند مسح الرمز يرى الموظف أو الإداري المخوّل ما تسمح به صلاحيته فقط؛ والاحتياجات الطبية للفريق الطبي وحده.</p>
             </Section>
 
-            <Section id="flights" title="رحلة الذهاب والعودة" icon={<Plane className="size-6" />} ready={revealed("flights")} eyebrow="التأشيرة صادرة لجميع أفراد الطلب">
+            <Section id="flights" title="رحلة الذهاب والعودة" icon={<Plane className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="التأشيرة صادرة لجميع أفراد الطلب">
               <div className="grid gap-6 xl:grid-cols-2">
                 <BoardingPass f={FLIGHTS.outbound} label="رحلة الذهاب" seats={assignments.map((a) => ({ name: a.person.firstName, seat: a.seat }))} />
                 <BoardingPass f={FLIGHTS.inbound} label="رحلة العودة" tone="maroon" seats={assignments.map((a) => ({ name: a.person.firstName, seat: a.returnSeat }))} />
@@ -347,7 +393,7 @@ export default function ApplicationPage() {
               )}
             </Section>
 
-            <Section id="makkah" title={PLACES.makkahHotel.name} icon={<Building2 className="size-6" />} ready={revealed("makkah")} eyebrow="السكن في مكة المكرمة">
+            <Section id="makkah" title={PLACES.makkahHotel.name} icon={<Building2 className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="السكن في مكة المكرمة">
               <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -388,7 +434,7 @@ export default function ApplicationPage() {
               </div>
             </Section>
 
-            <Section id="madinah" title={PLACES.madinahHotel.name} icon={<Landmark className="size-6" />} ready={revealed("madinah")} eyebrow="السكن في المدينة المنورة">
+            <Section id="madinah" title={PLACES.madinahHotel.name} icon={<Landmark className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="السكن في المدينة المنورة">
               <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
                 <MapEmbed lat={PLACES.madinahHotel.lat} lng={PLACES.madinahHotel.lng} label={PLACES.madinahHotel.name} zoom={0.008} className="order-last h-full min-h-96 lg:order-first" />
                 <div className="space-y-4">
@@ -414,7 +460,7 @@ export default function ApplicationPage() {
               </div>
             </Section>
 
-            <Section id="mashaer" title="المشاعر المقدسة: المخيمات والمواقع" icon={<Tent className="size-6" />} ready={revealed("camps")} eyebrow="8 – 13 ذو الحجة">
+            <Section id="mashaer" title="المشاعر المقدسة: المخيمات والمواقع" icon={<Tent className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="8 – 13 ذو الحجة">
               <div className="mb-4 flex flex-wrap gap-2">
                 {([
                   ["mina", "منى — مخيم 42"],
@@ -467,7 +513,7 @@ export default function ApplicationPage() {
               </div>
             </Section>
 
-            <Section id="itinerary" title="برنامج الرحلة يوماً بيوم" icon={<CalendarDays className="size-6" />} ready={revealed("camps")}>
+            <Section id="itinerary" title="برنامج الرحلة يوماً بيوم" icon={<CalendarDays className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip}>
               <ol className="relative space-y-4 border-r-2 border-gold-light pr-8">
                 {ITINERARY.map((d, i) => {
                   const Icon = { plane: Plane, hotel: Building2, tent: Tent, sun: Sun, moon: Moon, star: Star, kaaba: Landmark, mosque: Landmark, home: Home }[d.icon];
@@ -490,7 +536,7 @@ export default function ApplicationPage() {
               </ol>
             </Section>
 
-            <Section id="group" title={`المجموعة ${GROUP.number} — ${CLUSTER.name}`} icon={<UsersRound className="size-6" />} ready={revealed("group")} eyebrow={`مستوى الخدمة: ${CLUSTER.level} — ${GROUP.members} من ${GROUP.capacity}`}>
+            <Section id="group" title={`المجموعة ${GROUP.number} — ${CLUSTER.name}`} icon={<UsersRound className="size-6" />} ready={unlocked.group} lockedHint={LOCK_HINT.group} eyebrow={`مستوى الخدمة: ${CLUSTER.level} — ${GROUP.members} من ${GROUP.capacity}`}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {GROUP.team.map((p, i) => (
                   <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="rounded-3xl bg-white p-5 ring-1 ring-gold/30">
@@ -529,13 +575,11 @@ export default function ApplicationPage() {
               </div>
             </Section>
 
-            <Section id="payments" title="التكاليف والإيصالات والعقد" icon={<Receipt className="size-6" />} ready={revealed("makkah")} eyebrow="لكل تكلفة إيصال مستقل قابل للتحقق">
+            <Section id="payments" title="التكاليف والإيصالات والعقد" icon={<Receipt className="size-6" />} ready={unlocked.payments} lockedHint={LOCK_HINT.payments} eyebrow="لكل تكلفة إيصال مستقل قابل للتحقق">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {[
                   { t: "رسم التسجيل الأولي", n: app.receipt, v: app.paid },
-                  { t: `تكلفة الحج (${app.members.length} × ${formatUSD(SEASON.fees.hajjCost)})`, n: `1448-P-${app.number.padStart(6, "0")}-1`, v: costs.hajj },
-                  { t: `الهدي (${app.members.length} × ${formatUSD(SEASON.fees.hady)})`, n: `1448-P-${app.number.padStart(6, "0")}-2`, v: costs.hady },
-                  ...(costs.privateRoom ? [{ t: "فارق الغرفة الخاصة", n: `1448-P-${app.number.padStart(6, "0")}-3`, v: costs.privateRoom }] : []),
+                  ...lines.map((l) => ({ t: `${l.title} (${l.detail})`, n: l.receipt, v: l.amount })),
                 ].map((r, i) => (
                   <motion.div key={r.n} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="overflow-hidden rounded-3xl bg-white ring-1 ring-gold/40">
                     <div className="flex items-center justify-between bg-green-dark px-4 py-3 text-white">
@@ -558,7 +602,7 @@ export default function ApplicationPage() {
                   <FileSignature className="size-10 text-gold-dark" />
                   <div>
                     <p className="font-bold">عقد الحاج مع المجموعة {GROUP.number}</p>
-                    <p className="text-sm text-ink-soft">موقّع إلكترونياً من الطرفين ومصادق عليه من الإدارة — المجموع {formatUSD(costs.total)}</p>
+                    <p className="text-sm text-ink-soft">موقّع إلكترونياً من الطرفين ومصادق عليه من الإدارة — المجموع {formatUSD(total)}</p>
                   </div>
                 </div>
                 <Button variant="outline" onClick={() => toast({ title: "العقد", body: "يُحفظ العقد في خزنة الوثائق في التطبيق.", icon: "📄" })}>عرض العقد</Button>
@@ -585,7 +629,7 @@ export default function ApplicationPage() {
       )}
 
       {/* Emergency */}
-      {accepted && (
+      {accepted && !rejected && post.visaAt && (
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}

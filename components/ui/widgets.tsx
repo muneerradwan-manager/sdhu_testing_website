@@ -234,15 +234,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed inset-x-3 top-3 z-[90] flex flex-col items-center gap-2 sm:left-auto sm:right-4 sm:top-24 sm:w-96 sm:items-stretch">
+      <div className="pointer-events-none fixed inset-x-3 top-3 z-[90] flex flex-col items-center gap-2 sm:left-4 sm:right-auto sm:top-24 sm:w-96 sm:items-stretch">
         <AnimatePresence initial={false}>
           {toasts.map((t) => (
             <motion.div
               layout
               key={t.id}
-              initial={{ opacity: 0, x: 60, scale: 0.9 }}
+              initial={{ opacity: 0, x: -60, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 60, scale: 0.9 }}
+              exit={{ opacity: 0, x: -60, scale: 0.9 }}
               transition={{ type: "spring", damping: 24, stiffness: 280 }}
               className={cn(
                 "pointer-events-auto relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border bg-white/95 p-4 pr-5 shadow-xl backdrop-blur before:absolute before:inset-y-0 before:right-0 before:w-1.5",

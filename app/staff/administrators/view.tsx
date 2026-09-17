@@ -1,0 +1,529 @@
+"use client";
+
+import { AnimatePresence, motion } from "motion/react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  CheckCircle2,
+  ClipboardList,
+  Flag,
+  GraduationCap,
+  Lock,
+  Megaphone,
+  PencilLine,
+  Receipt,
+  Star,
+  UsersRound,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge, Modal, useToast } from "@/components/ui/widgets";
+import { CLUSTERS } from "@/lib/data/clusters";
+import { EVALUATION_ITEMS } from "@/lib/data/staff-seed";
+import { can } from "@/lib/staff";
+import { actions } from "@/lib/store";
+import { cn, formatNumber, maskNationalId } from "@/lib/utils";
+import { patchAdmin, useAdminRows, useAllEvents, type AdminRow } from "../_components/data";
+import { Empty, fmtDateTime, Gate, Kpi, logAs, Meter, PageHeader, Panel, smallInputClass, stamp, Tabs, textareaClass, useStaffUser } from "../_components/kit";
+
+const PASS = 70;
+const round1 = (n: number) => Math.round(n * 10) / 10;
+const finalOf = (written: number | undefined, oral: number) => (written === undefined ? oral : round1(written * 0.6 + oral * 0.4));
+
+type Tab = "exams" | "groups" | "evaluate";
+
+export function AdministratorsView() {
+  return (
+    <Gate perms={["administrators.manage", "groups.approve"]}>
+      <Administrators />
+    </Gate>
+  );
+}
+
+function Administrators() {
+  const rows = useAdminRows();
+  const [tab, setTab] = useState<Tab>("exams");
+  const groups = rows.filter((r) => r.profile.group);
+  const pendingGroups = groups.filter((r) => !r.profile.group?.approvedAt).length;
+  const awaitingOral = rows.filter((r) => !r.profile.oral && (r.profile.exam?.score !== undefined || r.previous)).length;
+  const passed = rows.filter((r) => (r.profile.finalScore ?? 0) >= PASS).length;
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="الجزء الثاني — الإداريون الموسميون"
+        title="الإداريون والمجموعات"
+        icon={<UsersRound />}
+        description="الامتحان الكتابي على المنصة (60%)، والشفهي أمام اللجان خارجها (40%) وتُدخل نتيجته هنا. الحد الأدنى للنجاح 70. ثم طلبات تشكيل المجموعات واعتمادها من مدير المكتب."
+      />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label="المتقدمون للعمل" value={1_380} icon={<UsersRound />} hint={`منهم ${rows.length} في هذه القائمة`} />
+        <Kpi label="بانتظار الشفهي" value={awaitingOral} icon={<PencilLine />} tone="gold" delay={0.05} pulse={awaitingOral > 0} />
+        <Kpi label="ناجحون في القائمة" value={passed} icon={<GraduationCap />} tone="teal" delay={0.1} />
+        <Kpi label="طلبات تشكيل بانتظار الاعتماد" value={pendingGroups} icon={<ClipboardList />} tone="maroon" delay={0.15} />
+      </div>
+
+      <div className="mt-6">
+        <Tabs
+          id="admins"
+          dark
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: "exams", label: "الامتحانات والنتائج", count: rows.length },
+            { value: "groups", label: "طلبات تشكيل المجموعات", count: groups.length },
+            { value: "evaluate", label: "تقييم الإداريين" },
+          ]}
+        />
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} className="mt-4">
+          {tab === "exams" && <Exams rows={rows} />}
+          {tab === "groups" && <Groups rows={groups} />}
+          {tab === "evaluate" && <Evaluate rows={rows} />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ───────────────────────── Exams ─────────────────────────
+
+function Exams({ rows }: { rows: AdminRow[] }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const manage = can(user, "administrators.manage");
+  const [editing, setEditing] = useState<AdminRow | null>(null);
+
+  const publish = (r: AdminRow) => {
+    patchAdmin(r, { resultPublishedAt: stamp() }, actions.upsertAdmin);
+    logAs(user, { action: "اعتماد وإعلان نتيجة التأهيل", target: r.name, after: `${r.profile.finalScore} — ${(r.profile.finalScore ?? 0) >= PASS ? "ناجح" : "غير ناجح"}` });
+    toast({ title: `أُعلنت نتيجة ${r.name.split(" ")[0]}`, body: "وصل الإشعار إلى المتقدم.", tone: "success", icon: "📣" });
+  };
+
+  return (
+    <Panel bodyClass="space-y-3">
+      {!manage && (
+        <p className="flex items-center gap-2 rounded-2xl bg-sand p-3 text-sm text-ink-soft">
+          <Lock className="size-4 text-hint" /> عرض فقط — إدخال نتائج الشفهي من صلاحية شؤون الإداريين.
+        </p>
+      )}
+      {rows.map((r, i) => {
+        const written = r.profile.exam?.score;
+        const oral = r.profile.oral?.score;
+        const final = r.profile.finalScore;
+        const pass = final !== undefined && final >= PASS;
+        return (
+          <motion.div
+            key={r.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04 }}
+            className="grid gap-4 rounded-2xl border border-gold/30 bg-white p-4 transition hover:shadow-md md:grid-cols-[1.4fr_1fr_1fr_1.1fr_auto] md:items-center"
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-green-dark to-green font-display text-lg font-bold text-white">{r.name.replace("الشيخ ", "")[0]}</span>
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-1.5 font-bold text-green-dark">
+                  {r.name}
+                  {!r.seed && <Badge tone="gold">من بوابة الإداريين</Badge>}
+                </p>
+                <p className="text-xs text-hint">
+                  {r.position} · <span dir="ltr">{maskNationalId(r.id)}</span>
+                </p>
+                {r.previous && <p className="text-[11px] text-gold-dark">{r.previous}</p>}
+              </div>
+            </div>
+            <ScoreCell label="الكتابي ×60%" value={written} empty={r.previous ? "معفى" : r.profile.exam?.submittedAt ? "قيد التصحيح" : "لم يُقدَّم"} />
+            <ScoreCell label="الشفهي ×40%" value={oral} empty="بانتظار اللجنة" />
+            <div>
+              <p className="text-[11px] text-hint">النتيجة النهائية</p>
+              {final !== undefined ? (
+                <>
+                  <p className={cn("font-display text-2xl font-bold tabular-nums", pass ? "text-green" : "text-maroon")}>
+                    {final}
+                    <span className="mr-2 align-middle text-xs">{pass ? "ناجح" : "دون 70"}</span>
+                  </p>
+                  <Meter value={final} tone={pass ? "teal" : "maroon"} />
+                </>
+              ) : (
+                <p className="text-sm text-hint">—</p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              {manage && (written !== undefined || r.previous) && (
+                <Button size="sm" variant={oral === undefined ? "primary" : "outline"} onClick={() => setEditing(r)}>
+                  <PencilLine className="size-4" /> {oral === undefined ? "إدخال الشفهي" : "تعديل"}
+                </Button>
+              )}
+              {manage && final !== undefined && !r.profile.resultPublishedAt && (
+                <Button size="sm" variant="gold" onClick={() => publish(r)}>
+                  <Megaphone className="size-4" /> إعلان
+                </Button>
+              )}
+              {r.profile.resultPublishedAt && <Badge tone="green"><CheckCircle2 className="size-3" /> أُعلنت {fmtDateTime(r.profile.resultPublishedAt)}</Badge>}
+            </div>
+          </motion.div>
+        );
+      })}
+      <OralModal row={editing} onClose={() => setEditing(null)} />
+    </Panel>
+  );
+}
+
+function ScoreCell({ label, value, empty }: { label: string; value?: number; empty: string }) {
+  return (
+    <div>
+      <p className="text-[11px] text-hint">{label}</p>
+      {value !== undefined ? <p className="font-display text-xl font-bold tabular-nums text-ink">{value}</p> : <p className="text-sm text-gold-dark">{empty}</p>}
+    </div>
+  );
+}
+
+function OralModal({ row, onClose }: { row: AdminRow | null; onClose: () => void }) {
+  return (
+    <Modal open={!!row} onClose={onClose} className="max-w-xl">
+      {row && <OralForm key={row.id} row={row} onClose={onClose} />}
+    </Modal>
+  );
+}
+
+function OralForm({ row, onClose }: { row: AdminRow; onClose: () => void }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const prev = row.profile.oral;
+  const written = row.profile.exam?.score;
+  const [score, setScore] = useState(prev?.score ?? 80);
+  const [committee, setCommittee] = useState("3");
+  const [note, setNote] = useState(prev?.note ?? "");
+  const [reason, setReason] = useState("");
+  const final = finalOf(written, score);
+  const pass = final >= PASS;
+  const needsReason = !!prev && prev.score !== score;
+
+  const save = () => {
+    if (needsReason && reason.trim().length < 5) {
+      toast({ title: "اكتب سبب التعديل", body: "كل تعديل على نتيجة مدخلة يُسجَّل مع السبب.", tone: "warning", icon: "✍️" });
+      return;
+    }
+    patchAdmin(row, { oral: { score, by: user.name, at: Date.now(), note: note.trim() || undefined }, finalScore: final, resultPublishedAt: undefined }, actions.upsertAdmin);
+    logAs(user, {
+      action: prev ? "تعديل نتيجة الشفهي" : "إدخال نتيجة الشفهي",
+      target: row.name,
+      before: prev ? `${prev.score} من 100` : undefined,
+      after: `${score} من 100 — النهائية ${final}`,
+      detail: [`اللجنة رقم ${committee}`, note.trim(), needsReason ? `السبب: ${reason.trim()}` : ""].filter(Boolean).join(" — "),
+    });
+    toast({ title: "حُفظت نتيجة الشفهي", body: `${row.name}: ${final} — ${pass ? "ناجح" : "دون الحد الأدنى"}. لا تظهر للمتقدم قبل الإعلان.`, tone: pass ? "success" : "gold", icon: pass ? "🎓" : "📝" });
+    onClose();
+  };
+
+  return (
+    <div>
+      <p className="text-xs font-bold text-gold-dark">الامتحان الشفهي — خارج المنصة، ونتيجته على المنصة</p>
+      <h3 className="mt-1 font-display text-xl font-bold text-green-dark">{row.name}</h3>
+      <p className="text-sm text-hint">{row.position}</p>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_7rem]">
+        <label className="block">
+          <span className="mb-1 block text-sm font-bold">درجة الشفهي (0 – 100)</span>
+          <input type="range" min={0} max={100} value={score} onChange={(e) => setScore(Number(e.target.value))} className="w-full accent-[#00594F]" style={{ direction: "ltr" }} aria-label="درجة الشفهي" />
+          <span className="text-xs text-hint">تعادل {round1(score / 5)} من 20 على ورقة اللجنة</span>
+        </label>
+        <input type="number" min={0} max={100} value={score} onChange={(e) => setScore(Math.max(0, Math.min(100, Number(e.target.value) || 0)))} className={cn(smallInputClass, "h-14 text-center font-display text-2xl font-bold")} dir="ltr" aria-label="درجة الشفهي رقماً" />
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-sand p-4">
+        <div className="grid grid-cols-3 items-center gap-2 text-center text-sm">
+          <div>
+            <p className="text-[11px] text-hint">الكتابي</p>
+            <p className="font-bold tabular-nums">{written === undefined ? "معفى" : `${written} × 60% = ${round1(written * 0.6)}`}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-hint">الشفهي</p>
+            <p className="font-bold tabular-nums">{written === undefined ? `${score} × 100%` : `${score} × 40% = ${round1(score * 0.4)}`}</p>
+          </div>
+          <div>
+            <p className="text-[11px] text-hint">النهائية</p>
+            <motion.p key={final} initial={{ scale: 0.8 }} animate={{ scale: 1 }} className={cn("font-display text-3xl font-bold tabular-nums", pass ? "text-green" : "text-maroon")}>
+              {final}
+            </motion.p>
+          </div>
+        </div>
+        <div className="relative mt-3">
+          <Meter value={final} tone={pass ? "teal" : "maroon"} className="h-3" />
+          <span className="absolute -top-1 h-5 w-0.5 bg-ink" style={{ right: `${PASS}%` }} title="الحد الأدنى 70" />
+        </div>
+        <p className={cn("mt-2 text-center text-sm font-bold", pass ? "text-green" : "text-maroon")}>{pass ? "ناجح — مرشّح للصفة" : "دون الحد الأدنى للنجاح (70)"}</p>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-[8rem_1fr]">
+        <label className="block">
+          <span className="mb-1 block text-sm font-bold">اللجنة</span>
+          <select value={committee} onChange={(e) => setCommittee(e.target.value)} className={smallInputClass}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                رقم {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm font-bold">ملاحظات اللجنة</span>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="قوي في السيناريوهات الميدانية..." className={smallInputClass} />
+        </label>
+      </div>
+      {needsReason && (
+        <motion.label initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 block">
+          <span className="mb-1 block text-sm font-bold text-maroon">سبب تعديل الدرجة ({prev?.score} ← {score})</span>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="مثال: خطأ في الجمع — تصويب اللجنة" className={smallInputClass} />
+        </motion.label>
+      )}
+      <div className="mt-5 flex gap-2">
+        <Button onClick={save}>
+          <CheckCircle2 className="size-4" /> حفظ النتيجة
+        </Button>
+        <Button variant="outline" onClick={onClose}>
+          إلغاء
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────── Groups ─────────────────────────
+
+function Groups({ rows }: { rows: AdminRow[] }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const events = useAllEvents();
+  const approve = can(user, "groups.approve");
+  const manage = can(user, "administrators.manage");
+
+  if (!rows.length) return <Empty icon={<ClipboardList />} title="لا توجد طلبات تشكيل" />;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {rows.map((r, i) => {
+        const g = r.profile.group!;
+        const cluster = CLUSTERS.find((c) => c.slug === g.clusterId);
+        const reviewed = events.find((e) => e.action === "مراجعة طلب تشكيل مجموعة" && e.target === `المجموعة ${g.number} — ${r.name}`);
+        const checks = [
+          { label: "الرئيس ناجح في التأهيل", ok: (r.profile.finalScore ?? 0) >= PASS },
+          { label: `رسم التشكيل ${formatNumber(200)} $`, ok: !!g.feePaidAt },
+          { label: "اكتمال الفريق (معاون، موجّه، منسق)", ok: true },
+          { label: "موافقة رئيس التكتل", ok: true },
+        ];
+        const complete = checks.every((c) => c.ok);
+        return (
+          <Panel key={r.id} delay={i * 0.05}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-gold-dark">{cluster?.name ?? g.clusterId}</p>
+                <h3 className="font-display text-2xl font-bold text-green-dark">المجموعة {g.number}</h3>
+                <p className="text-sm text-ink-soft">
+                  رئيسها: {r.name} · السعة {g.capacity} حاجاً
+                </p>
+              </div>
+              {g.approvedAt ? <Badge tone="green"><BadgeCheck className="size-3.5" /> معتمدة</Badge> : <Badge tone="gold">بانتظار الاعتماد</Badge>}
+            </div>
+            <ul className="mt-4 grid gap-1.5 text-sm sm:grid-cols-2">
+              {checks.map((c) => (
+                <li key={c.label} className="flex items-center gap-2">
+                  {c.ok ? <CheckCircle2 className="size-4 text-green-light" /> : <AlertTriangle className="size-4 text-maroon" />}
+                  <span className={c.ok ? "text-ink" : "text-maroon"}>{c.label}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-hint">
+              <span>قُدّم {fmtDateTime(g.requestedAt)}</span>
+              {g.feePaidAt && (
+                <span className="flex items-center gap-1">
+                  <Receipt className="size-3" /> 1448-G-{String(g.number).padStart(6, "0")}
+                </span>
+              )}
+              {reviewed && <span className="text-green">راجعه {reviewed.actor}</span>}
+            </p>
+            {g.approvedAt ? (
+              <p className="mt-4 rounded-2xl bg-green-light/10 p-3 text-sm text-green">
+                اعتمدها {g.approvedBy} — {fmtDateTime(g.approvedAt)}
+              </p>
+            ) : (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {manage && !reviewed && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      logAs(user, { action: "مراجعة طلب تشكيل مجموعة", target: `المجموعة ${g.number} — ${r.name}`, detail: complete ? "الطلب مكتمل — يُحال لمدير المكتب" : "ملاحظات: نواقص في الطلب" });
+                      toast({ title: "سُجّلت المراجعة", body: "أُحيل الطلب إلى مدير المكتب للاعتماد.", tone: "info", icon: "📋" });
+                    }}
+                  >
+                    <ClipboardList className="size-4" /> تأكيد اكتمال الطلب
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  disabled={!approve || !complete}
+                  onClick={() => {
+                    const at = Date.now();
+                    patchAdmin(r, { group: { ...g, approvedAt: at, approvedBy: user.name } }, actions.upsertAdmin);
+                    logAs(user, { action: "اعتماد مجموعة", target: `المجموعة ${g.number} — ${cluster?.name ?? g.clusterId}`, after: `رئيسها ${r.name}` });
+                    toast({ title: `اعتُمدت المجموعة ${g.number}`, body: "تُعلن في قائمة المجموعات المعتمدة، والعقود جاهزة للتوقيع.", tone: "success", icon: "🏅" });
+                  }}
+                >
+                  <BadgeCheck className="size-4" /> اعتماد المجموعة
+                </Button>
+                {!approve && <span className="text-xs text-hint">الاعتماد النهائي لمدير المكتب (مازن الحلبي).</span>}
+                {approve && !complete && <span className="text-xs text-maroon">لا يمكن الاعتماد قبل اكتمال الشروط.</span>}
+              </div>
+            )}
+          </Panel>
+        );
+      })}
+    </div>
+  );
+}
+
+// ───────────────────────── Evaluation ─────────────────────────
+
+function Evaluate({ rows }: { rows: AdminRow[] }) {
+  const [id, setId] = useState(rows[0]?.id ?? "");
+  const row = rows.find((r) => r.id === id);
+  return (
+    <div className="grid gap-6 xl:grid-cols-[18rem_1fr]">
+      <Panel title="اختر إدارياً" icon={<UsersRound />} bodyClass="space-y-1.5">
+        {rows.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => setId(r.id)}
+            className={cn("relative flex w-full items-center gap-3 rounded-2xl p-2.5 text-right transition", r.id === id ? "text-white" : "hover:bg-sand")}
+          >
+            {r.id === id && <motion.span layoutId="eval-pick" className="absolute inset-0 rounded-2xl bg-green-dark" />}
+            <span className={cn("relative grid size-9 shrink-0 place-items-center rounded-xl font-bold", r.id === id ? "bg-white/15" : "bg-gold/30 text-green-dark")}>{r.name.replace("الشيخ ", "")[0]}</span>
+            <span className="relative min-w-0">
+              <span className="block truncate text-sm font-bold">{r.name}</span>
+              <span className={cn("block text-xs", r.id === id ? "text-white/60" : "text-hint")}>{r.position}</span>
+            </span>
+          </button>
+        ))}
+      </Panel>
+      {row && <EvaluationForm key={row.id} row={row} />}
+    </div>
+  );
+}
+
+function EvaluationForm({ row }: { row: AdminRow }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const events = useAllEvents();
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [tried, setTried] = useState(false);
+  const history = useMemo(() => events.filter((e) => e.action === "تقييم إداري" && e.target === row.name), [events, row.name]);
+
+  const allScored = EVALUATION_ITEMS.every((it) => scores[it]);
+  const missingNotes = EVALUATION_ITEMS.filter((it) => scores[it] && scores[it] < 3 && !(notes[it] ?? "").trim());
+  const values = EVALUATION_ITEMS.map((it) => scores[it]).filter(Boolean);
+  const avg = values.length ? round1(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+  const extreme = allScored && (values.every((v) => v === 5) || values.every((v) => v === 1)) && !Object.values(notes).some((n) => n.trim());
+
+  const submit = () => {
+    setTried(true);
+    if (!allScored || missingNotes.length) return;
+    logAs(user, {
+      action: "تقييم إداري",
+      target: row.name,
+      after: `${avg} من 5`,
+      detail: EVALUATION_ITEMS.map((it) => `${it}: ${scores[it]}${notes[it]?.trim() ? ` (${notes[it].trim()})` : ""}`).join(" · ") + (extreme ? " — مُعلَّم للمراجعة: درجات متطرفة دون ملاحظة" : ""),
+    });
+    toast({ title: "حُفظ التقييم", body: `${row.name}: ${avg} من 5${extreme ? " — عُلّم للمراجعة" : ""}. يرى الإداري المتوسط فقط لا اسم المقيّم.`, tone: extreme ? "gold" : "success", icon: "⭐" });
+    setScores({});
+    setNotes({});
+    setTried(false);
+  };
+
+  return (
+    <Panel
+      title={`تقييم ${row.name}`}
+      icon={<Star />}
+      action={
+        <span className="flex items-center gap-2 rounded-full bg-sand px-3 py-1 text-sm font-bold text-green-dark">
+          المتوسط <motion.span key={avg} initial={{ scale: 0.7 }} animate={{ scale: 1 }} className="font-display text-lg">{avg || "—"}</motion.span>
+        </span>
+      }
+    >
+      <p className="mb-4 text-sm text-ink-soft">درجة من 5 لكل بند — الملاحظة إلزامية إذا كانت الدرجة أقل من 3.</p>
+      <ul className="space-y-3">
+        {EVALUATION_ITEMS.map((it) => {
+          const v = scores[it] ?? 0;
+          const needNote = v > 0 && v < 3;
+          return (
+            <li key={it} className={cn("rounded-2xl p-3 ring-1 transition", tried && !v ? "bg-maroon/5 ring-maroon/25" : "bg-sand/60 ring-gold/25")}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="font-semibold text-ink">{it}</span>
+                <div className="flex gap-1" role="radiogroup" aria-label={it}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <motion.button
+                      key={n}
+                      role="radio"
+                      aria-checked={v === n}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setScores((s) => ({ ...s, [it]: n }))}
+                      className={cn(
+                        "grid size-9 place-items-center rounded-xl text-sm font-bold transition",
+                        v === n ? (n < 3 ? "bg-maroon text-white" : n === 3 ? "bg-gold-dark text-white" : "bg-green-dark text-white") : v > n ? "bg-gold/40 text-ink" : "bg-white text-ink-soft ring-1 ring-gold/30 hover:ring-gold-dark",
+                      )}
+                    >
+                      {n}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+              <AnimatePresence>
+                {needNote && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                    <textarea
+                      rows={2}
+                      value={notes[it] ?? ""}
+                      onChange={(e) => setNotes((x) => ({ ...x, [it]: e.target.value }))}
+                      placeholder="ملاحظة إلزامية: ما الذي حدث؟"
+                      className={cn(textareaClass, "mt-2 text-sm", tried && !(notes[it] ?? "").trim() && "border-maroon")}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </li>
+          );
+        })}
+      </ul>
+      {extreme && (
+        <p className="mt-3 flex items-center gap-2 rounded-2xl bg-gold/20 p-3 text-sm text-maroon">
+          <Flag className="size-4" /> درجات متطرفة في كل البنود دون ملاحظة — سيُعلَّم التقييم للمراجعة.
+        </p>
+      )}
+      {tried && (!allScored || missingNotes.length > 0) && <p className="mt-3 text-sm font-bold text-maroon">قيّم كل البنود، واكتب ملاحظة لكل درجة أقل من 3.</p>}
+      <Button className="mt-4" onClick={submit}>
+        <CheckCircle2 className="size-4" /> حفظ التقييم
+      </Button>
+
+      {history.length > 0 && (
+        <div className="mt-6 border-t border-gold/25 pt-4">
+          <h4 className="mb-2 font-bold text-green-dark">تقييمات سابقة</h4>
+          <ul className="space-y-2 text-sm">
+            {history.map((e) => (
+              <li key={e.id} className="rounded-2xl bg-sand/60 p-3">
+                <p className="flex justify-between gap-2 font-bold">
+                  <span>{e.actor} — {e.after}</span>
+                  <span className="text-xs font-normal text-hint">{fmtDateTime(e.at)}</span>
+                </p>
+                <p className="mt-1 text-xs leading-5 text-ink-soft">{e.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Panel>
+  );
+}

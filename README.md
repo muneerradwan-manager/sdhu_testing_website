@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# المنصة الوطنية للحج — نسخة تجريبية (موسم 1448هـ)
 
-## Getting Started
+موقع عرض تفاعلي لرحلة الحاج السوري كاملة، مبني على وثيقة «منصة الحج الوطنية — آلية العمل بمثال متكامل».
+**جميع الأسماء والأرقام والبيانات وهمية**، ولا يمثل الموقع أي جهة رسمية.
 
-First, run the development server:
+## التشغيل
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build && npm start   # للإنتاج (يفعّل التثبيت كتطبيق والعمل دون إنترنت)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+المتطلبات: Node.js 20.9 أو أحدث. تُحفظ كل البيانات في متصفحك فقط (localStorage).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## الأطراف الثلاثة وكيف تجرّبها
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| الطرف | المدخل | الدخول التجريبي |
+|---|---|---|
+| الزائر | الصفحة الرئيسية | دون حساب — زر «جولة تعريفية» أسفل الصفحة |
+| الحاج | `/register` أو `/login` | «بيانات تجريبية جاهزة» — رمز التحقق **1448** |
+| الإداري الموسمي | `/administrator` | أحمد سليمان الحمصي `01033300871` (دخول بنقرة، أو قفز إلى ما بعد اعتماد المجموعة) |
+| الموظف | `/staff` | اضغط بطاقة أي موظف — كلمة المرور **1448** |
 
-## Learn More
+### سيناريوهات الحاج
 
-To learn more about Next.js, take a look at the following resources:
+| الرقم الوطني | الشخص | ما يوضّحه |
+|---|---|---|
+| `01012345412` | محمد الخطيب | المثال الكامل: دفتر العائلة `45112233` + والدته خديجة بالرقم الوطني |
+| `06055500711` | حسان القاسم | حجّ سابقاً، يُقبل محرماً لوالدته أو زوجته |
+| `02033300552` | ريم النجار | دون 44 عاماً — تُرفض دون محرم، وتُقبل بإضافة أخيها مازن |
+| `01011100208` | ياسين العمر | مدرج في طلب آخر (طلب واحد لكل شخص) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### الموظفون وصلاحياتهم
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+سهى (مديرة الموسم: الإعدادات واعتماد القرعة) — رنا (التسجيل واستيراد القرعة) — ماهر (شؤون الإداريين) — مازن (مدير المكتب: اعتماد المجموعات) — فادي، د. ليلى، هيثم (غرفة العمليات) — طارق (التدقيق) — أبو سامي (الموارد البشرية).
 
-## Deploy on Vercel
+## سيناريو عرض متكامل بين الأطراف
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **الحاج محمد** يقدّم طلباً عائلياً، ويُقبل بعد 10 ثوانٍ، ثم يؤكد القبول ويستكمل الأوراق ويطلب الانتساب إلى المجموعة 27.
+2. **الإداري أحمد** يرى الطلب في «طلبات الانتساب» ويقبله، فتُفتح للحاج خطوة التسديد والعقد.
+3. **الموظفة سهى** تغيّر شروط الموسم من «إعدادات الموسم»، فتطبَّق فوراً في صفحة التقديم وفحص الأهلية.
+4. **الحاج** يرسل بلاغ طوارئ من «حالتي الآن»، فيظهر في **غرفة العمليات** عند فادي، ويتابع تحديثاته لحظياً.
+5. **المدقق طارق** يرى كل ما سبق في **سجل الأحداث** (للإضافة فقط).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+إذا لم يتفاعل الطرف الآخر، تكمل المنصة الخطوة تلقائياً بعد ثوانٍ (مُعلَّمة «محاكاة») حتى يعمل العرض بشخص واحد.
+لإعادة كل شيء: «ملفي» ← «إعادة ضبط التجربة».
+
+## ملاحظات تقنية
+
+- Next.js 16 (App Router, Turbopack) · React 19 · Tailwind CSS 4 · motion · TypeScript.
+- الخط: itf Qomra (`app/fonts`). الصور والفيديو من Wikimedia Commons بتراخيص مفتوحة.
+- الشرح المسموع للدروس مولَّد مسبقاً بأصوات عربية سورية (`public/audio/lessons`)، وأزرار «استمع» تستخدم `/api/tts` (تحتاج إنترنت).
+- مواقيت الصلاة محسوبة فلكياً (أم القرى لمكة والمدينة، رابطة العالم الإسلامي لسوريا).
+- التواريخ الميلادية لموسم 1448 محسوبة بتقويم أم القرى.

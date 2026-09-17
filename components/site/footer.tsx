@@ -65,8 +65,7 @@ export function Footer() {
             <li><Link href="/portal/application" className="transition hover:text-gold">متابعة الطلب</Link></li>
             {MORE.map((m) => (
               <li key={m.href}><Link href={m.href} className="transition hover:text-gold">{m.label}</Link></li>
-            ))}
-          </ul>
+            ))}          </ul>
         </div>
 
         <div>

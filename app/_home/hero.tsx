@@ -194,7 +194,7 @@ export function Hero() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1.6 }}
         aria-pressed={soundOn}
-        className="absolute bottom-8 right-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 md:right-8"
+        className="absolute bottom-8 left-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 md:left-8"
       >
         <span className="relative flex">
           {soundOn ? <Volume2 className="size-5 text-gold" /> : <VolumeX className="size-5" />}

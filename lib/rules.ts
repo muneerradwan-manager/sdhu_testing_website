@@ -79,8 +79,10 @@ export function relationBetween(a: Member, b: Member): Relation {
   }
 }
 
-export function evaluate(members: Member[]): EligibilityResult {
-  const r = SEASON.rules;
+export type SeasonRules = { -readonly [K in keyof typeof SEASON.rules]: number };
+
+export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules): EligibilityResult {
+  const r = rules;
   const applicant = members.find((m) => m.relation === "self");
   const results: MemberResult[] = [];
 
@@ -284,8 +286,11 @@ function labelFor(rel: Relation, gender: "M" | "F") {
 }
 
 /** Quick public pre-check (no data saved) — used on the conditions page */
-export function precheck(input: { birthYear: number; gender: "M" | "F"; role: "applicant" | "companion"; hajjBefore: boolean; escortingMotherOrWife: boolean; terminal: boolean }) {
-  const r = SEASON.rules;
+export function precheck(
+  input: { birthYear: number; gender: "M" | "F"; role: "applicant" | "companion"; hajjBefore: boolean; escortingMotherOrWife: boolean; terminal: boolean },
+  rules: SeasonRules = SEASON.rules,
+) {
+  const r = rules;
   const notes: { ok: boolean; text: string }[] = [];
   if (input.role === "applicant") {
     notes.push({ ok: input.birthYear <= r.applicantMaxBirthYear, text: `صاحب الطلب من مواليد ${r.applicantMaxBirthYear} فما قبل` });

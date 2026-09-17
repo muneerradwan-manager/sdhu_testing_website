@@ -32,16 +32,152 @@ export type Application = {
   ratings: Record<string, number>;
 };
 
+// ───────────── Staff, administrators, operations (phase 2) ─────────────
+
+/** Append-only audit trail (سجل الأحداث) — nothing is ever edited or removed */
+export type AuditEvent = {
+  id: string;
+  at: number;
+  actor: string;
+  role: string;
+  action: string;
+  target?: string;
+  detail?: string;
+  before?: string;
+  after?: string;
+};
+
+/** Registration staff decision on an application that needed human review */
+export type Review = { status: "approved" | "rejected"; note: string; by: string; at: number };
+
+/** Season settings edited by the season director; merged over SEASON by useSeason() */
+export type SeasonOverrides = Partial<{
+  applicantMaxBirthYear: number;
+  companionMaxBirthYear: number;
+  womanNeedsMahramMinBirthYear: number;
+  elderlyNeedsCompanionMaxBirthYear: number;
+  maxCompanions: number;
+  maxCompanionsFamily: number;
+  quota: number;
+  directShare: number;
+  acceptedDirectAge: number;
+  registrationPerPerson: number;
+  hajjCost: number;
+  hady: number;
+}>;
+
+export type TicketKind = "health" | "missing" | "transport" | "meal" | "room" | "lost" | "complaint";
+export type Ticket = {
+  id: string;
+  at: number;
+  /** Pilgrim account (session id) that raised it, if any */
+  applicantId?: string;
+  name: string;
+  kind: TicketKind;
+  severity: "low" | "medium" | "high" | "critical";
+  location: string;
+  text: string;
+  status: "open" | "in_progress" | "resolved";
+  assignee: string;
+  updates: { at: number; by: string; text: string }[];
+  rating?: number;
+};
+
+export type DocStatus = "missing" | "uploaded" | "rejected" | "approved";
+
+/** Interactive steps after acceptance (المرحلة 6 – 9), keyed by pilgrim session id */
+export type PostAcceptance = {
+  confirmedAt?: number;
+  /** key: `${nationalId}-${doc}` where doc is passport | meningitis | flu | medical */
+  documents: Record<string, DocStatus>;
+  clusterId?: string;
+  groupNumber?: number;
+  groupRequestedAt?: number;
+  groupApprovedAt?: number;
+  payments: Partial<Record<"hajj" | "hady" | "room", number>>;
+  contractSignedAt?: number;
+  visaAt?: number;
+  ratings: Record<string, number>;
+};
+
+/** Seasonal administrator journey (الجزء الثاني), keyed by national id */
+export type AdminProfile = {
+  nationalId: string;
+  createdAt: number;
+  phone: string;
+  positions: string[];
+  languages: string[];
+  skills: string[];
+  documents: string[];
+  commitmentsAt?: number;
+  feePaidAt?: number;
+  receipt?: string;
+  eligibleAt?: number;
+  exam?: { startedAt: number; submittedAt?: number; answers: Record<number, number>; score?: number };
+  oral?: { score: number; by: string; at: number; note?: string };
+  finalScore?: number;
+  resultPublishedAt?: number;
+  group?: {
+    number: number;
+    clusterId: string;
+    capacity: number;
+    requestedAt: number;
+    feePaidAt?: number;
+    approvedAt?: number;
+    approvedBy?: string;
+    contractSignedAt?: number;
+  };
+  /** Decisions on pilgrims' join requests: pilgrim session id -> decision */
+  joinDecisions: Record<string, "accepted" | "rejected">;
+  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number }[];
+};
+
+/** Simulated in-season position for the pilgrim "حالتي الآن" mode */
+export type InSeason = { day: number; ratings: Record<string, number>; lostReports: number };
+
 type State = {
   accounts: Record<string, Account>;
   sessionId: string | null;
   applications: Record<string, Application>;
   textScale: number;
   academy: Record<string, true>;
+
+  staffSessionId: string | null;
+  adminSessionId: string | null;
+  admins: Record<string, AdminProfile>;
+  events: AuditEvent[];
+  reviews: Record<string, Review>;
+  season: SeasonOverrides;
+  tickets: Ticket[];
+  post: Record<string, PostAcceptance>;
+  inSeason: Record<string, InSeason>;
+  lottery: { importedAt?: number; importedBy?: string; publishedAt?: number; publishedBy?: string };
+  tourSeen: boolean;
 };
 
+export type StoreState = State;
+
 const KEY = "sdhu-demo-v1";
-const initial: State = { accounts: {}, sessionId: null, applications: {}, textScale: 1, academy: {} };
+const initial: State = {
+  accounts: {},
+  sessionId: null,
+  applications: {},
+  textScale: 1,
+  academy: {},
+  staffSessionId: null,
+  adminSessionId: null,
+  admins: {},
+  events: [],
+  reviews: {},
+  season: {},
+  tickets: [],
+  post: {},
+  inSeason: {},
+  lottery: {},
+  tourSeen: false,
+};
+
+const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 let state: State = initial;
 let loaded = false;
@@ -157,5 +293,78 @@ export const actions = {
   },
   resetDemo() {
     setState(() => initial);
+  },
+
+  // ── phase 2 ──
+  logEvent(e: Omit<AuditEvent, "id" | "at">) {
+    setState((s) => ({ ...s, events: [...s.events, { ...e, id: uid(), at: Date.now() }] }));
+  },
+  staffLogin(id: string) {
+    setState((s) => ({ ...s, staffSessionId: id }));
+  },
+  staffLogout() {
+    setState((s) => ({ ...s, staffSessionId: null }));
+  },
+  adminLogin(id: string) {
+    setState((s) => ({ ...s, adminSessionId: id }));
+  },
+  adminLogout() {
+    setState((s) => ({ ...s, adminSessionId: null }));
+  },
+  upsertAdmin(id: string, patch: Partial<AdminProfile>) {
+    setState((s) => {
+      const base: AdminProfile = s.admins[id] ?? {
+        nationalId: id,
+        createdAt: Date.now(),
+        phone: "",
+        positions: [],
+        languages: [],
+        skills: [],
+        documents: [],
+        joinDecisions: {},
+        musters: [],
+      };
+      return { ...s, admins: { ...s.admins, [id]: { ...base, ...patch } } };
+    });
+  },
+  setReview(applicantId: string, review: Review) {
+    setState((s) => ({ ...s, reviews: { ...s.reviews, [applicantId]: review } }));
+  },
+  setSeason(patch: SeasonOverrides) {
+    setState((s) => ({ ...s, season: { ...s.season, ...patch } }));
+  },
+  resetSeason() {
+    setState((s) => ({ ...s, season: {} }));
+  },
+  addTicket(t: Omit<Ticket, "id" | "at" | "updates" | "status"> & Partial<Pick<Ticket, "status">>) {
+    const id = String(48200 + Math.floor(Math.random() * 800));
+    setState((s) => ({ ...s, tickets: [{ status: "open", ...t, id, at: Date.now(), updates: [] }, ...s.tickets] }));
+    return id;
+  },
+  updateTicket(id: string, patch: Partial<Ticket>, update?: { by: string; text: string }) {
+    setState((s) => ({
+      ...s,
+      tickets: s.tickets.map((t) =>
+        t.id === id ? { ...t, ...patch, updates: update ? [...t.updates, { ...update, at: Date.now() }] : t.updates } : t,
+      ),
+    }));
+  },
+  setPost(applicantId: string, patch: Partial<PostAcceptance>) {
+    setState((s) => {
+      const base: PostAcceptance = s.post[applicantId] ?? { documents: {}, payments: {}, ratings: {} };
+      return { ...s, post: { ...s.post, [applicantId]: { ...base, ...patch } } };
+    });
+  },
+  setInSeason(applicantId: string, patch: Partial<InSeason>) {
+    setState((s) => {
+      const base: InSeason = s.inSeason[applicantId] ?? { day: 0, ratings: {}, lostReports: 0 };
+      return { ...s, inSeason: { ...s.inSeason, [applicantId]: { ...base, ...patch } } };
+    });
+  },
+  setLottery(patch: State["lottery"]) {
+    setState((s) => ({ ...s, lottery: { ...s.lottery, ...patch } }));
+  },
+  markTourSeen() {
+    setState((s) => ({ ...s, tourSeen: true }));
   },
 };
