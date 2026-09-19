@@ -35,7 +35,12 @@ const EDGE = 12;
 type Box = { top: number; left: number; width: number; height: number };
 type Place = { mode: "sheet" } | { mode: "anchor"; top: number; left: number };
 
-const headerHeight = () => document.querySelector("header")?.getBoundingClientRect().height ?? 84;
+/**
+ * The display-size control zooms the whole page. Rects and the viewport come back in screen pixels,
+ * while fixed-position styles are laid out in zoomed pixels — divide by the zoom to line them up.
+ */
+const zoom = () => parseFloat(document.documentElement.style.zoom) || 1;
+const headerHeight = () => (document.querySelector("header")?.getBoundingClientRect().height ?? 84 * zoom()) / zoom();
 
 export function GuidedTour() {
   const router = useRouter();
@@ -63,10 +68,11 @@ export function GuidedTour() {
 
   /** Spotlight the step's target and put the card wherever there is room for it */
   const measure = useCallback(() => {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const z = zoom();
+    const vw = window.innerWidth / z;
+    const vh = window.innerHeight / z;
     const header = headerHeight();
-    const cardH = cardRef.current?.getBoundingClientRect().height ?? 240;
+    const cardH = (cardRef.current?.getBoundingClientRect().height ?? 240 * z) / z;
     const smallScreen = vw < 760 || vh < 460;
     setShortScreen(vh < 520);
 
@@ -78,7 +84,8 @@ export function GuidedTour() {
       return;
     }
 
-    const r = el.getBoundingClientRect();
+    const raw = el.getBoundingClientRect();
+    const r = { top: raw.top / z, bottom: raw.bottom / z, left: raw.left / z, right: raw.right / z };
     const spot = {
       top: Math.max(r.top - PAD, header + 4),
       bottom: Math.min(r.bottom + PAD, vh - EDGE),

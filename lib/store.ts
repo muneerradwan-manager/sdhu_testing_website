@@ -192,7 +192,21 @@ function load() {
   } catch {
     // Private mode or blocked storage — the demo still works in memory
   }
-  document.documentElement.style.setProperty("--text-scale", String(state.textScale));
+  applyScale(state.textScale);
+}
+
+/**
+ * Display size. Real zoom (like the browser's Ctrl +/-) scales everything — text, spacing, images, video —
+ * so a 43" screen at 80% looks like a laptop. Browsers without CSS zoom fall back to scaling the root font.
+ */
+function applyScale(scale: number) {
+  const root = document.documentElement;
+  if (CSS.supports("zoom", "1")) {
+    root.style.zoom = String(scale);
+    root.style.setProperty("--text-scale", "1");
+  } else {
+    root.style.setProperty("--text-scale", String(scale));
+  }
 }
 
 function persist() {
@@ -207,7 +221,7 @@ export function setState(updater: (s: State) => State) {
   load();
   state = updater(state);
   persist();
-  document.documentElement.style.setProperty("--text-scale", String(state.textScale));
+  applyScale(state.textScale);
   listeners.forEach((l) => l());
 }
 
