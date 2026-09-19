@@ -40,7 +40,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
   if (!hydrated || !ok) {
     return (
-      <div className="grid min-h-[80vh] place-items-center bg-maroon-dark">
+      <div className="grid min-h-[calc(80vh/var(--zoom))] place-items-center bg-maroon-dark">
         <div className="flex flex-col items-center gap-4 text-gold">
           <Emblem className="size-20 animate-pulse" animated />
           <span className="text-sm">نتحقق من جلسة الإداري...</span>

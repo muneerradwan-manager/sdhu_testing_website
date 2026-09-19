@@ -46,7 +46,7 @@ export function Playlist({ trackSlug, trackTitle, levels, current }: { trackSlug
           </span>
         </div>
       </div>
-      <div ref={listRef} className="max-h-[70vh] overflow-y-auto p-2">
+      <div ref={listRef} className="max-h-[calc(70vh/var(--zoom))] overflow-y-auto p-2">
         {levels.map((level, li) => (
           <div key={level.title} className="mb-1">
             <p className="sticky top-0 z-10 bg-white/95 px-3 py-2 text-xs font-bold text-maroon backdrop-blur">{level.title}</p>

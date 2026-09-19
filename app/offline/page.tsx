@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "لا يوجد اتصال" };
 
 export default function OfflinePage() {
   return (
-    <section className="relative grid min-h-[80vh] place-items-center overflow-hidden bg-green-dark px-4 pt-28 text-center text-white">
+    <section className="relative grid min-h-[calc(80vh/var(--zoom))] place-items-center overflow-hidden bg-green-dark px-4 pt-28 text-center text-white">
       <div className="bg-pattern absolute inset-0 opacity-15" />
       <div className="relative max-w-md">
         <Emblem className="mx-auto size-20" />

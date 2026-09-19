@@ -210,7 +210,7 @@ export function Gate({ perms, children }: { perms: Permission[]; children: React
   const user = useStaffUser();
   if (canAny(user, perms)) return children;
   return (
-    <div className="grid min-h-[50vh] place-items-center">
+    <div className="grid min-h-[calc(50vh/var(--zoom))] place-items-center">
       <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md rounded-3xl border border-gold/30 bg-white p-8 text-center shadow-2xl">
         <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-maroon/10 text-maroon">
           <Lock className="size-8" />

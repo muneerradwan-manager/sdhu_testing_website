@@ -191,7 +191,7 @@ export default function Home() {
       </section>
 
       {/* Verse band */}
-      <section className="relative isolate flex min-h-[70vh] items-center overflow-hidden bg-ink text-white">
+      <section className="relative isolate flex min-h-[calc(70vh/var(--zoom))] items-center overflow-hidden bg-ink text-white">
         <Image src="/images/jabal-rahmah.jpg" alt="جبل الرحمة في عرفات" fill sizes="100vw" quality={70} className="-z-20 object-cover object-center opacity-60 [transform:translateZ(0)]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/80 via-green-dark/60 to-ink/90" />
         <Reveal className="mx-auto max-w-4xl px-4 text-center">

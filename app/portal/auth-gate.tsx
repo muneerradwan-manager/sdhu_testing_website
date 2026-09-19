@@ -17,7 +17,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (!hydrated || !sessionId) {
     return (
-      <div className="grid min-h-[80vh] place-items-center bg-green-dark">
+      <div className="grid min-h-[calc(80vh/var(--zoom))] place-items-center bg-green-dark">
         <Emblem className="size-20 animate-pulse" animated />
       </div>
     );

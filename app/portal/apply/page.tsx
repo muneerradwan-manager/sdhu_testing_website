@@ -78,7 +78,7 @@ export default function ApplyPage() {
   const toast = useToast();
   const sessionId = useStore((s) => s.sessionId)!;
   const existing = useStore((s) => s.applications[s.sessionId ?? ""]);
-  const scale = useStore((s) => s.textScale);
+  const scale = useStore((s) => s.displayScale);
   const me = getPerson(sessionId)!;
   const season = useSeason();
 
@@ -213,13 +213,13 @@ export default function ApplyPage() {
           <div className="rounded-3xl border border-gold/30 bg-white p-5">
             <p className="font-bold">حجم الخط</p>
             <div className="mt-3 flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => actions.setTextScale(scale - 0.1)} aria-label="تصغير">
+              <Button size="sm" variant="outline" onClick={() => actions.setDisplayScale(scale - 0.1)} aria-label="تصغير">
                 <Minus className="size-4" />
               </Button>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-sand">
                 <motion.div className="h-full bg-green-dark" animate={{ width: `${((scale - 0.9) / 0.5) * 100}%` }} />
               </div>
-              <Button size="sm" variant="outline" onClick={() => actions.setTextScale(scale + 0.1)} aria-label="تكبير">
+              <Button size="sm" variant="outline" onClick={() => actions.setDisplayScale(scale + 0.1)} aria-label="تكبير">
                 <Plus className="size-4" />
               </Button>
             </div>

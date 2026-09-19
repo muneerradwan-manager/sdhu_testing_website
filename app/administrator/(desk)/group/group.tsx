@@ -358,8 +358,10 @@ function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void
   }, []);
 
   const point = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const c = e.currentTarget;
+    const rect = c.getBoundingClientRect();
+    // Ratio-based so the ink lands under the pointer whatever the page zoom or canvas resolution
+    return { x: ((e.clientX - rect.left) / rect.width) * c.width, y: ((e.clientY - rect.top) / rect.height) * c.height };
   };
 
   const clear = () => {
@@ -540,7 +542,7 @@ function Contracts() {
             </button>
           ))}
         </div>
-        <div className="mt-5 max-h-[70vh] overflow-y-auto pl-1 [perspective:1200px]">
+        <div className="mt-5 max-h-[calc(70vh/var(--zoom))] overflow-y-auto pl-1 [perspective:1200px]">
           <ContractDoc kind={tab} signature={signed} signedName={admin.name} />
         </div>
       </Card>

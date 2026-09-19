@@ -39,7 +39,7 @@ type Place = { mode: "sheet" } | { mode: "anchor"; top: number; left: number };
  * The display-size control zooms the whole page. Rects and the viewport come back in screen pixels,
  * while fixed-position styles are laid out in zoomed pixels — divide by the zoom to line them up.
  */
-const zoom = () => parseFloat(document.documentElement.style.zoom) || 1;
+const zoom = () => parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
 const headerHeight = () => (document.querySelector("header")?.getBoundingClientRect().height ?? 84 * zoom()) / zoom();
 
 export function GuidedTour() {
@@ -276,10 +276,10 @@ export function GuidedTour() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8 }}
                 transition={{ type: "spring", damping: 26, stiffness: 300 }}
-                style={anchored ? { top: place.top, left: place.left, width: CARD_W } : shortScreen ? { maxHeight: "46vh" } : undefined}
+                style={anchored ? { top: place.top, left: place.left, width: CARD_W } : shortScreen ? { maxHeight: "calc(46vh / var(--zoom))" } : undefined}
                 className={cn(
                   "pointer-events-auto absolute overflow-y-auto overscroll-contain rounded-[1.75rem] bg-white shadow-2xl ring-1 ring-gold/40",
-                  anchored ? "max-h-[70vh]" : "inset-x-3 bottom-3 mx-auto max-h-[60vh] max-w-lg sm:max-h-[70vh]",
+                  anchored ? "max-h-[calc(70vh/var(--zoom))]" : "inset-x-3 bottom-3 mx-auto max-h-[calc(60vh/var(--zoom))] max-w-lg sm:max-h-[calc(70vh/var(--zoom))]",
                 )}
               >
                 <div className="sticky top-0 h-1.5 bg-sand">

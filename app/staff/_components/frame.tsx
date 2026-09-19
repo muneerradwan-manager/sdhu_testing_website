@@ -54,7 +54,7 @@ export function StaffFrame({ children }: { children: ReactNode }) {
   if (isLogin) return children;
   if (!hydrated || !user) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-green-dark">
+      <div className="grid min-h-[calc(100dvh/var(--zoom))] place-items-center bg-green-dark">
         <Emblem className="size-20 animate-pulse" animated />
       </div>
     );
@@ -76,7 +76,7 @@ function Backdrop() {
 
 function Shell({ user, children }: { user: StaffUser; children: ReactNode }) {
   return (
-    <div className="relative isolate min-h-dvh pt-28 text-white">
+    <div className="relative isolate min-h-[calc(100dvh/var(--zoom))] pt-28 text-white">
       <Backdrop />
       <div className="mx-auto grid max-w-[96rem] gap-6 px-4 pb-20 md:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
         <Sidebar user={user} />

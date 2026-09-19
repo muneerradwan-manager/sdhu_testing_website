@@ -48,12 +48,17 @@
 
 /* ───────────────────────── Base ───────────────────────── */
 :root {
-  /* Elderly-friendly text scaling, driven by the accessibility bar */
+  /* Page zoom = automatic size for the screen × the visitor's own choice from the top bar */
+  --auto-zoom: 1;
+  --user-zoom: 1;
+  --zoom: calc(var(--auto-zoom) * var(--user-zoom));
+  /* Fallback for browsers without CSS zoom: the top-bar control scales the root font instead */
   --text-scale: 1;
   color-scheme: light;
 }
 
 html {
+  zoom: var(--zoom);
   font-size: calc(16px * var(--text-scale));
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
@@ -108,24 +113,34 @@ body {
   border-radius: 6px;
 }
 
-/* Very wide screens: widen the content instead of leaving huge empty margins.
-   (A 43" screen reports the same CSS pixels as a laptop, so its physical size cannot be detected —
-   the display-size control in the top bar shrinks the whole interface when needed.) */
-@media (min-width: 1800px) {
-  .max-w-7xl {
-    max-width: 90rem;
-  }
-  .max-w-6xl {
-    max-width: 80rem;
+/* Wide screens (desktop monitors, a 43" TV at 1920px): the layout was designed on a laptop, so at 100%
+   it looked oversized. Zoom the whole page down — exactly like the browser's own 80% — and let the
+   content use the extra width. Laptops (≈1280–1536 CSS px) are untouched. Screen-height sections divide
+   by --zoom so they still fill the screen. */
+@media (min-width: 1600px) {
+  :root {
+    --auto-zoom: 0.9;
   }
 }
 
-@media (min-width: 2400px) {
+@media (min-width: 1800px) {
+  :root {
+    --auto-zoom: 0.8;
+  }
   .max-w-7xl {
     max-width: 104rem;
   }
   .max-w-6xl {
     max-width: 88rem;
+  }
+}
+
+@media (min-width: 2400px) {
+  .max-w-7xl {
+    max-width: 120rem;
+  }
+  .max-w-6xl {
+    max-width: 100rem;
   }
 }
 

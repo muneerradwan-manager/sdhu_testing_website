@@ -71,7 +71,7 @@ export function Hero() {
   };
 
   return (
-    <section ref={ref} className="relative isolate flex min-h-[100svh] items-center overflow-hidden bg-ink text-white">
+    <section ref={ref} className="relative isolate flex min-h-[calc(100svh/var(--zoom))] items-center overflow-hidden bg-ink text-white">
       <motion.div style={{ y, scale }} className="absolute inset-0 -z-20">
         <video
           ref={videoRef}

@@ -139,7 +139,8 @@ type State = {
   accounts: Record<string, Account>;
   sessionId: string | null;
   applications: Record<string, Application>;
-  textScale: number;
+  /** Visitor's zoom on top of the automatic one (renamed from textScale so values saved before auto-zoom are dropped) */
+  displayScale: number;
   academy: Record<string, true>;
 
   staffSessionId: string | null;
@@ -162,7 +163,7 @@ const initial: State = {
   accounts: {},
   sessionId: null,
   applications: {},
-  textScale: 1,
+  displayScale: 1,
   academy: {},
   staffSessionId: null,
   adminSessionId: null,
@@ -192,21 +193,16 @@ function load() {
   } catch {
     // Private mode or blocked storage — the demo still works in memory
   }
-  applyScale(state.textScale);
+  applyScale(state.displayScale);
 }
 
 /**
- * Display size. Real zoom (like the browser's Ctrl +/-) scales everything — text, spacing, images, video —
- * so a 43" screen at 80% looks like a laptop. Browsers without CSS zoom fall back to scaling the root font.
+ * Display size chosen by the visitor. It multiplies the automatic zoom for the screen width (globals.css),
+ * scaling everything like the browser's Ctrl +/-. Browsers without CSS zoom scale the root font instead.
  */
 function applyScale(scale: number) {
   const root = document.documentElement;
-  if (CSS.supports("zoom", "1")) {
-    root.style.zoom = String(scale);
-    root.style.setProperty("--text-scale", "1");
-  } else {
-    root.style.setProperty("--text-scale", String(scale));
-  }
+  root.style.setProperty(CSS.supports("zoom", "1") ? "--user-zoom" : "--text-scale", String(scale));
 }
 
 function persist() {
@@ -221,7 +217,7 @@ export function setState(updater: (s: State) => State) {
   load();
   state = updater(state);
   persist();
-  applyScale(state.textScale);
+  applyScale(state.displayScale);
   listeners.forEach((l) => l());
 }
 
@@ -299,9 +295,9 @@ export const actions = {
       return { ...s, applications: rest };
     });
   },
-  /** Whole-interface size (root font size); 0.7 suits very large screens, 1.4 helps elderly pilgrims */
-  setTextScale(scale: number) {
-    setState((s) => ({ ...s, textScale: Math.min(1.4, Math.max(0.7, Math.round(scale * 100) / 100)) }));
+  /** Visitor's display size on top of the automatic one; 0.7 shrinks further, 1.4 helps elderly pilgrims */
+  setDisplayScale(scale: number) {
+    setState((s) => ({ ...s, displayScale: Math.min(1.4, Math.max(0.7, Math.round(scale * 100) / 100)) }));
   },
   completeLesson(key: string) {
     setState((s) => ({ ...s, academy: { ...s.academy, [key]: true } }));

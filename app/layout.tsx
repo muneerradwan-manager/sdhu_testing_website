@@ -50,7 +50,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ar" dir="rtl" data-scroll-behavior="smooth" className={`${qomra.variable} ${amiri.variable} antialiased`}>
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-[calc(100dvh/var(--zoom))] flex-col">
         <ToastProvider>
           <Header />
           <ViewTransition default="page">
