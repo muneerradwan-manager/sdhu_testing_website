@@ -46,6 +46,19 @@
   }
 }
 
+/* Breakpoints follow the zoom above: at 80% a 1024–1535px desktop screen has the room of 1280–1920px,
+   so it gets the full navigation and wide layouts — the same result as the browser's 80% zoom. */
+@custom-variant xl {
+  @media (width >= 80rem), (width >= 64rem) and (pointer: fine) {
+    @slot;
+  }
+}
+@custom-variant 2xl {
+  @media (width >= 96rem), (width >= 76.8rem) and (pointer: fine) {
+    @slot;
+  }
+}
+
 /* ───────────────────────── Base ───────────────────────── */
 :root {
   /* Page zoom = automatic size for the screen × the visitor's own choice from the top bar */
@@ -113,10 +126,18 @@ body {
   border-radius: 6px;
 }
 
-/* Wide screens (desktop monitors, a 43" TV at 1920px): the layout was designed on a laptop, so at 100%
-   it looked oversized. Zoom the whole page down — exactly like the browser's own 80% — and let the
-   content use the extra width. Laptops (≈1280–1536 CSS px) are untouched. Screen-height sections divide
-   by --zoom so they still fill the screen. */
+/* Display size by screen. The layout was designed for a ≈1536px-wide laptop.
+   • Desktop screens that report a narrower width — e.g. a 43" TV with Windows at 150% scaling reports
+     ≈1213px — rendered it oversized with a collapsed menu. They now render at 80%, exactly like the
+     browser's own 80% zoom (touch tablets keep 100%).
+   • Very wide monitors (≥1600px) also zoom out a little and let the content use the extra width.
+   Screen-height sections divide by --zoom so they still fill the screen. */
+@media (width >= 64rem) and (width < 96rem) and (pointer: fine) {
+  :root {
+    --auto-zoom: 0.8;
+  }
+}
+
 @media (min-width: 1600px) {
   :root {
     --auto-zoom: 0.9;
