@@ -66,8 +66,19 @@ export function OtpInput({ value, onChange, length = 4, invalid }: { value: stri
 }
 
 /** Floating helper so testers can try every scenario from the operating document */
-export function DemoPanel({ onPick, mode = "id" }: { onPick: (s: (typeof DEMO_SCENARIOS)[number]) => void; mode?: "id" | "book" }) {
-  const [open, setOpen] = useState(false);
+export function DemoPanel({
+  onPick,
+  mode = "id",
+  defaultOpen = false,
+  hint,
+}: {
+  onPick: (s: (typeof DEMO_SCENARIOS)[number]) => void;
+  mode?: "id" | "book";
+  defaultOpen?: boolean;
+  /** One line under the title saying what a click does */
+  hint?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-3xl border border-dashed border-gold-dark/60 bg-gold/15 p-4">
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between gap-2 text-right">
@@ -76,9 +87,10 @@ export function DemoPanel({ onPick, mode = "id" }: { onPick: (s: (typeof DEMO_SC
         </span>
         <span className="text-xs text-ink-soft">{open ? "إخفاء" : "عرض السيناريوهات"}</span>
       </button>
+      {hint && open && <p className="mt-1 text-xs text-ink-soft">{hint}</p>}
       <AnimatePresence initial={false}>
         {open && (
-          <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+          <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="grid gap-x-2 overflow-hidden sm:grid-cols-2">
             {DEMO_SCENARIOS.filter((s) => mode === "id" || s.book).map((s) => (
               <li key={s.id} className="pt-2">
                 <button

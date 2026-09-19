@@ -155,13 +155,6 @@ export function RegisterFlow() {
               })}
             </ol>
           </div>
-          {step === 1 && (
-            <DemoPanel
-              onPick={(s) =>
-                setForm((f) => ({ ...f, nationalId: s.id, phone: f.phone || `0944${s.id.slice(-6)}`, password: f.password || "hajj1448" }))
-              }
-            />
-          )}
           <p className="flex items-start gap-2 rounded-3xl bg-green-dark/6 p-4 text-sm leading-6 text-green-dark">
             <ShieldCheck className="mt-0.5 size-5 shrink-0" />
             نسخة تجريبية: لا تُرسل أي رسالة حقيقية ولا تُحفظ البيانات إلا في متصفحك.
@@ -191,6 +184,13 @@ export function RegisterFlow() {
                   <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">البيانات الأساسية</h2>
                   <SpeakButton text="أدخل الرقم الوطني ورقم الهاتف والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />
                 </div>
+                <DemoPanel
+                  defaultOpen
+                  hint="اختر حالة من وثيقة آلية العمل لتعبئة الرقم الوطني والهاتف وكلمة المرور تلقائياً."
+                  onPick={(s) =>
+                    setForm((f) => ({ ...f, nationalId: s.id, phone: f.phone || `0944${s.id.slice(-6)}`, password: f.password || "hajj1448" }))
+                  }
+                />
                 <Field
                   label="الرقم الوطني"
                   hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية"
