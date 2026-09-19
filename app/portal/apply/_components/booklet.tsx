@@ -98,7 +98,7 @@ function ScanModal({ open, onClose, onResult, sample }: { open: boolean; onClose
 
 export function BookletPicker({
   applicant,
-  sample,
+  samples,
   members,
   onToggle,
   onAddOutside,
@@ -110,7 +110,8 @@ export function BookletPicker({
   book: Book | null;
   setBook: (b: Book | null) => void;
   applicant: Person;
-  sample: string;
+  /** Demo booklet numbers shown as one-tap buttons (the applicant's own first) */
+  samples: { no: string; label: string }[];
   members: Member[];
   onToggle: (m: Member, selected: boolean) => void;
   onAddOutside: () => void;
@@ -176,12 +177,14 @@ export function BookletPicker({
             <div className="mt-6">
               <NumberPad value={no} onChange={setNo} maxLength={8} />
             </div>
-            {sample && (
-              <p className="mt-4 text-center text-sm">
-                <button type="button" onClick={() => setNo(sample)} className="rounded-full border border-dashed border-gold-dark bg-gold/15 px-3 py-1.5 font-semibold text-maroon">
-                  رقم تجريبي: {sample}
-                </button>
-              </p>
+            {samples.length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
+                {samples.map((s) => (
+                  <button key={s.no} type="button" onClick={() => setNo(s.no)} className="rounded-full border border-dashed border-gold-dark bg-gold/15 px-3 py-1.5 font-semibold text-maroon hover:bg-gold/30">
+                    رقم تجريبي: {s.label} <span className="font-mono" dir="ltr">{s.no}</span>
+                  </button>
+                ))}
+              </div>
             )}
             {error && <p className="mt-5 rounded-2xl bg-maroon/8 p-4 text-center font-bold text-maroon">{error}</p>}
             <div className="mt-8 flex flex-wrap justify-between gap-3">
@@ -194,7 +197,7 @@ export function BookletPicker({
             </div>
             <ScanModal
               open={scan}
-              sample={sample || "45112233"}
+              sample={samples[0]?.no ?? "45112233"}
               onClose={() => setScan(false)}
               onResult={(v) => {
                 setNo(v);

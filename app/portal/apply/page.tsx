@@ -73,6 +73,23 @@ const NEEDS = [
 
 const ORDINALS = ["المرافق الأول", "المرافق الثاني", "المرافق الثالث", "المرافق الرابع", "المرافق الخامس"];
 
+/** Demo family booklets from the operating document — offered to every applicant for easy testing */
+const DEMO_BOOKS = [
+  { no: "45112233", label: "آل الخطيب" },
+  { no: "77001234", label: "آل القاسم" },
+  { no: "33300550", label: "آل النجار" },
+];
+
+/** Demo people for "add by national ID" — each one shows a case from the eligibility rules */
+const DEMO_PEOPLE = [
+  { id: "01012340078", label: "خديجة — 78 عاماً، تحتاج مرافقاً" },
+  { id: "02033300553", label: "مازن — شاب، يصلح محرماً" },
+  { id: "02033300552", label: "ريم — دون 44، تحتاج محرماً" },
+  { id: "01012349901", label: "عبد الله — حجّ سابقاً" },
+  { id: "01012345416", label: "يوسف — 15 عاماً، دون السن" },
+  { id: "01011100208", label: "ياسين — مسجّل في طلب آخر" },
+];
+
 export default function ApplyPage() {
   const router = useRouter();
   const toast = useToast();
@@ -467,7 +484,10 @@ export default function ApplyPage() {
                   applicant={applicant}
                   book={book}
                   setBook={setBook}
-                  sample={scenario?.book ?? "45112233"}
+                  samples={[
+                    ...DEMO_BOOKS.filter((b) => b.no === scenario?.book),
+                    ...DEMO_BOOKS.filter((b) => b.no !== scenario?.book),
+                  ]}
                   members={members}
                   onToggle={(m, sel) => (sel ? addMember(m) : removeMember(m.person.id))}
                   onAddOutside={() => {
@@ -519,19 +539,18 @@ export default function ApplyPage() {
                   applicantIsMe={applicant.id === sessionId}
                   existingIds={members.map((m) => m.person.id)}
                   ordinal={adderReturn === "loop" ? `${ORDINALS[companions.length] ?? "مرافق"} من ${target}` : "إضافة مرافق"}
-                  suggestions={
-                    applicant.id === "01012345412"
-                      ? [
-                          { id: "01012340078", label: "والدته خديجة" },
-                          { id: "01012345413", label: "زوجته فاطمة" },
-                          { id: "01012349901", label: "عبد الله (حجّ سابقاً)" },
-                        ]
-                      : applicant.id === "06055500711"
-                        ? [{ id: "06055500701", label: "والدته نجاح" }]
-                        : applicant.id === "02033300552"
-                          ? [{ id: "02033300553", label: "أخوها مازن" }]
-                          : []
-                  }
+                  suggestions={(applicant.id === "01012345412"
+                    ? [
+                        { id: "01012340078", label: "والدته خديجة" },
+                        { id: "01012345413", label: "زوجته فاطمة" },
+                        { id: "01012349901", label: "عبد الله (حجّ سابقاً)" },
+                      ]
+                    : applicant.id === "06055500711"
+                      ? [{ id: "06055500701", label: "والدته نجاح" }, ...DEMO_PEOPLE.slice(3)]
+                      : applicant.id === "02033300552"
+                        ? [{ id: "02033300553", label: "أخوها مازن" }, ...DEMO_PEOPLE.filter((p) => p.id !== "02033300552" && p.id !== "02033300553")]
+                        : DEMO_PEOPLE
+                  ).filter((s) => s.id !== applicant.id && !members.some((m) => m.person.id === s.id))}
                   onCancel={back}
                   onAdd={(m) => {
                     addMember(m);
