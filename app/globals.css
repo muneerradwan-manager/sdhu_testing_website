@@ -137,6 +137,27 @@ body {
   }
 }
 
+/* Phones and tablets: the layout felt oversized on small screens (e.g. 320×617), so render them slightly
+   smaller — the same way as the large-screen case above. */
+@media (width < 48rem) {
+  :root {
+    --auto-zoom: 0.875;
+  }
+}
+@media (width >= 48rem) and (width < 64rem), (width >= 64rem) and (width < 85.4rem) and (pointer: coarse) {
+  :root {
+    --auto-zoom: 0.85;
+  }
+}
+/* Keep text fields at an effective 16px on touch screens, otherwise iPhones zoom in when one is tapped */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  select,
+  textarea {
+    font-size: max(1em, calc(16px / var(--zoom)));
+  }
+}
+
 /* Very wide monitors: use the extra width instead of leaving huge empty margins */
 @media (min-width: 1800px) {
   .max-w-7xl {

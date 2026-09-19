@@ -100,7 +100,7 @@ export function Hero() {
             <Sparkles className="size-4" /> التسجيل لموسم حج 1448هـ مفتوح الآن
           </motion.span>
 
-          <h1 className="mt-6 font-display text-5xl font-bold leading-[1.25] md:text-7xl">
+          <h1 className="mt-6 font-display text-[2.6rem] font-bold leading-[1.25] sm:text-5xl md:text-7xl">
             {words.map((w, i) => (
               <motion.span
                 key={w}

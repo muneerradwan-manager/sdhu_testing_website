@@ -11,7 +11,7 @@ export function HistoryTimeline() {
   const scaleY = useSpring(scrollYProgress, { stiffness: 90, damping: 24 });
 
   return (
-    <ol ref={ref} className="relative mx-auto max-w-4xl">
+    <ol ref={ref} className="relative mx-auto max-w-4xl overflow-x-clip" /* cards slide in from ±40px; keep them from widening the page */>
       {/* Rail */}
       <span className="absolute inset-y-0 right-5 w-0.5 bg-gold/30 md:right-1/2 md:translate-x-1/2" aria-hidden />
       <motion.span

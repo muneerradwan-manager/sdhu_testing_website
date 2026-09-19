@@ -205,7 +205,7 @@ export function RegisterFlow() {
                       placeholder="01012345412"
                       value={form.nationalId}
                       onChange={(e) => setForm({ ...form, nationalId: e.target.value.replace(/\D/g, "") })}
-                      className={cn(inputClass, "pr-12 text-left font-mono tracking-[.2em]")}
+                      className={cn(inputClass, "pl-16 pr-12 text-left font-mono tracking-[.2em]")}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-hint">{form.nationalId.length}/11</span>
                   </div>

@@ -78,7 +78,7 @@ function Shell({ user, children }: { user: StaffUser; children: ReactNode }) {
   return (
     <div className="relative isolate min-h-[calc(100dvh/var(--zoom))] pt-28 text-white">
       <Backdrop />
-      <div className="mx-auto grid max-w-[96rem] gap-6 px-4 pb-20 md:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
+      <div className="mx-auto grid max-w-[96rem] grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-20 md:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
         <Sidebar user={user} />
         <div className="min-w-0">{children}</div>
       </div>
@@ -134,14 +134,15 @@ function Sidebar({ user }: { user: StaffUser }) {
   };
 
   return (
-    <aside className="self-start lg:sticky lg:top-24">
+    <aside className="min-w-0 self-start lg:sticky lg:top-24">
       <motion.div
         initial={{ opacity: 0, x: 24 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="overflow-hidden rounded-3xl border border-gold/25 bg-gradient-to-b from-green-dark/90 to-[#00352f]/95 shadow-[0_30px_80px_-30px_rgba(0,0,0,.6)] backdrop-blur"
       >
-        <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3.5">
+        {/* Phones/tablets: the panel sits above the page, so keep it compact — no title block, logout on the user card */}
+        <div className="hidden items-center gap-3 border-b border-white/10 px-4 py-3.5 lg:flex">
           <Emblem className="size-9" />
           <div className="min-w-0">
             <p className="font-display font-bold leading-tight">بوابة الموظفين</p>
@@ -149,7 +150,7 @@ function Sidebar({ user }: { user: StaffUser }) {
           </div>
         </div>
 
-        <div className="space-y-3 p-4">
+        <div className="space-y-3 p-3 lg:p-4">
           {/* User card */}
           <div className="relative overflow-hidden rounded-2xl bg-white/[.07] p-3 ring-1 ring-white/10">
             <div className="flex items-center gap-3">
@@ -161,6 +162,14 @@ function Sidebar({ user }: { user: StaffUser }) {
                 <p className="truncate font-bold">{user.name}</p>
                 <p className="truncate text-xs text-white/60">{user.title}</p>
               </div>
+              <button
+                onClick={logout}
+                className="mr-auto grid size-10 shrink-0 place-items-center rounded-xl text-white/70 transition hover:bg-maroon/40 hover:text-white lg:hidden"
+                aria-label="تسجيل الخروج"
+                title="تسجيل الخروج"
+              >
+                <LogOut className="size-5" />
+              </button>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/75">حساب دائم</span>
@@ -241,7 +250,7 @@ function Sidebar({ user }: { user: StaffUser }) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-3">
+        <div className="hidden border-t border-white/10 p-3 lg:block">
           <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-white/70 transition hover:bg-maroon/40 hover:text-white">
             <LogOut className="size-4" /> تسجيل الخروج
           </button>

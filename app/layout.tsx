@@ -52,7 +52,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-[calc(100dvh/var(--zoom))] flex-col">
         <ToastProvider>
           <Header />
-          <main className="flex-1">{children}</main>
+          {/* Clip stray horizontal overflow (slide-in animations etc.) so phones never get a sideways scroll */}
+          <main className="flex-1 overflow-x-clip">{children}</main>
           <Footer />
           <GuidedTour />
           <PwaSupport />

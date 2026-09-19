@@ -155,7 +155,7 @@ export function Header() {
             : "bg-transparent",
         )}
       >
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:h-20 sm:gap-4 md:px-8">
           <Link href="/" aria-label="الصفحة الرئيسية">
             <Logo light={!solid} />
           </Link>
@@ -233,7 +233,7 @@ export function Header() {
             </div>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {person ? (
               <Link
                 href="/portal"
@@ -264,7 +264,7 @@ export function Header() {
                 </Link>
                 <Link
                   href="/register"
-                  className="flex items-center gap-1.5 rounded-2xl bg-gold px-4 py-2.5 text-sm font-bold text-ink shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white"
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-gold px-3 py-2 text-[13px] font-bold text-ink sm:px-4 sm:py-2.5 sm:text-sm shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white"
                 >
                   <UserRound className="size-4" /> إنشاء حساب
                 </Link>
@@ -273,7 +273,7 @@ export function Header() {
             <button
               onClick={() => setOpen((v) => !v)}
               className={cn(
-                "grid size-11 place-items-center rounded-2xl xl:hidden",
+                "grid size-10 place-items-center rounded-2xl sm:size-11 xl:hidden",
                 solid
                   ? "text-green-dark hover:bg-green-dark/5"
                   : "text-white hover:bg-white/10",

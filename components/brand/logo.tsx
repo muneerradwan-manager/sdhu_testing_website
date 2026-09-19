@@ -34,12 +34,12 @@ export function Emblem({ className, animated = false }: { className?: string; an
 export function Logo({ className, light = false }: { className?: string; light?: boolean }) {
   return (
     <span className={cn("flex items-center gap-3", className)}>
-      <Emblem className="size-11" />
+      <Emblem className="size-10 sm:size-11" />
       <span className="flex flex-col leading-tight">
-        <span className={cn("font-display text-lg font-bold", light ? "text-white" : "text-green-dark")}>
+        <span className={cn("whitespace-nowrap font-display text-base font-bold sm:text-lg", light ? "text-white" : "text-green-dark")}>
           المنصة الوطنية للحج
         </span>
-        <span className={cn("text-[11px] font-medium", light ? "text-gold" : "text-gold-dark")}>
+        <span className={cn("hidden whitespace-nowrap text-[11px] font-medium min-[360px]:block", light ? "text-gold" : "text-gold-dark")}>
           إدارة الحج والعمرة السورية
         </span>
       </span>
