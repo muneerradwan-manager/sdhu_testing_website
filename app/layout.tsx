@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Amiri } from "next/font/google";
 import localFont from "next/font/local";
-import { ViewTransition } from "react";
 import { GuidedTour } from "@/components/app/tour";
 import { PwaSupport } from "@/components/app/pwa";
 import { Header } from "@/components/site/header";
@@ -53,9 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-[calc(100dvh/var(--zoom))] flex-col">
         <ToastProvider>
           <Header />
-          <ViewTransition default="page">
-            <main className="flex-1">{children}</main>
-          </ViewTransition>
+          <main className="flex-1">{children}</main>
           <Footer />
           <GuidedTour />
           <PwaSupport />

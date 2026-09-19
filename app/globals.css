@@ -200,23 +200,19 @@ body {
     radial-gradient(circle at 100% 50%, var(--color-sand) 10px, transparent 11px);
 }
 
-/* ───────────────────────── View transitions ───────────────────────── */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 280ms;
+/* ───────────────────────── Page enter (app/template.tsx) ─────────────────────────
+   A plain CSS entrance instead of View Transitions: their page snapshots are drawn at the wrong size under
+   the page zoom used on large screens (the new page appeared small, then grew). `backwards` leaves no
+   transform once finished, so fixed-position elements inside pages are unaffected. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
 }
-
-::view-transition-old(.page) {
-  animation: 180ms ease-in both vt-fade-out, 220ms ease-in both vt-slide-out;
+.page-enter {
+  animation: page-in 380ms var(--ease-out-expo) backwards;
 }
-::view-transition-new(.page) {
-  animation: 320ms var(--ease-out-expo) 60ms both vt-fade-in, 420ms var(--ease-out-expo) 60ms both vt-slide-in;
-}
-
-@keyframes vt-fade-out { to { opacity: 0; } }
-@keyframes vt-fade-in { from { opacity: 0; } }
-@keyframes vt-slide-out { to { transform: translateY(-12px); } }
-@keyframes vt-slide-in { from { transform: translateY(18px); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -224,9 +220,7 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
+  .page-enter {
     animation: none !important;
   }
 }
