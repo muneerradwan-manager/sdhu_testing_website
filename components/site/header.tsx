@@ -22,8 +22,27 @@ import { Logo } from "@/components/brand/logo";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { CITIES, nextPrayer } from "@/lib/prayer";
 import { getPerson } from "@/lib/registry";
+import { getStaff } from "@/lib/staff";
 import { MORE, NAV } from "@/lib/nav";
 import { cn, hijriDate } from "@/lib/utils";
+
+type Area = "pilgrim" | "admin" | "staff";
+type Identity = { initial: string; name: string; role: string; href: string; area: Area };
+
+/** Which part of the platform a path belongs to — the header shows that role's account there */
+function areaOf(pathname: string): Area | null {
+  if (pathname.startsWith("/staff")) return "staff";
+  if (pathname.startsWith("/administrator")) return "admin";
+  if (pathname.startsWith("/portal") || pathname.startsWith("/login") || pathname.startsWith("/register")) return "pilgrim";
+  return null; // shared public pages
+}
+
+/** Sign-in links for each area when nobody from that role is signed in */
+const SIGN_IN: Record<Area, { login: { href: string; label: string }; join?: { href: string; label: string } }> = {
+  pilgrim: { login: { href: "/login", label: "دخول" }, join: { href: "/register", label: "إنشاء حساب" } },
+  admin: { login: { href: "/administrator/login", label: "دخول الإداري" }, join: { href: "/administrator/register", label: "تسجيل إداري" } },
+  staff: { login: { href: "/staff", label: "دخول الموظفين" } },
+};
 
 function SoonBadge() {
   return (
@@ -124,7 +143,24 @@ export function Header() {
   const [more, setMore] = useState(false);
   const hydrated = useHydrated();
   const sessionId = useStore((s) => s.sessionId);
-  const person = hydrated && sessionId ? getPerson(sessionId) : null;
+  const staffId = useStore((s) => s.staffSessionId);
+  const adminId = useStore((s) => s.adminSessionId);
+
+  // Each role has its own identity: the pilgrim never shows up inside the staff or administrator areas, and
+  // vice versa. Shared public pages show whoever is signed in (pilgrim first), else the pilgrim sign-in.
+  const identities: Partial<Record<Area, Identity>> = {};
+  if (hydrated) {
+    const pilgrim = sessionId ? getPerson(sessionId) : null;
+    if (pilgrim) identities.pilgrim = { initial: pilgrim.firstName[0], name: pilgrim.firstName, role: "حاج", href: "/portal", area: "pilgrim" };
+    const admin = adminId ? getPerson(adminId) : null;
+    if (admin) identities.admin = { initial: admin.firstName[0], name: admin.firstName, role: "إداري", href: "/administrator/dashboard", area: "admin" };
+    const staff = getStaff(staffId);
+    if (staff) identities.staff = { initial: staff.initials, name: staff.name.split(" ")[0], role: staff.title, href: "/staff/dashboard", area: "staff" };
+  }
+  const area = areaOf(pathname);
+  const who = area ? identities[area] : (identities.pilgrim ?? identities.admin ?? identities.staff);
+  const signIn = SIGN_IN[area ?? "pilgrim"];
+  const here = (href: string) => pathname.replace(/\/$/, "") === href;
 
   useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 40));
   // Close menus on navigation (adjusting state during render, per React docs)
@@ -234,9 +270,10 @@ export function Header() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {person ? (
+            {who ? (
               <Link
-                href="/portal"
+                href={who.href}
+                title={`${who.name} — ${who.role}`}
                 className={cn(
                   "flex items-center gap-2 rounded-2xl py-1.5 pl-4 pr-1.5 text-sm font-bold transition",
                   solid
@@ -244,30 +281,42 @@ export function Header() {
                     : "bg-white/15 text-white backdrop-blur hover:bg-white/25",
                 )}
               >
-                <span className="grid size-8 place-items-center rounded-xl bg-gold font-display text-ink">
-                  {person.firstName[0]}
+                <span
+                  className={cn(
+                    "grid size-8 place-items-center rounded-xl font-display",
+                    who.area === "pilgrim" ? "bg-gold text-ink" : who.area === "admin" ? "bg-maroon text-gold" : "bg-gold-light text-green-dark",
+                  )}
+                >
+                  {who.initial}
                 </span>
-                <span className="hidden sm:inline">{person.firstName}</span>
+                <span className="hidden flex-col leading-tight sm:flex">
+                  {who.name}
+                  <span className="text-[10px] font-medium opacity-70">{who.role}</span>
+                </span>
               </Link>
             ) : (
               <>
-                <Link
-                  href="/login"
-                  className={cn(
-                    "hidden items-center gap-1.5 rounded-2xl px-4 py-2.5 text-sm font-bold sm:flex",
-                    solid
-                      ? "text-green-dark hover:bg-green-dark/5"
-                      : "text-white hover:bg-white/10",
-                  )}
-                >
-                  <LogIn className="size-4" /> دخول
-                </Link>
-                <Link
-                  href="/register"
-                  className="flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-gold px-3 py-2 text-[13px] font-bold text-ink sm:px-4 sm:py-2.5 sm:text-sm shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white"
-                >
-                  <UserRound className="size-4" /> إنشاء حساب
-                </Link>
+                {!here(signIn.login.href) && (
+                  <Link
+                    href={signIn.login.href}
+                    className={cn(
+                      "items-center gap-1.5 whitespace-nowrap rounded-2xl text-sm font-bold",
+                      signIn.join
+                        ? cn("hidden px-4 py-2.5 sm:flex", solid ? "text-green-dark hover:bg-green-dark/5" : "text-white hover:bg-white/10")
+                        : "flex bg-gold px-3 py-2 text-[13px] text-ink shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white sm:px-4 sm:py-2.5 sm:text-sm",
+                    )}
+                  >
+                    <LogIn className="size-4" /> {signIn.login.label}
+                  </Link>
+                )}
+                {signIn.join && !here(signIn.join.href) && (
+                  <Link
+                    href={signIn.join.href}
+                    className="flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-gold px-3 py-2 text-[13px] font-bold text-ink sm:px-4 sm:py-2.5 sm:text-sm shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white"
+                  >
+                    <UserRound className="size-4" /> {signIn.join.label}
+                  </Link>
+                )}
               </>
             )}
             <button
@@ -321,12 +370,12 @@ export function Header() {
                     </motion.div>
                   ),
                 )}
-                {!person && (
+                {!who && !here(signIn.login.href) && (
                   <Link
-                    href="/login"
+                    href={signIn.login.href}
                     className="mt-2 rounded-2xl border-2 border-green-dark/15 px-4 py-3.5 text-center text-lg font-bold text-green-dark"
                   >
-                    تسجيل الدخول
+                    {area === "staff" ? "دخول الموظفين" : area === "admin" ? "دخول الإداري" : "تسجيل الدخول"}
                   </Link>
                 )}
               </div>
