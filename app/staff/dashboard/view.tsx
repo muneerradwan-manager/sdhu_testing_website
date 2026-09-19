@@ -98,52 +98,52 @@ export function DashboardView() {
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {can(user, "registration.review") && (
           <>
-            <Kpi label="المتقدمون" value={REG_STATS.applications + realApps.length} icon={<UsersRound />} hint={`منهم ${realApps.length} طلبات حقيقية من العرض`} />
-            <Kpi label="بانتظار مراجعتك" value={pendingReviews} icon={<ClipboardCheck />} tone="gold" delay={0.05} pulse={pendingReviews > 0} hint="تكرار، بيانات غير مؤكدة، شروط" />
+            <Kpi dark label="المتقدمون" value={REG_STATS.applications + realApps.length} icon={<UsersRound />} hint={`منهم ${realApps.length} طلبات حقيقية من العرض`} />
+            <Kpi dark label="بانتظار مراجعتك" value={pendingReviews} icon={<ClipboardCheck />} tone="gold" delay={0.05} pulse={pendingReviews > 0} hint="تكرار، بيانات غير مؤكدة، شروط" />
           </>
         )}
         {can(user, "season.settings") && (
           <>
-            <Kpi label="الحصة الإجمالية" value={season.quota} icon={<Dices />} tone="teal" delay={0.1} hint={`مباشر ${formatNumber(season.directSeats)} · قرعة ${formatNumber(season.lotterySeats)}`} />
-            <Kpi label="رسوم التسجيل المحصّلة" value={REG_STATS.persons * season.fees.registrationPerPerson} suffix=" $" icon={<Wallet />} tone="maroon" delay={0.15} />
+            <Kpi dark label="الحصة الإجمالية" value={season.quota} icon={<Dices />} tone="teal" delay={0.1} hint={`مباشر ${formatNumber(season.directSeats)} · قرعة ${formatNumber(season.lotterySeats)}`} />
+            <Kpi dark label="رسوم التسجيل المحصّلة" value={REG_STATS.persons * season.fees.registrationPerPerson} suffix=" $" icon={<Wallet />} tone="maroon" delay={0.15} />
           </>
         )}
         {can(user, "lottery.import") && !can(user, "season.settings") && (
           <>
-            <Kpi label="المؤهلون" value={REG_STATS.eligible} icon={<CheckCircle2 />} tone="teal" delay={0.1} />
-            <Kpi label="مرفوضون بسبب واضح" value={REG_STATS.rejected} icon={<FileClock />} tone="maroon" delay={0.15} />
+            <Kpi dark label="المؤهلون" value={REG_STATS.eligible} icon={<CheckCircle2 />} tone="teal" delay={0.1} />
+            <Kpi dark label="مرفوضون بسبب واضح" value={REG_STATS.rejected} icon={<FileClock />} tone="maroon" delay={0.15} />
           </>
         )}
         {(can(user, "administrators.manage") || can(user, "groups.approve")) && (
           <>
-            <Kpi label="المتقدمون للعمل" value={1_380} icon={<GraduationCap />} hint="الإداريون الموسميون" />
-            <Kpi label="بانتظار الشفهي" value={awaitingOral} icon={<UserCog />} tone="gold" delay={0.05} />
-            <Kpi label="طلبات تشكيل مجموعات" value={groupRequests} icon={<UsersRound />} tone="maroon" delay={0.1} pulse={groupRequests > 0} />
-            <Kpi label="ناجحون حتى الآن" value={admins.filter((a) => (a.profile.finalScore ?? 0) >= 70).length + 1_094} icon={<CheckCircle2 />} tone="teal" delay={0.15} />
+            <Kpi dark label="المتقدمون للعمل" value={1_380} icon={<GraduationCap />} hint="الإداريون الموسميون" />
+            <Kpi dark label="بانتظار الشفهي" value={awaitingOral} icon={<UserCog />} tone="gold" delay={0.05} />
+            <Kpi dark label="طلبات تشكيل مجموعات" value={groupRequests} icon={<UsersRound />} tone="maroon" delay={0.1} pulse={groupRequests > 0} />
+            <Kpi dark label="ناجحون حتى الآن" value={admins.filter((a) => (a.profile.finalScore ?? 0) >= 70).length + 1_094} icon={<CheckCircle2 />} tone="teal" delay={0.15} />
           </>
         )}
         {can(user, "operations.room") && (
           <>
-            <Kpi label="بلاغات مفتوحة" value={openTickets.length} icon={<Siren />} tone="maroon" pulse={critical > 0} hint={`منها حرجة: ${critical}`} />
-            <Kpi label="في عرفة الآن" value={601} icon={<Activity />} hint="من 604 حجاج في التكتل" delay={0.05} />
-            <Kpi label="الحافلات الجاهزة" value={14} icon={<RadioTower />} tone="teal" delay={0.1} hint="السائقون أكدوا 13 من 14" />
-            <Kpi label="درجة الحرارة" value={41} suffix="°" icon={<HeartPulse />} tone="gold" delay={0.15} hint="مؤشر الإجهاد الحراري: مرتفع" />
+            <Kpi dark label="بلاغات مفتوحة" value={openTickets.length} icon={<Siren />} tone="maroon" pulse={critical > 0} hint={`منها حرجة: ${critical}`} />
+            <Kpi dark label="في عرفة الآن" value={601} icon={<Activity />} hint="من 604 حجاج في التكتل" delay={0.05} />
+            <Kpi dark label="الحافلات الجاهزة" value={14} icon={<RadioTower />} tone="teal" delay={0.1} hint="السائقون أكدوا 13 من 14" />
+            <Kpi dark label="درجة الحرارة" value={41} suffix="°" icon={<HeartPulse />} tone="gold" delay={0.15} hint="مؤشر الإجهاد الحراري: مرتفع" />
           </>
         )}
         {can(user, "audit.read") && !can(user, "season.settings") && (
           <>
-            <Kpi label="أحداث في السجل" value={events.length} icon={<ScrollText />} />
-            <Kpi label="أحداث جلسة العرض" value={events.filter((e) => e.live).length} icon={<Activity />} tone="teal" delay={0.05} />
-            <Kpi label="اعتراضات مفتوحة" value={1} icon={<FileClock />} tone="maroon" delay={0.1} />
-            <Kpi label="تعديلات بقيم قبل/بعد" value={events.filter((e) => e.before !== undefined).length} icon={<ListTodo />} tone="gold" delay={0.15} />
+            <Kpi dark label="أحداث في السجل" value={events.length} icon={<ScrollText />} />
+            <Kpi dark label="أحداث جلسة العرض" value={events.filter((e) => e.live).length} icon={<Activity />} tone="teal" delay={0.05} />
+            <Kpi dark label="اعتراضات مفتوحة" value={1} icon={<FileClock />} tone="maroon" delay={0.1} />
+            <Kpi dark label="تعديلات بقيم قبل/بعد" value={events.filter((e) => e.before !== undefined).length} icon={<ListTodo />} tone="gold" delay={0.15} />
           </>
         )}
         {can(user, "staff.create") && (
           <>
-            <Kpi label="الموظفون الدائمون" value={STAFF.length} icon={<UsersRound />} />
-            <Kpi label="المسافرون مع البعثة" value={210} icon={<Activity />} tone="teal" delay={0.05} />
-            <Kpi label="حسابات جديدة هذا الشهر" value={4} icon={<UserPlus />} tone="gold" delay={0.1} />
-            <Kpi label="صلاحيات ممنوحة" value={STAFF.reduce((a, s) => a + s.permissions.length, 0)} icon={<UserCog />} tone="maroon" delay={0.15} />
+            <Kpi dark label="الموظفون الدائمون" value={STAFF.length} icon={<UsersRound />} />
+            <Kpi dark label="المسافرون مع البعثة" value={210} icon={<Activity />} tone="teal" delay={0.05} />
+            <Kpi dark label="حسابات جديدة هذا الشهر" value={4} icon={<UserPlus />} tone="gold" delay={0.1} />
+            <Kpi dark label="صلاحيات ممنوحة" value={STAFF.reduce((a, s) => a + s.permissions.length, 0)} icon={<UserCog />} tone="maroon" delay={0.15} />
           </>
         )}
       </div>
@@ -151,35 +151,37 @@ export function DashboardView() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_1fr]">
         <div className="space-y-6">
           {(can(user, "registration.review") || can(user, "lottery.import")) && (
-            <Panel title="التسجيل اليومي — 22 يوماً" icon={<Activity />} delay={0.1} action={<span className="text-xs text-hint">الذروة في الأيام الأخيرة قبل الإغلاق</span>}>
-              <Columns values={DAILY_REGISTRATIONS} height={140} highlight={DAILY_REGISTRATIONS.length - 1} labels={["9 ج2", "15", "20", "25", "1 رجب"]} />
+            <Panel dark title="التسجيل اليومي — 22 يوماً" icon={<Activity />} delay={0.1} action={<span className="text-xs text-white/70">الذروة في الأيام الأخيرة قبل الإغلاق</span>}>
+              <Columns dark values={DAILY_REGISTRATIONS} height={140} highlight={DAILY_REGISTRATIONS.length - 1} labels={["9 ج2", "15", "20", "25", "1 رجب"]} />
             </Panel>
           )}
           {can(user, "season.settings") && (
-            <Panel title="توزيع الحصة" icon={<Dices />} delay={0.15}>
+            <Panel dark title="توزيع الحصة" icon={<Dices />} delay={0.15}>
               <div className="flex flex-col items-center gap-6 sm:flex-row">
                 <Donut
                   size={170}
                   thickness={22}
+                  track="rgba(255,255,255,.08)"
                   segments={[
                     { value: season.directSeats, color: "#AD9E6E", label: "direct" },
-                    { value: season.lotterySeats, color: "#00594F", label: "lottery" },
+                    { value: season.lotterySeats, color: "#289E92", label: "lottery" },
                   ]}
                 >
                   <div>
-                    <p className="font-display text-2xl font-bold text-green-dark">{formatNumber(season.quota)}</p>
-                    <p className="text-xs text-hint">مقعداً</p>
+                    <p className="font-display text-2xl font-bold text-white">{formatNumber(season.quota)}</p>
+                    <p className="text-xs text-white/70">مقعداً</p>
                   </div>
                 </Donut>
                 <div className="w-full flex-1">
                   <Legend
+                    dark
                     items={[
                       { label: `قبول مباشر ${Math.round(season.directShare * 100)}% (${season.acceptedDirectAge}+ عاماً)`, color: "#AD9E6E", value: formatNumber(season.directSeats) },
-                      { label: `القرعة ${100 - Math.round(season.directShare * 100)}%`, color: "#00594F", value: formatNumber(season.lotterySeats) },
-                      { label: "الاحتياط", color: "#289E92", value: formatNumber(3_000) },
+                      { label: `القرعة ${100 - Math.round(season.directShare * 100)}%`, color: "#289E92", value: formatNumber(season.lotterySeats) },
+                      { label: "الاحتياط", color: "#E4DDD3", value: formatNumber(3_000) },
                     ]}
                   />
-                  <Link href="/staff/season" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-green-dark hover:underline">
+                  <Link href="/staff/season" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-gold hover:underline">
                     تعديل الإعدادات <ArrowLeft className="size-4" />
                   </Link>
                 </div>
@@ -187,50 +189,50 @@ export function DashboardView() {
             </Panel>
           )}
           {can(user, "registration.review") && (
-            <Panel title="أسباب عدم الأهلية" icon={<FileClock />} delay={0.2}>
-              <BarList items={REG_STATS.rejectionReasons.map((r) => ({ label: r.label, value: r.value, key: r.label }))} color="bg-maroon" />
+            <Panel dark title="أسباب عدم الأهلية" icon={<FileClock />} delay={0.2}>
+              <BarList dark items={REG_STATS.rejectionReasons.map((r) => ({ label: r.label, value: r.value, key: r.label }))} color="bg-gold" />
             </Panel>
           )}
           {can(user, "operations.room") && (
-            <Panel title="أحدث البلاغات" icon={<Siren />} delay={0.1} action={<Link href="/staff/operations" className="text-sm font-bold text-green-dark hover:underline">افتح غرفة العمليات</Link>}>
-              <ul className="divide-y divide-gold/20">
+            <Panel dark title="أحدث البلاغات" icon={<Siren />} delay={0.1} action={<Link href="/staff/operations" className="text-sm font-bold text-gold hover:underline">افتح غرفة العمليات</Link>}>
+              <ul className="divide-y divide-white/10">
                 {openTickets.slice(0, 5).map((t) => (
                   <li key={t.id} className="flex items-center gap-3 py-2.5">
                     <span className={cn("size-2.5 shrink-0 rounded-full", t.severity === "critical" ? "animate-pulse bg-maroon" : t.severity === "high" ? "bg-maroon-light" : "bg-gold-dark")} />
                     <span className="min-w-0 flex-1 truncate text-sm">{t.name} — {t.location}</span>
-                    <span className="shrink-0 text-xs text-hint">{ago(t.at, now)}</span>
+                    <span className="shrink-0 text-xs text-white/70">{ago(t.at, now)}</span>
                   </li>
                 ))}
               </ul>
             </Panel>
           )}
           {(can(user, "administrators.manage") || can(user, "groups.approve")) && (
-            <Panel title="نتائج التأهيل — توزيع الدرجات النهائية" icon={<GraduationCap />} delay={0.1}>
-              <Columns values={[18, 34, 62, 118, 196, 262, 241, 188, 124, 67]} labels={["50", "60", "70", "80", "90", "100"]} highlight={2} height={130} />
-              <p className="mt-3 text-xs text-hint">الحد الأدنى للنجاح 70 — الكتابي 60% والشفهي 40%.</p>
+            <Panel dark title="نتائج التأهيل — توزيع الدرجات النهائية" icon={<GraduationCap />} delay={0.1}>
+              <Columns dark values={[18, 34, 62, 118, 196, 262, 241, 188, 124, 67]} labels={["50", "60", "70", "80", "90", "100"]} highlight={2} height={130} />
+              <p className="mt-3 text-xs text-white/70">الحد الأدنى للنجاح 70 — الكتابي 60% والشفهي 40%.</p>
             </Panel>
           )}
           {can(user, "staff.create") && (
-            <Panel title="حسابات الموظفين والصلاحيات" icon={<UserCog />} delay={0.1}>
+            <Panel dark title="حسابات الموظفين والصلاحيات" icon={<UserCog />} delay={0.1}>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[36rem] text-sm">
                   <thead>
-                    <tr className="text-right text-xs text-hint">
+                    <tr className="text-right text-xs text-white/70">
                       <th className="pb-2 font-bold">الموظف</th>
                       <th className="pb-2 font-bold">الصلاحيات الفردية</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gold/20">
+                  <tbody className="divide-y divide-white/10">
                     {STAFF.map((s) => (
                       <tr key={s.id}>
                         <td className="py-2.5 align-top">
-                          <p className="font-bold text-green-dark">{s.name}</p>
-                          <p className="text-xs text-hint">{s.title}</p>
+                          <p className="font-bold text-gold">{s.name}</p>
+                          <p className="text-xs text-white/70">{s.title}</p>
                         </td>
                         <td className="py-2.5">
                           <div className="flex flex-wrap gap-1">
                             {s.permissions.map((p) => (
-                              <span key={p} className="rounded-full bg-sand px-2 py-0.5 text-[11px] text-ink-soft ring-1 ring-gold/30">
+                              <span key={p} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/80 ring-1 ring-white/15">
                                 {PERMISSION_LABELS[p]}
                               </span>
                             ))}
@@ -244,24 +246,24 @@ export function DashboardView() {
             </Panel>
           )}
           {can(user, "audit.read") && !can(user, "season.settings") && (
-            <Panel title="رضا الحجاج — مقارنة سريعة" icon={<Activity />} delay={0.1}>
-              <BarList items={EXEC.stages.slice(0, 6).map((s) => ({ label: s.stage, value: s.y1448, key: s.stage }))} max={5} format={(v) => v.toFixed(1)} color="bg-green-light" />
+            <Panel dark title="رضا الحجاج — مقارنة سريعة" icon={<Activity />} delay={0.1}>
+              <BarList dark items={EXEC.stages.slice(0, 6).map((s) => ({ label: s.stage, value: s.y1448, key: s.stage }))} max={5} format={(v) => v.toFixed(1)} color="bg-green-light" />
             </Panel>
           )}
         </div>
 
         <div className="space-y-6">
           <TodayTasks todos={todos} user={user} />
-          <Panel title="آخر إجراءاتي" icon={<ScrollText />} delay={0.2}>
+          <Panel dark title="آخر إجراءاتي" icon={<ScrollText />} delay={0.2}>
             {mine.length === 0 ? (
-              <p className="text-sm text-hint">لا توجد إجراءات مسجّلة باسمك بعد.</p>
+              <p className="text-sm text-white/70">لا توجد إجراءات مسجّلة باسمك بعد.</p>
             ) : (
               <ol className="relative space-y-3 border-r-2 border-gold/30 pr-4">
                 {mine.map((e) => (
                   <li key={e.id} className="relative">
-                    <span className="absolute -right-[23px] top-1.5 size-3 rounded-full border-2 border-white bg-gold-dark" />
-                    <p className="text-sm font-bold text-ink">{e.action}{e.target ? ` — ${e.target}` : ""}</p>
-                    <p className="text-xs text-hint">{e.live ? ago(e.at, now) : fmtDateTime(e.at)}</p>
+                    <span className="absolute -right-[23px] top-1.5 size-3 rounded-full border-2 border-green-dark bg-gold" />
+                    <p className="text-sm font-bold text-white">{e.action}{e.target ? ` — ${e.target}` : ""}</p>
+                    <p className="text-xs text-white/70">{e.live ? ago(e.at, now) : fmtDateTime(e.at)}</p>
                   </li>
                 ))}
               </ol>
@@ -279,12 +281,13 @@ function TodayTasks({ todos, user }: { todos: Todo[]; user: StaffUser }) {
   const pct = todos.length ? Math.round((doneCount / todos.length) * 100) : 100;
   return (
     <Panel
+      dark
       title="مهامي اليوم"
       icon={<ListTodo />}
       delay={0.15}
       action={
-        <span className="flex items-center gap-2 text-xs font-bold text-green-dark">
-          <span className="h-1.5 w-20 overflow-hidden rounded-full bg-sand">
+        <span className="flex items-center gap-2 text-xs font-bold text-gold">
+          <span className="h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
             <motion.span className="block h-full rounded-full bg-green-light" animate={{ width: `${pct}%` }} />
           </span>
           {doneCount}/{todos.length}
@@ -296,18 +299,18 @@ function TodayTasks({ todos, user }: { todos: Todo[]; user: StaffUser }) {
           const done = t.done || checked[t.id];
           return (
             <motion.li key={t.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.05 }}>
-              <div className={cn("group flex items-center gap-3 rounded-2xl p-3 ring-1 transition", done ? "bg-green-light/8 ring-green-light/20" : "bg-sand/70 ring-gold/25 hover:ring-gold-dark/50")}>
+              <div className={cn("group flex items-center gap-3 rounded-2xl p-3 ring-1 transition", done ? "bg-green-light/8 ring-green-light/20" : "bg-white/5 ring-white/10 hover:ring-gold/40")}>
                 <button
                   onClick={() => !t.done && setChecked((c) => ({ ...c, [t.id]: !c[t.id] }))}
                   aria-label={done ? "منجزة" : "علّمها منجزة"}
-                  className={cn("shrink-0", done ? "text-green-light" : "text-gold-dark hover:text-green-dark")}
+                  className={cn("shrink-0", done ? "text-green-light" : "text-gold hover:text-white")}
                 >
                   {done ? <CheckCircle2 className="size-5" /> : <Circle className="size-5" />}
                 </button>
-                <span className={cn("min-w-0 flex-1 text-sm", done ? "text-hint line-through" : "font-semibold text-ink")}>{t.text}</span>
+                <span className={cn("min-w-0 flex-1 text-sm", done ? "text-white/70 line-through" : "font-semibold text-white")}>{t.text}</span>
                 {t.tone && !done && <span className={cn("size-2 shrink-0 rounded-full", t.tone === "maroon" ? "bg-maroon" : t.tone === "gold" ? "bg-gold-dark" : "bg-green-light")} />}
                 {t.href && (
-                  <Link href={t.href} className="shrink-0 rounded-lg p-1 text-green-dark opacity-60 transition group-hover:opacity-100" aria-label="فتح">
+                  <Link href={t.href} className="shrink-0 rounded-lg p-1 text-gold opacity-60 transition group-hover:opacity-100" aria-label="فتح">
                     <ArrowLeft className="size-4" />
                   </Link>
                 )}
@@ -316,7 +319,7 @@ function TodayTasks({ todos, user }: { todos: Todo[]; user: StaffUser }) {
           );
         })}
       </ul>
-      <p className="mt-4 text-xs leading-5 text-hint">
+      <p className="mt-4 text-xs leading-5 text-white/70">
         {user.travels ? "أنت ضمن البعثة المسافرة — تظهر مهامك الميدانية بحسب ملفك التشغيلي." : "تُولَّد المهام من صلاحياتك ومن حالة الموسم الآن."}
       </p>
     </Panel>

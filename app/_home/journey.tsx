@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, useScroll, useSpring, useTransform } from "motion/react";
+import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
 import { BadgeCheck, FileSignature, Plane, ScanSearch, Ticket, UserRoundPlus } from "lucide-react";
-import { useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { SectionHeading } from "@/components/ui/motion";
 
 const STEPS = [
@@ -16,8 +16,24 @@ const STEPS = [
 
 export function Journey() {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 75%", "end 60%"] });
-  const progress = useSpring(scrollYProgress, { stiffness: 80, damping: 20 });
+  // Progress = how far the line at 55% of the screen height has travelled down the track, so the plane
+  // rides at a steady spot in view and points at the station being read. Measured from on-screen rects,
+  // which stays correct under the page zoom used on large screens and phones (useScroll's target offsets did not).
+  const raw = useMotionValue(0);
+  const { scrollY } = useScroll();
+  const update = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    raw.set(Math.min(1, Math.max(0, (window.innerHeight * 0.55 - r.top) / r.height)));
+  }, [raw]);
+  useMotionValueEvent(scrollY, "change", update);
+  useEffect(() => {
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [update]);
+  const progress = useSpring(raw, { stiffness: 140, damping: 26 });
   const planeTop = useTransform(progress, [0, 1], ["0%", "100%"]);
 
   return (

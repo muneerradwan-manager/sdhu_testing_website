@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge, useToast } from "@/components/ui/widgets";
+import { useToast } from "@/components/ui/widgets";
 import { KIND_LABELS, SEED_TASKS, SLA_MINUTES, type TaskColumn, type Zone } from "@/lib/data/staff-seed";
 import { actions, useStore, type Ticket } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -46,12 +46,17 @@ const KIND_ICON: Record<Ticket["kind"], ReactNode> = {
   complaint: <ClipboardList />,
 };
 
+/** Severity styles for the dark room — brand palette only, each level still distinct at a glance */
 const SEVERITY = {
-  critical: { label: "حرجة", dot: "bg-red-500", ring: "ring-red-400/50", text: "text-red-300", hex: "#EF4444" },
-  high: { label: "عالية", dot: "bg-maroon-light", ring: "ring-maroon-light/40", text: "text-rose-300", hex: "#E0677A" },
-  medium: { label: "متوسطة", dot: "bg-gold", ring: "ring-gold/40", text: "text-gold", hex: "#D9C89E" },
-  low: { label: "منخفضة", dot: "bg-green-light", ring: "ring-green-light/40", text: "text-green-light", hex: "#289E92" },
+  critical: { label: "حرجة", dot: "bg-maroon ring-2 ring-white", chip: "bg-maroon text-white ring-1 ring-white/30", icon: "bg-maroon text-white ring-white/40", hex: "#672146", stroke: "#FFFFFF" },
+  high: { label: "عالية", dot: "bg-maroon-light ring-1 ring-gold-light/80", chip: "bg-maroon-light/70 text-white", icon: "bg-maroon-light/70 text-white ring-white/20", hex: "#7A2631", stroke: "#E4DDD3" },
+  medium: { label: "متوسطة", dot: "bg-gold", chip: "bg-gold/25 text-gold", icon: "bg-gold/20 text-gold ring-gold/40", hex: "#D9C89E", stroke: "#012a25" },
+  low: { label: "منخفضة", dot: "bg-green-light", chip: "bg-white/10 text-white/85", icon: "bg-green-light/20 text-white ring-green-light/40", hex: "#289E92", stroke: "#012a25" },
 } as const;
+
+function Chip({ className, children }: { className: string; children: ReactNode }) {
+  return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold", className)}>{children}</span>;
+}
 
 const STATUS_LABEL: Record<Ticket["status"], string> = { open: "مفتوح", in_progress: "قيد المعالجة", resolved: "مغلق" };
 
@@ -111,10 +116,10 @@ function Operations() {
         title={
           <span className="flex flex-wrap items-center gap-3">
             غرفة العمليات — يوم عرفة
-            <span className="flex items-center gap-2 rounded-full bg-red-500/15 px-3 py-1 text-sm font-bold text-red-300 ring-1 ring-red-400/30">
+            <span className="flex items-center gap-2 rounded-full bg-maroon px-3 py-1 text-sm font-bold text-white ring-1 ring-white/25">
               <span className="relative flex size-2">
-                <span className="absolute inset-0 animate-ping rounded-full bg-red-400" />
-                <span className="relative size-2 rounded-full bg-red-400" />
+                <span className="absolute inset-0 animate-ping rounded-full bg-white" />
+                <span className="relative size-2 rounded-full bg-white" />
               </span>
               مباشر
             </span>
@@ -131,24 +136,24 @@ function Operations() {
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi dark label="الحجاج في عرفة" value={601} icon={<Users />} hint="من 604 — 3 في العيادة الميدانية" />
-        <Kpi dark label="بلاغات مفتوحة" value={active.length} icon={<Siren />} tone="maroon" pulse={bySeverity("critical") > 0} delay={0.05} hint={
-          <span className="flex gap-2">
-            <span className="text-red-300">حرجة {bySeverity("critical")}</span>
-            <span className="text-rose-300">عالية {bySeverity("high")}</span>
-            <span className="text-gold">أخرى {bySeverity("medium") + bySeverity("low")}</span>
+        <Kpi label="الحجاج في عرفة" value={601} icon={<Users />} hint="من 604 — 3 في العيادة الميدانية" />
+        <Kpi label="بلاغات مفتوحة" value={active.length} icon={<Siren />} tone="maroon" pulse={bySeverity("critical") > 0} delay={0.05} hint={
+          <span className="flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-maroon px-1.5 font-bold text-white">حرجة {bySeverity("critical")}</span>
+            <span className="rounded-full bg-maroon-light/70 px-1.5 font-bold text-white">عالية {bySeverity("high")}</span>
+            <span className="rounded-full bg-gold/20 px-1.5 font-bold text-gold">أخرى {bySeverity("medium") + bySeverity("low")}</span>
           </span>
         } />
-        <Kpi dark label="حالات صحية نشطة" value={clinic} icon={<HeartPulse />} tone="maroon" delay={0.1} hint="إجهاد حراري" />
-        <Kpi dark label="مفقودون" value={missing} icon={<UserRoundSearch />} tone="gold" delay={0.15} pulse={missing > 0} hint={missing ? "أولوية قصوى — استجابة فورية" : "لا يوجد"} />
+        <Kpi label="حالات صحية نشطة" value={clinic} icon={<HeartPulse />} tone="maroon" delay={0.1} hint="إجهاد حراري" />
+        <Kpi label="مفقودون" value={missing} icon={<UserRoundSearch />} tone="gold" delay={0.15} pulse={missing > 0} hint={missing ? "أولوية قصوى — استجابة فورية" : "لا يوجد"} />
         <BusKpi />
-        <Kpi dark label="الحرارة في عرفة" value={41} suffix="°" icon={<Thermometer />} tone="gold" delay={0.25} hint="ذروة 15:00 — رشّ رذاذ الماء" />
+        <Kpi label="الحرارة في عرفة" value={41} suffix="°" icon={<Thermometer />} tone="gold" delay={0.25} hint="ذروة 15:00 — رشّ رذاذ الماء" />
       </div>
 
       <div className="mt-6 grid gap-6 2xl:grid-cols-[1.35fr_1fr]">
-        <Panel dark title="خريطة المشاعر — البلاغات الحية" icon={<MapPin />} delay={0.1} action={
+        <Panel title="خريطة المشاعر — البلاغات الحية" icon={<MapPin />} delay={0.1} action={
           zone && (
-            <button onClick={() => setZone(null)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80 hover:bg-white/20">
+            <button onClick={() => setZone(null)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/90 ring-1 ring-white/15 hover:bg-white/20 hover:ring-gold/40">
               عرض كل المناطق
             </button>
           )
@@ -156,10 +161,9 @@ function Operations() {
           <MashaerMap tickets={active} zone={zone} onZone={setZone} onOpen={setOpenId} now={now} />
         </Panel>
 
-        <Panel dark title="طابور البلاغات" icon={<Siren />} delay={0.15} bodyClass="space-y-3">
+        <Panel title="طابور البلاغات" icon={<Siren />} delay={0.15} bodyClass="space-y-3">
           <Tabs
             id="ops-filter"
-            dark
             value={filter}
             onChange={setFilter}
             tabs={[
@@ -177,10 +181,10 @@ function Operations() {
                 </motion.li>
               ))}
             </AnimatePresence>
-            {list.length === 0 && <li className="rounded-2xl bg-white/5 p-6 text-center text-sm text-white/60">لا توجد بلاغات في هذا التصنيف.</li>}
+            {list.length === 0 && <li className="rounded-2xl bg-white/[.06] p-6 text-center text-sm text-white/80 ring-1 ring-white/10">لا توجد بلاغات في هذا التصنيف.</li>}
           </motion.ul>
-          <p className="flex items-center gap-2 text-[11px] text-white/50">
-            <TriangleAlert className="size-3.5 text-red-300" /> تصعيد تلقائي: البلاغ الحرج الذي لا يُغلق خلال 15 دقيقة يُرسل إلى غرفة العمليات المركزية.
+          <p className="flex items-center gap-2 text-xs leading-5 text-white/75">
+            <TriangleAlert className="size-3.5 shrink-0 text-gold" /> تصعيد تلقائي: البلاغ الحرج الذي لا يُغلق خلال 15 دقيقة يُرسل إلى غرفة العمليات المركزية.
           </p>
         </Panel>
       </div>
@@ -203,7 +207,7 @@ function Operations() {
 function BusKpi() {
   const events = useStore((s) => s.events);
   const extra = events.some((e) => e.action === "اعتماد حافلة إضافية");
-  return <Kpi dark label="حافلات مزدلفة" value={extra ? 15 : 14} icon={<Bus />} tone="teal" delay={0.2} hint={extra ? "أُضيفت الحافلة التاسعة للمبكرة" : "السائقون أكدوا 13 من 14"} />;
+  return <Kpi label="حافلات مزدلفة" value={extra ? 15 : 14} icon={<Bus />} tone="teal" delay={0.2} hint={extra ? "أُضيفت الحافلة التاسعة للمبكرة" : "السائقون أكدوا 13 من 14"} />;
 }
 
 // ───────────────────────── Map ─────────────────────────
@@ -254,7 +258,7 @@ function MashaerMap({ tickets, zone, onZone, onOpen, now }: { tickets: QueueTick
           return (
             <g key={k} onClick={() => onZone(k)} className="cursor-pointer" role="button" aria-label={`${z.label}: ${count} بلاغات`}>
               <circle cx={z.x} cy={z.y} r={z.r} fill="url(#zone)" stroke={selected ? "#D9C89E" : "rgba(40,158,146,.45)"} strokeWidth={selected ? 2.5 : 1.2} strokeDasharray={selected ? undefined : "4 4"} />
-              <text x={z.x} y={z.y + z.r + 16} textAnchor="middle" fill="rgba(255,255,255,.8)" fontSize="13" fontWeight="700">
+              <text x={z.x} y={z.y + z.r + 16} textAnchor="middle" fill="rgba(255,255,255,.92)" fontSize="13" fontWeight="700">
                 {z.label}
               </text>
               {count > 0 && (
@@ -287,18 +291,21 @@ function MashaerMap({ tickets, zone, onZone, onOpen, now }: { tickets: QueueTick
           const x = z.x + Math.cos(angle) * dist;
           const y = z.y + Math.sin(angle) * dist;
           const s = SEVERITY[t.severity];
+          const hot = t.severity === "critical" || t.severity === "high";
           return (
             <g key={t.id} onClick={() => onOpen(t.id)} className="cursor-pointer" role="button" aria-label={`${KIND_LABELS[t.kind]}: ${t.name}`}>
-              <circle cx={x} cy={y} r="6" fill={s.hex} opacity=".35">
+              {/* maroon reads too dark as a filled halo on the night map — use an expanding light ring instead */}
+              <circle cx={x} cy={y} r="6" fill={hot ? "none" : s.hex} stroke={hot ? s.stroke : "none"} strokeWidth="1.5" opacity=".35">
                 <animate attributeName="r" values="6;18;6" dur={t.severity === "critical" ? "1.4s" : "2.6s"} repeatCount="indefinite" />
-                <animate attributeName="opacity" values=".5;0;.5" dur={t.severity === "critical" ? "1.4s" : "2.6s"} repeatCount="indefinite" />
+                <animate attributeName="opacity" values=".6;0;.6" dur={t.severity === "critical" ? "1.4s" : "2.6s"} repeatCount="indefinite" />
               </circle>
-              <circle cx={x} cy={y} r="5.5" fill={s.hex} stroke={escalated(t, now) ? "#fff" : "#012a25"} strokeWidth="2" />
+              {escalated(t, now) && <circle cx={x} cy={y} r="10" fill="none" stroke="#D9C89E" strokeWidth="2" />}
+              <circle cx={x} cy={y} r={hot ? 6.5 : 5.5} fill={s.hex} stroke={s.stroke} strokeWidth="2" />
             </g>
           );
         })}
       </svg>
-      <div className="absolute bottom-3 right-3 flex flex-wrap gap-2 rounded-xl bg-black/30 px-3 py-2 text-[11px] text-white/80 backdrop-blur">
+      <div className="absolute right-3 top-3 flex flex-wrap gap-2.5 rounded-xl bg-black/40 px-3 py-2 text-[11px] font-bold text-white/90 ring-1 ring-white/10 backdrop-blur">
         {(Object.keys(SEVERITY) as (keyof typeof SEVERITY)[]).map((k) => (
           <span key={k} className="flex items-center gap-1.5">
             <span className={cn("size-2 rounded-full", SEVERITY[k].dot)} /> {SEVERITY[k].label}
@@ -320,19 +327,19 @@ function TicketRow({ t, now, onOpen }: { t: QueueTicket; now: number; onOpen: ()
       onClick={onOpen}
       className={cn(
         "group relative flex w-full items-start gap-3 overflow-hidden rounded-2xl bg-white/[.06] p-3 text-right ring-1 transition hover:bg-white/10",
-        esc ? "ring-red-400/60" : "ring-white/10",
-        t.status === "resolved" && "opacity-60",
+        esc ? "ring-2 ring-maroon-light" : "ring-white/10 hover:ring-gold/40",
+        t.status === "resolved" && "opacity-80",
       )}
     >
-      {esc && <span className="absolute inset-0 animate-pulse bg-red-500/10" />}
-      <span className={cn("relative grid size-10 shrink-0 place-items-center rounded-xl bg-white/10 ring-1 [&_svg]:size-5", s.ring, s.text)}>{KIND_ICON[t.kind]}</span>
+      {esc && <span className="absolute inset-0 animate-pulse bg-maroon/30" />}
+      <span className={cn("relative grid size-10 shrink-0 place-items-center rounded-xl ring-1 [&_svg]:size-5", s.icon)}>{KIND_ICON[t.kind]}</span>
       <div className="relative min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold", s.text, "bg-white/10")}>{s.label}</span>
+          <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold", s.chip, t.severity === "critical" && t.status !== "resolved" && "animate-pulse")}>{s.label}</span>
           <span className="truncate text-sm font-bold text-white">{t.name}</span>
         </div>
-        <p className="mt-0.5 truncate text-xs text-white/60">{t.location}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-white/50">
+        <p className="mt-0.5 truncate text-xs text-white/85">{t.location}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-white/75">
           <span>{ago(t.at, now)}</span>
           <span>· {STATUS_LABEL[t.status]}</span>
           {t.assignee && <span>· {t.assignee.split(" — ")[0]}</span>}
@@ -341,13 +348,13 @@ function TicketRow({ t, now, onOpen }: { t: QueueTicket; now: number; onOpen: ()
               <Smartphone className="size-3" /> من تطبيق الحاج
             </span>
           )}
-          {esc && <span className="font-bold text-red-300">صُعّد للغرفة المركزية</span>}
+          {esc && <span className="rounded-full bg-maroon px-1.5 font-bold text-white">صُعّد للغرفة المركزية</span>}
         </div>
       </div>
       <span
         className={cn(
           "relative shrink-0 rounded-lg px-2 py-1 font-mono text-xs font-bold tabular-nums",
-          info.tone === "late" ? "bg-red-500/20 text-red-300" : info.tone === "warn" ? "bg-gold/20 text-gold" : info.tone === "done" ? "bg-white/10 text-white/50" : "bg-green-light/15 text-green-light",
+          info.tone === "late" ? "bg-maroon text-white ring-1 ring-white/20" : info.tone === "warn" ? "bg-gold/25 text-gold" : info.tone === "done" ? "bg-white/10 text-white/80" : "bg-green-light/25 text-white",
         )}
         dir={info.text.includes(":") ? "ltr" : undefined}
       >
@@ -402,55 +409,62 @@ function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-3xl bg-white p-4 ring-1 ring-gold/30">
+      <div className="rounded-3xl bg-white/[.06] p-4 ring-1 ring-white/10">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={t.severity === "critical" || t.severity === "high" ? "maroon" : "gold"}>{SEVERITY[t.severity].label}</Badge>
-          <Badge tone="ink">{KIND_LABELS[t.kind]}</Badge>
-          {t.fromPilgrim && <Badge tone="gold"><Smartphone className="size-3" /> من تطبيق الحاج</Badge>}
-          {escalated(t, now) && <Badge tone="maroon">صُعّد للغرفة المركزية</Badge>}
+          <Chip className={SEVERITY[t.severity].chip}>{SEVERITY[t.severity].label}</Chip>
+          <Chip className="bg-white/10 text-white/90 ring-1 ring-white/15">{KIND_LABELS[t.kind]}</Chip>
+          {t.fromPilgrim && <Chip className="bg-gold/20 text-gold"><Smartphone className="size-3" /> من تطبيق الحاج</Chip>}
+          {escalated(t, now) && <Chip className="animate-pulse bg-maroon text-white">صُعّد للغرفة المركزية</Chip>}
         </div>
-        <p className="mt-2 font-display text-xl font-bold text-green-dark">{t.name}</p>
-        <p className="flex items-center gap-1 text-sm text-ink-soft">
-          <MapPin className="size-4 text-maroon" /> {t.location}
+        <p className="mt-2 font-display text-xl font-bold text-white">{t.name}</p>
+        <p className="flex items-center gap-1 text-sm text-white/90">
+          <MapPin className="size-4 text-gold" /> {t.location}
         </p>
-        <p className="mt-2 leading-7 text-ink">{t.text}</p>
+        <p className="mt-2 leading-7 text-white">{t.text}</p>
       </div>
 
       {/* SLA */}
-      <div className="flex items-center gap-4 rounded-3xl bg-white p-4 ring-1 ring-gold/30">
+      <div className="flex items-center gap-4 rounded-3xl bg-white/[.06] p-4 ring-1 ring-white/10">
         <div className="relative size-20 shrink-0">
           <svg viewBox="0 0 80 80" className="-rotate-90">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="#F7F4EF" strokeWidth="8" />
+            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="8" />
             <motion.circle
               cx="40"
               cy="40"
               r="34"
               fill="none"
-              stroke={info.tone === "late" ? "#DC2626" : info.tone === "warn" ? "#AD9E6E" : "#289E92"}
+              stroke={info.tone === "late" ? "#E4DDD3" : info.tone === "warn" ? "#D9C89E" : "#289E92"}
               strokeWidth="8"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 34}
               animate={{ strokeDashoffset: 2 * Math.PI * 34 * (1 - Math.min(1, info.pct)) }}
             />
           </svg>
-          <AlarmClock className="absolute inset-0 m-auto size-6 text-green-dark" />
+          <AlarmClock className={cn("absolute inset-0 m-auto size-6", info.tone === "late" ? "text-white" : "text-gold")} />
         </div>
         <div>
-          <p className="text-xs text-hint">زمن الاستجابة المستهدف: {target === 0 ? "فوري" : target >= 60 ? `${target / 60} ساعة` : `${target} دقائق`}</p>
-          <p className={cn("font-display text-2xl font-bold tabular-nums", info.tone === "late" ? "text-red-600" : info.tone === "warn" ? "text-gold-dark" : "text-green")} dir={info.text.includes(":") ? "ltr" : undefined}>
+          <p className="text-xs text-white/75">زمن الاستجابة المستهدف: {target === 0 ? "فوري" : target >= 60 ? `${target / 60} ساعة` : `${target} دقائق`}</p>
+          <p
+            className={cn("my-0.5 w-fit font-display text-2xl font-bold tabular-nums", info.tone === "late" ? "rounded-xl bg-maroon px-2.5 text-white ring-1 ring-white/20" : info.tone === "warn" ? "text-gold" : "text-white")}
+            dir={info.text.includes(":") ? "ltr" : undefined}
+          >
             {info.text}
           </p>
-          <p className="text-xs text-hint">فُتح {ago(t.at, now)} — {fmtTime(t.at)}</p>
+          <p className="text-xs text-white/75">فُتح {ago(t.at, now)} — {fmtTime(t.at)}</p>
         </div>
       </div>
 
       {/* Status */}
       <div>
-        <p className="mb-2 font-bold text-green-dark">الحالة</p>
-        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 ring-1 ring-gold/30">
+        <p className="mb-2 font-bold text-gold">الحالة</p>
+        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white/10 p-1 ring-1 ring-white/10">
           {flow.map((s) => (
-            <button key={s} onClick={() => setStatus(s)} className={cn("relative rounded-xl py-2.5 text-sm font-bold transition", t.status === s ? "text-white" : "text-ink-soft hover:text-green-dark")}>
-              {t.status === s && <motion.span layoutId={`status-${t.id}`} className={cn("absolute inset-0 rounded-xl", s === "resolved" ? "bg-green-light" : s === "in_progress" ? "bg-gold-dark" : "bg-maroon")} />}
+            <button
+              key={s}
+              onClick={() => setStatus(s)}
+              className={cn("relative rounded-xl py-2.5 text-sm font-bold transition", t.status === s ? (s === "in_progress" ? "text-ink" : "text-white") : "text-white/85 hover:bg-white/5 hover:text-white")}
+            >
+              {t.status === s && <motion.span layoutId={`status-${t.id}`} className={cn("absolute inset-0 rounded-xl", s === "resolved" ? "bg-green-light" : s === "in_progress" ? "bg-gold" : "bg-maroon ring-1 ring-white/20")} />}
               <span className="relative">{STATUS_LABEL[s]}</span>
             </button>
           ))}
@@ -459,9 +473,9 @@ function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
 
       {/* Assign */}
       <div>
-        <p className="mb-2 font-bold text-green-dark">الإسناد</p>
+        <p className="mb-2 font-bold text-gold">الإسناد</p>
         <div className="flex gap-2">
-          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={smallInputClass} aria-label="الجهة المسند إليها">
+          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={cn(smallInputClass, "min-w-0 [&>option]:text-ink")} aria-label="الجهة المسند إليها">
             <option value="">اختر الجهة...</option>
             {[...new Set([t.assignee, ...ASSIGNEES].filter(Boolean))].map((a) => (
               <option key={a} value={a}>
@@ -469,7 +483,7 @@ function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
               </option>
             ))}
           </select>
-          <Button onClick={assign} disabled={!assignee || assignee === t.assignee}>
+          <Button variant="gold" className="shrink-0" onClick={assign} disabled={!assignee || assignee === t.assignee}>
             إسناد
           </Button>
         </div>
@@ -477,13 +491,13 @@ function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
 
       {/* Timeline */}
       <div>
-        <p className="mb-2 font-bold text-green-dark">مسار البلاغ</p>
-        <ol className="relative space-y-3 border-r-2 border-gold/40 pr-5">
+        <p className="mb-2 font-bold text-gold">مسار البلاغ</p>
+        <ol className="relative space-y-3 border-r-2 border-white/15 pr-5">
           {timeline.map((u, i) => (
             <motion.li key={`${u.at}-${i}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="relative">
-              <span className={cn("absolute -right-[27px] top-1 grid size-4 place-items-center rounded-full border-2 border-sand", i === 0 ? "bg-maroon" : "bg-green-light")} />
-              <p className="text-sm leading-6 text-ink">{u.text}</p>
-              <p className="text-xs text-hint">
+              <span className={cn("absolute -right-[27px] top-1 grid size-4 place-items-center rounded-full border-2 border-[#00403a]", i === 0 ? "bg-gold" : "bg-green-light")} />
+              <p className="text-sm leading-6 text-white">{u.text}</p>
+              <p className="text-xs text-white/75">
                 {u.by} — {fmtTime(u.at)}
               </p>
             </motion.li>
@@ -491,7 +505,7 @@ function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
         </ol>
         <div className="mt-4 flex gap-2">
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="أضف تحديثاً: وصل الفريق، الحالة مستقرة..." className={cn(textareaClass, "text-sm")} />
-          <Button onClick={addUpdate} disabled={text.trim().length < 3} className="self-end" aria-label="إضافة تحديث">
+          <Button variant="gold" onClick={addUpdate} disabled={text.trim().length < 3} className="self-end" aria-label="إضافة تحديث">
             <MessageSquarePlus className="size-4" />
           </Button>
         </div>
@@ -512,7 +526,7 @@ function BusSuggestion() {
   const capacity = buses * 50;
 
   return (
-    <Panel dark title="تنبؤ: حافلات مزدلفة المبكرة (كبار السن)" icon={<Bus />} delay={0.1}>
+    <Panel title="تنبؤ: حافلات مزدلفة المبكرة (كبار السن)" icon={<Bus />} delay={0.1}>
       <div className="flex items-end gap-1.5" dir="ltr" aria-hidden>
         {Array.from({ length: 9 }, (_, i) => {
           const isNew = i === 8;
@@ -523,7 +537,7 @@ function BusSuggestion() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: on ? 1 : 0.35, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className={cn("grid h-14 flex-1 place-items-center rounded-xl ring-1", isNew ? (on ? "bg-gold text-ink ring-gold" : "border-2 border-dashed border-gold/60 text-gold ring-transparent") : "bg-white/10 text-white/80 ring-white/10")}
+              className={cn("grid h-14 flex-1 place-items-center rounded-xl ring-1", isNew ? (on ? "bg-gold text-ink ring-gold" : "border-2 border-dashed border-gold/60 text-gold ring-transparent") : "bg-white/10 text-white/90 ring-white/10")}
             >
               {isNew && !on ? <Plus className="size-5" /> : <Bus className="size-5" />}
             </motion.div>
@@ -531,19 +545,19 @@ function BusSuggestion() {
         })}
       </div>
       <div className="mt-4">
-        <div className="mb-1 flex justify-between text-xs text-white/60">
+        <div className="mb-1 flex justify-between text-xs text-white/85">
           <span>المسجّلون {registered}</span>
           <span>السعة {capacity}</span>
         </div>
         <div className="relative h-3 overflow-hidden rounded-full bg-white/10">
-          <motion.div className={cn("h-full rounded-full", registered > capacity ? "bg-red-400" : "bg-green-light")} animate={{ width: `${Math.min(100, (registered / 450) * 100)}%` }} />
+          <motion.div className={cn("h-full rounded-full", registered > capacity ? "bg-maroon-light ring-1 ring-inset ring-gold-light/40" : "bg-green-light")} animate={{ width: `${Math.min(100, (registered / 450) * 100)}%` }} />
           <motion.span className="absolute inset-y-0 w-0.5 bg-gold" animate={{ right: `${100 - (capacity / 450) * 100}%` }} />
         </div>
       </div>
       <AnimatePresence mode="wait">
         {accepted ? (
-          <motion.p key="ok" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4 flex items-center gap-2 rounded-2xl bg-green-light/15 p-3 text-sm text-green-light">
-            <CheckCircle2 className="size-5 shrink-0" /> أُضيفت الحافلة التاسعة — اعتمدها {accepted.actor} {fmtTime(accepted.at)}. السعة الآن 450.
+          <motion.p key="ok" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4 flex items-center gap-2 rounded-2xl bg-green-light/20 p-3 text-sm leading-6 text-white ring-1 ring-green-light/40">
+            <CheckCircle2 className="size-5 shrink-0 text-gold" /> أُضيفت الحافلة التاسعة — اعتمدها {accepted.actor} {fmtTime(accepted.at)}. السعة الآن 450.
           </motion.p>
         ) : (
           <motion.div key="ask" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-gold/15 p-3 ring-1 ring-gold/30">
@@ -578,11 +592,11 @@ function GroupsBreakdown({ tickets }: { tickets: QueueTicket[] }) {
   ];
   const count = (g: number) => tickets.filter((t) => t.status !== "resolved" && t.name.includes(`المجموعة ${g}`)).length;
   return (
-    <Panel dark title="تفصيل حسب المجموعة" icon={<Users />} delay={0.15}>
+    <Panel title="تفصيل حسب المجموعة" icon={<Users />} delay={0.15}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[30rem] text-sm">
           <thead>
-            <tr className="text-right text-xs text-white/50">
+            <tr className="border-b border-white/10 text-right text-xs text-gold">
               <th className="pb-2 font-bold">المجموعة</th>
               <th className="pb-2 font-bold">في عرفة</th>
               <th className="pb-2 font-bold">بلاغات</th>
@@ -596,14 +610,15 @@ function GroupsBreakdown({ tickets }: { tickets: QueueTicket[] }) {
                 <motion.tr key={r.group} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}>
                   <td className="py-2.5">
                     <p className="font-bold text-white">{r.group} — {r.cluster}</p>
-                    <p className="text-[11px] text-white/50">{r.leader}</p>
+                    <p className="text-xs text-white/75">{r.leader}</p>
                   </td>
                   <td className="py-2.5">
-                    <span className={cn("font-bold tabular-nums", r.inArafat === r.of ? "text-green-light" : "text-gold")}>{r.inArafat}</span>
-                    <span className="text-white/40"> / {r.of}</span>
+                    <span className={cn("font-bold tabular-nums", r.inArafat === r.of ? "text-white" : "text-gold")}>{r.inArafat}</span>
+                    <span className="text-white/75"> / {r.of}</span>
+                    {r.inArafat === r.of && <CheckCircle2 className="mr-1.5 inline size-3.5 text-green-light" aria-label="مكتمل" />}
                   </td>
-                  <td className="py-2.5">{c ? <span className="rounded-full bg-maroon px-2 py-0.5 text-xs font-bold text-white">{c}</span> : <span className="text-white/40">0</span>}</td>
-                  <td className="py-2.5 text-white/70 tabular-nums">{r.report}</td>
+                  <td className="py-2.5">{c ? <span className="rounded-full bg-maroon px-2 py-0.5 text-xs font-bold text-white ring-1 ring-white/20">{c}</span> : <span className="text-white/75">0</span>}</td>
+                  <td className="py-2.5 text-white/90 tabular-nums">{r.report}</td>
                 </motion.tr>
               );
             })}
@@ -617,10 +632,10 @@ function GroupsBreakdown({ tickets }: { tickets: QueueTicket[] }) {
 // ───────────────────────── Internal tasks (kanban) ─────────────────────────
 
 const COLUMNS: { key: TaskColumn; label: string; tone: string }[] = [
-  { key: "todo", label: "جديدة", tone: "bg-white/40" },
+  { key: "todo", label: "جديدة", tone: "bg-white/50" },
   { key: "doing", label: "قيد التنفيذ", tone: "bg-gold" },
   { key: "done", label: "منجزة", tone: "bg-green-light" },
-  { key: "verified", label: "تم التحقق", tone: "bg-green-dark" },
+  { key: "verified", label: "تم التحقق", tone: "bg-green-light ring-2 ring-gold" },
 ];
 const COLUMN_BY_LABEL = Object.fromEntries(COLUMNS.map((c) => [c.label, c.key])) as Record<string, TaskColumn>;
 
@@ -666,7 +681,6 @@ function TasksBoard() {
 
   return (
     <Panel
-      dark
       title="المهام الداخلية"
       icon={<ClipboardList />}
       className="mt-6"
@@ -680,9 +694,9 @@ function TasksBoard() {
       <AnimatePresence>
         {adding && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="mb-4 flex flex-wrap gap-2 rounded-2xl bg-white/5 p-3">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان المهمة" className="h-10 min-w-0 flex-[2] rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-gold" />
-              <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="تُسند إلى" className="h-10 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-gold" />
+            <div className="mb-4 flex flex-wrap gap-2 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان المهمة" className="h-10 min-w-0 flex-[2] rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none placeholder:text-white/50 focus:border-gold" />
+              <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="تُسند إلى" className="h-10 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none placeholder:text-white/50 focus:border-gold" />
               <Button size="sm" variant="gold" onClick={create} disabled={title.trim().length < 5}>
                 إضافة
               </Button>
@@ -707,11 +721,11 @@ function TasksBoard() {
                 setDragId(null);
                 setOver(null);
               }}
-              className={cn("min-h-40 rounded-2xl bg-black/15 p-2.5 ring-1 transition", over === col.key ? "ring-gold" : "ring-white/5")}
+              className={cn("min-h-40 rounded-2xl bg-black/15 p-2.5 ring-1 transition", over === col.key ? "bg-gold/10 ring-gold/60" : "ring-white/10")}
             >
-              <p className="mb-2 flex items-center gap-2 px-1 text-xs font-bold text-white/80">
+              <p className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-white">
                 <span className={cn("size-2 rounded-full", col.tone)} /> {col.label}
-                <span className="mr-auto rounded-full bg-white/10 px-1.5 tabular-nums">{items.length}</span>
+                <span className="mr-auto rounded-full bg-white/10 px-2 text-xs tabular-nums text-white/90">{items.length}</span>
               </p>
               <motion.ul layout className="space-y-2">
                 <AnimatePresence initial={false}>
@@ -723,22 +737,25 @@ function TasksBoard() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className={cn("rounded-xl bg-white p-3 text-ink shadow-sm", t.title.includes("البرج (ب)") && "ring-2 ring-gold")}
+                      className={cn(
+                        "rounded-xl p-3 text-white ring-1 transition",
+                        t.title.includes("البرج (ب)") ? "bg-gold/15 ring-gold/50" : "bg-white/[.07] ring-white/10 hover:ring-gold/40",
+                      )}
                     >
                       <div draggable onDragStart={() => setDragId(t.id)} className="cursor-grab active:cursor-grabbing">
                         <p className="text-sm font-bold leading-6">{t.title}</p>
-                        <p className="mt-1 text-[11px] text-hint">
+                        <p className="mt-1 text-xs text-white/75">
                           {t.by} ← {t.to}
                         </p>
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-gold-dark">
-                          <CircleDot className="size-3" /> الدليل: {t.evidence} · {t.due}
+                        <p className="mt-1 flex items-center gap-1 text-xs text-gold">
+                          <CircleDot className="size-3 shrink-0" /> الدليل: {t.evidence} · {t.due}
                         </p>
                       </div>
-                      <div className="mt-2 flex justify-between">
-                        <button disabled={ci === 0} onClick={() => move(t.id, COLUMNS[ci - 1].key)} className="rounded-lg p-1 text-hint hover:bg-sand hover:text-green-dark disabled:opacity-30" aria-label="إرجاع خطوة">
+                      <div className="mt-2 flex justify-between border-t border-white/10 pt-1.5">
+                        <button disabled={ci === 0} onClick={() => move(t.id, COLUMNS[ci - 1].key)} className="rounded-lg p-1 text-white/75 hover:bg-white/10 hover:text-gold disabled:opacity-30 disabled:hover:bg-transparent" aria-label="إرجاع خطوة">
                           <ArrowRight className="size-4" />
                         </button>
-                        <button disabled={ci === COLUMNS.length - 1} onClick={() => move(t.id, COLUMNS[ci + 1].key)} className="rounded-lg p-1 text-hint hover:bg-sand hover:text-green-dark disabled:opacity-30" aria-label="تقديم خطوة">
+                        <button disabled={ci === COLUMNS.length - 1} onClick={() => move(t.id, COLUMNS[ci + 1].key)} className="rounded-lg p-1 text-white/75 hover:bg-white/10 hover:text-gold disabled:opacity-30 disabled:hover:bg-transparent" aria-label="تقديم خطوة">
                           <ArrowLeft className="size-4" />
                         </button>
                       </div>
@@ -764,34 +781,33 @@ function ShiftLog({ now }: { now: number }) {
   const log = events.filter((e) => e.live && OPS_ACTIONS.includes(e.action) && (!q || `${e.actor} ${e.action} ${e.target ?? ""}`.includes(q))).slice(0, 8);
   return (
     <Panel
-      dark
       title="سجل المناوبة"
       icon={<ClipboardList />}
       className="mt-6"
       delay={0.1}
       action={
         <label className="relative">
-          <Search className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/40" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث" aria-label="بحث في سجل المناوبة" className="h-8 w-40 rounded-lg bg-white/10 pr-8 pl-2 text-xs text-white outline-none placeholder:text-white/40" />
+          <Search className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/70" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث" aria-label="بحث في سجل المناوبة" className="h-8 w-40 rounded-lg border border-white/15 bg-white/10 pr-8 pl-2 text-xs text-white outline-none placeholder:text-white/50 focus:border-gold" />
         </label>
       }
     >
       {log.length === 0 ? (
-        <p className="text-sm text-white/50">لم يُتخذ أي قرار في هذه المناوبة بعد. كل إسناد أو إغلاق أو طلب حافلة سيظهر هنا باسم صاحبه.</p>
+        <p className="text-sm leading-6 text-white/80">لم يُتخذ أي قرار في هذه المناوبة بعد. كل إسناد أو إغلاق أو طلب حافلة سيظهر هنا باسم صاحبه.</p>
       ) : (
         <ul className="divide-y divide-white/10">
           {log.map((e) => (
             <motion.li key={e.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
               <span className="font-mono text-xs tabular-nums text-gold">{fmtTime(e.at)}</span>
               <span className="font-bold text-white">{e.actor}</span>
-              <span className="text-white/70">{e.action}</span>
-              <span className="text-white/50">{e.target}</span>
+              <span className="text-white/90">{e.action}</span>
+              <span className="text-white/80">{e.target}</span>
               {e.before && (
-                <span className="text-xs text-white/50">
-                  {e.before} ← <b className="text-green-light">{e.after}</b>
+                <span className="text-xs text-white/75">
+                  {e.before} ← <b className="text-gold">{e.after}</b>
                 </span>
               )}
-              <span className="mr-auto text-[11px] text-white/40">{ago(e.at, now)}</span>
+              <span className="mr-auto text-[11px] text-white/70">{ago(e.at, now)}</span>
             </motion.li>
           ))}
         </ul>

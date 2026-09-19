@@ -3,8 +3,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Lock, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Counter } from "@/components/ui/motion";
-import { actions, useStore, type AuditEvent } from "@/lib/store";
+import { actions, useHydrated, useStore, type AuditEvent } from "@/lib/store";
 import { can, getStaff, PERMISSION_LABELS, type Permission, type StaffUser } from "@/lib/staff";
 import { cn, formatNumber } from "@/lib/utils";
 
@@ -106,13 +107,19 @@ export function PageHeader({
   );
 }
 
+/**
+ * Dark cards: the look of the executive board's headline card — deep green gradient, faint lattice, gold edge.
+ * No backdrop-filter: it would make the card the containing block of fixed pop-ups opened inside it.
+ */
+const DARK_CARD = "border-gold/30 bg-gradient-to-br from-green-dark/95 via-green-dark/[.93] to-[#00352f]/95 text-white shadow-[0_24px_60px_-36px_rgba(0,0,0,.7)]";
+
 export function Panel({
   title,
   icon,
   action,
   children,
   className,
-  dark = false,
+  dark = true,
   delay = 0,
   bodyClass,
 }: {
@@ -133,13 +140,14 @@ export function Panel({
       className={cn(
         "relative overflow-hidden rounded-3xl border p-5 md:p-6",
         dark
-          ? "border-white/10 bg-white/[.06] text-white backdrop-blur-sm"
+          ? DARK_CARD
           : "border-gold/30 bg-white text-ink shadow-[0_24px_60px_-36px_rgba(2,21,38,.55)]",
         className,
       )}
     >
+      {dark && <div className="bg-pattern pointer-events-none absolute inset-0 opacity-10" aria-hidden />}
       {(title || action) && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3">
           {title && (
             <h2 className={cn("flex items-center gap-2 font-display text-lg font-bold", dark ? "text-white" : "text-green-dark")}>
               {icon && <span className={cn("[&_svg]:size-5", dark ? "text-gold" : "text-gold-dark")}>{icon}</span>}
@@ -149,7 +157,7 @@ export function Panel({
           {action}
         </div>
       )}
-      <div className={bodyClass}>{children}</div>
+      <div className={cn("relative", bodyClass)}>{children}</div>
     </motion.section>
   );
 }
@@ -161,7 +169,7 @@ export function Kpi({
   icon,
   tone = "green",
   hint,
-  dark = false,
+  dark = true,
   delay = 0,
   pulse = false,
 }: {
@@ -184,12 +192,13 @@ export function Kpi({
       whileHover={{ y: -3 }}
       className={cn(
         "group relative overflow-hidden rounded-3xl border p-4 md:p-5",
-        dark ? "border-white/10 bg-white/[.07] text-white" : "border-gold/30 bg-white shadow-[0_18px_40px_-30px_rgba(2,21,38,.5)]",
+        dark ? DARK_CARD : "border-gold/30 bg-white shadow-[0_18px_40px_-30px_rgba(2,21,38,.5)]",
       )}
     >
+      {dark && <div className="bg-pattern pointer-events-none absolute inset-0 opacity-10" aria-hidden />}
       <span className={cn("absolute -left-6 -top-6 size-20 rounded-full opacity-40 blur-2xl transition group-hover:opacity-70", t.bg)} />
       <div className="relative flex items-start justify-between gap-2">
-        <p className={cn("text-xs font-bold md:text-sm", dark ? "text-white/65" : "text-ink-soft")}>{label}</p>
+        <p className={cn("text-xs font-bold md:text-sm", dark ? "text-white/85" : "text-ink-soft")}>{label}</p>
         {icon && (
           <span className={cn("relative grid size-9 place-items-center rounded-xl [&_svg]:size-4.5", dark ? "bg-white/10 text-gold" : cn(t.soft, t.text))}>
             {pulse && <span className={cn("absolute inset-0 animate-ping rounded-xl opacity-40", t.bg)} />}
@@ -197,10 +206,10 @@ export function Kpi({
           </span>
         )}
       </div>
-      <p className={cn("relative mt-2 font-display text-2xl font-bold md:text-3xl", dark ? "text-white" : t.text)}>
+      <p className={cn("relative mt-2 font-display text-2xl font-bold md:text-3xl", dark ? (tone === "gold" ? "text-gold" : "text-white") : t.text)}>
         <Counter to={value} duration={1.6} suffix={suffix} />
       </p>
-      {hint && <div className={cn("relative mt-1 text-xs", dark ? "text-white/55" : "text-hint")}>{hint}</div>}
+      {hint && <div className={cn("relative mt-1 text-xs", dark ? "text-white/75" : "text-hint")}>{hint}</div>}
     </motion.div>
   );
 }
@@ -211,12 +220,12 @@ export function Gate({ perms, children }: { perms: Permission[]; children: React
   if (canAny(user, perms)) return children;
   return (
     <div className="grid min-h-[calc(50vh/var(--zoom))] place-items-center">
-      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md rounded-3xl border border-gold/30 bg-white p-8 text-center shadow-2xl">
-        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-maroon/10 text-maroon">
+      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className={cn("relative max-w-md overflow-hidden rounded-3xl border p-8 text-center", DARK_CARD)}>
+        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-maroon/40 text-gold">
           <Lock className="size-8" />
         </span>
-        <h1 className="mt-4 font-display text-2xl font-bold text-green-dark">خارج صلاحياتك</h1>
-        <p className="mt-2 leading-7 text-ink-soft">
+        <h1 className="mt-4 font-display text-2xl font-bold text-white">خارج صلاحياتك</h1>
+        <p className="mt-2 leading-7 text-white/75">
           هذه الصفحة تحتاج صلاحية: {perms.map((p) => PERMISSION_LABELS[p]).join(" أو ")}. تُمنح الصلاحيات من الموارد البشرية واحدة واحدة، ويُسجَّل منحها في سجل الأحداث.
         </p>
       </motion.div>
@@ -229,7 +238,7 @@ export function Tabs<T extends string>({
   value,
   onChange,
   id,
-  dark = false,
+  dark = true,
 }: {
   tabs: { value: T; label: ReactNode; count?: number }[];
   value: T;
@@ -249,7 +258,7 @@ export function Tabs<T extends string>({
             onClick={() => onChange(t.value)}
             className={cn(
               "relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition",
-              active ? (dark ? "text-ink" : "text-white") : dark ? "text-white/70 hover:text-white" : "text-ink-soft hover:text-green-dark",
+              active ? (dark ? "text-ink" : "text-white") : dark ? "text-white/85 hover:text-white" : "text-ink-soft hover:text-green-dark",
             )}
           >
             {active && (
@@ -283,7 +292,10 @@ export function Drawer({ open, onClose, title, children, width = "max-w-2xl" }: 
     };
   }, [open, onClose]);
 
-  return (
+  const hydrated = useHydrated();
+  if (!hydrated) return null;
+  // Rendered on <body>: the staff shell is its own stacking context, which trapped the sheet under the site header
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-[70] bg-ink/55 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
@@ -295,9 +307,9 @@ export function Drawer({ open, onClose, title, children, width = "max-w-2xl" }: 
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 32, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className={cn("absolute inset-y-0 left-0 flex w-full flex-col bg-sand shadow-2xl", width)}
+            className={cn("absolute inset-y-0 left-0 flex w-full flex-col bg-gradient-to-b from-[#004a42] to-[#00352f] text-white shadow-2xl", width)}
           >
-            <div className="flex items-center justify-between gap-3 border-b border-gold/30 bg-green-dark px-5 py-4 text-white">
+            <div className="flex items-center justify-between gap-3 border-b border-gold/30 bg-black/15 px-5 py-4 text-white">
               <div className="min-w-0 font-display text-lg font-bold">{title}</div>
               <button onClick={onClose} className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white" aria-label="إغلاق">
                 <X className="size-5" />
@@ -307,7 +319,8 @@ export function Drawer({ open, onClose, title, children, width = "max-w-2xl" }: 
           </motion.aside>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -318,7 +331,7 @@ export function Donut({
   size = 160,
   thickness = 18,
   children,
-  track = "#F7F4EF",
+  track = "rgba(255,255,255,.08)",
 }: {
   segments: { value: number; color: string; label?: string }[];
   size?: number;
@@ -360,12 +373,12 @@ export function Donut({
   );
 }
 
-export function Legend({ items, dark = false }: { items: { label: string; color: string; value?: ReactNode }[]; dark?: boolean }) {
+export function Legend({ items, dark = true }: { items: { label: string; color: string; value?: ReactNode }[]; dark?: boolean }) {
   return (
     <ul className="space-y-2 text-sm">
       {items.map((i) => (
         <li key={i.label} className="flex items-center justify-between gap-3">
-          <span className={cn("flex items-center gap-2", dark ? "text-white/80" : "text-ink-soft")}>
+          <span className={cn("flex items-center gap-2", dark ? "text-white/90" : "text-ink-soft")}>
             <span className="size-2.5 rounded-full" style={{ background: i.color }} />
             {i.label}
           </span>
@@ -381,7 +394,7 @@ export function BarList({
   max,
   format = formatNumber,
   color = "bg-green-dark",
-  dark = false,
+  dark = true,
 }: {
   items: { label: ReactNode; value: number; color?: string; key?: string }[];
   max?: number;
@@ -395,7 +408,7 @@ export function BarList({
       {items.map((i, idx) => (
         <li key={i.key ?? idx}>
           <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-            <span className={cn("truncate", dark ? "text-white/80" : "text-ink-soft")}>{i.label}</span>
+            <span className={cn("truncate", dark ? "text-white/90" : "text-ink-soft")}>{i.label}</span>
             <span className={cn("font-bold tabular-nums", dark ? "text-white" : "text-ink")}>{format(i.value)}</span>
           </div>
           <div className={cn("h-2.5 overflow-hidden rounded-full", dark ? "bg-white/10" : "bg-sand")}>
@@ -413,7 +426,8 @@ export function BarList({
 }
 
 /** Vertical columns; the last column is highlighted */
-export function Columns({ values, labels, height = 120, highlight, color = "#00594F", dark = false }: { values: number[]; labels?: string[]; height?: number; highlight?: number; color?: string; dark?: boolean }) {
+export function Columns({ values, labels, height = 120, highlight, color, dark = true }: { values: number[]; labels?: string[]; height?: number; highlight?: number; color?: string; dark?: boolean }) {
+  color ??= dark ? "#289E92" : "#00594F";
   const top = Math.max(1, ...values);
   return (
     <div>
@@ -431,7 +445,7 @@ export function Columns({ values, labels, height = 120, highlight, color = "#005
         ))}
       </div>
       {labels && (
-        <div className={cn("mt-2 flex justify-between text-[11px]", dark ? "text-white/50" : "text-hint")} dir="ltr">
+        <div className={cn("mt-2 flex justify-between text-[11px]", dark ? "text-white/70" : "text-hint")} dir="ltr">
           {labels.map((l) => (
             <span key={l}>{l}</span>
           ))}
@@ -454,7 +468,7 @@ export function Sparkline({ values, color = "#AD9E6E", width = 120, height = 36 
 
 export function Meter({ value, max = 100, tone = "green", className }: { value: number; max?: number; tone?: Tone; className?: string }) {
   return (
-    <div className={cn("h-2 overflow-hidden rounded-full bg-sand", className)}>
+    <div className={cn("h-2 overflow-hidden rounded-full bg-white/10", className)}>
       <motion.div className={cn("h-full rounded-full", tones[tone].bg)} initial={{ width: 0 }} animate={{ width: `${Math.min(100, (value / max) * 100)}%` }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
     </div>
   );
@@ -462,18 +476,18 @@ export function Meter({ value, max = 100, tone = "green", className }: { value: 
 
 export function Empty({ icon, title, text }: { icon: ReactNode; title: string; text?: string }) {
   return (
-    <div className="grid place-items-center rounded-2xl border border-dashed border-gold/50 bg-sand/60 px-6 py-10 text-center">
-      <span className="grid size-12 place-items-center rounded-2xl bg-white text-gold-dark shadow-sm [&_svg]:size-6">{icon}</span>
-      <p className="mt-3 font-bold text-green-dark">{title}</p>
-      {text && <p className="mt-1 max-w-sm text-sm text-ink-soft">{text}</p>}
+    <div className="grid place-items-center rounded-2xl border border-dashed border-white/20 bg-white/5 px-6 py-10 text-center">
+      <span className="grid size-12 place-items-center rounded-2xl bg-white/10 text-gold [&_svg]:size-6">{icon}</span>
+      <p className="mt-3 font-bold text-white">{title}</p>
+      {text && <p className="mt-1 max-w-sm text-sm text-white/70">{text}</p>}
     </div>
   );
 }
 
 export const textareaClass =
-  "w-full rounded-2xl border-2 border-gold/50 bg-white p-3 text-base text-ink outline-none transition placeholder:text-hint focus:border-green-light focus:ring-4 focus:ring-green-light/15";
+  "w-full rounded-2xl border-2 border-white/15 bg-white/10 p-3 text-base text-white outline-none transition placeholder:text-white/40 focus:border-gold focus:ring-4 focus:ring-gold/15";
 export const smallInputClass =
-  "h-11 w-full rounded-xl border-2 border-gold/50 bg-white px-3 text-base text-ink outline-none transition placeholder:text-hint focus:border-green-light focus:ring-4 focus:ring-green-light/15";
+  "h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 px-3 text-base text-white outline-none transition placeholder:text-white/40 focus:border-gold focus:ring-4 focus:ring-gold/15";
 
 /** Current timestamp for event handlers */
 export function stamp() {

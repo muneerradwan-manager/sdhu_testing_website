@@ -2,9 +2,9 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Download, Eye, Fingerprint, Lock, Scale, ScrollText, Search, SearchCheck, UserRound, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge, useToast } from "@/components/ui/widgets";
+import { useToast } from "@/components/ui/widgets";
 import { OBJECTION_APP } from "@/lib/data/staff-seed";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
@@ -20,7 +20,18 @@ export function AuditView() {
   );
 }
 
-const selectClass = "h-11 w-full rounded-2xl border-2 border-gold/40 bg-sand/60 px-3 text-sm outline-none focus:border-green-light";
+const inputBase = "h-11 w-full rounded-2xl border-2 border-white/15 bg-white/10 text-sm text-white outline-none transition placeholder:text-white/50 focus:border-gold";
+const selectClass = cn(inputBase, "px-3 [&>option]:text-ink");
+
+const chipTones = {
+  green: "bg-green-light/25 text-white ring-green-light/40",
+  maroon: "bg-maroon/70 text-white ring-maroon-light/60",
+  gold: "bg-gold/20 text-gold ring-gold/40",
+} as const;
+
+function Chip({ tone, children }: { tone: keyof typeof chipTones; children: ReactNode }) {
+  return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ring-1", chipTones[tone])}>{children}</span>;
+}
 
 function Audit() {
   const user = useStaffUser()!;
@@ -135,25 +146,25 @@ function Audit() {
       </div>
 
       {/* Objection example */}
-      <Panel className="mt-6 bg-gradient-to-l from-white to-gold-light/60" delay={0.1}>
+      <Panel className="mt-6" delay={0.1}>
         <div className="flex flex-wrap items-center gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-maroon/10 text-maroon">
+          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-maroon/70 text-white ring-1 ring-gold/30">
             <Fingerprint className="size-6" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-bold text-green-dark">مثال: اعتراض على نتيجة القرعة</p>
-            <p className="text-sm leading-6 text-ink-soft">«كنت مقبولاً في الملف المعلن على التلفاز، ولم يظهر اسمي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من رفع الملف، ومن صحّح، ومن نشر، ومتى.</p>
+            <p className="font-display text-lg font-bold text-white">مثال: اعتراض على نتيجة القرعة</p>
+            <p className="text-sm leading-6 text-white/90">«كنت مقبولاً في الملف المعلن على التلفاز، ولم يظهر اسمي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من رفع الملف، ومن صحّح، ومن نشر، ومتى.</p>
           </div>
-          <Button variant={tracing ? "outline" : "maroon"} onClick={trace} disabled={tracing}>
+          <Button variant={tracing ? "glass" : "gold"} onClick={trace} disabled={tracing}>
             <SearchCheck className="size-4" /> تتبّع الطلب {OBJECTION_APP}
           </Button>
         </div>
         <AnimatePresence>
           {tracing && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="mt-4 rounded-2xl bg-green-light/10 p-4 text-sm leading-7 ring-1 ring-green-light/25">
-                <p className="font-bold text-green">النتيجة: الطلب {OBJECTION_APP} مقبول فعلاً.</p>
-                <p className="text-ink-soft">
+              <div className="mt-4 rounded-2xl bg-green-light/15 p-4 text-sm leading-7 ring-1 ring-green-light/40">
+                <p className="font-bold text-gold">النتيجة: الطلب {OBJECTION_APP} مقبول فعلاً.</p>
+                <p className="text-white/90">
                   الصف 4,102 في الملف كان فيه رقم وطني غير مطابق (رقمان متبادلان)، وصحّحته رنا بتصويب موقّع من اللجنة قبل النشر. المشكلة أن صاحبه بحث باسمه لا برقمه الوطني، واسمه مطابق لاسم شخص آخر. لو كان هناك تلاعب لظهر هنا: من عدّل، ومتى، ولماذا.
                 </p>
               </div>
@@ -176,8 +187,8 @@ function Audit() {
             ]}
           />
           <label className="relative w-full md:w-80">
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="رقم طلب، اسم، قيمة..." aria-label="بحث في السجل" className="h-11 w-full rounded-2xl border-2 border-gold/40 bg-sand/60 pr-9 pl-3 text-sm outline-none focus:border-green-light" />
+            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/60" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="رقم طلب، اسم، قيمة..." aria-label="بحث في السجل" className={cn(inputBase, "pr-9 pl-3")} />
           </label>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
@@ -199,17 +210,17 @@ function Audit() {
               <option key={a}>{a}</option>
             ))}
           </select>
-          <label className="flex h-11 cursor-pointer items-center gap-2 rounded-2xl bg-sand/60 px-3 text-sm ring-1 ring-gold/30">
-            <input type="checkbox" checked={diffOnly} onChange={(e) => setDiffOnly(e.target.checked)} className="accent-[#00594F]" />
+          <label className="flex h-11 cursor-pointer items-center gap-2 rounded-2xl border-2 border-white/15 bg-white/10 px-3 text-sm text-white">
+            <input type="checkbox" checked={diffOnly} onChange={(e) => setDiffOnly(e.target.checked)} className="size-4 accent-[#D9C89E]" />
             تعديلات فقط
           </label>
           {hasFilters && (
-            <Button variant="ghost" size="sm" className="h-11" onClick={clear}>
+            <Button variant="glass" size="sm" className="h-11" onClick={clear}>
               <X className="size-4" /> مسح
             </Button>
           )}
         </div>
-        <p className="mt-3 text-xs text-hint">
+        <p className="mt-3 text-xs text-white/75">
           {formatNumber(filtered.length)} حدثاً مطابقاً {tracing && "— مرتبة زمنياً من الأقدم"}
         </p>
 
@@ -217,52 +228,52 @@ function Audit() {
         <div className="mt-4 space-y-6">
           {groups.map((g) => (
             <section key={g.day + g.items[0].id}>
-              <h3 className="mb-2 inline-flex rounded-full bg-green-dark px-3 py-1 text-xs font-bold text-white shadow">{g.day}</h3>
-              <ol className="relative space-y-2 border-r-2 border-gold/30 pr-5">
+              <h3 className="mb-2 inline-flex rounded-full bg-gold px-3 py-1 text-xs font-bold text-ink shadow">{g.day}</h3>
+              <ol className="relative space-y-2 border-r-2 border-gold/40 pr-5">
                 {g.items.map((e, i) => (
                   <motion.li key={e.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 12) * 0.025 }} className="group relative">
-                    <span className={cn("absolute -right-[27px] top-4 size-3.5 rounded-full border-2 border-white", e.live ? "bg-green-light" : "bg-gold-dark")} />
-                    <div className={cn("rounded-2xl p-3 ring-1 transition group-hover:shadow-md", tracing && e.target?.includes(OBJECTION_APP) ? "bg-gold/15 ring-gold-dark/40" : "bg-sand/50 ring-gold/25")}>
+                    <span className={cn("absolute -right-[27px] top-4 size-3.5 rounded-full border-2 border-green-dark ring-1 ring-white/40", e.live ? "bg-green-light" : "bg-gold")} />
+                    <div className={cn("rounded-2xl p-3 ring-1 transition", tracing && e.target?.includes(OBJECTION_APP) ? "bg-gold/15 ring-gold/50" : "bg-white/[.06] ring-white/10 group-hover:ring-gold/40")}>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="font-mono text-xs font-bold tabular-nums text-green-dark">{fmtTime(e.at)}</span>
-                        <span className="grid size-6 place-items-center rounded-lg bg-green-dark text-[11px] font-bold text-white">{e.actor.replace("د. ", "")[0]}</span>
-                        <span className="font-bold text-ink">{e.actor}</span>
-                        <span className="text-xs text-hint">{e.role}</span>
-                        <Badge tone={e.before !== undefined ? "maroon" : "green"}>{e.action}</Badge>
-                        {e.live && <Badge tone="gold">جلسة العرض</Badge>}
+                        <span className="font-mono text-xs font-bold tabular-nums text-gold">{fmtTime(e.at)}</span>
+                        <span className="grid size-6 place-items-center rounded-lg bg-white/15 text-[11px] font-bold text-white ring-1 ring-white/15">{e.actor.replace("د. ", "")[0]}</span>
+                        <span className="font-bold text-white">{e.actor}</span>
+                        <span className="text-xs text-white/75">{e.role}</span>
+                        <Chip tone={e.before !== undefined ? "maroon" : "green"}>{e.action}</Chip>
+                        {e.live && <Chip tone="gold">جلسة العرض</Chip>}
                         <span className="mr-auto opacity-0 transition group-hover:opacity-100" title="لا يمكن حذف أو تعديل أي حدث، حتى من أصحاب أعلى الصلاحيات">
-                          <Lock className="size-3.5 text-hint" />
+                          <Lock className="size-3.5 text-white/70" />
                         </span>
                       </div>
-                      {e.target && <p className="mt-1 text-sm font-semibold text-green-dark">{e.target}</p>}
+                      {e.target && <p className="mt-1 text-sm font-semibold text-gold">{e.target}</p>}
                       {(e.before !== undefined || e.after !== undefined) && (
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                           {e.before !== undefined && (
-                            <span className="rounded-lg bg-maroon/10 px-2 py-1 text-maroon">
+                            <span className="rounded-lg bg-maroon/60 px-2 py-1 text-white ring-1 ring-maroon-light/50">
                               <span className="font-bold">قبل: </span>
-                              <span className="line-through decoration-maroon/40">{e.before}</span>
+                              <span className="line-through decoration-white/60">{e.before}</span>
                             </span>
                           )}
-                          {e.before !== undefined && <ArrowLeft className="size-3.5 text-hint" />}
+                          {e.before !== undefined && <ArrowLeft className="size-3.5 text-white/70" />}
                           {e.after !== undefined && (
-                            <span className="rounded-lg bg-green-light/15 px-2 py-1 text-green">
+                            <span className="rounded-lg bg-green-light/25 px-2 py-1 text-white ring-1 ring-green-light/40">
                               <span className="font-bold">بعد: </span>
                               {e.after}
                             </span>
                           )}
                         </div>
                       )}
-                      {e.detail && <p className="mt-1.5 text-xs leading-5 text-ink-soft">{e.detail}</p>}
+                      {e.detail && <p className="mt-1.5 text-xs leading-5 text-white/85">{e.detail}</p>}
                     </div>
                   </motion.li>
                 ))}
               </ol>
             </section>
           ))}
-          {filtered.length === 0 && <p className="rounded-2xl bg-sand p-6 text-center text-sm text-hint">لا توجد أحداث مطابقة.</p>}
+          {filtered.length === 0 && <p className="rounded-2xl bg-white/[.06] p-6 text-center text-sm text-white/75 ring-1 ring-white/10">لا توجد أحداث مطابقة.</p>}
           {filtered.length > limit && (
             <div className="text-center">
-              <Button variant="outline" onClick={() => setLimit((l) => l + 40)}>
+              <Button variant="glass" onClick={() => setLimit((l) => l + 40)}>
                 عرض المزيد ({formatNumber(filtered.length - limit)})
               </Button>
             </div>

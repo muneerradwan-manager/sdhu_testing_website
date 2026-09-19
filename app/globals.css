@@ -177,6 +177,11 @@ body {
   }
 }
 
+/* Full-height dark pages (staff portal) run straight into the dark footer — no light strip between them */
+main:has([data-dark-page]) + footer {
+  margin-top: 0;
+}
+
 /* ───────────────────────── Utilities ───────────────────────── */
 @utility text-balance {
   text-wrap: balance;

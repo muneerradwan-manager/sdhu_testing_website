@@ -18,11 +18,15 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/widgets";
 import { Counter } from "@/components/ui/motion";
 import { EXEC } from "@/lib/data/staff-seed";
 import { cn, formatNumber } from "@/lib/utils";
 import { Donut, Gate, Legend, PageHeader, Panel, Tabs } from "../_components/kit";
+
+// Seed colours were picked for white cards; these keep every segment distinct on the dark ones.
+const SPLIT_ON_DARK: Record<string, string> = { "#AD9E6E": "#D9C89E", "#00594F": "#289E92", "#289E92": "#FFFFFF", "#E4DDD3": "rgba(228,221,211,.35)" };
+const COMPLAINTS_ON_DARK: Record<string, string> = { "#00594F": "#289E92", "#289E92": "#FFFFFF", "#D9C89E": "rgba(228,221,211,.45)" };
+const onDark = (map: Record<string, string>, c: string) => map[c.toUpperCase()] ?? c;
 
 export function ExecutiveView() {
   return (
@@ -38,7 +42,7 @@ function Executive() {
   const splitTotal = EXEC.split.reduce((a, s) => a + s.value, 0);
 
   return (
-    <div>
+    <div className="[-webkit-print-color-adjust:exact] [print-color-adjust:exact]">
       <PageHeader
         eyebrow="تقرير نهاية الموسم"
         title="لوحة الإدارة العليا — موسم 1448"
@@ -88,9 +92,9 @@ function Executive() {
                 </motion.span>
               ))}
             </div>
-            <Badge tone="green" className="bg-green-light/20 text-green-light">
-              <ArrowUpRight className="size-3.5" /> من 4.0 في موسم 1447
-            </Badge>
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-light/30 px-3 py-1 text-xs font-bold text-white ring-1 ring-green-light/50">
+              <ArrowUpRight className="size-3.5 text-gold" /> من 4.0 في موسم 1447
+            </span>
           </div>
         </div>
       </motion.div>
@@ -105,13 +109,13 @@ function Executive() {
           { icon: <Trophy />, label: "متوسط أداء الإداريين", value: EXEC.people.adminAvg, hint: "من 100" },
           { icon: <AlertTriangle />, label: "إداريون تحت 70", value: EXEC.people.adminsBelow, hint: "لا يُرشَّحون تلقائياً في 1449" },
         ].map((k, i) => (
-          <motion.div key={k.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="rounded-3xl border border-white/10 bg-white/[.07] p-4 text-white">
+          <motion.div key={k.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }} className="relative overflow-hidden rounded-3xl border border-gold/30 bg-gradient-to-br from-green-dark/95 via-green-dark/[.93] to-[#00352f]/95 p-4 text-white shadow-[0_24px_60px_-36px_rgba(0,0,0,.7)]">
             <span className="grid size-9 place-items-center rounded-xl bg-white/10 text-gold [&_svg]:size-4.5">{k.icon}</span>
-            <p className="mt-2 text-xs text-white/60">{k.label}</p>
+            <p className="mt-2 text-xs font-bold text-white/85">{k.label}</p>
             <p className="font-display text-2xl font-bold">
               <Counter to={k.value} />
             </p>
-            <p className="text-[11px] text-white/45">{k.hint}</p>
+            <p className="text-[11px] text-white/75">{k.hint}</p>
           </motion.div>
         ))}
       </div>
@@ -119,14 +123,14 @@ function Executive() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.6fr]">
         <Panel title="توزيع المؤهلين" icon={<BarChart3 />} delay={0.1}>
           <div className="flex flex-col items-center gap-5">
-            <Donut size={190} thickness={26} segments={EXEC.split.map((s) => ({ value: s.value, color: s.color, label: s.label }))}>
+            <Donut size={190} thickness={26} segments={EXEC.split.map((s) => ({ value: s.value, color: onDark(SPLIT_ON_DARK, s.color), label: s.label }))}>
               <div>
-                <p className="font-display text-2xl font-bold text-green-dark">{formatNumber(splitTotal)}</p>
-                <p className="text-xs text-hint">طلباً مؤهلاً</p>
+                <p className="font-display text-2xl font-bold text-white">{formatNumber(splitTotal)}</p>
+                <p className="text-xs text-white/75">طلباً مؤهلاً</p>
               </div>
             </Donut>
             <div className="w-full">
-              <Legend items={EXEC.split.map((s) => ({ label: s.label, color: s.color, value: `${formatNumber(s.value)} · ${Math.round((s.value / splitTotal) * 100)}%` }))} />
+              <Legend items={EXEC.split.map((s) => ({ label: s.label, color: onDark(SPLIT_ON_DARK, s.color), value: `${formatNumber(s.value)} · ${Math.round((s.value / splitTotal) * 100)}%` }))} />
             </div>
           </div>
         </Panel>
@@ -152,41 +156,41 @@ function Executive() {
               const delta = Math.round((s.y1448 - s.y1447) * 10) / 10;
               return (
                 <li key={s.stage} className="grid grid-cols-[6.5rem_1fr_3.5rem] items-center gap-3">
-                  <span className="truncate text-sm text-ink-soft">{s.stage}</span>
+                  <span className="truncate text-sm text-white/90">{s.stage}</span>
                   <div className="space-y-1">
                     {stageView === "compare" && (
-                      <div className="h-2 overflow-hidden rounded-full bg-sand">
+                      <div className="h-2 overflow-hidden rounded-full bg-white/10">
                         <motion.div className="h-full rounded-full bg-gold" initial={{ width: 0 }} animate={{ width: `${(s.y1447 / 5) * 100}%` }} transition={{ duration: 0.8, delay: i * 0.03 }} />
                       </div>
                     )}
-                    <div className={cn("overflow-hidden rounded-full bg-sand", stageView === "compare" ? "h-2.5" : "h-4")}>
+                    <div className={cn("overflow-hidden rounded-full bg-white/10", stageView === "compare" ? "h-2.5" : "h-4")}>
                       <motion.div
-                        className={cn("h-full rounded-full", s.y1448 < 3.8 ? "bg-maroon" : "bg-green-dark")}
+                        className={cn("h-full rounded-full", s.y1448 < 3.8 ? "bg-maroon-light ring-1 ring-inset ring-white/30" : "bg-green-light")}
                         initial={{ width: 0 }}
                         animate={{ width: `${(s.y1448 / 5) * 100}%` }}
                         transition={{ duration: 0.9, delay: 0.1 + i * 0.03 }}
                       />
                     </div>
                   </div>
-                  <span className="flex items-center justify-end gap-1 text-sm font-bold tabular-nums">
+                  <span className="flex items-center justify-end gap-1 text-sm font-bold tabular-nums text-white">
                     {s.y1448.toFixed(1)}
-                    {stageView === "compare" && <span className={cn("text-[10px]", delta >= 0 ? "text-green-light" : "text-maroon")}>+{delta}</span>}
+                    {stageView === "compare" && <span className={cn("text-[11px]", delta >= 0 ? "text-gold" : "rounded bg-maroon px-1 text-white")}>{delta >= 0 ? `+${delta}` : delta}</span>}
                   </span>
                 </li>
               );
             })}
           </ul>
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-hint">
+          <div className="mt-4 flex flex-wrap gap-4 text-xs text-white/85">
             {stageView === "compare" && (
               <span className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full bg-gold" /> 1447
               </span>
             )}
             <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-green-dark" /> 1448
+              <span className="size-2.5 rounded-full bg-green-light" /> 1448
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-maroon" /> دون 3.8 — تحتاج خطة تحسين
+              <span className="size-2.5 rounded-full bg-maroon-light ring-1 ring-white/40" /> دون 3.8 — تحتاج خطة تحسين
             </span>
           </div>
         </Panel>
@@ -195,16 +199,16 @@ function Executive() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.3fr]">
         <Panel title="أكثر الشكاوى تكراراً" icon={<MessageSquareWarning />} delay={0.1}>
           <div className="flex flex-col items-center gap-6 sm:flex-row">
-            <Donut size={160} thickness={22} segments={EXEC.complaints.parts.map((p) => ({ value: p.value, color: p.color, label: p.label }))}>
+            <Donut size={160} thickness={22} segments={EXEC.complaints.parts.map((p) => ({ value: p.value, color: onDark(COMPLAINTS_ON_DARK, p.color), label: p.label }))}>
               <div>
-                <p className="font-display text-2xl font-bold text-maroon">{formatNumber(EXEC.complaints.total)}</p>
-                <p className="text-[11px] text-hint">شكوى</p>
+                <p className="font-display text-2xl font-bold text-gold">{formatNumber(EXEC.complaints.total)}</p>
+                <p className="text-[11px] text-white/75">شكوى</p>
               </div>
             </Donut>
             <div className="w-full flex-1">
-              <Legend items={EXEC.complaints.parts.map((p) => ({ label: p.label, color: p.color, value: `${p.value}%` }))} />
-              <p className="mt-3 rounded-xl bg-sand px-3 py-2 text-xs text-ink-soft">
-                متوسط زمن الإغلاق: <b className="text-green-dark">{EXEC.complaints.avgHours} ساعة</b> — أكثر من نصف الشكاوى عن الوجبات والنقل، وهو ما يوجّه قرارات التعاقد.
+              <Legend items={EXEC.complaints.parts.map((p) => ({ label: p.label, color: onDark(COMPLAINTS_ON_DARK, p.color), value: `${p.value}%` }))} />
+              <p className="mt-3 rounded-xl bg-white/[.06] px-3 py-2 text-xs leading-5 text-white/90 ring-1 ring-white/10">
+                متوسط زمن الإغلاق: <b className="text-gold">{EXEC.complaints.avgHours} ساعة</b> — أكثر من نصف الشكاوى عن الوجبات والنقل، وهو ما يوجّه قرارات التعاقد.
               </p>
             </div>
           </div>
@@ -218,35 +222,35 @@ function Executive() {
               const pos = (v: number) => `${((v - 3) / 2) * 100}%`;
               return (
                 <motion.li key={c.name} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="grid grid-cols-[1.5rem_8.5rem_1fr_auto] items-center gap-3">
-                  <span className={cn("grid size-6 place-items-center rounded-full text-xs font-bold", i === 0 ? "bg-gold text-ink" : "bg-sand text-ink-soft")}>{i + 1}</span>
-                  <span className="truncate text-sm font-semibold text-ink">{c.name}</span>
+                  <span className={cn("grid size-6 place-items-center rounded-full text-xs font-bold", i === 0 ? "bg-gold text-ink" : "bg-white/10 text-white ring-1 ring-white/15")}>{i + 1}</span>
+                  <span className="truncate text-sm font-semibold text-white">{c.name}</span>
                   <div className="relative h-6" dir="ltr">
                     <div className="absolute inset-x-0 top-1/2 h-px bg-gold/40" />
                     <motion.div
-                      className={cn("absolute top-1/2 h-1 -translate-y-1/2 rounded-full", flagged ? "bg-maroon/50" : "bg-green-light/40")}
+                      className={cn("absolute top-1/2 h-1 -translate-y-1/2 rounded-full", flagged ? "bg-maroon-light" : "bg-green-light/60")}
                       initial={{ width: 0 }}
                       animate={{ left: pos(c.evaluators), width: `${(gap / 2) * 100}%` }}
                       transition={{ duration: 0.8, delay: 0.2 + i * 0.05 }}
                     />
-                    <span className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-dark ring-2 ring-white" style={{ left: pos(c.evaluators) }} title={`الجهات المقيّمة ${c.evaluators}`} />
+                    <span className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-light ring-2 ring-white" style={{ left: pos(c.evaluators) }} title={`الجهات المقيّمة ${c.evaluators}`} />
                     <span className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold ring-2 ring-white" style={{ left: pos(c.self) }} title={`التقييم الذاتي ${c.self}`} />
                   </div>
-                  <span className="flex items-center gap-1 text-xs font-bold tabular-nums">
+                  <span className="flex items-center gap-1 text-xs font-bold tabular-nums text-white">
                     {c.evaluators}
                     {flagged && (
-                      <Badge tone="maroon" className="px-1.5 py-0.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-maroon px-1.5 py-0.5 text-white ring-1 ring-white/20">
                         <Flag className="size-3" /> +{gap}
-                      </Badge>
+                      </span>
                     )}
                   </span>
                 </motion.li>
               );
             })}
           </ul>
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-hint">
-            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-green-dark" /> الجهات المقيّمة</span>
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-white/85">
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-green-light" /> الجهات المقيّمة</span>
             <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-gold" /> التقييم الذاتي</span>
-            <span className="flex items-center gap-1.5"><Flag className="size-3 text-maroon" /> فرق أكثر من نقطة — للمراجعة</span>
+            <span className="flex items-center gap-1.5"><span className="grid size-4 place-items-center rounded-full bg-maroon text-white"><Flag className="size-2.5" /></span> فرق أكثر من نقطة — للمراجعة</span>
             <span className="mr-auto" dir="ltr">3.0 ← 5.0</span>
           </div>
         </Panel>
@@ -257,24 +261,24 @@ function Executive() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-sm">
               <thead>
-                <tr className="text-right text-xs text-hint">
+                <tr className="text-right text-xs text-white/75">
                   <th className="pb-2 font-bold">المؤشر</th>
                   <th className="pb-2 font-bold">1447</th>
                   <th className="pb-2 font-bold">1448</th>
                   <th className="pb-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gold/20">
+              <tbody className="divide-y divide-white/10">
                 {EXEC.compare.map((r) => (
                   <tr key={r.label}>
-                    <td className="py-2.5 font-semibold text-ink">{r.label}</td>
-                    <td className="py-2.5 tabular-nums text-hint">{r.y1447}</td>
-                    <td className="py-2.5 font-bold tabular-nums text-green-dark">{r.y1448}</td>
+                    <td className="py-2.5 font-semibold text-white">{r.label}</td>
+                    <td className="py-2.5 tabular-nums text-white/75">{r.y1447}</td>
+                    <td className="py-2.5 font-bold tabular-nums text-gold">{r.y1448}</td>
                     <td className="py-2.5">
                       {r.better ? (
-                        <span className="flex items-center gap-1 text-xs font-bold text-green-light"><ArrowUpRight className="size-4" /> تحسّن</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-light/25 px-2 py-0.5 text-xs font-bold text-white ring-1 ring-green-light/40"><ArrowUpRight className="size-4" /> تحسّن</span>
                       ) : (
-                        <span className="flex items-center gap-1 text-xs font-bold text-maroon"><ArrowDownRight className="size-4" /> تراجع</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-maroon px-2 py-0.5 text-xs font-bold text-white ring-1 ring-white/20"><ArrowDownRight className="size-4" /> تراجع</span>
                       )}
                     </td>
                   </tr>
@@ -288,20 +292,20 @@ function Executive() {
           <ul className="space-y-3">
             {EXEC.providers.map((p) => (
               <li key={p.name} className="flex items-center gap-3">
-                <span className="w-32 truncate text-sm font-semibold text-ink">{p.name}</span>
-                <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-sand">
-                  <motion.div className={cn("h-full rounded-full", p.rating < 3.5 ? "bg-maroon" : p.rating >= 4.5 ? "bg-gold-dark" : "bg-green-dark")} initial={{ width: 0 }} animate={{ width: `${(p.rating / 5) * 100}%` }} transition={{ duration: 0.9 }} />
+                <span className="w-32 truncate text-sm font-semibold text-white">{p.name}</span>
+                <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/10">
+                  <motion.div className={cn("h-full rounded-full", p.rating < 3.5 ? "bg-maroon-light ring-1 ring-inset ring-white/30" : p.rating >= 4.5 ? "bg-gold" : "bg-green-light")} initial={{ width: 0 }} animate={{ width: `${(p.rating / 5) * 100}%` }} transition={{ duration: 0.9 }} />
                 </div>
-                <span className="w-8 text-left text-sm font-bold tabular-nums">{p.rating}</span>
+                <span className="w-8 text-left text-sm font-bold tabular-nums text-white">{p.rating}</span>
               </li>
             ))}
           </ul>
           <div className="mt-4 space-y-2 text-sm">
-            <p className="flex items-start gap-2 rounded-2xl bg-gold/15 p-3 text-ink">
-              <Trophy className="mt-0.5 size-4 shrink-0 text-gold-dark" /> أفضل مقدّم نقل: شركة (س) 4.7 — أفضل تكتل: النور 4.6
+            <p className="flex items-start gap-2 rounded-2xl bg-gold/15 p-3 text-white ring-1 ring-gold/40">
+              <Trophy className="mt-0.5 size-4 shrink-0 text-gold" /> أفضل مقدّم نقل: شركة (س) 4.7 — أفضل تكتل: النور 4.6
             </p>
-            <p className="flex items-start gap-2 rounded-2xl bg-maroon/5 p-3 text-maroon ring-1 ring-maroon/15">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" /> أدنى مقدّم إعاشة: شركة (ص) 3.1 ← توصية: مراجعة العقد قبل موسم 1449
+            <p className="flex items-start gap-2 rounded-2xl bg-maroon/60 p-3 text-white ring-1 ring-maroon-light/60">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-gold" /> أدنى مقدّم إعاشة: شركة (ص) 3.1 ← توصية: مراجعة العقد قبل موسم 1449
             </p>
           </div>
         </Panel>

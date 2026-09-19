@@ -56,7 +56,7 @@ export function StaffLogin() {
   };
 
   return (
-    <div className="relative isolate min-h-[calc(100dvh/var(--zoom))] overflow-hidden pt-28 text-white">
+    <div data-dark-page className="relative isolate min-h-[calc(100dvh/var(--zoom))] overflow-hidden pt-28 text-white">
       <div className="absolute inset-0 -z-10 bg-[#003d36]">
         <Image src="/images/clock-tower.jpg" alt="" fill priority sizes="100vw" quality={70} className="object-cover opacity-20" />
         <div className="absolute inset-0 bg-gradient-to-b from-ink/60 via-[#003d36]/90 to-[#002a25]" />

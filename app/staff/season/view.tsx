@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, CalendarRange, Coins, History, Lock, RotateCcw, Save, Scale, Settings2, Sparkles, UsersRound, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge, Modal, useToast } from "@/components/ui/widgets";
+import { Modal, useToast } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
 import { mergeSeason, type LiveSeason } from "@/lib/season-live";
 import { actions, useStore, type SeasonOverrides } from "@/lib/store";
@@ -18,6 +18,16 @@ type Key = keyof Required<SeasonOverrides>;
 type FieldDef = { key: Key; label: string; unit?: string; min: number; max: number; step?: number; hint?: (v: number) => string };
 
 const REF = SEASON.referenceYear;
+
+/** Chips tuned for the dark staff cards (the shared Badge is written for white surfaces) */
+const CHIP = {
+  green: "bg-green-light/25 text-white ring-green-light/40",
+  gold: "bg-gold/20 text-gold ring-gold/40",
+} as const;
+
+function Chip({ tone, children, className }: { tone: keyof typeof CHIP; children: React.ReactNode; className?: string }) {
+  return <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ring-1", CHIP[tone], className)}>{children}</span>;
+}
 
 const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
   {
@@ -188,20 +198,20 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                 thickness={24}
                 segments={[
                   { value: directSeats, color: "#AD9E6E", label: "direct" },
-                  { value: lotterySeats, color: "#00594F", label: "lottery" },
+                  { value: lotterySeats, color: "#289E92", label: "lottery" },
                 ]}
               >
                 <div>
-                  <motion.p key={draft.directShare} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="font-display text-3xl font-bold text-green-dark">
+                  <motion.p key={draft.directShare} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="font-display text-3xl font-bold text-white">
                     {draft.directShare}/{100 - draft.directShare}
                   </motion.p>
-                  <p className="text-xs text-hint">مباشر / قرعة</p>
+                  <p className="text-xs text-white/75">مباشر / قرعة</p>
                 </div>
               </Donut>
               <div className="w-full flex-1">
                 <div className="flex items-center justify-between text-sm font-bold">
-                  <span className="text-gold-dark">مباشر {formatNumber(directSeats)} مقعداً</span>
-                  <span className="text-green-dark">قرعة {formatNumber(lotterySeats)} مقعداً</span>
+                  <span className="text-gold">مباشر {formatNumber(directSeats)} مقعداً</span>
+                  <span className="text-white">قرعة {formatNumber(lotterySeats)} مقعداً</span>
                 </div>
                 <input
                   type="range"
@@ -210,15 +220,15 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                   value={draft.directShare}
                   onChange={(e) => set("directShare", Number(e.target.value))}
                   aria-label="نسبة القبول المباشر"
-                  className="mt-3 w-full accent-[#AD9E6E]"
+                  className="mt-3 w-full accent-[#D9C89E]"
                   style={{ direction: "ltr" }}
                 />
-                <div className="mt-1 flex justify-between text-[11px] text-hint" dir="ltr">
+                <div className="mt-1 flex justify-between text-[11px] text-white/75" dir="ltr">
                   <span>10%</span>
                   <span>35%</span>
                   <span>60%</span>
                 </div>
-                {draft.directShare !== DEFAULTS.directShare && <Badge tone="gold" className="mt-2">القيمة في الوثيقة: {DEFAULTS.directShare}%</Badge>}
+                {draft.directShare !== DEFAULTS.directShare && <Chip tone="gold" className="mt-2">القيمة في الوثيقة: {DEFAULTS.directShare}%</Chip>}
               </div>
             </div>
           </Panel>
@@ -231,10 +241,10 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                   const custom = saved[f.key] !== DEFAULTS[f.key];
                   const out = draft[f.key] < f.min || draft[f.key] > f.max;
                   return (
-                    <label key={f.key} className={cn("block rounded-2xl p-3 ring-1 transition", changed ? "bg-gold/15 ring-gold-dark/40" : "bg-sand/60 ring-gold/25")}>
-                      <span className="mb-1.5 flex items-center justify-between gap-2 text-sm font-bold text-ink">
+                    <label key={f.key} className={cn("block rounded-2xl p-3 ring-1 transition", changed ? "bg-gold/15 ring-gold/50" : "bg-white/[.06] ring-white/10 hover:ring-gold/40")}>
+                      <span className="mb-1.5 flex items-center justify-between gap-2 text-sm font-bold text-white">
                         {f.label}
-                        {changed ? <Badge tone="gold">غير محفوظ</Badge> : custom ? <Badge tone="green">معدّل</Badge> : null}
+                        {changed ? <Chip tone="gold">غير محفوظ</Chip> : custom ? <Chip tone="green">معدّل</Chip> : null}
                       </span>
                       <div className="relative">
                         <input
@@ -245,13 +255,13 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                           step={f.step ?? 1}
                           value={draft[f.key]}
                           onChange={(e) => set(f.key, Number(e.target.value))}
-                          className={cn(smallInputClass, "pl-24 font-display text-lg font-bold tabular-nums", out && "border-maroon")}
+                          className={cn(smallInputClass, "pl-24 font-display text-lg font-bold tabular-nums", out && "border-gold! bg-maroon/40!")}
                           dir="ltr"
                         />
-                        {f.unit && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-hint">{f.unit}</span>}
+                        {f.unit && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/75">{f.unit}</span>}
                       </div>
-                      <span className="mt-1 block text-xs text-hint">
-                        {out ? <span className="font-bold text-maroon">خارج النطاق المسموح ({f.min} – {f.max})</span> : f.hint?.(draft[f.key]) ?? `القيمة في الوثيقة: ${show(f.key, DEFAULTS[f.key])}`}
+                      <span className="mt-1 block text-xs text-white/75">
+                        {out ? <span className="font-bold text-gold">خارج النطاق المسموح ({f.min} – {f.max})</span> : f.hint?.(draft[f.key]) ?? `القيمة في الوثيقة: ${show(f.key, DEFAULTS[f.key])}`}
                       </span>
                     </label>
                   );
@@ -265,32 +275,32 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
           <Panel title="شروط ثابتة لا تتغير" icon={<Lock />} delay={0.1}>
             <ul className="space-y-2">
               {["مسلم", "سوري الجنسية", "لم يؤدِّ فريضة الحج سابقاً (إلا محرماً لأمه أو زوجته)", "غير مصاب بمرض عضال"].map((r, i) => (
-                <motion.li key={r} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.06 }} className="flex items-center gap-3 rounded-2xl bg-sand/70 p-3 text-sm ring-1 ring-gold/25">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-green-dark/10 text-green-dark">
+                <motion.li key={r} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.06 }} className="flex items-center gap-3 rounded-2xl bg-white/[.06] p-3 text-sm ring-1 ring-white/10">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-gold/20 text-gold">
                     <Lock className="size-4" />
                   </span>
-                  <span className="font-semibold text-ink">{r}</span>
+                  <span className="font-semibold text-white">{r}</span>
                 </motion.li>
               ))}
             </ul>
-            <p className="mt-3 text-xs leading-5 text-hint">هذه الشروط محمية في البرمجة ولا تظهر كحقول قابلة للتعديل لأي موظف.</p>
+            <p className="mt-3 text-xs leading-5 text-white/75">هذه الشروط محمية في البرمجة ولا تظهر كحقول قابلة للتعديل لأي موظف.</p>
           </Panel>
 
           <Panel title="سجل تعديلات الإعدادات" icon={<History />} delay={0.15}>
             <ol className="space-y-3">
               <AnimatePresence initial={false}>
                 {history.map((e) => (
-                  <motion.li key={e.id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-sand/60 p-3 ring-1 ring-gold/25">
-                    <div className="flex items-center justify-between gap-2 text-xs text-hint">
-                      <span className="font-bold text-ink">{e.actor}</span>
+                  <motion.li key={e.id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
+                    <div className="flex items-center justify-between gap-2 text-xs text-white/75">
+                      <span className="font-bold text-white">{e.actor}</span>
                       <span>{e.live ? ago(e.at, now) : fmtDateTime(e.at)}</span>
                     </div>
-                    <p className="mt-1 text-sm font-bold text-green-dark">{e.target}</p>
+                    <p className="mt-1 text-sm font-bold text-gold">{e.target}</p>
                     {e.before !== undefined && (
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                        <span className="rounded-md bg-maroon/10 px-1.5 py-0.5 text-maroon line-through">{e.before}</span>
-                        <ArrowLeft className="size-3 text-hint" />
-                        <span className="rounded-md bg-green-light/15 px-1.5 py-0.5 font-bold text-green">{e.after}</span>
+                        <span className="rounded-md bg-maroon/70 px-1.5 py-0.5 text-white line-through decoration-white/70">{e.before}</span>
+                        <ArrowLeft className="size-3 text-white/70" />
+                        <span className="rounded-md bg-green-light/25 px-1.5 py-0.5 font-bold text-white">{e.after}</span>
                       </p>
                     )}
                   </motion.li>
@@ -315,9 +325,9 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
               <div className="min-w-0 flex-1">
                 <p className="font-bold">
                   {changes.length} تعديلات غير محفوظة
-                  {invalid.length > 0 && <span className="mr-2 text-xs font-normal text-red-300">— صحّح القيم خارج النطاق أولاً</span>}
+                  {invalid.length > 0 && <span className="mr-2 text-xs font-normal text-gold">— صحّح القيم خارج النطاق أولاً</span>}
                 </p>
-                <p className="scrollbar-none mt-1 flex gap-2 overflow-x-auto text-xs text-white/70">
+                <p className="scrollbar-none mt-1 flex gap-2 overflow-x-auto text-xs text-white/85">
                   {changes.map((k) => (
                     <span key={k} className="shrink-0 rounded-full bg-white/10 px-2 py-0.5">
                       {LABELS[k]}: {show(k, saved[k])} ← {show(k, draft[k])}
@@ -325,7 +335,7 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                   ))}
                 </p>
               </div>
-              <input value={decision} onChange={(e) => setDecision(e.target.value)} placeholder="مرجع قرار اللجنة (اختياري)" className="h-10 w-full rounded-xl border border-white/20 bg-white/10 px-3 text-sm outline-none placeholder:text-white/40 focus:border-gold sm:w-56" />
+              <input value={decision} onChange={(e) => setDecision(e.target.value)} placeholder="مرجع قرار اللجنة (اختياري)" className="h-10 w-full rounded-xl border border-white/20 bg-white/10 px-3 text-sm outline-none placeholder:text-white/50 focus:border-gold sm:w-56" />
               <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={() => setDraft(saved)}>
                 تراجع
               </Button>
@@ -337,14 +347,18 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
         )}
       </AnimatePresence>
 
-      <Modal open={confirmReset} onClose={() => setConfirmReset(false)}>
-        <h3 className="font-display text-xl font-bold text-green-dark">إعادة القيم الافتراضية؟</h3>
-        <p className="mt-2 leading-7 text-ink-soft">ستعود جميع الإعدادات إلى القيم المعتمدة في الوثيقة التشغيلية، ويُسجَّل ذلك باسمك في سجل الأحداث.</p>
+      <Modal
+        open={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        className="border border-gold/30 bg-gradient-to-b from-[#004a42] to-[#00352f] text-white [&>button:first-child]:text-white/75 [&>button:first-child]:hover:bg-white/10 [&>button:first-child]:hover:text-white"
+      >
+        <h3 className="font-display text-xl font-bold text-white">إعادة القيم الافتراضية؟</h3>
+        <p className="mt-2 leading-7 text-white/90">ستعود جميع الإعدادات إلى القيم المعتمدة في الوثيقة التشغيلية، ويُسجَّل ذلك باسمك في سجل الأحداث.</p>
         <div className="mt-5 flex gap-2">
           <Button variant="maroon" onClick={reset}>
             <RotateCcw className="size-4" /> نعم، أعد الضبط
           </Button>
-          <Button variant="outline" onClick={() => setConfirmReset(false)}>
+          <Button variant="glass" onClick={() => setConfirmReset(false)}>
             إلغاء
           </Button>
         </div>
