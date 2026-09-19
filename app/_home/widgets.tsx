@@ -13,7 +13,7 @@ import { asset, cn, hijriDate } from "@/lib/utils";
 const ICONS = { fajr: MoonStar, sunrise: Sunrise, dhuhr: Sun, asr: Sun, maghrib: Sunset, isha: MoonStar } as const;
 const PICK = ["damascus", "aleppo", "makkah", "madinah"];
 
-export function PrayerWidget() {
+export function PrayerWidget({ className }: { className?: string }) {
   const hydrated = useHydrated();
   const [slug, setSlug] = useState("damascus");
   const [now, setNow] = useState(() => new Date());
@@ -30,13 +30,12 @@ export function PrayerWidget() {
   const ss = String(Math.floor(left / 1000) % 60).padStart(2, "0");
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white shadow-2xl md:p-8">
+    <div className={cn("relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white shadow-2xl md:p-8", className)}>
       <div className="bg-pattern absolute inset-0 opacity-20" />
       <div className="absolute -left-16 -top-16 size-56 rounded-full bg-green-light/30 blur-3xl" />
-      <div className="relative">
+      <div className="relative flex h-full flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-gold">مواقيت الصلاة</p>
             <p className="font-display text-2xl font-bold">{city.name}</p>
             <p className="text-xs text-white/60">{hydrated ? hijriDate(now, { weekday: "long" }) : " "}</p>
           </div>
@@ -71,21 +70,21 @@ export function PrayerWidget() {
           </p>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="mt-4 grid flex-1 grid-cols-3 grid-rows-2 gap-2">
           {PRAYERS.map((p) => {
             const Icon = ICONS[p.key];
             const active = next?.key === p.key;
             return (
-              <div key={p.key} className={cn("rounded-2xl p-3 text-center transition", active ? "bg-gold text-ink shadow-lg" : "bg-white/5")}>
-                <Icon className={cn("mx-auto size-4", active ? "text-maroon" : "text-gold")} />
-                <p className="mt-1 text-xs font-semibold">{p.name}</p>
-                <p className="mt-0.5 text-sm font-bold tabular-nums">{times ? formatTime(times[p.key]) : "--:--"}</p>
+              <div key={p.key} className={cn("flex flex-col items-center justify-center rounded-2xl p-3 text-center transition", active ? "bg-gold text-ink shadow-lg" : "bg-white/5")}>
+                <Icon className={cn("mx-auto size-5", active ? "text-maroon" : "text-gold")} />
+                <p className="mt-1 text-sm font-semibold">{p.name}</p>
+                <p className="mt-0.5 text-lg font-bold tabular-nums md:text-xl">{times ? formatTime(times[p.key]) : "--:--"}</p>
               </div>
             );
           })}
         </div>
 
-        <Link href="/prayer-times" className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-gold hover:underline">
+        <Link href="/prayer-times" className="mt-5 inline-flex items-center gap-1.5 self-start text-sm font-bold text-gold hover:underline">
           <Clock className="size-4" /> الجدول الشهري واتجاه القبلة <ArrowLeft className="size-4" />
         </Link>
       </div>

@@ -159,34 +159,44 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Academy + prayer */}
-      <section className="mx-auto grid max-w-7xl items-start gap-8 px-4 py-24 md:px-8 lg:grid-cols-2">
-        <div>
-          <SectionHeading
-            align="start"
-            eyebrow="أكاديمية الدروس الدينية"
-            title="تعلّم مناسكك قبل أن تسافر"
-            description="مسارات مرتبة بالفيديو والصوت والملخص المكتوب، متاحة طوال السنة. أنشئ حساباً لتتبع تقدمك والحصول على شهادة الإتمام."
-            className="mb-8"
-          />
-          <Reveal>
-            <AcademyTeaser />
-          </Reveal>
-          <Reveal delay={0.1} className="mt-5 grid grid-cols-3 gap-3 text-center">
+      {/* Academy + prayer — two columns, each with its own heading; on large screens the headings share a row
+          and the two cards start and end together (grid rows), on phones they stack academy → prayer */}
+      <section className="mx-auto grid max-w-7xl gap-x-10 gap-y-6 px-4 py-24 md:px-8 lg:grid-cols-[1.3fr_1fr]">
+        <SectionHeading
+          align="start"
+          eyebrow="أكاديمية الدروس الدينية"
+          title="تعلّم مناسكك قبل أن تسافر"
+          description="مسارات مرتبة بالفيديو والصوت والملخص المكتوب، متاحة طوال السنة. أنشئ حساباً لتتبع تقدمك والحصول على شهادة الإتمام."
+          className="!mb-0 lg:col-start-1 lg:row-start-1"
+        />
+        <Reveal className="flex flex-col gap-4 lg:col-start-1 lg:row-start-2">
+          <AcademyTeaser />
+          <div className="grid grid-cols-[repeat(3,minmax(0,1fr))_auto] items-stretch gap-3 max-sm:grid-cols-3">
             {[
               { n: "6", l: "مسارات" },
               { n: "18", l: "درساً في فقه الحج" },
               { n: "24/7", l: "متاحة دائماً" },
             ].map((x) => (
-              <div key={x.l} className="rounded-2xl border border-gold/30 bg-white p-4">
+              <div key={x.l} className="grid place-content-center rounded-2xl border border-gold/30 bg-white p-3 text-center">
                 <p className="font-display text-2xl font-bold text-green-dark">{x.n}</p>
                 <p className="text-xs text-ink-soft">{x.l}</p>
               </div>
             ))}
-          </Reveal>
-        </div>
-        <Reveal delay={0.15} className="lg:pt-40">
-          <PrayerWidget />
+            <ButtonLink href="/academy" size="lg" className="max-sm:col-span-3 sm:h-full">
+              ادخل الأكاديمية <ArrowLeft className="size-5" />
+            </ButtonLink>
+          </div>
+        </Reveal>
+
+        <SectionHeading
+          align="start"
+          eyebrow="مواقيت الصلاة"
+          title="صلاتك في وقتها أينما كنت"
+          description="دمشق وحلب ومكة المكرمة والمدينة المنورة، مع عدٍّ تنازلي للصلاة القادمة."
+          className="!mb-0 mt-10 lg:col-start-2 lg:row-start-1 lg:mt-0"
+        />
+        <Reveal delay={0.1} className="lg:col-start-2 lg:row-start-2">
+          <PrayerWidget className="h-full" />
         </Reveal>
       </section>
 
