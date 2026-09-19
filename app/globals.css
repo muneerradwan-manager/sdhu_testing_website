@@ -46,15 +46,15 @@
   }
 }
 
-/* Breakpoints follow the zoom above: at 80% a 1024–1535px desktop screen has the room of 1280–1920px,
-   so it gets the full navigation and wide layouts — the same result as the browser's 80% zoom. */
+/* Breakpoints follow the zoom below: at 80% a 1024–1279px desktop screen has the room of 1280–1599px,
+   so it gets the full navigation — the same result as the browser's own 80% zoom. */
 @custom-variant xl {
   @media (width >= 80rem), (width >= 64rem) and (pointer: fine) {
     @slot;
   }
 }
 @custom-variant 2xl {
-  @media (width >= 96rem), (width >= 76.8rem) and (pointer: fine) {
+  @media (width >= 96rem), (width >= 76.8rem) and (width < 80rem) and (pointer: fine) {
     @slot;
   }
 }
@@ -126,42 +126,33 @@ body {
   border-radius: 6px;
 }
 
-/* Display size by screen. The layout was designed for a ≈1536px-wide laptop.
-   • Desktop screens that report a narrower width — e.g. a 43" TV with Windows at 150% scaling reports
-     ≈1213px — rendered it oversized with a collapsed menu. They now render at 80%, exactly like the
-     browser's own 80% zoom (touch tablets keep 100%).
-   • Very wide monitors (≥1600px) also zoom out a little and let the content use the extra width.
-   Screen-height sections divide by --zoom so they still fill the screen. */
-@media (width >= 64rem) and (width < 96rem) and (pointer: fine) {
+/* Display size by screen. The layout was designed for laptops, where the full menu fits (≥1280px).
+   Desktop screens that report less — e.g. a 43" TV with Windows at 150% scaling reports ≈1213px — showed
+   it oversized with a collapsed menu. They now render at 80%, exactly like the browser's own 80% zoom.
+   Laptops (≥1280px) and touch tablets are untouched. Screen-height sections divide by --zoom so they
+   still fill the screen. */
+@media (width >= 64rem) and (width < 80rem) and (pointer: fine) {
   :root {
     --auto-zoom: 0.8;
   }
 }
 
-@media (min-width: 1600px) {
-  :root {
-    --auto-zoom: 0.9;
-  }
-}
-
+/* Very wide monitors: use the extra width instead of leaving huge empty margins */
 @media (min-width: 1800px) {
-  :root {
-    --auto-zoom: 0.8;
-  }
   .max-w-7xl {
-    max-width: 104rem;
+    max-width: 90rem;
   }
   .max-w-6xl {
-    max-width: 88rem;
+    max-width: 80rem;
   }
 }
 
 @media (min-width: 2400px) {
   .max-w-7xl {
-    max-width: 120rem;
+    max-width: 104rem;
   }
   .max-w-6xl {
-    max-width: 100rem;
+    max-width: 88rem;
   }
 }
 
