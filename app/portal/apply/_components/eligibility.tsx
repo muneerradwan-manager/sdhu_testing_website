@@ -1,11 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, CircleMinus, UserPlus, UserRoundX, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, CircleMinus, HeartPulse, RefreshCw, UserPlus, UserRoundCog, UserRoundX, Users, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ageOf, relationLabel } from "@/lib/registry";
-import type { EligibilityResult, Member } from "@/lib/rules";
+import type { EligibilityResult, Member, SeasonRules } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 import { PersonChip, Question } from "./ui";
 
@@ -16,25 +16,39 @@ const ICON = {
   na: <CircleMinus className="size-5 text-hint" />,
 };
 
+/** Conditions a person cannot change — the only way forward is to take them out of the application */
+const FIXED_KEYS = new Set(["muslim", "syrian", "companion-age", "single-application"]);
+
 export function EligibilityCheck({
   result,
   members,
+  rules,
+  animate = true,
   onContinue,
   onRemove,
   onAddPerson,
   onFixCompanion,
   onFixHealth,
+  onClearTerminal,
+  onChangeApplicant,
 }: {
   result: EligibilityResult;
   members: Member[];
+  rules: SeasonRules;
+  /** Row-by-row reveal on the first check; after a fix the new result shows at once */
+  animate?: boolean;
   onContinue: () => void;
   onRemove: (id: string) => void;
   onAddPerson: () => void;
-  onFixCompanion: () => void;
+  /** Re-pick the dedicated companion of this elderly member */
+  onFixCompanion: (elderlyId: string) => void;
   onFixHealth: () => void;
+  /** The health declaration was ticked by mistake */
+  onClearTerminal: (id: string) => void;
+  onChangeApplicant: () => void;
 }) {
   const totalRows = result.members.reduce((n, m) => n + m.checks.length, 0) + result.general.length;
-  const [shown, setShown] = useState(0);
+  const [shown, setShown] = useState(animate ? 0 : totalRows);
   const done = shown >= totalRows;
 
   useEffect(() => {
@@ -45,8 +59,6 @@ export function EligibilityCheck({
 
   const memberStarts = result.members.map((_, i) => result.members.slice(0, i).reduce((n, m) => n + m.checks.length, 0));
   const generalStart = result.members.reduce((n, m) => n + m.checks.length, 0);
-  const failures = result.members.flatMap((m) => m.checks.filter((c) => c.status === "fail").map((c) => ({ ...c, memberId: m.id, name: m.name })));
-  const generalFail = result.general.filter((g) => g.status === "fail");
 
   return (
     <Question
@@ -121,47 +133,170 @@ export function EligibilityCheck({
                 متابعة <ArrowLeft className="size-6" />
               </Button>
             ) : (
-              <div className="rounded-3xl bg-maroon/6 p-5">
-                <p className="font-display text-xl font-bold text-maroon">الحلول المقترحة</p>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {failures.map((f) => {
-                    const firstName = f.name.split(" ")[0];
-                    return (
-                      <div key={`${f.memberId}-${f.key}`} className="rounded-2xl bg-white p-4">
-                        <p className="text-sm font-bold text-maroon">{firstName}: {f.label}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {f.key === "mahram" && (
-                            <Button size="sm" onClick={onAddPerson}>
-                              <UserPlus className="size-4" /> أضف محرماً
-                            </Button>
-                          )}
-                          {f.key === "elderly-companion" && (
-                            <Button size="sm" onClick={onFixCompanion}>اختر مرافقاً</Button>
-                          )}
-                          {f.key === "terminal" && (
-                            <Button size="sm" variant="outline" onClick={onFixHealth}>تعديل الإقرار الصحي</Button>
-                          )}
-                          {members.find((m) => m.person.id === f.memberId)?.relation !== "self" && (
-                            <Button size="sm" variant="maroon" onClick={() => onRemove(f.memberId)}>
-                              <UserRoundX className="size-4" /> إزالة {firstName} من الطلب
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {generalFail.map((g) => (
-                    <div key={g.key} className="rounded-2xl bg-white p-4">
-                      <p className="text-sm font-bold text-maroon">{g.label}</p>
-                      <p className="mt-1 text-sm text-ink-soft">{g.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Fixes
+                result={result}
+                members={members}
+                rules={rules}
+                onRemove={onRemove}
+                onAddPerson={onAddPerson}
+                onFixCompanion={onFixCompanion}
+                onFixHealth={onFixHealth}
+                onClearTerminal={onClearTerminal}
+                onChangeApplicant={onChangeApplicant}
+              />
             )}
           </motion.div>
         )}
       </AnimatePresence>
     </Question>
+  );
+}
+
+/**
+ * Actionable fixes: every problem comes with the action that resolves it, applied on the spot.
+ * The check re-runs immediately after each action.
+ */
+function Fixes({
+  result,
+  members,
+  rules,
+  onRemove,
+  onAddPerson,
+  onFixCompanion,
+  onFixHealth,
+  onClearTerminal,
+  onChangeApplicant,
+}: {
+  result: EligibilityResult;
+  members: Member[];
+  rules: SeasonRules;
+  onRemove: (id: string) => void;
+  onAddPerson: () => void;
+  onFixCompanion: (elderlyId: string) => void;
+  onFixHealth: () => void;
+  onClearTerminal: (id: string) => void;
+  onChangeApplicant: () => void;
+}) {
+  const applicant = members.find((m) => m.relation === "self");
+  const companions = members.filter((m) => m.relation !== "self");
+  const failures = result.members.flatMap((m) => m.checks.filter((c) => c.status === "fail").map((c) => ({ ...c, memberId: m.id })));
+  const limitFail = result.general.some((g) => g.key === "limit" && g.status === "fail");
+
+  // Size limit: applicant + maxCompanions, or + maxCompanionsFamily for a man with only his wife and children
+  const nonFamily = companions.filter((c) => c.relation !== "spouse" && c.relation !== "child");
+  const familyPossible = applicant?.person.gender === "M" && nonFamily.length > 0 && companions.length - nonFamily.length <= rules.maxCompanionsFamily;
+  const overBy = companions.length - rules.maxCompanions;
+
+  return (
+    <div className="space-y-4 rounded-3xl bg-maroon/6 p-4 md:p-5">
+      <p className="font-display text-xl font-bold text-maroon">عدّل الطلب من هنا مباشرة</p>
+
+      {limitFail && (
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-maroon/20">
+          <p className="flex items-center gap-2 font-bold text-maroon">
+            <Users className="size-5" /> عدد المرافقين {companions.length}، والحد {rules.maxCompanions}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-ink-soft">
+            أزل {overBy === 1 ? "شخصاً واحداً" : overBy === 2 ? "شخصين" : `${overBy} أشخاص`} من الطلب
+            {familyPossible && (
+              <>
+                {" "}
+                — أو أزل {nonFamily.map((n) => n.person.firstName).join(" و")} ليصبح الطلب عائلياً (الزوجة والأولاد) فيرتفع الحد إلى {rules.maxCompanionsFamily}
+              </>
+            )}
+            . ومن يُزال يمكنه تقديم طلب مستقل.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {companions.map((c) => {
+              const breaksFamily = familyPossible && nonFamily.includes(c);
+              return (
+                <li key={c.person.id} className={cn("flex items-center gap-3 rounded-2xl p-2.5", breaksFamily ? "bg-gold/20 ring-1 ring-gold-dark/40" : "bg-sand")}>
+                  <PersonChip
+                    className="flex-1"
+                    name={`${c.person.firstName} ${c.person.lastName}`}
+                    gender={c.person.gender}
+                    sub={
+                      <>
+                        {relationLabel(c.relation, c.person.gender)} — {ageOf(c.person)} عاماً
+                        {breaksFamily && <span className="font-bold text-maroon"> · ليس من الزوجة والأولاد</span>}
+                      </>
+                    }
+                  />
+                  <Button size="sm" variant="maroon" onClick={() => onRemove(c.person.id)} aria-label={`إزالة ${c.person.firstName}`}>
+                    <UserRoundX className="size-4" /> إزالة
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {failures.length > 0 && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {failures.map((f) => {
+            const m = members.find((x) => x.person.id === f.memberId)!;
+            const first = m.person.firstName;
+            const isSelf = m.relation === "self";
+            return (
+              <div key={`${f.memberId}-${f.key}`} className="flex flex-col rounded-2xl bg-white p-4 ring-1 ring-maroon/20">
+                <p className="font-bold text-maroon">
+                  {first}: {f.label}
+                </p>
+                <p className="mt-1 flex-1 text-sm leading-6 text-ink-soft">{f.detail}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {f.key === "mahram" && (
+                    <Button size="sm" onClick={onAddPerson}>
+                      <UserPlus className="size-4" /> أضف محرماً لها
+                    </Button>
+                  )}
+                  {f.key === "elderly-companion" && (
+                    <Button size="sm" onClick={() => onFixCompanion(m.person.id)}>
+                      <UserRoundCog className="size-4" /> اختر مرافقاً {m.person.gender === "F" ? "لها" : "له"}
+                    </Button>
+                  )}
+                  {f.key === "hajj-before" && m.person.gender === "M" && (
+                    <Button size="sm" onClick={onAddPerson}>
+                      <UserPlus className="size-4" /> أضف والدته أو زوجته
+                    </Button>
+                  )}
+                  {f.key === "terminal" && (
+                    <>
+                      <Button size="sm" onClick={() => onClearTerminal(m.person.id)}>
+                        <RefreshCw className="size-4" /> غير مصاب — كان خطأً في الإقرار
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={onFixHealth}>
+                        <HeartPulse className="size-4" /> مراجعة الإقرار الصحي
+                      </Button>
+                    </>
+                  )}
+                  {isSelf ? (
+                    (f.key === "applicant-age" || FIXED_KEYS.has(f.key) || f.key === "hajj-before") && (
+                      <Button size="sm" variant="outline" onClick={onChangeApplicant}>
+                        <UserRoundCog className="size-4" /> تقديم الطلب باسم شخص آخر
+                      </Button>
+                    )
+                  ) : (
+                    <Button size="sm" variant="maroon" onClick={() => onRemove(m.person.id)}>
+                      <UserRoundX className="size-4" /> إزالة {first} من الطلب
+                    </Button>
+                  )}
+                </div>
+                {!isSelf && FIXED_KEYS.has(f.key) && <p className="mt-2 text-xs text-hint">هذا الشرط لا يتغيّر بتعديل الطلب، فالحل إزالته ليكمل الباقون.</p>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {result.general
+        .filter((g) => g.status === "fail" && g.key !== "limit")
+        .map((g) => (
+          <div key={g.key} className="rounded-2xl bg-white p-4 ring-1 ring-maroon/20">
+            <p className="font-bold text-maroon">{g.label}</p>
+            <p className="mt-1 text-sm text-ink-soft">{g.detail}</p>
+          </div>
+        ))}
+    </div>
   );
 }

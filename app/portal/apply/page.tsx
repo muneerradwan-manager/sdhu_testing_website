@@ -91,6 +91,10 @@ export default function ApplyPage() {
   const [needsYes, setNeedsYes] = useState<boolean | null>(null);
   const [office, setOffice] = useState({ governorate: me.governorate, office: "" });
   const [other, setOther] = useState({ id: "", stage: "id" as "id" | "loading" | "confirm" | "otp", person: null as Person | null, otp: "", error: "" });
+  // How many times the eligibility check has run — only the first run reveals row by row
+  const [checks, setChecks] = useState(0);
+  // Furthest phase reached — completed phases can be reopened from the progress bar
+  const [maxPhase, setMaxPhase] = useState(0);
 
   const applicant = members.find((m) => m.relation === "self")?.person ?? null;
   const companions = members.filter((m) => m.relation !== "self");
@@ -175,6 +179,10 @@ export default function ApplyPage() {
   }
 
   const phaseIdx = PHASES.findIndex((p) => p.screens.includes(screen));
+  if (phaseIdx > maxPhase) setMaxPhase(phaseIdx); // adjusting state during render, per React docs
+  const phaseEntry = (i: number): Screen =>
+    i === 0 ? "forWhom" : i === 1 ? (companions.length ? "review" : "companions") : i === 2 ? "terminal" : i === 3 ? "eligibility" : "documents";
+  const canOpenPhase = (i: number) => i !== phaseIdx && i <= maxPhase && !!applicant && (i < 4 || result.eligible);
 
   return (
     <PortalShell
@@ -235,16 +243,34 @@ export default function ApplyPage() {
       }
     >
       <div>
-        {/* Phase progress */}
-        <div className="mb-4 grid grid-cols-5 gap-2 rounded-3xl bg-white/10 p-2 backdrop-blur">
-          {PHASES.map((p, i) => (
-            <div key={p.label} className="text-center">
-              <div className="h-2 overflow-hidden rounded-full bg-white/20">
-                <motion.div className="h-full bg-gold" initial={false} animate={{ width: i < phaseIdx ? "100%" : i === phaseIdx ? "50%" : "0%" }} transition={{ duration: 0.6 }} />
-              </div>
-              <p className={cn("mt-1.5 hidden text-xs font-bold sm:block", i <= phaseIdx ? "text-white" : "text-white/50")}>{p.label}</p>
-            </div>
-          ))}
+        {/* Phase progress — completed phases are buttons, so any answer can be revisited and edited */}
+        <div className="mb-4 rounded-3xl bg-white/10 p-2 backdrop-blur">
+          <div className="grid grid-cols-5 gap-2">
+            {PHASES.map((p, i) => {
+              const open = canOpenPhase(i);
+              const done = i < phaseIdx || (i <= maxPhase && i !== phaseIdx);
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  disabled={!open}
+                  onClick={() => go(phaseEntry(i))}
+                  aria-current={i === phaseIdx ? "step" : undefined}
+                  title={open ? `تعديل: ${p.label}` : undefined}
+                  className={cn("group rounded-2xl p-1.5 text-center transition", open ? "hover:bg-white/15" : "cursor-default")}
+                >
+                  <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                    <motion.div className="h-full bg-gold" initial={false} animate={{ width: done ? "100%" : i === phaseIdx ? "50%" : "0%" }} transition={{ duration: 0.6 }} />
+                  </div>
+                  <p className={cn("mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold leading-tight sm:text-xs", i === phaseIdx ? "text-gold" : i <= maxPhase ? "text-white" : "text-white/50")}>
+                    {done && <CheckCircle2 className="hidden size-3.5 shrink-0 text-gold sm:block" />}
+                    {p.label}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+          {maxPhase > 0 && <p className="mt-1 text-center text-[11px] text-white/70">اضغط على أي مرحلة منجزة لتعديلها</p>}
         </div>
 
         <Card className="min-h-[34rem] overflow-hidden">
@@ -284,7 +310,7 @@ export default function ApplyPage() {
                       label="لي أنا"
                       description={`${fullName(me)} — ${ageOf(me)} عاماً`}
                       onClick={() => {
-                        setSelf(me);
+                        if (applicant?.id !== me.id) setSelf(me);
                         go("companions");
                       }}
                     />
@@ -736,17 +762,38 @@ export default function ApplyPage() {
                   key={members.map((m) => `${m.person.id}${m.companionId}${m.terminalIllness}`).join()}
                   result={result}
                   members={members}
+                  rules={season.rules}
+                  animate={checks === 0}
                   onContinue={() => go(companions.length ? "consents" : "documents")}
-                  onRemove={removeMember}
+                  onRemove={(id) => {
+                    const who = members.find((m) => m.person.id === id)?.person.firstName;
+                    setChecks((n) => n + 1);
+                    removeMember(id);
+                    toast({ title: `أُزيل ${who} من الطلب`, body: "أعدنا التحقق من الأهلية فوراً.", icon: "🔄" });
+                  }}
                   onAddPerson={() => {
+                    setChecks((n) => n + 1);
                     setAdderReturn("eligibility");
                     go("adder");
                   }}
-                  onFixCompanion={() => {
-                    setMembers((ms) => ms.map((m) => ({ ...m, companionId: undefined })));
+                  onFixCompanion={(id) => {
+                    setChecks((n) => n + 1);
+                    patchMember(id, { companionId: undefined });
                     go("elderly");
                   }}
-                  onFixHealth={() => go("terminal")}
+                  onFixHealth={() => {
+                    setChecks((n) => n + 1);
+                    go("terminal");
+                  }}
+                  onClearTerminal={(id) => {
+                    setChecks((n) => n + 1);
+                    patchMember(id, { terminalIllness: false });
+                    toast({ title: "صُحّح الإقرار الصحي", body: "أعدنا التحقق من الأهلية فوراً.", icon: "🔄" });
+                  }}
+                  onChangeApplicant={() => {
+                    setChecks((n) => n + 1);
+                    go("forWhom");
+                  }}
                 />
               )}
 
