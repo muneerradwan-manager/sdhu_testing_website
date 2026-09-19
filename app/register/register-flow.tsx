@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { PortalShell, Card } from "@/components/portal/shell";
-import { DEMO_OTP, DemoPanel, Field, OtpInput, ProgressChecklist, inputClass } from "@/components/portal/bits";
+import { DEMO_OTP, Field, OtpInput, ProgressChecklist, inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "@/lib/registry";
@@ -184,13 +184,6 @@ export function RegisterFlow() {
                   <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">البيانات الأساسية</h2>
                   <SpeakButton text="أدخل الرقم الوطني ورقم الهاتف والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />
                 </div>
-                <DemoPanel
-                  defaultOpen
-                  hint="اختر حالة من وثيقة آلية العمل لتعبئة الرقم الوطني والهاتف وكلمة المرور تلقائياً."
-                  onPick={(s) =>
-                    setForm((f) => ({ ...f, nationalId: s.id, phone: f.phone || `0944${s.id.slice(-6)}`, password: f.password || "hajj1448" }))
-                  }
-                />
                 <Field
                   label="الرقم الوطني"
                   hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية"

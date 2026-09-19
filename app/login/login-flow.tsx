@@ -65,9 +65,6 @@ export function LoginFlow() {
       subtitle="تابع طلبك، واطلع على مجموعتك وفندقك ورحلتك."
       aside={
         <>
-          <div className="max-lg:hidden">
-            <DemoPanel defaultOpen hint="دخول مباشر بحساب تجريبي — دون رمز تحقق." onPick={(s) => quickLogin(s.id)} />
-          </div>
           <div className="rounded-3xl border border-gold/30 bg-white p-5 text-sm leading-7 text-ink-soft">
             <p className="flex items-center gap-2 font-bold text-green-dark">
               <Zap className="size-4 text-gold-dark" /> الدخول التجريبي السريع
@@ -78,13 +75,10 @@ export function LoginFlow() {
       }
     >
       <Card>
-        {/* Phones: the side column drops below the form, so show the demo accounts first */}
-        <div className="mb-6 lg:hidden">
-          <DemoPanel defaultOpen hint="دخول مباشر بحساب تجريبي — دون رمز تحقق." onPick={(s) => quickLogin(s.id)} />
-        </div>
         <AnimatePresence mode="wait">
           {!otpStage ? (
             <motion.form key="form" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }} onSubmit={submit} className="space-y-6">
+              <DemoPanel defaultOpen hint="دخول مباشر بحساب تجريبي — دون رمز تحقق." onPick={(s) => quickLogin(s.id)} />
               <Field label="الرقم الوطني">
                 <div className="relative">
                   <IdCard className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-gold-dark" />
