@@ -29,14 +29,15 @@ import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "@/li
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 
-const STEPS = ["نوع الحساب", "البيانات الأساسية", "رمز التحقق", "الشؤون المدنية", "معلومات إضافية", "تم"];
+/** Step 0 (account type) was removed: this page creates a pilgrim account directly */
+const STEPS = ["البيانات الأساسية", "رمز التحقق", "الشؤون المدنية", "معلومات إضافية", "تم"];
 
 export function RegisterFlow() {
   const router = useRouter();
   const toast = useToast();
   const accounts = useStore((s) => s.accounts);
   const admins = useStore((s) => s.admins);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
   const [form, setForm] = useState({ nationalId: "", phone: "", email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
@@ -130,13 +131,15 @@ export function RegisterFlow() {
 
   return (
     <PortalShell
-      title="إنشاء حساب جديد"
-      subtitle="لا نطلب منك إلا أربعة حقول. أما اسمك وتاريخ ميلادك وبقية بياناتك الرسمية فتصل من الشؤون المدنية مباشرة."
+      title="إنشاء حساب حاج"
+      subtitle="حساب الحاج لتقديم طلب الحج لك ولعائلتك ومتابعته. لا نطلب منك إلا أربعة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة."
       aside={
         <>
           <div className="rounded-3xl border border-gold/30 bg-white p-5">
             <ol className="space-y-1">
-              {STEPS.map((s, i) => (
+              {STEPS.map((s, idx) => {
+                const i = idx + 1;
+                return (
                 <li key={s} className={cn("flex items-center gap-3 rounded-xl p-2 text-sm transition", i === step && "bg-green-dark/6")}>
                   <span
                     className={cn(
@@ -144,11 +147,12 @@ export function RegisterFlow() {
                       i < step ? "bg-green-light text-white" : i === step ? "bg-green-dark text-gold" : "bg-sand text-hint",
                     )}
                   >
-                    {i < step ? "✓" : i + 1}
+                    {i < step ? "✓" : idx + 1}
                   </span>
                   <span className={cn("font-semibold", i === step ? "text-green-dark" : i < step ? "text-ink" : "text-hint")}>{s}</span>
                 </li>
-              ))}
+                );
+              })}
             </ol>
           </div>
           {step === 1 && (
@@ -175,53 +179,6 @@ export function RegisterFlow() {
             exit={{ opacity: 0, x: dir * 40 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
-            {step === 0 && (
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">ما نوع الحساب الذي تريده؟</h2>
-                  <SpeakButton text="ما نوع الحساب الذي تريده؟ حاج، أو إداري." />
-                </div>
-                <div className="mt-8 grid gap-4 md:grid-cols-2">
-                  <motion.button
-                    whileHover={{ y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => go(1)}
-                    className="group relative overflow-hidden rounded-3xl border-2 border-green-dark bg-green-dark p-7 text-right text-white shadow-xl"
-                  >
-                    <div className="bg-pattern absolute inset-0 opacity-15" />
-                    <span className="relative grid size-16 place-items-center rounded-2xl bg-gold text-4xl">🕋</span>
-                    <p className="relative mt-5 font-display text-3xl font-bold">حاج</p>
-                    <p className="relative mt-2 leading-7 text-white/75">أريد تقديم طلب حج لي أو لعائلتي ومتابعته.</p>
-                    <span className="relative mt-5 inline-flex items-center gap-2 font-bold text-gold">
-                      متابعة <ArrowLeft className="size-5 transition group-hover:-translate-x-1" />
-                    </span>
-                  </motion.button>
-                  <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} className="h-full">
-                    <Link
-                      href="/administrator/register"
-                      className="group relative block h-full overflow-hidden rounded-3xl border-2 border-maroon bg-gradient-to-br from-maroon-dark to-maroon p-7 text-right text-white shadow-xl"
-                    >
-                      <div className="bg-pattern absolute inset-0 opacity-15" />
-                      <span className="relative grid size-16 place-items-center rounded-2xl bg-gold text-maroon-dark">
-                        <Briefcase className="size-8" />
-                      </span>
-                      <p className="relative mt-5 font-display text-3xl font-bold">إداري</p>
-                      <p className="relative mt-2 leading-7 text-white/75">رئيس مجموعة، معاون، موجّه، منسق تقني... للعمل مع الحجاج في الموسم.</p>
-                      <span className="relative mt-5 inline-flex items-center gap-2 font-bold text-gold">
-                        متابعة <ArrowLeft className="size-5 transition group-hover:-translate-x-1" />
-                      </span>
-                    </Link>
-                  </motion.div>
-                </div>
-                <p className="mt-6 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
-                  لماذا لا يوجد خيار «موظف»؟ لأن حساب الموظف لا يُنشأ ذاتياً؛ بل يُنشئه له موظف يملك هذه الصلاحية ويمنحه صلاحياته واحدة واحدة.
-                </p>
-                <p className="mt-6 text-center text-ink-soft">
-                  لديك حساب؟ <Link href="/login" className="font-bold text-green-dark underline-offset-4 hover:underline">سجّل الدخول</Link>
-                </p>
-              </div>
-            )}
-
             {step === 1 && (
               <form
                 onSubmit={(e) => {
@@ -230,7 +187,10 @@ export function RegisterFlow() {
                 }}
                 className="space-y-6"
               >
-                <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">البيانات الأساسية</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">البيانات الأساسية</h2>
+                  <SpeakButton text="أدخل الرقم الوطني ورقم الهاتف والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />
+                </div>
                 <Field
                   label="الرقم الوطني"
                   hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية"
@@ -303,12 +263,35 @@ export function RegisterFlow() {
                   </div>
                 </Field>
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                  <Button type="button" variant="ghost" onClick={() => go(0)}>
-                    <ArrowRight className="size-4" /> رجوع
-                  </Button>
+                  <p className="text-ink-soft">
+                    لديك حساب؟{" "}
+                    <Link href="/login" className="font-bold text-green-dark underline-offset-4 hover:underline">
+                      سجّل الدخول
+                    </Link>
+                  </p>
                   <Button type="submit" size="lg">
                     إرسال رمز التحقق <ArrowLeft className="size-5" />
                   </Button>
+                </div>
+
+                {/* Administrators register elsewhere — kept quiet so the page stays focused on pilgrims */}
+                <div className="mt-2 space-y-3 border-t border-gold-light pt-5">
+                  <Link
+                    href="/administrator/register"
+                    className="group flex items-center gap-3 rounded-2xl bg-sand p-4 transition hover:bg-gold-light/60"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-maroon">
+                      <Briefcase className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold text-ink">تعمل مع الحجاج في الموسم؟</span>
+                      <span className="block text-sm text-ink-soft">رئيس مجموعة، معاون، موجّه، منسق تقني — أنشئ حساب إداري موسمي.</span>
+                    </span>
+                    <ArrowLeft className="size-5 shrink-0 text-gold-dark transition group-hover:-translate-x-1" />
+                  </Link>
+                  <p className="text-xs leading-6 text-hint">
+                    حساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة وتمنح صلاحياته واحدة واحدة. ولكل شخص نوع حساب واحد فقط في المنصة.
+                  </p>
                 </div>
               </form>
             )}

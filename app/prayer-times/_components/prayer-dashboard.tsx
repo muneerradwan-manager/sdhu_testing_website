@@ -106,7 +106,7 @@ export function PrayerDashboard() {
       <CityPicker city={city} onPick={pick} pending={pending} />
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_22rem] print:hidden" aria-label="الصلاة القادمة واتجاه القبلة">
-        <motion.div key={city.slug} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
+        <motion.div data-tour-target key={city.slug} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
           <NextPrayerHero city={city} nowMs={nowMs} sched={sched} />
         </motion.div>
         <QiblaCompass city={city} />

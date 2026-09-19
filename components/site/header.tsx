@@ -53,12 +53,14 @@ function TopBar() {
               )}
             </>
           )}
-          <div className="flex items-center gap-1 rounded-full bg-white/10 p-0.5" aria-label="حجم الخط">
-            <button onClick={() => actions.setTextScale(scale - 0.1)} className="grid size-6 place-items-center rounded-full hover:bg-white/15" aria-label="تصغير الخط">
+          <div className="flex items-center gap-1 rounded-full bg-white/10 p-0.5" aria-label="حجم العرض" title="حجم العرض — صغّر على الشاشات الكبيرة، وكبّر لقراءة أوضح">
+            <button onClick={() => actions.setTextScale(scale - 0.1)} className="grid size-6 place-items-center rounded-full hover:bg-white/15 disabled:opacity-40" aria-label="تصغير حجم العرض" disabled={scale <= 0.7}>
               <Minus className="size-3" />
             </button>
-            <span className="px-0.5 font-bold">أ</span>
-            <button onClick={() => actions.setTextScale(scale + 0.1)} className="grid size-6 place-items-center rounded-full hover:bg-white/15" aria-label="تكبير الخط">
+            <button onClick={() => actions.setTextScale(1)} className="min-w-10 rounded-full px-1 font-bold tabular-nums hover:bg-white/15" aria-label="إعادة حجم العرض إلى الوضع الطبيعي">
+              {scale === 1 ? "أ" : `${Math.round(scale * 100)}%`}
+            </button>
+            <button onClick={() => actions.setTextScale(scale + 0.1)} className="grid size-6 place-items-center rounded-full hover:bg-white/15 disabled:opacity-40" aria-label="تكبير حجم العرض" disabled={scale >= 1.4}>
               <Plus className="size-3" />
             </button>
           </div>

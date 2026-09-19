@@ -74,7 +74,7 @@ export default function AcademyPage() {
       {/* Search */}
       <section id="search" className="mx-auto max-w-5xl scroll-mt-28 px-4 pt-20 md:px-8">
         <SectionHeading eyebrow="بحث فوري" title="عندك سؤال؟ ابحث في كل الدروس" description="نبحث لك في العناوين والملخصات والأسئلة المعتمدة والمقاطع القصيرة." />
-        <Reveal>
+        <Reveal data-tour-target>
           <AcademySearch />
         </Reveal>
       </section>

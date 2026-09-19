@@ -188,7 +188,7 @@ export default function ConditionsPage() {
       {/* Precheck */}
       <section id="precheck" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
         <SectionHeading eyebrow="قبل أن تقدّم" title="فحص أهلية مبدئي" description="أجب عن خمسة أسئلة لتعرف هل تنطبق عليك الشروط مبدئياً. لا يتم حفظ أي بيانات." />
-        <Reveal>
+        <Reveal data-tour-target>
           <PrecheckForm />
         </Reveal>
       </section>

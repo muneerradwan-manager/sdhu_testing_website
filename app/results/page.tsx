@@ -54,7 +54,7 @@ export default function ResultsPage() {
           title="هل تم قبولك؟"
           description="أدخل الرقم الوطني كاملاً ورمز التحقق. تظهر النتيجة فوراً دون الحاجة إلى حساب."
         />
-        <Reveal>
+        <Reveal data-tour-target>
           <ResultSearch />
         </Reveal>
       </section>

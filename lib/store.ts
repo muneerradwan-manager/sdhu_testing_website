@@ -285,8 +285,9 @@ export const actions = {
       return { ...s, applications: rest };
     });
   },
+  /** Whole-interface size (root font size); 0.7 suits very large screens, 1.4 helps elderly pilgrims */
   setTextScale(scale: number) {
-    setState((s) => ({ ...s, textScale: Math.min(1.4, Math.max(0.9, Math.round(scale * 100) / 100)) }));
+    setState((s) => ({ ...s, textScale: Math.min(1.4, Math.max(0.7, Math.round(scale * 100) / 100)) }));
   },
   completeLesson(key: string) {
     setState((s) => ({ ...s, academy: { ...s.academy, [key]: true } }));

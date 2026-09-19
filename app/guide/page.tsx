@@ -246,7 +246,9 @@ export default function GuidePage() {
         <div className="bg-pattern-dark absolute inset-0 opacity-60" />
         <div className="relative mx-auto max-w-7xl px-4 md:px-8">
           <SectionHeading eyebrow="أداة تفاعلية" title="عدّاد الطواف والسعي" description="اضغط بعد كل شوط، ولن تنسى العدد. مع دعاء مقترح لكل شوط واحتفال عند الإتمام." />
-          <RitualCounter />
+          <div data-tour-target>
+            <RitualCounter />
+          </div>
           <Reveal className="mt-12">
             <MapEmbed lat={HARAM.lat} lng={HARAM.lng} label={HARAM.label} zoom={0.006} className="h-72" />
           </Reveal>

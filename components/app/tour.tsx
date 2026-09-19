@@ -3,14 +3,15 @@
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Briefcase, Compass, Landmark, Loader2, UserRound, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SpeakButton } from "@/components/ui/widgets";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn, samePath } from "@/lib/utils";
 
 /**
  * Guided tour (جولة تعريفية) — an onboarding walkthrough, not a page of its own.
- * Each step opens a page and spotlights one real element on it; the last step offers the three demo journeys.
+ * Each step opens a page, spotlights one real element and anchors the card beside it;
+ * on small or short screens the card becomes a bottom sheet. The last step offers the demo journeys.
  */
 type Step = { route: string; selector?: string; title: string; text: string };
 
@@ -26,12 +27,15 @@ const STEPS: Step[] = [
 ];
 
 const DEMO_PILGRIM = "01012345412";
-const HEADER = 84; // fixed header height once collapsed
-const PAD = 10;
-const CARD_HEIGHT = 250; // estimate before the card has rendered
-
+const PAD = 10; // breathing room around the spotlight
+const GAP = 16; // distance between spotlight and card
+const CARD_W = 380;
+const EDGE = 12;
 
 type Box = { top: number; left: number; width: number; height: number };
+type Place = { mode: "sheet" } | { mode: "anchor"; top: number; left: number };
+
+const headerHeight = () => document.querySelector("header")?.getBoundingClientRect().height ?? 84;
 
 export function GuidedTour() {
   const router = useRouter();
@@ -41,8 +45,11 @@ export function GuidedTour() {
   const accounts = useStore((s) => s.accounts);
   const [index, setIndex] = useState<number | null>(null);
   const [box, setBox] = useState<Box | null>(null);
+  const [place, setPlace] = useState<Place>({ mode: "sheet" });
   const [settled, setSettled] = useState(false);
+  const [shortScreen, setShortScreen] = useState(false);
   const [nudge, setNudge] = useState(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const step = index === null ? null : STEPS[index];
   const onRoute = !!step && samePath(pathname, step.route);
@@ -54,51 +61,88 @@ export function GuidedTour() {
     return () => clearTimeout(t);
   }, [hydrated, tourSeen, pathname]);
 
-  /** Spotlight = target clipped to the visible area between the header and the bottom of the screen */
+  /** Spotlight the step's target and put the card wherever there is room for it */
   const measure = useCallback(() => {
-    if (!step?.selector) {
-      setBox(null);
-      return;
-    }
-    const el = document.querySelector(step.selector);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const header = headerHeight();
+    const cardH = cardRef.current?.getBoundingClientRect().height ?? 240;
+    const smallScreen = vw < 760 || vh < 460;
+    setShortScreen(vh < 520);
+
+    const host = step?.selector ? document.querySelector(step.selector) : null;
+    const el = host?.querySelector("[data-tour-target]") ?? host;
     if (!el) {
       setBox(null);
+      setPlace({ mode: "sheet" });
       return;
     }
+
     const r = el.getBoundingClientRect();
-    // Keep the highlight above the tour card so the card never covers it
-    const cardHeight = document.querySelector("[data-tour-card]")?.getBoundingClientRect().height ?? CARD_HEIGHT;
-    const top = Math.max(r.top - PAD, HEADER);
-    const bottom = Math.min(r.bottom + PAD, window.innerHeight - cardHeight - 28);
-    const left = Math.max(r.left - PAD, 8);
-    const right = Math.min(r.right + PAD, window.innerWidth - 8);
-    setBox(bottom - top > 40 ? { top, left, width: right - left, height: bottom - top } : null);
+    const spot = {
+      top: Math.max(r.top - PAD, header + 4),
+      bottom: Math.min(r.bottom + PAD, vh - EDGE),
+      left: Math.max(r.left - PAD, EDGE),
+      right: Math.min(r.right + PAD, vw - EDGE),
+    };
+    if (spot.bottom - spot.top < 48 || spot.right - spot.left < 48) {
+      setBox(null);
+      setPlace({ mode: "sheet" });
+      return;
+    }
+
+    // Where does the card fit? below → above → beside → bottom sheet
+    let next: Place = { mode: "sheet" };
+    if (!smallScreen) {
+      const centred = Math.min(Math.max(spot.left + (spot.right - spot.left) / 2 - CARD_W / 2, EDGE), vw - CARD_W - EDGE);
+      if (vh - spot.bottom >= cardH + GAP + EDGE) next = { mode: "anchor", top: spot.bottom + GAP, left: centred };
+      else if (spot.top - header >= cardH + GAP + EDGE) next = { mode: "anchor", top: spot.top - cardH - GAP, left: centred };
+      else {
+        const middle = Math.min(Math.max(spot.top + (spot.bottom - spot.top) / 2 - cardH / 2, header + EDGE), vh - cardH - EDGE);
+        if (vw - spot.right >= CARD_W + GAP + EDGE) next = { mode: "anchor", top: middle, left: spot.right + GAP };
+        else if (spot.left >= CARD_W + GAP + EDGE) next = { mode: "anchor", top: middle, left: spot.left - CARD_W - GAP };
+      }
+    }
+
+    // A bottom sheet covers the lower part of the screen, so keep the spotlight above it
+    const bottom = next.mode === "sheet" ? Math.min(spot.bottom, vh - cardH - GAP - EDGE) : spot.bottom;
+    if (bottom - spot.top < 48) {
+      setBox(null);
+      setPlace({ mode: "sheet" });
+      return;
+    }
+    setBox({ top: spot.top, left: spot.left, width: spot.right - spot.left, height: bottom - spot.top });
+    setPlace(next);
   }, [step]);
 
-  // Open the step's page (one navigation), then bring its target into view and spotlight it
+  // Open the step's page (one navigation), then bring the target into view
   useEffect(() => {
     if (!step) return;
     if (!onRoute) {
       router.push(step.route, { scroll: false });
       return;
     }
-    const el = step.selector ? document.querySelector(step.selector) : null;
-    const place = () => {
-      if (el) {
-        const y = el.getBoundingClientRect().top + window.scrollY - HEADER - 16;
-        window.scrollTo({ top: Math.max(0, y), behavior: "instant" });
-      } else {
+    const scrollToTarget = () => {
+      const header = headerHeight();
+      const host = step.selector ? document.querySelector(step.selector) : null;
+      const el = host?.querySelector("[data-tour-target]") ?? host;
+      if (!el) {
         window.scrollTo({ top: 0, behavior: "instant" });
+        return;
       }
+      const r = el.getBoundingClientRect();
+      const room = window.innerHeight - header;
+      // Centre the target when it fits, otherwise align it just under the header
+      const offset = r.height < room * 0.8 ? header + (room - r.height) / 2 : header + 16;
+      window.scrollTo({ top: Math.max(0, r.top + window.scrollY - offset), behavior: "instant" });
     };
-    // Let the page finish its entrance animation before measuring
-    const t1 = setTimeout(place, 350);
+    const t1 = setTimeout(scrollToTarget, 350);
     const t2 = setTimeout(() => {
-      place();
+      scrollToTarget();
       measure();
       setSettled(true);
     }, 750);
-    const t3 = setTimeout(measure, 1150);
+    const t3 = setTimeout(measure, 1150); // once the card has its real height
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -106,11 +150,14 @@ export function GuidedTour() {
     };
   }, [step, onRoute, router, measure]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!step || !settled) return;
+    // Re-measure once the card is in the DOM (its real height decides the placement)
+    const raf = requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, { passive: true });
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure);
     };
@@ -144,6 +191,7 @@ export function GuidedTour() {
   if (!hydrated) return null;
   const last = index === STEPS.length - 1;
   const hideLauncher = pathname.startsWith("/staff") || pathname.startsWith("/portal/application") || pathname.startsWith("/portal/season");
+  const anchored = place.mode === "anchor";
 
   return (
     <>
@@ -178,7 +226,7 @@ export function GuidedTour() {
 
       {step && (
         <div className="pointer-events-none fixed inset-0 z-[85]" aria-live="polite">
-          {/* Spotlight: dims only around the highlighted element, no blur — the page stays readable */}
+          {/* Spotlight: dims only around the highlighted element, no blur */}
           <AnimatePresence>
             {settled && box ? (
               <motion.div
@@ -188,14 +236,13 @@ export function GuidedTour() {
                 animate={{ opacity: 1, ...box }}
                 exit={{ opacity: 0 }}
                 transition={{ type: "spring", damping: 30, stiffness: 260 }}
-                style={{ boxShadow: "0 0 0 9999px rgba(2,21,38,.45)" }}
+                style={{ boxShadow: "0 0 0 9999px rgba(2,21,38,.5)" }}
               />
-            ) : settled && !step.selector ? (
-              <motion.div key="dim" className="absolute inset-0 bg-ink/35" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+            ) : settled ? (
+              <motion.div key="dim" className="absolute inset-0 bg-ink/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
             ) : null}
           </AnimatePresence>
 
-          {/* While the page opens */}
           <AnimatePresence>
             {!settled && (
               <motion.div
@@ -209,30 +256,29 @@ export function GuidedTour() {
             )}
           </AnimatePresence>
 
-          {/* Card — bottom-left on desktop so it never sits on the highlighted content */}
+          {/* Card: anchored beside the spotlight on roomy screens, a bottom sheet otherwise */}
           <AnimatePresence mode="wait">
             {settled && (
-              <div
-                key={index}
-                className={cn(
-                  "absolute inset-x-3 bottom-3 mx-auto max-w-lg",
-                  step.selector ? "md:inset-x-auto md:bottom-6 md:left-6 md:mx-0 md:w-[26rem]" : "md:inset-0 md:flex md:max-w-none md:items-center md:justify-center",
-                )}
-              >
               <motion.div
+                key={index}
+                ref={cardRef}
                 role="dialog"
                 data-tour-card
                 aria-label={step.title}
-                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                initial={{ opacity: 0, y: anchored ? 12 : 24, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12 }}
-                transition={{ type: "spring", damping: 26, stiffness: 280 }}
-                className="pointer-events-auto w-full overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-gold/40 md:w-[26rem]"
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ type: "spring", damping: 26, stiffness: 300 }}
+                style={anchored ? { top: place.top, left: place.left, width: CARD_W } : shortScreen ? { maxHeight: "46vh" } : undefined}
+                className={cn(
+                  "pointer-events-auto absolute overflow-y-auto overscroll-contain rounded-[1.75rem] bg-white shadow-2xl ring-1 ring-gold/40",
+                  anchored ? "max-h-[70vh]" : "inset-x-3 bottom-3 mx-auto max-h-[60vh] max-w-lg sm:max-h-[70vh]",
+                )}
               >
-                <div className="h-1.5 bg-sand">
+                <div className="sticky top-0 h-1.5 bg-sand">
                   <motion.div className="h-full bg-gradient-to-l from-green-light to-green-dark" initial={false} animate={{ width: `${((index! + 1) / STEPS.length) * 100}%` }} />
                 </div>
-                <div className="p-5 md:p-6">
+                <div className="p-3.5 sm:p-5 md:p-6">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-xs font-bold text-gold-dark">
                       جولة تعريفية — {index! + 1} من {STEPS.length}
@@ -241,8 +287,8 @@ export function GuidedTour() {
                       <X className="size-5" />
                     </button>
                   </div>
-                  <h2 className="mt-1 font-display text-xl font-bold text-green-dark md:text-2xl">{step.title}</h2>
-                  <p className="mt-2 leading-7 text-ink-soft">{step.text}</p>
+                  <h2 className="mt-1 font-display text-lg font-bold text-green-dark sm:text-xl md:text-2xl">{step.title}</h2>
+                  <p className="mt-2 text-sm leading-7 text-ink-soft sm:text-base sm:leading-8">{step.text}</p>
 
                   {last && (
                     <div className="mt-4 grid gap-2">
@@ -270,7 +316,7 @@ export function GuidedTour() {
                     </div>
                   )}
 
-                  <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-2 bg-white pt-2">
                     <SpeakButton text={`${step.title}. ${step.text}`} />
                     <div className="flex gap-2">
                       {index! > 0 && (
@@ -291,7 +337,6 @@ export function GuidedTour() {
                   </div>
                 </div>
               </motion.div>
-              </div>
             )}
           </AnimatePresence>
         </div>
