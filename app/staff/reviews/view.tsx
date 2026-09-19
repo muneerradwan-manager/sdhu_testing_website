@@ -98,7 +98,7 @@ function Reviews() {
 
       {/* Registration overview */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="الطلبات المقدّمة" value={REG_STATS.applications + realApps.length} icon={<FileText />} hint={realApps.length ? `+${realApps.length} من جلسة العرض` : "التسجيل الأولي 1448"} />
+        <Kpi label="الطلبات المقدّمة" value={REG_STATS.applications + realApps.length} icon={<FileText />} hint={realApps.length ? `+${realApps.length} من جلسة العرض` : "التسجيل على القبول المباشر 1448"} />
         <Kpi label="الأفراد في الطلبات" value={REG_STATS.persons + realPersons} icon={<UsersRound />} tone="teal" delay={0.05} />
         <Kpi label="رسوم التسجيل المحصّلة" value={REG_STATS.persons * season.fees.registrationPerPerson + realPaid} suffix=" $" icon={<Wallet />} tone="gold" delay={0.1} hint={`${season.fees.registrationPerPerson} $ للفرد`} />
         <Kpi label="بانتظار المراجعة" value={counts.pending} icon={<ShieldQuestion />} tone="maroon" delay={0.15} pulse={counts.pending > 0} hint={`من أصل ${formatNumber(REG_STATS.needsReview)} حالة في الموسم`} />

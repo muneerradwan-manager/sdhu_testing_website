@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { AGE_BUCKETS, DUPLICATE_ROWS, LOTTERY, UNMATCHED_ROWS } from "@/lib/data/staff-seed";
+import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { can } from "@/lib/staff";
 import { actions, useStore, type AuditEvent } from "@/lib/store";
@@ -34,7 +35,7 @@ import { Donut, fmtDateTime, Gate, Kpi, Legend, logAs, PageHeader, Panel, smallI
 const A = {
   issue: "إصدار الأعمار المقبولة",
   approveAges: "اعتماد الأعمار المقبولة",
-  export: "تصدير قائمة المؤهلين للقرعة",
+  export: "تصدير قائمة طلبات القرعة المؤهلة",
   import: "استيراد نتائج القرعة",
   correct: "تصحيح صف غير مطابق",
   publish: "اعتماد ونشر نتائج القرعة",
@@ -49,6 +50,9 @@ function cutAge(directSeats: number) {
   }
   return { age: AGE_BUCKETS[AGE_BUCKETS.length - 1].minAge, seats: cum };
 }
+
+/** The two separate registration windows (direct acceptance, then the lottery as its own application) */
+const W = SEASON.windows;
 
 export function LotteryView() {
   return (
@@ -79,16 +83,15 @@ function Lottery() {
   const [exporting, setExporting] = useState(false);
 
   const steps = [
-    { label: "الأعمار المقبولة", done: !!agesApproved },
-    { label: "قائمة المؤهلين", done: !!exported },
-    { label: "القرعة (خارج المنصة)", done: !!exported },
-    { label: "استيراد النتائج", done: !!lottery.importedAt },
+    { label: "القبول المباشر: الأعمار المقبولة", done: !!agesApproved },
+    { label: "قائمة طلبات القرعة", done: !!exported },
+    { label: "القرعة واستيراد النتائج", done: !!lottery.importedAt },
     { label: "الاعتماد والنشر", done: !!lottery.publishedAt },
   ];
   const progress = steps.filter((s) => s.done).length;
 
   const issueAges = () => {
-    logAs(user, { action: A.issue, target: "القبول المباشر", after: `${cut.age} عاماً فأكثر — ${formatNumber(season.directSeats)} مقعداً`, detail: `ترتيب ${formatNumber(LOTTERY.eligible)} طلباً مؤهلاً من الأكبر سناً` });
+    logAs(user, { action: A.issue, target: "القبول المباشر", after: `${cut.age} عاماً فأكثر — ${formatNumber(season.directSeats)} مقعداً`, detail: `ترتيب ${formatNumber(LOTTERY.directEligible)} طلباً مؤهلاً من التسجيل على القبول المباشر، من الأكبر سناً` });
     toast({ title: "أُرسلت الأعمار المقبولة للاعتماد", body: `${cut.age} عاماً فأكثر — بانتظار اعتماد مديرة الموسم`, tone: "gold", icon: "📤" });
   };
 
@@ -98,15 +101,15 @@ function Lottery() {
       logAs(user, { action: "تعديل إعدادات الموسم", target: "الأعمار المقبولة مباشرة", before: String(season.acceptedDirectAge), after: String(cut.age) });
     }
     logAs(user, { action: A.approveAges, target: "القبول المباشر", after: `${cut.age} عاماً فأكثر` });
-    toast({ title: "أُعلنت الأعمار المقبولة", body: `كل من بلغ ${cut.age} عاماً فأكثر مقبول مباشرة — وصل إشعار لكل مقبول.`, tone: "success", icon: "📣" });
+    toast({ title: "أُعلنت الأعمار المقبولة", body: `كل من بلغ ${cut.age} عاماً فأكثر مقبول مباشرة — وصل إشعار لكل مقبول. التسجيل على القرعة طلب مستقل: ${W.lottery.hijri}.`, tone: "success", icon: "📣" });
   };
 
   const exportList = async () => {
     setExporting(true);
     await sleep(1600);
     setExporting(false);
-    logAs(user, { action: A.export, target: `${formatNumber(LOTTERY.remaining)} طلباً`, detail: `منها ${formatNumber(LOTTERY.familyInList)} طلب عائلي — بإشراف لجنة تنظيم القرعة` });
-    toast({ title: "صُدّرت قائمة المؤهلين للقرعة", body: "قائمة-المؤهلين-للقرعة-1448.xlsx — سُجّل التصدير باسمك ووقته.", tone: "success", icon: "📥" });
+    logAs(user, { action: A.export, target: `${formatNumber(LOTTERY.lotteryEligible)} طلباً`, detail: `طلبات التسجيل على القرعة (${W.lottery.hijri}) بعد إغلاقه — منها ${formatNumber(LOTTERY.familyInList)} طلب عائلي — بإشراف لجنة تنظيم القرعة` });
+    toast({ title: "صُدّرت قائمة طلبات القرعة المؤهلة", body: "قائمة-طلبات-القرعة-1448.xlsx — سُجّل التصدير باسمك ووقته.", tone: "success", icon: "📥" });
   };
 
   const resetDemo = () => {
@@ -118,10 +121,10 @@ function Lottery() {
   return (
     <div>
       <PageHeader
-        eyebrow="المرحلة 4 — القبول على مرحلتين"
+        eyebrow="المرحلة 4 — تسجيلان منفصلان"
         title="القبول المباشر والقرعة"
         icon={<Dices />}
-        description={`أولاً: قبول مباشر وفق الأكبر سناً على ${Math.round(season.directShare * 100)}% من الحصة. ثانياً: قرعة إلكترونية على الباقي — تُجرى خارج المنصة، والمنصة تستقبل نتائجها وتعتمدها وتنشرها.`}
+        description={`القبول المباشر والقرعة تسجيلان منفصلان، لكلٍّ منهما طلب مستقل. القبول المباشر: تُرتَّب طلبات التسجيل المباشر (${W.direct.hijri}) من الأكبر سناً حتى ${Math.round(season.directShare * 100)}% من الحصة، وتُعلن الأعمار المقبولة في ${W.direct.announce}. القرعة: يفتح التسجيل عليها بعد الإعلان (${W.lottery.hijri})، ويسجّل فيها كل مؤهل بطلب جديد، ومنهم من لم يُقبل مباشرة، ولا تنقل المنصة إليها أي طلب. تُجرى القرعة خارج المنصة، والمنصة تستقبل نتائجها وتعتمدها وتنشرها.`}
         actions={
           (lottery.importedAt || issued || exported) && (
             <Button variant="glass" size="sm" onClick={resetDemo}>
@@ -136,7 +139,7 @@ function Lottery() {
         <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/10">
           <motion.div className="h-full rounded-full bg-gradient-to-l from-gold to-green-light" animate={{ width: `${(progress / steps.length) * 100}%` }} transition={{ duration: 0.8 }} />
         </div>
-        <ol className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5">
+        <ol className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
           {steps.map((s, i) => (
             <li key={s.label} className={cn("flex items-center gap-2 rounded-xl px-2 py-1.5", s.done ? "text-gold" : "text-white/80")}>
               <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold", s.done ? "bg-gold text-ink" : "bg-white/10")}>
@@ -149,17 +152,17 @@ function Lottery() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="الطلبات المؤهلة" value={LOTTERY.eligible} icon={<Users />} />
+        <Kpi label="طلبات القبول المباشر المؤهلة" value={LOTTERY.directEligible} icon={<Users />} hint={`التسجيل: ${W.direct.hijri}`} />
         <Kpi label="مقاعد القبول المباشر" value={season.directSeats} icon={<BadgeCheck />} tone="gold" delay={0.05} hint={`${Math.round(season.directShare * 100)}% من ${formatNumber(season.quota)}`} />
-        <Kpi label="مقاعد القرعة" value={season.lotterySeats} icon={<Dices />} tone="teal" delay={0.1} />
-        <Kpi label="الاحتياط" value={LOTTERY.reserve} icon={<ShieldCheck />} tone="maroon" delay={0.15} />
+        <Kpi label="طلبات القرعة المؤهلة" value={LOTTERY.lotteryEligible} icon={<Users />} tone="maroon" delay={0.1} hint={`التسجيل: ${W.lottery.hijri}`} />
+        <Kpi label="مقاعد القرعة" value={season.lotterySeats} icon={<Dices />} tone="teal" delay={0.15} hint={`+ ${formatNumber(LOTTERY.reserve)} احتياط`} />
       </div>
 
       {/* 1. Direct acceptance */}
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Panel title="1. ترتيب المؤهلين بالعمر وحساب الأعمار المقبولة" icon={<BadgeCheck />} delay={0.1}>
+        <Panel title="1. القبول المباشر: ترتيب طلبات التسجيل المباشر بالعمر" icon={<BadgeCheck />} delay={0.1}>
           <p className="mb-4 text-sm leading-6 text-white/90">
-            تُرتّب الطلبات المؤهلة من الأكبر سناً إلى الأصغر بعمر صاحب الطلب، مع احتساب أفراد الطلب العائلي معاً، حتى تكتمل مقاعد القبول المباشر.
+            تُرتَّب الطلبات المؤهلة من التسجيل على القبول المباشر ({W.direct.hijri}) من الأكبر سناً إلى الأصغر بعمر صاحب الطلب، مع احتساب أفراد الطلب العائلي معاً، حتى تكتمل مقاعد القبول المباشر.
           </p>
           <ul className="space-y-1.5">
             {AGE_BUCKETS.reduce<{ b: (typeof AGE_BUCKETS)[number]; cum: number }[]>((acc, b) => [...acc, { b, cum: (acc.at(-1)?.cum ?? 0) + b.seats }], []).map(({ b, cum }, i) => {
@@ -194,8 +197,9 @@ function Lottery() {
             </motion.p>
             <p className="relative text-sm text-white/90">عاماً فأكثر — مقبول مباشرة</p>
             <p className="relative mt-3 text-xs text-white/80">
-              تكتمل {formatNumber(season.directSeats)} مقعداً عند {formatNumber(cut.seats)} — ما يبقى للقرعة: {formatNumber(LOTTERY.remaining)} طلباً
+              تكتمل {formatNumber(season.directSeats)} مقعداً عند {formatNumber(cut.seats)} — الإعلان في {W.direct.announce}
             </p>
+            <p className="relative mt-1 text-xs text-white/80">من لم يُقبل مباشرة يسجّل على القرعة بطلب جديد: {W.lottery.hijri}</p>
           </div>
           <ol className="mt-4 space-y-2 text-sm">
             <StepLine done={!!issued} label="رنا تراجع القائمة وترسلها للاعتماد" event={issued} />
@@ -220,13 +224,16 @@ function Lottery() {
 
       {/* 2. Export + committee */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Panel title="2. قائمة المؤهلين للقرعة" icon={<Download />} delay={0.1}>
+        <Panel title="2. قائمة طلبات القرعة المؤهلة" icon={<Download />} delay={0.1}>
+          <p className="mb-4 text-sm leading-6 text-white/90">
+            بعد إغلاق التسجيل على القرعة ({W.lottery.hijri}) تُصدَّر الطلبات المؤهلة التي سُجّلت في هذه الفترة. كل طلب فيها قدّمه صاحبه بنفسه على القرعة، ولا يُنقل إليها أي طلب من التسجيل على القبول المباشر.
+          </p>
           <div className="flex items-center gap-5">
-            <Donut size={120} thickness={16} segments={[{ value: LOTTERY.familyInList, color: "#D9C89E", label: "fam" }, { value: LOTTERY.remaining - LOTTERY.familyInList, color: "#289E92", label: "ind" }]}>
-              <p className="font-display text-lg font-bold text-white">{Math.round((LOTTERY.remaining / 1000) * 10) / 10}K</p>
+            <Donut size={120} thickness={16} segments={[{ value: LOTTERY.familyInList, color: "#D9C89E", label: "fam" }, { value: LOTTERY.lotteryEligible - LOTTERY.familyInList, color: "#289E92", label: "ind" }]}>
+              <p className="font-display text-lg font-bold text-white">{Math.round((LOTTERY.lotteryEligible / 1000) * 10) / 10}K</p>
             </Donut>
             <div className="flex-1">
-              <Legend items={[{ label: "طلبات عائلية", color: "#D9C89E", value: formatNumber(LOTTERY.familyInList) }, { label: "طلبات فردية", color: "#289E92", value: formatNumber(LOTTERY.remaining - LOTTERY.familyInList) }]} />
+              <Legend items={[{ label: "طلبات عائلية", color: "#D9C89E", value: formatNumber(LOTTERY.familyInList) }, { label: "طلبات فردية", color: "#289E92", value: formatNumber(LOTTERY.lotteryEligible - LOTTERY.familyInList) }]} />
             </div>
           </div>
           {exported ? (
@@ -236,7 +243,7 @@ function Lottery() {
           ) : (
             <Button variant="gold" className="mt-4 w-full" onClick={exportList} disabled={!canImport || exporting}>
               {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-              {exporting ? "جارٍ تجهيز الملف..." : "تصدير قائمة المؤهلين للقرعة"}
+              {exporting ? "جارٍ تجهيز الملف..." : "تصدير قائمة طلبات القرعة المؤهلة"}
             </Button>
           )}
           {!canImport && !exported && <p className="mt-2 text-xs text-white/75">التصدير من صلاحية إدارة التسجيل.</p>}
@@ -611,7 +618,7 @@ function PublishPanel({ canApprove }: { canApprove: boolean }) {
 
   const publish = async () => {
     actions.setLottery({ publishedAt: Date.now(), publishedBy: user.name });
-    logAs(user, { action: A.publish, target: `${formatNumber(LOTTERY.accepted)} مقبولاً — ${formatNumber(LOTTERY.reserve)} احتياط`, detail: "نُشرت مع قوائم القبول المباشر في قائمة واحدة" });
+    logAs(user, { action: A.publish, target: `${formatNumber(LOTTERY.accepted)} مقبولاً — ${formatNumber(LOTTERY.reserve)} احتياط`, detail: `نتائج القرعة والاحتياط — القبول المباشر أُعلن مستقلاً في ${W.direct.announce}` });
     setConfirm(false);
     toast({ title: "نُشرت النتائج", body: "وصلت الإشعارات إلى الحجاج وظهرت القوائم على البوابة العامة.", tone: "success", icon: "🎉" });
     const confetti = (await import("canvas-confetti")).default;
@@ -657,9 +664,10 @@ function PublishPanel({ canApprove }: { canApprove: boolean }) {
       <Modal open={confirm} onClose={() => setConfirm(false)}>
         <h3 className="font-display text-xl font-bold text-green-dark">اعتماد ونشر نتائج القرعة؟</h3>
         <ul className="mt-3 space-y-1 text-sm text-ink-soft">
-          <li>مقبول مباشرة: 7,875 — مقبول بالقرعة: {formatNumber(LOTTERY.accepted)}</li>
-          <li>الاحتياط: {formatNumber(LOTTERY.reserve)} — غير مقبول: {formatNumber(LOTTERY.notAccepted)}</li>
+          <li>مقبول بالقرعة: {formatNumber(LOTTERY.accepted)} — الاحتياط: {formatNumber(LOTTERY.reserve)}</li>
+          <li>غير مقبول في القرعة: {formatNumber(LOTTERY.notAccepted)} من {formatNumber(LOTTERY.lotteryEligible)} طلباً</li>
           <li>الملف: {LOTTERY.file} — رفعه: {lottery.importedBy}</li>
+          <li>القبول المباشر ({formatNumber(LOTTERY.directSeats)}) أُعلن في {W.direct.announce} ولا يتغير بهذا النشر.</li>
         </ul>
         <p className="mt-3 rounded-2xl bg-gold/20 p-3 text-sm text-maroon">لا يمكن التراجع عن النشر. سيُسجَّل الاعتماد باسمك ووقته.</p>
         <div className="mt-5 flex gap-2">

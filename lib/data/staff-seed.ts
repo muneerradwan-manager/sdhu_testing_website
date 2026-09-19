@@ -260,11 +260,15 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
 ];
 
 // ───────────────────────── Direct acceptance & lottery ─────────────────────────
+// Two SEPARATE registrations. Direct acceptance ranks its own applications by age; the lottery list is
+// whatever was registered (and found eligible) in the lottery window — nothing moves over automatically.
 
 export const LOTTERY = {
-  eligible: 61_830,
+  /** Eligible applications from the direct-acceptance registration (9 جمادى الآخرة – 1 رجب), ranked by age */
+  directEligible: 61_830,
   directSeats: 7_875,
-  remaining: 53_955,
+  /** Eligible applications registered in the separate lottery window (16 – 25 رجب) */
+  lotteryEligible: 53_955,
   familyInList: 16_900,
   accepted: 14_625,
   acceptedFamily: 4_020,
@@ -274,7 +278,7 @@ export const LOTTERY = {
   file: "نتائج-القرعة-1448-معتمد.xlsx",
 };
 
-/** Seats requested by eligible applications, grouped by applicant age (oldest first) */
+/** Seats requested by eligible DIRECT-ACCEPTANCE applications, grouped by applicant age (oldest first) */
 export const AGE_BUCKETS: { label: string; minAge: number; seats: number }[] = [
   { label: "80+", minAge: 80, seats: 1_210 },
   { label: "75–79", minAge: 75, seats: 1_480 },
@@ -558,9 +562,9 @@ export const SEED_EVENTS: AuditEvent[] = [
   { id: "h-06", at: at(2026, 10, 23, 18, 40), actor: "ماهر عيسى", role: "شؤون الإداريين", action: "تعديل نتيجة الشفهي", target: "متقدم 01033301422", before: "12 من 20", after: "14 من 20", detail: "خطأ في الجمع — تصويب اللجنة رقم 5" },
   { id: "h-07", at: at(2026, 11, 20, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", action: "اعتماد مجموعة", target: "المجموعة 31 — تكتل النور" },
   { id: "h-08", at: at(2026, 12, 10, 14, 30), actor: "رنا حداد", role: "إدارة التسجيل", action: "اعتماد طلب بعد المراجعة", target: "الطلب 49120", detail: "اسم الأم: خطأ كتابي مؤكد من بيان القيد" },
-  { id: "h-09", at: at(2026, 12, 24, 9, 40), actor: "رنا حداد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر — 7,875 مقعداً" },
+  { id: "h-09", at: at(2026, 12, 24, 9, 40), actor: "رنا حداد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر — 7,875 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },
   { id: "h-10", at: at(2026, 12, 24, 10, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "اعتماد الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر" },
-  { id: "h-11", at: at(2027, 1, 8, 17, 5), actor: "رنا حداد", role: "إدارة التسجيل", action: "تصدير قائمة المؤهلين للقرعة", target: "53,955 طلباً", detail: "منها 16,900 طلب عائلي — بإشراف لجنة تنظيم القرعة" },
+  { id: "h-11", at: at(2027, 1, 6, 17, 5), actor: "رنا حداد", role: "إدارة التسجيل", action: "تصدير قائمة طلبات القرعة المؤهلة", target: "53,955 طلباً", detail: "طلبات التسجيل على القرعة (16 – 25 رجب) بعد إغلاقه — منها 16,900 طلب عائلي — بإشراف لجنة تنظيم القرعة" },
   { id: "h-12", at: at(2027, 1, 9, 23, 40), actor: "رنا حداد", role: "إدارة التسجيل", action: "استيراد نتائج القرعة", target: "الطلب 51877", detail: "الصف 4,102: رقم وطني غير مطابق (خطأ رقم واحد) — الحالة: غير مطابق" },
   { id: "h-13", at: at(2027, 1, 9, 23, 58), actor: "رنا حداد", role: "إدارة التسجيل", action: "تصحيح صف غير مطابق", target: "الطلب 51877", before: "010-•••••38", after: "010-•••••83", detail: "خطأ كتابي مؤكد من اللجنة، مرفق تصويب اللجنة" },
   { id: "h-14", at: at(2027, 1, 10, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "اعتماد ونشر نتائج القرعة", target: "14,625 مقبولاً — 3,000 احتياط" },
@@ -586,7 +590,7 @@ export const EXEC = {
     { label: "قبول مباشر (66+)", value: 7_875, color: "#AD9E6E" },
     { label: "القرعة", value: 14_625, color: "#00594F" },
     { label: "احتياط", value: 3_000, color: "#289E92" },
-    { label: "لم يُقبل", value: 36_330, color: "#E4DDD3" },
+    { label: "لم يُقبل في القرعة", value: 36_330, color: "#E4DDD3" },
   ],
   stages: [
     { stage: "إنشاء الحساب", y1447: 4.2, y1448: 4.5 },

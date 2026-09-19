@@ -191,7 +191,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
                           (d.key === "passport"
                             ? isElderPassport
                               ? "✓ مقبول — الجواز الجديد ينتهي 1458هـ"
-                              : "✓ مقبول — مرفوع منذ التسجيل الأولي"
+                              : "✓ مقبول — مرفوع منذ تقديم الطلب"
                             : d.key === "medical"
                               ? `✓ معتمد من ${d.reviewer}${member.needs.length ? " — «حالة تحتاج متابعة» في الملف التشغيلي" : ""}`
                               : `✓ معتمد من ${d.reviewer} — ساري حتى 1451هـ`)}
@@ -269,7 +269,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
               <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white text-3xl shadow-sm">🖼️</span>
               <div className="flex-1">
                 <p className="text-lg font-bold">الصورة الشخصية</p>
-                <p className="text-ink-soft">✓ مقبولة — مرفوعة منذ التسجيل الأولي</p>
+                <p className="text-ink-soft">✓ مقبولة — مرفوعة منذ تقديم الطلب</p>
               </div>
               <BadgeCheck className="size-8 text-green-light" />
             </li>

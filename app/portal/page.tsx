@@ -23,7 +23,8 @@ import { useEffect, useState } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
-import { TRACK } from "@/lib/journey";
+import { directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { SEASON } from "@/lib/season";
 import { ageOf, fullName, getPerson } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
@@ -53,7 +54,8 @@ export default function PortalHome() {
   }, []);
 
   const elapsed = app ? (now - app.submittedAt) / 1000 : 0;
-  const stage = app ? [...TRACK].reverse().find((t) => elapsed >= t.at)! : null;
+  const steps = app ? trackSteps(trackOf(app), directAccepted(app)) : [];
+  const stage = app ? stageAt(steps, elapsed).stage : null;
 
   return (
     <PortalShell
@@ -146,7 +148,9 @@ export default function PortalHome() {
               <div className="bg-pattern absolute inset-0 opacity-20" />
               <div className="relative flex flex-wrap items-center justify-between gap-6">
                 <div>
-                  <p className="text-sm text-gold">طلبي رقم {app.number} — {app.members.length} أفراد</p>
+                  <p className="text-sm text-gold">
+                    طلبي رقم {app.number} — {app.members.length} أفراد — {trackOf(app) === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}
+                  </p>
                   <p className="mt-2 font-display text-3xl font-bold md:text-4xl">{stage?.title}</p>
                   <p className="mt-2 text-white/75">{stage?.text}</p>
                 </div>
@@ -155,7 +159,7 @@ export default function PortalHome() {
                 </span>
               </div>
               <div className="relative mt-7 flex gap-1.5">
-                {TRACK.map((t) => (
+                {steps.map((t) => (
                   <span key={t.key} className="h-2 flex-1 overflow-hidden rounded-full bg-white/15">
                     <motion.span className="block h-full bg-gold" initial={{ width: 0 }} animate={{ width: elapsed >= t.at ? "100%" : "0%" }} transition={{ duration: 0.6 }} />
                   </span>
@@ -169,10 +173,13 @@ export default function PortalHome() {
               <div className="relative">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm text-gold">
                   <span className="relative flex size-2"><span className="absolute inset-0 animate-ping rounded-full bg-green-light" /><span className="relative size-2 rounded-full bg-green-light" /></span>
-                  التسجيل المباشر مفتوح حتى 1 رجب
+                  التسجيل على القبول المباشر: {SEASON.windows.direct.hijri}
                 </span>
                 <p className="mt-4 font-display text-3xl font-bold leading-[1.4] md:text-4xl">تقديم طلب حج لموسم 1448هـ</p>
-                <p className="mt-3 max-w-xl leading-8 text-white/75">لك وحدك أو مع عائلتك. سنسألك أسئلة بسيطة واحداً تلو الآخر، ونجلب بيانات مرافقيك من الشؤون المدنية.</p>
+                <p className="mt-3 max-w-xl leading-8 text-white/75">
+                  لك وحدك أو مع عائلتك. التسجيل على القبول المباشر (الأكبر سناً) يُفتح أولاً، ثم يُفتح التسجيل على القرعة بطلب مستقل
+                  ({SEASON.windows.lottery.hijri}). سنسألك أسئلة بسيطة واحداً تلو الآخر، ونجلب بيانات مرافقيك من الشؤون المدنية.
+                </p>
                 <ButtonLink href="/portal/apply" variant="gold" size="xl" className="mt-7">
                   ابدأ الطلب الآن <ArrowLeft className="size-6" />
                 </ButtonLink>
@@ -207,7 +214,7 @@ export default function PortalHome() {
             </h3>
             <ul className="mt-4 divide-y divide-gold-light">
               {[
-                app && { t: `تم استلام طلبك رقم ${app.number} لـ ${app.members.length} أفراد، وتم تسديد رسم التسجيل الأولي (الإيصال ${app.receipt}).`, when: "طلبك" },
+                app && { t: `تم استلام طلبك رقم ${app.number} لـ ${app.members.length} أفراد، وتم تسديد رسم التسجيل (الإيصال ${app.receipt}).`, when: "طلبك" },
                 { t: `أهلاً ${person.firstName}، تم إنشاء حسابك في منصة الحج الوطنية. التسجيل لموسم 1448هـ مفتوح حتى 1 رجب.`, when: "ترحيب" },
                 { t: "إعلان رسمي: القرعة الإلكترونية يوم 1 شعبان الساعة 20:00 ببث مباشر.", when: "الإدارة" },
               ]

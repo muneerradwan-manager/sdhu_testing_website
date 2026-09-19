@@ -36,7 +36,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { CLUSTER, FLIGHTS, GROUP, ITINERARY, PLACES, TRACK, assign } from "@/lib/journey";
+import { CLUSTER, FLIGHTS, GROUP, ITINERARY, PLACES, assign, directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
@@ -46,14 +46,15 @@ import { BoardingPass, HajjCard } from "./_components/cards";
 import { PostChecklist } from "./_components/post/checklist";
 import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines } from "./_components/post/model";
 import { ReviewBanner } from "./_components/review-banner";
-import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageSubmitted } from "./_components/stages";
+import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageNotAccepted, StageSubmitted } from "./_components/stages";
 
 const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon: string; tone: "success" | "info" | "gold" }> = {
   checking: { title: "بدأ تدقيق طلبك", body: (n) => `طلبك رقم ${n} قيد التحقق من الأهلية.`, icon: "🔎", tone: "info" },
-  eligible: { title: "طلبك مؤهل", body: (n) => `طلبك رقم ${n} مؤهل. يدخل التسجيل المباشر ثم القرعة.`, icon: "✅", tone: "success" },
+  eligible: { title: "طلبك مؤهل", body: (n) => `طلبك رقم ${n} مؤهل، وينتظر نتيجة التسجيل الذي قدّمته فيه.`, icon: "✅", tone: "success" },
   direct: { title: "أُعلنت الأعمار المقبولة", body: () => `الأعمار المقبولة وفق الأكبر سناً: ${SEASON.acceptedDirectAge} عاماً فأكثر.`, icon: "📢", tone: "info" },
   lottery: { title: "القرعة تبدأ الآن", body: () => "تابع البث المباشر للقرعة الإلكترونية.", icon: "📺", tone: "gold" },
   accepted: { title: "مبارك! تم قبول طلبك", body: (n) => `تم اختيار طلبك رقم ${n} لأداء فريضة الحج لموسم 1448هـ.`, icon: "🕋", tone: "success" },
+  notAccepted: { title: "لم يُقبل طلبك مباشرة", body: () => `التسجيل على القرعة طلب مستقل يُفتح ${SEASON.windows.lottery.hijri}.`, icon: "📋", tone: "gold" },
 };
 
 type Unlock = "always" | "group" | "payments" | "trip";
@@ -143,11 +144,12 @@ export default function ApplicationPage() {
   }, []);
 
   const elapsed = app ? Math.max(0, (now - app.submittedAt) / 1000) : 0;
-  const stage = app ? [...TRACK].reverse().find((t) => elapsed >= t.at)! : TRACK[0];
-  const stageIdx = TRACK.findIndex((t) => t.key === stage.key);
+  const track = app ? trackOf(app) : "direct";
+  const direct = track === "direct";
+  const steps = trackSteps(track, app ? directAccepted(app) : false);
+  const { stage, index: stageIdx } = stageAt(steps, elapsed);
   const accepted = stage.key === "accepted";
   const applicant = app?.members.find((m) => m.relation === "self") ?? app?.members[0];
-  const direct = applicant ? ageOf(applicant.person) >= SEASON.acceptedDirectAge : false;
 
   const assignments = useMemo(
     () => (app ? assign(app.members, (m) => (m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender))) : []),
@@ -248,17 +250,22 @@ export default function ApplicationPage() {
         </div>
 
         {/* Stepper */}
-        <ol className="relative mt-8 grid grid-cols-6 gap-1">
-          <div className="absolute right-[8.3%] left-[8.3%] top-5 h-1 rounded-full bg-gold-light" />
+        <p className="mt-4 text-sm font-bold text-gold-dark">
+          {direct ? `التسجيل على القبول المباشر (${SEASON.windows.direct.hijri})` : `التسجيل على القرعة (${SEASON.windows.lottery.hijri})`}
+          {app.previous && <span className="font-normal text-hint"> — سبقه طلب قبول مباشر رقم {app.previous.number} لم يُقبل</span>}
+        </p>
+        <ol className="relative mt-6 grid grid-cols-5 gap-1">
+          <div className="absolute right-[10%] left-[10%] top-5 h-1 rounded-full bg-gold-light" />
           <motion.div
-            className="absolute right-[8.3%] top-5 h-1 rounded-full bg-gradient-to-l from-green-light to-green-dark"
-            animate={{ width: `${(Math.min(stageIdx, TRACK.length - 1) / (TRACK.length - 1)) * 83.4}%` }}
+            className="absolute right-[10%] top-5 h-1 rounded-full bg-gradient-to-l from-green-light to-green-dark"
+            animate={{ width: `${(Math.min(stageIdx, steps.length - 1) / (steps.length - 1)) * 80}%` }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           />
-          {TRACK.map((t, i) => {
-            const done = i < stageIdx || accepted;
-            const current = i === stageIdx && !accepted;
-            const skipped = t.key === "lottery" && direct && i <= stageIdx;
+          {steps.map((t, i) => {
+            const final = t.key === "accepted" || t.key === "notAccepted";
+            const done = i < stageIdx || (final && i === stageIdx);
+            const current = i === stageIdx && !final;
+            const missed = t.key === "notAccepted" && i === stageIdx;
             return (
               <li key={t.key} className="relative flex flex-col items-center text-center">
                 <motion.span
@@ -266,16 +273,16 @@ export default function ApplicationPage() {
                   transition={current ? { repeat: Infinity, duration: 1.6 } : undefined}
                   className={cn(
                     "relative z-10 grid size-11 place-items-center rounded-full border-4 border-white shadow transition-colors duration-500",
-                    done ? "bg-green-light text-white" : current ? "bg-gold text-ink" : "bg-sand text-hint",
+                    missed ? "bg-maroon text-white" : done ? "bg-green-light text-white" : current ? "bg-gold text-ink" : "bg-sand text-hint",
                   )}
                 >
                   {current && <span className="absolute inset-0 animate-ping rounded-full bg-gold/40" />}
                   <StageIcon k={t.key} />
                 </motion.span>
                 <span className={cn("mt-2 text-[11px] font-bold leading-4 md:text-sm", done || current ? "text-green-dark" : "text-hint")}>
-                  {t.key === "accepted" && direct ? "مقبول مباشرة" : t.title}
+                  {t.title}
                 </span>
-                <span className="mt-0.5 hidden text-xs text-hint md:block">{skipped ? "غير مطلوبة" : t.text}</span>
+                <span className="mt-0.5 hidden text-xs text-hint md:block">{t.text}</span>
               </li>
             );
           })}
@@ -289,7 +296,8 @@ export default function ApplicationPage() {
               {stage.key === "checking" && <StageChecking members={app.members} />}
               {stage.key === "eligible" && <StageEligible app={app} />}
               {stage.key === "direct" && <StageDirect age={ageOf(applicant.person)} />}
-              {stage.key === "lottery" && <StageLottery number={app.number} elapsed={elapsed} direct={direct} />}
+              {stage.key === "lottery" && <StageLottery number={app.number} elapsed={elapsed} />}
+              {stage.key === "notAccepted" && <StageNotAccepted age={ageOf(applicant.person)} />}
               {accepted && rejected && (
                 <div className="flex items-center gap-4 rounded-3xl bg-white p-6 ring-1 ring-maroon/20">
                   <AlertOctagon className="size-12 shrink-0 text-maroon" />
@@ -578,7 +586,7 @@ export default function ApplicationPage() {
             <Section id="payments" title="التكاليف والإيصالات والعقد" icon={<Receipt className="size-6" />} ready={unlocked.payments} lockedHint={LOCK_HINT.payments} eyebrow="لكل تكلفة إيصال مستقل قابل للتحقق">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {[
-                  { t: "رسم التسجيل الأولي", n: app.receipt, v: app.paid },
+                  { t: "رسم التسجيل", n: app.receipt, v: app.paid },
                   ...lines.map((l) => ({ t: `${l.title} (${l.detail})`, n: l.receipt, v: l.amount })),
                 ].map((r, i) => (
                   <motion.div key={r.n} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="overflow-hidden rounded-3xl bg-white ring-1 ring-gold/40">

@@ -7,6 +7,7 @@ import { Counter } from "@/components/ui/motion";
 import { SEASON } from "@/lib/season";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
+const { direct, lottery } = SEASON.windows;
 
 export function AcceptanceSplit() {
   const ref = useRef<HTMLDivElement>(null);
@@ -61,10 +62,17 @@ export function AcceptanceSplit() {
           <BadgeCheck className="size-7 text-green-dark" />
           <p className="mt-3 font-display text-xl font-bold text-green-dark">القبول المباشر</p>
           <p className="font-display text-3xl font-bold text-ink tabular-nums">{SEASON.directSeats.toLocaleString("en-US")} <span className="text-sm text-ink-soft">مقعداً</span></p>
-          <p className="mt-2 text-sm leading-7 text-ink-soft">وفق الأكبر سناً بعمر صاحب الطلب، حتى تكتمل النسبة. في هذا الموسم: {SEASON.acceptedDirectAge} عاماً فأكثر.</p>
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
-            <CalendarDays className="size-3.5" /> إعلان الأعمار: 15 رجب
+          <p className="mt-2 text-sm leading-7 text-ink-soft">
+            تسجيل أول بطلب خاص به. يُقبل الأكبر سناً بعمر صاحب الطلب حتى تكتمل النسبة. في هذا الموسم: {SEASON.acceptedDirectAge} عاماً فأكثر.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
+              <CalendarDays className="size-3.5" /> التسجيل: {direct.hijri}
+            </p>
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
+              <CalendarDays className="size-3.5" /> إعلان الأعمار: {direct.announce}
+            </p>
+          </div>
         </motion.div>
 
         <motion.div
@@ -75,7 +83,7 @@ export function AcceptanceSplit() {
         >
           <span className="flex items-center gap-2 rounded-full bg-gold px-3 py-2 text-xs font-bold text-ink md:flex-col md:px-2 md:py-3">
             <ArrowLeft className="size-4 md:rotate-0" />
-            <span className="md:[writing-mode:vertical-rl]">من لم يُقبل يدخل القرعة تلقائياً</span>
+            <span className="md:[writing-mode:vertical-rl]">لم تُقبل؟ سجّل على القرعة بطلب جديد</span>
           </span>
         </motion.div>
 
@@ -89,11 +97,17 @@ export function AcceptanceSplit() {
           <p className="mt-3 font-display text-xl font-bold text-green">القرعة الإلكترونية</p>
           <p className="font-display text-3xl font-bold text-ink tabular-nums">{SEASON.lotterySeats.toLocaleString("en-US")} <span className="text-sm text-ink-soft">مقعداً</span></p>
           <p className="mt-2 text-sm leading-7 text-ink-soft">
-            على جميع الطلبات المؤهلة التي لم تُقبل مباشرة، ببث مباشر على التلفاز بإشراف لجنة رسمية. الطلب العائلي يُسحب كوحدة واحدة.
+            تسجيل ثانٍ مستقل يُفتح بعد إعلان الأعمار، بطلب جديد لكل مؤهل، ومنهم من لم يُقبل مباشرة؛ فلا ينتقل أي طلب إليه وحده. تُجرى
+            القرعة على الطلبات المسجّلة فيه ببث مباشر على التلفاز بإشراف لجنة رسمية، والطلب العائلي يُسحب كوحدة واحدة.
           </p>
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
-            <CalendarDays className="size-3.5" /> 1 شعبان — الساعة 20:00
-          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
+              <CalendarDays className="size-3.5" /> التسجيل: {lottery.hijri}
+            </p>
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
+              <CalendarDays className="size-3.5" /> القرعة: {lottery.draw}
+            </p>
+          </div>
         </motion.div>
       </div>
 

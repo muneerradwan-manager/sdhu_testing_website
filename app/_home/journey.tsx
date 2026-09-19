@@ -4,12 +4,30 @@ import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useT
 import { BadgeCheck, FileSignature, Plane, ScanSearch, Ticket, UserRoundPlus } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { SectionHeading } from "@/components/ui/motion";
+import { SEASON } from "@/lib/season";
+
+const { direct, lottery } = SEASON.windows;
 
 const STEPS = [
   { icon: UserRoundPlus, title: "إنشاء الحساب", text: "الرقم الوطني ورقم الهاتف فقط — وبياناتك تصل من الشؤون المدنية للتأكيد.", when: "دقيقتان" },
-  { icon: FileSignature, title: "تقديم الطلب", text: "أسئلة بسيطة واحدة تلو الأخرى، وإضافة العائلة من دفتر العائلة أو بالرقم الوطني.", when: "9 جمادى الآخرة – 1 رجب" },
-  { icon: ScanSearch, title: "التحقق من الأهلية", text: "تطبّق المنصة شروط الموسم على كل فرد وتشرح لك أي ملاحظة بوضوح.", when: "حتى 10 رجب" },
-  { icon: Ticket, title: "القبول على مرحلتين", text: "35% قبول مباشر للأكبر سناً، ثم قرعة علنية ببث مباشر على 65% من الحصة.", when: "15 رجب و1 شعبان" },
+  {
+    icon: FileSignature,
+    title: "التسجيل على القبول المباشر",
+    text: "طلب للقبول وفق الأكبر سناً على 35% من الحصة. أسئلة بسيطة واحدة تلو الأخرى، وإضافة العائلة من دفتر العائلة أو بالرقم الوطني.",
+    when: direct.hijri,
+  },
+  {
+    icon: ScanSearch,
+    title: "التحقق وإعلان الأعمار",
+    text: "تطبّق المنصة شروط الموسم على كل فرد وتشرح لك أي ملاحظة، ثم تُعلن الأعمار المقبولة مباشرة.",
+    when: `حتى ${direct.announce}`,
+  },
+  {
+    icon: Ticket,
+    title: "التسجيل على القرعة",
+    text: "تسجيل مستقل بطلب جديد لكل مؤهل، ومنهم من لم يُقبل مباشرة، وتُجرى بعده قرعة علنية ببث مباشر على 65% من الحصة.",
+    when: `${lottery.hijri} · القرعة ${lottery.draw}`,
+  },
   { icon: BadgeCheck, title: "التجهيز والتسديد", text: "المجموعة، العقد، الإيصالات، التأشيرة، والدروس الدينية قبل السفر.", when: "شعبان – ذو القعدة" },
   { icon: Plane, title: "السفر والعودة", text: "الرحلة والفندق والمخيم وبطاقتك الرقمية في جيبك طوال الرحلة.", when: "24 ذو القعدة – 23 ذو الحجة" },
 ];

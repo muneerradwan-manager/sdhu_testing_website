@@ -121,7 +121,7 @@ function Executive() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.6fr]">
-        <Panel title="توزيع المؤهلين" icon={<BarChart3 />} delay={0.1}>
+        <Panel title="نتائج القبول المباشر والقرعة" icon={<BarChart3 />} delay={0.1}>
           <div className="flex flex-col items-center gap-5">
             <Donut size={190} thickness={26} segments={EXEC.split.map((s) => ({ value: s.value, color: onDark(SPLIT_ON_DARK, s.color), label: s.label }))}>
               <div>

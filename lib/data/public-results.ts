@@ -7,20 +7,27 @@ import { SEASON, OFFICES } from "../season";
 import { ageOf, fullName, getPerson, isValidNationalId } from "../registry";
 import { maskNationalId, seeded } from "../utils";
 
+/** Eligible applications registered in the lottery window (16 – 25 Rajab) — a separate registration from direct acceptance */
+const LOTTERY_ELIGIBLE = 53_955;
+
 export const RESULTS_SUMMARY = {
-  eligible: 61_830,
+  /** Accepted directly (oldest first) + eligible lottery applications — the base of the public outcome chart */
+  eligible: SEASON.directSeats + LOTTERY_ELIGIBLE,
+  lotteryEligible: LOTTERY_ELIGIBLE,
   direct: SEASON.directSeats,
   lottery: SEASON.lotterySeats,
   reserve: SEASON.reserve,
-  notAccepted: 61_830 - SEASON.directSeats - SEASON.lotterySeats - SEASON.reserve,
+  notAccepted: LOTTERY_ELIGIBLE - SEASON.lotterySeats - SEASON.reserve,
   acceptedAge: SEASON.acceptedDirectAge,
   lastUpdate: "2 شعبان 1448 — 09:05",
   directApprovedAt: "15 رجب 1448 — 10:00",
+  lotteryWindow: SEASON.windows.lottery.hijri,
   lotteryAt: "1 شعبان 1448 — 20:00",
   familyApplicationsInLottery: 4_020,
 } as const;
 
-export type Campaign = "التسجيل الأولي" | "المنحة";
+/** Which registration the application was made in: direct acceptance, lottery, or the scholarship campaign */
+export type Campaign = "القبول المباشر" | "القرعة" | "المنحة";
 export type Outcome = "direct" | "lottery" | "reserve" | "none";
 
 export const OUTCOME_LABEL: Record<Outcome, string> = {
@@ -89,13 +96,13 @@ export function searchResult(id: string): SearchResult {
   const base = { name: fullName(p), governorate: p.governorate };
 
   if (FAMILY_4512.includes(id)) {
-    return { ...base, found: true, outcome: "lottery", label: `${OUTCOME_LABEL.lottery} (طلب عائلي 4512)`, campaign: "التسجيل الأولي", applicationNo: "4512" };
+    return { ...base, found: true, outcome: "lottery", label: `${OUTCOME_LABEL.lottery} (طلب عائلي 4512)`, campaign: "القرعة", applicationNo: "4512" };
   }
   if (id === "01011100208") {
-    return { ...base, found: true, outcome: "reserve", label: "احتياط — الترتيب 1,208", rank: 1208, campaign: "التسجيل الأولي" };
+    return { ...base, found: true, outcome: "reserve", label: "احتياط — الترتيب 1,208", rank: 1208, campaign: "القرعة" };
   }
   if (ageOf(p) >= SEASON.acceptedDirectAge) {
-    return { ...base, found: true, outcome: "direct", label: OUTCOME_LABEL.direct, campaign: "التسجيل الأولي" };
+    return { ...base, found: true, outcome: "direct", label: OUTCOME_LABEL.direct, campaign: "القبول المباشر" };
   }
   const rnd = seeded(`result:${id}`);
   const roll = rnd();
@@ -103,11 +110,11 @@ export function searchResult(id: string): SearchResult {
     return { ...base, found: true, outcome: "direct", label: "مقبول مباشرة — حملة المنحة", campaign: "المنحة" };
   }
   if (roll < 0.33) {
-    return { ...base, found: true, outcome: "lottery", label: OUTCOME_LABEL.lottery, campaign: "التسجيل الأولي" };
+    return { ...base, found: true, outcome: "lottery", label: OUTCOME_LABEL.lottery, campaign: "القرعة" };
   }
   if (roll < 0.43) {
     const rank = 1 + Math.floor(rnd() * 1490);
-    return { ...base, found: true, outcome: "reserve", label: `احتياط — الترتيب ${rank.toLocaleString("en-US")}`, rank, campaign: "التسجيل الأولي" };
+    return { ...base, found: true, outcome: "reserve", label: `احتياط — الترتيب ${rank.toLocaleString("en-US")}`, rank, campaign: "القرعة" };
   }
   return { found: false };
 }
@@ -182,7 +189,7 @@ export function getPublicList(kind: ListKind): PublicApplication[] {
     const gov = govEntry.governorate;
     const office = pick(govEntry.offices);
     const code = GOV_CODES[gov];
-    const campaign: Campaign = kind === "direct" && rnd() < 0.063 ? "المنحة" : "التسجيل الأولي";
+    const campaign: Campaign = kind !== "direct" ? "القرعة" : rnd() < 0.063 ? "المنحة" : "القبول المباشر";
 
     // family size: direct list skews to couples, lottery to families
     const r = rnd();
@@ -214,7 +221,7 @@ export function getPublicList(kind: ListKind): PublicApplication[] {
       applicationNo: "4512",
       governorate: "دمشق",
       office: "دمشق – المزة",
-      campaign: "التسجيل الأولي",
+      campaign: "القرعة",
       members: [
         { maskedId: maskNationalId("01012345412"), name: "محمد أحمد الخطيب" },
         { maskedId: maskNationalId("01012345413"), name: "فاطمة يوسف الحلبي" },
@@ -235,7 +242,7 @@ export function getPublicList(kind: ListKind): PublicApplication[] {
       applicationNo: "3981",
       governorate: "دمشق",
       office: "دمشق – المزة",
-      campaign: "التسجيل الأولي",
+      campaign: "القرعة",
       members: [{ maskedId: maskNationalId("01011100208"), name: "ياسين خليل العمر" }],
     };
     rows.splice(Math.min(1207, rows.length), 0, yasin);

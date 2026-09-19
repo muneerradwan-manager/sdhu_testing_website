@@ -98,7 +98,7 @@ export function DashboardView() {
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {can(user, "registration.review") && (
           <>
-            <Kpi dark label="المتقدمون" value={REG_STATS.applications + realApps.length} icon={<UsersRound />} hint={`منهم ${realApps.length} طلبات حقيقية من العرض`} />
+            <Kpi dark label="طلبات القبول المباشر" value={REG_STATS.applications + realApps.length} icon={<UsersRound />} hint={`منهم ${realApps.length} طلبات حقيقية من العرض`} />
             <Kpi dark label="بانتظار مراجعتك" value={pendingReviews} icon={<ClipboardCheck />} tone="gold" delay={0.05} pulse={pendingReviews > 0} hint="تكرار، بيانات غير مؤكدة، شروط" />
           </>
         )}
@@ -110,8 +110,8 @@ export function DashboardView() {
         )}
         {can(user, "lottery.import") && !can(user, "season.settings") && (
           <>
-            <Kpi dark label="المؤهلون" value={REG_STATS.eligible} icon={<CheckCircle2 />} tone="teal" delay={0.1} />
-            <Kpi dark label="مرفوضون بسبب واضح" value={REG_STATS.rejected} icon={<FileClock />} tone="maroon" delay={0.15} />
+            <Kpi dark label="المؤهلون" value={REG_STATS.eligible} icon={<CheckCircle2 />} tone="teal" delay={0.1} hint="من طلبات القبول المباشر" />
+            <Kpi dark label="مرفوضون بسبب واضح" value={REG_STATS.rejected} icon={<FileClock />} tone="maroon" delay={0.15} hint="من طلبات القبول المباشر" />
           </>
         )}
         {(can(user, "administrators.manage") || can(user, "groups.approve")) && (
@@ -151,7 +151,7 @@ export function DashboardView() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_1fr]">
         <div className="space-y-6">
           {(can(user, "registration.review") || can(user, "lottery.import")) && (
-            <Panel dark title="التسجيل اليومي — 22 يوماً" icon={<Activity />} delay={0.1} action={<span className="text-xs text-white/70">الذروة في الأيام الأخيرة قبل الإغلاق</span>}>
+            <Panel dark title="التسجيل اليومي على القبول المباشر — 22 يوماً" icon={<Activity />} delay={0.1} action={<span className="text-xs text-white/70">الذروة في الأيام الأخيرة قبل الإغلاق</span>}>
               <Columns dark values={DAILY_REGISTRATIONS} height={140} highlight={DAILY_REGISTRATIONS.length - 1} labels={["9 ج2", "15", "20", "25", "1 رجب"]} />
             </Panel>
           )}

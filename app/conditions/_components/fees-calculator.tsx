@@ -10,7 +10,7 @@ import { cn, formatUSD } from "@/lib/utils";
 const F = SEASON.fees;
 
 const FEE_ROWS = [
-  { label: "رسم التسجيل الأولي", amount: F.registrationPerPerson, unit: "للفرد", when: "عند تقديم الطلب", group: "رسوم" },
+  { label: "رسم التسجيل", amount: F.registrationPerPerson, unit: "للفرد", when: "عند تقديم الطلب", group: "رسوم" },
   { label: "رسم تسجيل الإداري", amount: F.administratorRegistration, unit: "للإداري", when: "عند التقدم للعمل كإداري", group: "رسوم" },
   { label: "رسم تشكيل مجموعة", amount: F.groupFormation, unit: "لكل مجموعة", when: "عند تشكيل المجموعة", group: "رسوم" },
   { label: "رسم تشكيل تكتل", amount: F.clusterFormation, unit: "لكل تكتل", when: "عند تشكيل التكتل", group: "رسوم" },
@@ -221,7 +221,7 @@ export function FeesCalculator() {
             <AnimatedUSD value={total} className="font-display text-3xl font-bold" />
           </div>
           <p className="mt-3 text-xs leading-6 text-white/65">
-            رسم التسجيل الأولي ({people} × {formatUSD(F.registrationPerPerson)} = {formatUSD(registration)}) يُدفع عند تقديم الطلب وليس ضمن هذا المجموع.
+            رسم التسجيل ({people} × {formatUSD(F.registrationPerPerson)} = {formatUSD(registration)}) يُدفع عند تقديم الطلب وليس ضمن هذا المجموع.
           </p>
         </div>
       </div>

@@ -22,10 +22,10 @@ import { Card, PortalShell } from "@/components/portal/shell";
 import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
-import { applicationNumberFor } from "@/lib/journey";
+import { applicationNumberFor, directAccepted, stageAt, trackOf, trackSteps, type Track } from "@/lib/journey";
 import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
 import { evaluate, type Member } from "@/lib/rules";
-import { OFFICES } from "@/lib/season";
+import { OFFICES, SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ import { Choice, DigitsDisplay, NumberPad, PersonChip, Question } from "./_compo
 
 type Screen =
   | "intro"
+  | "track"
   | "forWhom"
   | "otherId"
   | "companions"
@@ -55,7 +56,7 @@ type Screen =
   | "payment";
 
 const PHASES: { label: string; screens: Screen[] }[] = [
-  { label: "صاحب الطلب", screens: ["intro", "forWhom", "otherId"] },
+  { label: "صاحب الطلب", screens: ["intro", "track", "forWhom", "otherId"] },
   { label: "المرافقون", screens: ["companions", "method", "booklet", "count", "adder", "review"] },
   { label: "الصحة والمرافقة", screens: ["terminal", "needs", "elderly"] },
   { label: "الأهلية", screens: ["eligibility", "consents"] },
@@ -100,6 +101,9 @@ export default function ApplyPage() {
   const season = useSeason();
 
   const [history, setHistory] = useState<Screen[]>(["intro"]);
+  // Which registration this application is for — direct acceptance and the lottery are separate applications
+  const [track, setTrack] = useState<Track>("direct");
+  const [openedAt] = useState(() => Date.now());
   const screen = history[history.length - 1];
   const [members, setMembers] = useState<Member[]>([]);
   const [target, setTarget] = useState(1);
@@ -116,7 +120,12 @@ export default function ApplyPage() {
   const applicant = members.find((m) => m.relation === "self")?.person ?? null;
   const companions = members.filter((m) => m.relation !== "self");
   const result = useMemo(() => evaluate(members, season.rules), [members, season.rules]);
-  const number = applicant ? applicationNumberFor(sessionId) : "";
+  // A direct-acceptance application that ended without a place: the pilgrim may now register for the lottery
+  const previousDirect =
+    existing && trackOf(existing) === "direct" && !directAccepted(existing) && stageAt(trackSteps("direct", false), (openedAt - existing.submittedAt) / 1000).stage.key === "notAccepted"
+      ? existing
+      : null;
+  const number = applicant ? applicationNumberFor(track === "lottery" && previousDirect ? `${sessionId}-L` : sessionId) : "";
   const receipt = `1448-R-${number.padStart(6, "0")}`;
   const scenario = DEMO_SCENARIOS.find((s) => s.id === (applicant?.id ?? sessionId));
 
@@ -146,6 +155,8 @@ export default function ApplyPage() {
       createdAt: now,
       submittedAt: now,
       mode: companions.length === 0 ? "solo" : book ? "booklet" : "national",
+      track,
+      previous: previousDirect ? { number: previousDirect.number, track: "direct", submittedAt: previousDirect.submittedAt, closedAt: now } : undefined,
       forWhom: applicant?.id === sessionId ? "me" : "other",
       members,
       governorate: office.governorate,
@@ -158,22 +169,30 @@ export default function ApplyPage() {
     actions.logEvent({
       actor: me.firstName + " " + me.lastName,
       role: "حاج",
-      action: "تقديم طلب حج",
+      action: track === "lottery" ? "تقديم طلب حج — التسجيل على القرعة" : "تقديم طلب حج — التسجيل على القبول المباشر",
       target: `طلب ${number}`,
       detail: `${members.length} أفراد — ${result.members.some((m) => m.checks.some((c) => c.status === "warn")) ? "يحتاج مراجعة" : "مستوفٍ تلقائياً"} — الإيصال ${receipt}`,
     });
     confetti({ particleCount: 180, spread: 100, origin: { y: 0.35 }, colors: ["#D9C89E", "#00594F", "#289E92", "#AD9E6E", "#672146"] });
-    toast({ title: `تم استلام طلبك رقم ${number}`, body: `لـ ${members.length} أفراد، وتم تسديد رسم التسجيل الأولي (الإيصال ${receipt}).`, icon: "📨", tone: "success" });
+    toast({
+      title: `تم استلام طلبك رقم ${number}`,
+      body: `${track === "lottery" ? "في التسجيل على القرعة" : "في التسجيل على القبول المباشر"} لـ ${members.length} أفراد، وتم تسديد رسم التسجيل (الإيصال ${receipt}).`,
+      icon: "📨",
+      tone: "success",
+    });
     router.push("/portal/application");
   };
 
-  if (existing) {
+  if (existing && !previousDirect) {
     return (
       <PortalShell title="لديك طلب مُقدَّم بالفعل">
         <Card className="text-center">
           <CheckCircle2 className="mx-auto size-16 text-green-light" />
           <p className="mt-4 font-display text-2xl font-bold text-green-dark">طلب رقم {existing.number} — {existing.members.length} أفراد</p>
-          <p className="mt-2 text-ink-soft">طلب واحد فقط لكل شخص في الموسم.</p>
+          <p className="mt-1 font-bold text-gold-dark">{trackOf(existing) === "lottery" ? "في التسجيل على القرعة" : "في التسجيل على القبول المباشر"}</p>
+          <p className="mt-2 text-ink-soft">
+            طلب واحد فقط لكل شخص في كل تسجيل. إن لم يُقبل طلب القبول المباشر، يمكنك التسجيل على القرعة بطلب جديد ({SEASON.windows.lottery.hijri}).
+          </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <ButtonLink href="/portal/application" size="lg">
               متابعة الطلب <ArrowLeft className="size-5" />
@@ -198,7 +217,7 @@ export default function ApplyPage() {
   const phaseIdx = PHASES.findIndex((p) => p.screens.includes(screen));
   if (phaseIdx > maxPhase) setMaxPhase(phaseIdx); // adjusting state during render, per React docs
   const phaseEntry = (i: number): Screen =>
-    i === 0 ? "forWhom" : i === 1 ? (companions.length ? "review" : "companions") : i === 2 ? "terminal" : i === 3 ? "eligibility" : "documents";
+    i === 0 ? "track" : i === 1 ? (companions.length ? "review" : "companions") : i === 2 ? "terminal" : i === 3 ? "eligibility" : "documents";
   const canOpenPhase = (i: number) => i !== phaseIdx && i <= maxPhase && !!applicant && (i < 4 || result.eligible);
 
   return (
@@ -303,7 +322,7 @@ export default function ApplyPage() {
                     {[
                       { e: "🪪", t: "بطاقتك الشخصية", s: "وبطاقات مرافقيك أو دفتر العائلة" },
                       { e: "📷", t: "صور الجوازات", s: "والصور الشخصية" },
-                      { e: "💳", t: `${season.fees.registrationPerPerson} دولاراً للفرد`, s: "رسم التسجيل الأولي" },
+                      { e: "💳", t: `${season.fees.registrationPerPerson} دولاراً للفرد`, s: "رسم التسجيل" },
                     ].map((x, i) => (
                       <motion.div key={x.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.08 }} className="rounded-3xl bg-sand p-5">
                         <span className="text-3xl">{x.e}</span>
@@ -312,8 +331,62 @@ export default function ApplyPage() {
                       </motion.div>
                     ))}
                   </div>
-                  <Button size="xl" className="mt-8" onClick={() => go("forWhom")}>
+                  <Button
+                    size="xl"
+                    className="mt-8"
+                    onClick={() => {
+                      if (previousDirect) setTrack("lottery");
+                      go("track");
+                    }}
+                  >
                     لنبدأ <ArrowLeft className="size-6" />
+                  </Button>
+                </Question>
+              )}
+
+              {screen === "track" && (
+                <Question
+                  title="على أي تسجيل تقدّم طلبك؟"
+                  hint="تسجيلان منفصلان، لكل منهما طلبه وموعده. من لا يُقبل في القبول المباشر لا ينتقل تلقائياً إلى القرعة، ويمكنه التسجيل عليها بطلب جديد في موعدها."
+                  speak="على أي تسجيل تقدّم طلبك؟ التسجيل على القبول المباشر، أو التسجيل على القرعة."
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Choice
+                      index={0}
+                      icon="🧓"
+                      label="التسجيل على القبول المباشر"
+                      description={
+                        previousDirect
+                          ? `قدّمت فيه الطلب رقم ${previousDirect.number} ولم يُقبل (الأعمار المقبولة ${SEASON.acceptedDirectAge} عاماً فأكثر)`
+                          : `${SEASON.windows.direct.hijri} — يُقبل الأكبر سناً حتى تكتمل ${Math.round(SEASON.directShare * 100)}% من الحصة (${SEASON.directSeats.toLocaleString("en")} مقعداً). إعلان الأعمار المقبولة ${SEASON.windows.direct.announce}.`
+                      }
+                      selected={track === "direct" && !previousDirect}
+                      disabled={!!previousDirect}
+                      onClick={() => {
+                        setTrack("direct");
+                        go("forWhom");
+                      }}
+                    />
+                    <Choice
+                      index={1}
+                      icon="🎟️"
+                      label="التسجيل على القرعة"
+                      description={`${SEASON.windows.lottery.hijri} — بعد إعلان الأعمار المقبولة. قرعة علنية ببث مباشر على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً) يوم ${SEASON.windows.lottery.draw}.`}
+                      selected={track === "lottery"}
+                      onClick={() => {
+                        setTrack("lottery");
+                        if (previousDirect && members.length === 0) setMembers(previousDirect.members);
+                        go(previousDirect ? "review" : "forWhom");
+                      }}
+                    />
+                  </div>
+                  <p className="mt-5 rounded-2xl bg-gold/20 p-4 text-sm leading-7 text-ink-soft">
+                    {previousDirect
+                      ? "سننقل أفراد طلبك السابق إلى طلب القرعة الجديد لتراجعهم، ويمكنك التعديل عليهم."
+                      : "في العرض التجريبي يمكنك تجربة التسجيلين الآن؛ في الموسم الفعلي يُفتح كل تسجيل في موعده فقط."}
+                  </p>
+                  <Button variant="ghost" size="lg" className="mt-6" onClick={back}>
+                    <ArrowRight className="size-5" /> رجوع
                   </Button>
                 </Question>
               )}
@@ -820,13 +893,22 @@ export default function ApplyPage() {
               {screen === "documents" && <Documents members={members} onDone={() => go("office")} />}
 
               {screen === "office" && (
-                <Question title="نوع الطلب ومكتب التسجيل" hint="نوع طلبك هو التسجيل المباشر، ومن لا يُقبل فيه يدخل القرعة تلقائياً دون أي إجراء منك.">
+                <Question
+                  title="نوع الطلب ومكتب التسجيل"
+                  hint={
+                    track === "lottery"
+                      ? `طلبك في التسجيل على القرعة. تُجرى القرعة ${SEASON.windows.lottery.draw} ببث مباشر.`
+                      : `طلبك في التسجيل على القبول المباشر. إن لم يُقبل، لا ينتقل تلقائياً إلى القرعة، ويمكنك التسجيل عليها بطلب جديد ${SEASON.windows.lottery.hijri}.`
+                  }
+                >
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-3xl bg-green-dark p-5 text-white">
                       <p className="text-sm text-gold">نوع الطلب</p>
-                      <p className="mt-1 font-display text-xl font-bold">التسجيل المباشر ثم القرعة</p>
+                      <p className="mt-1 font-display text-xl font-bold">{track === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}</p>
                       <p className="mt-2 text-sm leading-6 text-white/75">
-                        يُرتَّب الطلب بعمر صاحب الطلب ({applicant ? ageOf(applicant) : "—"} عاماً). 35% من الحصة للأكبر سناً، ثم قرعة على 65%.
+                        {track === "lottery"
+                          ? `قرعة علنية على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة. الطلب العائلي يُسحب كوحدة واحدة.`
+                          : `يُرتَّب الطلب بعمر صاحب الطلب (${applicant ? ageOf(applicant) : "—"} عاماً)، ويُقبل الأكبر سناً حتى تكتمل ${Math.round(SEASON.directShare * 100)}% من الحصة.`}
                       </p>
                     </div>
                     <div className="space-y-3">

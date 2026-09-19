@@ -197,7 +197,7 @@ export function Payment({ count, receipt, onPaid }: { count: number; receipt: st
 
   if (phase === "done") {
     return (
-      <Question title="تم تسديد رسم التسجيل الأولي" hint="صدر لك إيصال رقمي مرقّم يمكن لأي شخص التحقق منه من البوابة العامة.">
+      <Question title="تم تسديد رسم التسجيل" hint="صدر لك إيصال رقمي مرقّم يمكن لأي شخص التحقق منه من البوابة العامة.">
         <motion.div initial={{ rotateX: 70, opacity: 0 }} animate={{ rotateX: 0, opacity: 1 }} transition={{ type: "spring", damping: 16 }} className="mx-auto max-w-md overflow-hidden rounded-3xl border border-gold/50 bg-white shadow-2xl [transform-origin:top]">
           <div className="relative bg-green-dark p-5 text-white">
             <div className="bg-pattern absolute inset-0 opacity-15" />
@@ -210,7 +210,7 @@ export function Payment({ count, receipt, onPaid }: { count: number; receipt: st
               <QRCodeSVG value={`https://hajj-demo.sy/verify/${receipt}`} size={96} fgColor="#00594F" />
             </div>
             <dl className="space-y-1.5 text-sm">
-              <div><dt className="inline text-hint">البند: </dt><dd className="inline font-bold">رسم التسجيل الأولي</dd></div>
+              <div><dt className="inline text-hint">البند: </dt><dd className="inline font-bold">رسم التسجيل</dd></div>
               <div><dt className="inline text-hint">العدد: </dt><dd className="inline font-bold">{count} × {formatUSD(SEASON.fees.registrationPerPerson)}</dd></div>
               <div><dt className="inline text-hint">المبلغ: </dt><dd className="inline font-bold text-green-dark">{formatUSD(total)}</dd></div>
               <div><dt className="inline text-hint">الطريقة: </dt><dd className="inline font-bold">{method === "bank" ? "المصرف المعتمد" : "دفع إلكتروني"}</dd></div>
@@ -228,9 +228,9 @@ export function Payment({ count, receipt, onPaid }: { count: number; receipt: st
 
   return (
     <Question
-      title={`رسم التسجيل الأولي: ${formatUSD(total)}`}
+      title={`رسم التسجيل: ${formatUSD(total)}`}
       hint={`${formatUSD(SEASON.fees.registrationPerPerson)} عن كل فرد × ${count}. كيف تريد الدفع؟`}
-      speak={`رسم التسجيل الأولي ${total} دولاراً. كيف تريد الدفع؟`}
+      speak={`رسم التسجيل ${total} دولاراً. كيف تريد الدفع؟`}
     >
       <div className="grid gap-3 md:grid-cols-2">
         <Choice index={0} icon={<CreditCard className="size-7 text-green-dark" />} label="الدفع الإلكتروني" description="بطاقة مصرفية — فوري" selected={method === "card"} onClick={() => setMethod("card")} />

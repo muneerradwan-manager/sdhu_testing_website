@@ -170,7 +170,7 @@ export default function ConditionsPage() {
 
       {/* Acceptance */}
       <section id="acceptance" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading eyebrow="طريقة القبول" title="35% مباشرة و65% بالقرعة" description="يُقبل الحجاج بطريقتين متتاليتين، ولكل منهما موعد تعلنه الإدارة." />
+        <SectionHeading eyebrow="طريقة القبول" title="35% مباشرة و65% بالقرعة" description="يُقبل الحجاج عبر تسجيلين منفصلين، واحداً بعد الآخر، ولكل منهما طلب خاص وموعد مستقل." />
         <Reveal>
           <AcceptanceSplit />
         </Reveal>
@@ -180,7 +180,7 @@ export default function ConditionsPage() {
       <section id="calendar" className="relative mt-20 scroll-mt-24 overflow-hidden bg-white py-20 md:mt-28 md:py-28">
         <div className="bg-pattern-dark absolute inset-0" />
         <div className="relative mx-auto max-w-7xl px-4 md:px-8">
-          <SectionHeading eyebrow="تقويم الموسم" title={`مواعيد موسم ${SEASON.hijriYear}هـ`} description="من التسجيل الأولي حتى العودة إلى الوطن. المرحلة المميزة هي المرحلة الجارية الآن." />
+          <SectionHeading eyebrow="تقويم الموسم" title={`مواعيد موسم ${SEASON.hijriYear}هـ`} description="من التسجيل على القبول المباشر حتى العودة إلى الوطن. المرحلة المميزة هي المرحلة الجارية الآن." />
           <SeasonTimeline />
         </div>
       </section>
@@ -209,7 +209,7 @@ export default function ConditionsPage() {
             <ShieldCheck className="mx-auto size-12 animate-float text-gold" />
             <h2 className="mt-5 font-display text-3xl font-bold text-balance md:text-5xl">هل تنطبق عليك الشروط؟</h2>
             <p className="mx-auto mt-4 max-w-xl leading-8 text-white/80">
-              قدّم طلبك لنفسك أو لعائلتك في دقائق. التسجيل الأولي مفتوح من 9 جمادى الآخرة حتى 1 رجب.
+              قدّم طلبك لنفسك أو لعائلتك في دقائق. التسجيل على القبول المباشر من {SEASON.windows.direct.hijri}، والتسجيل على القرعة بطلب جديد من {SEASON.windows.lottery.hijri}.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <ButtonLink href="/register" variant="gold" size="lg">

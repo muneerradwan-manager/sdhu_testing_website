@@ -323,7 +323,7 @@ export type IssuedDocument = {
 };
 
 export const DOCUMENTS: IssuedDocument[] = [
-  { number: "1448-R-004512", type: "إيصال رسم التسجيل الأولي", kind: "receipt", amount: 100, date: "12 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "طلب عائلي — 4 أفراد × 25 دولاراً" },
+  { number: "1448-R-004512", type: "إيصال رسم التسجيل", kind: "receipt", amount: 100, date: "12 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "طلب عائلي — 4 أفراد × 25 دولاراً" },
   { number: "1448-P-004512-1", type: "إيصال تكلفة الحج", kind: "receipt", amount: 17_200, date: "4 رمضان 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 4,300 دولار" },
   { number: "1448-P-004512-2", type: "إيصال الهدي", kind: "receipt", amount: 720, date: "4 رمضان 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 180 دولاراً" },
   { number: "1448-P-004512-3", type: "إيصال فارق الغرفة الخاصة", kind: "receipt", amount: 500, date: "6 رمضان 1448", holder: "محمد أ. الخ•••", detail: "غرفة خاصة واحدة" },

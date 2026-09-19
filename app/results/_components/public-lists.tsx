@@ -126,8 +126,14 @@ export function PublicLists() {
           <span className="sr-only">الحملة</span>
           <select className={selectCls} value={campaign} onChange={(e) => change(setCampaign)(e.target.value)}>
             <option value="">كل الحملات</option>
-            <option>التسجيل الأولي</option>
-            <option disabled={kind !== "direct"}>المنحة</option>
+            {kind === "direct" ? (
+              <>
+                <option>القبول المباشر</option>
+                <option>المنحة</option>
+              </>
+            ) : (
+              <option>القرعة</option>
+            )}
           </select>
           <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
         </label>

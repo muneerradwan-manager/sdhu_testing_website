@@ -7,7 +7,7 @@ import { SEASON } from "@/lib/season";
 import { cn } from "@/lib/utils";
 
 /** Index of the phase the demo scenario is in: results published 2 Sha'ban → confirmation window */
-const CURRENT = 4;
+const CURRENT = Math.max(0, SEASON.dates.findIndex((d) => d.hijri.startsWith("2 – 25 شعبان")));
 
 export function SeasonTimeline() {
   const ref = useRef<HTMLOListElement>(null);

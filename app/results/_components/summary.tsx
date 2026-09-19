@@ -54,7 +54,8 @@ export function ResultsSummary() {
                 <span className="mb-3 font-display text-2xl font-bold">عاماً فأكثر</span>
               </p>
               <p className="mt-5 text-sm leading-7 text-white/70">
-                اعتُمدت في {S.directApprovedAt}. من لم يُقبل مباشرة دخل القرعة تلقائياً دون أي إجراء منه.
+                اعتُمدت في {S.directApprovedAt}. ولم ينتقل أي طلب إلى القرعة وحده: التسجيل على القرعة كان مستقلاً بطلب جديد من{" "}
+                {S.lotteryWindow}، مفتوحاً لكل مؤهل ومنهم من لم يُقبل مباشرة.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">
@@ -62,7 +63,7 @@ export function ResultsSummary() {
                   آخر تحديث: {S.lastUpdate}
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">
-                  طلبات مؤهلة: <span className="font-bold tabular-nums">61,830</span>
+                  طلبات القرعة المؤهلة: <span className="font-bold tabular-nums">{S.lotteryEligible.toLocaleString("en-US")}</span>
                 </span>
               </div>
             </div>

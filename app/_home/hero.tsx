@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, ChevronDown, ShieldCheck, Sparkles, Volume2, Volum
 import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { useHydrated } from "@/lib/store";
+import { SEASON } from "@/lib/season";
 import { asset } from "@/lib/utils";
 
 /** Day of Arafah 1447 AH = Saturday 15 May 2027 (Umm al-Qura) */
@@ -167,9 +168,10 @@ export function Hero() {
             </div>
             <div className="mt-7 space-y-3 border-t border-white/10 pt-6 text-sm">
               {[
-                { label: "التسجيل الأولي", value: "9 جمادى الآخرة – 1 رجب", live: true },
-                { label: "إعلان الأعمار المقبولة", value: "15 رجب" },
-                { label: "القرعة ببث مباشر", value: "1 شعبان — 20:00" },
+                { label: "التسجيل على القبول المباشر", value: SEASON.windows.direct.hijri, live: true },
+                { label: "إعلان الأعمار المقبولة", value: SEASON.windows.direct.announce },
+                { label: "التسجيل على القرعة", value: SEASON.windows.lottery.hijri },
+                { label: "القرعة ببث مباشر", value: SEASON.windows.lottery.draw },
               ].map((r) => (
                 <div key={r.label} className="flex items-center justify-between gap-3">
                   <span className="flex items-center gap-2 text-white/70">

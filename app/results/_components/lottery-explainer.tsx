@@ -4,12 +4,12 @@ import { Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/mo
 const PHASES = [
   {
     tag: "قبل البث",
-    time: "حتى 1 شعبان",
+    time: "16 رجب – 1 شعبان",
     tone: "bg-white text-ink",
     accent: "bg-green-light/12 text-green",
     steps: [
-      { icon: ListChecks, text: "ترتّب المنصة 61,830 طلباً مؤهلاً، وتُقبل الأعمار 66 فأكثر مباشرة (7,875 مقعداً)." },
-      { icon: FileSpreadsheet, text: "تُصدَّر «قائمة المؤهلين للقرعة» (53,955 طلباً)، ويُسجَّل التصدير باسم الموظف ووقته." },
+      { icon: ListChecks, text: "يُفتح التسجيل على القرعة بطلب جديد من 16 إلى 25 رجب، وتتحقق المنصة من أهلية كل طلب مسجّل فيه." },
+      { icon: FileSpreadsheet, text: "تُصدَّر «قائمة المؤهلين للقرعة»: 53,955 طلباً مسجّلاً على القرعة ومستوفياً للشروط، ويُسجَّل التصدير باسم الموظف ووقته." },
       { icon: Gavel, text: "تستلم لجنة تنظيم القرعة القائمة وتشرف على كل ما يليها." },
     ],
   },

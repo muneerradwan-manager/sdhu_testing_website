@@ -150,16 +150,53 @@ export const ITINERARY = [
   { hijri: "23 ذو الحجة", title: "العودة إلى الوطن", place: "المدينة ← دمشق", detail: "رحلة 1448-07R — الوصول 17:10 — حمداً لله على السلامة", icon: "home" },
 ] as const;
 
-export const TRACK = [
-  { key: "submitted", at: 0, title: "مُقدَّم", text: "استلمنا طلبك ورسم التسجيل الأولي" },
+export type Track = "direct" | "lottery";
+export type TrackKey = "submitted" | "checking" | "eligible" | "direct" | "lottery" | "accepted" | "notAccepted";
+export type TrackStep = { key: TrackKey; at: number; title: string; text: string };
+
+const COMMON: TrackStep[] = [
+  { key: "submitted", at: 0, title: "مُقدَّم", text: "استلمنا طلبك ورسم التسجيل" },
   { key: "checking", at: 2, title: "تدقيق البيانات", text: "مطابقة الشؤون المدنية وتطبيق شروط الموسم" },
   { key: "eligible", at: 4, title: "مؤهل", text: "جميع أفراد الطلب مستوفون للشروط" },
-  { key: "direct", at: 6, title: "التسجيل المباشر", text: `الأعمار المقبولة: ${SEASON.acceptedDirectAge} عاماً فأكثر` },
-  { key: "lottery", at: 7.5, title: "القرعة الإلكترونية", text: "بث مباشر بإشراف اللجنة" },
-  { key: "accepted", at: 10, title: "مقبول", text: "مبارك! تم قبول طلبك" },
-] as const;
+];
 
-export type TrackKey = (typeof TRACK)[number]["key"];
+/** The registration an application belongs to (older saved applications were direct-acceptance ones) */
+export function trackOf(app: { track?: Track }): Track {
+  return app.track ?? "direct";
+}
+
+/** Direct acceptance goes by the applicant's age: accepted when at or above the announced cut-off */
+export function directAccepted(app: { members: Member[] }) {
+  const applicant = app.members.find((m) => m.relation === "self") ?? app.members[0];
+  return !!applicant && ageOf(applicant.person) >= SEASON.acceptedDirectAge;
+}
+
+/**
+ * Tracking timeline (seconds after submission in the demo). Each registration has its own:
+ * direct → ages announced → accepted directly OR not accepted (nothing moves to the lottery by itself);
+ * lottery → live draw → selected.
+ */
+export function trackSteps(track: Track, accepted: boolean): TrackStep[] {
+  if (track === "direct") {
+    return [
+      ...COMMON,
+      { key: "direct", at: 6, title: "إعلان الأعمار المقبولة", text: `القبول المباشر: ${SEASON.acceptedDirectAge} عاماً فأكثر — ${SEASON.windows.direct.announce}` },
+      accepted
+        ? { key: "accepted", at: 8, title: "مقبول مباشرة", text: "قُبل طلبك وفق الأكبر سناً" }
+        : { key: "notAccepted", at: 8, title: "لم يُقبل مباشرة", text: `التسجيل على القرعة ${SEASON.windows.lottery.hijri}` },
+    ];
+  }
+  return [
+    ...COMMON,
+    { key: "lottery", at: 6.5, title: "القرعة الإلكترونية", text: `بث مباشر — ${SEASON.windows.lottery.draw}` },
+    { key: "accepted", at: 10, title: "مقبول بالقرعة", text: "تم اختيار طلبك" },
+  ];
+}
+
+export function stageAt(steps: TrackStep[], elapsed: number) {
+  const stage = [...steps].reverse().find((t) => elapsed >= t.at) ?? steps[0];
+  return { stage, index: steps.indexOf(stage) };
+}
 
 /** After acceptance, the file fills in piece by piece — seconds after submission */
 export const REVEAL = { group: 11.5, makkah: 13, madinah: 14, flights: 15, camps: 16, card: 17 } as const;

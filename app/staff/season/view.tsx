@@ -35,7 +35,7 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     icon: <Scale />,
     fields: [
       { key: "quota", label: "الحصة الإجمالية", unit: "حاج", min: 1000, max: 60000, step: 100 },
-      { key: "acceptedDirectAge", label: "الأعمار المقبولة مباشرة", unit: "عاماً فأكثر", min: 40, max: 90, hint: () => "تحسبها صفحة القرعة من ترتيب المؤهلين، ويمكن ضبطها يدوياً هنا" },
+      { key: "acceptedDirectAge", label: "الأعمار المقبولة مباشرة", unit: "عاماً فأكثر", min: 40, max: 90, hint: () => "تحسبها صفحة القبول والقرعة من ترتيب طلبات القبول المباشر، ويمكن ضبطها يدوياً هنا" },
     ],
   },
   {
@@ -60,7 +60,7 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     title: "الرسوم والتكاليف",
     icon: <Coins />,
     fields: [
-      { key: "registrationPerPerson", label: "رسم التسجيل الأولي للفرد", unit: "$", min: 0, max: 200 },
+      { key: "registrationPerPerson", label: "رسم التسجيل للفرد", unit: "$", min: 0, max: 200 },
       { key: "hajjCost", label: "تكلفة الحج للفرد", unit: "$", min: 1000, max: 15000, step: 50 },
       { key: "hady", label: "الهدي", unit: "$", min: 0, max: 1000, step: 5 },
     ],
@@ -77,7 +77,7 @@ const LABELS: Record<Key, string> = {
   elderlyNeedsCompanionMaxBirthYear: "مواليد من يحتاج مرافقاً",
   maxCompanions: "حد المرافقين",
   maxCompanionsFamily: "حد المرافقين للأسرة",
-  registrationPerPerson: "رسم التسجيل الأولي",
+  registrationPerPerson: "رسم التسجيل",
   hajjCost: "تكلفة الحج",
   hady: "الهدي",
 };
@@ -191,7 +191,7 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           {/* Direct share slider */}
-          <Panel title="نوعا الطلب: مباشر بالأكبر سناً ثم القرعة" icon={<Sparkles />}>
+          <Panel title="نوعا الطلب: تسجيلان منفصلان للقبول المباشر والقرعة" icon={<Sparkles />}>
             <div className="flex flex-col items-center gap-6 md:flex-row">
               <Donut
                 size={180}
@@ -231,6 +231,21 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                 {draft.directShare !== DEFAULTS.directShare && <Chip tone="gold" className="mt-2">القيمة في الوثيقة: {DEFAULTS.directShare}%</Chip>}
               </div>
             </div>
+            <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
+                <p className="font-bold text-gold">1. التسجيل على القبول المباشر</p>
+                <p className="mt-1 text-xs leading-6 text-white/85">
+                  {SEASON.windows.direct.hijri} — يُقبل الأكبر سناً حتى تكتمل المقاعد، وتُعلن الأعمار المقبولة في {SEASON.windows.direct.announce}.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
+                <p className="font-bold text-white">2. التسجيل على القرعة — طلب مستقل</p>
+                <p className="mt-1 text-xs leading-6 text-white/85">
+                  {SEASON.windows.lottery.hijri} — يسجّل فيه كل مؤهل بطلب جديد، ومنهم من لم يُقبل مباشرة. القرعة: {SEASON.windows.lottery.draw}.
+                </p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-white/75">لا ينتقل أي طلب من التسجيل المباشر إلى القرعة من تلقاء نفسه.</p>
           </Panel>
 
           {GROUPS.map((g, gi) => (

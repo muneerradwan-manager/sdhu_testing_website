@@ -9,12 +9,12 @@ const SEGMENTS = [
   { key: "direct", label: "قُبلوا مباشرة (الأكبر سناً)", value: S.direct, pct: 13, color: "#00594F" },
   { key: "lottery", label: "قُبلوا بالقرعة", value: S.lottery, pct: 24, color: "#289E92" },
   { key: "reserve", label: "الاحتياط", value: S.reserve, pct: 5, color: "#AD9E6E" },
-  { key: "rest", label: "لم يُقبلوا هذا الموسم", value: S.notAccepted, pct: 58, color: "#E4DDD3" },
+  { key: "rest", label: "لم يُقبلوا في القرعة", value: S.notAccepted, pct: 58, color: "#E4DDD3" },
 ] as const;
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-/** Donut + stacked bar of the 61,830 eligible applications */
+/** Donut + stacked bar: applications accepted directly + eligible applications registered in the lottery */
 export function OutcomeDonut() {
   const [active, setActive] = useState<string | null>(null);
   const R = 80;
@@ -26,8 +26,10 @@ export function OutcomeDonut() {
 
   return (
     <div className="relative h-full overflow-hidden rounded-3xl border border-gold/40 bg-white p-6 shadow-[0_20px_60px_-35px_rgba(0,89,79,.45)] md:p-8">
-      <h3 className="font-display text-2xl font-bold text-green-dark">من بين 61,830 طلباً مؤهلاً</h3>
-      <p className="mt-1 text-sm text-ink-soft">مرّر المؤشر أو اضغط على أي جزء لرؤية تفاصيله</p>
+      <h3 className="font-display text-2xl font-bold text-green-dark">من بين {formatNumber(S.eligible)} طلباً مؤهلاً</h3>
+      <p className="mt-1 text-sm text-ink-soft">
+        المقبولون مباشرة ({formatNumber(S.direct)}) وطلبات القرعة المؤهلة ({formatNumber(S.lotteryEligible)}). مرّر المؤشر أو اضغط على أي جزء لرؤية تفاصيله.
+      </p>
 
       <div className="mt-6 grid items-center gap-8 sm:grid-cols-[220px_1fr]">
         <div className="relative mx-auto size-56">
@@ -119,7 +121,7 @@ export function OutcomeDonut() {
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-hint">
           <span>0</span>
-          <span>61,830 طلباً</span>
+          <span>{formatNumber(S.eligible)} طلباً</span>
         </div>
       </div>
     </div>

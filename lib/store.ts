@@ -30,6 +30,14 @@ export type Application = {
   paid: number;
   payMethod: "card" | "bank";
   ratings: Record<string, number>;
+  /**
+   * Which registration this application was made in. The two are separate: direct acceptance (oldest
+   * first, 35%) opens first; the lottery (65%) opens afterwards as its own application. Missing = "direct"
+   * (applications saved before the two were separated).
+   */
+  track?: "direct" | "lottery";
+  /** A direct-acceptance application that was not accepted, kept for the record when registering for the lottery */
+  previous?: { number: string; track: "direct"; submittedAt: number; closedAt: number };
 };
 
 // ───────────── Staff, administrators, operations (phase 2) ─────────────

@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, CalendarClock, CheckCircle2, FileCheck2, Radio, ScanSearch, Sparkles, Ticket } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, FileCheck2, Radio, ScanSearch, Ticket, XCircle } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { ageOf, fullName } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
@@ -21,7 +22,7 @@ export function StageSubmitted({ app }: { app: Application }) {
           {app.members.length} أفراد — الإيصال <span className="font-mono font-bold" dir="ltr">{app.receipt}</span> — مكتب {app.office}
         </p>
         <p className="mt-3 flex items-center gap-2 font-semibold text-gold-dark">
-          <CalendarClock className="size-5" /> الخطوة التالية: تدقيق البيانات والتحقق من الأهلية
+          <CalendarClock className="size-5" /> {app.track === "lottery" ? "طلب في التسجيل على القرعة" : "طلب في التسجيل على القبول المباشر"} — الخطوة التالية: تدقيق البيانات والتحقق من الأهلية
         </p>
       </div>
     </div>
@@ -71,13 +72,23 @@ export function StageEligible({ app }: { app: Application }) {
       </motion.div>
       <div>
         <p className="font-display text-3xl font-bold text-green-dark">جميع أفراد الطلب مؤهلون</p>
-        <p className="mt-2 text-lg leading-8 text-ink-soft">
-          يدخل طلبك أولاً في التسجيل المباشر (بعمر صاحب الطلب: {ageOf(app.members[0].person)})، فإن لم يُقبل دخل القرعة تلقائياً.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm">
-          <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">إعلان الأعمار المقبولة: 15 رجب</span>
-          <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">القرعة: 1 شعبان 20:00 — بث مباشر</span>
-        </div>
+        {app.track === "lottery" ? (
+          <>
+            <p className="mt-2 text-lg leading-8 text-ink-soft">طلبك مسجّل في القرعة الإلكترونية على {Math.round(SEASON.lotteryShare * 100)}% من الحصة. الطلب العائلي يُسحب كوحدة واحدة.</p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">القرعة: {SEASON.windows.lottery.draw} — بث مباشر</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-2 text-lg leading-8 text-ink-soft">
+              يُرتَّب طلبك في القبول المباشر بعمر صاحب الطلب ({ageOf(app.members[0].person)} عاماً)، ويُقبل الأكبر سناً حتى تكتمل {Math.round(SEASON.directShare * 100)}% من الحصة.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">إعلان الأعمار المقبولة: {SEASON.windows.direct.announce}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -104,7 +115,7 @@ export function StageDirect({ age }: { age: number }) {
           </p>
         </div>
         <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1 }} className={cn("rounded-2xl px-4 py-2 font-bold", accepted ? "bg-green-light text-white" : "bg-gold/30 text-maroon")}>
-          {accepted ? "✓ طلبك ضمن القبول المباشر" : `عمر صاحب الطلب ${age} — ينتقل طلبك إلى القرعة`}
+          {accepted ? "✓ طلبك ضمن القبول المباشر" : `عمر صاحب الطلب ${age} — دون الأعمار المقبولة`}
         </motion.span>
       </div>
       <div className="relative mt-8 flex h-44 items-end gap-[3px]" dir="ltr">
@@ -141,7 +152,7 @@ export function StageDirect({ age }: { age: number }) {
 }
 
 /** Live-broadcast lottery: rolling application numbers that land on yours */
-export function StageLottery({ number, elapsed, direct }: { number: string; elapsed: number; direct: boolean }) {
+export function StageLottery({ number, elapsed }: { number: string; elapsed: number }) {
   const [roll, setRoll] = useState("0000");
   const landing = elapsed > 9.3;
   useEffect(() => {
@@ -150,16 +161,6 @@ export function StageLottery({ number, elapsed, direct }: { number: string; elap
     return () => clearInterval(t);
   }, [landing]);
   const shown = landing ? number.padStart(4, "0") : roll;
-
-  if (direct) {
-    return (
-      <div className="text-center">
-        <Sparkles className="mx-auto size-12 text-gold-dark" />
-        <p className="mt-3 font-display text-2xl font-bold text-green-dark">لا حاجة للقرعة</p>
-        <p className="text-ink-soft">قُبل طلبك مباشرة وفق الأكبر سناً. ننتظر اعتماد النتائج ونشرها...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-ink p-6 text-white md:p-8">
@@ -201,9 +202,36 @@ export function StageLottery({ number, elapsed, direct }: { number: string; elap
             سُحب الطلب رقم {number}!
           </motion.span>
         ) : (
-          `تُسحب ${formatNumber(SEASON.lotterySeats)} مقعداً من بين 53,955 طلباً مؤهلاً...`
+          `تُسحب ${formatNumber(SEASON.lotterySeats)} مقعداً من بين 53,955 طلباً مؤهلاً مسجّلاً على القرعة...`
         )}
       </p>
+    </div>
+  );
+}
+
+/**
+ * Direct acceptance ended without a place. Nothing moves to the lottery by itself — the lottery is a
+ * separate registration that the pilgrim makes with a new application.
+ */
+export function StageNotAccepted({ age }: { age: number }) {
+  return (
+    <div className="grid items-center gap-6 md:grid-cols-[auto_1fr]">
+      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12 }} className="mx-auto grid size-24 place-items-center rounded-full bg-maroon/10 text-maroon">
+        <XCircle className="size-12" />
+      </motion.div>
+      <div>
+        <p className="font-display text-2xl font-bold text-maroon md:text-3xl">لم يُقبل طلبك في القبول المباشر</p>
+        <p className="mt-2 text-lg leading-8 text-ink-soft">
+          الأعمار المقبولة {SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب {age} عاماً. لا ينتقل طلبك إلى القرعة تلقائياً — التسجيل على القرعة طلب مستقل
+          يُفتح {SEASON.windows.lottery.hijri} ({SEASON.windows.lottery.gregorian}).
+        </p>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <ButtonLink href="/portal/apply" size="lg" variant="gold">
+            <Ticket className="size-5" /> سجّل على القرعة <ArrowLeft className="size-5" />
+          </ButtonLink>
+          <span className="text-sm text-hint">يمكنك استخدام أفراد طلبك نفسه — القرعة: {SEASON.windows.lottery.draw}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -216,6 +244,7 @@ export function StageIcon({ k }: { k: string }) {
     direct: <CalendarClock className="size-5" />,
     lottery: <Ticket className="size-5" />,
     accepted: <CheckCircle2 className="size-5" />,
+    notAccepted: <XCircle className="size-5" />,
   };
   return <>{map[k]}</>;
 }
