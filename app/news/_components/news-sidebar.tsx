@@ -1,12 +1,16 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
 import { BadgeCheck, Flame, Megaphone, ShieldAlert } from "lucide-react";
-import { ARTICLES, MOST_READ } from "@/lib/data/news";
+import { CmsImage } from "@/components/cms/image";
+import { useArticles, useMostRead } from "@/lib/cms/content";
 import { Reveal } from "@/components/ui/motion";
 import { formatNumber } from "@/lib/utils";
 
 export function NewsSidebar() {
-  const official = ARTICLES.filter((a) => a.category === "إعلانات رسمية" || a.category === "قرارات").slice(0, 5);
+  const articles = useArticles();
+  const mostRead = useMostRead();
+  const official = articles.filter((a) => a.category === "إعلانات رسمية" || a.category === "قرارات").slice(0, 5);
 
   return (
     <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
@@ -16,12 +20,12 @@ export function NewsSidebar() {
             <Flame className="size-5 text-maroon" /> الأكثر قراءة
           </h2>
           <ol className="mt-4 space-y-1">
-            {MOST_READ.map((a, i) => (
+            {mostRead.map((a, i) => (
               <li key={a.slug}>
                 <Link href={`/news/${a.slug}`} className="group flex items-center gap-3 rounded-2xl p-2 transition hover:bg-sand">
                   <span className="font-display text-3xl font-bold leading-none text-gold transition-colors group-hover:text-gold-dark">{i + 1}</span>
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-xl">
-                    <Image src={a.image} alt="" fill sizes="56px" quality={70} className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <CmsImage src={a.image} alt="" fill sizes="56px" quality={70} className="object-cover transition-transform duration-700 group-hover:scale-110" />
                   </span>
                   <span className="min-w-0">
                     <span className="line-clamp-2 text-sm font-semibold leading-6 text-ink transition-colors group-hover:text-green-dark">{a.title}</span>

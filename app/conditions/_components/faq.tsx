@@ -3,7 +3,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Plus, Search, SearchX } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { FAQ_CATEGORIES, FAQS, type FaqCategory } from "@/lib/data/faq";
+import { useFaqs } from "@/lib/cms/content";
+import { FAQ_CATEGORIES, type FaqCategory } from "@/lib/data/faq";
 import { normalizeArabic } from "@/lib/data/clusters";
 import { cn } from "@/lib/utils";
 
@@ -22,13 +23,16 @@ function highlight(text: string, q: string): ReactNode {
 }
 
 export function Faq() {
+  const faqs = useFaqs();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<"الكل" | FaqCategory>("الكل");
-  const [open, setOpen] = useState<string | null>(FAQS[0].q);
+  // null = لم يختر الزائر شيئاً بعد، فيُفتح أول سؤال معروض
+  const [open, setOpen] = useState<string | null>(null);
 
   const nq = normalizeArabic(q);
-  const list = FAQS.filter((f) => (cat === "الكل" || f.category === cat) && (!nq || normalizeArabic(`${f.q} ${f.a}`).includes(nq)));
-  const counts = (c: "الكل" | FaqCategory) => (c === "الكل" ? FAQS.length : FAQS.filter((f) => f.category === c).length);
+  const list = faqs.filter((f) => (cat === "الكل" || f.category === cat) && (!nq || normalizeArabic(`${f.q} ${f.a}`).includes(nq)));
+  const counts = (c: "الكل" | FaqCategory) => (c === "الكل" ? faqs.length : faqs.filter((f) => f.category === c).length);
+  const openQuestion = open ?? list[0]?.q ?? null;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -61,8 +65,8 @@ export function Faq() {
       <motion.ul layout className="mt-8 space-y-3">
         <AnimatePresence initial={false} mode="popLayout">
           {list.map((f) => {
-            const isOpen = open === f.q;
-            const id = `faq-${FAQS.indexOf(f)}`;
+            const isOpen = openQuestion === f.q;
+            const id = `faq-${faqs.indexOf(f)}`;
             return (
               <motion.li
                 layout

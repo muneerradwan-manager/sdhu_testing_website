@@ -2,10 +2,14 @@
 
 import { motion, useScroll, useSpring } from "motion/react";
 import { useRef } from "react";
-import { HISTORY } from "@/lib/data/about";
+import { list } from "@/components/cms/bits";
+import { useSection } from "@/lib/cms/store";
 import { cn } from "@/lib/utils";
 
+type Milestone = { year: string; hijri: string; title: string; text: string };
+
 export function HistoryTimeline() {
+  const HISTORY = list<Milestone>(useSection("about", "history"), "items");
   const ref = useRef<HTMLOListElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 75%", "end 55%"] });
   const scaleY = useSpring(scrollYProgress, { stiffness: 90, damping: 24 });
@@ -24,7 +28,7 @@ export function HistoryTimeline() {
         const last = i === HISTORY.length - 1;
         const side = i % 2 === 0;
         return (
-          <li key={h.year} className="relative grid pb-10 pr-14 last:pb-0 md:grid-cols-2 md:pr-0">
+          <li key={`${h.year}-${i}`} className="relative grid pb-10 pr-14 last:pb-0 md:grid-cols-2 md:pr-0">
             <motion.span
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}

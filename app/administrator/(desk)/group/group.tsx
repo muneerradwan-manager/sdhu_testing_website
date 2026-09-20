@@ -26,7 +26,7 @@ import { Emblem } from "@/components/brand/logo";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, StarRating, useToast } from "@/components/ui/widgets";
-import { CLUSTERS } from "@/lib/data/clusters";
+import { clustersNow } from "@/lib/cms/content";
 import { CLUSTER, GROUP } from "@/lib/journey";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
@@ -39,7 +39,7 @@ const TEAM = GROUP.team.slice(1);
 const AUTO_APPROVE_MS = 12_000;
 
 function clusterName(id: string) {
-  return CLUSTERS.find((c) => c.slug === id)?.name ?? CLUSTER.name;
+  return clustersNow().find((c) => c.slug === id)?.name ?? CLUSTER.name;
 }
 
 export function AdminGroup() {
@@ -88,7 +88,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const [inviting, setInviting] = useState(false);
   const [paying, setPaying] = useState(false);
   const stage = existing?.requestedAt ? "pay" : "form";
-  const cluster = CLUSTERS.find((c) => c.slug === form.clusterId);
+  const cluster = clustersNow().find((c) => c.slug === form.clusterId);
 
   const invite = () => {
     setInviting(true);
@@ -159,7 +159,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
           <label className="block sm:col-span-2">
             <span className="mb-2 block font-bold">التكتل</span>
             <select value={form.clusterId} onChange={(e) => setForm({ ...form, clusterId: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-gold/50 bg-white px-4 outline-none focus:border-green-light">
-              {CLUSTERS.map((c) => (
+              {clustersNow().map((c) => (
                 <option key={c.slug} value={c.slug}>{c.name} — {c.level}</option>
               ))}
             </select>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PageHero } from "@/components/ui/page-hero";
+import { CmsPageHero } from "@/components/cms/page-hero";
 import { PrayerDashboard } from "./_components/prayer-dashboard";
 import { DashboardSkeleton } from "./_components/dashboard-skeleton";
 
@@ -12,17 +12,7 @@ export const metadata: Metadata = {
 export default function PrayerTimesPage() {
   return (
     <>
-      <PageHero
-        title={
-          <>
-            مواقيت <span className="text-gold-shine">الصلاة</span>
-          </>
-        }
-        description="مواقيت دقيقة لمدينتك ولمكة المكرمة والمدينة المنورة، مع عدّ تنازلي حي للصلاة القادمة، وبوصلة تدلك على القبلة، وجدول شهري قابل للطباعة."
-        image="/images/clock-tower.jpg"
-        crumbs={[{ label: "مواقيت الصلاة" }]}
-        className="print:hidden"
-      />
+      <CmsPageHero page="prayer-times" />
       <div className="mx-auto max-w-7xl px-4 pb-24 md:px-8 print:px-0 print:pb-0">
         <Suspense fallback={<DashboardSkeleton />}>
           <PrayerDashboard />

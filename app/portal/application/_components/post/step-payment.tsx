@@ -6,7 +6,7 @@ import { ArrowLeft, BadgeCheck, Building2, CheckCircle2, CreditCard, Eraser, Fil
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
-import { CLUSTERS } from "@/lib/data/clusters";
+import { clustersNow } from "@/lib/cms/content";
 import { GROUP } from "@/lib/journey";
 import { fullName } from "@/lib/registry";
 import { actions } from "@/lib/store";
@@ -236,7 +236,7 @@ function Contract({ app, post, sessionId, lines, total }: Pick<StepProps, "app" 
   const canvas = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const applicant = applicantOf(app);
-  const cluster = CLUSTERS.find((c) => c.slug === post.clusterId) ?? CLUSTERS[0];
+  const cluster = clustersNow().find((c) => c.slug === post.clusterId) ?? clustersNow()[0];
   const signedAt = post.contractSignedAt;
 
   const point = (e: React.PointerEvent<HTMLCanvasElement>) => {

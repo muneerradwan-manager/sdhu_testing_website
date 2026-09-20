@@ -1,9 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Radio } from "lucide-react";
-import { ARTICLES } from "@/lib/data/news";
+import { useArticles } from "@/lib/cms/content";
 
 export function NewsTicker() {
-  const items = ARTICLES.filter((a) => a.ticker);
+  const items = useArticles().filter((a) => a.ticker);
   const row = (copy: number) => (
     <ul className="flex shrink-0 items-center" aria-hidden={copy === 1}>
       {items.map((a) => (

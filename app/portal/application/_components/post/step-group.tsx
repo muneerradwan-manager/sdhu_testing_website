@@ -23,7 +23,8 @@ import {
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
-import { CLUSTERS, type Cluster, type ClusterGroup } from "@/lib/data/clusters";
+import { clustersNow } from "@/lib/cms/content";
+import type { Cluster, ClusterGroup } from "@/lib/data/clusters";
 import { GROUP } from "@/lib/journey";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
@@ -90,7 +91,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
     }} />;
   }
 
-  const cluster = CLUSTERS.find((c) => c.slug === clusterSlug);
+  const cluster = clustersNow().find((c) => c.slug === clusterSlug);
 
   if (cluster) {
     const group = cluster.groups.find((g) => g.no === groupNo);
@@ -167,7 +168,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
       speak="اختر التكتل الذي يخدمكم. قارن بين مستوى الخدمة والفندق والمسافة والوجبات، ثم افتح التكتل المناسب."
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {CLUSTERS.map((c, i) => {
+        {clustersNow().map((c, i) => {
           const seats = c.groups.reduce((a, g) => a + g.remaining, 0);
           const recommended = c.slug === "al-nour" && hasElderly;
           return (
@@ -239,7 +240,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
               ].map(([label, get], ri) => (
                 <tr key={label as string} className={ri % 2 ? "bg-sand/50" : ""}>
                   <th className="sticky right-0 w-36 bg-inherit p-3 font-bold text-gold-dark">{label as string}</th>
-                  {CLUSTERS.map((c) => (
+                  {clustersNow().map((c) => (
                     <td key={c.slug} className={cn("p-3 align-top leading-6", c.slug === "al-nour" && "bg-green-light/8 font-semibold")}>
                       {(get as (c: Cluster) => string)(c)}
                     </td>
@@ -361,7 +362,7 @@ function Block({ icon, title, children }: { icon: React.ReactNode; title: string
 
 function Waiting({ app, requestedAt, groupNumber, clusterId, onCancel }: { app: StepProps["app"]; requestedAt: number; groupNumber: number; clusterId?: string; onCancel: () => void }) {
   const now = useNow(250);
-  const cluster = CLUSTERS.find((c) => c.slug === clusterId) ?? CLUSTERS[0];
+  const cluster = clustersNow().find((c) => c.slug === clusterId) ?? clustersNow()[0];
   const group = cluster.groups.find((g) => g.no === groupNumber);
   const elapsed = Math.max(0, now - requestedAt);
   const leader = group?.leader ?? "أحمد سليمان";
@@ -426,7 +427,7 @@ function Waiting({ app, requestedAt, groupNumber, clusterId, onCancel }: { app: 
 export function MyGroup({ app, groupNumber, clusterId }: { app: StepProps["app"]; groupNumber: number; clusterId?: string }) {
   const toast = useToast();
   const [transfer, setTransfer] = useState<Member | null>(null);
-  const cluster = CLUSTERS.find((c) => c.slug === clusterId) ?? CLUSTERS[0];
+  const cluster = clustersNow().find((c) => c.slug === clusterId) ?? clustersNow()[0];
   const group = cluster.groups.find((g) => g.no === groupNumber);
   const escorted = transfer ? companionOf(app.members, transfer) : [];
 

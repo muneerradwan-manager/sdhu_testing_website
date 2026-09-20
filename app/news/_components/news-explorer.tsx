@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
+import { CmsImage } from "@/components/cms/image";
 import Link from "next/link";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { ArrowUpLeft, Pin, Search, SearchX, X } from "lucide-react";
 import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
-import { CATEGORIES, type Article, type Category } from "@/lib/data/news";
+import { useArticles } from "@/lib/cms/content";
+import { CATEGORIES, type Category } from "@/lib/data/news";
 import { cn } from "@/lib/utils";
 import { ArticleMeta, CategoryBadge, NewsCard } from "./news-card";
 
@@ -29,7 +30,8 @@ function highlight(text: string, q: string): ReactNode {
   );
 }
 
-export function NewsExplorer({ articles }: { articles: Article[] }) {
+export function NewsExplorer() {
+  const articles = useArticles();
   const [filter, setFilter] = useState<Filter>(ALL);
   const [query, setQuery] = useState("");
   const deferred = useDeferredValue(query);
@@ -136,7 +138,7 @@ export function NewsExplorer({ articles }: { articles: Article[] }) {
               href={`/news/${featured.slug}`}
               className="group relative mt-6 flex min-h-[26rem] flex-col justify-end overflow-hidden rounded-3xl bg-ink p-6 text-white shadow-[0_30px_80px_-40px_rgba(2,21,38,.9)] ring-1 ring-gold/30 md:min-h-[30rem] md:p-10"
             >
-              <Image
+              <CmsImage
                 src={featured.image}
                 alt=""
                 fill

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { CmsImage } from "@/components/cms/image";
 import Link from "next/link";
 import { ArrowUpLeft, CalendarDays, Clock3, Eye, Pin } from "lucide-react";
 import type { ReactNode } from "react";
@@ -40,7 +40,7 @@ export function NewsCard({ article, title, priority }: { article: Article; title
       className="group flex h-full flex-col overflow-hidden rounded-3xl border border-gold/30 bg-white shadow-[0_10px_40px_-30px_rgba(2,21,38,.45)] transition-all duration-500 ease-out-expo hover:-translate-y-1.5 hover:border-gold/70 hover:shadow-[0_30px_60px_-35px_rgba(0,89,79,.55)]"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-gold-light">
-        <Image
+        <CmsImage
           src={article.image}
           alt=""
           fill

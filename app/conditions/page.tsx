@@ -16,7 +16,8 @@ import {
   UsersRound,
   Venus,
 } from "lucide-react";
-import { PageHero } from "@/components/ui/page-hero";
+import { CmsHeading } from "@/components/cms/heading";
+import { CmsPageHero } from "@/components/cms/page-hero";
 import { Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
 import { ButtonLink } from "@/components/ui/button";
 import { SEASON } from "@/lib/season";
@@ -62,16 +63,7 @@ const SECTIONS = [
 export default function ConditionsPage() {
   return (
     <>
-      <PageHero
-        title={
-          <>
-            شروط التسجيل <span className="text-gold-shine">والتكاليف</span>
-          </>
-        }
-        description={`كل ما تحتاج معرفته قبل التقديم لموسم ${SEASON.hijriYear}هـ: الشروط، وحدود الطلب، والرسوم، وطريقة القبول، ومواعيد الموسم. الشروط تعتمدها الإدارة وتنشرها قبل فتح التسجيل.`}
-        image="/images/pilgrim-elder.jpg"
-        crumbs={[{ label: "شروط التسجيل والتكاليف" }]}
-      >
+      <CmsPageHero page="conditions">
         <nav aria-label="أقسام الصفحة" className="scrollbar-none -mx-4 mt-7 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0">
           {SECTIONS.map(([href, label]) => (
             <a
@@ -83,11 +75,11 @@ export default function ConditionsPage() {
             </a>
           ))}
         </nav>
-      </PageHero>
+      </CmsPageHero>
 
       {/* Fixed conditions */}
       <section id="fixed" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-16 md:px-8 md:pt-24">
-        <SectionHeading eyebrow="ثابتة في كل موسم" title="الشروط الأساسية" description="أربعة شروط لا تتغير من موسم إلى آخر، وتنطبق على كل فرد في الطلب." />
+        <CmsHeading page="conditions" section="basics" />
         <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FIXED.map((f, i) => (
             <StaggerItem key={f.title}>

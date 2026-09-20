@@ -3,6 +3,7 @@ import { Amiri } from "next/font/google";
 import localFont from "next/font/local";
 import { GuidedTour } from "@/components/app/tour";
 import { PwaSupport } from "@/components/app/pwa";
+import { PreviewBar } from "@/components/cms/bits";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/widgets";
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Footer />
           <GuidedTour />
           <PwaSupport />
+          <PreviewBar />
         </ToastProvider>
       </body>
     </html>

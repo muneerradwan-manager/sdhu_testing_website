@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
+import { CmsImage } from "@/components/cms/image";
 import { Reveal } from "./motion";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,9 @@ export function PageHero({
 }) {
   return (
     <section className={cn("relative isolate overflow-hidden bg-green-dark pb-16 pt-36 text-white md:pb-24 md:pt-44", className)}>
-      <Image src={image} alt="" fill priority sizes="100vw" quality={70} className="-z-20 object-cover opacity-45" />
+      <div className="absolute inset-0 -z-20">
+        <CmsImage src={image} alt="" fill priority sizes="100vw" quality={70} className="object-cover opacity-45" />
+      </div>
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-green-dark via-green-dark/80 to-ink/60" />
       <div className="bg-pattern absolute inset-0 -z-10 opacity-25 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <div className="mx-auto max-w-7xl px-4 md:px-8">

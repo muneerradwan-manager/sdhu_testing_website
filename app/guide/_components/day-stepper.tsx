@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { CmsImage } from "@/components/cms/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock, GraduationCap, MapPin, Moon } from "lucide-react";
@@ -93,7 +93,7 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
           >
             <div className="relative isolate flex min-h-80 flex-col justify-end overflow-hidden rounded-3xl p-6 text-white shadow-[0_30px_70px_-40px_rgba(2,21,38,.7)] sm:p-8">
               <motion.div initial={{ scale: 1.15 }} animate={{ scale: 1 }} transition={{ duration: 6, ease: "easeOut" }} className="absolute inset-0 -z-20">
-                <Image src={day.image} alt={day.name} fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover" />
+                <CmsImage src={day.image} alt={day.name} fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover" />
               </motion.div>
               <div className="absolute inset-0 -z-10 bg-gradient-to-t from-green-dark via-green-dark/70 to-transparent" />
               <span className="absolute left-5 top-5 rounded-2xl bg-white/15 px-4 py-2 text-center backdrop-blur-md">

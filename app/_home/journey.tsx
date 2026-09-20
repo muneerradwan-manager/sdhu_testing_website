@@ -1,38 +1,17 @@
 "use client";
 
 import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
-import { BadgeCheck, FileSignature, Plane, ScanSearch, Ticket, UserRoundPlus } from "lucide-react";
+import { Plane } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import { CmsIcon, list, str } from "@/components/cms/bits";
 import { SectionHeading } from "@/components/ui/motion";
-import { SEASON } from "@/lib/season";
+import { useSection } from "@/lib/cms/store";
 
-const { direct, lottery } = SEASON.windows;
-
-const STEPS = [
-  { icon: UserRoundPlus, title: "إنشاء الحساب", text: "الرقم الوطني ورقم الهاتف فقط — وبياناتك تصل من الشؤون المدنية للتأكيد.", when: "دقيقتان" },
-  {
-    icon: FileSignature,
-    title: "التسجيل على القبول المباشر",
-    text: "طلب للقبول وفق الأكبر سناً على 35% من الحصة. أسئلة بسيطة واحدة تلو الأخرى، وإضافة العائلة من دفتر العائلة أو بالرقم الوطني.",
-    when: direct.hijri,
-  },
-  {
-    icon: ScanSearch,
-    title: "التحقق وإعلان الأعمار",
-    text: "تطبّق المنصة شروط الموسم على كل فرد وتشرح لك أي ملاحظة، ثم تُعلن الأعمار المقبولة مباشرة.",
-    when: `حتى ${direct.announce}`,
-  },
-  {
-    icon: Ticket,
-    title: "التسجيل على القرعة",
-    text: "تسجيل مستقل بطلب جديد لكل مؤهل، ومنهم من لم يُقبل مباشرة، وتُجرى بعده قرعة علنية ببث مباشر على 65% من الحصة.",
-    when: `${lottery.hijri} · القرعة ${lottery.draw}`,
-  },
-  { icon: BadgeCheck, title: "التجهيز والتسديد", text: "المجموعة، العقد، الإيصالات، التأشيرة، والدروس الدينية قبل السفر.", when: "شعبان – ذو القعدة" },
-  { icon: Plane, title: "السفر والعودة", text: "الرحلة والفندق والمخيم وبطاقتك الرقمية في جيبك طوال الرحلة.", when: "24 ذو القعدة – 23 ذو الحجة" },
-];
+type Step = { icon: string; title: string; text: string; when: string };
 
 export function Journey() {
+  const v = useSection("home", "journey");
+  const steps = list<Step>(v, "steps");
   const ref = useRef<HTMLDivElement>(null);
   // Progress = how far the line at 55% of the screen height has travelled down the track, so the plane
   // rides at a steady spot in view and points at the station being read. Measured from on-screen rects,
@@ -58,11 +37,7 @@ export function Journey() {
     <section className="relative overflow-hidden py-24">
       <div className="bg-pattern-dark absolute inset-0" />
       <div className="relative mx-auto max-w-5xl px-4 md:px-8">
-        <SectionHeading
-          eyebrow="كيف تعمل المنصة؟"
-          title="رحلتك في ست محطات واضحة"
-          description="لن تحتاج إلى مراجعة المكتب أو السؤال عن الخطوة التالية؛ كل محطة تظهر في حسابك مع موعدها وما هو مطلوب منك."
-        />
+        <SectionHeading eyebrow={str(v, "eyebrow")} title={str(v, "title")} description={str(v, "description")} />
 
         <div ref={ref} className="relative">
           {/* Track */}
@@ -78,12 +53,11 @@ export function Journey() {
           </motion.div>
 
           <div className="space-y-10 md:space-y-16">
-            {STEPS.map((s, i) => {
-              const Icon = s.icon;
+            {steps.map((s, i) => {
               const left = i % 2 === 1;
               return (
                 <motion.div
-                  key={s.title}
+                  key={`${s.title}-${i}`}
                   initial={{ opacity: 0, x: left ? -50 : 50 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: "-80px" }}
@@ -98,7 +72,7 @@ export function Journey() {
                   <div className="group w-full rounded-3xl border border-gold/30 bg-white p-6 shadow-[0_20px_50px_-30px_rgba(0,89,79,.35)] transition duration-500 hover:-translate-y-1 hover:border-gold-dark/50 hover:shadow-[0_30px_60px_-30px_rgba(0,89,79,.45)]">
                     <div className="flex items-start gap-4">
                       <span className="grid size-13 shrink-0 place-items-center rounded-2xl bg-green-dark/8 text-green-dark transition duration-500 group-hover:rotate-6 group-hover:bg-green-dark group-hover:text-gold">
-                        <Icon className="size-6" />
+                        <CmsIcon name={s.icon} className="size-6" fallback="UserRoundPlus" />
                       </span>
                       <div>
                         <p className="text-xs font-bold text-gold-dark">{s.when}</p>

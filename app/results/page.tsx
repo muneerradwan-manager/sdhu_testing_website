@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { ListChecks, Search, ShieldCheck } from "lucide-react";
-import { PageHero } from "@/components/ui/page-hero";
-import { Reveal, SectionHeading } from "@/components/ui/motion";
+import { CmsHeading } from "@/components/cms/heading";
+import { CmsPageHero } from "@/components/cms/page-hero";
+import { Reveal } from "@/components/ui/motion";
 import { RESULTS_SUMMARY } from "@/lib/data/public-results";
 import { ResultsSummary } from "./_components/summary";
 import { GovernorateChart, OutcomeDonut } from "./_components/charts";
@@ -17,16 +18,7 @@ export const metadata: Metadata = {
 export default function ResultsPage() {
   return (
     <>
-      <PageHero
-        title={
-          <>
-            نتائج القبول <span className="text-gold-shine">1448هـ</span>
-          </>
-        }
-        description="نتائج التسجيلين معتمدة ومنشورة للجميع: القبول المباشر وفق الأكبر سناً، والقرعة الإلكترونية على طلبات القرعة، وقائمة الاحتياط. ابحث برقمك الوطني أو تصفّح القوائم العامة."
-        image="/images/haram-2022.jpg"
-        crumbs={[{ label: "نتائج القبول" }]}
-      >
+      <CmsPageHero page="results">
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <a
             href="#search"
@@ -44,23 +36,19 @@ export default function ResultsPage() {
             <ShieldCheck className="size-4 text-gold" /> آخر تحديث: {RESULTS_SUMMARY.lastUpdate}
           </span>
         </div>
-      </PageHero>
+      </CmsPageHero>
 
       <ResultsSummary />
 
       <section id="search" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading
-          eyebrow="البحث بالرقم الوطني"
-          title="هل تم قبولك؟"
-          description="أدخل الرقم الوطني كاملاً ورمز التحقق. تظهر النتيجة فوراً دون الحاجة إلى حساب."
-        />
+        <CmsHeading page="results" section="search" />
         <Reveal data-tour-target>
           <ResultSearch />
         </Reveal>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading eyebrow="الإحصاءات المفتوحة" title="القبول بالأرقام" description="أرقام مجمّعة فقط، تُحدَّث تلقائياً مع كل نشر معتمد." />
+        <CmsHeading page="results" section="charts" />
         <div className="grid gap-5 lg:grid-cols-2">
           <Reveal className="h-full">
             <OutcomeDonut />
@@ -72,11 +60,7 @@ export default function ResultsPage() {
       </section>
 
       <section id="lists" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading
-          eyebrow="القوائم العامة"
-          title="المقبولون والاحتياط"
-          description="الطلب العائلي يظهر بأسماء أفراده تحت رقم الطلب. الرقم الوطني مقنّع، ولا تظهر أي بيانات أخرى."
-        />
+        <CmsHeading page="results" section="lists" />
         <Reveal>
           <PublicLists />
         </Reveal>

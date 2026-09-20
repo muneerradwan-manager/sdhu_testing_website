@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, Lock, MousePointerClick, Plane, ShieldAlert, UserRound } from "lucide-react";
 import { useState } from "react";
-import { Emblem } from "@/components/brand/logo";
 import { inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
@@ -66,13 +66,14 @@ export function StaffLogin() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-20 pt-8 md:px-8 lg:grid-cols-[1fr_1.15fr] lg:pt-12">
         {/* Form */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-          <div className="mb-6 flex items-center gap-3">
-            <Emblem className="size-14" animated />
-            <div>
-              <p className="text-xs font-bold tracking-wide text-gold">إدارة الحج والعمرة السورية</p>
-              <h1 className="font-display text-3xl font-bold md:text-4xl">بوابة الموظفين</h1>
-            </div>
-          </div>
+          {/* The site header already shows the emblem and the platform name, so this page opens on where
+              you are inside it — a breadcrumb — instead of repeating the brand block. */}
+          <nav aria-label="مسار التنقل" className="mb-4 flex items-center gap-1.5 text-sm text-white/70">
+            <Link href="/" className="transition hover:text-gold">الرئيسية</Link>
+            <span aria-hidden>/</span>
+            <span className="text-gold">بوابة الموظفين</span>
+          </nav>
+          <h1 className="mb-4 font-display text-3xl font-bold md:text-4xl">دخول الموظفين</h1>
           <p className="mb-6 max-w-lg leading-8 text-white/70">
             للموظفين الدائمين في الإدارة والبعثات. تظهر لكل موظف الأقسام التي يملك صلاحيتها فقط، وكل إجراء يُسجَّل باسمه في سجل الأحداث.
           </p>

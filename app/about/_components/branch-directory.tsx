@@ -3,13 +3,18 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Building2, Clock3, MapPin, Navigation2, Phone, Star } from "lucide-react";
 import { useState } from "react";
-import { BRANCHES } from "@/lib/data/about";
+import { list } from "@/components/cms/bits";
+import { useSection } from "@/lib/cms/store";
+import type { Branch } from "@/lib/cms/site";
 import { MapEmbed } from "@/components/ui/widgets";
 import { cn } from "@/lib/utils";
 
 export function BranchDirectory() {
-  const [slug, setSlug] = useState(BRANCHES[0].slug);
+  const BRANCHES = list<Branch>(useSection("about", "branches"), "items");
+  const [slug, setSlug] = useState("");
   const branch = BRANCHES.find((b) => b.slug === slug) ?? BRANCHES[0];
+
+  if (!branch) return null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">

@@ -3,7 +3,9 @@
 import { AnimatePresence, motion, useAnimate } from "motion/react";
 import { Check, Copy, LoaderCircle, Send, Ticket } from "lucide-react";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
-import { BRANCHES, CONTACT_SUBJECTS } from "@/lib/data/about";
+import { list } from "@/components/cms/bits";
+import { useSection } from "@/lib/cms/store";
+import type { Branch } from "@/lib/cms/site";
 import { useToast } from "@/components/ui/widgets";
 import { Button } from "@/components/ui/button";
 import { cn, sleep } from "@/lib/utils";
@@ -11,7 +13,7 @@ import { cn, sleep } from "@/lib/utils";
 type Values = { name: string; phone: string; email: string; subject: string; branch: string; message: string };
 type Errors = Partial<Record<keyof Values, string>>;
 
-const EMPTY: Values = { name: "", phone: "", email: "", subject: "", branch: BRANCHES[0].slug, message: "" };
+const EMPTY: Values = { name: "", phone: "", email: "", subject: "", branch: "", message: "" };
 
 function validate(v: Values): Errors {
   const e: Errors = {};
@@ -59,9 +61,12 @@ const inputCls = (err?: string) =>
   );
 
 export function ContactForm() {
+  const BRANCHES = list<Branch>(useSection("about", "branches"), "items");
+  const CONTACT_SUBJECTS = list<{ text: string }>(useSection("about", "contact"), "subjects").map((x) => x.text);
   const uid = useId();
   const toast = useToast();
   const [values, setValues] = useState<Values>(EMPTY);
+  const branch = values.branch || BRANCHES[0]?.slug || "";
   const [errors, setErrors] = useState<Errors>({});
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -133,7 +138,7 @@ export function ContactForm() {
               <Check className="size-10" strokeWidth={3} />
             </motion.span>
             <p className="mt-6 font-display text-2xl font-bold text-green-dark">شكراً لتواصلك معنا</p>
-            <p className="mt-2 max-w-sm text-sm leading-7 text-ink-soft">استلمنا رسالتك، وسيتواصل معك موظف من {BRANCHES.find((b) => b.slug === values.branch)?.name} خلال يومي عمل.</p>
+            <p className="mt-2 max-w-sm text-sm leading-7 text-ink-soft">استلمنا رسالتك، وسيتواصل معك موظف من {BRANCHES.find((b) => b.slug === branch)?.name} خلال يومي عمل.</p>
             <div className="perforated mt-6 flex items-center gap-3 rounded-2xl bg-gold/30 px-8 py-4">
               <Ticket className="size-6 text-maroon" />
               <div className="text-start">
@@ -188,7 +193,7 @@ export function ContactForm() {
               />
             </Field>
             <Field label="الفرع الأقرب إليك" id={id("branch")}>
-              <select {...aria("branch")} value={values.branch} onChange={set("branch")} className={cn(inputCls(), "h-12")}>
+              <select {...aria("branch")} value={branch} onChange={set("branch")} className={cn(inputCls(), "h-12")}>
                 {BRANCHES.map((b) => (
                   <option key={b.slug} value={b.slug}>
                     {b.name}

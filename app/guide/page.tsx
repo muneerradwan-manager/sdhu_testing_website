@@ -27,13 +27,12 @@ import {
   Ban,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { PageHero } from "@/components/ui/page-hero";
+import { CmsHeading } from "@/components/cms/heading";
+import { CmsPageHero } from "@/components/cms/page-hero";
 import { ButtonLink } from "@/components/ui/button";
 import { Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
 import { MapEmbed } from "@/components/ui/widgets";
 import {
-  DAYS,
-  GUIDE_DUAS,
   HARAM,
   HEALTH_TIPS,
   HEATSTROKE_SIGNS,
@@ -45,8 +44,7 @@ import {
   type ProhibitionIcon,
 } from "@/lib/data/guide";
 import { cn } from "@/lib/utils";
-import { DayStepper } from "./_components/day-stepper";
-import { DuaCard } from "./_components/dua-card";
+import { GuideDays, GuideDuas } from "./_components/guide-content";
 import { PackingChecklist } from "./_components/packing-checklist";
 import { RitualCounter } from "./_components/ritual-counter";
 
@@ -88,16 +86,7 @@ const SECTIONS = [
 export default function GuidePage() {
   return (
     <>
-      <PageHero
-        title={
-          <>
-            دليل <span className="text-gold-shine">المناسك</span>
-          </>
-        }
-        description="مركز المعرفة للحاج السوري: ماذا تفعل في كل يوم، وأين تكون، وماذا تقول. بلغة بسيطة وخرائط وأدعية مسموعة."
-        image="/images/jabal-rahmah.jpg"
-        crumbs={[{ label: "دليل المناسك" }]}
-      >
+      <CmsPageHero page="guide">
         <nav aria-label="أقسام الدليل" className="scrollbar-none -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0">
           {SECTIONS.map((s) => (
             <a
@@ -110,19 +99,19 @@ export default function GuidePage() {
             </a>
           ))}
         </nav>
-      </PageHero>
+      </CmsPageHero>
 
       {/* Day by day */}
       <section id="days" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 md:px-8 md:py-20">
-        <SectionHeading eyebrow="من 8 إلى 13 ذي الحجة" title="أعمال الحج يوماً بيوم" description="اختر اليوم لترى ما تفعله، والمواعيد التقريبية، والدعاء، والمكان على الخريطة." />
-        <DayStepper days={DAYS} />
+        <CmsHeading page="guide" section="days" />
+        <GuideDays />
       </section>
 
       {/* Nusuk */}
       <section id="nusuk" className="relative scroll-mt-24 overflow-hidden bg-green-dark py-16 text-white md:py-24">
         <div className="bg-pattern absolute inset-0 opacity-15" />
         <div className="relative mx-auto max-w-7xl px-4 md:px-8">
-          <SectionHeading light eyebrow="قبل الإحرام" title="أي نسك تختار؟" description="الأنساك الثلاثة صحيحة كلها. هذه مقارنة سريعة تساعدك على الفهم، واسأل مرشد مجموعتك عن الأنسب لك." />
+          <CmsHeading light page="guide" section="rites" />
           <Stagger className="grid gap-4 md:grid-cols-3">
             {NUSUK.map((n, i) => (
               <StaggerItem key={n.id}>
@@ -258,13 +247,7 @@ export default function GuidePage() {
       {/* Duas */}
       <section id="duas" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 md:px-8 md:py-24">
         <SectionHeading eyebrow="استمع وانسخ" title="أدعية المناسك" description="نصوص صحيحة بخط واضح، يمكنك الاستماع إليها أو نسخها ومشاركتها." />
-        <Stagger className="grid gap-4 md:grid-cols-2">
-          {GUIDE_DUAS.map((d, i) => (
-            <StaggerItem key={d.title}>
-              <DuaCard title={d.title} text={d.text} source={d.source} when={d.when} dark={i === 4} />
-            </StaggerItem>
-          ))}
-        </Stagger>
+        <GuideDuas />
       </section>
 
       {/* Bag & health */}

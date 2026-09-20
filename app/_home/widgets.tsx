@@ -1,14 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Clock, MoonStar, Play, Sun, Sunrise, Sunset } from "lucide-react";
 import { useEffect, useState } from "react";
+import { str } from "@/components/cms/bits";
+import { CmsImage } from "@/components/cms/image";
 import { Modal } from "@/components/ui/widgets";
+import { useMediaUrl } from "@/lib/cms/media";
+import { useSection } from "@/lib/cms/store";
 import { CITIES, PRAYERS, formatTime, nextPrayer, prayerTimes } from "@/lib/prayer";
 import { useHydrated } from "@/lib/store";
-import { asset, cn, hijriDate } from "@/lib/utils";
+import { cn, hijriDate } from "@/lib/utils";
 
 const ICONS = { fajr: MoonStar, sunrise: Sunrise, dhuhr: Sun, asr: Sun, maghrib: Sunset, isha: MoonStar } as const;
 const PICK = ["damascus", "aleppo", "makkah", "madinah"];
@@ -93,24 +96,28 @@ export function PrayerWidget({ className }: { className?: string }) {
 }
 
 export function AcademyTeaser() {
+  const v = useSection("home", "academy");
   const [open, setOpen] = useState(false);
+  const video = useMediaUrl(v.videoSrc);
+  const poster = useMediaUrl(v.videoPoster);
+
   return (
     <>
       <button onClick={() => setOpen(true)} className="group relative block aspect-[4/3] w-full overflow-hidden rounded-[2rem] text-right shadow-2xl">
-        <Image src="/images/tawaf-night.jpg" alt="الطواف حول الكعبة" fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover transition duration-[1.2s] group-hover:scale-110" />
+        <CmsImage src={v.videoPoster} alt={str(v, "videoTitle")} fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover transition duration-[1.2s] group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
         <span className="absolute left-1/2 top-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-white backdrop-blur-md transition duration-500 group-hover:scale-110 group-hover:bg-gold group-hover:text-ink">
           <span className="absolute inset-0 animate-ping rounded-full bg-white/20" />
           <Play className="size-8 translate-x-[-2px] fill-current" />
         </span>
         <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-          <span className="rounded-full bg-maroon px-2.5 py-1 text-xs font-bold">فيديو • 13 ثانية</span>
-          <p className="mt-3 font-display text-2xl font-bold">لقطات من طواف الإفاضة</p>
-          <p className="text-sm text-white/70">من مسار «فقه الحج» — المستوى الثاني: الطواف والسعي</p>
+          {str(v, "videoBadge") && <span className="rounded-full bg-maroon px-2.5 py-1 text-xs font-bold">{str(v, "videoBadge")}</span>}
+          <p className="mt-3 font-display text-2xl font-bold">{str(v, "videoTitle")}</p>
+          <p className="text-sm text-white/70">{str(v, "videoNote")}</p>
         </div>
       </button>
       <Modal open={open} onClose={() => setOpen(false)} className="max-w-4xl bg-ink p-2 sm:p-3">
-        <video src={asset("/videos/tawaf-ifadha.webm")} poster={asset("/images/tawaf-night.jpg")} controls autoPlay playsInline className="aspect-video w-full rounded-2xl bg-black" />
+        <video src={video} poster={poster} controls autoPlay playsInline className="aspect-video w-full rounded-2xl bg-black" />
       </Modal>
     </>
   );

@@ -23,7 +23,7 @@ import { actions, useHydrated, useStore } from "@/lib/store";
 import { CITIES, nextPrayer } from "@/lib/prayer";
 import { getPerson } from "@/lib/registry";
 import { getStaff } from "@/lib/staff";
-import { MORE, NAV } from "@/lib/nav";
+import { useNav } from "@/lib/cms/site";
 import { cn, hijriDate } from "@/lib/utils";
 
 type Area = "pilgrim" | "admin" | "staff";
@@ -161,6 +161,7 @@ export function Header() {
   const who = area ? identities[area] : (identities.pilgrim ?? identities.admin ?? identities.staff);
   const signIn = SIGN_IN[area ?? "pilgrim"];
   const here = (href: string) => pathname.replace(/\/$/, "") === href;
+  const navItems = useNav();
 
   useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 40));
   // Close menus on navigation (adjusting state during render, per React docs)
@@ -174,6 +175,7 @@ export function Header() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
   const solid = scrolled || open;
+  const { nav: NAV, more: MORE } = navItems;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">

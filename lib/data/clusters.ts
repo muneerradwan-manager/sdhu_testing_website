@@ -293,19 +293,20 @@ export function normalizeArabic(s: string) {
 
 export type EntityMatch = { kind: "approved"; cluster: Cluster } | { kind: "unapproved"; entity: UnapprovedEntity } | { kind: "unknown"; query: string };
 
-export function findEntity(query: string): EntityMatch {
+/** `clusters` تأتي من لوحة المحتوى؛ وتبقى قائمة الشيفرة افتراضاً لمن لا يمرّرها */
+export function findEntity(query: string, clusters: Cluster[] = CLUSTERS): EntityMatch {
   const q = normalizeArabic(query);
   if (!q) return { kind: "unknown", query };
-  const cluster = CLUSTERS.find((c) => normalizeArabic(c.name) === q) ?? CLUSTERS.find((c) => q.length >= 3 && normalizeArabic(c.name).includes(q));
+  const cluster = clusters.find((c) => normalizeArabic(c.name) === q) ?? clusters.find((c) => q.length >= 3 && normalizeArabic(c.name).includes(q));
   if (cluster) return { kind: "approved", cluster };
   const entity = UNAPPROVED.find((u) => normalizeArabic(u.name) === q) ?? UNAPPROVED.find((u) => q.length >= 3 && normalizeArabic(u.name).includes(q));
   if (entity) return { kind: "unapproved", entity };
   return { kind: "unknown", query };
 }
 
-export function suggestEntities(query: string) {
+export function suggestEntities(query: string, clusters: Cluster[] = CLUSTERS) {
   const q = normalizeArabic(query);
-  const all = [...CLUSTERS.map((c) => c.name), ...UNAPPROVED.map((u) => u.name)];
+  const all = [...clusters.map((c) => c.name), ...UNAPPROVED.map((u) => u.name)];
   if (!q) return all.slice(0, 5);
   return all.filter((n) => normalizeArabic(n).includes(q)).slice(0, 6);
 }

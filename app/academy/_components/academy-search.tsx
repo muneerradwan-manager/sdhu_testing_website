@@ -4,13 +4,13 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, Clapperboard, Headphones, PlayCircle, Search, SearchX, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useAllLessons, useTracks } from "@/lib/cms/content";
 import {
   CLIP_FORMS,
   LECTURERS,
   LESSON_FORMS,
   arabicCount,
   formatClock,
-  getTrack,
   minutesLabel,
   searchAcademy,
   snippetFor,
@@ -52,7 +52,10 @@ export function AcademySearch() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const result = useMemo(() => searchAcademy(debounced), [debounced]);
+  const tracks = useTracks();
+  const allLessons = useAllLessons();
+  const getTrack = (slug: string) => tracks.find((t) => t.slug === slug);
+  const result = useMemo(() => searchAcademy(debounced, allLessons), [debounced, allLessons]);
   const pending = query.trim() !== debounced.trim();
   const active = debounced.trim().length > 0;
   const count = [result.lessons.length && arabicCount(result.lessons.length, LESSON_FORMS), result.clips.length && arabicCount(result.clips.length, CLIP_FORMS)]

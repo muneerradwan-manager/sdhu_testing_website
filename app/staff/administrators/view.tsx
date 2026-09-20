@@ -18,7 +18,7 @@ import {
 import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
-import { CLUSTERS } from "@/lib/data/clusters";
+import { clustersNow } from "@/lib/cms/content";
 import { EVALUATION_ITEMS } from "@/lib/data/staff-seed";
 import { can } from "@/lib/staff";
 import { actions } from "@/lib/store";
@@ -322,7 +322,7 @@ function Groups({ rows }: { rows: AdminRow[] }) {
     <div className="grid gap-4 lg:grid-cols-2">
       {rows.map((r, i) => {
         const g = r.profile.group!;
-        const cluster = CLUSTERS.find((c) => c.slug === g.clusterId);
+        const cluster = clustersNow().find((c) => c.slug === g.clusterId);
         const reviewed = events.find((e) => e.action === "مراجعة طلب تشكيل مجموعة" && e.target === `المجموعة ${g.number} — ${r.name}`);
         const checks = [
           { label: "الرئيس ناجح في التأهيل", ok: (r.profile.finalScore ?? 0) >= PASS },

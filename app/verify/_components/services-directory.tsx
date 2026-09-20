@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { BadgeCheck, BookOpen, Bus, EyeOff, Hotel, MapPin, Search, Sparkles, Star, Users, Utensils, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Badge, Modal } from "@/components/ui/widgets";
-import { CLUSTERS, normalizeArabic, type Cluster, type ServiceLevel } from "@/lib/data/clusters";
+import { useClusters } from "@/lib/cms/content";
+import { normalizeArabic, type Cluster, type ServiceLevel } from "@/lib/data/clusters";
 import { SEASON } from "@/lib/season";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ const LEVEL_STYLE: Record<ServiceLevel, string> = {
 export function ServicesDirectory({ openSlug, onOpenChange }: { openSlug: string | null; onOpenChange: (slug: string | null) => void }) {
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("الكل");
   const [q, setQ] = useState("");
+  const CLUSTERS = useClusters();
   const list = CLUSTERS.filter(
     (c) => (level === "الكل" || c.level === level) && (!q.trim() || normalizeArabic(`${c.name} ${c.governorate} ${c.specialty}`).includes(normalizeArabic(q))),
   ).sort((a, b) => b.rating - a.rating);

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { BadgeCheck, QrCode, ShieldAlert } from "lucide-react";
-import { PageHero } from "@/components/ui/page-hero";
-import { CLUSTERS } from "@/lib/data/clusters";
+import { CmsPageHero } from "@/components/cms/page-hero";
 import { VerifyTabs } from "./_components/verify-tabs";
 
 export const metadata: Metadata = {
@@ -12,19 +11,10 @@ export const metadata: Metadata = {
 export default function VerifyPage() {
   return (
     <>
-      <PageHero
-        title={
-          <>
-            التحقق من <span className="text-gold-shine">الجهات والوثائق</span>
-          </>
-        }
-        description="قبل أن تدفع أي مبلغ أو تعتمد على أي ورقة: تأكد أن الجهة معتمدة للموسم، وأن الإيصال أو الشهادة صادرة فعلاً عن المنصة."
-        image="/images/kaaba-panoramio.jpg"
-        crumbs={[{ label: "التحقق من الجهات والوثائق" }]}
-      >
+      <CmsPageHero page="verify">
         <div className="mt-7 flex flex-wrap gap-2 text-sm">
           {[
-            { icon: BadgeCheck, t: `${CLUSTERS.length} تكتلات معتمدة لموسم 1448` },
+            { icon: BadgeCheck, t: "تكتلات معتمدة لموسم 1448 بالقائمة الكاملة" },
             { icon: QrCode, t: "مسح رمز QR للإيصالات والشهادات" },
             { icon: ShieldAlert, t: "إبلاغ فوري عن الجهات المخالفة" },
           ].map((x) => (
@@ -33,7 +23,7 @@ export default function VerifyPage() {
             </span>
           ))}
         </div>
-      </PageHero>
+      </CmsPageHero>
 
       <section className="bg-pattern-dark">
         <div className="mx-auto max-w-7xl px-4 pb-24 pt-10 md:px-8 md:pt-14">

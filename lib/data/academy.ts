@@ -1733,18 +1733,36 @@ export function wordMatches(word: string, token: string) {
 
 const matchesAll = (words: string[], tokens: string[]) => tokens.every((t) => words.some((w) => w.startsWith(t)));
 
-const LESSON_INDEX = ALL_LESSONS.map((ref) => ({
-  ref,
-  title: indexWords([ref.lesson.title]),
-  words: indexWords([ref.lesson.title, ...ref.lesson.tags, ...ref.lesson.summary, ...ref.lesson.points, ...ref.lesson.faq.flatMap((f) => [f.q, f.a])]),
-}));
+type LessonIndex = { ref: LessonRef; title: string[]; words: string[] }[];
+
+function buildIndex(lessons: LessonRef[]): LessonIndex {
+  return lessons.map((ref) => ({
+    ref,
+    title: indexWords([ref.lesson.title]),
+    words: indexWords([ref.lesson.title, ...ref.lesson.tags, ...ref.lesson.summary, ...ref.lesson.points, ...ref.lesson.faq.flatMap((f) => [f.q, f.a])]),
+  }));
+}
+
+/** الفهرس يُبنى مرة واحدة لكل قائمة دروس؛ وقائمة اللوحة ثابتة المرجع بين العروض */
+const indexCache = new WeakMap<LessonRef[], LessonIndex>();
+
+function lessonIndex(lessons: LessonRef[]): LessonIndex {
+  let idx = indexCache.get(lessons);
+  if (!idx) {
+    idx = buildIndex(lessons);
+    indexCache.set(lessons, idx);
+  }
+  return idx;
+}
 
 const CLIP_INDEX = CLIPS.map((clip) => ({ clip, words: indexWords([clip.title, ...clip.tags]) }));
 
-export function searchAcademy(query: string) {
+/** `lessons` تأتي من لوحة المحتوى؛ وتبقى دروس الشيفرة افتراضاً لمن لا يمرّرها */
+export function searchAcademy(query: string, source: LessonRef[] = ALL_LESSONS) {
   const tokens = searchTokens(query);
   if (!tokens.length) return { tokens, lessons: [] as LessonRef[], clips: [] as Clip[] };
-  const lessons = LESSON_INDEX.filter((e) => matchesAll(e.words, tokens))
+  const lessons = lessonIndex(source)
+    .filter((e) => matchesAll(e.words, tokens))
     .map((e) => ({ e, score: tokens.filter((t) => e.title.some((w) => w.startsWith(t))).length }))
     .sort((a, b) => b.score - a.score)
     .map((x) => x.e.ref);

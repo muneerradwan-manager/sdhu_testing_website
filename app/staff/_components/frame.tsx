@@ -11,6 +11,7 @@ import {
   Dices,
   LayoutDashboard,
   LogOut,
+  PencilLine,
   Plane,
   RadioTower,
   ScrollText,
@@ -35,6 +36,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: ["season.settings"] },
   { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
   { href: "/staff/administrators", label: "الإداريون والمجموعات", icon: <UsersRound />, perms: ["administrators.manage", "groups.approve"] },
+  { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
   { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: ["season.settings", "audit.read"] },
@@ -141,15 +143,10 @@ function Sidebar({ user }: { user: StaffUser }) {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="overflow-hidden rounded-3xl border border-gold/25 bg-gradient-to-b from-green-dark/90 to-[#00352f]/95 shadow-[0_30px_80px_-30px_rgba(0,0,0,.6)] backdrop-blur"
       >
-        {/* Phones/tablets: the panel sits above the page, so keep it compact — no title block, logout on the user card */}
-        <div className="hidden items-center gap-3 border-b border-white/10 px-4 py-3.5 lg:flex">
-          <Emblem className="size-9" />
-          <div className="min-w-0">
-            <p className="font-display font-bold leading-tight">بوابة الموظفين</p>
-            <p className="text-[11px] text-gold">إدارة الحج والعمرة — موسم 1448</p>
-          </div>
-        </div>
-
+        {/* No emblem or platform name here: the site header already carries the brand, and repeating it
+            inside the panel made the page read as a second site nested in the first. The panel opens on
+            the identity instead — who is signed in — and on phones it sits above the page, so the logout
+            moves onto the user card. */}
         <div className="space-y-3 p-3 lg:p-4">
           {/* User card */}
           <div className="relative overflow-hidden rounded-2xl bg-white/[.07] p-3 ring-1 ring-white/10">

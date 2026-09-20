@@ -20,17 +20,19 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Badge, useToast } from "@/components/ui/widgets";
-import { findEntity, HOTLINE, suggestEntities, CLUSTERS, UNAPPROVED, type EntityMatch } from "@/lib/data/clusters";
+import { useClusters } from "@/lib/cms/content";
+import { findEntity, HOTLINE, suggestEntities, UNAPPROVED, type EntityMatch } from "@/lib/data/clusters";
 import { cn, formatNumber } from "@/lib/utils";
 
 export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) => void }) {
+  const CLUSTERS = useClusters();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [checking, setChecking] = useState(false);
   const [match, setMatch] = useState<EntityMatch | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestions = suggestEntities(query);
+  const suggestions = suggestEntities(query, CLUSTERS);
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
@@ -46,7 +48,7 @@ export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) =
     setMatch(null);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      setMatch(findEntity(v));
+      setMatch(findEntity(v, CLUSTERS));
       setChecking(false);
     }, 1100);
   }
@@ -138,7 +140,7 @@ export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) =
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm">
         <span className="text-ink-soft">جرّب:</span>
-        {[CLUSTERS[0].name, UNAPPROVED[0].name, "مكتب السفر الذهبي"].map((n) => (
+        {[CLUSTERS[0]?.name ?? "", UNAPPROVED[0].name, "مكتب السفر الذهبي"].filter(Boolean).map((n) => (
           <button key={n} onClick={() => run(n)} className="rounded-full border border-gold/50 bg-white px-3 py-1.5 text-ink transition hover:border-green-light hover:text-green">
             {n}
           </button>
