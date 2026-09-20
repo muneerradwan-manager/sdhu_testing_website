@@ -279,8 +279,26 @@ export function Tabs<T extends string>({
   );
 }
 
-/** Side sheet that slides in from the left edge (the sidebar lives on the right in RTL) */
-export function Drawer({ open, onClose, title, children, width = "max-w-2xl" }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; width?: string }) {
+/**
+ * Side sheet that slides in from the left edge (the sidebar lives on the right in RTL).
+ * `footer` is a real footer, not a floating bar: it sits outside the scrolling area and
+ * reserves its own height, so an action bar can never cover the content behind it.
+ */
+export function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  width = "max-w-2xl",
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  width?: string;
+}) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -315,7 +333,8 @@ export function Drawer({ open, onClose, title, children, width = "max-w-2xl" }: 
                 <X className="size-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-5">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+            {footer && <div className="shrink-0 border-t border-gold/30 bg-[#00352f] p-5 shadow-[0_-12px_30px_-20px_rgba(0,0,0,.9)]">{footer}</div>}
           </motion.aside>
         </motion.div>
       )}

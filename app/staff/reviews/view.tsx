@@ -183,8 +183,13 @@ function Reviews() {
         )}
       </Panel>
 
-      <Drawer open={!!open} onClose={close} title={open ? `الطلب رقم ${open.number} — ${open.name}` : ""}>
-        {open && <ReviewDetail key={open.key} item={open} onDone={close} />}
+      <Drawer
+        open={!!open}
+        onClose={close}
+        title={open ? `الطلب رقم ${open.number} — ${open.name}` : ""}
+        footer={open && <ReviewDecision key={open.key} item={open} onDone={close} />}
+      >
+        {open && <ReviewDetail key={open.key} item={open} />}
       </Drawer>
     </div>
   );
@@ -236,33 +241,8 @@ const STATUS_ICON: Record<CheckStatus, { icon: typeof CheckCircle2; cls: string 
   na: { icon: CircleDashed, cls: "text-white/70" },
 };
 
-function ReviewDetail({ item, onDone }: { item: ReviewItem; onDone: () => void }) {
-  const user = useStaffUser()!;
-  const toast = useToast();
-  const [note, setNote] = useState("");
-  const [tried, setTried] = useState(false);
+function ReviewDetail({ item }: { item: ReviewItem }) {
   const [expanded, setExpanded] = useState<string | null>(item.members[0]?.person.id ?? null);
-  const valid = note.trim().length >= 8;
-
-  const decide = (status: "approved" | "rejected") => {
-    setTried(true);
-    if (!valid) return;
-    const prev = item.review;
-    actions.setReview(item.key, { status, note: note.trim(), by: user.name, at: Date.now() });
-    logAs(user, {
-      action: status === "approved" ? "اعتماد طلب بعد المراجعة" : "رفض طلب بعد المراجعة",
-      target: `الطلب ${item.number}`,
-      detail: note.trim(),
-      before: prev ? (prev.status === "approved" ? "معتمد" : "مرفوض") : "بانتظار المراجعة",
-      after: status === "approved" ? "معتمد" : "مرفوض",
-    });
-    toast(
-      status === "approved"
-        ? { title: `اعتُمد الطلب ${item.number}`, body: "سُجّل القرار والسبب باسمك في سجل الأحداث.", tone: "success", icon: "✅" }
-        : { title: `رُفض الطلب ${item.number}`, body: "سيرى المتقدم سبب الرفض ويمكنه تقديم اعتراض.", tone: "warning", icon: "⛔" },
-    );
-    onDone();
-  };
 
   return (
     <div className="space-y-5">
@@ -383,34 +363,68 @@ function ReviewDetail({ item, onDone }: { item: ReviewItem; onDone: () => void }
           <p className="text-sm leading-6 text-white/90">{item.evidence}</p>
         </section>
       </div>
+    </div>
+  );
+}
 
-      <section className="sticky bottom-0 -mx-5 -mb-5 border-t border-gold/30 bg-[#00352f]/95 p-5 backdrop-blur">
-        <label className="block">
-          <span className="mb-1.5 flex items-center justify-between font-bold text-white">
-            سبب القرار <span className="rounded-full bg-gold/20 px-2 py-0.5 text-xs font-bold text-gold">إلزامي</span>
-          </span>
-          <textarea
-            rows={2}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="مثال: خطأ كتابي في اسم الأم مؤكد من بيان القيد المرفوع"
-            className={cn(textareaClass, tried && !valid && "border-gold! bg-maroon/40!")}
-          />
-        </label>
+/**
+ * شريط القرار. يعيش في تذييل اللوحة لا داخل منطقة التمرير، فلا يغطي بيانات الطلب خلفه.
+ */
+function ReviewDecision({ item, onDone }: { item: ReviewItem; onDone: () => void }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const [note, setNote] = useState("");
+  const [tried, setTried] = useState(false);
+  const valid = note.trim().length >= 8;
+
+  const decide = (status: "approved" | "rejected") => {
+    setTried(true);
+    if (!valid) return;
+    const prev = item.review;
+    actions.setReview(item.key, { status, note: note.trim(), by: user.name, at: Date.now() });
+    logAs(user, {
+      action: status === "approved" ? "اعتماد طلب بعد المراجعة" : "رفض طلب بعد المراجعة",
+      target: `الطلب ${item.number}`,
+      detail: note.trim(),
+      before: prev ? (prev.status === "approved" ? "معتمد" : "مرفوض") : "بانتظار المراجعة",
+      after: status === "approved" ? "معتمد" : "مرفوض",
+    });
+    toast(
+      status === "approved"
+        ? { title: `اعتُمد الطلب ${item.number}`, body: "سُجّل القرار والسبب باسمك في سجل الأحداث.", tone: "success", icon: "✅" }
+        : { title: `رُفض الطلب ${item.number}`, body: "سيرى المتقدم سبب الرفض ويمكنه تقديم اعتراض.", tone: "warning", icon: "⛔" },
+    );
+    onDone();
+  };
+
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-end">
+      <label className="block min-w-0 flex-1">
+        <span className="mb-1.5 flex flex-wrap items-center gap-2 text-sm font-bold text-white">
+          سبب القرار <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[11px] font-bold text-gold">إلزامي</span>
+          <span className="text-xs font-normal text-white/60">يراه المتقدم ويُحفظ في السجل</span>
+        </span>
+        <textarea
+          rows={2}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="مثال: خطأ كتابي في اسم الأم مؤكد من بيان القيد المرفوع"
+          className={cn(textareaClass, "resize-none", tried && !valid && "border-gold! bg-maroon/40!")}
+        />
         {tried && !valid && (
-          <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-gold">
-            <AlertTriangle className="size-4 shrink-0" /> اكتب سبباً واضحاً (8 أحرف على الأقل) — سيراه المتقدم ويُحفظ في السجل.
-          </p>
+          <span className="mt-1 flex items-center gap-1.5 text-sm font-bold text-gold">
+            <AlertTriangle className="size-4 shrink-0" /> اكتب سبباً واضحاً (8 أحرف على الأقل)
+          </span>
         )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="gold" onClick={() => decide("approved")} className="flex-1">
-            <CheckCircle2 className="size-4" /> اعتماد الطلب
-          </Button>
-          <Button variant="maroon" onClick={() => decide("rejected")} className="flex-1">
-            <Ban className="size-4" /> رفض مع السبب
-          </Button>
-        </div>
-      </section>
+      </label>
+      <div className="flex shrink-0 gap-2">
+        <Button variant="gold" onClick={() => decide("approved")}>
+          <CheckCircle2 className="size-4" /> اعتماد
+        </Button>
+        <Button variant="maroon" onClick={() => decide("rejected")}>
+          <Ban className="size-4" /> رفض
+        </Button>
+      </div>
     </div>
   );
 }

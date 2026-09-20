@@ -66,6 +66,9 @@ const PEOPLE: Person[] = [
   P({ id: "01033300871", firstName: "أحمد", fatherName: "سليمان", motherName: "رجاء", lastName: "الحمصي", gender: "M", birthDate: "1990-02-14", birthPlace: "دمشق", governorate: "دمشق", registry: "كفرسوسة 0871", maritalStatus: "متزوج", familyBookNo: "56000871", phoneTail: "871" }),
   P({ id: "01033300872", firstName: "ياسر", fatherName: "عبد الله", motherName: "هدى", lastName: "العبد الله", gender: "M", birthDate: "1986-09-03", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0872", maritalStatus: "متزوج", familyBookNo: "56000872", phoneTail: "872" }),
 
+  // ── سامر نجار — المنسق التقني للمجموعة 27 ──
+  P({ id: "01033300874", firstName: "سامر", fatherName: "نبيل", motherName: "وداد", lastName: "نجار", gender: "M", birthDate: "1995-11-08", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0874", maritalStatus: "عازب", familyBookNo: "56000874", phoneTail: "874" }),
+
   // ── ياسين، جار محمد — مسجّل في طلب آخر هذا الموسم ──
   P({ id: "01011100208", firstName: "ياسين", fatherName: "خليل", motherName: "مريم", lastName: "العمر", gender: "M", birthDate: "1970-03-21", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 3981", maritalStatus: "متزوج", familyBookNo: "12003981", otherApplication: "3981", phoneTail: "208" }),
 ];

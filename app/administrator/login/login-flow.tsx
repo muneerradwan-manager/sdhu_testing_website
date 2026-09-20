@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/widgets";
 import { getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { DEMO_ADMINS, demoAdminLogin, logAdmin } from "../_lib/admin";
+import { DEMO_ADMINS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
 
 export function AdminLoginFlow() {
   const router = useRouter();
@@ -52,8 +52,8 @@ export function AdminLoginFlow() {
     router.push(next);
   };
 
-  const quick = (nationalId: string) => {
-    const err = demoAdminLogin({ accounts, admins }, nationalId);
+  const quick = (nationalId: string, mode: DemoAdminMode = "start") => {
+    const err = demoAdminLogin({ accounts, admins }, nationalId, mode);
     if (err) return setError({ text: err });
     toast({ title: `مرحباً ${getPerson(nationalId)?.firstName}`, body: "دخول تجريبي سريع", icon: "⚡", tone: "success" });
     router.push(next);
@@ -110,7 +110,7 @@ export function AdminLoginFlow() {
           <ul className="mt-3 space-y-2">
             {DEMO_ADMINS.map((d) => (
               <li key={d.id}>
-                <motion.button whileHover={{ y: -2 }} type="button" onClick={() => quick(d.id)} className="group w-full rounded-2xl bg-white p-4 text-right shadow-sm hover:shadow-md">
+                <motion.button whileHover={{ y: -2 }} type="button" onClick={() => quick(d.id, d.mode)} className="group w-full rounded-2xl bg-white p-4 text-right shadow-sm hover:shadow-md">
                   <span className="flex items-center justify-between gap-2">
                     <span className="font-bold text-green-dark">{d.title}</span>
                     <Zap className="size-4 text-gold-dark transition group-hover:scale-125" />

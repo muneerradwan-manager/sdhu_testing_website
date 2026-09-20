@@ -13,6 +13,7 @@ import {
   Lock,
   LogOut,
   MapPinned,
+  UserRoundPlus,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -22,7 +23,7 @@ import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD, samePath } from "@/lib/utils";
-import { logAdmin, useAdmin } from "../_lib/admin";
+import { isTechCoordinator, logAdmin, useAdmin } from "../_lib/admin";
 
 // ───────────────────────── Guard ─────────────────────────
 
@@ -53,11 +54,15 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
 // ───────────────────────── Shell & navigation ─────────────────────────
 
-const NAV: { href: string; label: string; icon: LucideIcon }[] = [
+type NavItem = { href: string; label: string; icon: LucideIcon; techOnly?: boolean };
+
+const NAV: NavItem[] = [
   { href: "/administrator/dashboard", label: "ملفي", icon: LayoutDashboard },
   { href: "/administrator/apply", label: "طلب المشاركة", icon: ClipboardList },
   { href: "/administrator/exam", label: "الامتحان والنتيجة", icon: GraduationCap },
   { href: "/administrator/group", label: "مجموعتي", icon: FileSignature },
+  // تسجيل المواطنين من اختصاص المنسق التقني وحده
+  { href: "/administrator/pilgrims", label: "تسجيل الحجاج", icon: UserRoundPlus, techOnly: true },
   { href: "/administrator/requests", label: "طلبات الانتساب", icon: UsersRound },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned },
 ];
@@ -66,10 +71,11 @@ export function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
   const admin = useAdmin();
+  const items = NAV.filter((n) => !n.techOnly || isTechCoordinator(admin?.profile));
   return (
     <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
       <nav aria-label="أقسام حساب الإداري" className="scrollbar-none -mx-4 flex max-w-full gap-1 overflow-x-auto px-4 md:mx-0 md:rounded-2xl md:border md:border-white/15 md:bg-white/8 md:p-1 md:px-1 md:backdrop-blur-md">
-        {NAV.map((n) => {
+        {items.map((n) => {
           const active = samePath(pathname, n.href);
           return (
             <Link

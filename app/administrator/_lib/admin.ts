@@ -3,14 +3,50 @@
 import { useMemo } from "react";
 import { EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, scoreExam } from "@/lib/data/admin-exam";
 import { fullName, getPerson } from "@/lib/registry";
+import { SEASON } from "@/lib/season";
+import { seedCoordinatorWork } from "./coordinator";
 import { actions, useStore, type AdminProfile } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
 
-export const DEMO_ADMINS = [
-  { id: "01033300871", phone: "0944271449", title: "أحمد سليمان الحمصي", note: "36 عاماً — مدرّس من دمشق — معاون رئيس مجموعة في 1446، يريد رئاسة مجموعة يشكّلها بنفسه" },
-  { id: "01033300872", phone: "0944272449", title: "ياسر عبد الله العبد الله", note: "40 عاماً — يتقدم لصفة معاون رئيس مجموعة" },
-] as const;
+export type DemoAdminMode = "start" | "field" | "tech";
+
+export const DEMO_ADMINS: { id: string; phone: string; title: string; note: string; mode: DemoAdminMode }[] = [
+  {
+    id: "01033300871",
+    phone: "0944271449",
+    title: "أحمد سليمان الحمصي — رئيس مجموعة",
+    note: "36 عاماً — مدرّس من دمشق — معاون رئيس مجموعة في 1446، يريد رئاسة مجموعة يشكّلها بنفسه",
+    mode: "start",
+  },
+  {
+    id: "01033300872",
+    phone: "0944272449",
+    title: "ياسر عبد الله العبد الله — معاون",
+    note: "40 عاماً — يتقدم لصفة معاون رئيس مجموعة",
+    mode: "start",
+  },
+  {
+    id: "01033300874",
+    phone: "0944274449",
+    title: "سامر نبيل نجار — منسق تقني",
+    note: "31 عاماً — منسق تقني معيَّن في المجموعة 27 من تكتل النور، يسجّل الحجاج عن المواطنين من مكتب الفرع. يفتح على مكتب التسجيل وفيه طلبان مسجّلان.",
+    mode: "tech",
+  },
+];
+
+/** التكتل والمجموعة اللذان عُيّن فيهما المنسق التقني في هذا العرض */
+export const TECH_POSTING = { clusterId: "al-nour", groupNumber: 27 };
+
+/** الصفة التي يعمل بها الإداري: المنسق التقني أولاً إن كانت من صفاته */
+export function positionOf(p: AdminProfile | undefined) {
+  return p?.positions.includes("tech") ? "tech" : (p?.positions[0] ?? "tech");
+}
+
+/** هل يملك هذا الإداري صفة المنسق التقني؟ */
+export function isTechCoordinator(p: AdminProfile | undefined) {
+  return !!p?.positions.includes("tech");
+}
 
 export const POSITIONS = [
   { key: "cluster-head", label: "رئيس تكتل", desc: "يشرف على كل مجموعات التكتل، ويمثّله أمام الإدارة." },
@@ -147,6 +183,14 @@ export function useAdmin() {
   }, [id, profile]);
 }
 
+/** ورقة امتحان كتابي ناجحة: 13 من 15 — السؤالان السيناريوهان خاطئان */
+function passedExam() {
+  const answers = Object.fromEntries(
+    EXAM_QUESTIONS.map((q) => [q.id, q.id === 3 || q.id === 11 ? (q.answer + 1) % q.options.length : q.answer]),
+  );
+  return { answers, written: scoreExam(answers).score };
+}
+
 /**
  * Demo shortcut. "start" opens a fresh file; "field" fast-forwards to an approved group with
  * signed contracts so the requests and field screens can be tried right away.
@@ -155,34 +199,36 @@ export function useAdmin() {
 export function demoAdminLogin(
   state: { accounts: Record<string, unknown>; admins: Record<string, AdminProfile> },
   id: string,
-  mode: "start" | "field" = "start",
+  mode: DemoAdminMode = "start",
 ): string | null {
   if (state.accounts[id]) return "هذا الرقم الوطني لديه حساب حاج. لكل شخص نوع حساب واحد في المنصة.";
   const demo = DEMO_ADMINS.find((d) => d.id === id);
   const existing = state.admins[id];
   const now = Date.now();
   if (!existing) actions.upsertAdmin(id, { createdAt: now, phone: demo?.phone ?? `0944${id.slice(-6)}` });
-  if (mode === "field") {
-    const min = 60_000;
-    // 13 of 15 correct — the two scenario-style questions answered wrongly
-    const answers = Object.fromEntries(EXAM_QUESTIONS.map((q) => [q.id, q.id === 3 || q.id === 11 ? (q.answer + 1) % q.options.length : q.answer]));
-    const written = scoreExam(answers).score;
+  const min = 60_000;
+  // المنسق التقني: يبدأ العرض وملفه مكتمل حتى آخر مرحلة، فتُفتح له طلبات الانتساب والميدان
+  if (mode === "tech" || mode === "field") {
+    const { answers, written } = passedExam();
+    const tech = mode === "tech";
     actions.upsertAdmin(id, {
-      positions: ["group-head", "cluster-deputy"],
+      positions: tech ? ["tech", "group-head"] : ["group-head", "cluster-deputy"],
       languages: ["العربية", "الإنجليزية"],
-      skills: ["first-aid", "computer"],
+      skills: tech ? ["computer", "first-aid"] : ["first-aid", "computer"],
       documents: DOCUMENTS.map((d) => d.key),
       commitmentsAt: now - 90 * min,
       feePaidAt: now - 88 * min,
       receipt: adminReceipt(id, "A"),
       eligibleAt: now - 80 * min,
       exam: { startedAt: now - 70 * min, submittedAt: now - 55 * min, answers, score: written },
-      oral: { score: 84, by: "ماهر عيسى", at: now - 40 * min, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
-      finalScore: finalScoreOf(written, 84),
+      oral: tech
+        ? { score: 88, by: "ماهر عيسى", at: now - 40 * min, note: "متمكّن من التطبيق وشرحه لكبار السن" }
+        : { score: 84, by: "ماهر عيسى", at: now - 40 * min, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
+      finalScore: finalScoreOf(written, tech ? 88 : 84),
       resultPublishedAt: now - 35 * min,
       group: {
-        number: 27,
-        clusterId: "al-nour",
+        number: TECH_POSTING.groupNumber,
+        clusterId: TECH_POSTING.clusterId,
         capacity: 50,
         requestedAt: now - 30 * min,
         feePaidAt: now - 29 * min,
@@ -191,9 +237,18 @@ export function demoAdminLogin(
         contractSignedAt: now - 10 * min,
       },
     });
+    actions.adminLogin(id);
+    logAdmin(
+      id,
+      tech ? "دخول تجريبي (منسق تقني — ملف مكتمل ومجموعة معتمدة)" : "دخول تجريبي (قفز إلى ما بعد اعتماد المجموعة)",
+      `الإداري ${id.slice(-3)}`,
+    );
+    // يفتح مكتب التسجيل على مثال كامل: طلبان سبق أن سجّلهما
+    if (tech && !existing) seedCoordinatorWork({ id, name: adminName(id), position: "tech" }, now, SEASON.fees.registrationPerPerson);
+    return null;
   }
   actions.adminLogin(id);
-  logAdmin(id, mode === "field" ? "دخول تجريبي (قفز إلى ما بعد اعتماد المجموعة)" : "دخول تجريبي إلى حساب الإداري", `الإداري ${id.slice(-3)}`);
+  logAdmin(id, "دخول تجريبي إلى حساب الإداري", `الإداري ${id.slice(-3)}`);
   return null;
 }
 

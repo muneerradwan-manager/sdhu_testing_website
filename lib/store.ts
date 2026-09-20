@@ -38,6 +38,11 @@ export type Application = {
   track?: "direct" | "lottery";
   /** A direct-acceptance application that was not accepted, kept for the record when registering for the lottery */
   previous?: { number: string; track: "direct"; submittedAt: number; closedAt: number };
+  /**
+   * Filed by an authorised administrator on the citizen's behalf (the technical coordinator at a branch
+   * office). Absent when the pilgrim filed it himself.
+   */
+  submittedBy?: { id: string; name: string; position: string };
 };
 
 // ───────────── Staff, administrators, operations (phase 2) ─────────────
@@ -270,6 +275,13 @@ export function useHydrated() {
 export const actions = {
   register(account: Account) {
     setState((s) => ({ ...s, accounts: { ...s.accounts, [account.nationalId]: account }, sessionId: account.nationalId }));
+  },
+  /**
+   * Creates a pilgrim account without signing that pilgrim in — the technical coordinator opens
+   * accounts for citizens from his own session, and must stay signed in as himself.
+   */
+  createAccountFor(account: Account) {
+    setState((s) => (s.accounts[account.nationalId] ? s : { ...s, accounts: { ...s.accounts, [account.nationalId]: account } }));
   },
   updateAccount(id: string, patch: Partial<Account>) {
     setState((s) => ({ ...s, accounts: { ...s.accounts, [id]: { ...s.accounts[id], ...patch } } }));
