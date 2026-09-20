@@ -10,7 +10,13 @@
 
 import { useMemo } from "react";
 import { lessonItemId, toStrings } from "./collections";
-import { cms, readLiveCollection, useCms, type CollectionItem } from "./store";
+import {
+  cms,
+  cmsMemo,
+  readLiveCollection,
+  useCms,
+  type CollectionItem,
+} from "./store";
 import {
   LECTURERS,
   TRACKS,
@@ -21,16 +27,20 @@ import {
   type Level,
   type Track,
 } from "@/lib/data/academy";
+import type { CmsState } from "./types";
 import type { Cluster, ClusterGroup, ServiceLevel } from "@/lib/data/clusters";
 import { DAYS } from "@/lib/data/guide";
 import type { GuideDay } from "@/lib/data/guide";
 import type { Faq, FaqCategory } from "@/lib/data/faq";
 import type { Article, Block, Category } from "@/lib/data/news";
 
-const s = (v: unknown, fallback = "") => (typeof v === "string" ? v : typeof v === "number" ? String(v) : fallback);
-const n = (v: unknown, fallback = 0) => (typeof v === "number" && !Number.isNaN(v) ? v : Number(v) || fallback);
+const s = (v: unknown, fallback = "") =>
+  typeof v === "string" ? v : typeof v === "number" ? String(v) : fallback;
+const n = (v: unknown, fallback = 0) =>
+  typeof v === "number" && !Number.isNaN(v) ? v : Number(v) || fallback;
 const b = (v: unknown) => v === true;
-const rows = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as T[]) : []);
+const rows = <T>(v: unknown): T[] =>
+  Array.isArray(v) ? (v.filter((x) => x && typeof x === "object") as T[]) : [];
 
 // ───────────────────────── الأخبار ─────────────────────────
 
@@ -79,14 +89,18 @@ function toArticle(item: CollectionItem): Article {
   };
 }
 
-/** كل المقالات المنشورة، الأحدث أولاً */
-export function useArticles(): Article[] {
-  return useCms((state) =>
+export function selectArticles(state: CmsState): Article[] {
+  return cmsMemo("articles", state, () =>
     readLiveCollection(state, "news")
       .map(toArticle)
       .filter((a) => a.title)
       .sort((a, x) => x.iso.localeCompare(a.iso)),
   );
+}
+
+/** كل المقالات المنشورة، الأحدث أولاً */
+export function useArticles(): Article[] {
+  return useCms(selectArticles);
 }
 
 export function useArticle(slug: string): Article | null {
@@ -95,12 +109,19 @@ export function useArticle(slug: string): Article | null {
 }
 
 /** مقالات قريبة من المقال المفتوح: التصنيف نفسه أولاً، ثم الوسوم المشتركة */
-export function useRelatedArticles(article: Article | null, count = 3): Article[] {
+export function useRelatedArticles(
+  article: Article | null,
+  count = 3,
+): Article[] {
   const articles = useArticles();
   if (!article) return [];
   const others = articles.filter((a) => a.slug !== article.slug);
-  const score = (a: Article) => (a.category === article.category ? 3 : 0) + a.tags.filter((t) => article.tags.includes(t)).length;
-  return [...others].sort((a, x) => score(x) - score(a) || x.iso.localeCompare(a.iso)).slice(0, count);
+  const score = (a: Article) =>
+    (a.category === article.category ? 3 : 0) +
+    a.tags.filter((t) => article.tags.includes(t)).length;
+  return [...others]
+    .sort((a, x) => score(x) - score(a) || x.iso.localeCompare(a.iso))
+    .slice(0, count);
 }
 
 export function useMostRead(count = 5): Article[] {
@@ -110,18 +131,26 @@ export function useMostRead(count = 5): Article[] {
 
 // ───────────────────────── الأسئلة الشائعة ─────────────────────────
 
-export function useFaqs(): Faq[] {
-  return useCms((state) =>
+export function selectFaqs(state: CmsState): Faq[] {
+  return cmsMemo("faqs", state, () =>
     readLiveCollection(state, "faq")
-      .map((i) => ({ category: s(i.values.category) as FaqCategory, q: s(i.values.q), a: s(i.values.a) }))
+      .map((i) => ({
+        category: s(i.values.category) as FaqCategory,
+        q: s(i.values.q),
+        a: s(i.values.a),
+      }))
       .filter((f) => f.q && f.a),
   );
 }
 
+export function useFaqs(): Faq[] {
+  return useCms(selectFaqs);
+}
+
 // ───────────────────────── دليل المناسك ─────────────────────────
 
-export function useGuideDays(): GuideDay[] {
-  return useCms((state) =>
+export function selectGuideDays(state: CmsState): GuideDay[] {
+  return cmsMemo("guideDays", state, () =>
     readLiveCollection(state, "guideDays").map((i) => {
       const v = i.values;
       return {
@@ -130,32 +159,62 @@ export function useGuideDays(): GuideDay[] {
         name: s(v.name),
         hijri: s(v.hijri),
         image: s(v.image),
-        place: { label: s(v.placeLabel), lat: n(v.placeLat, 21.42), lng: n(v.placeLng, 39.82) },
+        place: {
+          label: s(v.placeLabel),
+          lat: n(v.placeLat, 21.42),
+          lng: n(v.placeLng, 39.82),
+        },
         intro: s(v.intro),
         tasks: toStrings(v.tasks),
-        times: rows<{ time: unknown; label: unknown }>(v.times).map((t) => ({ time: s(t.time), label: s(t.label) })),
+        times: rows<{ time: unknown; label: unknown }>(v.times).map((t) => ({
+          time: s(t.time),
+          label: s(t.label),
+        })),
         dua: { title: s(v.duaTitle), text: s(v.duaText) },
         // ربط اليوم بدرس الأكاديمية ليس محتوى تحريرياً، فيبقى كما هو في الشيفرة
-        lesson: DAYS.find((d) => d.id === i.id)?.lesson ?? { track: "", lesson: "", title: "" },
+        lesson: DAYS.find((d) => d.id === i.id)?.lesson ?? {
+          track: "",
+          lesson: "",
+          title: "",
+        },
       } satisfies GuideDay;
     }),
   );
 }
 
-export type GuideDua = { title: string; when: string; text: string; source?: string };
+export function useGuideDays(): GuideDay[] {
+  return useCms(selectGuideDays);
+}
 
-export function useGuideDuas(): GuideDua[] {
-  return useCms((state) =>
+export type GuideDua = {
+  title: string;
+  when: string;
+  text: string;
+  source?: string;
+};
+
+export function selectGuideDuas(state: CmsState): GuideDua[] {
+  return cmsMemo("guideDuas", state, () =>
     readLiveCollection(state, "guideDuas")
-      .map((i) => ({ title: s(i.values.title), when: s(i.values.when), text: s(i.values.text), source: s(i.values.source) || undefined }))
+      .map((i) => ({
+        title: s(i.values.title),
+        when: s(i.values.when),
+        text: s(i.values.text),
+        source: s(i.values.source) || undefined,
+      }))
       .filter((d) => d.text),
   );
 }
 
+export function useGuideDuas(): GuideDua[] {
+  return useCms(selectGuideDuas);
+}
+
 // ───────────────────────── التكتلات المعتمدة ─────────────────────────
 
-function mapClusters(state: Parameters<typeof readLiveCollection>[0]): Cluster[] {
-  return readLiveCollection(state, "clusters").map((i) => {
+export function selectClusters(state: CmsState): Cluster[] {
+  return cmsMemo("clusters", state, () =>
+    readLiveCollection(state, "clusters").map((i) => {
       const v = i.values;
       return {
         slug: i.id,
@@ -178,21 +237,34 @@ function mapClusters(state: Parameters<typeof readLiveCollection>[0]): Cluster[]
           rooms: s(v.makkahRooms),
           features: toStrings(v.makkahFeatures),
         },
-        madinah: { hotel: s(v.madinahHotel), area: s(v.madinahArea), distance: s(v.madinahDistance) },
+        madinah: {
+          hotel: s(v.madinahHotel),
+          area: s(v.madinahArea),
+          distance: s(v.madinahDistance),
+        },
         transport: toStrings(v.transport),
         meals: toStrings(v.meals),
         programs: toStrings(v.programs),
         privateRoomDiff: n(v.privateRoomDiff),
         groups: rows<Record<string, unknown>>(v.groups).map(
-          (g) => ({ no: n(g.no), leader: s(g.leader), capacity: n(g.capacity), remaining: n(g.remaining) }) satisfies ClusterGroup,
+          (g) =>
+            ({
+              no: n(g.no),
+              leader: s(g.leader),
+              capacity: n(g.capacity),
+              remaining: n(g.remaining),
+            }) satisfies ClusterGroup,
         ),
-        tone: (v.tone === "gold" || v.tone === "maroon" ? v.tone : "green") as Cluster["tone"],
-    } satisfies Cluster;
-  });
+        tone: (v.tone === "gold" || v.tone === "maroon"
+          ? v.tone
+          : "green") as Cluster["tone"],
+      } satisfies Cluster;
+    }),
+  );
 }
 
 export function useClusters(): Cluster[] {
-  return useCms(mapClusters);
+  return useCms(selectClusters);
 }
 
 /**
@@ -200,23 +272,32 @@ export function useClusters(): Cluster[] {
  * التي تُعاد عرضها مع مخزن العرض نفسه، فتكفيها لقطة المحتوى الحالية.
  */
 export function clustersNow(): Cluster[] {
-  return mapClusters(cms.snapshot());
+  return selectClusters(cms.snapshot());
 }
 
 // ───────────────────────── الأكاديمية ─────────────────────────
 
-const isLecturer = (v: unknown): v is Lecturer["id"] => typeof v === "string" && v in LECTURERS;
+const isLecturer = (v: unknown): v is Lecturer["id"] =>
+  typeof v === "string" && v in LECTURERS;
 
 /** نصوص من اللوحة، وإن تُركت فارغة بقي النص الأصلي */
-const keep = (edited: string[], original: string[]) => (edited.length ? edited : original);
+const keep = (edited: string[], original: string[]) =>
+  edited.length ? edited : original;
 
-function overlayLesson(base: Lesson, values: Record<string, unknown> | undefined): Lesson {
+function overlayLesson(
+  base: Lesson,
+  values: Record<string, unknown> | undefined,
+): Lesson {
   if (!values) return base;
   const faq = rows<Record<string, unknown>>(values.faq)
     .map((f) => ({ q: s(f.q), a: s(f.a) }))
     .filter((f) => f.q);
   const duas = rows<Record<string, unknown>>(values.duas)
-    .map((d) => ({ title: s(d.title), text: s(d.text), source: s(d.source) || undefined }))
+    .map((d) => ({
+      title: s(d.title),
+      text: s(d.text),
+      source: s(d.source) || undefined,
+    }))
     .filter((d) => d.text);
   return {
     ...base,
@@ -237,9 +318,15 @@ function overlayLesson(base: Lesson, values: Record<string, unknown> | undefined
  * بنية المستويات والاختبارات تبقى من الشيفرة؛ النصوص والصور والدروس تأتي من اللوحة،
  * والمؤرشف منها لا يظهر.
  */
-function mapTracks(state: Parameters<typeof readLiveCollection>[0]): Track[] {
+export function selectTracks(state: CmsState): Track[] {
+  return cmsMemo("tracks", state, () => buildTracks(state));
+}
+
+function buildTracks(state: CmsState): Track[] {
   // الدروس المنشورة فقط: غياب الدرس عن هذه القائمة يعني أن الموظف أرشفه
-  const byId = new Map(readLiveCollection(state, "academyLessons").map((i) => [i.id, i.values]));
+  const byId = new Map(
+    readLiveCollection(state, "academyLessons").map((i) => [i.id, i.values]),
+  );
 
   return readLiveCollection(state, "academyTracks").flatMap((t) => {
     const base = TRACKS.find((x) => x.slug === t.id);
@@ -271,8 +358,12 @@ function mapTracks(state: Parameters<typeof readLiveCollection>[0]): Track[] {
         short: s(v.short) || base.short,
         description: s(v.description) || base.description,
         image: s(v.image) || base.image,
-        icon: (typeof v.icon === "string" ? v.icon : base.icon) as Track["icon"],
-        tone: (v.tone === "gold" || v.tone === "maroon" || v.tone === "green" ? v.tone : base.tone) as Track["tone"],
+        icon: (typeof v.icon === "string"
+          ? v.icon
+          : base.icon) as Track["icon"],
+        tone: (v.tone === "gold" || v.tone === "maroon" || v.tone === "green"
+          ? v.tone
+          : base.tone) as Track["tone"],
         gallery: gallery.length ? gallery : base.gallery,
         levels,
       } satisfies Track,
@@ -281,7 +372,7 @@ function mapTracks(state: Parameters<typeof readLiveCollection>[0]): Track[] {
 }
 
 export function useTracks(): Track[] {
-  return useCms(mapTracks);
+  return useCms(selectTracks);
 }
 
 export function useTrack(slug: string): Track | null {
@@ -309,7 +400,9 @@ export function useAcademyStats() {
   return {
     tracks: tracks.length,
     lessons: lessons.length,
-    hours: Math.round(lessons.reduce((sum, r) => sum + r.lesson.minutes, 0) / 60),
+    hours: Math.round(
+      lessons.reduce((sum, r) => sum + r.lesson.minutes, 0) / 60,
+    ),
     learners: 48_215,
   };
 }

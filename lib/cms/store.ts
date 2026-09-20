@@ -263,11 +263,13 @@ export function readLiveItem(s: CmsState, colId: string, itemId: string): Collec
 
 /** الخانات المحجوزة غير المستعملة بعد */
 export function freeSlots(s: CmsState, colId: string): string[] {
-  const def = getCollectionDef(colId);
-  if (!def?.slots) return [];
-  // المسودة هي المرجع: عنصران يُنشآن قبل النشر يجب ألّا يتقاسما رابطاً واحداً
-  const src = draftSource(s, colId);
-  return def.slots.filter((slot) => !src[slot]?.createdAt);
+  return cmsMemo(`freeSlots:${colId}`, s, () => {
+    const def = getCollectionDef(colId);
+    if (!def?.slots) return [];
+    // المسودة هي المرجع: عنصران يُنشآن قبل النشر يجب ألّا يتقاسما رابطاً واحداً
+    const src = draftSource(s, colId);
+    return def.slots.filter((slot) => !src[slot]?.createdAt);
+  });
 }
 
 // ───────────────────────── خطّافات الواجهة ─────────────────────────
