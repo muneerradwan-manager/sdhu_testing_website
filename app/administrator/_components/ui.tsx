@@ -128,12 +128,19 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    <PortalShell wide image={image}>
-      <AdminNav />
-      <div className="mb-8 text-white">
-        <h1 className="font-display text-3xl font-bold md:text-5xl">{title}</h1>
-        {subtitle && <div className="mt-3 max-w-3xl text-lg leading-8 text-white/75">{subtitle}</div>}
-      </div>
+    <PortalShell
+      wide
+      image={image}
+      header={
+        <>
+          <AdminNav />
+          <div className="text-white">
+            <h1 className="font-display text-3xl font-bold md:text-5xl">{title}</h1>
+            {subtitle && <div className="mt-3 max-w-3xl text-lg leading-8 text-white/75">{subtitle}</div>}
+          </div>
+        </>
+      }
+    >
       {children}
     </PortalShell>
   );

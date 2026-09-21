@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeft,
@@ -39,6 +38,7 @@ import { cn, formatUSD, maskNationalId } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, positionOf, useAdmin } from "../../_lib/admin";
 import { blockFor, coordinatorPosting, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
 import { AdminShell, LockedCard, ReceiptCard, SectionTitle } from "../../_components/ui";
+import { ApplicationDetail } from "./detail";
 
 type Step = "citizen" | "consent" | "members" | "booklet" | "adder" | "eligibility" | "office" | "done";
 
@@ -71,6 +71,8 @@ export function AdminPilgrims() {
   const [members, setMembers] = useState<Member[]>([]);
   const [book, setBook] = useState<Book | null>(null);
   const [filed, setFiled] = useState<FiledApplication | null>(null);
+  // An application opened for review inside the desk (read from the platform's records, not the civil registry)
+  const [viewing, setViewing] = useState<string | null>(null);
   const [checks, setChecks] = useState(0);
 
   const mine = useMemo(() => filedBy(admin.id, applications), [admin.id, applications]);
@@ -185,6 +187,10 @@ export function AdminPilgrims() {
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-6">
+          {viewing ? (
+            <ApplicationDetail applicantId={viewing} onBack={() => setViewing(null)} />
+          ) : (
+          <>
           {step !== "done" && <Stepper current={step} />}
 
           <AnimatePresence mode="wait">
@@ -504,8 +510,9 @@ export function AdminPilgrims() {
                   </motion.span>
                   <h2 className="mt-5 font-display text-2xl font-bold text-green-dark md:text-3xl">سُجّل الطلب رقم {filed.number}</h2>
                   <p className="mt-2 leading-8 text-ink-soft">
-                    باسم <b className="text-green-dark">{fullName(citizen)}</b> و{members.length - 1} مرافقين. صار للمواطن حساب على المنصة يدخل إليه برقمه
-                    الوطني ليتابع طلبه بنفسه.
+                    صاحب الطلب <b className="text-green-dark">{fullName(members[0]?.person ?? citizen)}</b> ومعه {members.length - 1} مرافقين ({members.length} أفراد).
+                    {members[0] && members[0].person.id !== citizen.id && <> الطلب في حساب <b>{fullName(citizen)}</b> الذي راجع المكتب.</>} صار للمواطن حساب على
+                    المنصة يدخل إليه برقمه الوطني ليتابع طلبه بنفسه.
                   </p>
 
                   <ReceiptCard
@@ -514,7 +521,8 @@ export function AdminPilgrims() {
                     item={filedFirst ? "رسم التسجيل + الدفعة الأولى" : "رسم تسجيل طلب حج"}
                     amount={fee + filedFirst}
                     lines={[
-                      ["صاحب الطلب", fullName(citizen)],
+                      ["صاحب الطلب", fullName(members[0]?.person ?? citizen)],
+                      ...(members[0] && members[0].person.id !== citizen.id ? ([["في حساب", fullName(citizen)]] as [string, string][]) : []),
                       ["عدد الأفراد", String(members.length)],
                       ["سجّله", `${admin.name} — منسق تقني`],
                     ]}
@@ -524,23 +532,23 @@ export function AdminPilgrims() {
                     <Button size="lg" onClick={reset}>
                       <UserPlus className="size-5" /> سجّل مواطناً آخر
                     </Button>
-                    <Link
-                      href="/login"
-                      className="inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-green-dark px-5 font-bold text-green-dark transition hover:bg-green-dark hover:text-white"
-                    >
-                      افتح حساب الحاج للتأكد <ArrowLeft className="size-5" />
-                    </Link>
+                    <Button size="lg" variant="outline" onClick={() => setViewing(citizen.id)}>
+                      عرض تفاصيل الطلب للتأكد <ArrowLeft className="size-5" />
+                    </Button>
                   </div>
+                  <p className="mt-3 text-xs text-hint">تفتح داخل لوحة الإدارة من سجلات المنصة، دون الدخول إلى حساب الحاج.</p>
                 </Card>
               </Pane>
             )}
           </AnimatePresence>
+          </>
+          )}
         </div>
 
         {/* ── لوحة جانبية: التعيين وما سجّله ── */}
         <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
           <Posting />
-          <FiledList mine={mine} onReset={reset} />
+          <FiledList mine={mine} onReset={() => { setViewing(null); reset(); }} onOpen={setViewing} viewing={viewing} />
         </aside>
       </div>
     </AdminShell>
@@ -613,7 +621,7 @@ function Posting() {
   );
 }
 
-function FiledList({ mine, onReset }: { mine: ReturnType<typeof filedBy>; onReset: () => void }) {
+function FiledList({ mine, onReset, onOpen, viewing }: { mine: ReturnType<typeof filedBy>; onReset: () => void; onOpen: (applicantId: string) => void; viewing: string | null }) {
   return (
     <div className="rounded-3xl border border-gold/35 bg-white p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -634,7 +642,13 @@ function FiledList({ mine, onReset }: { mine: ReturnType<typeof filedBy>; onRese
           {mine.map((a) => {
             const applicant = a.members.find((m) => m.relation === "self")?.person;
             return (
-              <li key={a.number} className="rounded-2xl bg-sand/60 p-3">
+              <li key={a.number}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(a.applicantId)}
+                  className={cn("w-full rounded-2xl p-3 text-right transition hover:bg-gold-light", viewing === a.applicantId ? "bg-gold-light ring-2 ring-gold-dark" : "bg-sand/60")}
+                  title="عرض تفاصيل الطلب"
+                >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-bold text-green-dark">{applicant ? fullName(applicant) : a.applicantId}</span>
                   <span className="font-mono text-xs text-hint" dir="ltr">
@@ -648,6 +662,8 @@ function FiledList({ mine, onReset }: { mine: ReturnType<typeof filedBy>; onRese
                     {a.receipt}
                   </span>
                 </p>
+                <span className="mt-1 block text-xs font-bold text-green-dark">عرض التفاصيل ←</span>
+                </button>
               </li>
             );
           })}

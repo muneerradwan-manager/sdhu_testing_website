@@ -10,6 +10,7 @@ export function PortalShell({
   subtitle,
   aside,
   wide = false,
+  header,
 }: {
   children: ReactNode;
   image?: string;
@@ -17,7 +18,26 @@ export function PortalShell({
   subtitle?: ReactNode;
   aside?: ReactNode;
   wide?: boolean;
+  /**
+   * Header of variable height (a menu, a long subtitle): the green band then ends exactly under it, and
+   * the content always starts on the light background — never half over the band, where green text and
+   * light-on-light controls disappear.
+   */
+  header?: ReactNode;
 }) {
+  if (header) {
+    return (
+      <div className="relative">
+        <div className="relative overflow-hidden bg-green-dark">
+          <Image src={image} alt="" fill priority sizes="100vw" quality={70} className="object-cover opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-green-dark/85 to-green-dark" />
+          <div className="bg-pattern absolute inset-0 opacity-20" />
+          <div className={cn("relative mx-auto px-4 pb-10 pt-36 md:px-8 md:pt-40", wide ? "max-w-7xl" : "max-w-6xl")}>{header}</div>
+        </div>
+        <div className={cn("mx-auto px-4 pb-10 pt-8 md:px-8", wide ? "max-w-7xl" : "max-w-6xl")}>{children}</div>
+      </div>
+    );
+  }
   return (
     <div className="relative">
       <div className="absolute inset-x-0 top-0 -z-10 h-[26rem] overflow-hidden bg-green-dark">
