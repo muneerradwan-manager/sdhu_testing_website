@@ -40,6 +40,16 @@ export const STAFF: StaffUser[] = [
   { id: "abusami", username: "abusami", name: "سامي حلاق (أبو سامي)", title: "الموارد البشرية", travels: false, initials: "س", permissions: ["staff.create"] },
   { id: "nour", username: "nour", name: "نور العابد", title: "محرّرة محتوى المنصة", travels: false, initials: "ن", permissions: ["content.manage"] },
   { id: "bilal", username: "bilal", name: "بلال قاسم", title: "الإعلام والمحتوى", travels: false, initials: "ب", permissions: ["content.manage", "audit.read"] },
+  // ── موظفون إضافيون: مكاتب أخرى (داخل سوريا والخارج) وفرق الميدان ──
+  { id: "hiba", username: "hiba", name: "هبة الأيوبي", title: "إدارة التسجيل — مكتب حلب", travels: false, initials: "ه", permissions: ["registration.review"] },
+  { id: "osama", username: "osama", name: "أسامة الدالاتي", title: "إدارة التسجيل — مكتب تركيا", travels: false, initials: "أ", permissions: ["registration.review"] },
+  { id: "dana", username: "dana", name: "دانة العظمة", title: "إدارة التسجيل — مكتب الأردن", travels: false, initials: "د", permissions: ["registration.review"] },
+  { id: "rima", username: "rima", name: "ريما الجندي", title: "مديرة مكتب حمص", travels: false, initials: "ر", permissions: ["groups.approve"] },
+  { id: "adnan", username: "adnan", name: "عدنان سليمان", title: "المالية — مطابقة شام كاش وإشعارات المصرف", travels: false, initials: "ع", permissions: ["audit.read", "registration.review"] },
+  { id: "samira", username: "samira", name: "د. سميرة الخوري", title: "الفريق الطبي — المدينة المنورة", travels: true, initials: "س", permissions: ["medical", "operations.room"] },
+  { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف الإسكان — البرج (ب)", travels: true, initials: "و", permissions: ["operations.room"] },
+  { id: "nader", username: "nader", name: "نادر قاسم", title: "الإسكان — نطاق القطاع", travels: true, initials: "ن", permissions: ["operations.room"] },
+  { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مديرة موسم مساعدة — لا تملك صلاحية النشر", travels: false, initials: "ل", permissions: ["season.settings", "audit.read"] },
 ];
 
 export const STAFF_PASSWORD = "1448";

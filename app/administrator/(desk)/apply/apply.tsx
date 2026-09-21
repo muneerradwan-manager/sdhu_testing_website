@@ -11,12 +11,10 @@ import {
   Check,
   CircleCheck,
   CircleX,
-  CreditCard,
   FileCheck2,
   FileText,
   FolderLock,
   GripVertical,
-  Landmark,
   Loader2,
   Lock,
   Plus,
@@ -27,6 +25,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/portal/shell";
+import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, StarRating, useToast } from "@/components/ui/widgets";
 import { ageOf } from "@/lib/registry";
@@ -87,7 +86,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const [languages, setLanguages] = useState<string[]>(["العربية"]);
   const [skills, setSkills] = useState<Record<string, boolean>>({ bus: false, "first-aid": true, computer: true });
   const [commit, setCommit] = useState<Record<string, boolean>>({});
-  const [method, setMethod] = useState<"card" | "bank" | null>(null);
+  const [method, setMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
   const timers = useRef<number[]>([]);
 
@@ -99,7 +98,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const history = seasonHistory(admin.id);
   const docsReady = REQUIRED_DOCS.every((k) => uploads[k] === 100) && Object.values(uploads).every((v) => v === 100);
   const allCommitted = COMMITMENTS.every((c) => commit[c.key]);
-  const canNext = [positions.length > 0, docsReady, languages.length > 0, allCommitted, !!method][step];
+  const canNext = [positions.length > 0, docsReady, languages.length > 0, allCommitted, false][step];
 
   const upload = (key: string) => {
     if (uploads[key] !== undefined) return;
@@ -122,7 +121,8 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
     setPositions(next);
   };
 
-  const pay = () => {
+  const pay = (m: PayMethod) => {
+    setMethod(m);
     setPaying(true);
     setTimeout(() => {
       onPaid();
@@ -140,7 +140,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
       });
       const labels = positions.map((k, i) => `${i + 1}) ${POSITIONS.find((x) => x.key === k)?.label}`).join("، ");
       logAdmin(admin.id, "تقديم طلب المشاركة في موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفات: ${labels} — ${documents.length} وثائق — الموافقة على الالتزامات`);
-      logAdmin(admin.id, "تسديد رسم تسجيل الإداري", receipt, `${formatUSD(fee)} — ${method === "bank" ? "المصرف المعتمد" : "دفع إلكتروني"}`);
+      logAdmin(admin.id, "تسديد رسم تسجيل الإداري", receipt, `${formatUSD(fee)} — ${payMethodLabel(m)}`);
       toast({ title: "تم استلام طلب مشاركتك", body: `ورسم التسجيل (الإيصال ${receipt}). سيتم التحقق من الأهلية حتى 10 ربيع الآخر.`, icon: "📨", tone: "success" });
       setPaying(false);
     }, 2300);
@@ -339,7 +339,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
                         <motion.span className="absolute inset-0 rounded-full border-4 border-gold-light border-t-maroon" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} />
                         <span className="absolute inset-0 grid place-items-center text-maroon"><Lock className="size-10" /></span>
                       </div>
-                      <p className="mt-6 font-display text-2xl font-bold text-green-dark">{method === "bank" ? "نطابق إشعار الدفع مع كشف المصرف..." : "نعالج الدفع بأمان..."}</p>
+                      <p className="mt-6 font-display text-2xl font-bold text-green-dark">{method === "bank" ? "نطابق إشعار الدفع مع كشف المصرف..." : "نتحقق من العملية في شام كاش..."}</p>
                       <p className="mt-1 text-hint">لا تغلق الصفحة</p>
                     </div>
                   </div>
@@ -347,24 +347,11 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
                   <>
                     <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">رسم تسجيل الإداري: {formatUSD(fee)}</h2>
                     <p className="mt-2 text-ink-soft">يصدر لك إيصال رقمي، وتظهر استمارة التسجيل موقّعة إلكترونياً في خزنة وثائقك.</p>
-                    <div className="mt-6 grid gap-3 md:grid-cols-2">
-                      {[
-                        { k: "card" as const, icon: CreditCard, label: "الدفع الإلكتروني", d: "بطاقة مصرفية — فوري" },
-                        { k: "bank" as const, icon: Landmark, label: "المصرف المعتمد", d: `الرقم المرجعي ${adminReceipt(admin.id, "A").replace("A", "BANK")}` },
-                      ].map((m) => (
-                        <motion.button key={m.k} whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} type="button" onClick={() => setMethod(m.k)} className={cn("flex items-center gap-4 rounded-3xl border-2 p-5 text-right transition", method === m.k ? "border-maroon bg-maroon/5 shadow-lg" : "border-gold/40 bg-white hover:border-gold-dark")}>
-                          <span className={cn("grid size-14 place-items-center rounded-2xl", method === m.k ? "bg-maroon text-gold" : "bg-sand text-green-dark")}><m.icon className="size-7" /></span>
-                          <span>
-                            <span className="block font-bold text-ink">{m.label}</span>
-                            <span className="block text-xs text-ink-soft" dir="auto">{m.d}</span>
-                          </span>
-                        </motion.button>
-                      ))}
-                    </div>
-                    <div className="mt-6 rounded-2xl bg-sand p-5 text-sm">
+                    <div className="my-6 rounded-2xl bg-sand p-5 text-sm">
                       <div className="flex justify-between py-1"><span className="text-ink-soft">رسم تسجيل الإداري — موسم 1448</span><span className="font-bold">{formatUSD(fee)}</span></div>
                       <div className="flex justify-between border-t border-gold-light py-1 pt-2"><span className="font-bold">الإجمالي</span><span className="font-display text-xl font-bold text-maroon">{formatUSD(fee)}</span></div>
                     </div>
+                    <PayMethods amount={fee} reference={adminReceipt(admin.id, "A")} bankReference={adminReceipt(admin.id, "A").replace("A", "BANK")} cta="ادفع وقدّم الطلب —" onConfirm={pay} />
                   </>
                 )}
               </div>
@@ -382,9 +369,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
                 التالي <ArrowLeft className="size-5" />
               </Button>
             ) : (
-              <Button size="lg" variant="maroon" onClick={pay} disabled={!method}>
-                <Lock className="size-5" /> ادفع {formatUSD(fee)} وقدّم الطلب
-              </Button>
+              <span className="text-sm text-hint">اختر طريقة الدفع في الأعلى</span>
             )}
           </div>
         )}

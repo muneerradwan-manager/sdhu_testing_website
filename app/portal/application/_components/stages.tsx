@@ -19,7 +19,7 @@ export function StageSubmitted({ app }: { app: Application }) {
       <div>
         <p className="font-display text-3xl font-bold text-green-dark">استلمنا طلبك رقم {app.number}</p>
         <p className="mt-2 text-lg leading-8 text-ink-soft">
-          {app.members.length} أفراد — الإيصال <span className="font-mono font-bold" dir="ltr">{app.receipt}</span> — مكتب {app.office}
+          {app.members.length} أفراد — الإيصال <span className="font-mono font-bold" dir="ltr">{app.receipt}</span> — {app.office}
         </p>
         <p className="mt-3 flex items-center gap-2 font-semibold text-gold-dark">
           <CalendarClock className="size-5" /> {app.track === "lottery" ? "طلب في التسجيل على القرعة" : "طلب في التسجيل على القبول المباشر"} — الخطوة التالية: تدقيق البيانات والتحقق من الأهلية
@@ -85,7 +85,7 @@ export function StageEligible({ app }: { app: Application }) {
               يُرتَّب طلبك في القبول المباشر بعمر صاحب الطلب ({ageOf(app.members[0].person)} عاماً)، ويُقبل الأكبر سناً حتى تكتمل {Math.round(SEASON.directShare * 100)}% من الحصة.
             </p>
             <div className="mt-4 flex flex-wrap gap-3 text-sm">
-              <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">إعلان الأعمار المقبولة: {SEASON.windows.direct.announce}</span>
+              <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">اعتماد القوائم: {SEASON.windows.direct.announce}</span>
             </div>
           </>
         )}
@@ -225,11 +225,14 @@ export function StageNotAccepted({ age }: { age: number }) {
           الأعمار المقبولة {SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب {age} عاماً. لا ينتقل طلبك إلى القرعة تلقائياً — التسجيل على القرعة طلب مستقل
           يُفتح {SEASON.windows.lottery.hijri} ({SEASON.windows.lottery.gregorian}).
         </p>
+        <p className="mt-2 rounded-2xl bg-gold/20 p-3 leading-7 text-ink">
+          الدفعة الأولى التي دفعتها مع التسجيل محفوظة لك: إن سجّلت على القرعة تُحسب رصيداً فلا تدفعها مرة أخرى عند ظهور اسمك، وإن لم تسجّل أو لم يظهر اسمك تُعاد إليك.
+        </p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <ButtonLink href="/portal/apply" size="lg" variant="gold">
-            <Ticket className="size-5" /> سجّل على القرعة <ArrowLeft className="size-5" />
+            <Ticket className="size-5" /> سجّل على القرعة بالأفراد أنفسهم <ArrowLeft className="size-5" />
           </ButtonLink>
-          <span className="text-sm text-hint">يمكنك استخدام أفراد طلبك نفسه — القرعة: {SEASON.windows.lottery.draw}</span>
+          <span className="text-sm text-hint">بضغطة واحدة دون إعادة الخطوات: الملخص ثم رسم تسجيل القرعة — القرعة: {SEASON.windows.lottery.draw}</span>
         </div>
       </div>
     </div>

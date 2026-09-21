@@ -4,6 +4,7 @@ import Link from "next/link";
 import { animate, AnimatePresence, motion, useMotionValue, useTransform } from "motion/react";
 import { BedDouble, Calculator, Minus, Plus, QrCode, Receipt, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { installmentsOf, planLabel, seasonPlan } from "@/lib/installments";
 import { SEASON } from "@/lib/season";
 import { cn, formatUSD } from "@/lib/utils";
 
@@ -14,9 +15,11 @@ const FEE_ROWS = [
   { label: "رسم تسجيل الإداري", amount: F.administratorRegistration, unit: "للإداري", when: "عند التقدم للعمل كإداري", group: "رسوم" },
   { label: "رسم تشكيل مجموعة", amount: F.groupFormation, unit: "لكل مجموعة", when: "عند تشكيل المجموعة", group: "رسوم" },
   { label: "رسم تشكيل تكتل", amount: F.clusterFormation, unit: "لكل تكتل", when: "عند تشكيل التكتل", group: "رسوم" },
-  { label: "تكلفة الحج", amount: F.hajjCost, unit: "للفرد", when: "1 – 15 رمضان", group: "تكاليف" },
-  { label: "الهدي", amount: F.hady, unit: "للفرد", when: "1 – 15 رمضان", group: "تكاليف" },
-  { label: "فارق الغرفة الخاصة (مثال)", amount: F.privateRoomDiff, unit: "للغرفة — يحدده التكتل", when: "1 – 15 رمضان", group: "تكاليف" },
+  { label: "تكلفة الحج كاملة", amount: F.hajjCost, unit: "للفرد", when: "على دفعتين هذا الموسم (بقرار الإدارة)", group: "تكاليف" },
+  { label: "الدفعة الأولى", amount: F.firstInstallment, unit: "للفرد", when: "مع التسجيل على القبول المباشر، أو عند ظهور الاسم في القرعة", group: "تكاليف" },
+  { label: "الدفعة الثانية", amount: F.hajjCost - F.firstInstallment, unit: "للفرد", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
+  { label: "الهدي", amount: F.hady, unit: "للفرد", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
+  { label: "فارق الغرفة الخاصة (مثال)", amount: F.privateRoomDiff, unit: "للغرفة — يحدده التكتل", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
 ];
 
 function AnimatedUSD({ value, className }: { value: number; className?: string }) {
@@ -63,9 +66,10 @@ export function FeesCalculator() {
   const [people, setPeople] = useState(4);
   const [hady, setHady] = useState(true);
   const [room, setRoom] = useState(true);
+  const plan = seasonPlan();
 
   const lines = [
-    { key: "hajj", label: `تكلفة الحج (${people} × ${formatUSD(F.hajjCost)})`, amount: people * F.hajjCost, show: true },
+    ...installmentsOf(plan, people, "0", F).map((i) => ({ key: i.key, label: `${i.title} — ${i.due}`, amount: i.amount, show: true })),
     { key: "hady", label: `الهدي (${people} × ${formatUSD(F.hady)})`, amount: people * F.hady, show: hady },
     { key: "room", label: "فارق الغرفة الخاصة (غرفة واحدة)", amount: F.privateRoomDiff, show: room },
   ].filter((l) => l.show);
@@ -190,6 +194,8 @@ export function FeesCalculator() {
             )}
           </AnimatePresence>
 
+          <p className="mt-4 rounded-xl bg-white/10 px-3 py-2 text-sm text-white/85">حددت الإدارة لهذا الموسم: {planLabel(plan)}</p>
+
           <div className="mt-4 space-y-2 text-ink">
             <Toggle checked={hady} onChange={setHady} label="الهدي" hint={`${formatUSD(F.hady)} للفرد`} icon={Receipt} />
             <Toggle checked={room} onChange={setRoom} label="غرفة خاصة" hint={`فارق ${formatUSD(F.privateRoomDiff)} (مثال — يحدده التكتل)`} icon={BedDouble} />
@@ -215,13 +221,13 @@ export function FeesCalculator() {
 
           <div className="mt-4 flex items-end justify-between rounded-2xl bg-gold p-4 text-ink">
             <span>
-              <span className="block text-xs font-semibold">المجموع المطلوب عند التسديد</span>
+              <span className="block text-xs font-semibold">مجموع التكاليف</span>
               <span className="block text-[11px] text-ink/60">إيصال مستقل لكل تكلفة: {lines.length === 1 ? "إيصال واحد" : lines.length === 2 ? "إيصالان" : `${lines.length} إيصالات`}</span>
             </span>
             <AnimatedUSD value={total} className="font-display text-3xl font-bold" />
           </div>
           <p className="mt-3 text-xs leading-6 text-white/65">
-            رسم التسجيل ({people} × {formatUSD(F.registrationPerPerson)} = {formatUSD(registration)}) يُدفع عند تقديم الطلب وليس ضمن هذا المجموع.
+            رسم التسجيل ({people} × {formatUSD(F.registrationPerPerson)} = {formatUSD(registration)}) يُدفع عند تقديم الطلب وليس ضمن هذا المجموع. في القبول المباشر تُدفع الأولى معه، وفي القرعة عند ظهور الاسم.
           </p>
         </div>
       </div>

@@ -9,32 +9,29 @@ import { actions, useStore, type AdminProfile } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
 
-export type DemoAdminMode = "start" | "field" | "tech";
+/**
+ * "done" = finished the whole journey (passed, group approved, contracts signed) so every screen of the
+ * role shows; "start" = a fresh file that has not begun. "field" and "tech" are older names for "done".
+ */
+export type DemoAdminMode = "start" | "done" | "field" | "tech";
 
-export const DEMO_ADMINS: { id: string; phone: string; title: string; note: string; mode: DemoAdminMode }[] = [
-  {
-    id: "01033300871",
-    phone: "0944271449",
-    title: "أحمد سليمان الحمصي — رئيس مجموعة",
-    note: "36 عاماً — مدرّس من دمشق — معاون رئيس مجموعة في 1446، يريد رئاسة مجموعة يشكّلها بنفسه",
-    mode: "start",
-  },
-  {
-    id: "01033300872",
-    phone: "0944272449",
-    title: "ياسر عبد الله العبد الله — معاون",
-    note: "40 عاماً — يتقدم لصفة معاون رئيس مجموعة",
-    mode: "start",
-  },
-  {
-    id: "01033300874",
-    phone: "0944274449",
-    title: "سامر نبيل نجار — منسق تقني",
-    note: "31 عاماً — منسق تقني معيَّن في المجموعة 27 من تكتل النور، يسجّل الحجاج عن المواطنين من مكتب الفرع. يفتح على مكتب التسجيل وفيه طلبان مسجّلان.",
-    mode: "tech",
-  },
+export type DemoAdmin = { id: string; phone: string; position: string; title: string; note: string; mode: "start" | "done" };
+
+/** Twelve demo administrators: two for each role — one finished, one not started */
+export const DEMO_ADMINS: DemoAdmin[] = [
+  { id: "01033300881", phone: "0944281449", position: "cluster-head", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل", note: "58 عاماً — رئيس تكتل النور منذ 1440. أنهى رحلته: ناجح، والتكتل ومجموعاته معتمدة." },
+  { id: "01033300882", phone: "0944282449", position: "cluster-head", mode: "start", title: "نبيل الساعاتي — رئيس تكتل", note: "54 عاماً — يتقدم لرئاسة تكتل لأول مرة. ملف جديد لم يبدأ." },
+  { id: "01033300883", phone: "0944283449", position: "cluster-deputy", mode: "done", title: "بسام درويش — معاون رئيس تكتل", note: "51 عاماً — معاون تكتل النور. أنهى رحلته حتى الميدان." },
+  { id: "01033300884", phone: "0944284449", position: "cluster-deputy", mode: "start", title: "وليد القصاب — معاون رئيس تكتل", note: "45 عاماً — ملف جديد لم يبدأ." },
+  { id: "01033300871", phone: "0944271449", position: "group-head", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — رئيس المجموعة 27 من تكتل النور. أنهى رحلته: يستلم العائلات التي سجّلها منسق مجموعته ويفتح التجمّعات." },
+  { id: "01033300885", phone: "0944285449", position: "group-head", mode: "start", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — يريد رئاسة مجموعة يشكّلها بنفسه. ملف جديد لم يبدأ." },
+  { id: "01033300872", phone: "0944272449", position: "group-deputy", mode: "done", title: "ياسر عبد الله — معاون رئيس مجموعة", note: "40 عاماً — معاون المجموعة 27. أنهى رحلته: الحضور والتجمّع والوجبات الخاصة." },
+  { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون رئيس مجموعة", note: "34 عاماً — ملف جديد لم يبدأ." },
+  { id: "01033300874", phone: "0944274449", position: "tech", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق المجموعة 27. يسجّل طلبات الحج في مكتب دمشق (مباشر أو قرعة)، وفي مرحلة التفويج يسجّل في مجموعته من يختارها ويوقّع معه العقد، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
+  { id: "01033300887", phone: "0944287449", position: "tech", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص. ملف جديد لم يبدأ." },
+  { id: "01033300873", phone: "0944273449", position: "guide-m", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه المجموعة 27. أنهى رحلته: الدروس والمناسك." },
+  { id: "01033300888", phone: "0944288449", position: "guide-m", mode: "start", title: "عبد الغني الطباع — موجّه ديني", note: "43 عاماً — ملف جديد لم يبدأ." },
 ];
-
 /** التكتل والمجموعة اللذان عُيّن فيهما المنسق التقني في هذا العرض */
 export const TECH_POSTING = { clusterId: "al-nour", groupNumber: 27 };
 
@@ -51,11 +48,11 @@ export function isTechCoordinator(p: AdminProfile | undefined) {
 export const POSITIONS = [
   { key: "cluster-head", label: "رئيس تكتل", desc: "يشرف على كل مجموعات التكتل، ويمثّله أمام الإدارة." },
   { key: "cluster-deputy", label: "معاون رئيس تكتل", desc: "ينوب عن رئيس التكتل ويتابع النقل والإسكان على مستواه." },
-  { key: "group-head", label: "رئيس مجموعة", desc: "يقود مجموعة حتى 50 حاجاً: الانتساب، التجمّعات، الإعلانات، التقرير اليومي." },
+  { key: "group-head", label: "رئيس مجموعة", desc: "يقود مجموعة حتى 50 حاجاً: استلام الحجاج المسجّلين فيها، التجمّعات، الإعلانات، التقرير اليومي." },
   { key: "group-deputy", label: "معاون رئيس مجموعة", desc: "الحضور والتجمّع وتوزيع الوجبات الخاصة." },
   { key: "guide-m", label: "موجّه ديني", desc: "الدروس والمناسك والإجابة عن الأسئلة الشرعية." },
   { key: "guide-f", label: "موجّهة دينية", desc: "الإرشاد الديني للحاجّات ومتابعة شؤونهن." },
-  { key: "tech", label: "منسق تقني", desc: "يساعد الحجاج في التطبيق ويتابع الإشعارات والبطاقات الرقمية." },
+  { key: "tech", label: "منسق تقني", desc: "يسجّل طلبات الحج في مكتبه، ويسجّل في مجموعته من يختارها في مرحلة التفويج، ويأخذ ملفاتهم الصحية." },
 ] as const;
 
 export const DOCUMENTS = [
@@ -92,7 +89,7 @@ export const ADMIN_CALENDAR = [
   { hijri: "10 جمادى الأولى", title: "النتيجة النهائية وإعلان الناجحين", detail: "الكتابي 60% + الشفهي 40% — النجاح من 70" },
   { hijri: "11 – 25 جمادى الأولى", title: "طلبات تشكيل التكتلات والمجموعات", detail: "رسم تشكيل المجموعة 200 $ — اعتماد مدير المكتب" },
   { hijri: "1 جمادى الآخرة", title: "إعلان المجموعات المعتمدة والعقود", detail: "توقيع إلكتروني ومصادقة الإدارة" },
-  { hijri: "2 شعبان", title: "فتح باب الانتساب للحجاج المقبولين", detail: "قبول الطلبات حتى السعة المعتمدة" },
+  { hijri: "2 – 25 شعبان", title: "مرحلة التفويج: تسجيل الحجاج في المجموعات", detail: "يختار الحاج المجموعة من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد" },
   { hijri: "24 ذو القعدة", title: "السفر مع الحجاج", detail: "الميدان: التجمّعات والإعلانات والتقارير" },
 ] as const;
 
@@ -157,7 +154,7 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0): JourneySt
     { key: "group", title: "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق والتكتل ورسم 200 $", done: !!g?.feePaidAt },
     { key: "approval", title: "اعتماد مدير المكتب", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "مراجعة ماهر ثم اعتماد مازن", done: !!g?.approvedAt },
     { key: "contracts", title: "توقيع العقود", date: "جمادى الآخرة", href: "/administrator/group", detail: g?.contractSignedAt ? "موقّعة ومصادق عليها" : "المجموعة ↔ التكتل، والفريق", done: !!g?.contractSignedAt },
-    { key: "requests", title: "طلبات الانتساب", date: "من 2 شعبان", href: "/administrator/requests", detail: joinCount ? `${joinCount} قرارات متخذة` : "قبول الحجاج حتى السعة", done: joinCount > 0 },
+    { key: "requests", title: "استلام حجاج المجموعة", date: "من 2 شعبان", href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "يسجّلهم منسق المجموعة + ملفات صحية", done: joinCount > 0 },
     { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "أول تجمّع أُغلق — انطلقنا" : "التجمّعات والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;
@@ -207,12 +204,13 @@ export function demoAdminLogin(
   const now = Date.now();
   if (!existing) actions.upsertAdmin(id, { createdAt: now, phone: demo?.phone ?? `0944${id.slice(-6)}` });
   const min = 60_000;
-  // المنسق التقني: يبدأ العرض وملفه مكتمل حتى آخر مرحلة، فتُفتح له طلبات الانتساب والميدان
-  if (mode === "tech" || mode === "field") {
+  // ملف مكتمل حتى آخر مرحلة، فتظهر كل شاشات الصفة: حجاج المجموعة والملفات الصحية والميدان
+  if (mode !== "start") {
     const { answers, written } = passedExam();
-    const tech = mode === "tech";
+    const position = demo?.position ?? "group-head";
+    const tech = position === "tech";
     actions.upsertAdmin(id, {
-      positions: tech ? ["tech", "group-head"] : ["group-head", "cluster-deputy"],
+      positions: tech ? ["tech", "group-head"] : position === "group-head" ? ["group-head", "cluster-deputy"] : [position],
       languages: ["العربية", "الإنجليزية"],
       skills: tech ? ["computer", "first-aid"] : ["first-aid", "computer"],
       documents: DOCUMENTS.map((d) => d.key),
@@ -240,7 +238,7 @@ export function demoAdminLogin(
     actions.adminLogin(id);
     logAdmin(
       id,
-      tech ? "دخول تجريبي (منسق تقني — ملف مكتمل ومجموعة معتمدة)" : "دخول تجريبي (قفز إلى ما بعد اعتماد المجموعة)",
+      `دخول تجريبي (${positionLabelOf(position)} — ملف مكتمل ومجموعة معتمدة)`,
       `الإداري ${id.slice(-3)}`,
     );
     // يفتح مكتب التسجيل على مثال كامل: طلبان سبق أن سجّلهما
@@ -250,6 +248,10 @@ export function demoAdminLogin(
   actions.adminLogin(id);
   logAdmin(id, "دخول تجريبي إلى حساب الإداري", `الإداري ${id.slice(-3)}`);
   return null;
+}
+
+function positionLabelOf(key: string) {
+  return POSITIONS.find((p) => p.key === key)?.label ?? key;
 }
 
 /** Event-handler timestamp helper (keeps the React Compiler purity check happy in large handlers) */

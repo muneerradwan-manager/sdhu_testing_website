@@ -86,7 +86,7 @@ export function ReviewBanner({ app, review, sessionId }: { app: Application; rev
               name: fullName(applicant.person),
               kind: "complaint",
               severity: "medium",
-              location: `طلب ${app.number} — مكتب ${app.office}`,
+              location: `طلب ${app.number} — ${app.office}`,
               text: `${APPEAL_TAG}: ${text.trim()}`,
               assignee: "رنا حداد",
             });

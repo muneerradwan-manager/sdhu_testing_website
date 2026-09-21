@@ -71,6 +71,7 @@ export default function PortalHome() {
       }
       subtitle="هذا ملفك الدائم في منصة الحج الوطنية. يبقى معك عبر المواسم."
     >
+      <DraftAndInvitations sessionId={sessionId} hasApplication={!!app} />
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
         {/* Profile */}
         <Card className="md:p-8">
@@ -240,5 +241,89 @@ export default function PortalHome() {
         </div>
       </div>
     </PortalShell>
+  );
+}
+
+/**
+ * طلب لم يُقدَّم بعد، وطلبات الموافقة. صاحب الطلب يرى أين وصل ومن وافق، ويتابع من الخطوة نفسها؛ ومن
+ * أُضيف إلى طلب غيره يجد الدعوة هنا فيوافق أو يعتذر، فيظهر ردّه عند صاحب الطلب فوراً.
+ */
+function DraftAndInvitations({ sessionId, hasApplication }: { sessionId: string; hasApplication: boolean }) {
+  const toast = useToast();
+  const drafts = useStore((s) => s.drafts);
+  const draft = hasApplication ? undefined : drafts[sessionId];
+  const invitations = Object.entries(drafts).filter(([owner, d]) => owner !== sessionId && d.consents[sessionId]);
+  if (!draft && !invitations.length) return null;
+
+  const waiting = draft ? Object.values(draft.consents).filter((c) => c.status !== "approved") : [];
+  const approved = draft ? Object.values(draft.consents).filter((c) => c.status === "approved").length : 0;
+  const total = draft ? Object.keys(draft.consents).length : 0;
+
+  return (
+    <div className="mb-6 space-y-4">
+      {draft && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-4 rounded-[2rem] border-2 border-gold-dark/50 bg-gold/15 p-5">
+          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gold text-ink">
+            <NotebookTabs className="size-7" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-xl font-bold text-green-dark">لديك طلب حج لم يُقدَّم بعد</p>
+            <p className="text-sm leading-7 text-ink-soft">
+              {draft.members.length} أفراد — محفوظ تلقائياً{" "}
+              {new Intl.DateTimeFormat("ar-SY-u-nu-latn", { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(draft.updatedAt)}.
+              {total > 0 && (waiting.length ? ` وافق ${approved} من ${total}، وننتظر الباقين.` : " وافق جميع الأفراد — يمكنك المتابعة إلى الدفع.")}
+            </p>
+          </div>
+          <ButtonLink href="/portal/apply" size="lg">
+            متابعة الطلب <ArrowLeft className="size-5" />
+          </ButtonLink>
+        </motion.div>
+      )}
+      {invitations.map(([owner, d]) => {
+        const c = d.consents[sessionId];
+        const ownerPerson = getPerson(owner);
+        const applicant = d.members.find((m) => m.relation === "self")?.person;
+        return (
+          <motion.div key={owner} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border-2 border-green-dark/30 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start gap-4">
+              <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-green-dark text-gold">
+                <HeartHandshake className="size-7" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-xl font-bold text-green-dark">
+                  {ownerPerson ? fullName(ownerPerson) : "أحد أقاربك"} أضافك إلى طلب حج
+                </p>
+                <p className="text-sm leading-7 text-ink-soft">
+                  صاحب الطلب: {applicant ? fullName(applicant) : "—"} — الأفراد: {d.members.map((m) => m.person.firstName).join("، ")} — {d.track === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}
+                </p>
+              </div>
+              {c.status === "pending" ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => {
+                      actions.respondConsent(owner, sessionId, "approved", Date.now());
+                      toast({ title: "شكراً، سُجّلت موافقتك", body: "تصل فوراً إلى صاحب الطلب.", icon: "✅", tone: "success" });
+                    }}
+                  >
+                    <BadgeCheck className="size-4" /> أوافق على الانضمام
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      actions.respondConsent(owner, sessionId, "declined", Date.now());
+                      toast({ title: "سُجّل اعتذارك", body: "يصل إلى صاحب الطلب ليعدّل طلبه.", icon: "↩️" });
+                    }}
+                  >
+                    أعتذر
+                  </Button>
+                </div>
+              ) : (
+                <Badge tone={c.status === "approved" ? "green" : "maroon"}>{c.status === "approved" ? "وافقت" : "اعتذرت"}</Badge>
+              )}
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
   );
 }

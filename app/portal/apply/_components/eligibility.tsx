@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, CircleMinus, HeartPulse, RefreshCw, UserPlus, UserRoundCog, UserRoundX, Users, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, CircleMinus, Ticket, UserPlus, UserRoundCog, UserRoundX, Users, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ageOf, relationLabel } from "@/lib/registry";
@@ -28,13 +28,14 @@ export function EligibilityCheck({
   onRemove,
   onAddPerson,
   onFixCompanion,
-  onFixHealth,
-  onClearTerminal,
   onChangeApplicant,
+  onSwitchToLottery,
 }: {
   result: EligibilityResult;
   members: Member[];
   rules: SeasonRules;
+  /** Direct acceptance, applicant below the accepted age: keep everything and register for the lottery instead */
+  onSwitchToLottery?: () => void;
   /** Row-by-row reveal on the first check; after a fix the new result shows at once */
   animate?: boolean;
   onContinue: () => void;
@@ -42,9 +43,6 @@ export function EligibilityCheck({
   onAddPerson: () => void;
   /** Re-pick the dedicated companion of this elderly member */
   onFixCompanion: (elderlyId: string) => void;
-  onFixHealth: () => void;
-  /** The health declaration was ticked by mistake */
-  onClearTerminal: (id: string) => void;
   onChangeApplicant: () => void;
 }) {
   const totalRows = result.members.reduce((n, m) => n + m.checks.length, 0) + result.general.length;
@@ -63,7 +61,7 @@ export function EligibilityCheck({
   return (
     <Question
       title={done ? (result.eligible ? "جميع أفراد الطلب مستوفون للشروط" : "هناك ملاحظات تحتاج إلى تعديل") : "نطبّق شروط موسم 1448 على كل فرد..."}
-      hint={done ? (result.eligible ? "يمكنك المتابعة إلى الموافقات والوثائق والدفع." : "لن يُقبل الطلب بهذه الحالة. اختر أحد الحلول المقترحة أدناه.") : "شروط ثابتة، وشروط تضبطها الإدارة بسنة الميلاد."}
+      hint={done ? (result.eligible ? "يمكنك المتابعة إلى موافقة المرافقين ثم الدفع. الجواز والصورة والمعلومات الصحية تُطلب بعد القبول." : "لن يُقبل الطلب بهذه الحالة. اختر أحد الحلول المقترحة أدناه.") : "شروط ثابتة، وشروط تضبطها الإدارة بسنة الميلاد."}
       speak={done ? (result.eligible ? "جميع أفراد الطلب مستوفون للشروط" : "هناك ملاحظات تحتاج إلى تعديل") : undefined}
     >
       <div className="space-y-4">
@@ -140,9 +138,8 @@ export function EligibilityCheck({
                 onRemove={onRemove}
                 onAddPerson={onAddPerson}
                 onFixCompanion={onFixCompanion}
-                onFixHealth={onFixHealth}
-                onClearTerminal={onClearTerminal}
                 onChangeApplicant={onChangeApplicant}
+                onSwitchToLottery={onSwitchToLottery}
               />
             )}
           </motion.div>
@@ -163,18 +160,16 @@ function Fixes({
   onRemove,
   onAddPerson,
   onFixCompanion,
-  onFixHealth,
-  onClearTerminal,
   onChangeApplicant,
+  onSwitchToLottery,
 }: {
   result: EligibilityResult;
   members: Member[];
   rules: SeasonRules;
+  onSwitchToLottery?: () => void;
   onRemove: (id: string) => void;
   onAddPerson: () => void;
   onFixCompanion: (elderlyId: string) => void;
-  onFixHealth: () => void;
-  onClearTerminal: (id: string) => void;
   onChangeApplicant: () => void;
 }) {
   const applicant = members.find((m) => m.relation === "self");
@@ -255,22 +250,22 @@ function Fixes({
                       <UserRoundCog className="size-4" /> اختر مرافقاً {m.person.gender === "F" ? "لها" : "له"}
                     </Button>
                   )}
+                  {f.key === "direct-age" && onSwitchToLottery && (
+                    <Button size="sm" onClick={onSwitchToLottery}>
+                      <Ticket className="size-4" /> التسجيل على القرعة بدلاً من ذلك
+                    </Button>
+                  )}
+                  {f.key === "direct-age" && (
+                    <Button size="sm" variant="outline" onClick={onAddPerson}>
+                      <UserPlus className="size-4" /> إضافة والد أو والدة (يصبح صاحب الطلب)
+                    </Button>
+                  )}
                   {f.key === "hajj-before" && m.person.gender === "M" && (
                     <Button size="sm" onClick={onAddPerson}>
                       <UserPlus className="size-4" /> أضف والدته أو زوجته
                     </Button>
                   )}
-                  {f.key === "terminal" && (
-                    <>
-                      <Button size="sm" onClick={() => onClearTerminal(m.person.id)}>
-                        <RefreshCw className="size-4" /> غير مصاب — كان خطأً في الإقرار
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={onFixHealth}>
-                        <HeartPulse className="size-4" /> مراجعة الإقرار الصحي
-                      </Button>
-                    </>
-                  )}
-                  {isSelf ? (
+                  {f.key === "direct-age" ? null : isSelf ? (
                     (f.key === "applicant-age" || FIXED_KEYS.has(f.key) || f.key === "hajj-before") && (
                       <Button size="sm" variant="outline" onClick={onChangeApplicant}>
                         <UserRoundCog className="size-4" /> تقديم الطلب باسم شخص آخر

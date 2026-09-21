@@ -33,7 +33,7 @@ import { useToast } from "@/components/ui/widgets";
 import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { ADMIN_CALENDAR, DEMO_ADMINS, demoAdminLogin } from "../_lib/admin";
+import { ADMIN_CALENDAR, DEMO_ADMINS, POSITIONS, demoAdminLogin } from "../_lib/admin";
 
 const ROLES: { level: string; items: { title: string; text: string; icon: LucideIcon }[]; tone: string }[] = [
   {
@@ -48,7 +48,7 @@ const ROLES: { level: string; items: { title: string; text: string; icon: Lucide
     level: "مستوى المجموعة",
     tone: "from-green-dark to-green",
     items: [
-      { title: "رئيس مجموعة", text: "يقود حتى 50 حاجاً: الانتساب والتجمّعات والإعلانات والتقرير اليومي.", icon: UsersRound },
+      { title: "رئيس مجموعة", text: "يقود حتى 50 حاجاً يختارون مجموعته ويسجّلهم منسقها: التجمّعات والإعلانات والتقرير اليومي.", icon: UsersRound },
       { title: "معاون رئيس مجموعة", text: "الحضور والتجمّع وتوزيع الوجبات الخاصة.", icon: ClipboardCheck },
     ],
   },
@@ -65,7 +65,7 @@ const ROLES: { level: string; items: { title: string; text: string; icon: Lucide
 const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
   { title: "التأهيل", text: "طلب مشاركة، أهلية، امتحان كتابي على المنصة، وشفهي أمام لجنة.", icon: GraduationCap },
   { title: "التشكيل", text: "الناجحون يشكّلون مجموعاتهم بأنفسهم، ويعتمدها مدير المكتب.", icon: FileSignature },
-  { title: "التحضير", text: "تدريب إلزامي، قبول طلبات الانتساب، ومراجعة الاحتياجات الخاصة.", icon: HandHeart },
+  { title: "التحضير", text: "تدريب إلزامي، استلام الحجاج المفوَّجين، وتسجيل ملفاتهم الصحية.", icon: HandHeart },
   { title: "الميدان", text: "تجمّعات بمسح البطاقة، إعلانات، بلاغات، وتقرير كل ليلة.", icon: MapPinned },
   { title: "التقييم", text: "من الموظفين والحجاج ورئيس التكتل ومؤشرات آلية.", icon: Star },
 ];
@@ -96,11 +96,11 @@ export function AdministratorLanding() {
   const admins = useStore((s) => s.admins);
   const session = useStore((s) => s.adminSessionId);
 
-  const demo = (id: string, mode: "start" | "field") => {
+  const demo = (id: string, mode: "start" | "done") => {
     const error = demoAdminLogin({ accounts, admins }, id, mode);
     if (error) return toast({ title: "لا يمكن الدخول كإداري", body: error, tone: "warning", icon: "⛔" });
-    toast({ title: "دخول تجريبي سريع", body: mode === "field" ? "قفزنا بك إلى ما بعد اعتماد المجموعة 27." : "ملف إداري جديد لموسم 1448.", icon: "⚡", tone: "success" });
-    router.push(mode === "field" ? "/administrator/requests" : "/administrator/dashboard");
+    toast({ title: "دخول تجريبي سريع", body: mode === "done" ? "ملف مكتمل: ناجح، المجموعة 27 معتمدة والعقود موقّعة." : "ملف إداري جديد لموسم 1448.", icon: "⚡", tone: "success" });
+    router.push(mode === "done" ? "/administrator/requests" : "/administrator/dashboard");
   };
 
   return (
@@ -329,17 +329,18 @@ export function AdministratorLanding() {
               <p className="mt-1 text-ink-soft">حسابات تجريبية من الشؤون المدنية الوهمية — رمز التحقق دائماً 1448.</p>
             </div>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <DemoCard title={DEMO_ADMINS[0].title} note={DEMO_ADMINS[0].note} badge="من البداية" onClick={() => demo(DEMO_ADMINS[0].id, "start")} id={DEMO_ADMINS[0].id} />
-            <DemoCard
-              title="أحمد — بعد اعتماد المجموعة 27"
-              note="قفز مباشر: ناجح، المجموعة معتمدة والعقود موقّعة. جرّب طلبات الانتساب والتجمّع في الميدان."
-              badge="قفز إلى الميدان"
-              onClick={() => demo(DEMO_ADMINS[0].id, "field")}
-              id={DEMO_ADMINS[0].id}
-              gold
-            />
-            <DemoCard title={DEMO_ADMINS[1].title} note={DEMO_ADMINS[1].note} badge="من البداية" onClick={() => demo(DEMO_ADMINS[1].id, "start")} id={DEMO_ADMINS[1].id} />
+          <p className="mt-2 text-sm text-ink-soft">لكل صفة إداريان: الأول أنهى رحلته فترى كل ما يظهر له، والثاني لم يبدأ بعد.</p>
+          <div className="mt-6 space-y-5">
+            {POSITIONS.filter((pos) => DEMO_ADMINS.some((d) => d.position === pos.key)).map((pos) => (
+              <div key={pos.key}>
+                <p className="mb-2 font-bold text-maroon">{pos.label}</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {DEMO_ADMINS.filter((d) => d.position === pos.key).map((d) => (
+                    <DemoCard key={d.id} title={d.title} note={d.note} badge={d.mode === "done" ? "أنهى رحلته" : "لم يبدأ بعد"} onClick={() => demo(d.id, d.mode)} id={d.id} gold={d.mode === "done"} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </Reveal>
       </section>

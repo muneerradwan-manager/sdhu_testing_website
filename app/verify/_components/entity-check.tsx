@@ -272,7 +272,7 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
         ))}
       </dl>
       <div className="flex flex-wrap items-center justify-between gap-3 p-5 md:px-8">
-        <p className="text-sm text-ink-soft">اختيار المجموعة والانتساب متاحان بعد القبول واكتمال الأوراق.</p>
+        <p className="text-sm text-ink-soft">الانضمام في مرحلة التفويج بعد القبول: تتواصل مع المجموعة فيسجّلك منسقها ويوقّع معك العقد.</p>
         <button
           onClick={() => onOpen(c.slug)}
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"

@@ -2,8 +2,12 @@ import { ageOf, fullName } from "@/lib/registry";
 import type { AdminProfile, Application, PostAcceptance } from "@/lib/store";
 import { seeded } from "@/lib/utils";
 
-/** Active members of group 27 before this demo's requests arrive (43 + سليم = 44, + عائلة محمد = 48) */
-export const BASE_ACTIVE = 43;
+/**
+ * Members of group 27 already enrolled before this demo (38 + the three seeded families = 44;
+ * + عائلة محمد الخطيب = 48). Families join in the assignment window only: they read the group
+ * directory, contact the group, and the group's coordinator enrolls them (a family moves as one).
+ */
+export const BASE_ACTIVE = 38;
 
 export type JoinMember = { id: string; name: string; age: number; gender: "M" | "F"; relation: string; needs: string[] };
 export type JoinRequest = {
@@ -11,7 +15,8 @@ export type JoinRequest = {
   real: boolean;
   applicant: string;
   number: string;
-  kind: "request" | "assignment";
+  /** A new enrollment, or a family that moved here from another group */
+  kind: "enrolled" | "transfer";
   receivedLabel: string;
   note?: string;
   members: JoinMember[];
@@ -26,9 +31,9 @@ export const SEED_REQUESTS: JoinRequest[] = [
     real: false,
     applicant: "سليم حسن",
     number: "5130",
-    kind: "assignment",
-    receivedLabel: "إسناد من رنا حداد (إدارة التسجيل) — وافق الحاج من تطبيقه",
-    note: "إسناد لتجميع حجاج حي المزة معاً.",
+    kind: "enrolled",
+    receivedLabel: "سجّله المنسق سامر نجار — قبل يومين",
+    note: "اختار المجموعة ليكون مع جيرانه من حي المزة.",
     members: [{ id: "01011105130", name: "سليم حسن", age: 66, gender: "M", relation: "صاحب الطلب", needs: ["ضغط الدم"] }],
   },
   {
@@ -36,8 +41,8 @@ export const SEED_REQUESTS: JoinRequest[] = [
     real: false,
     applicant: "هشام عبد الكريم السعدي",
     number: "4877",
-    kind: "request",
-    receivedLabel: "طلب انتساب — قبل 5 ساعات",
+    kind: "enrolled",
+    receivedLabel: "سجّله المنسق سامر نجار ووقّع العقد — قبل 5 ساعات",
     members: [
       { id: "01044404877", name: "هشام عبد الكريم السعدي", age: 71, gender: "M", relation: "صاحب الطلب", needs: ["كرسي متحرك", "سكري"] },
       { id: "01044404878", name: "بلال هشام السعدي", age: 38, gender: "M", relation: "ابن — مرافق", needs: [] },
@@ -48,9 +53,9 @@ export const SEED_REQUESTS: JoinRequest[] = [
     real: false,
     applicant: "طارق محمود الحوراني",
     number: "6215",
-    kind: "request",
-    receivedLabel: "طلب انتساب — قبل يوم",
-    note: "أبلغ صاحب الطلب لاحقاً برغبته في الانتقال إلى مجموعة أقاربه (المجموعة 31).",
+    kind: "transfer",
+    receivedLabel: "انتقل من المجموعة 31 بطلبه — سجّله المنسق سامر نجار — قبل يوم",
+    note: "انتقلت العائلة كاملة (3 أفراد) من المجموعة 31 لتكون مع أقاربها.",
     members: [
       { id: "01055506215", name: "طارق محمود الحوراني", age: 52, gender: "M", relation: "صاحب الطلب", needs: [] },
       { id: "01055506216", name: "هالة جميل الشيخ", age: 47, gender: "F", relation: "زوجة", needs: [] },
@@ -71,15 +76,17 @@ const RELATIONS: Record<string, string> = {
 };
 
 export function requestFromApplication(sid: string, app: Application, post: PostAcceptance): JoinRequest {
-  const hours = post.groupRequestedAt ? Math.max(0, Math.round((post.groupRequestedAt - app.submittedAt) / 3_600_000)) : 0;
-  const applicant = app.members[0]?.person;
+  const hours = post.groupApprovedAt ? Math.max(0, Math.round((Date.now() - post.groupApprovedAt) / 3_600_000)) : 0;
+  const applicant = app.members.find((m) => m.relation === "self")?.person ?? app.members[0]?.person;
+  const moved = post.transfers?.at(-1);
+  const when = hours > 0 ? `قبل ${hours} ساعة` : "الآن";
   return {
     id: sid,
     real: true,
     applicant: applicant ? fullName(applicant) : sid,
     number: app.number,
-    kind: "request",
-    receivedLabel: hours > 0 ? `طلب انتساب من بوابة الحاج — قبل ${hours} ساعة` : "طلب انتساب من بوابة الحاج — الآن",
+    kind: moved ? "transfer" : "enrolled",
+    receivedLabel: `${moved ? `انتقل من المجموعة ${moved.from} — ` : ""}سجّله ${post.enrolledBy?.name ?? "المنسق التقني"} ووقّع العقد — ${when}`,
     members: app.members.map((m) => ({
       id: m.person.id,
       name: fullName(m.person),
@@ -91,29 +98,34 @@ export function requestFromApplication(sid: string, app: Application, post: Post
   };
 }
 
-/** Real pilgrim requests for this group that still need a decision */
-export function pendingRealRequests(
-  groupNumber: number,
-  post: Record<string, PostAcceptance>,
-  applications: Record<string, Application>,
-  decisions: Record<string, "accepted" | "rejected">,
-) {
+/** Real families enrolled in this group by its coordinator */
+export function assignedRealFamilies(groupNumber: number, post: Record<string, PostAcceptance>, applications: Record<string, Application>) {
   return Object.entries(post)
-    .filter(([sid, p]) => p.groupNumber === groupNumber && p.groupRequestedAt && !p.groupApprovedAt && !decisions[sid] && applications[sid])
+    .filter(([sid, p]) => p.groupNumber === groupNumber && p.groupApprovedAt && applications[sid])
     .map(([sid, p]) => requestFromApplication(sid, applications[sid], p));
 }
 
+/** Seeded families count as assigned; the leader's acknowledgement does not change membership */
 export function memberCountOf(id: string, applications: Record<string, Application>) {
   const seed = SEED_REQUESTS.find((r) => r.id === id);
   if (seed) return seed.members.length;
   return applications[id]?.members.length ?? 0;
 }
 
-export function activeCount(profile: AdminProfile | undefined, applications: Record<string, Application>) {
-  const accepted = Object.entries(profile?.joinDecisions ?? {}).filter(([, d]) => d === "accepted");
-  return BASE_ACTIVE + accepted.reduce((n, [id]) => n + memberCountOf(id, applications), 0);
+export function activeCount(groupNumber: number | undefined, post: Record<string, PostAcceptance>, applications: Record<string, Application>) {
+  if (groupNumber === undefined) return BASE_ACTIVE;
+  const seeds = SEED_REQUESTS.reduce((n, r) => n + r.members.length, 0);
+  const real = assignedRealFamilies(groupNumber, post, applications).reduce((n, r) => n + r.members.length, 0);
+  return BASE_ACTIVE + seeds + real;
 }
 
+/** Group composition for the capacity board: men, women and elderly (69+) — nobody under 17 travels */
+export function compositionOf(roster: { age: number; gender: "M" | "F" }[]) {
+  const elderly = roster.filter((r) => r.age >= 69).length;
+  const men = roster.filter((r) => r.age < 69 && r.gender === "M").length;
+  const women = roster.filter((r) => r.age < 69 && r.gender === "F").length;
+  return { men, women, elderly };
+}
 // ───────────────────────── Field roster ─────────────────────────
 
 export type RosterEntry = { id: string; name: string; age: number; gender: "M" | "F"; room: string; needs: string[]; real?: boolean; phone: string };
@@ -125,13 +137,14 @@ const LASTS = ["الأحمد", "الحموي", "الدمشقي", "السعدي",
 export const MISSING_ID = "01011105130";
 
 /**
- * 48 pilgrims of group 27: real accepted families from the pilgrim portal first, then stable
- * generated members. سليم حسن is always on the list — he is the one who is late at the muster.
+ * 48 pilgrims of group 27: real assigned families first, then stable generated members.
+ * سليم حسن is always on the list — he is the one who is late at the muster.
  */
-export function buildRoster(profile: AdminProfile | undefined, applications: Record<string, Application>): RosterEntry[] {
+export function buildRoster(profile: AdminProfile | undefined, applications: Record<string, Application>, post: Record<string, PostAcceptance> = {}): RosterEntry[] {
   const real: RosterEntry[] = [];
-  for (const [sid, d] of Object.entries(profile?.joinDecisions ?? {})) {
-    if (d !== "accepted") continue;
+  const groupNumber = profile?.group?.number;
+  for (const [sid, p] of Object.entries(post)) {
+    if (groupNumber === undefined || p.groupNumber !== groupNumber || !p.groupApprovedAt) continue;
     const app = applications[sid];
     if (!app) continue;
     app.members.forEach((m, i) => {

@@ -8,7 +8,6 @@ import {
   BadgeCheck,
   Building2,
   CircleAlert,
-  CreditCard,
   Landmark,
   Loader2,
   MessageSquare,
@@ -28,14 +27,17 @@ import { BookletPicker, type Book } from "@/app/portal/apply/_components/booklet
 import { EligibilityCheck } from "@/app/portal/apply/_components/eligibility";
 import { PersonAdder } from "@/app/portal/apply/_components/person-adder";
 import { PersonChip } from "@/app/portal/apply/_components/ui";
+import { PayMethods } from "@/components/payment/methods";
+import { SeasonPlanNote } from "@/components/payment/plan-picker";
+import { firstPayment, seasonPlan } from "@/lib/installments";
+import { applicationNumberFor } from "@/lib/journey";
 import { useSeason } from "@/lib/season-live";
-import { OFFICES } from "@/lib/season";
 import { ageOf, fullName, isValidNationalId, lookupPerson, type Person } from "@/lib/registry";
-import { evaluate, type Member } from "@/lib/rules";
+import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { useStore } from "@/lib/store";
 import { cn, formatUSD, maskNationalId } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, positionOf, useAdmin } from "../../_lib/admin";
-import { blockFor, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
+import { blockFor, coordinatorPosting, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
 import { AdminShell, LockedCard, ReceiptCard, SectionTitle } from "../../_components/ui";
 
 type Step = "citizen" | "consent" | "members" | "booklet" | "adder" | "eligibility" | "office" | "done";
@@ -68,13 +70,21 @@ export function AdminPilgrims() {
   const [otpError, setOtpError] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [book, setBook] = useState<Book | null>(null);
-  const [office, setOffice] = useState({ governorate: "", office: "" });
   const [filed, setFiled] = useState<FiledApplication | null>(null);
   const [checks, setChecks] = useState(0);
 
   const mine = useMemo(() => filedBy(admin.id, applications), [admin.id, applications]);
-  const result = useMemo(() => evaluate(members, season.rules), [members, season.rules]);
+  const [track, setTrack] = useState<"direct" | "lottery">("direct");
+  // Direct acceptance age is checked here, before the citizen pays anything
+  const result = useMemo(
+    () => evaluate(members, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined),
+    [members, season.rules, track, season.acceptedDirectAge],
+  );
   const fee = members.length * season.fees.registrationPerPerson;
+  // The administration sets the plan for the season — the citizen does not choose it
+  const plan = seasonPlan(season.fees);
+  const first = track === "direct" ? firstPayment(plan, members.length, season.fees) : 0;
+  const [filedFirst, setFiledFirst] = useState(0);
 
   if (!isTechCoordinator(admin.profile)) {
     return (
@@ -97,8 +107,8 @@ export function AdminPilgrims() {
     setOtp("");
     setMembers([]);
     setBook(null);
-    setOffice({ governorate: "", office: "" });
     setFiled(null);
+    setTrack("direct");
     setChecks(0);
   };
 
@@ -124,30 +134,36 @@ export function AdminPilgrims() {
     }
     const p = citizen!;
     setMembers([{ person: p, relation: "self", relationVerified: true, needs: [] }]);
-    setOffice({ governorate: p.governorate, office: OFFICES.find((o) => o.governorate === p.governorate)?.offices[0] ?? "" });
     logAdmin(admin.id, "بدء تسجيل طلب عن مواطن", fullName(p), "بعد تأكيد موافقته برمز تحقق");
     setStep("members");
   };
 
-  const addMember = (m: Member) =>
-    setMembers((ms) => (ms.some((x) => x.person.id === m.person.id) ? ms : [...ms, m]));
+  // صاحب الطلب هو الأكبر سناً: إضافة من هو أكبر من المواطن تنقل الطلب إلى اسمه
+  const addMember = (m: Member) => {
+    if (members.some((x) => x.person.id === m.person.id)) return;
+    const { members: next, moved } = withOldestAsApplicant([...members, m]);
+    setMembers(next);
+    if (moved) toast({ title: `أصبح الطلب باسم ${fullName(moved.person)}`, body: `الأكبر سناً في الطلب (${ageOf(moved.person)} عاماً). يبقى الطلب في حساب ${citizen?.firstName}.`, icon: "👴", tone: "gold" });
+  };
+  const posting = coordinatorPosting();
   const removeMember = (memberId: string) =>
     setMembers((ms) => ms.filter((m) => m.person.id !== memberId).map((m) => (m.companionId === memberId ? { ...m, companionId: undefined } : m)));
   const patchMember = (memberId: string, patch: Partial<Member>) =>
     setMembers((ms) => ms.map((m) => (m.person.id === memberId ? { ...m, ...patch } : m)));
 
-  const submit = (payMethod: "card" | "bank") => {
+  const submit = (payMethod: "shamcash" | "bank") => {
     const receipt = fileApplication({
-      applicant: citizen!,
+      citizen: citizen!,
       members,
-      governorate: office.governorate,
-      office: office.office || OFFICES.find((o) => o.governorate === office.governorate)?.offices[0] || "",
       payMethod,
       feePerPerson: season.fees.registrationPerPerson,
+      track,
+      plan,
       coordinator: { id: admin.id, name: admin.name, position: positionOf(admin.profile) },
       at: nowMs(),
     });
     setFiled(receipt);
+    setFiledFirst(first);
     setStep("done");
     toast({
       title: `سُجّل الطلب ${receipt.number}`,
@@ -382,9 +398,11 @@ export function AdminPilgrims() {
                       setStep("adder");
                     }
                   }}
-                  onFixHealth={() => setStep("members")}
-                  onClearTerminal={(memberId) => patchMember(memberId, { terminalIllness: false })}
                   onChangeApplicant={() => setStep("members")}
+                  onSwitchToLottery={() => {
+                    setTrack("lottery");
+                    toast({ title: "حُوّل الطلب إلى التسجيل على القرعة", body: "رسم التسجيل فقط الآن، والدفعة الأولى عند ظهور الاسم.", icon: "🎟️", tone: "gold" });
+                  }}
                 />
               </Pane>
             )}
@@ -393,56 +411,71 @@ export function AdminPilgrims() {
             {step === "office" && citizen && (
               <Pane key="office">
                 <Card>
-                  <SectionTitle icon={Building2}>مكتب المتابعة ورسم التسجيل</SectionTitle>
-                  <p className="mt-2 leading-8 text-ink-soft">يراجع الحاج هذا المكتب عند الحاجة، ويصدر الإيصال باسمه هو لا باسمك.</p>
+                  <SectionTitle icon={Building2}>نوع التسجيل والدفع</SectionTitle>
+                  <p className="mt-2 leading-8 text-ink-soft">
+                    تسجيل عادي على القبول المباشر أو على القرعة، يتبع مكتبك ({posting.office}). لا يدخل الحاج أي مجموعة الآن: في مرحلة التفويج يختار مجموعته، فإن اختار مجموعتك سجّلته فيها من «حجاج المجموعة».
+                  </p>
 
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                    <Field label="المحافظة">
-                      <select
-                        value={office.governorate}
-                        onChange={(e) => setOffice({ governorate: e.target.value, office: OFFICES.find((o) => o.governorate === e.target.value)?.offices[0] ?? "" })}
-                        className={inputClass}
-                      >
-                        {OFFICES.map((o) => (
-                          <option key={o.governorate} value={o.governorate}>
-                            {o.governorate}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label="المكتب">
-                      <select value={office.office} onChange={(e) => setOffice((o) => ({ ...o, office: e.target.value }))} className={inputClass}>
-                        {(OFFICES.find((o) => o.governorate === office.governorate)?.offices ?? []).map((x) => (
-                          <option key={x} value={x}>
-                            {x}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {(
+                      [
+                        ["direct", "التسجيل على القبول المباشر", "رسم التسجيل + الدفعة الأولى من تكلفة الحج"],
+                        ["lottery", "التسجيل على القرعة", "رسم التسجيل فقط — الدفعة الأولى عند ظهور الاسم"],
+                      ] as const
+                    ).map(([k, label, d]) => {
+                      const tooYoung = k === "direct" && !!members[0] && ageOf(members[0].person) < season.acceptedDirectAge;
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          disabled={tooYoung}
+                          onClick={() => setTrack(k)}
+                          className={cn("rounded-2xl border-2 p-4 text-right transition disabled:cursor-not-allowed disabled:opacity-45", track === k ? "border-green-dark bg-green-dark text-white" : "border-gold/40 bg-white hover:border-gold-dark")}
+                        >
+                          <span className="block font-bold">{label}</span>
+                          <span className={cn("text-xs", track === k ? "text-white/75" : "text-ink-soft")}>
+                            {tooYoung ? `غير متاح: عمر صاحب الطلب ${ageOf(members[0].person)} والقبول المباشر لمن بلغ ${season.acceptedDirectAge} عاماً فأكثر` : d}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
+                  <div className="mt-5">
+                    <SeasonPlanNote people={members.length} fees={season.fees} dueNowLabel={track === "direct" ? "الآن مع رسم التسجيل" : "عند ظهور الاسم في القرعة"} />
+                  </div>
+                  {members[0] && members[0].person.id !== citizen.id && (
+                    <p className="mt-4 rounded-2xl bg-gold/20 p-3 text-sm leading-7 text-ink">
+                      صاحب الطلب: <b>{fullName(members[0].person)}</b> لأنه الأكبر سناً ({ageOf(members[0].person)} عاماً). يبقى الطلب في حساب {citizen.firstName} الذي وافق برمز التحقق.
+                    </p>
+                  )}
 
                   <div className="mt-6 rounded-2xl bg-green-dark p-5 text-white">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm text-white/70">رسم التسجيل</p>
-                        <p className="font-display text-3xl font-bold text-gold">{formatUSD(fee)}</p>
+                        <p className="text-sm text-white/70">المطلوب الآن</p>
+                        <p className="font-display text-3xl font-bold text-gold">{formatUSD(fee + first)}</p>
                       </div>
                       <p className="text-sm text-white/75">
-                        {members.length} × {formatUSD(season.fees.registrationPerPerson)} للفرد
+                        رسم التسجيل {formatUSD(fee)}
+                        {first > 0 && ` + الدفعة الأولى ${formatUSD(first)}`}
                       </p>
                     </div>
                     <p className="mt-3 rounded-xl bg-white/10 p-3 text-xs leading-6 text-white/80">
-                      الرسم يقبضه الفرع من المواطن ويصدر به إيصال رقمي قابل للتحقق. لا يجوز للمنسق قبض أي مبلغ خارج الإيصال.
+                      يدفع المواطن بنفسه عبر شام كاش من هاتفه، أو في المصرف المعتمد ويُرفع إشعار الدفع. لا يقبض المنسق أي مبلغ نقداً، ويصدر إيصال رقمي باسم المواطن.
                     </p>
                   </div>
 
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Button size="lg" onClick={() => submit("card")}>
-                      <CreditCard className="size-5" /> قبض ببطاقة وإصدار الإيصال
-                    </Button>
-                    <Button size="lg" variant="outline" onClick={() => submit("bank")}>
-                      <Receipt className="size-5" /> حوالة مصرفية
-                    </Button>
+                  <div className="mt-6">
+                    <PayMethods
+                      amount={fee + first}
+                      reference={`1448-R-${applicationNumberFor(citizen.id).padStart(6, "0")}`}
+                      bankReference={`1448-BANK-${applicationNumberFor(citizen.id).padStart(6, "0")}`}
+                      cta="تأكيد الدفع وتسجيل الطلب —"
+                      onConfirm={submit}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <Button size="lg" variant="ghost" onClick={() => setStep("eligibility")}>
                       <ArrowRight className="size-5" /> رجوع
                     </Button>
@@ -472,8 +505,8 @@ export function AdminPilgrims() {
                   <ReceiptCard
                     className="mt-7"
                     receipt={filed.receipt}
-                    item="رسم تسجيل طلب حج"
-                    amount={fee}
+                    item={filedFirst ? "رسم التسجيل + الدفعة الأولى" : "رسم تسجيل طلب حج"}
+                    amount={fee + filedFirst}
                     lines={[
                       ["صاحب الطلب", fullName(citizen)],
                       ["عدد الأفراد", String(members.length)],
@@ -561,6 +594,9 @@ function Posting() {
           </li>
           <li className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" /> اسمي يُختم على كل طلب سجّلته
+          </li>
+          <li className="flex gap-2">
+            <UsersRound className="mt-0.5 size-4 shrink-0 text-gold" /> التسجيل هنا لا يضع أحداً في مجموعتي؛ في مرحلة التفويج أسجّل في مجموعتي من يختارها، وأوقّع معه العقد
           </li>
           <li className="flex gap-2">
             <CircleAlert className="mt-0.5 size-4 shrink-0 text-gold" /> لا أقبض أي مبلغ خارج الإيصال الرقمي

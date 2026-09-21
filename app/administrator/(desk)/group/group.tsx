@@ -24,6 +24,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { Card } from "@/components/portal/shell";
+import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, StarRating, useToast } from "@/components/ui/widgets";
 import { clustersNow } from "@/lib/cms/content";
@@ -54,7 +55,7 @@ export function AdminGroup() {
     view === "contracts"
       ? "اعتُمدت مجموعتك. وقّع العقود إلكترونياً لتُفعَّل صلاحياتك كرئيس مجموعة."
       : view === "mine"
-        ? "صلاحياتك تغيّرت تلقائياً: ترى مجموعتك فقط، وتقبل طلبات الانتساب، وتنشر الإعلانات، وتفتح التجمّعات."
+        ? "صلاحياتك تغيّرت تلقائياً: ترى مجموعتك فقط، وتستلم الحجاج المفوَّجين، وتنشر الإعلانات، وتفتح التجمّعات."
         : "يتقدم الناجحون بأنفسهم بطلبات تشكيل المجموعات من 11 إلى 25 جمادى الأولى، وتراجعها الإدارة وتعتمدها وتوقّع العقود.";
 
   return (
@@ -86,6 +87,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const [form, setForm] = useState({ number: existing?.number ?? 27, clusterId: existing?.clusterId ?? "al-nour", capacity: existing?.capacity ?? 50, name: "مجموعة المزة للعائلات وكبار السن" });
   const [invited, setInvited] = useState<number>(existing ? TEAM.length : 0);
   const [inviting, setInviting] = useState(false);
+  const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
   const stage = existing?.requestedAt ? "pay" : "form";
   const cluster = clustersNow().find((c) => c.slug === form.clusterId);
@@ -101,14 +103,15 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
     toast({ title: "أُرسل طلب التشكيل", body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
   };
 
-  const pay = () => {
+  const pay = (m: PayMethod) => {
+    setPayMethod(m);
     setPaying(true);
     setTimeout(() => {
       onPaid();
       const g = admin.profile!.group!;
       const receipt = adminReceipt(admin.id, "G", g.number);
       actions.upsertAdmin(admin.id, { group: { ...g, feePaidAt: Date.now() } });
-      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — المجموعة ${g.number}`);
+      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — المجموعة ${g.number} — ${payMethodLabel(m)}`);
       setPaying(false);
     }, 2200);
   };
@@ -124,7 +127,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
                 <motion.span className="absolute inset-0 rounded-full border-4 border-gold-light border-t-maroon" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} />
                 <span className="absolute inset-0 grid place-items-center text-maroon"><Lock className="size-9" /></span>
               </div>
-              <p className="mt-5 font-display text-2xl font-bold text-green-dark">نعالج الدفع بأمان...</p>
+              <p className="mt-5 font-display text-2xl font-bold text-green-dark">{payMethod === "bank" ? "نطابق إشعار الدفع مع كشف المصرف..." : "نتحقق من العملية في شام كاش..."}</p>
             </div>
           </div>
         ) : (
@@ -134,9 +137,9 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
             <p className="mt-2 text-ink-soft">بعد التسديد يصدر إيصال رقمي، وتظهر «استمارة المجموعة» في خزنة الوثائق.</p>
             <p className="mt-6 font-display text-6xl font-bold text-maroon" dir="ltr">{formatUSD(fee)}</p>
             <p className="mt-1 text-sm text-hint">{clusterName(g.clusterId)} — السعة {g.capacity}</p>
-            <Button size="xl" variant="maroon" className="mt-8" onClick={pay}>
-              <Lock className="size-5" /> ادفع {formatUSD(fee)}
-            </Button>
+            <div className="mt-8 text-right">
+              <PayMethods amount={fee} reference={adminReceipt(admin.id, "G", g.number)} bankReference={adminReceipt(admin.id, "G", g.number).replace("-G-", "-BANK-")} onConfirm={pay} />
+            </div>
           </>
         )}
       </Card>
@@ -523,7 +526,7 @@ function Contracts() {
       actions.upsertAdmin(admin.id, { group: { ...g, contractSignedAt: Date.now() } });
       logAdmin(admin.id, `توقيع عقد انضمام المجموعة ${g.number} إلى التكتل`, clusterName(g.clusterId), "توقيع إلكتروني — مصادقة الإدارة");
       logAdmin(admin.id, `توقيع ميثاق فريق المجموعة ${g.number}`, TEAM.map((t) => t.name).join("، "), "توقيع إلكتروني");
-      toast({ title: "وُقّعت العقود وصودق عليها", body: "تغيّرت صلاحياتك تلقائياً: مجموعتك، الانتساب، الإعلانات، التجمّعات.", icon: "✍️", tone: "success" });
+      toast({ title: "وُقّعت العقود وصودق عليها", body: "تغيّرت صلاحياتك تلقائياً: مجموعتك، حجاجها، الإعلانات، التجمّعات.", icon: "✍️", tone: "success" });
       confetti({ particleCount: 160, spread: 100, origin: { y: 0.45 }, colors: ["#D9C89E", "#AD9E6E", "#00594F", "#672146"] });
     }, 2200);
   };
@@ -575,7 +578,7 @@ function Contracts() {
 const TASKS = [
   { key: "program", t: "تجهيز برنامج المجموعة مع التكتل" },
   { key: "training", t: "إكمال التدريب الإلزامي (6 وحدات)" },
-  { key: "requests", t: "قبول طلبات الانتساب", href: "/administrator/requests" },
+  { key: "requests", t: "استلام الحجاج المفوَّجين", href: "/administrator/requests" },
   { key: "needs", t: "مراجعة الاحتياجات الخاصة" },
   { key: "lessons", t: "خطة الدروس قبل السفر (4 دروس)" },
   { key: "intro", t: "تحضير اللقاء التعريفي (10 ذو القعدة)" },
@@ -586,8 +589,9 @@ function MyGroup() {
   const toast = useToast();
   const season = useSeason();
   const applications = useStore((s) => s.applications);
+  const post = useStore((s) => s.post);
   const g = admin.profile!.group!;
-  const members = activeCount(admin.profile, applications);
+  const members = activeCount(g.number, post, applications);
   const [done, setDone] = useState<string[]>([]);
   const [stars, setStars] = useState(0);
 
@@ -614,7 +618,7 @@ function MyGroup() {
             </div>
           </div>
           <div className="relative mt-6 flex flex-wrap gap-3">
-            <ButtonLink href="/administrator/requests" variant="gold">طلبات الانتساب <ArrowLeft className="size-4" /></ButtonLink>
+            <ButtonLink href="/administrator/requests" variant="gold">حجاج المجموعة <ArrowLeft className="size-4" /></ButtonLink>
             <ButtonLink href="/administrator/field" variant="glass">وضع الميدان</ButtonLink>
           </div>
         </motion.div>
@@ -678,7 +682,7 @@ function MyGroup() {
               );
             })}
           </ul>
-          <p className="mt-4 text-xs text-hint">باب الانتساب يُفتح للحجاج المقبولين في 2 شعبان.</p>
+          <p className="mt-4 text-xs text-hint">تُفتح مرحلة التفويج في 2 شعبان: يسجّل منسق مجموعتك من يختارها من الحجاج المقبولين.</p>
         </Card>
         <Card className="text-center md:p-7">
           <p className="font-bold">هل كانت خطوات التشكيل والرسوم والعقود واضحة؟</p>

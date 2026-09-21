@@ -9,32 +9,39 @@ import { fullName } from "@/lib/registry";
 import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
-import { initialDocuments, passportCaseMember } from "./model";
+import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
+import { SeasonPlanNote } from "@/components/payment/plan-picker";
+import { firstPayment, planLabel, seasonPlan } from "@/lib/installments";
+import { useSeason } from "@/lib/season-live";
+import { formatUSD } from "@/lib/utils";
+import { initialDocuments, receiptBase } from "./model";
 import { applicantOf, logPilgrim, type StepProps } from "./shared";
 
 const INSTRUCTIONS: { title: string; items: string[] }[] = [
   {
     title: "أولاً: المواعيد",
     items: [
-      "تأكيد القبول واستكمال الأوراق واختيار المجموعة: حتى 25 شعبان 1448.",
-      "التسديد وتوقيع العقد: من 1 إلى 15 رمضان 1448.",
+      "تأكيد القبول ورفع الصورة الشخصية والجواز: حتى 25 شعبان 1448. والمقبول بالقرعة يدفع الدفعة الأولى مع التأكيد.",
+      "مرحلة التفويج إلى المجموعات: 2 – 25 شعبان 1448.",
+      "تكلفة الحج هذا الموسم على دفعتين كما حددت الإدارة: الأولى مع التسجيل على القبول المباشر أو عند ظهور الاسم في القرعة، والثانية عند الانضمام إلى مجموعة.",
       "من لا يؤكد أو لا يسدد في المهلة يُحوَّل مقعده إلى قائمة الاحتياط تلقائياً.",
     ],
   },
   {
     title: "ثانياً: الوثائق",
     items: [
+      "بعد التأكيد ترفع لكل فرد: الصورة الشخصية وجواز السفر. لم يُطلب شيء منهما عند التسجيل.",
       "يجب أن يكون جواز السفر سارياً 6 أشهر على الأقل بعد موعد العودة (23 ذو الحجة 1448).",
-      "شهادة لقاح الحمى الشوكية إلزامية لكل حاج، وتكون سارية خلال 3 سنوات.",
-      "لقاح الإنفلونزا الموسمية موصى به لكبار السن.",
-      "التقرير الطبي إلزامي لمن تجاوز 70 عاماً أو لديه مرض مزمن أو احتياج خاص.",
+      "لا تُطلب أي وثيقة طبية قبل مرحلة التفويج. بعد الانضمام إلى مجموعة تُرفع شهادات اللقاحات (كورونا والحمى الشوكية إلزاميان، والإنفلونزا لمن بلغ 60 عاماً) والتقرير الطبي.",
     ],
   },
   {
-    title: "ثالثاً: المجموعة والتكاليف",
+    title: "ثالثاً: المجموعة والتكاليف والملف الطبي",
     items: [
-      "لكل حاج مجموعة فعّالة واحدة في الموسم، ويُرسل طلب الانتساب لأفراد الطلب العائلي معاً.",
-      "تكلفة الحج والهدي وفارق الغرفة الخاصة تُسدَّد كلٌّ منها بإيصال مستقل.",
+      "في مرحلة التفويج تتصفّح دليل المجموعات على المنصة وتتواصل مع المجموعة التي تناسبك، فيسجّلك منسقها فيها وتوقّعان عقد الحاج مع المجموعة. لا تنضم إلى أي مجموعة قبل ذلك، حتى لو سجّل طلبك منسق تقني.",
+      "يمكن الانتقال بين المجموعات خلال مرحلة التفويج، والطلب العائلي ينتقل كاملاً أو لا ينتقل.",
+      "لكل دفعة من تكلفة الحج، وللهدي وفارق الغرفة الخاصة، إيصال مستقل.",
+      "الوثائق الطبية تُطلب بعد الانضمام إلى مجموعة ودفع الدفعة المستحقة عندها، ويسجّل منسق المجموعة معلوماتك الصحية.",
       "لا تدفع أي مبلغ لجهة غير معتمدة. الإيصالات الرسمية فقط تصدر من المنصة.",
     ],
   },
@@ -57,25 +64,20 @@ export function StepConfirm({ app, post, sessionId }: StepProps) {
   const readAll = progress >= 0.98;
   const applicant = applicantOf(app);
 
+  if (post.confirmedAt && !app.firstPaid) return <FirstInstallment app={app} />;
+
   const confirm = () => {
     setSigning(true);
     setTimeout(() => {
       actions.setPost(sessionId, { confirmedAt: Date.now(), documents: { ...initialDocuments(app.members), ...post.documents } });
       logPilgrim(app, "تأكيد القبول والتوقيع على التعليمات", `${app.members.length} أفراد`);
-      toast({ title: "تم تأكيد قبولك", body: "بقي 20 يوماً على مهلة استكمال الأوراق واختيار المجموعة.", icon: "✅", tone: "success" });
-      const elder = passportCaseMember(app.members);
-      if (elder) {
-        setTimeout(
-          () => toast({ title: `وثيقة جواز السفر لـ${fullName(elder.person)} مرفوضة`, body: "صلاحية الجواز أقل من 6 أشهر بعد العودة. يرجى التجديد والرفع من جديد.", icon: "⚠️", tone: "warning" }),
-          1400,
-        );
-      }
+      toast({ title: "تم تأكيد قبولك", body: app.firstPaid ? "ارفع الآن الصورة الشخصية والجواز لكل فرد — المهلة حتى 25 شعبان." : "بقي أن تدفع الدفعة الأولى.", icon: "✅", tone: "success" });
     }, 1400);
   };
 
   return (
     <Question
-      step="الخطوة 1 من 5"
+      step="الخطوة 1 من 6"
       title="أكّد قبول الحج لجميع أفراد الطلب"
       hint="اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً."
       speak="أكّد قبول الحج لجميع أفراد الطلب. اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً. إذا لم تؤكد في المهلة يُحوَّل مقعدك إلى قائمة الاحتياط."
@@ -165,6 +167,41 @@ export function StepConfirm({ app, post, sessionId }: StepProps) {
           </>
         )}
       </Button>
+    </Question>
+  );
+}
+
+/**
+ * المقبول بالقرعة: يدفع الآن الدفعة الأولى (أو التكلفة كاملة إن قررت الإدارة دفعة واحدة) — الخطة
+ * تحددها الإدارة للموسم ولا يختارها الحاج. من نقل طلبه من القبول المباشر إلى القرعة تكون دفعته
+ * الأولى مدفوعة مسبقاً (رصيد)، فلا يصل إلى هنا.
+ */
+function FirstInstallment({ app }: { app: StepProps["app"] }) {
+  const toast = useToast();
+  const season = useSeason();
+  const plan = seasonPlan(season.fees);
+  const n = app.members.length;
+  const amount = firstPayment(plan, n, season.fees);
+  const receipt = `${receiptBase(app)}-1`;
+
+  const pay = (m: PayMethod) => {
+    const at = Date.now();
+    actions.saveApplication({ ...app, plan, firstPaid: { amount, at, receipt }, paid: app.paid + amount });
+    logPilgrim(app, "دفع الدفعة الأولى بعد القبول بالقرعة", `${planLabel(plan, season.fees)} — ${formatUSD(amount)} — ${payMethodLabel(m)} — الإيصال ${receipt}`);
+    toast({ title: "تم دفع الدفعة الأولى", body: `الإيصال ${receipt}. ارفع الآن الصورة الشخصية والجواز.`, icon: "🧾", tone: "success" });
+  };
+
+  return (
+    <Question
+      step="الخطوة 1 من 6"
+      title={plan === 1 ? "ادفع تكلفة الحج كاملة" : "ادفع الدفعة الأولى"}
+      hint={plan === 1 ? "قُبلت بالقرعة. حددت الإدارة لهذا الموسم دفعة واحدة، فتُدفع تكلفة الحج كاملة الآن." : "قُبلت بالقرعة، فحان موعد الدفعة الأولى من تكلفة الحج. الدفعة الثانية عند الانضمام إلى مجموعة."}
+      speak="قُبلت بالقرعة. ادفع الآن الدفعة الأولى من تكلفة الحج."
+    >
+      <SeasonPlanNote people={n} fees={season.fees} dueNowLabel="الآن" />
+      <div className="mt-6">
+        <PayMethods amount={amount} reference={receipt} bankReference={receipt.replace("-P-", "-BANK-")} cta={plan === 1 ? "ادفع التكلفة كاملة —" : "ادفع الدفعة الأولى —"} onConfirm={pay} />
+      </div>
     </Question>
   );
 }

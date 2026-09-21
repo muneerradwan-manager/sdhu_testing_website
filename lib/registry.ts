@@ -69,6 +69,44 @@ const PEOPLE: Person[] = [
   // ── سامر نجار — المنسق التقني للمجموعة 27 ──
   P({ id: "01033300874", firstName: "سامر", fatherName: "نبيل", motherName: "وداد", lastName: "نجار", gender: "M", birthDate: "1995-11-08", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0874", maritalStatus: "عازب", familyBookNo: "56000874", phoneTail: "874" }),
 
+  // ── بقية الإداريين التجريبيين: اثنان لكل صفة، أحدهما أنهى رحلته والآخر لم يبدأ ──
+  P({ id: "01033300873", firstName: "خالد", fatherName: "محمود", motherName: "سعاد", lastName: "الرفاعي", gender: "M", birthDate: "1979-06-21", birthPlace: "دمشق", governorate: "دمشق", registry: "الميدان 0873", maritalStatus: "متزوج", familyBookNo: "56000873", phoneTail: "873" }),
+  P({ id: "01033300881", firstName: "عبد الرحمن", fatherName: "صالح", motherName: "آمنة", lastName: "العلي", gender: "M", birthDate: "1968-01-30", birthPlace: "دمشق", governorate: "دمشق", registry: "المهاجرين 0881", maritalStatus: "متزوج", familyBookNo: "56000881", phoneTail: "881" }),
+  P({ id: "01033300882", firstName: "نبيل", fatherName: "عادل", motherName: "منى", lastName: "الساعاتي", gender: "M", birthDate: "1972-10-05", birthPlace: "دمشق", governorate: "دمشق", registry: "الشاغور 0882", maritalStatus: "متزوج", familyBookNo: "56000882", phoneTail: "882" }),
+  P({ id: "01033300883", firstName: "بسام", fatherName: "يوسف", motherName: "نوال", lastName: "درويش", gender: "M", birthDate: "1975-03-17", birthPlace: "دمشق", governorate: "دمشق", registry: "ركن الدين 0883", maritalStatus: "متزوج", familyBookNo: "56000883", phoneTail: "883" }),
+  P({ id: "01033300884", firstName: "وليد", fatherName: "هشام", motherName: "لينا", lastName: "القصاب", gender: "M", birthDate: "1980-12-09", birthPlace: "دمشق", governorate: "دمشق", registry: "القنوات 0884", maritalStatus: "متزوج", familyBookNo: "56000884", phoneTail: "884" }),
+  P({ id: "01033300885", firstName: "مروان", fatherName: "زهير", motherName: "هيفاء", lastName: "الحلبي", gender: "M", birthDate: "1984-07-02", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0885", maritalStatus: "متزوج", familyBookNo: "56000885", phoneTail: "885" }),
+  P({ id: "01033300886", firstName: "فادي", fatherName: "جمال", motherName: "رنا", lastName: "الخياط", gender: "M", birthDate: "1992-04-28", birthPlace: "دمشق", governorate: "دمشق", registry: "باب توما 0886", maritalStatus: "عازب", familyBookNo: "56000886", phoneTail: "886" }),
+  P({ id: "01033300887", firstName: "رامي", fatherName: "سمير", motherName: "غادة", lastName: "الأتاسي", gender: "M", birthDate: "1997-09-14", birthPlace: "حمص", governorate: "حمص", registry: "الخالدية 0887", maritalStatus: "عازب", familyBookNo: "56000887", phoneTail: "887" }),
+  P({ id: "01033300888", firstName: "عبد الغني", fatherName: "مصطفى", motherName: "خديجة", lastName: "الطباع", gender: "M", birthDate: "1983-02-11", birthPlace: "دمشق", governorate: "دمشق", registry: "الميدان 0888", maritalStatus: "متزوج", familyBookNo: "56000888", phoneTail: "888" }),
+
+  // ── كريم الشامي (35) يسجّل ويضيف والده عادل (64): ينتقل الطلب إلى اسم الأب لأنه الأكبر ──
+  P({ id: "01077700351", firstName: "كريم", fatherName: "عادل", motherName: "سهام", lastName: "الشامي", gender: "M", birthDate: "1991-05-10", birthPlace: "دمشق", governorate: "دمشق", registry: "القصاع 0351", maritalStatus: "متزوج", familyBookNo: "77700351", fatherId: "01077700350", phoneTail: "351" }),
+  P({ id: "01077700350", firstName: "عادل", fatherName: "كامل", motherName: "زينب", lastName: "الشامي", gender: "M", birthDate: "1962-08-03", birthPlace: "دمشق", governorate: "دمشق", registry: "القصاع 0350", maritalStatus: "متزوج", familyBookNo: "77700350", phoneTail: "350" }),
+
+  // ── نادر العلي وزوجته ديما — من حلب، مقيمان في تركيا (مكتب تركيا) ──
+  P({ id: "02088800410", firstName: "نادر", fatherName: "فيصل", motherName: "عفاف", lastName: "العلي", gender: "M", birthDate: "1976-02-02", birthPlace: "حلب", governorate: "حلب", registry: "السليمانية 0410", maritalStatus: "متزوج", familyBookNo: "88800410", spouseIds: ["02088800411"], phoneTail: "410" }),
+  P({ id: "02088800411", firstName: "ديما", fatherName: "سليم", motherName: "رويدة", lastName: "قباني", gender: "F", birthDate: "1980-06-15", birthPlace: "حلب", governorate: "حلب", registry: "السليمانية 0410", maritalStatus: "متزوجة", familyBookNo: "88800410", spouseIds: ["02088800410"], phoneTail: "411" }),
+
+  // ── لينا الحوراني (48) — من درعا، مقيمة في الأردن، طلب فردي (مكتب الأردن) ──
+  P({ id: "12099900520", firstName: "لينا", fatherName: "حسين", motherName: "مريم", lastName: "الحوراني", gender: "F", birthDate: "1978-11-11", birthPlace: "درعا", governorate: "درعا", registry: "المحطة 0520", maritalStatus: "أرملة", familyBookNo: "99900520", phoneTail: "520" }),
+
+  // ── غسان البيطار (60) وزوجته — سجّلا على القبول المباشر ولم يُقبلا: ينقلان الطلب إلى القرعة بضغطة ──
+  P({ id: "01066600620", firstName: "غسان", fatherName: "رياض", motherName: "ناديا", lastName: "البيطار", gender: "M", birthDate: "1966-04-04", birthPlace: "دمشق", governorate: "دمشق", registry: "الشاغور 0620", maritalStatus: "متزوج", familyBookNo: "66600620", spouseIds: ["01066600621"], phoneTail: "620" }),
+  P({ id: "01066600621", firstName: "نهى", fatherName: "وجيه", motherName: "سلوى", lastName: "الجابي", gender: "F", birthDate: "1970-01-20", birthPlace: "دمشق", governorate: "دمشق", registry: "الشاغور 0620", maritalStatus: "متزوجة", familyBookNo: "66600620", spouseIds: ["01066600620"], phoneTail: "621" }),
+
+  // ── سعاد الحموي (71) وابنها فراس مرافقها — مقبولة مباشرة، تبدأ من خطوات ما بعد القبول ──
+  P({ id: "01055500730", firstName: "سعاد", fatherName: "عبد القادر", motherName: "فريدة", lastName: "الحموي", gender: "F", birthDate: "1955-09-09", birthPlace: "دمشق", governorate: "دمشق", registry: "ركن الدين 0730", maritalStatus: "أرملة", familyBookNo: "55500730", phoneTail: "730" }),
+  P({ id: "01055500731", firstName: "فراس", fatherName: "مازن", motherName: "سعاد", lastName: "الحموي", gender: "M", birthDate: "1985-12-12", birthPlace: "دمشق", governorate: "دمشق", registry: "ركن الدين 0731", maritalStatus: "متزوج", familyBookNo: "55500731", motherId: "01055500730", phoneTail: "731" }),
+
+  // ── وائل الدقر (45) وزوجته سلمى — سجّلا على القرعة وظهر اسمهما: يدفعان الدفعة الأولى ──
+  P({ id: "01088800910", firstName: "وائل", fatherName: "منير", motherName: "ميادة", lastName: "الدقر", gender: "M", birthDate: "1981-03-03", birthPlace: "دمشق", governorate: "دمشق", registry: "المالكي 0910", maritalStatus: "متزوج", familyBookNo: "88800910", spouseIds: ["01088800911"], phoneTail: "910" }),
+  P({ id: "01088800911", firstName: "سلمى", fatherName: "رياض", motherName: "وفاء", lastName: "العطار", gender: "F", birthDate: "1984-07-19", birthPlace: "دمشق", governorate: "دمشق", registry: "المالكي 0910", maritalStatus: "متزوجة", familyBookNo: "88800910", spouseIds: ["01088800910"], phoneTail: "911" }),
+
+  // ── حسن الطباع (67) وزوجته هيام — ضمن عمر القبول المباشر (66+) ──
+  P({ id: "01099900440", firstName: "حسن", fatherName: "عبد الوهاب", motherName: "نظيرة", lastName: "الطباع", gender: "M", birthDate: "1959-01-25", birthPlace: "دمشق", governorate: "دمشق", registry: "القيمرية 0440", maritalStatus: "متزوج", familyBookNo: "99900440", spouseIds: ["01099900441"], phoneTail: "440" }),
+  P({ id: "01099900441", firstName: "هيام", fatherName: "صبحي", motherName: "روضة", lastName: "المالح", gender: "F", birthDate: "1963-05-08", birthPlace: "دمشق", governorate: "دمشق", registry: "القيمرية 0440", maritalStatus: "متزوجة", familyBookNo: "99900440", spouseIds: ["01099900440"], phoneTail: "441" }),
+
   // ── ياسين، جار محمد — مسجّل في طلب آخر هذا الموسم ──
   P({ id: "01011100208", firstName: "ياسين", fatherName: "خليل", motherName: "مريم", lastName: "العمر", gender: "M", birthDate: "1970-03-21", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 3981", maritalStatus: "متزوج", familyBookNo: "12003981", otherApplication: "3981", phoneTail: "208" }),
 ];
@@ -80,15 +118,34 @@ export const FAMILY_BOOKS: Record<string, { no: string; headId: string; governor
   "77001234": { no: "77001234", headId: "06055500711", governorate: "حمص", registry: "الوعر 0711", issued: "2005-02-03" },
   "33300550": { no: "33300550", headId: "02033300550", governorate: "حلب", registry: "الجميلية 0550", issued: "1987-09-12" },
   "44001188": { no: "44001188", headId: "01012340078", governorate: "دمشق", registry: "المزة 0470", issued: "1966-01-20" },
+  "88800410": { no: "88800410", headId: "02088800410", governorate: "حلب", registry: "السليمانية 0410", issued: "2003-05-22" },
+  "99900440": { no: "99900440", headId: "01099900440", governorate: "دمشق", registry: "القيمرية 0440", issued: "1985-04-14" },
+  "66600620": { no: "66600620", headId: "01066600620", governorate: "دمشق", registry: "الشاغور 0620", issued: "1995-10-01" },
 };
 
-/** Scenario shortcuts shown in the "demo data" helper */
-export const DEMO_SCENARIOS = [
-  { id: "01012345412", book: "45112233", title: "محمد الخطيب — المثال الكامل", note: "رب أسرة (58) — زوجته، ابنه عمر، ووالدته خديجة (78) من خارج الدفتر" },
+export type DemoScenario = {
+  id: string;
+  book: string;
+  title: string;
+  note: string;
+  /** Opens the account with an application already in place (lib/demo-scenarios) */
+  seed?: "notAccepted" | "accepted" | "lotteryAccepted";
+};
+
+/** Scenario shortcuts shown in the "demo data" helper — one per case the platform handles */
+export const DEMO_SCENARIOS: DemoScenario[] = [
+  { id: "01012345412", book: "45112233", title: "محمد الخطيب — المثال الكامل", note: "رب أسرة (58) — زوجته، ابنه عمر، ووالدته خديجة (78) من خارج الدفتر. إضافة خديجة تنقل الطلب إلى اسمها لأنها الأكبر" },
+  { id: "01099900440", book: "99900440", title: "حسن الطباع — القبول المباشر", note: "67 عاماً مع زوجته هيام: ضمن عمر القبول المباشر (66+)، فيدفع رسم التسجيل والدفعة الأولى" },
+  { id: "01077700351", book: "", title: "كريم الشامي — الطلب باسم الأب", note: "شاب (35) يسجّل ويضيف والده عادل (64) بالرقم الوطني، فيصبح الأب صاحب الطلب تلقائياً" },
+  { id: "02088800410", book: "88800410", title: "نادر العلي — مقيم في تركيا", note: "من حلب (50) مع زوجته ديما. يختار «في تركيا» فيتبع مكتب تركيا ويُفوَّج مع مجموعته" },
+  { id: "12099900520", book: "", title: "لينا الحوراني — مقيمة في الأردن", note: "امرأة (48) لا تحتاج محرماً، طلب فردي على مكتب الأردن" },
+  { id: "01066600620", book: "66600620", title: "غسان البيطار — دون عمر القبول المباشر", note: "60 عاماً مع زوجته: إن اختار القبول المباشر (66+) يُنبَّه في مرحلة الأهلية قبل أي دفع، ويحوّل طلبه إلى القرعة بضغطة واحدة" },
+  { id: "01055500730", book: "", title: "سعاد الحموي — مقبولة مباشرة", note: "71 عاماً مع ابنها فراس: دفعت الرسم والدفعة الأولى مع التسجيل. تبدأ من الوثائق، ثم تختار مجموعة ويسجّلها منسقها، ثم الدفعة الثانية والملف الطبي", seed: "accepted" },
+  { id: "01088800910", book: "", title: "وائل الدقر — مقبول بالقرعة", note: "45 عاماً مع زوجته: دفع رسم التسجيل فقط، وظهر اسمه في القرعة — يدفع الدفعة الأولى", seed: "lotteryAccepted" },
   { id: "06055500711", book: "77001234", title: "حسان القاسم — حجّ سابقاً", note: "يُقبل فقط لأنه محرم لوالدته نجاح (76) أو زوجته" },
   { id: "02033300552", book: "33300550", title: "ريم النجار — دون 44 عاماً", note: "تحتاج محرماً: أضف أخاها مازن أو والدها سامر" },
   { id: "01011100208", book: "", title: "ياسين العمر — طلب مكرر", note: "مسجّل في طلب آخر هذا الموسم (طلب واحد لكل شخص)" },
-] as const;
+];
 
 const MALE_NAMES = ["خالد", "بلال", "أنس", "طارق", "مصطفى", "إبراهيم", "علي", "نزار", "وائل", "هشام", "سليم", "زياد"];
 const FEMALE_NAMES = ["سلمى", "رغد", "آلاء", "نور", "ميساء", "لبنى", "دعاء", "رهف", "سمر", "إيمان", "هالة", "بشرى"];

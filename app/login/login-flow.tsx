@@ -9,7 +9,8 @@ import { Card, PortalShell } from "@/components/portal/shell";
 import { DEMO_OTP, DemoPanel, Field, OtpInput, inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { getPerson, isValidNationalId } from "@/lib/registry";
+import { seedPilgrimScenario } from "@/lib/demo-scenarios";
+import { DEMO_SCENARIOS, getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ export function LoginFlow() {
   const next = params.get("next") || "/portal";
   const toast = useToast();
   const accounts = useStore((s) => s.accounts);
+  const applications = useStore((s) => s.applications);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -43,9 +45,11 @@ export function LoginFlow() {
     } else {
       actions.login(nationalId);
     }
+    seedPilgrimScenario(nationalId, { applications }, Date.now());
     const p = getPerson(nationalId);
-    toast({ title: `مرحباً ${p?.firstName}`, body: "دخول تجريبي سريع", icon: "⚡", tone: "success" });
-    router.push(next);
+    const seed = DEMO_SCENARIOS.find((s) => s.id === nationalId)?.seed;
+    toast({ title: `مرحباً ${p?.firstName}`, body: seed ? "دخول تجريبي — طلبك جاهز في «متابعة الطلب»" : "دخول تجريبي سريع", icon: "⚡", tone: "success" });
+    router.push(seed === "accepted" || seed === "lotteryAccepted" ? "/portal/application" : seed === "notAccepted" ? "/portal/apply" : next);
   };
 
   const verify = () => {

@@ -35,7 +35,7 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     icon: <Scale />,
     fields: [
       { key: "quota", label: "الحصة الإجمالية", unit: "حاج", min: 1000, max: 60000, step: 100 },
-      { key: "acceptedDirectAge", label: "الأعمار المقبولة مباشرة", unit: "عاماً فأكثر", min: 40, max: 90, hint: () => "تحسبها صفحة القبول والقرعة من ترتيب طلبات القبول المباشر، ويمكن ضبطها يدوياً هنا" },
+      { key: "acceptedDirectAge", label: "الأعمار المقبولة مباشرة", unit: "عاماً فأكثر", min: 40, max: 90, hint: () => "تُحدَّد قبل فتح التسجيل، وتتحقق منها المنصة عند التسجيل على القبول المباشر قبل أي دفع" },
     ],
   },
   {
@@ -61,7 +61,9 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     icon: <Coins />,
     fields: [
       { key: "registrationPerPerson", label: "رسم التسجيل للفرد", unit: "$", min: 0, max: 200 },
-      { key: "hajjCost", label: "تكلفة الحج للفرد", unit: "$", min: 1000, max: 15000, step: 50 },
+      { key: "hajjCost", label: "تكلفة الحج للفرد (كاملة)", unit: "$", min: 1000, max: 15000, step: 50 },
+      { key: "installmentCount", label: "تسديد تكلفة الحج: 1 = دفعة واحدة كاملة، 2 = دفعتان", unit: "دفعات", min: 1, max: 2 },
+      { key: "firstInstallment", label: "الدفعة الأولى للفرد (مع التسجيل المباشر أو عند القرعة)", unit: "$", min: 0, max: 15000, step: 50 },
       { key: "hady", label: "الهدي", unit: "$", min: 0, max: 1000, step: 5 },
     ],
   },
@@ -79,6 +81,8 @@ const LABELS: Record<Key, string> = {
   maxCompanionsFamily: "حد المرافقين للأسرة",
   registrationPerPerson: "رسم التسجيل",
   hajjCost: "تكلفة الحج",
+  firstInstallment: "الدفعة الأولى",
+  installmentCount: "عدد دفعات تكلفة الحج",
   hady: "الهدي",
 };
 
@@ -92,6 +96,8 @@ function valuesOf(s: LiveSeason): Values {
     ...s.rules,
     registrationPerPerson: s.fees.registrationPerPerson,
     hajjCost: s.fees.hajjCost,
+    firstInstallment: s.fees.firstInstallment,
+    installmentCount: s.fees.installmentCount,
     hady: s.fees.hady,
   };
 }
@@ -100,7 +106,8 @@ const DEFAULTS = valuesOf(mergeSeason({}));
 
 function show(key: Key, v: number) {
   if (key === "directShare") return `${v}%`;
-  if (key === "registrationPerPerson" || key === "hajjCost" || key === "hady") return `${formatNumber(v)} $`;
+  if (key === "installmentCount") return v === 1 ? "دفعة واحدة كاملة" : "دفعتان";
+  if (key === "registrationPerPerson" || key === "hajjCost" || key === "firstInstallment" || key === "hady") return `${formatNumber(v)} $`;
   if (key.endsWith("BirthYear")) return String(v);
   return formatNumber(v);
 }

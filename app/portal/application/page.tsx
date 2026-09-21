@@ -36,25 +36,26 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { CLUSTER, FLIGHTS, GROUP, ITINERARY, PLACES, assign, directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { FLIGHTS, ITINERARY, PLACES, assign, directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { BoardingPass, HajjCard } from "./_components/cards";
+import { groupInfo } from "@/lib/assignment";
 import { PostChecklist } from "./_components/post/checklist";
-import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines } from "./_components/post/model";
+import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, paidAt } from "./_components/post/model";
 import { ReviewBanner } from "./_components/review-banner";
 import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageNotAccepted, StageSubmitted } from "./_components/stages";
 
 const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon: string; tone: "success" | "info" | "gold" }> = {
   checking: { title: "بدأ تدقيق طلبك", body: (n) => `طلبك رقم ${n} قيد التحقق من الأهلية.`, icon: "🔎", tone: "info" },
   eligible: { title: "طلبك مؤهل", body: (n) => `طلبك رقم ${n} مؤهل، وينتظر نتيجة التسجيل الذي قدّمته فيه.`, icon: "✅", tone: "success" },
-  direct: { title: "أُعلنت الأعمار المقبولة", body: () => `الأعمار المقبولة وفق الأكبر سناً: ${SEASON.acceptedDirectAge} عاماً فأكثر.`, icon: "📢", tone: "info" },
+  direct: { title: "اعتُمدت قوائم القبول المباشر", body: () => `طلبك ضمن الأعمار المقبولة: ${SEASON.acceptedDirectAge} عاماً فأكثر.`, icon: "📢", tone: "info" },
   lottery: { title: "القرعة تبدأ الآن", body: () => "تابع البث المباشر للقرعة الإلكترونية.", icon: "📺", tone: "gold" },
   accepted: { title: "مبارك! تم قبول طلبك", body: (n) => `تم اختيار طلبك رقم ${n} لأداء فريضة الحج لموسم 1448هـ.`, icon: "🕋", tone: "success" },
-  notAccepted: { title: "لم يُقبل طلبك مباشرة", body: () => `التسجيل على القرعة طلب مستقل يُفتح ${SEASON.windows.lottery.hijri}.`, icon: "📋", tone: "gold" },
+  notAccepted: { title: "لم يُقبل طلبك مباشرة", body: () => `يمكنك التسجيل على القرعة (${SEASON.windows.lottery.hijri}) بالأفراد أنفسهم بضغطة واحدة، دون إعادة الخطوات.`, icon: "📋", tone: "gold" },
 };
 
 type Unlock = "always" | "group" | "payments" | "trip";
@@ -72,9 +73,9 @@ const SECTIONS: { id: string; label: string; unlock: Unlock }[] = [
 ];
 
 const LOCK_HINT: Record<Exclude<Unlock, "always">, string> = {
-  group: "يُفتح بعد موافقة رئيس المجموعة على انتسابكم (الخطوة 3)",
-  payments: "يُفتح بعد التسديد وتوقيع العقد (الخطوة 4)",
-  trip: "يُفتح بعد صدور التأشيرة (الخطوة 5)",
+  group: "يُفتح بعد تسجيلكم في مجموعة عند منسقها (الخطوة 3)",
+  payments: "يُفتح بعد اكتمال التسديد (الخطوة 4)",
+  trip: "يُفتح بعد صدور التأشيرة (الخطوة 6)",
 };
 
 function Section({ id, title, icon, children, ready, eyebrow, lockedHint }: { id: string; title: string; icon: ReactNode; children: ReactNode; ready: boolean; eyebrow?: string; lockedHint?: string }) {
@@ -191,7 +192,8 @@ export default function ApplicationPage() {
     );
   }
 
-  const unlocked: Record<Unlock, boolean> = { always: true, group: !!post.groupApprovedAt, payments: !!post.contractSignedAt, trip: !!post.visaAt };
+  const unlocked: Record<Unlock, boolean> = { always: true, group: !!post.groupApprovedAt, payments: lines.every((l) => !!paidAt(l, app, post)), trip: !!post.visaAt };
+  const myGroup = groupInfo(post.clusterId, post.groupNumber);
   const rejected = review?.status === "rejected";
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const emergency = account?.emergencyName ? `${account.emergencyName} ${account.emergencyPhone ?? ""}` : "غرفة العمليات 920-1448";
@@ -239,7 +241,7 @@ export default function ApplicationPage() {
             onClick={() => {
               actions.restartTracking(sessionId);
               actions.setPost(sessionId, RESET_POST);
-              clearJoinDecisions(sessionId, admins);
+              clearJoinDecisions(sessionId, admins, app);
               actions.setInSeason(sessionId, { day: 0, ratings: {}, lostReports: 0 });
               celebrated.current = false;
               lastStage.current = "submitted";
@@ -544,9 +546,9 @@ export default function ApplicationPage() {
               </ol>
             </Section>
 
-            <Section id="group" title={`المجموعة ${GROUP.number} — ${CLUSTER.name}`} icon={<UsersRound className="size-6" />} ready={unlocked.group} lockedHint={LOCK_HINT.group} eyebrow={`مستوى الخدمة: ${CLUSTER.level} — ${GROUP.members} من ${GROUP.capacity}`}>
+            <Section id="group" title={`المجموعة ${myGroup.number} — ${myGroup.clusterName}`} icon={<UsersRound className="size-6" />} ready={unlocked.group} lockedHint={LOCK_HINT.group} eyebrow={`${myGroup.office} — مستوى الخدمة: ${myGroup.level}`}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {GROUP.team.map((p, i) => (
+                {myGroup.team.map((p, i) => (
                   <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="rounded-3xl bg-white p-5 ring-1 ring-gold/30">
                     <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark font-display text-2xl font-bold text-ink">{p.name.replace("الشيخ ", "")[0]}</span>
                     <p className="mt-3 text-xs font-bold text-gold-dark">{p.role}</p>
@@ -567,9 +569,9 @@ export default function ApplicationPage() {
                 <p className="font-display text-lg font-bold text-green-dark">قناة المجموعة</p>
                 <div className="mt-4 space-y-3">
                   {[
-                    { who: GROUP.team[0].name, t: "أهلاً بكم في المجموعة 27. اللقاء التعريفي يوم 10 ذو القعدة الساعة 17:00 في قاعة المزة. يرجى تأكيد الحضور.", when: "10 ذو القعدة" },
-                    { who: GROUP.team[2].name, t: "الدرس الثالث قبل السفر: أحكام الإحرام ومحظوراته. راجعوا مسار «فقه الحج» في الأكاديمية قبل الدرس.", when: "20 شوال" },
-                    { who: GROUP.team[1].name, t: "حافلة التجمّع من ساحة المزة إلى المطار تنطلق 01:30. لا تنسوا الجواز والأدوية والسوار.", when: "23 ذو القعدة" },
+                    { who: myGroup.team[0].name, t: `أهلاً بكم في المجموعة ${myGroup.number}. اللقاء التعريفي يوم 10 ذو القعدة الساعة 17:00 في قاعة المزة. يرجى تأكيد الحضور.`, when: "10 ذو القعدة" },
+                    { who: (myGroup.team[2] ?? myGroup.team[0]).name, t: "الدرس الثالث قبل السفر: أحكام الإحرام ومحظوراته. راجعوا مسار «فقه الحج» في الأكاديمية قبل الدرس.", when: "20 شوال" },
+                    { who: myGroup.team[1].name, t: "حافلة التجمّع من ساحة المزة إلى المطار تنطلق 01:30. لا تنسوا الجواز والأدوية والسوار.", when: "23 ذو القعدة" },
                   ].map((m, i) => (
                     <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} className="max-w-2xl rounded-3xl rounded-tr-md bg-sand p-4">
                       <p className="text-xs font-bold text-green">{m.who} <span className="font-normal text-hint">— {m.when}</span></p>
@@ -586,7 +588,7 @@ export default function ApplicationPage() {
             <Section id="payments" title="التكاليف والإيصالات والعقد" icon={<Receipt className="size-6" />} ready={unlocked.payments} lockedHint={LOCK_HINT.payments} eyebrow="لكل تكلفة إيصال مستقل قابل للتحقق">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {[
-                  { t: "رسم التسجيل", n: app.receipt, v: app.paid },
+                  { t: "رسم التسجيل", n: app.receipt, v: app.members.length * fees.registrationPerPerson },
                   ...lines.map((l) => ({ t: `${l.title} (${l.detail})`, n: l.receipt, v: l.amount })),
                 ].map((r, i) => (
                   <motion.div key={r.n} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="overflow-hidden rounded-3xl bg-white ring-1 ring-gold/40">
@@ -609,8 +611,8 @@ export default function ApplicationPage() {
                 <div className="flex items-center gap-3">
                   <FileSignature className="size-10 text-gold-dark" />
                   <div>
-                    <p className="font-bold">عقد الحاج مع المجموعة {GROUP.number}</p>
-                    <p className="text-sm text-ink-soft">موقّع إلكترونياً من الطرفين ومصادق عليه من الإدارة — المجموع {formatUSD(total)}</p>
+                    <p className="font-bold">عقد الحاج مع المجموعة {myGroup.number}</p>
+                    <p className="text-sm text-ink-soft">وقّعه الحاج مع منسق المجموعة {post.enrolledBy?.name ?? ""} عند التسجيل فيها، وصادقت عليه الإدارة — تكلفة الحج والهدي {formatUSD(total)}</p>
                   </div>
                 </div>
                 <Button variant="outline" onClick={() => toast({ title: "العقد", body: "يُحفظ العقد في خزنة الوثائق في التطبيق.", icon: "📄" })}>عرض العقد</Button>

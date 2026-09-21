@@ -310,7 +310,7 @@ export function GuidedTour() {
                         <Briefcase className="size-6 shrink-0 text-gold" />
                         <span>
                           <span className="block font-bold">الإداري: أحمد سليمان الحمصي</span>
-                          <span className="text-sm text-white/70">الامتحان، تشكيل المجموعة، طلبات الانتساب</span>
+                          <span className="text-sm text-white/70">الامتحان، تشكيل المجموعة، حجاج المجموعة</span>
                         </span>
                       </button>
                       <button onClick={() => { close(); router.push("/staff"); }} className="flex items-center gap-3 rounded-2xl bg-ink p-3.5 text-right text-white transition hover:bg-ink/90">

@@ -46,7 +46,8 @@ export function AdminField() {
   const admin = useAdmin()!;
   const g = admin.profile?.group;
   const applications = useStore((s) => s.applications);
-  const roster = useMemo(() => buildRoster(admin.profile, applications), [admin.profile, applications]);
+  const post = useStore((s) => s.post);
+  const roster = useMemo(() => buildRoster(admin.profile, applications, post), [admin.profile, applications, post]);
   const [tab, setTab] = useState<TabKey>("muster");
 
   if (!g?.approvedAt || !g.contractSignedAt) {
@@ -689,7 +690,7 @@ function DayPlan() {
 const STAFF_RATINGS = [
   { who: "ماهر عيسى", scope: "شؤون الإداريين", item: "اكتمال طلب المشاركة من أول مرة", v: 5 },
   { who: "ماهر عيسى", scope: "شؤون الإداريين", item: "طلب التشكيل كامل والعقود خلال 48 ساعة", v: 5 },
-  { who: "رنا حداد", scope: "إدارة التسجيل", item: "الاستجابة قبل الموسم — الرد على الانتساب خلال 3 ساعات", v: 5 },
+  { who: "رنا حداد", scope: "إدارة التسجيل", item: "الاستجابة قبل الموسم — الرد على استفسارات التفويج خلال 3 ساعات", v: 5 },
   { who: "نادر قاسم", scope: "مشرف القطاع", item: "التحضير قبل السفر — الدروس 4 من 4، اللقاء 96%", v: 5 },
   { who: "هيثم زيدان", scope: "المواصلات", item: "انضباط التجمّع — أُغلق 01:32 قبل الانطلاق", v: 5 },
   { who: "نادر قاسم وفادي سلوم", scope: "المشاعر", item: "دقة التجمّعات، المفقود خلال 5 دقائق، سلامة كبار السن", v: 5 },

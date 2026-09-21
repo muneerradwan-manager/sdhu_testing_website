@@ -14,24 +14,27 @@ import {
   Loader2,
   Minus,
   Plus,
+  Save,
   Trash2,
   UserPlus,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { applicationNumberFor, directAccepted, stageAt, trackOf, trackSteps, type Track } from "@/lib/journey";
 import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
-import { evaluate, type Member } from "@/lib/rules";
-import { OFFICES, SEASON } from "@/lib/season";
+import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
+import { SeasonPlanNote } from "@/components/payment/plan-picker";
+import { firstPayment, seasonPlan } from "@/lib/installments";
+import { ABROAD, SEASON, officeArea, officeFor, type Residence } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, formatUSD } from "@/lib/utils";
 import { BookletPicker, type Book } from "./_components/booklet";
 import { EligibilityCheck } from "./_components/eligibility";
-import { Consents, Documents, Payment } from "./_components/finalize";
+import { Consents, Payment, consentPeople } from "./_components/finalize";
 import { PersonAdder, relationWord } from "./_components/person-adder";
 import { Choice, DigitsDisplay, NumberPad, PersonChip, Question } from "./_components/ui";
 
@@ -40,37 +43,37 @@ type Screen =
   | "track"
   | "forWhom"
   | "otherId"
+  | "residence"
   | "companions"
   | "method"
   | "booklet"
   | "count"
   | "adder"
   | "review"
-  | "terminal"
-  | "needs"
   | "elderly"
   | "eligibility"
   | "consents"
-  | "documents"
-  | "office"
+  | "summary"
   | "payment";
 
+/**
+ * Registration asks only what decides eligibility. The passport, the personal photo, vaccinations and
+ * health information all come after acceptance; the office is never picked from a list.
+ */
 const PHASES: { label: string; screens: Screen[] }[] = [
-  { label: "صاحب الطلب", screens: ["intro", "track", "forWhom", "otherId"] },
-  { label: "المرافقون", screens: ["companions", "method", "booklet", "count", "adder", "review"] },
-  { label: "الصحة والمرافقة", screens: ["terminal", "needs", "elderly"] },
+  { label: "صاحب الطلب", screens: ["intro", "track", "forWhom", "otherId", "residence"] },
+  { label: "المرافقون", screens: ["companions", "method", "booklet", "count", "adder", "review", "elderly"] },
   { label: "الأهلية", screens: ["eligibility", "consents"] },
-  { label: "الوثائق والدفع", screens: ["documents", "office", "payment"] },
+  { label: "الملخص والدفع", screens: ["summary", "payment"] },
 ];
 
-const NEEDS = [
-  { key: "كرسي متحرك", emoji: "♿" },
-  { key: "سكري", emoji: "🩸" },
-  { key: "ضغط الدم", emoji: "❤️" },
-  { key: "وجبة خاصة", emoji: "🍽️" },
-  { key: "غرفة قريبة من المصعد", emoji: "🛗" },
-  { key: "ضعف السمع أو البصر", emoji: "👂" },
-];
+/** Event-handler clock (keeps the React Compiler purity check happy in large handlers) */
+const stamp = () => Date.now();
+
+/** Screens that are not resumed as they were (a half-typed number, the payment form): reopen one step earlier */
+const RESUME_AT: Partial<Record<Screen, Screen>> = { otherId: "forWhom", adder: "review", count: "method", booklet: "method", payment: "summary" };
+
+const RESIDENCE_FLAGS: Record<string, string> = { "تركيا": "🇹🇷", "مصر": "🇪🇬", "الأردن": "🇯🇴" };
 
 const ORDINALS = ["المرافق الأول", "المرافق الثاني", "المرافق الثالث", "المرافق الرابع", "المرافق الخامس"];
 
@@ -100,26 +103,37 @@ export default function ApplyPage() {
   const me = getPerson(sessionId)!;
   const season = useSeason();
 
-  const [history, setHistory] = useState<Screen[]>(["intro"]);
+  const accounts = useStore((s) => s.accounts);
+  // The saved application (autosaved at every step). Approvals inside it change from outside this page
+  const saved = useStore((s) => s.drafts[s.sessionId ?? ""]);
+  const consents = saved?.consents ?? {};
+  // Snapshot at opening: the application continues exactly where it was left
+  const [draft0] = useState(() => saved);
+
+  const [history, setHistory] = useState<Screen[]>(() => (draft0 ? (draft0.history as Screen[]).map((s) => RESUME_AT[s] ?? s) : ["intro"]));
   // Which registration this application is for — direct acceptance and the lottery are separate applications
-  const [track, setTrack] = useState<Track>("direct");
+  const [track, setTrack] = useState<Track>(draft0?.track ?? "direct");
   const [openedAt] = useState(() => Date.now());
   const screen = history[history.length - 1];
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>(draft0?.members ?? []);
   const [target, setTarget] = useState(1);
   const [adderReturn, setAdderReturn] = useState<"loop" | "booklet" | "review" | "eligibility">("loop");
-  const [book, setBook] = useState<Book | null>(null);
-  const [needsYes, setNeedsYes] = useState<boolean | null>(null);
-  const [office, setOffice] = useState({ governorate: me.governorate, office: "" });
+  const [book, setBook] = useState<Book | null>((draft0?.book as Book | null) ?? null);
+  // Where the applicant lives decides the office: the registry governorate inside Syria, or the country office abroad
+  const [residence, setResidence] = useState<Residence>((draft0?.residence as Residence) ?? "سوريا");
   const [other, setOther] = useState({ id: "", stage: "id" as "id" | "loading" | "confirm" | "otp", person: null as Person | null, otp: "", error: "" });
   // How many times the eligibility check has run — only the first run reveals row by row
   const [checks, setChecks] = useState(0);
   // Furthest phase reached — completed phases can be reopened from the progress bar
-  const [maxPhase, setMaxPhase] = useState(0);
+  const [maxPhase, setMaxPhase] = useState(draft0?.maxPhase ?? 0);
 
   const applicant = members.find((m) => m.relation === "self")?.person ?? null;
   const companions = members.filter((m) => m.relation !== "self");
-  const result = useMemo(() => evaluate(members, season.rules), [members, season.rules]);
+  // Direct acceptance: the accepted age is known before registration, so it is checked now — before anything is paid
+  const result = useMemo(
+    () => evaluate(members, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined),
+    [members, season.rules, track, season.acceptedDirectAge],
+  );
   // A direct-acceptance application that ended without a place: the pilgrim may now register for the lottery
   const previousDirect =
     existing && trackOf(existing) === "direct" && !directAccepted(existing) && stageAt(trackSteps("direct", false), (openedAt - existing.submittedAt) / 1000).stage.key === "notAccepted"
@@ -137,18 +151,117 @@ export default function ApplyPage() {
   const replace = (s: Screen) => setHistory((h) => [...h.slice(0, -1), s]);
 
   const setSelf = (p: Person) => setMembers([{ person: p, relation: "self", relationVerified: true, needs: [] }]);
-  const addMember = (m: Member) => setMembers((ms) => (ms.some((x) => x.person.id === m.person.id) ? ms : [...ms, m]));
+  // The oldest member is always the applicant: adding an older relative moves the application to their name
+  const addMember = (m: Member) => {
+    if (members.some((x) => x.person.id === m.person.id)) return;
+    const { members: next, moved } = withOldestAsApplicant([...members, m]);
+    setMembers(next);
+    if (moved) {
+      toast({
+        title: `أصبح الطلب باسم ${fullName(moved.person)}`,
+        body: `صاحب الطلب هو الأكبر سناً في العائلة (${ageOf(moved.person)} عاماً)، وأعدنا صلات القرابة بالنسبة إليه. تصله رسالة موافقة على هاتفه.`,
+        icon: "👴",
+        tone: "gold",
+      });
+    }
+  };
   const removeMember = (id: string) =>
     setMembers((ms) => ms.filter((m) => m.person.id !== id).map((m) => (m.companionId === id ? { ...m, companionId: undefined } : m)));
   const patchMember = (id: string, patch: Partial<Member>) => setMembers((ms) => ms.map((m) => (m.person.id === id ? { ...m, ...patch } : m)));
 
   const elderly = members.filter((m) => birthYear(m.person) <= season.rules.elderlyNeedsCompanionMaxBirthYear);
   const unresolvedElderly = elderly.find((e) => !e.companionId || !members.some((m) => m.person.id === e.companionId));
+  const area = officeArea(applicant?.governorate ?? me.governorate, residence);
 
-  const afterHealth = () => go(elderly.length ? "elderly" : "eligibility");
+  const afterMembers = (list: Member[] = members) =>
+    go(list.some((m) => birthYear(m.person) <= season.rules.elderlyNeedsCompanionMaxBirthYear) ? "elderly" : "eligibility");
 
-  const submit = (method: "card" | "bank") => {
-    const now = Date.now();
+  // Autosave: every change is kept on the account, so the applicant can leave and continue later
+  const blocked = !!existing && !previousDirect;
+  useEffect(() => {
+    if (blocked || (screen === "intro" && members.length === 0)) return;
+    actions.saveDraft(sessionId, { history, track, members, book: book ? { ...book } : null, residence, maxPhase }, Date.now());
+  }, [blocked, sessionId, history, screen, track, members, book, residence, maxPhase]);
+
+  // Coming back to a saved application
+  useEffect(() => {
+    if (!draft0 || blocked) return;
+    const waiting = Object.values(draft0.consents).filter((c) => c.status === "pending").length;
+    toast({
+      title: "تابعنا طلبك من حيث توقفت",
+      body: waiting ? `ما زال ${waiting} ${waiting === 1 ? "فرد" : "أفراد"} لم يوافقوا بعد.` : `آخر حفظ: ${new Intl.DateTimeFormat("ar-SY-u-nu-latn", { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(draft0.updatedAt)}`,
+      icon: "💾",
+      tone: "info",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Send an approval request to every adult who has none yet (in the app if he has an account, else by text message) */
+  const sendConsents = () => {
+    const at = stamp();
+    const people = consentPeople(members, sessionId);
+    // A save first, so the approvals have a draft to live in even if nothing else changed
+    actions.saveDraft(sessionId, { history, track, members, book: book ? { ...book } : null, residence, maxPhase }, at);
+    for (const m of people) {
+      if (consents[m.person.id]) continue;
+      actions.setConsent(sessionId, m.person.id, { status: "pending", sentAt: at, via: accounts[m.person.id] ? "app" : "sms" });
+    }
+    // Requests to people who are no longer in the application are withdrawn
+    for (const id of Object.keys(consents)) if (!people.some((m) => m.person.id === id)) actions.setConsent(sessionId, id, null);
+    if (people.some((m) => !consents[m.person.id])) {
+      toast({ title: "أُرسلت طلبات الموافقة", body: "يوافق كل فرد من هاتفه متى تيسّر له، وطلبك محفوظ حتى ذلك الحين.", icon: "📨", tone: "info" });
+    }
+  };
+
+  /** Start over: the saved application is discarded */
+  const discard = () => {
+    actions.clearDraft(sessionId);
+    setHistory(["intro"]);
+    setMembers([]);
+    setTrack("direct");
+    setBook(null);
+    setResidence("سوريا");
+    setMaxPhase(0);
+    toast({ title: "بدأنا طلباً جديداً", body: "حُذف الطلب المحفوظ.", icon: "🗑️" });
+  };
+
+  /**
+   * Not accepted directly and the lottery is open: the same family becomes a lottery application in one
+   * tap — members, companions, consents and office carry over; only the summary and the fee remain.
+   */
+  const moveToLottery = () => {
+    if (!previousDirect) return;
+    const carried = withOldestAsApplicant(previousDirect.members).members;
+    setTrack("lottery");
+    setMembers(carried);
+    setResidence((ABROAD as readonly string[]).includes(previousDirect.governorate) ? (previousDirect.governorate as Residence) : "سوريا");
+    setMaxPhase(3);
+    const ok = evaluate(carried, season.rules).eligible;
+    go(ok ? "summary" : "eligibility");
+    actions.logEvent({
+      actor: `${me.firstName} ${me.lastName}`,
+      role: "حاج",
+      action: "نقل أفراد طلب القبول المباشر إلى التسجيل على القرعة",
+      target: `طلب ${previousDirect.number}`,
+      detail: `${carried.length} أفراد — دون إعادة الخطوات`,
+    });
+  };
+
+  const fee = members.length * season.fees.registrationPerPerson;
+  // The administration sets how the Hajj cost is paid this season (1448: two installments)
+  const plan = seasonPlan(season.fees);
+  // Direct acceptance: fee + first installment now. Lottery: the fee only — the first installment is due at the draw result
+  const first = track === "direct" ? firstPayment(plan, members.length, season.fees) : 0;
+  // The first installment of a direct application that was not accepted stays as a credit for the lottery
+  const credit = track === "lottery" && previousDirect?.firstPaid ? { ...previousDirect.firstPaid, creditFrom: previousDirect.number } : undefined;
+  const payLines = [
+    { label: `رسم التسجيل — ${members.length} × ${formatUSD(season.fees.registrationPerPerson)}`, amount: fee },
+    ...(first ? [{ label: plan === 1 ? `تكلفة الحج كاملة — ${members.length} × ${formatUSD(season.fees.hajjCost)}` : `الدفعة الأولى من تكلفة الحج — ${members.length} × ${formatUSD(season.fees.firstInstallment)}`, amount: first }] : []),
+  ];
+
+  const submit = (method: "shamcash" | "bank") => {
+    const now = stamp();
+    actions.clearDraft(sessionId);
     actions.saveApplication({
       number,
       applicantId: sessionId,
@@ -159,10 +272,12 @@ export default function ApplyPage() {
       previous: previousDirect ? { number: previousDirect.number, track: "direct", submittedAt: previousDirect.submittedAt, closedAt: now } : undefined,
       forWhom: applicant?.id === sessionId ? "me" : "other",
       members,
-      governorate: office.governorate,
-      office: office.office || OFFICES.find((o) => o.governorate === office.governorate)?.offices[0] || "",
+      governorate: area,
+      office: officeFor(area),
       receipt,
-      paid: members.length * season.fees.registrationPerPerson,
+      paid: fee + first,
+      plan: track === "direct" ? plan : credit ? previousDirect?.plan : undefined,
+      firstPaid: first ? { amount: first, at: now, receipt: `1448-P-${number.padStart(6, "0")}-1` } : credit,
       payMethod: method,
       ratings: {},
     });
@@ -176,7 +291,7 @@ export default function ApplyPage() {
     confetti({ particleCount: 180, spread: 100, origin: { y: 0.35 }, colors: ["#D9C89E", "#00594F", "#289E92", "#AD9E6E", "#672146"] });
     toast({
       title: `تم استلام طلبك رقم ${number}`,
-      body: `${track === "lottery" ? "في التسجيل على القرعة" : "في التسجيل على القبول المباشر"} لـ ${members.length} أفراد، وتم تسديد رسم التسجيل (الإيصال ${receipt}).`,
+      body: `${track === "lottery" ? "في التسجيل على القرعة" : "في التسجيل على القبول المباشر"} لـ ${members.length} أفراد، وتم تسديد ${first ? "رسم التسجيل والدفعة الأولى" : "رسم التسجيل"} (الإيصال ${receipt}).`,
       icon: "📨",
       tone: "success",
     });
@@ -217,8 +332,8 @@ export default function ApplyPage() {
   const phaseIdx = PHASES.findIndex((p) => p.screens.includes(screen));
   if (phaseIdx > maxPhase) setMaxPhase(phaseIdx); // adjusting state during render, per React docs
   const phaseEntry = (i: number): Screen =>
-    i === 0 ? "track" : i === 1 ? (companions.length ? "review" : "companions") : i === 2 ? "terminal" : i === 3 ? "eligibility" : "documents";
-  const canOpenPhase = (i: number) => i !== phaseIdx && i <= maxPhase && !!applicant && (i < 4 || result.eligible);
+    i === 0 ? "track" : i === 1 ? (companions.length ? "review" : "companions") : i === 2 ? "eligibility" : "summary";
+  const canOpenPhase = (i: number) => i !== phaseIdx && i <= maxPhase && !!applicant && (i < 3 || result.eligible);
 
   return (
     <PortalShell
@@ -227,7 +342,14 @@ export default function ApplyPage() {
       aside={
         <>
           <div className="rounded-3xl border border-gold/30 bg-white p-5">
-            <p className="font-display text-lg font-bold text-green-dark">ملخص الطلب</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-display text-lg font-bold text-green-dark">ملخص الطلب</p>
+              {saved && (
+                <span className="flex items-center gap-1 text-xs font-semibold text-green" title="يُحفظ طلبك تلقائياً في حسابك">
+                  <Save className="size-3.5" /> محفوظ
+                </span>
+              )}
+            </div>
             {members.length === 0 ? (
               <p className="mt-2 text-sm text-hint">سيظهر هنا أفراد طلبك.</p>
             ) : (
@@ -248,9 +370,22 @@ export default function ApplyPage() {
                 </AnimatePresence>
               </ul>
             )}
+            {saved && (
+              <p className="mt-3 rounded-xl bg-green-light/10 p-2.5 text-xs leading-5 text-green-dark">
+                يُحفظ طلبك تلقائياً في حسابك. يمكنك الخروج والعودة لاحقاً لتتابع من الخطوة نفسها.
+                <button type="button" onClick={discard} className="mt-1 block font-bold text-maroon underline">
+                  بدء طلب جديد بدلاً منه
+                </button>
+              </p>
+            )}
             {members.length > 0 && (
               <p className="mt-3 border-t border-gold-light pt-3 text-sm">
-                رسم التسجيل: <span className="font-bold text-green-dark">{members.length * season.fees.registrationPerPerson} $</span>
+                رسم التسجيل: <span className="font-bold text-green-dark">{formatUSD(fee)}</span>
+                {first > 0 && (
+                  <span className="mt-1 block">
+                    الدفعة الأولى: <span className="font-bold text-green-dark">{formatUSD(first)}</span>
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -281,7 +416,7 @@ export default function ApplyPage() {
       <div>
         {/* Phase progress — completed phases are buttons, so any answer can be revisited and edited */}
         <div className="mb-4 rounded-3xl bg-white/10 p-2 backdrop-blur">
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {PHASES.map((p, i) => {
               const open = canOpenPhase(i);
               const done = i < phaseIdx || (i <= maxPhase && i !== phaseIdx);
@@ -312,7 +447,43 @@ export default function ApplyPage() {
         <Card className="min-h-[34rem] overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div key={screen + (screen === "adder" ? companions.length : "")} initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
-              {screen === "intro" && (
+              {screen === "intro" && previousDirect && (
+                <Question
+                  title={`لم يُقبل طلبك ${previousDirect.number} في القبول المباشر`}
+                  hint={`الأعمار المقبولة ${SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب لم يبلغها. باب التسجيل على القرعة مفتوح (${SEASON.windows.lottery.hijri})، ولا حاجة لإعادة الخطوات: ننقل الأفراد أنفسهم إلى طلب القرعة، وتراجع الملخص وتدفع رسم التسجيل فقط.`}
+                  speak="لم يُقبل طلبك في القبول المباشر. يمكنك التسجيل على القرعة بالأفراد أنفسهم دون إعادة الخطوات."
+                >
+                  <div className="rounded-3xl border-2 border-gold/50 bg-white p-5">
+                    <p className="font-bold text-green-dark">أفراد الطلب — ينتقلون كما هم</p>
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {previousDirect.members.map((m) => (
+                        <li key={m.person.id} className="rounded-full bg-sand px-3 py-1.5 text-sm font-semibold">
+                          {m.person.firstName} <span className="text-hint">— {m.relation === "self" ? "صاحب الطلب" : relationWord(m.relation, m.person.gender)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-sm text-ink-soft">{previousDirect.office} — موافقات المرافقين محفوظة من الطلب السابق.</p>
+                  </div>
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <Button size="xl" onClick={moveToLottery}>
+                      🎟️ سجّلني على القرعة بالأفراد أنفسهم <ArrowLeft className="size-6" />
+                    </Button>
+                    <Button
+                      size="xl"
+                      variant="outline"
+                      onClick={() => {
+                        setTrack("lottery");
+                        setMembers(previousDirect.members);
+                        go("review");
+                      }}
+                    >
+                      أريد تعديل الأفراد أولاً
+                    </Button>
+                  </div>
+                </Question>
+              )}
+
+              {screen === "intro" && !previousDirect && (
                 <Question
                   title={`أهلاً ${me.firstName}، سنقدّم طلبك معاً خطوة بخطوة`}
                   hint="سنسألك بعض الأسئلة البسيطة. بيانات مرافقيك تأتي من الشؤون المدنية، ونطبّق الشروط ونشرح لك كل شيء. يستغرق ذلك نحو خمس دقائق."
@@ -321,7 +492,7 @@ export default function ApplyPage() {
                   <div className="grid gap-3 md:grid-cols-3">
                     {[
                       { e: "🪪", t: "بطاقتك الشخصية", s: "وبطاقات مرافقيك أو دفتر العائلة" },
-                      { e: "📷", t: "صور الجوازات", s: "والصور الشخصية" },
+                      { e: "🛂", t: "لا تحتاج جوازك الآن", s: "الجواز والصورة بعد القبول، والوثائق الطبية بعد الانضمام إلى مجموعة" },
                       { e: "💳", t: `${season.fees.registrationPerPerson} دولاراً للفرد`, s: "رسم التسجيل" },
                     ].map((x, i) => (
                       <motion.div key={x.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.08 }} className="rounded-3xl bg-sand p-5">
@@ -334,10 +505,7 @@ export default function ApplyPage() {
                   <Button
                     size="xl"
                     className="mt-8"
-                    onClick={() => {
-                      if (previousDirect) setTrack("lottery");
-                      go("track");
-                    }}
+                    onClick={() => go("track")}
                   >
                     لنبدأ <ArrowLeft className="size-6" />
                   </Button>
@@ -347,7 +515,7 @@ export default function ApplyPage() {
               {screen === "track" && (
                 <Question
                   title="على أي تسجيل تقدّم طلبك؟"
-                  hint="تسجيلان منفصلان، لكل منهما طلبه وموعده. من لا يُقبل في القبول المباشر لا ينتقل تلقائياً إلى القرعة، ويمكنه التسجيل عليها بطلب جديد في موعدها."
+                  hint={`تسجيلان منفصلان، لكل منهما طلبه وموعده. القبول المباشر لمن بلغ صاحب طلبه ${season.acceptedDirectAge} عاماً فأكثر، ونتحقق من ذلك قبل الدفع؛ ومن كان أصغر يسجّل على القرعة.`}
                   speak="على أي تسجيل تقدّم طلبك؟ التسجيل على القبول المباشر، أو التسجيل على القرعة."
                 >
                   <div className="grid gap-4 md:grid-cols-2">
@@ -358,7 +526,7 @@ export default function ApplyPage() {
                       description={
                         previousDirect
                           ? `قدّمت فيه الطلب رقم ${previousDirect.number} ولم يُقبل (الأعمار المقبولة ${SEASON.acceptedDirectAge} عاماً فأكثر)`
-                          : `${SEASON.windows.direct.hijri} — يُقبل الأكبر سناً حتى تكتمل ${Math.round(SEASON.directShare * 100)}% من الحصة (${SEASON.directSeats.toLocaleString("en")} مقعداً). إعلان الأعمار المقبولة ${SEASON.windows.direct.announce}.`
+                          : `${SEASON.windows.direct.hijri} — لمن بلغ صاحب طلبه ${season.acceptedDirectAge} عاماً فأكثر (حددته الإدارة لهذا الموسم)، ونتحقق من العمر قبل أي دفع. ${Math.round(SEASON.directShare * 100)}% من الحصة (${SEASON.directSeats.toLocaleString("en")} مقعداً).`
                       }
                       selected={track === "direct" && !previousDirect}
                       disabled={!!previousDirect}
@@ -371,19 +539,19 @@ export default function ApplyPage() {
                       index={1}
                       icon="🎟️"
                       label="التسجيل على القرعة"
-                      description={`${SEASON.windows.lottery.hijri} — بعد إعلان الأعمار المقبولة. قرعة علنية ببث مباشر على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً) يوم ${SEASON.windows.lottery.draw}.`}
+                      description={`${SEASON.windows.lottery.hijri} — لكل الأعمار المؤهلة. قرعة علنية ببث مباشر على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً) يوم ${SEASON.windows.lottery.draw}.`}
                       selected={track === "lottery"}
                       onClick={() => {
+                        if (previousDirect) return moveToLottery();
                         setTrack("lottery");
-                        if (previousDirect && members.length === 0) setMembers(previousDirect.members);
-                        go(previousDirect ? "review" : "forWhom");
+                        go("forWhom");
                       }}
                     />
                   </div>
                   <p className="mt-5 rounded-2xl bg-gold/20 p-4 text-sm leading-7 text-ink-soft">
                     {previousDirect
-                      ? "سننقل أفراد طلبك السابق إلى طلب القرعة الجديد لتراجعهم، ويمكنك التعديل عليهم."
-                      : "في العرض التجريبي يمكنك تجربة التسجيلين الآن؛ في الموسم الفعلي يُفتح كل تسجيل في موعده فقط."}
+                      ? "ننقل أفراد طلبك السابق إلى طلب القرعة مباشرة، فتراجع الملخص وتدفع رسم التسجيل فقط."
+                      :"في العرض التجريبي يمكنك تجربة التسجيلين الآن؛ في الموسم الفعلي يُفتح كل تسجيل في موعده فقط."}
                   </p>
                   <Button variant="ghost" size="lg" className="mt-6" onClick={back}>
                     <ArrowRight className="size-5" /> رجوع
@@ -401,7 +569,7 @@ export default function ApplyPage() {
                       description={`${fullName(me)} — ${ageOf(me)} عاماً`}
                       onClick={() => {
                         if (applicant?.id !== me.id) setSelf(me);
-                        go("companions");
+                        go("residence");
                       }}
                     />
                     <Choice
@@ -486,7 +654,7 @@ export default function ApplyPage() {
                           disabled={other.otp !== DEMO_OTP}
                           onClick={() => {
                             setSelf(other.person!);
-                            replace("companions");
+                            replace("residence");
                           }}
                         >
                           تأكيد الموافقة <ArrowLeft className="size-6" />
@@ -495,6 +663,45 @@ export default function ApplyPage() {
                     </Question>
                   )}
                 </div>
+              )}
+
+              {screen === "residence" && applicant && (
+                <Question
+                  title={applicant.id === sessionId ? "أين تقيم حالياً؟" : `أين يقيم ${applicant.firstName} حالياً؟`}
+                  hint="لكل محافظة مكتب واحد، ولنا مكاتب في تركيا ومصر والأردن. يتبع طلبك المكتب الأقرب إلى إقامتك تلقائياً، ومع هذا المكتب تُفوَّج إلى مجموعتك بعد القبول."
+                  speak="أين تقيم حالياً؟ داخل سوريا، أو في تركيا، أو مصر، أو الأردن."
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Choice
+                      index={0}
+                      icon="🇸🇾"
+                      label="داخل سوريا"
+                      description={`${officeFor(applicant.governorate)} — حسب محافظتك في السجل المدني`}
+                      selected={residence === "سوريا"}
+                      onClick={() => {
+                        setResidence("سوريا");
+                        go("companions");
+                      }}
+                    />
+                    {ABROAD.map((country, i) => (
+                      <Choice
+                        key={country}
+                        index={i + 1}
+                        icon={RESIDENCE_FLAGS[country] ?? "🌍"}
+                        label={`في ${country}`}
+                        description={officeFor(country)}
+                        selected={residence === country}
+                        onClick={() => {
+                          setResidence(country);
+                          go("companions");
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <Button variant="ghost" size="lg" className="mt-6" onClick={back}>
+                    <ArrowRight className="size-5" /> رجوع
+                  </Button>
+                </Question>
               )}
 
               {screen === "companions" && applicant && (
@@ -512,8 +719,9 @@ export default function ApplyPage() {
                       label="لا، طلب فردي"
                       description="ينتهي بخطوة واحدة"
                       onClick={() => {
-                        setMembers((ms) => ms.filter((m) => m.relation === "self"));
-                        go("terminal");
+                        const solo = members.filter((m) => m.relation === "self");
+                        setMembers(solo);
+                        afterMembers(solo);
                       }}
                     />
                   </div>
@@ -620,7 +828,9 @@ export default function ApplyPage() {
                       ]
                     : applicant.id === "06055500711"
                       ? [{ id: "06055500701", label: "والدته نجاح" }, ...DEMO_PEOPLE.slice(3)]
-                      : applicant.id === "02033300552"
+                      : applicant.id === "01077700351"
+                        ? [{ id: "01077700350", label: "والده عادل (64) — يصبح صاحب الطلب" }, ...DEMO_PEOPLE.slice(3)]
+                        : applicant.id === "02033300552"
                         ? [{ id: "02033300553", label: "أخوها مازن" }, ...DEMO_PEOPLE.filter((p) => p.id !== "02033300552" && p.id !== "02033300553")]
                         : DEMO_PEOPLE
                   ).filter((s) => s.id !== applicant.id && !members.some((m) => m.person.id === s.id))}
@@ -677,109 +887,10 @@ export default function ApplyPage() {
                     <Button variant="ghost" size="lg" onClick={back}>
                       <ArrowRight className="size-5" /> رجوع
                     </Button>
-                    <Button size="xl" onClick={() => go("terminal")}>
+                    <Button size="xl" onClick={() => afterMembers()}>
                       الأفراد صحيحون <ArrowLeft className="size-6" />
                     </Button>
                   </div>
-                </Question>
-              )}
-
-              {screen === "terminal" && (
-                <Question
-                  title={members.length > 1 ? "هل يعاني أحد من المسافرين من مرض عضال؟" : "هل تعاني من مرض عضال؟"}
-                  hint="المرض العضال هو المرض الخطير الذي لا يُرجى شفاؤه. أما الأمراض المزمنة المنتظمة بالدواء مثل السكري والضغط فلا تمنع السفر."
-                  speak="هل يعاني أحد من المسافرين من مرض عضال؟ الأمراض المزمنة مثل السكري والضغط لا تمنع السفر."
-                >
-                  <Choice
-                    index={0}
-                    icon="🤲"
-                    label="لا أحد — الحمد لله"
-                    selected={members.every((m) => !m.terminalIllness)}
-                    onClick={() => {
-                      setMembers((ms) => ms.map((m) => ({ ...m, terminalIllness: false })));
-                      setTimeout(() => go("needs"), 250);
-                    }}
-                  />
-                  <p className="my-4 text-center font-bold text-hint">أو اختر المصاب</p>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {members.map((m, i) => (
-                      <Choice
-                        key={m.person.id}
-                        index={i + 1}
-                        tone="danger"
-                        icon={m.person.gender === "F" ? "👩" : "👨"}
-                        label={m.person.firstName}
-                        description={m.terminalIllness ? "مُعلَّم: مصاب بمرض عضال" : "اضغط إن كان مصاباً"}
-                        selected={!!m.terminalIllness}
-                        onClick={() => patchMember(m.person.id, { terminalIllness: !m.terminalIllness })}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-8 flex justify-between gap-3">
-                    <Button variant="ghost" size="lg" onClick={back}>
-                      <ArrowRight className="size-5" /> رجوع
-                    </Button>
-                    <Button size="lg" onClick={() => go("needs")}>
-                      متابعة <ArrowLeft className="size-5" />
-                    </Button>
-                  </div>
-                </Question>
-              )}
-
-              {screen === "needs" && (
-                <Question
-                  title={members.length > 1 ? "هل يحتاج أحد منهم إلى رعاية خاصة؟" : "هل تحتاج إلى رعاية خاصة؟"}
-                  hint="مثل الكرسي المتحرك أو الوجبات الخاصة. نراعي ذلك في الغرفة والحافلة والوجبات."
-                  speak="هل يحتاج أحد منهم إلى رعاية خاصة، مثل الكرسي المتحرك أو الوجبات الخاصة؟"
-                >
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Choice
-                      index={0}
-                      icon="👍"
-                      label="لا"
-                      selected={needsYes === false}
-                      onClick={() => {
-                        setNeedsYes(false);
-                        setMembers((ms) => ms.map((m) => ({ ...m, needs: [] })));
-                        setTimeout(afterHealth, 250);
-                      }}
-                    />
-                    <Choice index={1} icon="🤝" label="نعم" selected={needsYes === true} onClick={() => setNeedsYes(true)} />
-                  </div>
-                  <AnimatePresence>
-                    {needsYes && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                        <div className="mt-6 space-y-4">
-                          {members.map((m) => (
-                            <div key={m.person.id} className="rounded-3xl bg-sand p-4">
-                              <p className="font-bold">{m.person.firstName} <span className="text-sm font-normal text-hint">({ageOf(m.person)} عاماً)</span></p>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {NEEDS.map((n) => {
-                                  const on = m.needs.includes(n.key);
-                                  return (
-                                    <motion.button
-                                      key={n.key}
-                                      whileTap={{ scale: 0.94 }}
-                                      onClick={() => patchMember(m.person.id, { needs: on ? m.needs.filter((x) => x !== n.key) : [...m.needs, n.key] })}
-                                      className={cn("rounded-2xl border-2 px-4 py-2.5 font-semibold transition", on ? "border-green-dark bg-green-dark text-white" : "border-gold/60 bg-white hover:border-gold-dark")}
-                                    >
-                                      {n.emoji} {n.key}
-                                    </motion.button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <Button size="xl" className="mt-6" onClick={afterHealth}>
-                          متابعة <ArrowLeft className="size-6" />
-                        </Button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <Button variant="ghost" size="lg" className="mt-6" onClick={back}>
-                    <ArrowRight className="size-5" /> رجوع
-                  </Button>
                 </Question>
               )}
 
@@ -851,12 +962,16 @@ export default function ApplyPage() {
 
               {screen === "eligibility" && (
                 <EligibilityCheck
-                  key={members.map((m) => `${m.person.id}${m.companionId}${m.terminalIllness}`).join()}
+                  key={members.map((m) => `${m.person.id}${m.companionId}${m.relation}`).join()}
                   result={result}
                   members={members}
                   rules={season.rules}
                   animate={checks === 0}
-                  onContinue={() => go(companions.length ? "consents" : "documents")}
+                  onContinue={() => {
+                    if (!consentPeople(members, sessionId).length) return go("summary");
+                    sendConsents();
+                    go("consents");
+                  }}
                   onRemove={(id) => {
                     const who = members.find((m) => m.person.id === id)?.person.firstName;
                     setChecks((n) => n + 1);
@@ -873,33 +988,58 @@ export default function ApplyPage() {
                     patchMember(id, { companionId: undefined });
                     go("elderly");
                   }}
-                  onFixHealth={() => {
-                    setChecks((n) => n + 1);
-                    go("terminal");
-                  }}
-                  onClearTerminal={(id) => {
-                    setChecks((n) => n + 1);
-                    patchMember(id, { terminalIllness: false });
-                    toast({ title: "صُحّح الإقرار الصحي", body: "أعدنا التحقق من الأهلية فوراً.", icon: "🔄" });
-                  }}
                   onChangeApplicant={() => {
                     setChecks((n) => n + 1);
                     go("forWhom");
                   }}
+                  onSwitchToLottery={() => {
+                    setChecks((n) => n + 1);
+                    setTrack("lottery");
+                    toast({
+                      title: "حوّلنا طلبك إلى التسجيل على القرعة",
+                      body: "بالأفراد أنفسهم ودون إعادة الخطوات. تدفع الآن رسم التسجيل فقط، والدفعة الأولى عند ظهور اسمك.",
+                      icon: "🎟️",
+                      tone: "gold",
+                    });
+                  }}
                 />
               )}
 
-              {screen === "consents" && <Consents members={members} onDone={() => go("documents")} />}
-              {screen === "documents" && <Documents members={members} onDone={() => go("office")} />}
+              {screen === "consents" && (
+                <Consents
+                  members={members}
+                  filerId={sessionId}
+                  consents={consents}
+                  onSimulate={(id, status) => actions.respondConsent(sessionId, id, status, stamp())}
+                  onResend={(id) => {
+                    actions.setConsent(sessionId, id, { status: "pending", sentAt: stamp(), via: accounts[id] ? "app" : "sms" });
+                    toast({ title: "أُعيد إرسال طلب الموافقة", icon: "📨" });
+                  }}
+                  onRemove={(id) => {
+                    const who = members.find((m) => m.person.id === id)?.person.firstName;
+                    removeMember(id);
+                    actions.setConsent(sessionId, id, null);
+                    setChecks((n) => n + 1);
+                    toast({ title: `أُزيل ${who} من الطلب`, body: "أعدنا التحقق من الأهلية.", icon: "🔄" });
+                    go("eligibility");
+                  }}
+                  onLater={() => {
+                    toast({ title: "حُفظ طلبك", body: "عُد متى شئت من «تقديم طلب» لترى من وافق وتتابع.", icon: "💾", tone: "success" });
+                    router.push("/portal");
+                  }}
+                  onDone={() => go("summary")}
+                />
+              )}
 
-              {screen === "office" && (
+              {screen === "summary" && (
                 <Question
-                  title="نوع الطلب ومكتب التسجيل"
+                  title="ملخص طلبك قبل الدفع"
                   hint={
                     track === "lottery"
                       ? `طلبك في التسجيل على القرعة. تُجرى القرعة ${SEASON.windows.lottery.draw} ببث مباشر.`
-                      : `طلبك في التسجيل على القبول المباشر. إن لم يُقبل، لا ينتقل تلقائياً إلى القرعة، ويمكنك التسجيل عليها بطلب جديد ${SEASON.windows.lottery.hijri}.`
+                      : `طلبك في التسجيل على القبول المباشر. إن لم يُقبل، يمكنك نقله إلى القرعة بضغطة واحدة حين يُفتح بابها ${SEASON.windows.lottery.hijri}.`
                   }
+                  speak="ملخص طلبك قبل الدفع. لا نطلب الآن جواز السفر ولا الصورة ولا المعلومات الصحية، فهذه تأتي بعد القبول."
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-3xl bg-green-dark p-5 text-white">
@@ -911,42 +1051,62 @@ export default function ApplyPage() {
                           : `يُرتَّب الطلب بعمر صاحب الطلب (${applicant ? ageOf(applicant) : "—"} عاماً)، ويُقبل الأكبر سناً حتى تكتمل ${Math.round(SEASON.directShare * 100)}% من الحصة.`}
                       </p>
                     </div>
-                    <div className="space-y-3">
-                      <label className="block">
-                        <span className="mb-1.5 block font-bold">المحافظة</span>
-                        <select value={office.governorate} onChange={(e) => setOffice({ governorate: e.target.value, office: "" })} className="h-14 w-full rounded-2xl border-2 border-gold/50 bg-white px-4 text-lg outline-none focus:border-green-light">
-                          {OFFICES.map((o) => (
-                            <option key={o.governorate}>{o.governorate}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block font-bold">المكتب</span>
-                        <select value={office.office} onChange={(e) => setOffice({ ...office, office: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-gold/50 bg-white px-4 text-lg outline-none focus:border-green-light">
-                          {(OFFICES.find((o) => o.governorate === office.governorate)?.offices ?? []).map((o) => (
-                            <option key={o}>{o}</option>
-                          ))}
-                        </select>
-                      </label>
+                    <div className="rounded-3xl border-2 border-gold/50 bg-white p-5">
+                      <p className="text-sm font-bold text-gold-dark">المكتب الذي يتبع له طلبك</p>
+                      <p className="mt-1 font-display text-xl font-bold text-green-dark">{officeFor(area)}</p>
+                      <p className="mt-2 text-sm leading-6 text-ink-soft">
+                        {residence === "سوريا"
+                          ? `حسب محافظة ${applicant?.firstName ?? "صاحب الطلب"} في السجل المدني (${area}). لكل محافظة مكتب واحد.`
+                          : `لأن ${applicant?.id === sessionId ? "إقامتك" : `إقامة ${applicant?.firstName}`} في ${area}.`}
+                      </p>
+                      <p className="mt-2 text-sm text-ink-soft">
+                        صاحب الطلب: <b className="text-ink">{applicant ? fullName(applicant) : "—"}</b> — {members.length} أفراد
+                      </p>
                     </div>
                   </div>
-                  <p className="mt-5 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
-                    لا نطلب الآن أي شيء عن الفندق أو الرحلة أو المجموعة؛ هذه بيانات تأتي بعد القبول.
-                  </p>
+                  <div className="mt-5 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
+                    <p className="font-bold text-green-dark">ماذا يحدث بعد القبول؟</p>
+                    <ol className="mt-1 list-inside list-decimal">
+                      {track === "lottery" && <li>إن ظهر اسمك في القرعة تدفع الدفعة الأولى من تكلفة الحج{credit ? " — وهي مدفوعة مسبقاً من طلبك السابق (تُعاد إليك إن لم تُسحب)" : ""}.</li>}
+                      <li>ترفع لكل فرد الصورة الشخصية وجواز السفر — ولا وثائق طبية قبل التفويج.</li>
+                      <li>حين تُفتح مرحلة التفويج ({SEASON.groupingWindow}) تتصفّح دليل المجموعات وتتواصل مع مجموعة، فيسجّلك منسقها فيها ويوقّع معك العقد.</li>
+                      <li>{plan === 1 ? "تكلفة الحج مدفوعة كاملة؛ تسدّد عند الانضمام الهدي وفارق الغرفة الخاصة إن وجد" : "عند الانضمام إلى المجموعة تدفع الدفعة الثانية"}، ثم ترفع شهادات اللقاحات والوثائق الطبية.</li>
+                    </ol>
+                  </div>
+                  <div className="mt-5 overflow-hidden rounded-2xl border border-gold/40">
+                    <p className="bg-sand px-4 py-2 text-sm font-bold text-gold-dark">تدفع الآن</p>
+                    <ul className="divide-y divide-gold-light px-4 text-sm">
+                      <li className="flex justify-between py-2"><span>رسم التسجيل — {members.length} × {formatUSD(season.fees.registrationPerPerson)}</span><b>{formatUSD(fee)}</b></li>
+                      {track === "direct" && (
+                        <li className="flex justify-between py-2">
+                          <span>{plan === 1 ? "تكلفة الحج كاملة" : "الدفعة الأولى من تكلفة الحج"} — {members.length} × {formatUSD(plan === 1 ? season.fees.hajjCost : season.fees.firstInstallment)}</span>
+                          <b>{formatUSD(first)}</b>
+                        </li>
+                      )}
+                      {credit && (
+                        <li className="flex justify-between py-2 text-green"><span>الدفعة الأولى من طلبك السابق {credit.creditFrom} — رصيد محفوظ</span><b>{formatUSD(credit.amount)}</b></li>
+                      )}
+                      <li className="flex justify-between py-2 font-bold text-green-dark"><span>المجموع الآن</span><span>{formatUSD(fee + first)}</span></li>
+                    </ul>
+                  </div>
+                  <div className="mt-5">
+                    <SeasonPlanNote people={members.length} fees={season.fees} dueNowLabel={track === "direct" ? "تدفع الآن مع رسم التسجيل" : "عند ظهور اسمك في القرعة"} />
+                    {track === "direct" && <p className="mt-2 text-xs text-hint">تُعاد الدفعة الأولى إن لم يُقبل الطلب ولم تنقله إلى القرعة.</p>}
+                  </div>
                   <Button size="xl" className="mt-6" onClick={() => go("payment")}>
-                    إلى الدفع <ArrowLeft className="size-6" />
+                    إلى الدفع — {formatUSD(fee + first)} <ArrowLeft className="size-6" />
                   </Button>
                 </Question>
               )}
 
-              {screen === "payment" && <Payment count={members.length} receipt={receipt} onPaid={submit} />}
+              {screen === "payment" && <Payment lines={payLines} receipt={receipt} onPaid={submit} />}
             </motion.div>
           </AnimatePresence>
         </Card>
 
         {screen !== "intro" && !["adder", "booklet", "otherId"].includes(screen) && history.length > 1 && (
           <p className="mt-4 text-center text-sm text-hint">
-            <Link href="/portal" className="hover:text-ink">الخروج إلى ملفي (لن يُحفظ الطلب غير المكتمل)</Link>
+            <Link href="/portal" className="hover:text-ink">الخروج إلى ملفي — طلبك محفوظ وتتابعه لاحقاً</Link>
           </p>
         )}
       </div>

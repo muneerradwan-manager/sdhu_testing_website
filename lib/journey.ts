@@ -155,7 +155,7 @@ export type TrackKey = "submitted" | "checking" | "eligible" | "direct" | "lotte
 export type TrackStep = { key: TrackKey; at: number; title: string; text: string };
 
 const COMMON: TrackStep[] = [
-  { key: "submitted", at: 0, title: "مُقدَّم", text: "استلمنا طلبك ورسم التسجيل" },
+  { key: "submitted", at: 0, title: "مُقدَّم", text: "استلمنا طلبك وما دفعته (رسم التسجيل، والدفعة الأولى في القبول المباشر)" },
   { key: "checking", at: 2, title: "تدقيق البيانات", text: "مطابقة الشؤون المدنية وتطبيق شروط الموسم" },
   { key: "eligible", at: 4, title: "مؤهل", text: "جميع أفراد الطلب مستوفون للشروط" },
 ];
@@ -180,7 +180,7 @@ export function trackSteps(track: Track, accepted: boolean): TrackStep[] {
   if (track === "direct") {
     return [
       ...COMMON,
-      { key: "direct", at: 6, title: "إعلان الأعمار المقبولة", text: `القبول المباشر: ${SEASON.acceptedDirectAge} عاماً فأكثر — ${SEASON.windows.direct.announce}` },
+      { key: "direct", at: 6, title: "اعتماد القبول المباشر", text: `صاحب الطلب ضمن الأعمار المقبولة (${SEASON.acceptedDirectAge}+) — ${SEASON.windows.direct.announce}` },
       accepted
         ? { key: "accepted", at: 8, title: "مقبول مباشرة", text: "قُبل طلبك وفق الأكبر سناً" }
         : { key: "notAccepted", at: 8, title: "لم يُقبل مباشرة", text: `التسجيل على القرعة ${SEASON.windows.lottery.hijri}` },

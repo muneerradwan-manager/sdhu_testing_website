@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { AlertOctagon, BadgeCheck, FileUp, Loader2, Pill as PillIcon, RefreshCw, Stethoscope, Upload } from "lucide-react";
+import { AlertOctagon, BadgeCheck, FileUp, Loader2, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
@@ -10,7 +10,7 @@ import type { Member } from "@/lib/rules";
 import { actions, type DocStatus } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
-import { DOCS, docKey, docRequirement, docStatus, memberDocsDone, passportCaseMember, type DocKey } from "./model";
+import { DOCS, docKey, docStatus, memberDocsDone, passportCaseMember, type DocKey } from "./model";
 import { Pill, logPilgrim, useNow, type StepProps } from "./shared";
 
 const UPLOAD_MS = 1600;
@@ -28,7 +28,6 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
   const reviewStart = useRef<Record<string, number>>({});
   const elder = passportCaseMember(app.members);
   const member = app.members.find((m) => m.person.id === active) ?? app.members[0];
-  const needsMedicine = app.members.some((m) => docRequirement(m, "medical") === "required");
 
   // One timer at a time: when it fires, every due transition is applied in a single setPost,
   // so two uploads finishing together can never overwrite each other.
@@ -52,34 +51,46 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
       const at = Date.now();
       const ready = due.filter((d) => d.at <= at + 30);
       const documents = { ...post.documents };
-      for (const d of ready) documents[d.key] = d.to;
-      actions.setPost(sessionId, { documents });
+      const elderPassport = elder ? docKey(elder, "passport") : "";
+      const rejectedOnce = [...(post.rejectedOnce ?? [])];
+      const bounced: string[] = [];
+      for (const d of ready) {
+        // الجواز الأول لكبير السن ينتهي خلال أشهر — يعيده المراجع مرة واحدة ليُجدَّد
+        if (d.to === "approved" && d.key === elderPassport && !rejectedOnce.includes(d.key)) {
+          documents[d.key] = "rejected";
+          rejectedOnce.push(d.key);
+          bounced.push(d.key);
+        } else documents[d.key] = d.to;
+      }
+      actions.setPost(sessionId, { documents, rejectedOnce });
+      if (bounced.length && elder) {
+        actions.logEvent({ actor: "رنا حداد (محاكاة)", role: "إدارة التسجيل", action: "إعادة وثيقة: جواز السفر", target: `طلب ${app.number}`, detail: `${fullName(elder.person)} — الصلاحية أقل من 6 أشهر بعد العودة` });
+        toast({ title: `أُعيد جواز ${elder.person.firstName}`, body: "صلاحيته أقل من 6 أشهر بعد العودة. جدّده ثم ارفع الجواز الجديد.", icon: "⚠️", tone: "warning" });
+      }
       // Finished uploads and reviews leave the local clocks, so a later staff rejection needs a fresh upload
       const doneUploads = ready.filter((d) => d.to === "uploaded").map((d) => d.key);
       if (doneUploads.length) setUploading((u) => Object.fromEntries(Object.entries(u).filter(([k]) => !doneUploads.includes(k))));
       for (const d of ready) if (d.to === "approved") delete reviewStart.current[d.key];
 
-      for (const d of ready) {
+      for (const d of ready.filter((x) => !bounced.includes(x.key))) {
         const m = app.members.find((x) => d.key.startsWith(x.person.id))!;
         const doc = DOCS.find((x) => d.key.endsWith(`-${x.key}`))!;
         if (d.to === "uploaded") {
           logPilgrim(app, `رفع وثيقة: ${doc.label}`, fullName(m.person));
         } else {
           actions.logEvent({ actor: `${doc.reviewer} (محاكاة)`, role: doc.reviewer.startsWith("د.") ? "الفريق الطبي" : "إدارة التسجيل", action: `اعتماد وثيقة: ${doc.label}`, target: `طلب ${app.number}`, detail: fullName(m.person) });
-          if (doc.key === "medical") {
-            toast({ title: `تم اعتماد التقرير الطبي لـ${m.person.firstName}`, body: `اعتمدته ${doc.reviewer}. سيتم مراعاة الاحتياجات في السكن والنقل.`, icon: "🩺", tone: "success" });
-          } else if (doc.key === "passport") {
+          if (doc.key === "passport" && rejectedOnce.includes(d.key)) {
             toast({ title: `قُبل الجواز الجديد لـ${m.person.firstName}`, body: "الجواز ساري المفعول حتى 1458هـ.", icon: "🛂", tone: "success" });
           }
         }
       }
       const post2 = { ...post, documents };
       if (app.members.every((m) => memberDocsDone(post2, m)) && !app.members.every((m) => memberDocsDone(post, m))) {
-        toast({ title: `جميع وثائق طلبك رقم ${app.number} مكتملة`, body: "اختر الآن التكتل والمجموعة من دليل الخدمات.", icon: "🎉", tone: "gold" });
+        toast({ title: `جميع وثائق طلبك رقم ${app.number} مكتملة`, body: "التالي: مرحلة التفويج — اختاروا مجموعتكم وتواصلوا مع منسقها.", icon: "🎉", tone: "gold" });
       }
     }, Math.max(0, next - t0));
     return () => clearTimeout(timer);
-  }, [uploading, post, sessionId, app, toast]);
+  }, [uploading, post, sessionId, app, toast, elder]);
 
   const upload = (m: Member, d: DocKey) => {
     const key = docKey(m, d);
@@ -87,7 +98,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
   };
 
   const uploadAll = (m: Member) => {
-    const keys = DOCS.filter((d) => docRequirement(m, d.key) !== "none" && ["missing", "rejected"].includes(docStatus(post, m, d.key)) && !(docKey(m, d.key) in uploading));
+    const keys = DOCS.filter((d) => ["missing", "rejected"].includes(docStatus(post, m, d.key)) && !(docKey(m, d.key) in uploading));
     const at = Date.now();
     setUploading((u) => ({ ...u, ...Object.fromEntries(keys.map((d, i) => [docKey(m, d.key), at + i * 350])) }));
   };
@@ -96,15 +107,15 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
 
   return (
     <Question
-      step="الخطوة 2 من 5"
-      title="استكمل الأوراق لكل فرد"
-      hint="الجواز والصورة مرفوعان منذ التسجيل. بقي اللقاحات، والتقرير الطبي لمن يحتاجه."
-      speak="استكمل الأوراق لكل فرد. الجواز والصورة مرفوعان منذ التسجيل. بقي اللقاحات، والتقرير الطبي لمن يحتاجه. سيُطلب منك إحضار الأدوية بكمية تكفي خمسة وثلاثين يوماً مع وصفة طبية."
+      step="الخطوة 2 من 6"
+      title="ارفع الصورة الشخصية والجواز لكل فرد"
+      hint="لم نطلب أي وثيقة عند التسجيل. الآن بعد القبول: الصورة الشخصية وجواز السفر فقط. لا تُطلب أي وثيقة طبية (ولا اللقاحات) قبل انضمامك إلى مجموعة في مرحلة التفويج."
+      speak="ارفع الصورة الشخصية وجواز السفر لكل فرد. الوثائق الطبية واللقاحات تُطلب بعد انضمامك إلى مجموعة."
     >
       {/* Member tabs */}
       <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
         {app.members.map((m) => {
-          const req = DOCS.filter((d) => docRequirement(m, d.key) === "required");
+          const req = DOCS;
           const ok = req.filter((d) => docStatus(post, m, d.key) === "approved").length;
           const done = ok === req.length;
           const bad = DOCS.some((d) => docStatus(post, m, d.key) === "rejected");
@@ -145,7 +156,6 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
               <p className="font-display text-2xl font-bold text-green-dark">{fullName(member.person)}</p>
               <p className="text-ink-soft">
                 {member.relation === "self" ? "صاحب الطلب" : relationLabel(member.relation, member.person.gender)} — {ageOf(member.person)} عاماً
-                {member.needs.length > 0 && ` — ${member.needs.join("، ")}`}
               </p>
             </div>
             {!memberDocsDone(post, member) && (
@@ -157,8 +167,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
 
           <ul className="mt-5 space-y-3">
             {DOCS.map((d, i) => {
-              const req = docRequirement(member, d.key);
-              if (req === "none") return null;
+              const req = "required" as const;
               const key = docKey(member, d.key);
               const status = docStatus(post, member, d.key);
               const started = uploading[key];
@@ -183,20 +192,18 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
                       <p className="flex flex-wrap items-center gap-2 text-lg font-bold">
                         {d.label}
                         {req === "required" && <Pill tone="maroon" className="text-xs">إلزامي</Pill>}
-                        {req === "recommended" && <Pill tone="gold" className="text-xs">موصى به لكبار السن</Pill>}
-                        {req === "optional" && <Pill tone="ink" className="text-xs">اختياري</Pill>}
                       </p>
                       <p className="mt-0.5 text-ink-soft">
                         {status === "approved" &&
                           (d.key === "passport"
-                            ? isElderPassport
+                            ? isElderPassport && post.rejectedOnce?.includes(key)
                               ? "✓ مقبول — الجواز الجديد ينتهي 1458هـ"
-                              : "✓ مقبول — مرفوع منذ تقديم الطلب"
-                            : d.key === "medical"
-                              ? `✓ معتمد من ${d.reviewer}${member.needs.length ? " — «حالة تحتاج متابعة» في الملف التشغيلي" : ""}`
+                              : `✓ مقبول — راجعته ${d.reviewer}`
+                            : d.key === "photo"
+                              ? `✓ مقبولة — مطابقة لمواصفات التأشيرة`
                               : `✓ معتمد من ${d.reviewer} — ساري حتى 1451هـ`)}
                         {status === "uploaded" && `${d.reviewer} تراجع الوثيقة الآن...`}
-                        {status === "missing" && !isUploading && (d.key === "medical" ? "تقرير من طبيب معتمد عن الحالة الصحية والقدرة على السفر" : "ارفع صورة واضحة للشهادة")}
+                        {status === "missing" && !isUploading && d.hint}
                         {isUploading && `جارٍ الرفع... ${Math.round(progress)}%`}
                         {status === "rejected" && !isUploading && "مرفوض"}
                       </p>
@@ -209,7 +216,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
                       )}
                       {status === "uploaded" && (
                         <span className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-bold text-gold-dark shadow-sm">
-                          {d.key === "medical" ? <Stethoscope className="size-5 animate-pulse" /> : <Loader2 className="size-5 animate-spin" />} قيد المراجعة
+                          <Loader2 className="size-5 animate-spin" /> قيد المراجعة
                         </span>
                       )}
                       {(status === "missing" || status === "rejected") && !isUploading && (
@@ -237,26 +244,6 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
                     </motion.div>
                   )}
 
-                  {status === "uploaded" && d.key === "medical" && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-4 flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-gold/40">
-                      <span className="relative grid size-11 place-items-center rounded-full bg-green-dark font-display text-lg font-bold text-gold">
-                        ل
-                        <span className="absolute -bottom-0.5 -left-0.5 size-3.5 rounded-full border-2 border-white bg-green-light" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold">د. ليلى شمس — الفريق الطبي</p>
-                        <p className="flex items-center gap-1 text-sm text-ink-soft">
-                          تقرأ التقرير
-                          {[0, 1, 2].map((j) => (
-                            <motion.span key={j} animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1.2, delay: j * 0.2 }}>
-                              •
-                            </motion.span>
-                          ))}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-
                   {isUploading && (
                     <span className="absolute inset-x-0 bottom-0 h-1.5 bg-gold-light">
                       <span className="block h-full bg-green-light transition-[width] duration-100" style={{ width: `${progress}%` }} />
@@ -265,23 +252,9 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
                 </motion.li>
               );
             })}
-            <li className="flex items-center gap-4 rounded-3xl border-2 border-green-light/40 bg-green-light/5 p-4">
-              <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white text-3xl shadow-sm">🖼️</span>
-              <div className="flex-1">
-                <p className="text-lg font-bold">الصورة الشخصية</p>
-                <p className="text-ink-soft">✓ مقبولة — مرفوعة منذ تقديم الطلب</p>
-              </div>
-              <BadgeCheck className="size-8 text-green-light" />
-            </li>
           </ul>
         </motion.div>
       </AnimatePresence>
-
-      {needsMedicine && (
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 flex items-start gap-3 rounded-3xl bg-gold/25 p-5 text-lg font-bold leading-8 text-maroon">
-          <PillIcon className="mt-1 size-6 shrink-0" /> سيُطلب منك إحضار الأدوية بكمية تكفي 35 يوماً مع وصفة طبية.
-        </motion.p>
-      )}
 
       <div className="mt-5 flex items-center justify-between rounded-2xl bg-sand p-4">
         <p className="text-lg font-bold">

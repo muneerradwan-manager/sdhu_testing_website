@@ -12,7 +12,7 @@ export type LiveSeason = {
   directSeats: number;
   lotterySeats: number;
   acceptedDirectAge: number;
-  fees: { registrationPerPerson: number; hajjCost: number; hady: number; privateRoomDiff: number; administratorRegistration: number; groupFormation: number; clusterFormation: number };
+  fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; privateRoomDiff: number; administratorRegistration: number; groupFormation: number; clusterFormation: number };
   overridden: (keyof SeasonOverrides)[];
 };
 
@@ -39,6 +39,8 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
       ...SEASON.fees,
       registrationPerPerson: o.registrationPerPerson ?? SEASON.fees.registrationPerPerson,
       hajjCost: o.hajjCost ?? SEASON.fees.hajjCost,
+      firstInstallment: Math.min(o.firstInstallment ?? SEASON.fees.firstInstallment, o.hajjCost ?? SEASON.fees.hajjCost),
+      installmentCount: (o.installmentCount ?? SEASON.installments.count) === 1 ? 1 : 2,
       hady: o.hady ?? SEASON.fees.hady,
     },
     overridden: Object.keys(o) as (keyof SeasonOverrides)[],

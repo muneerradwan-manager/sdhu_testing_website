@@ -97,11 +97,13 @@ const member = (p: Person, relation: Relation, relationVerified = true, extra: P
   ...extra,
 });
 
-const passportDocs = (note?: string): ReviewDoc[] => [
+/**
+ * What a registration carries: identity and the fee. No passport, photo or health information —
+ * those come after acceptance. A bank payment carries the uploaded payment slip.
+ */
+const passportDocs = (slipNote?: string): ReviewDoc[] => [
   { name: "صورة الهوية الوطنية", status: "ok" },
-  { name: "جواز السفر", status: note ? "issue" : "ok", note },
-  { name: "الصورة الشخصية", status: "ok" },
-  { name: "إيصال رسم التسجيل", status: "ok" },
+  { name: slipNote ? "إشعار الدفع المصرفي" : "إيصال رسم التسجيل (شام كاش)", status: slipNote ? "issue" : "ok", note: slipNote },
 ];
 
 export const SEED_APPLICATIONS: SeedApplication[] = [
@@ -111,7 +113,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50211",
       number: "50211",
-      office: "دمشق – الميدان",
+      office: "مكتب دمشق",
       governorate: "دمشق",
       submittedAt: at(2026, 11, 24, 18, 12),
       mode: "national",
@@ -130,7 +132,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50348",
       number: "50348",
-      office: "حماة – المركز",
+      office: "مكتب حماة",
       governorate: "حماة",
       submittedAt: at(2026, 11, 27, 21, 40),
       mode: "national",
@@ -149,7 +151,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50402",
       number: "50402",
-      office: "درعا – المحطة",
+      office: "مكتب درعا",
       governorate: "درعا",
       submittedAt: at(2026, 11, 29, 11, 5),
       mode: "manual",
@@ -169,7 +171,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50519",
       number: "50519",
-      office: "حلب – الشعار",
+      office: "مكتب حلب",
       governorate: "حلب",
       submittedAt: at(2026, 11, 30, 9, 50),
       mode: "national",
@@ -187,16 +189,16 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50627",
       number: "50627",
-      office: "حمص – الوعر",
+      office: "مكتب حمص",
       governorate: "حمص",
       submittedAt: at(2026, 12, 2, 16, 20),
       mode: "national",
-      caseLabel: "جواز ينتهي قريباً",
+      caseLabel: "إشعار دفع غير واضح",
       members: [member(self, "self")],
       flags: [
-        { title: "صلاحية الجواز", detail: "ينتهي الجواز في 3 آذار 2027، أي قبل السفر. يُشترط أن يكون صالحاً 6 أشهر بعد العودة (29 أيار 2027).", tone: "gold" },
+        { title: "إشعار الدفع غير مقروء", detail: "دفع رسم التسجيل في المصرف المعتمد ورفع صورة الإشعار، لكن الرقم المرجعي غير واضح في الصورة. يُطابق يدوياً مع كشف المصرف أو يُطلب رفع صورة أوضح.", tone: "gold" },
       ],
-      documents: passportDocs("ينتهي 03/03/2027"),
+      documents: passportDocs("الرقم المرجعي غير مقروء — طُلب رفع صورة أوضح"),
       evidence: "طلب فردي — لا توجد صلات للتحقق.",
     } satisfies SeedApplication;
   })(),
@@ -206,7 +208,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50733",
       number: "50733",
-      office: "إدلب – المركز",
+      office: "مكتب إدلب",
       governorate: "إدلب",
       submittedAt: at(2026, 12, 4, 20, 2),
       mode: "national",
@@ -225,7 +227,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50846",
       number: "50846",
-      office: "دوما",
+      office: "مكتب ريف دمشق",
       governorate: "ريف دمشق",
       submittedAt: at(2026, 12, 6, 13, 34),
       mode: "national",
@@ -234,7 +236,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       flags: [
         { title: "مرافق كبير السن ليس من الدرجة الأولى", detail: "خالد 71 عاماً ومرافقه ابن أخيه. مسموح، لكن الصلة «قريب آخر» تُراجع يدوياً.", tone: "gold" },
       ],
-      documents: [...passportDocs(), { name: "الصورة الشخصية للمرافق", status: "issue", note: "الإضاءة ضعيفة — طُلب رفع جديد" }],
+      documents: [...passportDocs(), { name: "بيان قيد المرافق", status: "issue", note: "الصورة غير واضحة — طُلب رفع جديد" }],
       evidence: "إقرار عائلي موقّع من مختار دوما مرفوع كصورة.",
     } satisfies SeedApplication;
   })(),
@@ -244,7 +246,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
     return {
       id: "seed-50958",
       number: "50958",
-      office: "دير الزور – المركز",
+      office: "مكتب دير الزور",
       governorate: "دير الزور",
       submittedAt: at(2026, 12, 8, 22, 51),
       mode: "national",

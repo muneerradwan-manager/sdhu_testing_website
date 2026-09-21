@@ -21,7 +21,6 @@ const selectCls =
 export function PublicLists() {
   const [kind, setKind] = useState<ListKind>("lottery");
   const [gov, setGov] = useState("");
-  const [office, setOffice] = useState("");
   const [campaign, setCampaign] = useState("");
   const [appNo, setAppNo] = useState("");
   const [page, setPage] = useState(1);
@@ -32,19 +31,17 @@ export function PublicLists() {
       list.filter(
         (a) =>
           (!gov || a.governorate === gov) &&
-          (!office || a.office === office) &&
           (!campaign || a.campaign === campaign) &&
           (!appNo || a.applicationNo.startsWith(appNo)),
       ),
-    [list, gov, office, campaign, appNo],
+    [list, gov, campaign, appNo],
   );
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pages);
   const slice = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
   const people = filtered.reduce((a, r) => a + r.members.length, 0);
-  const offices = OFFICES.find((o) => o.governorate === gov)?.offices ?? [];
-  const hasFilters = gov || office || campaign || appNo;
+  const hasFilters = gov || campaign || appNo;
   const tab = TABS.find((t) => t.key === kind)!;
 
   const change = <T,>(setter: (v: T) => void) => (v: T) => {
@@ -91,34 +88,30 @@ export function PublicLists() {
       </div>
 
       {/* Filters */}
-      <div className="mt-6 grid gap-3 rounded-2xl bg-sand/70 p-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] lg:items-center">
+      <div className="mt-6 grid gap-3 rounded-2xl bg-sand/70 p-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_auto] lg:items-center">
         <span className="hidden items-center gap-1.5 px-2 text-sm font-bold text-green-dark lg:flex">
           <ListFilter className="size-4" /> تصفية
         </span>
         <label className="relative">
-          <span className="sr-only">المحافظة</span>
+          <span className="sr-only">المكتب</span>
           <select
             className={selectCls}
             value={gov}
             onChange={(e) => {
               change(setGov)(e.target.value);
-              setOffice("");
             }}
           >
-            <option value="">كل المحافظات</option>
-            {OFFICES.map((o) => (
-              <option key={o.governorate}>{o.governorate}</option>
-            ))}
-          </select>
-          <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
-        </label>
-        <label className="relative">
-          <span className="sr-only">المكتب</span>
-          <select className={selectCls} value={office} disabled={!gov} onChange={(e) => change(setOffice)(e.target.value)}>
-            <option value="">{gov ? "كل المكاتب" : "اختر المحافظة أولاً"}</option>
-            {offices.map((o) => (
-              <option key={o}>{o}</option>
-            ))}
+            <option value="">كل المكاتب</option>
+            <optgroup label="داخل سوريا">
+              {OFFICES.filter((o) => !o.abroad).map((o) => (
+                <option key={o.governorate} value={o.governorate}>{o.office}</option>
+              ))}
+            </optgroup>
+            <optgroup label="مكاتب الخارج">
+              {OFFICES.filter((o) => o.abroad).map((o) => (
+                <option key={o.governorate} value={o.governorate}>{o.office}</option>
+              ))}
+            </optgroup>
           </select>
           <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
         </label>
@@ -156,7 +149,6 @@ export function PublicLists() {
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={() => {
                 setGov("");
-                setOffice("");
                 setCampaign("");
                 setAppNo("");
                 setPage(1);
@@ -186,7 +178,7 @@ export function PublicLists() {
               <th className="px-4 py-3 text-start font-semibold">رقم الطلب</th>
               <th className="px-4 py-3 text-start font-semibold">الاسم</th>
               <th className="px-4 py-3 text-start font-semibold">الرقم الوطني</th>
-              <th className="px-4 py-3 text-start font-semibold">المحافظة</th>
+              <th className="px-4 py-3 text-start font-semibold">المحافظة / البلد</th>
               <th className="px-4 py-3 text-start font-semibold">المكتب</th>
               <th className="px-4 py-3 text-start font-semibold">الحملة</th>
             </tr>

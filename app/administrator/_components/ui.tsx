@@ -63,7 +63,7 @@ const NAV: NavItem[] = [
   { href: "/administrator/group", label: "مجموعتي", icon: FileSignature },
   // تسجيل المواطنين من اختصاص المنسق التقني وحده
   { href: "/administrator/pilgrims", label: "تسجيل الحجاج", icon: UserRoundPlus, techOnly: true },
-  { href: "/administrator/requests", label: "طلبات الانتساب", icon: UsersRound },
+  { href: "/administrator/requests", label: "حجاج المجموعة", icon: UsersRound },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned },
 ];
 

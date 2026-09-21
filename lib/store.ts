@@ -24,11 +24,22 @@ export type Application = {
   mode: "booklet" | "national" | "solo";
   forWhom: "me" | "other";
   members: Member[];
+  /** Derived, never chosen: the applicant's governorate (or the coordinator's) and its single office */
   governorate: string;
   office: string;
+  /** Receipt of the registration fee */
   receipt: string;
+  /** Everything paid when registering: the fee, plus the first installment on direct acceptance */
   paid: number;
-  payMethod: "card" | "bank";
+  /** Hajj cost plan in force when the application was filed — set by the administration for the season, not chosen */
+  plan?: 1 | 2;
+  /**
+   * First installment paid at registration (direct acceptance) or at the lottery result. When a pilgrim
+   * not accepted directly moves to the lottery, it carries over as a credit — refunded if not drawn.
+   */
+  firstPaid?: { amount: number; at: number; receipt: string; creditFrom?: string };
+  /** ShamCash or the approved bank (with an uploaded payment slip). "card" only in applications saved before ShamCash */
+  payMethod: "shamcash" | "bank" | "card";
   ratings: Record<string, number>;
   /**
    * Which registration this application was made in. The two are separate: direct acceptance (oldest
@@ -40,7 +51,8 @@ export type Application = {
   previous?: { number: string; track: "direct"; submittedAt: number; closedAt: number };
   /**
    * Filed by an authorised administrator on the citizen's behalf (the technical coordinator at a branch
-   * office). Absent when the pilgrim filed it himself.
+   * office). Absent when the pilgrim filed it himself. This is a plain registration: it does NOT put the
+   * pilgrims in the coordinator's group — groups are joined only in the assignment window.
    */
   submittedBy?: { id: string; name: string; position: string };
 };
@@ -76,6 +88,9 @@ export type SeasonOverrides = Partial<{
   acceptedDirectAge: number;
   registrationPerPerson: number;
   hajjCost: number;
+  firstInstallment: number;
+  /** Hajj cost in 1 payment or 2 installments — the administration decides for the season */
+  installmentCount: number;
   hady: number;
 }>;
 
@@ -98,16 +113,48 @@ export type Ticket = {
 
 export type DocStatus = "missing" | "uploaded" | "rejected" | "approved";
 
+/** One pilgrim's health file, taken by the group's coordinator after acceptance */
+export type HealthRecord = {
+  conditions: string[];
+  needs: string[];
+  medications: string;
+
+};
+
+export type HealthFile = {
+  by: { id: string; name: string };
+  at: number;
+  members: Record<string, HealthRecord>;
+  /** The pilgrim checked what the coordinator recorded */
+  confirmedAt?: number;
+};
+
 /** Interactive steps after acceptance (المرحلة 6 – 9), keyed by pilgrim session id */
 export type PostAcceptance = {
   confirmedAt?: number;
-  /** key: `${nationalId}-${doc}` where doc is passport | meningitis | flu | medical */
+  /** key: `${nationalId}-${doc}` where doc is photo | passport | covid | meningitis | flu */
   documents: Record<string, DocStatus>;
+  /** Documents already sent back once by the reviewer (the expired-passport case) */
+  rejectedOnce?: string[];
+  /**
+   * التفويج: when the assignment window opens, the pilgrim reads the group directory and contacts a
+   * group; that group's coordinator enrolls the whole application (a family moves together or not at
+   * all) and both sign the pilgrim–group contract. A coordinator enrolls only into his own group.
+   */
   clusterId?: string;
   groupNumber?: number;
-  groupRequestedAt?: number;
+  /** The coordinator who enrolled the family */
+  enrolledBy?: { id: string; name: string };
+  /** Membership is active from this moment */
   groupApprovedAt?: number;
-  payments: Partial<Record<"hajj" | "hady" | "room", number>>;
+  /** Earlier groups, when the family moved (the whole application at once) */
+  transfers?: { from: number; to: number; at: number }[];
+  /** Health information the group's coordinator records after enrollment */
+  health?: HealthFile;
+  /** Medical documents — asked only after the full amount is paid. key: `${nationalId}-${doc}` */
+  medical?: Record<string, DocStatus>;
+  /** Paid moments, by line key: i1..i3 (installments), hady, room */
+  payments: Partial<Record<string, number>>;
   contractSignedAt?: number;
   visaAt?: number;
   ratings: Record<string, number>;
@@ -140,9 +187,39 @@ export type AdminProfile = {
     approvedBy?: string;
     contractSignedAt?: number;
   };
-  /** Decisions on pilgrims' join requests: pilgrim session id -> decision */
+  /**
+   * Families enrolled in this group that the leader has received and welcomed: pilgrim session id -> "accepted".
+   * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
+   */
   joinDecisions: Record<string, "accepted" | "rejected">;
   musters: { id: string; title: string; at: number; present: string[]; closedAt?: number }[];
+};
+
+/** One companion's approval to be added to an application — it stays open until they answer */
+export type Consent = {
+  status: "pending" | "approved" | "declined";
+  sentAt: number;
+  respondedAt?: number;
+  /** Invitation inside the app (has an account) or a code by text message */
+  via: "app" | "sms";
+};
+
+/**
+ * An application that is not submitted yet, saved at every step on the applicant's account (keyed by
+ * session id). The applicant can leave — e.g. while companions approve — and continue later from the
+ * same place. In production this is a server table with the same fields.
+ */
+export type ApplyDraft = {
+  updatedAt: number;
+  history: string[];
+  track: "direct" | "lottery";
+  members: Member[];
+  book: { no: string } | null;
+  residence: string;
+  plan?: 1 | 2;
+  maxPhase: number;
+  /** key: companion national id */
+  consents: Record<string, Consent>;
 };
 
 /** Simulated in-season position for the pilgrim "حالتي الآن" mode */
@@ -164,6 +241,8 @@ type State = {
   season: SeasonOverrides;
   tickets: Ticket[];
   post: Record<string, PostAcceptance>;
+  /** Applications being filled in, saved at every step (keyed by applicant session id) */
+  drafts: Record<string, ApplyDraft>;
   inSeason: Record<string, InSeason>;
   lottery: { importedAt?: number; importedBy?: string; publishedAt?: number; publishedBy?: string };
   tourSeen: boolean;
@@ -186,6 +265,7 @@ const initial: State = {
   season: {},
   tickets: [],
   post: {},
+  drafts: {},
   inSeason: {},
   lottery: {},
   tourSeen: false,
@@ -307,6 +387,33 @@ export const actions = {
       const app = s.applications[applicantId];
       if (!app) return s;
       return { ...s, applications: { ...s.applications, [applicantId]: { ...app, submittedAt: Date.now() } } };
+    });
+  },
+  /** Autosave of the application being filled in. Approvals are kept as they are: companions answer from outside the page */
+  saveDraft(sessionId: string, draft: Omit<ApplyDraft, "updatedAt" | "consents">, at: number) {
+    setState((s) => ({ ...s, drafts: { ...s.drafts, [sessionId]: { ...draft, consents: s.drafts[sessionId]?.consents ?? {}, updatedAt: at } } }));
+  },
+  /** Send (or resend, or withdraw with null) one companion's approval request */
+  setConsent(ownerId: string, personId: string, consent: Consent | null) {
+    setState((s) => {
+      const d = s.drafts[ownerId];
+      if (!d) return s;
+      const consents = { ...d.consents };
+      if (consent) consents[personId] = consent;
+      else delete consents[personId];
+      return { ...s, drafts: { ...s.drafts, [ownerId]: { ...d, consents } } };
+    });
+  },
+  clearDraft(sessionId: string) {
+    setState((s) => ({ ...s, drafts: Object.fromEntries(Object.entries(s.drafts).filter(([id]) => id !== sessionId)) }));
+  },
+  /** A companion answers from his own account (or by the text-message code) */
+  respondConsent(ownerId: string, personId: string, status: "approved" | "declined", at: number) {
+    setState((s) => {
+      const d = s.drafts[ownerId];
+      const c = d?.consents[personId];
+      if (!d || !c) return s;
+      return { ...s, drafts: { ...s.drafts, [ownerId]: { ...d, updatedAt: at, consents: { ...d.consents, [personId]: { ...c, status, respondedAt: at } } } } };
     });
   },
   deleteApplication(applicantId: string) {

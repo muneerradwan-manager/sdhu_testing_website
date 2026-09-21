@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/widgets";
 import { getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { DEMO_ADMINS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
+import { DEMO_ADMINS, POSITIONS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
 
 export function AdminLoginFlow() {
   const router = useRouter();
@@ -61,8 +61,8 @@ export function AdminLoginFlow() {
 
   return (
     <PortalShell image="/images/umayyad.jpg" title="دخول الإداري" subtitle="بالرقم الوطني ورمز تحقق يصل إلى هاتفك المسجّل.">
-      <div className="mx-auto grid max-w-4xl items-start gap-6 md:grid-cols-[1.3fr_1fr]">
-        <Card className="overflow-hidden">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <Card className="mx-auto max-w-xl overflow-hidden">
           <AnimatePresence mode="wait">
             {!otpStage ? (
               <motion.form key="id" onSubmit={submit} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }} className="space-y-6">
@@ -107,19 +107,37 @@ export function AdminLoginFlow() {
           <p className="flex items-center gap-2 font-bold text-maroon">
             <FlaskConical className="size-4" /> دخول تجريبي سريع
           </p>
-          <ul className="mt-3 space-y-2">
-            {DEMO_ADMINS.map((d) => (
-              <li key={d.id}>
-                <motion.button whileHover={{ y: -2 }} type="button" onClick={() => quick(d.id, d.mode)} className="group w-full rounded-2xl bg-white p-4 text-right shadow-sm hover:shadow-md">
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-green-dark">{d.title}</span>
-                    <Zap className="size-4 text-gold-dark transition group-hover:scale-125" />
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-ink-soft">{d.note}</span>
-                </motion.button>
-              </li>
+          <p className="mt-1 text-xs text-ink-soft">لكل صفة إداريان متجاوران: الأول أنهى رحلته فترى كل ما يظهر له، والثاني لم يبدأ بعد.</p>
+          <div className="mt-4 space-y-4">
+            {POSITIONS.filter((pos) => DEMO_ADMINS.some((d) => d.position === pos.key)).map((pos) => (
+              <div key={pos.key}>
+                <p className="mb-2 text-sm font-bold text-maroon">{pos.label}</p>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {DEMO_ADMINS.filter((d) => d.position === pos.key).map((d) => (
+                    <li key={d.id}>
+                      <motion.button
+                        whileHover={{ y: -2 }}
+                        type="button"
+                        onClick={() => quick(d.id, d.mode)}
+                        className={cn("group h-full w-full rounded-2xl p-4 text-right shadow-sm hover:shadow-md", d.mode === "done" ? "bg-green-dark text-white" : "bg-white")}
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className={cn("font-bold", d.mode === "done" ? "text-gold" : "text-green-dark")}>{d.title}</span>
+                          <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold", d.mode === "done" ? "bg-gold text-ink" : "bg-maroon/10 text-maroon")}>
+                            {d.mode === "done" ? "أنهى رحلته" : "لم يبدأ بعد"}
+                          </span>
+                        </span>
+                        <span className={cn("mt-1 block text-xs leading-5", d.mode === "done" ? "text-white/75" : "text-ink-soft")}>{d.note}</span>
+                        <span className={cn("mt-2 inline-flex items-center gap-1 text-xs font-bold", d.mode === "done" ? "text-gold" : "text-green-dark")}>
+                          <Zap className="size-3.5 transition group-hover:scale-125" /> دخول فوري
+                        </span>
+                      </motion.button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
           <p className="mt-3 text-xs leading-5 text-ink-soft">
             يُنشأ الملف الإداري تلقائياً إن لم يكن موجوداً. ولقفزة مباشرة إلى الميدان استخدم لوحة التجربة في <Link href="/administrator" className="font-bold underline">صفحة الإداري</Link>.
           </p>

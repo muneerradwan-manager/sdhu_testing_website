@@ -4,36 +4,32 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeftRight,
   ArrowRight,
-  Bus,
   Building2,
-  CheckCircle2,
-  Clock,
-  EyeOff,
+  Bus,
+  FileSignature,
   Hotel,
   Landmark,
-  Send,
+  MessageCircle,
+  Phone,
   ShieldCheck,
-  Sparkles,
   Star,
-  TriangleAlert,
+  UserCheck,
   UsersRound,
   UtensilsCrossed,
-  XCircle,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
+import { coordinatorOf, enrollFamily, groupInfo } from "@/lib/assignment";
 import { clustersNow } from "@/lib/cms/content";
 import type { Cluster, ClusterGroup } from "@/lib/data/clusters";
-import { GROUP } from "@/lib/journey";
-import { ageOf, fullName, relationLabel } from "@/lib/registry";
-import type { Member } from "@/lib/rules";
-import { actions, useStore } from "@/lib/store";
+import { fullName, relationLabel } from "@/lib/registry";
+import { SEASON } from "@/lib/season";
 import { cn, formatUSD } from "@/lib/utils";
-import { Choice, Question } from "../../../apply/_components/ui";
-import { clearJoinDecisions, companionOf, elderlyMembers } from "./model";
-import { logPilgrim, useNow, type StepProps } from "./shared";
-
+import { Question } from "../../../apply/_components/ui";
+import { COORDINATOR_ID } from "./model";
+import type { StepProps } from "./shared";
 
 const LEVEL_TONE: Record<Cluster["level"], string> = {
   عادي: "bg-sand text-ink-soft",
@@ -41,136 +37,77 @@ const LEVEL_TONE: Record<Cluster["level"], string> = {
   "خمس نجوم": "bg-gold/40 text-maroon",
 };
 
+/**
+ * الخطوة 3: التفويج. في مرحلة التفويج يتصفّح الحاج دليل المجموعات ويتواصل مع مجموعة، فيسجّله منسقها
+ * فيها ويوقّعان عقد الحاج مع المجموعة. لا زر «انضمام» عند الحاج: التسجيل من صلاحية منسق المجموعة وحده.
+ */
 export function StepGroup({ app, post, sessionId }: StepProps) {
-  const toast = useToast();
-  const admins = useStore((s) => s.admins);
-  const [clusterSlug, setClusterSlug] = useState<string | null>(null);
-  const [groupNo, setGroupNo] = useState<number | null>(null);
-  const events = useStore((s) => s.events);
-  const rejected = useMemo(() => Object.values(admins).some((a) => a.joinDecisions?.[sessionId] === "rejected"), [admins, sessionId]);
-  const rejection = useMemo(
-    () => (rejected ? [...events].reverse().find((e) => e.action.startsWith("رفض طلب انتساب") && e.target?.includes(`الطلب ${app.number}`)) : undefined),
-    [rejected, events, app.number],
+  if (post.groupApprovedAt) return null;
+  return (
+    <Question
+      step="الخطوة 3 من 6"
+      title="مرحلة التفويج: اختر مجموعتك وتواصل مع منسقها"
+      hint={`مرحلة التفويج مفتوحة (${SEASON.groupingWindow}). تصفّح المجموعات وقارن بينها، ثم اتصل بمنسق المجموعة التي تناسبك: هو من يسجّلكم فيها ويوقّع معكم العقد. ${app.members.length > 1 ? `أفراد طلبكم (${app.members.length}) يُسجَّلون معاً في المجموعة نفسها.` : ""}`}
+      speak="مرحلة التفويج مفتوحة. تصفّح المجموعات، ثم اتصل بمنسق المجموعة التي تناسبك، فيسجّلك فيها ويوقّع معك العقد."
+    >
+      {app.submittedBy && (
+        <p className="mb-5 flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
+          <ShieldCheck className="mt-1 size-4 shrink-0 text-green-dark" />
+          سجّل طلبكم المنسق {app.submittedBy.name}، وهذا لا يضعكم في مجموعته. اختاروا المجموعة التي تناسبكم، ولو كانت مجموعته فهو من يسجّلكم فيها.
+        </p>
+      )}
+      <Directory app={app} post={post} sessionId={sessionId} />
+    </Question>
   );
-  const n = app.members.length;
-  const hasElderly = elderlyMembers(app.members).length > 0 || app.members.some((m) => m.needs.length);
+}
 
-  if (post.groupRequestedAt && !post.groupApprovedAt) {
-    if (rejected) {
-      return (
-        <Question
-          step="الخطوة 3 من 5"
-          title={`لم يُقبل طلب الانتساب إلى المجموعة ${post.groupNumber ?? GROUP.number}`}
-          hint="لا تقلق، مقعدك في الحج محفوظ. اختر مجموعة أخرى من دليل الخدمات."
-          speak={`لم يُقبل طلب الانتساب. ${rejection?.detail ?? ""}. مقعدك في الحج محفوظ. اختر مجموعة أخرى.`}
-        >
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-start gap-4 rounded-3xl border-2 border-maroon/30 bg-maroon/5 p-5">
-            <XCircle className="mt-1 size-8 shrink-0 text-maroon" />
-            <div>
-              <p className="text-xl font-bold text-maroon">{rejection?.detail ?? "رفض رئيس المجموعة الطلب."}</p>
-              <p className="mt-1 text-ink-soft">{rejection ? `${rejection.actor} — ${new Intl.DateTimeFormat("ar-SY-u-nu-latn", { timeStyle: "short" }).format(rejection.at)}` : "رئيس المجموعة"}</p>
-            </div>
-          </motion.div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              size="xl"
-              onClick={() => {
-                clearJoinDecisions(sessionId, admins);
-                actions.setPost(sessionId, { groupRequestedAt: undefined, groupNumber: undefined, clusterId: undefined });
-              }}
-            >
-              <ArrowRight className="size-6" /> اختيار مجموعة أخرى
-            </Button>
-          </div>
-        </Question>
-      );
-    }
-    return <Waiting app={app} requestedAt={post.groupRequestedAt} groupNumber={post.groupNumber ?? GROUP.number} clusterId={post.clusterId} onCancel={() => {
-      actions.setPost(sessionId, { groupRequestedAt: undefined });
-      logPilgrim(app, "إلغاء طلب انتساب", `المجموعة ${post.groupNumber}`);
-    }} />;
-  }
+/** The group directory: clusters, their groups, and each group's coordinator to contact */
+type DirProps = Omit<StepProps, "lines">;
 
-  const cluster = clustersNow().find((c) => c.slug === clusterSlug);
+function Directory({ app, post, sessionId, excludeGroup }: DirProps & { excludeGroup?: number }) {
+  const [area, setArea] = useState<string>(app.governorate);
+  const [clusterSlug, setClusterSlug] = useState<string | null>(null);
+  const clusters = clustersNow();
+  const areas = [...new Set(clusters.map((c) => c.governorate))];
+  const shown = clusters.filter((c) => area === "all" || c.governorate === area);
+  const cluster = clusters.find((c) => c.slug === clusterSlug);
 
   if (cluster) {
-    const group = cluster.groups.find((g) => g.no === groupNo);
-    const canRequest = cluster.slug === "al-nour";
     return (
       <div>
-        <button type="button" onClick={() => { setClusterSlug(null); setGroupNo(null); }} className="mb-4 inline-flex items-center gap-2 rounded-full bg-sand px-4 py-2 font-bold text-green-dark hover:bg-gold-light">
-          <ArrowRight className="size-5" /> رجوع إلى دليل الخدمات
+        <button type="button" onClick={() => setClusterSlug(null)} className="mb-4 inline-flex items-center gap-2 rounded-full bg-sand px-4 py-2 font-bold text-green-dark hover:bg-gold-light">
+          <ArrowRight className="size-5" /> رجوع إلى دليل المجموعات
         </button>
-        <ClusterDetail cluster={cluster} n={n} />
-
-        <div className="mt-8">
-          <Question title="اختر المجموعة" hint={`تحتاج ${n} مقاعد لأفراد طلبك معاً. المجموعات المكتملة لا تقبل طلبات جديدة.`} speak={`اختر المجموعة. تحتاج ${n} مقاعد لأفراد طلبك معاً.`}>
-            <div className="grid gap-3 md:grid-cols-2">
-              {cluster.groups.map((g, i) => (
-                <GroupChoice key={g.no} g={g} n={n} index={i} selected={groupNo === g.no} onClick={() => setGroupNo(g.no)} recommended={g.no === 27 && hasElderly} />
-              ))}
-            </div>
-          </Question>
+        <ClusterDetail cluster={cluster} />
+        <p className="mb-3 mt-8 font-display text-xl font-bold text-green-dark">مجموعات {cluster.name}</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          {cluster.groups.map((g) => (
+            <GroupCard key={g.no} cluster={cluster} g={g} app={app} post={post} sessionId={sessionId} current={excludeGroup === g.no} />
+          ))}
         </div>
-
-        <AnimatePresence>
-          {group && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="mt-6 rounded-[2rem] bg-green-dark p-6 text-white md:p-8">
-              <p className="text-gold">طلب انتساب عائلي</p>
-              <p className="mt-1 font-display text-2xl font-bold md:text-3xl">
-                المجموعة {group.no} — {cluster.name}
-              </p>
-              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                {app.members.map((m) => (
-                  <li key={m.person.id} className="flex items-center gap-3 rounded-2xl bg-white/10 p-3">
-                    <span className={cn("grid size-10 place-items-center rounded-xl font-bold", m.person.gender === "F" ? "bg-gold text-maroon" : "bg-gold-light text-green-dark")}>{m.person.firstName[0]}</span>
-                    <span>
-                      <span className="block font-bold">{fullName(m.person)}</span>
-                      <span className="text-sm text-white/70">
-                        {ageOf(m.person)} عاماً{m.needs.length ? ` — ${m.needs.join("، ")}` : ""}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {canRequest ? (
-                <Button
-                  size="xl"
-                  variant="gold"
-                  className="mt-6 w-full"
-                  onClick={() => {
-                    actions.setPost(sessionId, { clusterId: cluster.slug, groupNumber: group.no, groupRequestedAt: Date.now(), groupApprovedAt: undefined });
-                    logPilgrim(app, "إرسال طلب انتساب", `${cluster.name} — المجموعة ${group.no} — ${n} أفراد`);
-                    toast({ title: "أُرسل طلب الانتساب", body: `إلى رئيس المجموعة ${group.leader}. ستصلك الموافقة هنا.`, icon: "📨", tone: "info" });
-                  }}
-                >
-                  <Send className="size-6" /> إرسال طلب الانتساب لـ {n} أفراد
-                </Button>
-              ) : (
-                <p className="mt-6 rounded-2xl bg-white/10 p-4 leading-7 text-white/85">
-                  في هذا العرض التجريبي يُكمل المسار الكامل مع «تكتل النور» فقط. ارجع واختر تكتل النور لمتابعة التجربة.
-                </p>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     );
   }
 
-  if (post.groupApprovedAt) return null;
-
   return (
-    <Question
-      step="الخطوة 3 من 5"
-      title="اختر التكتل الذي يخدمكم"
-      hint="هذا دليل الخدمات الرسمي. كل البرامج معتمدة من لجنة الإعلانات ومدير المكتب. قارن ثم افتح التكتل المناسب."
-      speak="اختر التكتل الذي يخدمكم. قارن بين مستوى الخدمة والفندق والمسافة والوجبات، ثم افتح التكتل المناسب."
-    >
+    <div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {[...areas, "all"].map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => setArea(a)}
+            className={cn("rounded-full px-4 py-2 text-sm font-bold transition", area === a ? "bg-green-dark text-white" : "bg-white text-ink-soft ring-1 ring-gold/40 hover:text-ink")}
+          >
+            {a === "all" ? "كل المكاتب" : `مكتب ${a}`}
+            {a === app.governorate && " (مكتبك)"}
+          </button>
+        ))}
+      </div>
+      {shown.length === 0 && <p className="rounded-2xl bg-sand p-5 text-ink-soft">لا تكتلات معتمدة في هذا المكتب بعد. اختر «كل المكاتب» لرؤية بقية المجموعات.</p>}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {clustersNow().map((c, i) => {
+        {shown.map((c, i) => {
           const seats = c.groups.reduce((a, g) => a + g.remaining, 0);
-          const recommended = c.slug === "al-nour" && hasElderly;
           return (
             <motion.button
               key={c.slug}
@@ -180,19 +117,13 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
               transition={{ delay: i * 0.06, ease: [0.16, 1, 0.3, 1], duration: 0.5 }}
               whileHover={{ y: -6 }}
               onClick={() => setClusterSlug(c.slug)}
-              className={cn(
-                "group relative flex flex-col overflow-hidden rounded-[2rem] border-2 bg-white text-right shadow-sm transition-shadow hover:shadow-2xl",
-                recommended ? "border-green-dark" : "border-gold/40",
-              )}
+              className="group relative flex flex-col overflow-hidden rounded-[2rem] border-2 border-gold/40 bg-white text-right shadow-sm transition-shadow hover:shadow-2xl"
             >
               <div className={cn("relative p-5 text-white", c.tone === "gold" ? "bg-gradient-to-br from-gold-dark to-maroon" : c.tone === "maroon" ? "bg-gradient-to-br from-maroon to-maroon-dark" : "bg-gradient-to-br from-green to-green-dark")}>
                 <div className="bg-pattern absolute inset-0 opacity-15" />
-                {recommended && (
-                  <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-gold px-2.5 py-1 text-xs font-bold text-ink shadow">
-                    <Sparkles className="size-3.5" /> مناسب لعائلتك
-                  </span>
-                )}
-                <p className="relative text-xs text-white/75">منذ {c.since} — {c.governorate}</p>
+                <p className="relative text-xs text-white/75">
+                  منذ {c.since} — مكتب {c.governorate}
+                </p>
                 <p className="relative mt-1 font-display text-xl font-bold">{c.name}</p>
                 <div className="relative mt-2 flex items-center gap-2 text-sm">
                   <Star className="size-4 fill-gold text-gold" /> {c.rating} <span className="text-white/60">({c.reviews.toLocaleString("en-US")} تقييم)</span>
@@ -206,11 +137,13 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
                 <Row icon={<Bus className="size-4" />} text={c.transport[0]} />
                 <Row icon={<UtensilsCrossed className="size-4" />} text={c.meals[0]} />
                 <div className="mt-auto flex items-center justify-between border-t border-gold-light pt-3">
-                  <span className="text-sm text-ink-soft">الغرفة الخاصة: <b className="text-ink">+{formatUSD(c.privateRoomDiff)}</b></span>
+                  <span className="text-sm text-ink-soft">
+                    الغرفة الخاصة: <b className="text-ink">+{formatUSD(c.privateRoomDiff)}</b>
+                  </span>
                   <span className={cn("text-sm font-bold", seats ? "text-green" : "text-maroon")}>{seats} مقعداً متاحاً</span>
                 </div>
                 <span className="mt-1 flex items-center justify-center gap-2 rounded-2xl bg-sand py-3 font-bold text-green-dark transition group-hover:bg-green-dark group-hover:text-white">
-                  افتح صفحة التكتل
+                  المجموعات ومنسقوها
                 </span>
               </div>
             </motion.button>
@@ -218,31 +151,34 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
         })}
       </div>
 
-      {/* Side-by-side comparison */}
       <details className="group/cmp mt-6 overflow-hidden rounded-3xl border border-gold/40 bg-white">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 text-lg font-bold text-green-dark">
-          <span className="flex items-center gap-2"><ArrowLeftRight className="size-5" /> جدول المقارنة بين التكتلات</span>
+          <span className="flex items-center gap-2">
+            <ArrowLeftRight className="size-5" /> جدول المقارنة بين التكتلات
+          </span>
           <span className="text-sm text-hint group-open/cmp:hidden">اضغط للعرض</span>
         </summary>
         <div className="scrollbar-none overflow-x-auto border-t border-gold-light">
           <table className="w-full min-w-[56rem] text-right text-sm">
             <tbody>
-              {[
-                ["المستوى", (c: Cluster) => c.level],
-                ["التقييم", (c: Cluster) => `★ ${c.rating}`],
-                ["فندق مكة", (c: Cluster) => c.makkah.hotel],
-                ["المسافة عن الحرم", (c: Cluster) => c.makkah.distance],
-                ["فندق المدينة", (c: Cluster) => `${c.madinah.hotel} — ${c.madinah.distance}`],
-                ["النقل", (c: Cluster) => c.transport[0]],
-                ["الوجبات", (c: Cluster) => c.meals.join("، ")],
-                ["البرامج", (c: Cluster) => c.programs.join("، ")],
-                ["فارق الغرفة الخاصة", (c: Cluster) => formatUSD(c.privateRoomDiff)],
-              ].map(([label, get], ri) => (
-                <tr key={label as string} className={ri % 2 ? "bg-sand/50" : ""}>
-                  <th className="sticky right-0 w-36 bg-inherit p-3 font-bold text-gold-dark">{label as string}</th>
-                  {clustersNow().map((c) => (
-                    <td key={c.slug} className={cn("p-3 align-top leading-6", c.slug === "al-nour" && "bg-green-light/8 font-semibold")}>
-                      {(get as (c: Cluster) => string)(c)}
+              {(
+                [
+                  ["المكتب", (c: Cluster) => c.governorate],
+                  ["المستوى", (c: Cluster) => c.level],
+                  ["التقييم", (c: Cluster) => `★ ${c.rating}`],
+                  ["فندق مكة", (c: Cluster) => `${c.makkah.hotel} — ${c.makkah.distance}`],
+                  ["فندق المدينة", (c: Cluster) => `${c.madinah.hotel} — ${c.madinah.distance}`],
+                  ["النقل", (c: Cluster) => c.transport[0]],
+                  ["الوجبات", (c: Cluster) => c.meals.join("، ")],
+                  ["البرامج", (c: Cluster) => c.programs.join("، ")],
+                  ["فارق الغرفة الخاصة", (c: Cluster) => formatUSD(c.privateRoomDiff)],
+                ] as const
+              ).map(([label, get], ri) => (
+                <tr key={label} className={ri % 2 ? "bg-sand/50" : ""}>
+                  <th className="sticky right-0 w-36 bg-inherit p-3 font-bold text-gold-dark">{label}</th>
+                  {shown.map((c) => (
+                    <td key={c.slug} className="p-3 align-top leading-6">
+                      {get(c)}
                     </td>
                   ))}
                 </tr>
@@ -251,7 +187,115 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
           </table>
         </div>
       </details>
-    </Question>
+    </div>
+  );
+}
+
+/**
+ * One group: its leader, seats, and the coordinator to call. Enrollment itself is the coordinator's
+ * action — in the demo the pilgrim can play the call: the coordinator sends the contract, the pilgrim
+ * signs it with a code on his phone, and the whole family joins (or moves) together.
+ */
+function GroupCard({ cluster, g, app, post, sessionId, current }: { cluster: Cluster; g: ClusterGroup; current?: boolean } & DirProps) {
+  const toast = useToast();
+  const info = groupInfo(cluster.slug, g.no);
+  const coordinator = coordinatorOf(info);
+  const n = app.members.length;
+  const full = g.remaining < n;
+  const [contract, setContract] = useState(false);
+  const [otp, setOtp] = useState("");
+
+  const sign = () => {
+    const moving = !!post.groupApprovedAt;
+    enrollFamily({
+      sessionId,
+      app,
+      post,
+      group: { clusterId: cluster.slug, number: g.no },
+      coordinator: { id: g.no === 27 && cluster.slug === "al-nour" ? COORDINATOR_ID : `coord-${g.no}`, name: coordinator.name },
+      at: Date.now(),
+    });
+    toast({
+      title: moving ? `انتقلتم إلى المجموعة ${g.no}` : `سجّلكم ${coordinator.name} في المجموعة ${g.no}`,
+      body: `${n > 1 ? `جميع أفراد الطلب (${n}) معاً. ` : ""}وقّعتم عقد الحاج مع المجموعة.`,
+      icon: "🤝",
+      tone: "success",
+    });
+    setContract(false);
+  };
+
+  return (
+    <div className={cn("rounded-3xl border-2 bg-white p-5", current ? "border-green-dark" : "border-gold/40")}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-display text-2xl font-bold text-green-dark">المجموعة {g.no}</p>
+          <p className="text-sm text-ink-soft">رئيسها: {g.leader}</p>
+        </div>
+        {current ? <Badge tone="green">مجموعتكم الحالية</Badge> : <Badge tone={full ? "maroon" : "green"}>{g.remaining === 0 ? "مكتملة" : `بقي ${g.remaining} مقاعد`}</Badge>}
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-gold-light">
+        <div className={cn("h-full rounded-full", full ? "bg-maroon" : "bg-green-light")} style={{ width: `${((g.capacity - g.remaining) / g.capacity) * 100}%` }} />
+      </div>
+      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-sand p-3">
+        <span className="grid size-11 place-items-center rounded-xl bg-green-dark font-display font-bold text-gold">{coordinator.name[0]}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-gold-dark">المنسق التقني — يسجّلكم في المجموعة</p>
+          <p className="font-bold">{coordinator.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => toast({ title: `اتصال بـ ${coordinator.name}`, body: `${coordinator.phone} — اتفقوا معه، فيسجّلكم ويرسل إليكم العقد للتوقيع.`, icon: "📞" })}
+          className="grid size-10 place-items-center rounded-xl bg-white text-green-dark ring-1 ring-gold/40 hover:bg-gold-light"
+          aria-label={`اتصال بـ ${coordinator.name}`}
+        >
+          <Phone className="size-4" />
+        </button>
+      </div>
+      {!current && (
+        <button
+          type="button"
+          disabled={full}
+          onClick={() => setContract(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gold-dark p-3 text-sm font-bold text-gold-dark transition hover:bg-gold/10 disabled:opacity-40"
+        >
+          <MessageCircle className="size-4" /> {full ? `لا تتسع لأفراد طلبكم (${n})` : "محاكاة: اتفقنا مع المنسق — سجّلنا وأرسل العقد"}
+        </button>
+      )}
+
+      <Modal open={contract} onClose={() => setContract(false)}>
+        <div>
+          <p className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
+            <FileSignature className="size-7" /> عقد الحاج مع المجموعة {g.no}
+          </p>
+          <p className="mt-2 leading-7 text-ink-soft">
+            أرسل المنسق {coordinator.name} طلب تسجيلكم في المجموعة {g.no} — {cluster.name}.
+            {post.groupApprovedAt ? ` ستنتقلون من المجموعة ${post.groupNumber} إليها جميعاً، ولا ينتقل أحد وحده.` : ""}
+          </p>
+          <ul className="mt-4 space-y-1.5 rounded-2xl bg-sand p-4 text-sm">
+            {app.members.map((m) => (
+              <li key={m.person.id} className="flex items-center gap-2">
+                <UserCheck className="size-4 text-green" /> {fullName(m.person)} — {m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender)}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm font-bold">أدخل رمز الموافقة الذي وصل إلى هاتفك لتوقيع العقد</p>
+          <div className="mt-2">
+            <OtpInput value={otp} onChange={setOtp} />
+          </div>
+          <button type="button" onClick={() => setOtp(DEMO_OTP)} className="mt-2 text-sm text-hint">
+            رمز تجريبي: <span className="font-mono font-bold text-green-dark underline">{DEMO_OTP}</span>
+          </button>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setContract(false)}>
+              إلغاء
+            </Button>
+            <Button disabled={otp !== DEMO_OTP} onClick={sign}>
+              <FileSignature className="size-4" /> أوافق وأوقّع العقد
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 }
 
@@ -264,35 +308,7 @@ function Row({ icon, text }: { icon: React.ReactNode; text: string }) {
   );
 }
 
-function GroupChoice({ g, n, index, selected, onClick, recommended }: { g: ClusterGroup; n: number; index: number; selected: boolean; onClick: () => void; recommended: boolean }) {
-  const full = g.remaining < n;
-  const used = g.capacity - g.remaining;
-  return (
-    <Choice
-      index={index}
-      selected={selected}
-      disabled={full}
-      onClick={onClick}
-      icon={<span className="font-display text-2xl font-bold text-green-dark">{g.no}</span>}
-      label={
-        <span className="flex flex-wrap items-center gap-2">
-          المجموعة {g.no}
-          {recommended && <span className="rounded-full bg-gold px-2 py-0.5 text-xs text-ink">للعائلات وكبار السن</span>}
-        </span>
-      }
-      description={
-        <span className="block">
-          رئيسها: {g.leader} — {full ? (g.remaining === 0 ? "مكتملة" : `بقي ${g.remaining} فقط`) : `بقي ${g.remaining} مقاعد`}
-          <span className={cn("mt-2 block h-2 overflow-hidden rounded-full", selected ? "bg-white/20" : "bg-gold-light")}>
-            <motion.span className={cn("block h-full rounded-full", full ? "bg-maroon" : selected ? "bg-gold" : "bg-green-light")} initial={{ width: 0 }} animate={{ width: `${(used / g.capacity) * 100}%` }} transition={{ duration: 0.8, delay: 0.2 + index * 0.05 }} />
-          </span>
-        </span>
-      }
-    />
-  );
-}
-
-function ClusterDetail({ cluster: c, n }: { cluster: Cluster; n: number }) {
+function ClusterDetail({ cluster: c }: { cluster: Cluster }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2rem] border border-gold/40 bg-white">
       <div className={cn("relative p-6 text-white md:p-8", c.tone === "gold" ? "bg-gradient-to-br from-gold-dark to-maroon" : c.tone === "maroon" ? "bg-gradient-to-br from-maroon to-maroon-dark" : "bg-gradient-to-br from-green to-green-dark")}>
@@ -312,38 +328,39 @@ function ClusterDetail({ cluster: c, n }: { cluster: Cluster; n: number }) {
         </div>
         <div className="relative mt-5 flex flex-wrap gap-2 text-sm">
           <span className="rounded-full bg-white/15 px-3 py-1">مستوى الخدمة: {c.level}</span>
-          <span className="rounded-full bg-white/15 px-3 py-1">{c.groupsCount} مجموعة — {c.pilgrims} حاج</span>
+          <span className="rounded-full bg-white/15 px-3 py-1">
+            {c.groupsCount} مجموعة — {c.pilgrims} حاج
+          </span>
           <span className="rounded-full bg-white/15 px-3 py-1">مكتب {c.office}</span>
         </div>
       </div>
       <div className="grid gap-4 p-5 md:grid-cols-2 md:p-8">
         <Block icon={<Building2 className="size-5" />} title="السكن في مكة">
-          <p className="font-bold">{c.makkah.hotel} — {c.makkah.area}</p>
-          <p>{c.makkah.distance} — {c.makkah.rooms}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">{c.makkah.features.map((f) => <Badge key={f}>{f}</Badge>)}</div>
+          <p className="font-bold">
+            {c.makkah.hotel} — {c.makkah.area}
+          </p>
+          <p>
+            {c.makkah.distance} — {c.makkah.rooms}
+          </p>
         </Block>
         <Block icon={<Landmark className="size-5" />} title="السكن في المدينة">
-          <p className="font-bold">{c.madinah.hotel} — {c.madinah.area}</p>
+          <p className="font-bold">
+            {c.madinah.hotel} — {c.madinah.area}
+          </p>
           <p>{c.madinah.distance}</p>
         </Block>
-        <Block icon={<Bus className="size-5" />} title="النقل">
-          <ul className="list-inside list-disc">{c.transport.map((t) => <li key={t}>{t}</li>)}</ul>
+        <Block icon={<Bus className="size-5" />} title="النقل والوجبات">
+          <ul className="list-inside list-disc">
+            {[...c.transport.slice(0, 2), ...c.meals.slice(0, 1)].map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
         </Block>
-        <Block icon={<UtensilsCrossed className="size-5" />} title="الوجبات">
-          <ul className="list-inside list-disc">{c.meals.map((t) => <li key={t}>{t}</li>)}</ul>
-        </Block>
-        <Block icon={<Sparkles className="size-5" />} title="البرامج">
-          <ul className="list-inside list-disc">{c.programs.map((t) => <li key={t}>{t}</li>)}</ul>
-        </Block>
-        <Block icon={<UsersRound className="size-5" />} title="التكلفة">
-          <p>تكلفة الحج المعتمدة للفرد + الهدي — كما حددها الموسم</p>
-          <p className="font-bold text-maroon">الغرفة الخاصة (فرد أو فردان): فارق {formatUSD(c.privateRoomDiff)}</p>
-          <p className="text-sm text-hint">طلبك: {n} أفراد</p>
+        <Block icon={<UsersRound className="size-5" />} title="البرامج والتكلفة">
+          <p>{c.programs.join("، ")}</p>
+          <p className="font-bold text-maroon">الغرفة الخاصة: فارق {formatUSD(c.privateRoomDiff)}</p>
         </Block>
       </div>
-      <p className="mx-5 mb-5 flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-6 text-ink-soft md:mx-8 md:mb-8">
-        <EyeOff className="mt-0.5 size-4 shrink-0" /> لا تظهر هنا أرقام الغرف ولا أسماء الحجاج الآخرين ولا خطط النقل التفصيلية؛ فهي معلومات تشغيلية.
-      </p>
     </motion.div>
   );
 }
@@ -360,154 +377,72 @@ function Block({ icon, title, children }: { icon: React.ReactNode; title: string
   );
 }
 
-function Waiting({ app, requestedAt, groupNumber, clusterId, onCancel }: { app: StepProps["app"]; requestedAt: number; groupNumber: number; clusterId?: string; onCancel: () => void }) {
-  const now = useNow(250);
-  const cluster = clustersNow().find((c) => c.slug === clusterId) ?? clustersNow()[0];
-  const group = cluster.groups.find((g) => g.no === groupNumber);
-  const elapsed = Math.max(0, now - requestedAt);
-  const leader = group?.leader ?? "أحمد سليمان";
-  return (
-    <Question
-      step="الخطوة 3 من 5"
-      title={`بانتظار موافقة رئيس المجموعة ${leader}`}
-      hint="وصل طلبكم إلى قائمة عمله الآن. تصلكم الموافقة هنا فوراً دون تحديث الصفحة."
-      speak={`بانتظار موافقة رئيس المجموعة ${leader}. تصلكم الموافقة هنا فوراً.`}
-    >
-      <div className="relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white md:p-10">
-        <div className="bg-pattern absolute inset-0 opacity-15" />
-        <div className="relative grid items-center gap-8 md:grid-cols-[auto_1fr]">
-          <div className="relative mx-auto grid size-40 place-items-center">
-            {[0, 1, 2].map((i) => (
-              <motion.span key={i} className="absolute inset-0 rounded-full border-2 border-gold/60" animate={{ scale: [0.6, 1.3], opacity: [0.8, 0] }} transition={{ repeat: Infinity, duration: 2.4, delay: i * 0.8 }} />
-            ))}
-            <span className="relative grid size-24 place-items-center rounded-full bg-gold font-display text-4xl font-bold text-ink shadow-2xl">{leader[0]}</span>
-            <motion.span className="absolute -left-2 top-4 grid size-11 place-items-center rounded-full bg-white text-green-dark shadow-lg" animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>
-              <Clock className="size-5" />
-            </motion.span>
-          </div>
-          <div>
-            <p className="text-gold">{cluster.name} — المجموعة {groupNumber}</p>
-            <p className="mt-1 font-display text-2xl font-bold md:text-3xl">طلب انتساب عائلي — {app.members.length} أفراد</p>
-            <ol className="mt-5 space-y-3">
-              {[
-                { t: "أُرسل الطلب", ok: true },
-                { t: `ظهر في «طلبات الانتساب» عند ${leader}`, ok: elapsed > 1500 },
-                { t: "يراجع السعة والاحتياجات الخاصة", ok: elapsed > 4000 },
-                { t: "القرار", ok: false },
-              ].map((s, i) => (
-                <li key={s.t} className="flex items-center gap-3">
-                  <span className={cn("grid size-8 place-items-center rounded-full transition-colors", s.ok ? "bg-green-light" : "bg-white/15")}>
-                    {s.ok ? <CheckCircle2 className="size-5" /> : <motion.span className="size-2 rounded-full bg-gold" animate={{ opacity: [0.2, 1, 0.2] }} transition={{ repeat: Infinity, duration: 1, delay: i * 0.1 }} />}
-                  </span>
-                  <span className={cn("text-lg", s.ok ? "font-bold" : "text-white/70")}>{s.t}</span>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-5 flex items-center gap-2 text-sm text-white/60">
-              <span className="relative flex size-2.5">
-                <span className="absolute inset-0 animate-ping rounded-full bg-green-light" />
-                <span className="relative size-2.5 rounded-full bg-green-light" />
-              </span>
-              متابعة مباشرة — منذ {Math.floor(elapsed / 1000)} ثانية
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-sand p-4 text-sm text-ink-soft">
-        <span>في العرض التجريبي: إن لم يرد رئيس المجموعة من بوابة الإداريين خلال 10 ثوانٍ تتم الموافقة تلقائياً.</span>
-        <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 font-bold text-maroon hover:underline">
-          <XCircle className="size-4" /> إلغاء الطلب
-        </button>
-      </div>
-    </Question>
-  );
-}
-
-/** "مجموعتي" after approval, with the spec's transfer warning for an official companion */
-export function MyGroup({ app, groupNumber, clusterId }: { app: StepProps["app"]; groupNumber: number; clusterId?: string }) {
-  const toast = useToast();
-  const [transfer, setTransfer] = useState<Member | null>(null);
-  const cluster = clustersNow().find((c) => c.slug === clusterId) ?? clustersNow()[0];
-  const group = cluster.groups.find((g) => g.no === groupNumber);
-  const escorted = transfer ? companionOf(app.members, transfer) : [];
+/** "مجموعتي" after enrollment — and the way to move: the whole application, through the new group's coordinator */
+export function MyGroup({ app, post, sessionId }: StepProps) {
+  const [moving, setMoving] = useState(false);
+  const info = groupInfo(post.clusterId, post.groupNumber);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-3xl bg-green-dark p-5 text-white">
           <p className="text-sm text-gold">مجموعتي</p>
-          <p className="font-display text-2xl font-bold">{cluster.name.replace("تكتل ", "")} — المجموعة {groupNumber}</p>
-          <p className="mt-1 text-white/75">مستوى الخدمة: {cluster.level} — بعد انضمامكم: {group ? group.capacity - group.remaining + app.members.length : GROUP.members} من {group?.capacity ?? GROUP.capacity}</p>
+          <p className="font-display text-2xl font-bold">
+            المجموعة {info.number} — {info.clusterName.replace("تكتل ", "")}
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-white/75">
+            <Building2 className="size-4" /> {info.office} — مستوى الخدمة: {info.level}
+          </p>
+          {post.enrolledBy && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
+              <FileSignature className="size-4" /> سجّلكم المنسق {post.enrolledBy.name} ووقّعتم العقد
+            </p>
+          )}
           <ul className="mt-3 space-y-1 text-sm">
-            {GROUP.team.map((t) => (
-              <li key={t.name}><span className="text-white/60">{t.role}:</span> <b>{t.name}</b></li>
+            {info.team.map((t) => (
+              <li key={t.name}>
+                <span className="text-white/60">{t.role}:</span> <b>{t.name}</b>
+              </li>
             ))}
           </ul>
         </div>
         <div className="rounded-3xl bg-sand p-5">
-          <p className="font-bold text-green-dark">أفراد عائلتك في المجموعة</p>
+          <p className="font-bold text-green-dark">أفراد الطلب في المجموعة</p>
           <ul className="mt-3 space-y-2">
             {app.members.map((m) => (
-              <li key={m.person.id} className="flex items-center justify-between gap-2 rounded-2xl bg-white p-2.5 pr-3">
-                <span className="font-semibold">
-                  {m.person.firstName} <span className="text-sm font-normal text-hint">— {m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender)}</span>
-                </span>
-                {m.relation !== "self" && (
-                  <button type="button" onClick={() => setTransfer(m)} className="rounded-xl px-3 py-1.5 text-sm font-bold text-gold-dark ring-1 ring-gold/50 hover:bg-gold/15">
-                    طلب الانتقال
-                  </button>
-                )}
+              <li key={m.person.id} className="rounded-2xl bg-white p-2.5 pr-3 font-semibold">
+                {m.person.firstName} <span className="text-sm font-normal text-hint">— {m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender)}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-sm text-hint">الفندق: أبراج النور — البرج (ب) — الغرفة: لم تُحدَّد بعد</p>
+          {post.transfers?.length ? (
+            <p className="mt-3 text-sm text-hint">
+              انتقلتم سابقاً: {post.transfers.map((t) => `${t.from} ← ${t.to}`).join("، ")}
+            </p>
+          ) : null}
         </div>
       </div>
 
-      <Modal open={!!transfer} onClose={() => setTransfer(null)}>
-        {transfer && (
-          <div>
-            <p className="flex items-center gap-2 font-display text-2xl font-bold text-maroon">
-              <TriangleAlert className="size-7" /> طلب انتقال {transfer.person.firstName}
-            </p>
-            {escorted.length > 0 ? (
-              <>
-                <p className="mt-4 rounded-2xl bg-maroon/8 p-4 text-lg font-bold leading-8 text-maroon">
-                  أنت المرافق الرسمي لـ{escorted.map((e) => fullName(e.person)).join(" و")}، وانتقالك يلغي المرافقة.
-                </p>
-                <p className="mt-3 leading-7 text-ink-soft">لو استمر الطلب يبقى {transfer.person.firstName} في المجموعة {groupNumber} حتى يوافق رئيسا المجموعتين، ثم يتم الانتقال دفعة واحدة.</p>
-              </>
-            ) : (
-              <p className="mt-4 leading-8 text-ink-soft">
-                يبقى {transfer.person.firstName} عضواً في المجموعة {groupNumber} حتى يوافق رئيسا المجموعتين، ثم يتم الانتقال. تُقفل فترة الانتقال في 25 شعبان.
-              </p>
-            )}
-            <div className="mt-6 grid gap-2">
-              <Button
-                size="lg"
-                onClick={() => {
-                  logPilgrim(app, "إلغاء طلب انتقال", transfer.person.firstName);
-                  toast({ title: "تم إلغاء طلب الانتقال بناءً على طلبك", icon: "↩️" });
-                  setTransfer(null);
-                }}
-              >
-                تراجع وإلغاء الطلب
-              </Button>
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={() => {
-                  logPilgrim(app, "طلب انتقال بين المجموعات (معلّق)", `${transfer.person.firstName}${escorted.length ? " — مع تحذير إلغاء المرافقة" : ""}`);
-                  toast({ title: "أُرسل طلب الانتقال", body: "بانتظار موافقة رئيسي المجموعتين.", icon: "📨", tone: "gold" });
-                  setTransfer(null);
-                }}
-              >
-                متابعة الطلب رغم ذلك
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <div className="rounded-3xl border border-gold/40 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-2 font-bold text-green-dark">
+            <ArrowLeftRight className="size-5" /> الانتقال إلى مجموعة أخرى
+          </p>
+          <Button size="sm" variant="outline" onClick={() => setMoving((v) => !v)}>
+            {moving ? "إغلاق الدليل" : "تصفّح المجموعات"}
+          </Button>
+        </div>
+        <p className="mt-1 text-sm leading-7 text-ink-soft">
+          خلال مرحلة التفويج يمكنكم الانتقال: تتواصلون مع منسق المجموعة الجديدة فيسجّلكم فيها. {app.members.length > 1 ? "الطلب العائلي ينتقل كاملاً — كل الأفراد أو لا أحد." : ""}
+        </p>
+        <AnimatePresence>
+          {moving && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-5 overflow-hidden">
+              <Directory app={app} post={post} sessionId={sessionId} excludeGroup={post.groupNumber} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

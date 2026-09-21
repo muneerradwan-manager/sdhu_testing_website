@@ -40,15 +40,19 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
 // ───────────────────────── Governorate stats (aggregated only) ─────────────────────────
 
 const GOV_WEIGHTS: Record<string, number> = {
-  "دمشق": 0.2,
-  "ريف دمشق": 0.17,
-  "حلب": 0.19,
-  "حمص": 0.11,
-  "حماة": 0.09,
-  "اللاذقية": 0.07,
-  "إدلب": 0.07,
+  "دمشق": 0.18,
+  "ريف دمشق": 0.15,
+  "حلب": 0.17,
+  "حمص": 0.1,
+  "حماة": 0.08,
+  "اللاذقية": 0.06,
+  "إدلب": 0.06,
   "درعا": 0.05,
-  "دير الزور": 0.05,
+  "دير الزور": 0.04,
+  // Syrians abroad register at the office of their country of residence
+  "تركيا": 0.06,
+  "مصر": 0.02,
+  "الأردن": 0.03,
 };
 
 /** Splits a total across governorates by weight, fixing rounding on the largest one */
@@ -144,6 +148,10 @@ const GOV_CODES: Record<string, string> = {
   "إدلب": "080",
   "درعا": "120",
   "دير الزور": "090",
+  // Registry codes of the governorates most residents of each country come from
+  "تركيا": "020",
+  "مصر": "010",
+  "الأردن": "120",
 };
 
 const MALE = ["خالد", "بلال", "أنس", "طارق", "مصطفى", "إبراهيم", "علي", "نزار", "وائل", "هشام", "سليم", "زياد", "عبد الرحمن", "حسام", "فراس", "ماهر", "غسان", "عدنان", "رضوان", "منذر"];
@@ -187,7 +195,7 @@ export function getPublicList(kind: ListKind): PublicApplication[] {
     if (appNo === 4512 || appNo === 3981) appNo += 3;
     const govEntry = pickGovernorate(rnd());
     const gov = govEntry.governorate;
-    const office = pick(govEntry.offices);
+    const office = govEntry.office;
     const code = GOV_CODES[gov];
     const campaign: Campaign = kind !== "direct" ? "القرعة" : rnd() < 0.063 ? "المنحة" : "القبول المباشر";
 
@@ -220,7 +228,7 @@ export function getPublicList(kind: ListKind): PublicApplication[] {
     const khatib: PublicApplication = {
       applicationNo: "4512",
       governorate: "دمشق",
-      office: "دمشق – المزة",
+      office: "مكتب دمشق",
       campaign: "القرعة",
       members: [
         { maskedId: maskNationalId("01012345412"), name: "محمد أحمد الخطيب" },
@@ -241,7 +249,7 @@ export function getPublicList(kind: ListKind): PublicApplication[] {
     const yasin: PublicApplication = {
       applicationNo: "3981",
       governorate: "دمشق",
-      office: "دمشق – المزة",
+      office: "مكتب دمشق",
       campaign: "القرعة",
       members: [{ maskedId: maskNationalId("01011100208"), name: "ياسين خليل العمر" }],
     };

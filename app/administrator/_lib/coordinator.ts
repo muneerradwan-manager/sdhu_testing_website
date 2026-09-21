@@ -8,11 +8,14 @@
  * طلب باسم المنسق (`submittedBy`) فيظهر في الطلب وفي سجل الأحداث، ولا يمكن حذفه.
  */
 
+import { groupInfo } from "@/lib/assignment";
+import { firstPayment, planLabel, seasonPlan, type Plan } from "@/lib/installments";
 import { applicationNumberFor } from "@/lib/journey";
 import { fullName, getPerson, type Person } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { actions, type Application } from "@/lib/store";
-import { POSITIONS } from "./admin";
+import { officeFor } from "@/lib/season";
+import { POSITIONS, TECH_POSTING } from "./admin";
 
 /** لماذا لا يمكن تسجيل هذا المواطن */
 export type Block =
@@ -49,44 +52,62 @@ export function maskedPhone(p: Person) {
 export type FiledApplication = { number: string; receipt: string };
 
 /**
- * يفتح حساب الحاج (إن لم يكن موجوداً) ويحفظ الطلب باسم المواطن، مختوماً باسم المنسق.
- * الحساب يُفتح دون تبديل الجلسة، فيبقى المنسق داخلاً بحسابه هو.
+ * مكتب المنسق ومجموعته. الطلب الذي يسجّله يتبع مكتبه، لكنه تسجيل عادي لا يضع أحداً في مجموعته:
+ * الانضمام إلى المجموعات يتم في مرحلة التفويج فقط، ويسجّل المنسق فيها الحجاج في مجموعته هو.
+ */
+export function coordinatorPosting() {
+  const info = groupInfo(TECH_POSTING.clusterId, TECH_POSTING.groupNumber);
+  return { group: { clusterId: info.clusterId, number: info.number }, area: info.area, office: officeFor(info.area), clusterName: info.clusterName };
+}
+
+/**
+ * يفتح حساب المواطن (إن لم يكن موجوداً) ويحفظ الطلب في ملفه، مختوماً باسم المنسق.
+ * الحساب يُفتح دون تبديل الجلسة، فيبقى المنسق داخلاً بحسابه هو. صاحب الطلب هو الأكبر سناً بين
+ * الأفراد، وقد يكون غير المواطن الذي راجع المكتب (والده مثلاً).
  */
 export function fileApplication(opts: {
-  applicant: Person;
+  /** المواطن الذي راجع المكتب ووافق برمز التحقق — يُحفظ الطلب في حسابه */
+  citizen: Person;
   members: Member[];
-  governorate: string;
-  office: string;
-  payMethod: "card" | "bank";
+  payMethod: "shamcash" | "bank";
   feePerPerson: number;
+  /** التسجيل على القبول المباشر (الرسم + الدفعة الأولى) أو على القرعة (الرسم فقط) */
+  track: "direct" | "lottery";
+  /** خطة تسديد تكلفة الحج التي حددتها الإدارة للموسم (دفعة واحدة أو دفعتان) */
+  plan?: Plan;
   coordinator: { id: string; name: string; position: string };
   /** لحظة التقديم — تُمرَّر من معالج الحدث */
   at: number;
 }): FiledApplication {
-  const { applicant, members, governorate, office, payMethod, feePerPerson, coordinator, at } = opts;
-  const number = applicationNumberFor(applicant.id);
+  const { citizen, members, payMethod, feePerPerson, track, plan, coordinator, at } = opts;
+  const first = track === "direct" && plan ? firstPayment(plan, members.length) : 0;
+  const posting = coordinatorPosting();
+  const applicant = members.find((m) => m.relation === "self")?.person ?? citizen;
+  const number = applicationNumberFor(citizen.id);
   const receipt = `1448-R-${number.padStart(6, "0")}`;
 
   actions.createAccountFor({
-    nationalId: applicant.id,
-    phone: `09${applicant.id.slice(2, 9)}`,
+    nationalId: citizen.id,
+    phone: `09${citizen.id.slice(2, 9)}`,
     password: "",
     createdAt: at,
   });
 
   actions.saveApplication({
     number,
-    applicantId: applicant.id,
+    applicantId: citizen.id,
     createdAt: at,
     submittedAt: at,
     mode: members.length === 1 ? "solo" : "booklet",
-    track: "direct",
-    forWhom: "me",
+    track,
+    forWhom: applicant.id === citizen.id ? "me" : "other",
     members,
-    governorate,
-    office,
+    governorate: posting.area,
+    office: posting.office,
     receipt,
-    paid: members.length * feePerPerson,
+    paid: members.length * feePerPerson + first,
+    plan: track === "direct" ? plan : undefined,
+    firstPaid: first ? { amount: first, at, receipt: `1448-P-${number.padStart(6, "0")}-1` } : undefined,
     payMethod,
     ratings: {},
     submittedBy: coordinator,
@@ -97,7 +118,7 @@ export function fileApplication(opts: {
     role: `إداري — ${positionLabel(coordinator.position)}`,
     action: "تسجيل طلب حج عن مواطن",
     target: `طلب ${number} — ${fullName(applicant)}`,
-    detail: `${members.length} أفراد — بموافقة المواطن برمز تحقق — الإيصال ${receipt}`,
+    detail: `${members.length} أفراد — ${track === "direct" ? `القبول المباشر — رسم التسجيل + الدفعة الأولى (${planLabel(plan ?? seasonPlan())})` : "القرعة — رسم التسجيل"} — بموافقة المواطن برمز تحقق — ${posting.office} — دون مجموعة حتى مرحلة التفويج — الإيصال ${receipt}`,
   });
 
   return { number, receipt };
@@ -122,19 +143,17 @@ const member = (id: string, relation: Member["relation"], extra: Partial<Member>
  * حسان القاسم مع والدته (76 عاماً، تحتاج مرافقاً)، وسامر النجار مع زوجته.
  */
 export function seedCoordinatorWork(coordinator: { id: string; name: string; position: string }, now: number, feePerPerson: number) {
-  const cases: { applicantId: string; members: (Member | null)[]; governorate: string; office: string; minutesAgo: number }[] = [
+  const cases: { applicantId: string; members: (Member | null)[]; track: "direct" | "lottery"; minutesAgo: number }[] = [
     {
       applicantId: "06055500711",
       members: [member("06055500711", "self"), member("06055500701", "parent", { companionId: "06055500711" })],
-      governorate: "حمص",
-      office: "حمص – الوعر",
+      track: "direct",
       minutesAgo: 210,
     },
     {
       applicantId: "02033300550",
       members: [member("02033300550", "self"), member("02033300551", "spouse")],
-      governorate: "حلب",
-      office: "حلب – الجميلية",
+      track: "lottery",
       minutesAgo: 75,
     },
   ];
@@ -144,12 +163,12 @@ export function seedCoordinatorWork(coordinator: { id: string; name: string; pos
     const members = c.members.filter((m): m is Member => m !== null);
     if (!applicant || members.length !== c.members.length) continue;
     fileApplication({
-      applicant,
+      citizen: applicant,
       members,
-      governorate: c.governorate,
-      office: c.office,
-      payMethod: "card",
+      payMethod: "shamcash",
       feePerPerson,
+      track: c.track,
+      plan: seasonPlan(),
       coordinator,
       at: now - c.minutesAgo * 60_000,
     });

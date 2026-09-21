@@ -2,22 +2,21 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, CheckCircle2, FastForward, Lock, MapPinned, Plane } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { FLIGHTS, GROUP } from "@/lib/journey";
-import { actions, useStore, type Application, type PostAcceptance } from "@/lib/store";
+import { actions, type Application, type PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { DOCS, LEADER_ID, STEPS, docKey, docRequirement, stepsDone, type CostLine, type StepKey } from "./model";
+import { coordinatorOf, enrollFamily, groupInfo } from "@/lib/assignment";
+import { COORDINATOR_ID, DOCS, STEPS, demoHealth, docKey, medicalDocsFor, medicalKey, recordHealth, stepsDone, type CostLine, type StepKey } from "./model";
 import { Pill, StepDone, StepRating, logPilgrim } from "./shared";
 import { StepConfirm } from "./step-confirm";
 import { StepDocuments } from "./step-documents";
 import { MyGroup, StepGroup } from "./step-group";
+import { StepMedical } from "./step-medical";
 import { SignatureChain, StepPayment } from "./step-payment";
 import { StepVisa } from "./step-visa";
-
-/** Demo fallback: without a decision from /administrator/requests, the leader "approves" after this */
-const AUTO_APPROVE_MS = 10_000;
 
 const fmt = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(at) : "");
 
@@ -27,42 +26,23 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
   const [dismissed, setDismissed] = useState<StepKey[]>([]);
   const [demoRunning, setDemoRunning] = useState(false);
 
-  const admins = useStore((s) => s.admins);
   const approvedRef = useRef(post.groupApprovedAt);
-  const joinRejected = useMemo(() => Object.values(admins).some((a) => a.joinDecisions?.[sessionId] === "rejected"), [admins, sessionId]);
+  const groupRef = useRef(post.groupNumber);
 
-  // Demo fallback — lives here (not in the step) so it keeps running while the pilgrim browses other steps
+  // Enrollment notice — whether the coordinator enrolled the family from the administrator portal or from the demo button
   useEffect(() => {
-    if (!post.groupRequestedAt || post.groupApprovedAt || joinRejected) return;
-    const t = setTimeout(() => {
-      actions.setPost(sessionId, { groupApprovedAt: Date.now() });
-      // Keep the administrator portal's roster in step — only if Ahmed already has a profile there
-      const leader = admins[LEADER_ID];
-      if (leader) actions.upsertAdmin(LEADER_ID, { joinDecisions: { ...leader.joinDecisions, [sessionId]: "accepted" } });
-      actions.logEvent({
-        actor: "أحمد سليمان الحمصي (محاكاة)",
-        role: "رئيس مجموعة",
-        action: "قبول طلب انتساب",
-        target: `المجموعة ${post.groupNumber ?? GROUP.number}`,
-        detail: `طلب ${app.number} — ${app.members.length} أفراد`,
-      });
-    }, Math.max(0, post.groupRequestedAt + AUTO_APPROVE_MS - Date.now()));
-    return () => clearTimeout(t);
-  }, [post.groupRequestedAt, post.groupApprovedAt, post.groupNumber, joinRejected, sessionId, app.number, app.members.length, admins]);
-
-  // Approval notice — whether it came from the administrator portal or from the fallback
-  useEffect(() => {
-    if (post.groupApprovedAt && !approvedRef.current && post.groupRequestedAt) {
+    if (post.groupApprovedAt && (!approvedRef.current || groupRef.current !== post.groupNumber)) {
+      const info = groupInfo(post.clusterId, post.groupNumber);
       toast({
-        title: `تمت الموافقة على انتسابكم إلى المجموعة ${post.groupNumber ?? GROUP.number}`,
-        body: "رئيس مجموعتكم: أحمد سليمان. سدّدوا التكاليف ووقّعوا العقد من 1 إلى 15 رمضان.",
+        title: `أنتم الآن في المجموعة ${info.number}`,
+        body: `${info.clusterName}. سجّلكم ${post.enrolledBy?.name ?? coordinatorOf(info).name} ووقّعتم العقد. التالي: الدفعة الثانية.`,
         icon: "🤝",
         tone: "success",
       });
     }
     approvedRef.current = post.groupApprovedAt;
-  }, [post.groupApprovedAt, post.groupRequestedAt, post.groupNumber, toast]);
-
+    groupRef.current = post.groupNumber;
+  }, [post.groupApprovedAt, post.groupNumber, post.clusterId, post.enrolledBy?.name, toast]);
   const done = stepsDone(post, app, lines);
   const firstOpen = STEPS.findIndex((s) => !done[s.key]);
   const auto = STEPS.findIndex((s) => !done[s.key] || (post.ratings[s.key] === undefined && !dismissed.includes(s.key)));
@@ -82,21 +62,29 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
     setView(null);
     setDismissed(STEPS.slice(0, -1).map((s) => s.key));
     const base = Date.now();
-    const documents = Object.fromEntries(app.members.flatMap((m) => DOCS.filter((d) => docRequirement(m, d.key) !== "none").map((d) => [docKey(m, d.key), "approved" as const])));
-    const plan: [number, Partial<PostAcceptance>][] = [
-      [0, { confirmedAt: post.confirmedAt ?? base }],
-      [700, { documents }],
-      [1400, { clusterId: "al-nour", groupNumber: GROUP.number, groupRequestedAt: post.groupRequestedAt ?? base + 1400, groupApprovedAt: base + 1400 }],
-      [2100, { payments: Object.fromEntries(lines.map((l) => [l.key, base + 2100])) }],
-      [2800, { contractSignedAt: base + 2800 }],
-      [3500, { visaAt: base + 3500 }],
-    ];
-    plan.forEach(([at, patch]) => setTimeout(() => actions.setPost(sessionId, patch), at));
+    const documents = Object.fromEntries(app.members.flatMap((m) => DOCS.map((d) => [docKey(m, d.key), "approved" as const])));
+    // Demo: the family joins group 27 of Al-Nour through its coordinator سامر نجار
+    const info = groupInfo("al-nour", GROUP.number);
+    const coordinator = { id: COORDINATOR_ID, name: coordinatorOf(info).name };
+    const health = demoHealth(app.members, { id: COORDINATOR_ID, name: `${coordinator.name} (محاكاة)` }, base);
+    const payable = lines.filter((l) => l.key !== "i1");
+    // Later writes must build on the paid application, or they would drop the first installment again
+    const paidApp = app.firstPaid ? app : { ...app, plan: app.plan ?? 2, firstPaid: { amount: lines[0].amount, at: base, receipt: lines[0].receipt } };
+    const plan: [number, () => void][] = [
+      [0, () => actions.setPost(sessionId, { confirmedAt: post.confirmedAt ?? base })],
+      [0, () => paidApp !== app && actions.saveApplication(paidApp)],
+      [700, () => actions.setPost(sessionId, { documents })],
+      [1400, () => enrollFamily({ sessionId, app: paidApp, post, group: { clusterId: info.clusterId, number: info.number }, coordinator, at: base + 1400 })],
+      [2100, () => actions.setPost(sessionId, { payments: Object.fromEntries(payable.map((l) => [l.key, base + 2100])) })],
+      [2800, () => recordHealth(sessionId, paidApp, { ...health, confirmedAt: base + 2800 })],
+      [3200, () => actions.setPost(sessionId, { medical: Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const]))) })],
+      [4200, () => actions.setPost(sessionId, { visaAt: base + 4200 })],
+    ];    plan.forEach(([at, run]) => setTimeout(run, at));
     setTimeout(() => {
       setDemoRunning(false);
       logPilgrim(app, "إكمال خطوات ما بعد القبول تلقائياً (عرض تجريبي)");
       toast({ title: "اكتملت كل الخطوات", body: "فُتحت الرحلات والفنادق والمخيمات والبطاقات.", icon: "✨", tone: "gold" });
-    }, 3700);
+    }, 4400);
   };
 
   return (
@@ -110,7 +98,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
             <p className="font-display text-2xl font-bold md:text-3xl">
               أكملت {doneCount} من {STEPS.length} خطوات
             </p>
-            <p className="mt-1 text-sm text-white/70">التأكيد والأوراق والمجموعة حتى 25 شعبان — التسديد من 1 إلى 15 رمضان</p>
+            <p className="mt-1 text-sm text-white/70">التأكيد والوثائق والتفويج حتى 25 شعبان — الدفعة الثانية عند الانضمام — ثم الملف الطبي</p>
           </div>
           {firstOpen !== -1 && (
             <button
@@ -125,9 +113,9 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
         </div>
 
         {/* Stepper */}
-        <ol className="relative mt-6 grid grid-cols-5 gap-1">
-          <div className="absolute right-[10%] left-[10%] top-6 h-1 rounded-full bg-white/15" />
-          <motion.div className="absolute right-[10%] top-6 h-1 rounded-full bg-gold" animate={{ width: `${(Math.max(0, (firstOpen === -1 ? STEPS.length - 1 : firstOpen)) / (STEPS.length - 1)) * 80}%` }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
+        <ol className="relative mt-6 grid grid-cols-6 gap-1">
+          <div className="absolute right-[8%] left-[8%] top-6 h-1 rounded-full bg-white/15" />
+          <motion.div className="absolute right-[8%] top-6 h-1 rounded-full bg-gold" animate={{ width: `${(Math.max(0, (firstOpen === -1 ? STEPS.length - 1 : firstOpen)) / (STEPS.length - 1)) * 84}%` }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
           {STEPS.map((s, i) => {
             const ok = done[s.key];
             const current = i === shown;
@@ -168,6 +156,8 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
               <StepDocuments {...props} />
             ) : step.key === "group" ? (
               <StepGroup {...props} />
+            ) : step.key === "medical" ? (
+              <StepMedical {...props} />
             ) : step.key === "payment" ? (
               <StepPayment {...props} />
             ) : (
@@ -180,7 +170,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
   );
 }
 
-function DoneScreen({ stepKey, app, post, sessionId, onNext }: { stepKey: StepKey; app: Application; post: PostAcceptance; sessionId: string; lines: CostLine[]; onNext?: () => void }) {
+function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey: StepKey; app: Application; post: PostAcceptance; sessionId: string; lines: CostLine[]; onNext?: () => void }) {
   const idx = STEPS.findIndex((s) => s.key === stepKey);
   const s = STEPS[idx];
   const nextStep = STEPS[idx + 1];
@@ -193,7 +183,7 @@ function DoneScreen({ stepKey, app, post, sessionId, onNext }: { stepKey: StepKe
       );
     case "documents":
       return (
-        <StepDone title="الأوراق مكتملة" body="اعتمدت إدارة التسجيل والفريق الطبي وثائق جميع الأفراد." rating={rating} next={nextStep?.title} onNext={onNext}>
+        <StepDone title="الصورة والجواز مكتملان" body="اعتمدت إدارة التسجيل الصورة الشخصية والجواز لجميع الأفراد. التالي: مرحلة التفويج — ولا وثائق طبية قبلها." rating={rating} next={nextStep?.title} onNext={onNext}>
           <div className="flex flex-wrap justify-center gap-2">
             {app.members.map((m) => (
               <Pill key={m.person.id} className="text-base">
@@ -205,17 +195,42 @@ function DoneScreen({ stepKey, app, post, sessionId, onNext }: { stepKey: StepKe
       );
     case "group":
       return (
-        <StepDone title={`أنتم الآن في المجموعة ${post.groupNumber ?? GROUP.number}`} body="وافق رئيس المجموعة أحمد سليمان على انتسابكم. التالي: التسديد وتوقيع العقد." rating={rating} next={nextStep?.title} onNext={onNext}>
-          <MyGroup app={app} groupNumber={post.groupNumber ?? GROUP.number} clusterId={post.clusterId} />
+        <StepDone
+          title={`أنتم الآن في المجموعة ${post.groupNumber ?? GROUP.number}`}
+          body={`سجّلكم ${post.enrolledBy?.name ?? "منسق المجموعة"} فيها ووقّعتم عقد الحاج مع المجموعة. التالي: الدفعة الثانية.`}
+          rating={rating}
+          next={nextStep?.title}
+          onNext={onNext}
+        >
+          <SignatureChain app={app} post={post} />
+          <MyGroup app={app} post={post} sessionId={sessionId} lines={[]} />
         </StepDone>
       );
     case "payment":
       return (
-        <StepDone title="مسدَّد وموقّع العقد" body="صدرت 3 إيصالات مستقلة، والعقد في خزنة الوثائق." rating={rating} next={nextStep?.title} onNext={onNext}>
-          <SignatureChain app={app} post={post} />
+        <StepDone title="اكتمل دفع المبلغ كاملاً" body="لكل دفعة إيصال مستقل في خزنة الوثائق. التالي: الملف الطبي." rating={rating} next={nextStep?.title} onNext={onNext}>
+          <div className="flex flex-wrap justify-center gap-2">
+            {lines.map((l) => (
+              <Pill key={l.key} className="text-base">
+                ✓ {l.title}
+              </Pill>
+            ))}
+          </div>
         </StepDone>
       );
-    case "visa":
+    case "medical":
+      return (
+        <StepDone title="الملف الطبي مكتمل" body={`سجّل ${post.health?.by.name.replace(" (محاكاة)", "") ?? "منسق المجموعة"} المعلومات الصحية وأكّدتموها، واعتمد الفريق الطبي الوثائق.`} rating={rating} next={nextStep?.title} onNext={onNext}>
+          <div className="flex flex-wrap justify-center gap-2">
+            {app.members.map((m) => (
+              <Pill key={m.person.id} className="text-base">
+                ✓ {m.person.firstName}
+                {m.needs.length ? ` — ${m.needs.join("، ")}` : ""}
+              </Pill>
+            ))}
+          </div>
+        </StepDone>
+      );    case "visa":
       return (
         <StepDone title="صدرت التأشيرات — رحلتكم جاهزة" body={`الذهاب: ${FLIGHTS.outbound.hijri} الساعة ${FLIGHTS.outbound.departure} — الرحلة ${FLIGHTS.outbound.code}. فُتحت الآن كل تفاصيل الرحلة في الأسفل.`} rating={rating}>
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">

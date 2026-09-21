@@ -1,6 +1,8 @@
 /**
  * Eligibility engine for a Hajj application.
- * Fixed rules: مسلم، سوري، لم يحج سابقاً (إلا محرماً لأمه أو زوجته)، غير مصاب بمرض عضال.
+ * Fixed rules checked at registration: مسلم، سوري، لم يحج سابقاً (إلا محرماً لأمه أو زوجته).
+ * Health is not asked at registration: after acceptance the group's coordinator takes each pilgrim's
+ * health file, and the medical team reviews it (including the «غير مصاب بمرض عضال» condition).
  * Season rules (by birth year): applicant ≥ 29, companion ≥ 17, woman < 44 needs a mahram,
  * 69+ needs a dedicated companion. Limits: applicant + 3 (or + 5 for a man with wife & children),
  * one application per person per season.
@@ -14,7 +16,7 @@ export type Member = {
   relation: Relation;
   /** true when the civil registry confirms the declared relation */
   relationVerified: boolean;
-  terminalIllness?: boolean;
+  /** Health needs — empty at registration, filled from the coordinator's health file after acceptance */
   needs: string[];
   /** For 69+: id of the member who accompanies them */
   companionId?: string;
@@ -79,9 +81,34 @@ export function relationBetween(a: Member, b: Member): Relation {
   }
 }
 
+/**
+ * صاحب الطلب هو الأكبر سناً دائماً: القبول المباشر يُرتَّب بعمر صاحب الطلب، فلا يُقدَّم طلب باسم الابن
+ * (35 عاماً) وفيه والده (60 عاماً). إن وُجد في الطلب من هو أكبر من صاحبه، يُنقل الطلب إلى اسمه تلقائياً
+ * وتُعاد صلات القرابة بالنسبة إليه (من السجل المدني أولاً). Returns the members unchanged when the
+ * applicant is already the oldest.
+ */
+export function withOldestAsApplicant(members: Member[]): { members: Member[]; moved: Member | null } {
+  const self = members.find((m) => m.relation === "self");
+  if (!self) return { members, moved: null };
+  const oldest = members.reduce((a, b) => (b.person.birthDate < a.person.birthDate ? b : a), self);
+  if (oldest.person.id === self.person.id) return { members, moved: null };
+  const next = members.map((m): Member => {
+    if (m.person.id === oldest.person.id) return { ...m, relation: "self", relationVerified: true };
+    const relation = relationBetween(oldest, m);
+    return { ...m, relation, relationVerified: !!registryRelation(oldest.person, m.person) };
+  });
+  // The new applicant first, as the application is shown and printed
+  next.sort((a, b) => (a.relation === "self" ? -1 : b.relation === "self" ? 1 : 0));
+  return { members: next, moved: next[0] };
+}
+
 export type SeasonRules = { -readonly [K in keyof typeof SEASON.rules]: number };
 
-export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules): EligibilityResult {
+/**
+ * `direct`: the application is for direct acceptance. Its accepted age is set by the administration before
+ * registration opens, so it is checked here — before anything is paid — and not discovered afterwards.
+ */
+export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules, direct?: { minAge: number }): EligibilityResult {
   const r = rules;
   const applicant = members.find((m) => m.relation === "self");
   const results: MemberResult[] = [];
@@ -109,6 +136,26 @@ export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules): 
     });
 
     if (isApplicant) {
+      const older = members.find((o) => o.person.birthDate < p.birthDate);
+      if (older) {
+        checks.push({
+          key: "applicant-oldest",
+          label: "صاحب الطلب هو الأكبر سناً",
+          status: "fail",
+          detail: `${older.person.firstName} أكبر سناً، فيُقدَّم الطلب باسمه`,
+        });
+      }
+      if (direct) {
+        const okAge = age >= direct.minAge;
+        checks.push({
+          key: "direct-age",
+          label: "عمر القبول المباشر",
+          status: okAge ? "pass" : "fail",
+          detail: okAge
+            ? `${age} عاماً — القبول المباشر لمن بلغ صاحب طلبه ${direct.minAge} عاماً فأكثر`
+            : `عمر صاحب الطلب ${age} عاماً، والقبول المباشر هذا الموسم لمن بلغ ${direct.minAge} عاماً فأكثر. يمكنك التسجيل على القرعة بالأفراد أنفسهم دون إعادة الخطوات.`,
+        });
+      }
       const ok = by <= r.applicantMaxBirthYear;
       checks.push({
         key: "applicant-age",
@@ -196,17 +243,6 @@ export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules): 
     } else {
       checks.push({ key: "hajj-before", label: "لم يؤدِّ فريضة الحج سابقاً", status: "pass", detail: "لا يوجد حج سابق في سجل المنصة" });
     }
-
-    checks.push({
-      key: "terminal",
-      label: "غير مصاب بمرض عضال",
-      status: m.terminalIllness ? "fail" : "pass",
-      detail: m.terminalIllness
-        ? "وفق الإقرار الصحي: الإصابة بمرض عضال تمنع التسجيل حفاظاً على سلامة الحاج"
-        : m.needs.length
-          ? `إقرار صحي — احتياجات مسجّلة: ${m.needs.join("، ")}`
-          : "وفق الإقرار الصحي",
-    });
 
     checks.push({
       key: "single-application",

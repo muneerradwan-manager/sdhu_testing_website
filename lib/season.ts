@@ -47,19 +47,53 @@ export const SEASON = {
     administratorRegistration: 30,
     groupFormation: 200,
     clusterFormation: 500,
-    hajjCost: 4_300,
+    /** Full Hajj cost per person (last season it was paid in one go: 4,750 $) */
+    hajjCost: 4_750,
+    /**
+     * First installment per person. Paid with the registration on direct acceptance, and when the
+     * name comes out in the draw on the lottery. The rest follows the plan the pilgrim chose.
+     */
+    firstInstallment: 3_500,
     hady: 180,
     privateRoomDiff: 500,
   },
 
+  /**
+   * How the Hajj cost is paid is decided by the administration for the whole season — the pilgrim does
+   * not choose. Season 1448: two installments — the first at registration on direct acceptance (or when
+   * the name comes out in the draw), the second when joining a group. With 1, the whole cost is paid at
+   * that first moment.
+   */
+  installments: {
+    count: 2 as 1 | 2,
+    windows: ["عند التسجيل على القبول المباشر، أو عند ظهور الاسم في القرعة", "عند الانضمام إلى مجموعة"],
+  },
+
+  /** The office opens this window for accepted pilgrims to join groups through the group's coordinator */
+  groupingWindow: "2 – 25 شعبان",
+
+  /**
+   * Medical documents — vaccination certificates included. None is asked before the assignment window:
+   * they are requested only after the pilgrim has joined a group (and paid the installment due then).
+   * The administration sets the final list; this is the list configured for the demo.
+   */
+  medicalDocuments: [
+    { key: "covid", label: "شهادة لقاح كورونا", hint: "بالجرعات المعتمدة" },
+    { key: "meningitis", label: "شهادة لقاح الحمى الشوكية", hint: "سارية خلال 3 سنوات" },
+    { key: "flu", label: "شهادة لقاح الإنفلونزا الموسمية", hint: "لهذا الموسم — لمن بلغ 60 عاماً", minAge: 60 },
+    { key: "report", label: "التقرير الطبي العام", hint: "من طبيب معتمد: الحالة الصحية والقدرة على السفر" },
+    { key: "prescription", label: "الوصفة الطبية للأدوية الدائمة", hint: "لمن يتناول دواءً دائماً — تكفي 35 يوماً", onlyIfMedications: true },
+  ],
+
   dates: [
-    { hijri: "9 جمادى الآخرة – 1 رجب", gregorian: "19 تشرين الثاني – 10 كانون الأول 2026", title: "التسجيل على القبول المباشر (35% — الأكبر سناً)", who: "الحاج" },
+    { hijri: "9 جمادى الآخرة – 1 رجب", gregorian: "19 تشرين الثاني – 10 كانون الأول 2026", title: "التسجيل على القبول المباشر لمن بلغ 66 عاماً فأكثر (35%): رسم التسجيل + الدفعة الأولى", who: "الحاج" },
     { hijri: "1 – 10 رجب", gregorian: "10 – 19 كانون الأول 2026", title: "تدقيق طلبات القبول المباشر والتحقق من الأهلية", who: "الموظفون" },
-    { hijri: "15 رجب", gregorian: "24 كانون الأول 2026", title: "القبول المباشر: إعلان الأعمار المقبولة", who: "الحاج" },
-    { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", title: "التسجيل على القرعة (65%) — طلب مستقل", who: "الحاج" },
+    { hijri: "15 رجب", gregorian: "24 كانون الأول 2026", title: "اعتماد قوائم القبول المباشر", who: "الحاج" },
+    { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", title: "التسجيل على القرعة (65%) — طلب مستقل، رسم التسجيل فقط", who: "الحاج" },
     { hijri: "1 شعبان — 20:00", gregorian: "9 كانون الثاني 2027", title: "القرعة الإلكترونية ببث مباشر", who: "الحاج" },
-    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "تأكيد القبول واستكمال الأوراق واختيار المجموعة", who: "الحاج + الإداري" },
-    { hijri: "1 – 15 رمضان", gregorian: "8 – 22 شباط 2027", title: "التسديد وتوقيع العقد", who: "الحاج" },
+    { hijri: "2 شعبان", gregorian: "10 كانون الثاني 2027", title: "المقبولون بالقرعة: تأكيد القبول ودفع الدفعة الأولى", who: "الحاج" },
+    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "مرحلة التفويج: يختار الحاج مجموعته ويسجّله منسقها ويوقّعان العقد", who: "الحاج + المنسق" },
+    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "الدفعة الثانية عند الانضمام إلى المجموعة — ثم الوثائق الطبية", who: "الحاج" },
     { hijri: "1 – 15 ذو القعدة", gregorian: "8 – 22 نيسان 2027", title: "إصدار التأشيرات وتوزيع الرحلات", who: "الموظفون" },
     { hijri: "24 ذو القعدة", gregorian: "1 أيار 2027", title: "السفر: دمشق ← جدة ← مكة", who: "الجميع" },
     { hijri: "8 – 12 ذو الحجة", gregorian: "14 – 18 أيار 2027", title: "المشاعر المقدسة", who: "الجميع" },
@@ -67,14 +101,38 @@ export const SEASON = {
   ],
 } as const;
 
+/**
+ * One registration office per governorate inside Syria, plus one office in each country abroad with a
+ * large Syrian community. The office is never chosen from a list: it follows where the applicant lives —
+ * the governorate office (from the civil registry) inside Syria, or the country office abroad. A
+ * coordinator-filed application belongs to the coordinator's office.
+ */
 export const OFFICES = [
-  { governorate: "دمشق", offices: ["دمشق – المزة", "دمشق – الميدان", "دمشق – ركن الدين"] },
-  { governorate: "ريف دمشق", offices: ["دوما", "التل", "قطنا"] },
-  { governorate: "حلب", offices: ["حلب – الجميلية", "حلب – الشعار"] },
-  { governorate: "حمص", offices: ["حمص – الوعر", "حمص – باب السباع"] },
-  { governorate: "حماة", offices: ["حماة – المركز"] },
-  { governorate: "اللاذقية", offices: ["اللاذقية – المركز"] },
-  { governorate: "إدلب", offices: ["إدلب – المركز"] },
-  { governorate: "درعا", offices: ["درعا – المحطة"] },
-  { governorate: "دير الزور", offices: ["دير الزور – المركز"] },
+  { governorate: "دمشق", office: "مكتب دمشق", abroad: false },
+  { governorate: "ريف دمشق", office: "مكتب ريف دمشق", abroad: false },
+  { governorate: "حلب", office: "مكتب حلب", abroad: false },
+  { governorate: "حمص", office: "مكتب حمص", abroad: false },
+  { governorate: "حماة", office: "مكتب حماة", abroad: false },
+  { governorate: "اللاذقية", office: "مكتب اللاذقية", abroad: false },
+  { governorate: "إدلب", office: "مكتب إدلب", abroad: false },
+  { governorate: "درعا", office: "مكتب درعا", abroad: false },
+  { governorate: "دير الزور", office: "مكتب دير الزور", abroad: false },
+  { governorate: "تركيا", office: "مكتب تركيا — إسطنبول", abroad: true },
+  { governorate: "مصر", office: "مكتب مصر — القاهرة", abroad: true },
+  { governorate: "الأردن", office: "مكتب الأردن — عمّان", abroad: true },
 ] as const;
+
+/** Countries abroad that have an office — the only extra question the applicant is asked */
+export const ABROAD = OFFICES.filter((o) => o.abroad).map((o) => o.governorate);
+
+/** Where the applicant lives: "سوريا" or one of ABROAD */
+export type Residence = "سوريا" | (typeof ABROAD)[number];
+
+/** The office area an application belongs to: the registry governorate inside Syria, or the country abroad */
+export function officeArea(governorate: string, residence: string = "سوريا") {
+  return residence === "سوريا" ? governorate : residence;
+}
+
+export function officeFor(area: string) {
+  return OFFICES.find((o) => o.governorate === area)?.office ?? `مكتب ${area}`;
+}
