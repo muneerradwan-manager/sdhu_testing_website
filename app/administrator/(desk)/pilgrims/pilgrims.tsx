@@ -277,6 +277,12 @@ export function AdminPilgrims() {
                     <Field label="رمز الموافقة">
                       <OtpInput value={otp} onChange={setOtp} invalid={otpError} />
                     </Field>
+                    <p className="mt-3 text-center text-sm text-hint">
+                      رمز تجريبي (وصل إلى هاتف المواطن):{" "}
+                      <button type="button" onClick={() => setOtp(DEMO_OTP)} className="font-mono font-bold text-green-dark underline">
+                        {DEMO_OTP}
+                      </button>
+                    </p>
                   </div>
 
                   <div className="mt-6 flex flex-wrap gap-3">
