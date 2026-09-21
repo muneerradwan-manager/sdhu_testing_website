@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, Loader2, MapPin, Star, Volume2, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { STATIC_EXPORT, cn } from "@/lib/utils";
 
 // ───────────────────────── Map ─────────────────────────
@@ -178,7 +179,10 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  return (
+  // Rendered on <body>: inside an animated (transformed / filtered) section, "fixed" would centre the
+  // dialog on that section instead of the screen — off-view when the pilgrim has scrolled down.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -205,7 +209,8 @@ export function Modal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
