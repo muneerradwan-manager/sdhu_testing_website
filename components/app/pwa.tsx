@@ -18,6 +18,11 @@ export function PwaSupport() {
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register(asset("/sw.js"), { scope: asset("/"), updateViaCache: "none" }).catch(() => {});
+    } else if ("serviceWorker" in navigator) {
+      // Development: a worker left behind by a production run on the same address would serve stale
+      // cached scripts (and make the page rebuild itself on load) — remove it and its caches
+      navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {});
+      caches?.keys().then((keys) => keys.filter((k) => k.startsWith("sdhu-")).forEach((k) => caches.delete(k))).catch(() => {});
     }
 
     let dismissed = false;

@@ -18,6 +18,8 @@ const nextConfig: NextConfig = pages
       images: { loader: "custom", loaderFile: "./lib/image-loader.ts", qualities: [70, 85] },
     }
   : {
+      // Opening the dev server from another device on the local network (e.g. the TV used for demos)
+      allowedDevOrigins: ["10.2.0.2", "10.*.*.*", "192.168.*.*", "172.16.*.*"],
       env: { NEXT_PUBLIC_BASE_PATH: "", NEXT_PUBLIC_STATIC_EXPORT: "false" },
       images: { qualities: [70, 85] },
       serverExternalPackages: ["msedge-tts"],

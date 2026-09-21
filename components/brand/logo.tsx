@@ -3,7 +3,9 @@ import { cn } from "@/lib/utils";
 /** Original emblem: an 8-point khatam star framing the Kaaba, ringed in gold */
 export function Emblem({ className, animated = false }: { className?: string; animated?: boolean }) {
   return (
-    <svg viewBox="0 0 64 64" className={cn("shrink-0", className)} aria-hidden>
+    // width/height keep it logo-sized in the instant before the stylesheet arrives (an SVG without them
+    // fills the whole width); the size classes override them as soon as CSS is applied
+    <svg viewBox="0 0 64 64" width="44" height="44" className={cn("shrink-0", className)} aria-hidden>
       <defs>
         <linearGradient id="emblem-gold" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#E4DDD3" />

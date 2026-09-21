@@ -3,6 +3,7 @@ import { Amiri } from "next/font/google";
 import localFont from "next/font/local";
 import { GuidedTour } from "@/components/app/tour";
 import { PwaSupport } from "@/components/app/pwa";
+import { Splash } from "@/components/app/splash";
 import { PreviewBar } from "@/components/cms/bits";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ar" dir="rtl" data-scroll-behavior="smooth" className={`${qomra.variable} ${amiri.variable} antialiased`}>
       <body className="flex min-h-[calc(100dvh/var(--zoom))] flex-col">
+        <Splash />
         <ToastProvider>
           <Header />
           {/* Clip stray horizontal overflow (slide-in animations etc.) so phones never get a sideways scroll */}
