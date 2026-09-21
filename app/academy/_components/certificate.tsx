@@ -124,7 +124,8 @@ export function Certificate({
             <div className="bg-pattern-dark absolute inset-0 opacity-70" />
             <div className="relative rounded-[20px] border-2 border-gold-dark/60 p-1">
               <div className="relative rounded-[16px] border border-gold/70 px-5 py-7 text-center sm:px-10 sm:py-10">
-                {["right-2 top-2", "left-2 top-2 -scale-x-100", "bottom-2 right-2 -scale-y-100", "bottom-2 left-2 -scale-100"].map((pos) => (
+                {/* The ornament is drawn as a top-left corner; the others are its mirror images */}
+                {["left-2 top-2", "right-2 top-2 -scale-x-100", "bottom-2 left-2 -scale-y-100", "bottom-2 right-2 -scale-100"].map((pos) => (
                   <svg key={pos} viewBox="0 0 40 40" className={cn("absolute size-8 text-gold-dark sm:size-10", pos)} aria-hidden>
                     <path d="M38 2H14C7 2 2 7 2 14v24" fill="none" stroke="currentColor" strokeWidth="1.5" />
                     <path d="M30 2c0 8-6 14-14 14M2 30c8 0 14-6 14-14" fill="none" stroke="currentColor" strokeWidth="1" />
