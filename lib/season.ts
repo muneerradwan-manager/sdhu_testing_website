@@ -69,6 +69,29 @@ export const SEASON = {
     windows: ["عند التسجيل على القبول المباشر، أو عند ظهور الاسم في القرعة", "عند الانضمام إلى مجموعة"],
   },
 
+  /**
+   * Seasonal administrators. The account is permanent, but participation is renewed every season with a
+   * new application, ONE role per season, and the season's fees (registration, group or cluster
+   * formation). An administrator may keep last season's role or apply for another one — both under
+   * conditions the administration sets here.
+   */
+  administrators: {
+    /** Keeping the same role as the last season served */
+    keepRole: {
+      /** Rating of that season must reach this, or the role must be applied for like a new one */
+      minRating: 3.5,
+      /** Same role, rating met, no gap season: the written and oral exams are waived */
+      examExempt: true,
+      /** Seasons without participation before the exams are required again even for the same role */
+      maxGapSeasons: 1,
+    },
+    /** Seniority a role requires from earlier seasons; roles not listed are open to first-timers (with the general conditions) */
+    requirements: {
+      "cluster-head": { seasons: 2, roles: ["cluster-deputy", "group-head"], minRating: 4 },
+      "cluster-deputy": { seasons: 1, roles: ["group-head", "group-deputy"], minRating: 3.5 },
+    } as Record<string, { seasons: number; roles: string[]; minRating: number }>,
+  },
+
   /** The office opens this window for accepted pilgrims to join groups through the group's coordinator */
   groupingWindow: "2 – 25 شعبان",
 

@@ -67,6 +67,14 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
       { key: "hady", label: "الهدي", unit: "$", min: 0, max: 1000, step: 5 },
     ],
   },
+  {
+    title: "الإداريون — تجديد الصفة كل موسم",
+    icon: <Coins />,
+    fields: [
+      { key: "keepRoleMinRating", label: "الاستمرار في الصفة نفسها: أدنى تقييم للموسم السابق (ومعه إعفاء من الامتحانين)", unit: "من 5", min: 0, max: 5, step: 0.1 },
+      { key: "clusterHeadSeasons", label: "رئيس تكتل: مواسم سابقة رئيساً أو معاوناً", unit: "مواسم", min: 0, max: 5 },
+    ],
+  },
 ];
 
 const LABELS: Record<Key, string> = {
@@ -83,6 +91,8 @@ const LABELS: Record<Key, string> = {
   hajjCost: "تكلفة الحج",
   firstInstallment: "الدفعة الأولى",
   installmentCount: "عدد دفعات تكلفة الحج",
+  keepRoleMinRating: "أدنى تقييم للاستمرار في الصفة",
+  clusterHeadSeasons: "مواسم رئيس التكتل",
   hady: "الهدي",
 };
 
@@ -98,6 +108,8 @@ function valuesOf(s: LiveSeason): Values {
     hajjCost: s.fees.hajjCost,
     firstInstallment: s.fees.firstInstallment,
     installmentCount: s.fees.installmentCount,
+    keepRoleMinRating: s.administrators.keepRoleMinRating,
+    clusterHeadSeasons: s.administrators.clusterHeadSeasons,
     hady: s.fees.hady,
   };
 }
@@ -107,6 +119,7 @@ const DEFAULTS = valuesOf(mergeSeason({}));
 function show(key: Key, v: number) {
   if (key === "directShare") return `${v}%`;
   if (key === "installmentCount") return v === 1 ? "دفعة واحدة كاملة" : "دفعتان";
+  if (key === "keepRoleMinRating") return `${v} من 5`;
   if (key === "registrationPerPerson" || key === "hajjCost" || key === "firstInstallment" || key === "hady") return `${formatNumber(v)} $`;
   if (key.endsWith("BirthYear")) return String(v);
   return formatNumber(v);

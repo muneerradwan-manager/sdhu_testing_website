@@ -202,7 +202,7 @@ export function AdministratorLanding() {
 
       {/* ───────── Roles ───────── */}
       <section className="mx-auto max-w-7xl px-4 py-20 md:px-8">
-        <SectionHeading eyebrow="الصفات الموسمية" title="من يعمل مع الحجاج في الموسم؟" description="تدير الإدارة قائمة الصفات كل موسم. تختار في طلبك صفة أو أكثر بالترتيب، وتُمنح صلاحياتك تلقائياً بحسب الصفة التي تُعتمد لها." />
+        <SectionHeading eyebrow="الصفات الموسمية" title="من يعمل مع الحجاج في الموسم؟" description="التسجيل يتجدد كل موسم برسمه، وصفة واحدة في الموسم: صفتك السابقة أو صفة جديدة، بشروط تحددها الإدارة. تدير الإدارة قائمة الصفات كل موسم. تختار في طلبك صفة واحدة، وتُمنح صلاحياتك تلقائياً حين تُعتمد لها." />
         <div className="grid gap-6 lg:grid-cols-3">
           {ROLES.map((r, ri) => (
             <Reveal key={r.level} delay={ri * 0.1} className="relative">

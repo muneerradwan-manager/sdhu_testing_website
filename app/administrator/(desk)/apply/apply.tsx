@@ -1,12 +1,10 @@
 "use client";
 
-import { AnimatePresence, Reorder, motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
 import {
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   BadgeCheck,
   Check,
   CircleCheck,
@@ -14,12 +12,9 @@ import {
   FileCheck2,
   FileText,
   FolderLock,
-  GripVertical,
   Loader2,
   Lock,
-  Plus,
   ShieldCheck,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -41,12 +36,15 @@ import {
   adminReceipt,
   logAdmin,
   previousRating,
+  positionLabelOf,
+  roleOptions,
   seasonHistory,
   useAdmin,
+  type RoleOption,
 } from "../../_lib/admin";
 import { AdminShell, ReceiptCard } from "../../_components/ui";
 
-const STEPS = ["الصفات بالترتيب", "الوثائق", "أسئلة الطلب", "الالتزامات", "رسم التسجيل"];
+const STEPS = ["الصفة", "الوثائق", "أسئلة الطلب", "الالتزامات", "رسم التسجيل"];
 const REQUIRED_DOCS = ["degree", "record"];
 
 export function AdminApply() {
@@ -81,7 +79,9 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const season = useSeason();
   const fee = season.fees.administratorRegistration;
   const [step, setStep] = useState(0);
-  const [positions, setPositions] = useState<string[]>(admin.profile?.positions.length ? admin.profile.positions : ["group-head", "cluster-deputy"]);
+  const options = roleOptions(admin.id, season.administrators);
+  const [positions, setPositions] = useState<string[]>(admin.profile?.positions.length ? [admin.profile.positions[0]] : []);
+  const [renewal, setRenewal] = useState<"keep" | "change" | "first">(admin.profile?.renewal ?? (options.last ? "change" : "first"));
   const [uploads, setUploads] = useState<Record<string, number>>({});
   const [languages, setLanguages] = useState<string[]>(["العربية"]);
   const [skills, setSkills] = useState<Record<string, boolean>>({ bus: false, "first-aid": true, computer: true });
@@ -98,7 +98,8 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const history = seasonHistory(admin.id);
   const docsReady = REQUIRED_DOCS.every((k) => uploads[k] === 100) && Object.values(uploads).every((v) => v === 100);
   const allCommitted = COMMITMENTS.every((c) => commit[c.key]);
-  const canNext = [positions.length > 0, docsReady, languages.length > 0, allCommitted, false][step];
+  const chosen = renewal === "keep" ? options.keep : options.others.find((o) => o.key === positions[0]);
+  const canNext = [!!chosen?.ok, docsReady, languages.length > 0, allCommitted, false][step];
 
   const upload = (key: string) => {
     if (uploads[key] !== undefined) return;
@@ -113,14 +114,6 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
     timers.current.push(t);
   };
 
-  const move = (i: number, d: -1 | 1) => {
-    const j = i + d;
-    if (j < 0 || j >= positions.length) return;
-    const next = positions.slice();
-    [next[i], next[j]] = [next[j], next[i]];
-    setPositions(next);
-  };
-
   const pay = (m: PayMethod) => {
     setMethod(m);
     setPaying(true);
@@ -129,8 +122,11 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
       const now = Date.now();
       const receipt = adminReceipt(admin.id, "A");
       const documents = Object.keys(uploads).filter((k) => uploads[k] === 100);
+      const exempt = renewal === "keep" && !!options.keep?.examExempt;
       actions.upsertAdmin(admin.id, {
         positions,
+        renewal,
+        examExempt: exempt,
         documents,
         languages,
         skills: Object.keys(skills).filter((k) => skills[k]),
@@ -138,10 +134,10 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
         feePaidAt: now,
         receipt,
       });
-      const labels = positions.map((k, i) => `${i + 1}) ${POSITIONS.find((x) => x.key === k)?.label}`).join("، ");
-      logAdmin(admin.id, "تقديم طلب المشاركة في موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفات: ${labels} — ${documents.length} وثائق — الموافقة على الالتزامات`);
+      const label = POSITIONS.find((x) => x.key === positions[0])?.label;
+      logAdmin(admin.id, "التسجيل الموسمي — موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الامتحانين" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — ${documents.length} وثائق — الموافقة على الالتزامات`);
       logAdmin(admin.id, "تسديد رسم تسجيل الإداري", receipt, `${formatUSD(fee)} — ${payMethodLabel(m)}`);
-      toast({ title: "تم استلام طلب مشاركتك", body: `ورسم التسجيل (الإيصال ${receipt}). سيتم التحقق من الأهلية حتى 10 ربيع الآخر.`, icon: "📨", tone: "success" });
+      toast({ title: "تم استلام تسجيلك لموسم 1448", body: `ورسم التسجيل (الإيصال ${receipt}). سيتم التحقق من الأهلية حتى 10 ربيع الآخر.`, icon: "📨", tone: "success" });
       setPaying(false);
     }, 2300);
   };
@@ -165,41 +161,38 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
           <motion.div key={step} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }} transition={{ duration: 0.3 }}>
             {step === 0 && (
               <div>
-                <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">ما الصفات التي ترغب فيها؟</h2>
-                <p className="mt-2 text-ink-soft">رتّبها حسب أولويتك — اسحب البطاقة أو استخدم الأسهم. حتى 3 صفات.</p>
-                <Reorder.Group axis="y" values={positions} onReorder={setPositions} className="mt-6 space-y-2">
-                  {positions.map((key, i) => {
-                    const pos = POSITIONS.find((x) => x.key === key)!;
-                    return (
-                      <Reorder.Item key={key} value={key} className="flex cursor-grab items-center gap-3 rounded-2xl border-2 border-maroon/20 bg-white p-3 shadow-sm active:cursor-grabbing" whileDrag={{ scale: 1.03, boxShadow: "0 20px 40px -20px rgba(103,33,70,.5)" }}>
-                        <GripVertical className="size-5 shrink-0 text-hint" />
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-maroon font-display text-lg font-bold text-gold">{i + 1}</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-ink">{pos.label}</p>
-                          <p className="truncate text-xs text-ink-soft">{pos.desc}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="grid size-8 place-items-center rounded-lg hover:bg-sand disabled:opacity-30" aria-label="رفع الأولوية"><ArrowUp className="size-4" /></button>
-                          <button type="button" onClick={() => move(i, 1)} disabled={i === positions.length - 1} className="grid size-8 place-items-center rounded-lg hover:bg-sand disabled:opacity-30" aria-label="خفض الأولوية"><ArrowDown className="size-4" /></button>
-                          <button type="button" onClick={() => setPositions(positions.filter((k) => k !== key))} className="grid size-8 place-items-center rounded-lg text-maroon hover:bg-maroon/10" aria-label="إزالة"><Trash2 className="size-4" /></button>
-                        </div>
-                      </Reorder.Item>
-                    );
-                  })}
-                </Reorder.Group>
-                {positions.length === 0 && <p className="mt-4 rounded-2xl border-2 border-dashed border-gold/60 p-6 text-center text-hint">اختر صفة واحدة على الأقل من القائمة أدناه</p>}
-                <p className="mt-8 text-sm font-bold text-ink">الصفات المتاحة لموسم 1448</p>
+                <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">صفتك لموسم 1448</h2>
+                <p className="mt-2 leading-8 text-ink-soft">
+                  التسجيل يتجدد كل موسم برسمه، وصفة واحدة فقط في الموسم. {options.last ? "يمكنك الاستمرار في صفتك السابقة أو التقدم لصفة أخرى، وكلاهما بشروط تحددها الإدارة." : "هذا أول موسم لك، فتختار صفة واحدة وتخضع للامتحانين."}
+                </p>
+
+                {options.last && (
+                  <div className="mt-5 rounded-2xl bg-sand p-4 text-sm">
+                    <p className="flex items-center gap-2 font-bold text-green-dark"><ShieldCheck className="size-4" /> آخر موسم شاركت فيه (من سجل المنصة)</p>
+                    <p className="mt-1">
+                      موسم {options.last.season} — <b>{options.last.role}</b>
+                      {options.last.group && ` — ${options.last.group}`}
+                      {options.last.rating !== null && <span className="mr-2 rounded-full bg-gold/30 px-2 py-0.5 text-xs font-bold text-maroon">★ {options.last.rating} من 5</span>}
+                    </p>
+                  </div>
+                )}
+
+                {options.keep && (
+                  <>
+                    <p className="mt-6 text-sm font-bold text-ink">الاستمرار في الصفة نفسها</p>
+                    <RoleCard option={options.keep} selected={positions[0] === options.keep.key && renewal === "keep"} onSelect={() => { setPositions([options.keep!.key]); setRenewal("keep"); }} badge={options.keep.ok ? (options.keep.examExempt ? "معفى من الامتحانين" : "بالامتحانين") : "غير متاح"} />
+                  </>
+                )}
+
+                <p className="mt-6 text-sm font-bold text-ink">{options.last ? "أو التقدم لصفة أخرى" : "الصفات المتاحة لموسم 1448"}</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {POSITIONS.filter((x) => !positions.includes(x.key)).map((x) => (
-                    <button key={x.key} type="button" disabled={positions.length >= 3} onClick={() => setPositions([...positions, x.key])} className="group flex items-center gap-3 rounded-2xl bg-sand p-3 text-right transition hover:bg-gold/20 disabled:opacity-40">
-                      <span className="grid size-8 place-items-center rounded-lg bg-white text-green-dark transition group-hover:rotate-90"><Plus className="size-4" /></span>
-                      <span className="font-semibold">{x.label}</span>
-                    </button>
+                  {options.others.map((o) => (
+                    <RoleCard key={o.key} option={o} selected={positions[0] === o.key && renewal !== "keep"} onSelect={() => { setPositions([o.key]); setRenewal(options.last ? "change" : "first"); }} badge={o.ok ? "بالامتحانين" : "غير متاح"} />
                   ))}
                 </div>
+                <p className="mt-4 text-xs leading-5 text-hint">الشروط من إعدادات الموسم: أدنى تقييم للاستمرار في الصفة {season.administrators.keepRoleMinRating} من 5، ورئاسة التكتل تشترط {season.administrators.clusterHeadSeasons} مواسم رئيساً أو معاوناً.</p>
               </div>
             )}
-
             {step === 1 && (
               <div>
                 <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">ارفع وثائقك</h2>
@@ -380,8 +373,8 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
           <p className="text-sm font-bold text-green-dark">ملخص طلبك</p>
           <dl className="mt-3 space-y-3 text-sm">
             <div>
-              <dt className="text-xs text-hint">الصفات</dt>
-              <dd className="mt-1 flex flex-wrap gap-1">{positions.map((k, i) => <Badge key={k} tone={i === 0 ? "maroon" : "ink"}>{i + 1}. {POSITIONS.find((x) => x.key === k)?.label}</Badge>)}</dd>
+              <dt className="text-xs text-hint">الصفة لموسم 1448</dt>
+              <dd className="mt-1 flex flex-wrap gap-1">{positions[0] ? <Badge tone="maroon">{POSITIONS.find((x) => x.key === positions[0])?.label}{renewal === "keep" ? " — تجديد" : ""}</Badge> : <span className="text-sm text-hint">لم تُحدَّد</span>}</dd>
             </div>
             <div>
               <dt className="text-xs text-hint">الوثائق</dt>
@@ -394,7 +387,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
           </dl>
         </div>
         <p className="rounded-3xl bg-green-dark/6 p-4 text-sm leading-6 text-green-dark">
-          الإداري الذي لم يُعتمد في الصفة نفسها سابقاً يخضع للامتحانين الكتابي والشفهي.
+          من يجدد الصفة نفسها بتقييم مستوفٍ يُعفى من الامتحانين؛ ومن يتقدم لصفة جديدة أو لأول مرة يخضع للامتحانين الكتابي والشفهي.
         </p>
       </aside>
     </div>
@@ -444,16 +437,20 @@ function useConditions() {
   const admin = useAdmin()!;
   const p = admin.profile!;
   const age = ageOf(admin.person);
+  const season = useSeason();
   const prev = previousRating(admin.id);
   const docs = p.documents ?? [];
-  const pastSeason = seasonHistory(admin.id).find((h) => h.rating !== null);
+  const served = seasonHistory(admin.id).filter((h) => h.roleKey);
+  const options = roleOptions(admin.id, season.administrators);
+  const role = p.renewal === "keep" ? options.keep : options.others.find((o) => o.key === p.positions[0]);
   return [
     { k: "العمر بين 25 و60", v: `${age}`, ok: age >= 25 && age <= 60 },
-    { k: "شهادة جامعية أو خبرة موسمين", v: docs.includes("degree") ? `شهادة${pastSeason ? ` + موسم ${pastSeason.season}` : ""}` : "لا توجد شهادة مرفوعة", ok: docs.includes("degree") },
+    { k: "شهادة جامعية أو خبرة موسمين", v: docs.includes("degree") ? `شهادة${served.length ? ` + ${served.length} مواسم` : ""}` : served.length >= 2 ? `${served.length} مواسم خبرة` : "لا توجد شهادة مرفوعة", ok: docs.includes("degree") || served.length >= 2 },
     { k: "لا حكم عليه", v: docs.includes("record") ? "وثيقة مرفوعة — تحقق ماهر" : "غير مرفوعة", ok: docs.includes("record") },
-    { k: "تقييم الموسم السابق لا يقل عن 3.5", v: prev !== null ? `${prev}` : "لا يوجد موسم سابق — لا ينطبق", ok: prev === null || prev >= 3.5 },
+    { k: `الصفة لموسم 1448: ${role?.label ?? positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "first" ? "أول موسم" : "صفة جديدة"}`, v: role?.reason ?? "—", ok: !!role?.ok },
+    { k: `تقييم الموسم السابق لا يقل عن ${season.administrators.keepRoleMinRating}`, v: prev !== null ? `${prev}` : "لا يوجد موسم سابق — لا ينطبق", ok: prev === null || prev >= season.administrators.keepRoleMinRating || p.renewal !== "keep" },
     { k: "لم يُستبعد تأديبياً سابقاً", v: "لا", ok: true },
-    { k: "رسم التسجيل مسدد", v: `إيصال ${p.receipt}`, ok: !!p.feePaidAt },
+    { k: "رسم موسم 1448 مسدد", v: `إيصال ${p.receipt}`, ok: !!p.feePaidAt },
   ];
 }
 
@@ -465,6 +462,7 @@ function Eligibility() {
   const wrote = useRef(false);
   const allOk = rows.every((r) => r.ok);
   const finished = checked >= rows.length;
+  const exempt = !!admin.profile?.examExempt;
 
   useEffect(() => {
     if (finished) return;
@@ -477,12 +475,12 @@ function Eligibility() {
     wrote.current = true;
     const t = setTimeout(() => {
       actions.upsertAdmin(admin.id, { eligibleAt: Date.now() });
-      logAdmin(admin.id, "اكتمل التحقق من الأهلية (آلياً)", `الإداري ${admin.id.slice(-3)}`, "مستوفٍ للشروط الستة — يخضع للامتحانين الكتابي والشفهي");
-      toast({ title: "أنت مؤهل للامتحان الكتابي", body: "الموعد: 15 ربيع الآخر، الساعة 09:00، على المنصة.", icon: "🎓", tone: "success" });
+      logAdmin(admin.id, "اكتمل التحقق من الأهلية (آلياً)", `الإداري ${admin.id.slice(-3)}`, exempt ? "مستوفٍ للشروط — تجديد الصفة نفسها، معفى من الامتحانين" : "مستوفٍ للشروط — يخضع للامتحانين الكتابي والشفهي");
+      toast(exempt ? { title: "جُدّدت صفتك لموسم 1448", body: "معفى من الامتحانين. يمكنك المتابعة إلى تشكيل المجموعة أو التعيين.", icon: "🎓", tone: "success" } : { title: "أنت مؤهل للامتحان الكتابي", body: "الموعد: 15 ربيع الآخر، الساعة 09:00، على المنصة.", icon: "🎓", tone: "success" });
       confetti({ particleCount: 90, spread: 70, origin: { y: 0.5 }, colors: ["#D9C89E", "#672146", "#00594F"] });
     }, 1400);
     return () => clearTimeout(t);
-  }, [finished, allOk, admin.id, toast]);
+  }, [finished, allOk, exempt, admin.id, toast]);
 
   return (
     <Card>
@@ -545,10 +543,12 @@ function EligibleSummary() {
       <Card className="relative overflow-hidden">
         <div className="bg-pattern-dark absolute inset-0" />
         <div className="relative">
-          <Badge tone="green" className="text-sm"><BadgeCheck className="size-4" /> مؤهل للامتحان الكتابي</Badge>
-          <h2 className="mt-4 font-display text-3xl font-bold text-green-dark md:text-4xl">أنت مؤهل يا {admin.person.firstName}</h2>
+          <Badge tone="green" className="text-sm"><BadgeCheck className="size-4" /> {p.examExempt ? "جُدّدت صفتك — معفى من الامتحانين" : "مؤهل للامتحان الكتابي"}</Badge>
+          <h2 className="mt-4 font-display text-3xl font-bold text-green-dark md:text-4xl">{p.examExempt ? `جُدّدت صفتك يا ${admin.person.firstName}` : `أنت مؤهل يا ${admin.person.firstName}`}</h2>
           <p className="mt-3 max-w-xl leading-8 text-ink-soft">
-            الموعد: <b>15 ربيع الآخر، الساعة 09:00</b>، على المنصة — من منزلك أو من قاعة مراقبة إذا قررت الإدارة ذلك. مجموعة التواصل الخاصة بصفتك متاحة في قناة الإداريين.
+            {p.examExempt
+              ? `الصفة نفسها التي شغلتها الموسم الماضي بتقييم مستوفٍ، فلا امتحان هذا الموسم وفق شروط الإدارة. رسم الموسم مسدد، وتنتقل مباشرة إلى ${positionLabelOf(p.positions[0]) === "رئيس مجموعة" ? "طلب تشكيل المجموعة (برسمه)" : "التعيين في مجموعتك"}.`
+              : <>الموعد: <b>15 ربيع الآخر، الساعة 09:00</b>، على المنصة — من منزلك أو من قاعة مراقبة إذا قررت الإدارة ذلك. مجموعة التواصل الخاصة بصفتك متاحة في قناة الإداريين.</>}
           </p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {rows.map((r) => (
@@ -557,8 +557,8 @@ function EligibleSummary() {
               </li>
             ))}
           </ul>
-          <ButtonLink href="/administrator/exam" size="xl" variant="gold" className="mt-8">
-            الدخول إلى الامتحان الكتابي <ArrowLeft className="size-6" />
+          <ButtonLink href={p.examExempt ? "/administrator/group" : "/administrator/exam"} size="xl" variant="gold" className="mt-8">
+            {p.examExempt ? "متابعة إلى مجموعتي" : "الدخول إلى الامتحان الكتابي"} <ArrowLeft className="size-6" />
           </ButtonLink>
         </div>
       </Card>
@@ -576,8 +576,37 @@ function EligibleSummary() {
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-xs leading-5 text-hint">الصفات: {p.positions.map((k, i) => `${i + 1}) ${POSITIONS.find((x) => x.key === k)?.label}`).join(" — ")}</p>
+        <p className="mt-4 text-xs leading-5 text-hint">الصفة لموسم 1448: {positionLabelOf(p.positions[0] ?? "")}{p.renewal === "keep" ? " — تجديد" : ""}</p>
       </Card>
     </div>
+  );
+}
+
+/** One role option with the administration's verdict on it */
+function RoleCard({ option, selected, onSelect, badge }: { option: RoleOption; selected: boolean; onSelect: () => void; badge: string }) {
+  const pos = POSITIONS.find((x) => x.key === option.key);
+  return (
+    <button
+      type="button"
+      disabled={!option.ok}
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "mt-2 flex w-full items-start gap-3 rounded-2xl border-2 p-3 text-right transition disabled:cursor-not-allowed disabled:opacity-60",
+        selected ? "border-maroon bg-maroon/5 shadow-lg" : option.ok ? "border-gold/40 bg-white hover:border-gold-dark" : "border-dashed border-maroon/30 bg-sand/50",
+      )}
+    >
+      <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", selected ? "bg-maroon text-gold" : "bg-sand text-green-dark")}>
+        {option.ok ? <Check className="size-5" /> : <Lock className="size-4" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-bold text-ink">{option.label}</span>
+          <Badge tone={!option.ok ? "maroon" : option.examExempt ? "green" : "gold"}>{badge}</Badge>
+        </span>
+        {pos && <span className="block text-xs text-ink-soft">{pos.desc}</span>}
+        <span className={cn("mt-1 block text-xs leading-5", option.ok ? "text-green" : "text-maroon")}>{option.reason}</span>
+      </span>
+    </button>
   );
 }

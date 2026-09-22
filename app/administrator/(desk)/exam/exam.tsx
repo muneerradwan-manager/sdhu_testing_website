@@ -51,6 +51,14 @@ export function AdminExam() {
     );
   }
 
+  if (p.examExempt) {
+    return (
+      <AdminShell title="الامتحان الكتابي المؤتمت" subtitle="لا امتحان هذا الموسم: جدّدت الصفة نفسها بتقييم مستوفٍ وفق شروط الإدارة.">
+        <LockedCard title="معفى من الامتحانين" text="من يجدد صفته التي شغلها الموسم الماضي بتقييم لا يقل عن الحد الذي حددته الإدارة يُعفى من الامتحانين الكتابي والشفهي، ويعامَل معاملة الناجح في التأهيل." href="/administrator/group" cta="متابعة إلى مجموعتي" />
+      </AdminShell>
+    );
+  }
+
   if (p.exam && !p.exam.submittedAt) return <ExamRunner onSubmitted={onSubmitted} />;
 
   return (

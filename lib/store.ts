@@ -91,6 +91,9 @@ export type SeasonOverrides = Partial<{
   firstInstallment: number;
   /** Hajj cost in 1 payment or 2 installments — the administration decides for the season */
   installmentCount: number;
+  /** Administrators: rating needed to keep last season's role; seasons of seniority for a cluster head */
+  keepRoleMinRating: number;
+  clusterHeadSeasons: number;
   hady: number;
 }>;
 
@@ -165,7 +168,12 @@ export type AdminProfile = {
   nationalId: string;
   createdAt: number;
   phone: string;
+  /** One role per season (older profiles may hold more; the first one counts) */
   positions: string[];
+  /** How this season's application relates to the last season served */
+  renewal?: "keep" | "change" | "first";
+  /** Same role, rating met: exams waived by the season's rules */
+  examExempt?: boolean;
   languages: string[];
   skills: string[];
   documents: string[];

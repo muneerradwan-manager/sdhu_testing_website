@@ -25,7 +25,7 @@ import { POSITIONS, journeyOf, resultOf, seasonHistory, useAdmin } from "../../_
 import { AdminShell } from "../../_components/ui";
 
 const NEXT: Record<string, { title: string; text: string; cta: string }> = {
-  apply: { title: "قدّم طلب المشاركة في موسم 1448", text: "اختر الصفات بالترتيب، وارفع وثائقك، ووافق على الالتزامات، وسدّد رسم 30 $.", cta: "ابدأ الطلب" },
+  apply: { title: "سجّل لموسم 1448", text: "التسجيل يتجدد كل موسم: اختر صفة واحدة (صفتك السابقة أو صفة جديدة)، وارفع وثائقك، ووافق على الالتزامات، وسدّد رسم 30 $.", cta: "ابدأ الطلب" },
   eligibility: { title: "التحقق من أهليتك", text: "طلبك مكتمل والرسم مسدد. شاهد تطبيق شروط الموسم على ملفك.", cta: "عرض الأهلية" },
   written: { title: "الامتحان الكتابي جاهز", text: "15 سؤالاً — 20 دقيقة — تُحفظ الإجابات تلقائياً، ولا رجوع بعد الإرسال.", cta: "الدخول إلى الامتحان" },
   oral: { title: "بانتظار نتيجة الامتحان الشفهي", text: "تُدخل لجنة الامتحانات (ماهر عيسى) النتيجة على المنصة بعد مقابلتك.", cta: "متابعة النتيجة" },
@@ -52,15 +52,18 @@ export function AdminDashboard() {
   const next = current ? NEXT[current.key] : null;
   const status1448 = profile?.group?.approvedAt
     ? `رئيس مجموعة — المجموعة ${profile.group.number} — تكتل النور`
-    : result.passed
-      ? `ناجح في التأهيل (${result.final})`
+    : result.exempt
+      ? `مجدَّد في الصفة نفسها — دون امتحان`
+      : result.passed
+        ? `ناجح في التأهيل (${result.final})`
       : profile?.feePaidAt
         ? "متقدم — قيد التأهيل"
         : "لم يتقدم بعد";
 
   const notes = [
     profile?.group?.approvedAt && { t: `اعتُمدت المجموعة ${profile.group.number} ضمن تكتل النور لموسم 1448. رئيس تكتلك: عبد الرحمن العلي. العقود جاهزة للتوقيع في خزنة الوثائق.`, who: "مدير المكتب" },
-    result.published && result.passed && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة رئيس مجموعة. يمكنك تقديم طلب تشكيل مجموعة حتى 25 جمادى الأولى.`, who: "شؤون الإداريين" },
+    result.exempt && { t: "جُدّدت صفتك لموسم 1448 دون امتحان، لأنك شغلتها الموسم الماضي بتقييم مستوفٍ. رسم الموسم مسدد.", who: "شؤون الإداريين" },
+    result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة رئيس مجموعة. يمكنك تقديم طلب تشكيل مجموعة حتى 25 جمادى الأولى.`, who: "شؤون الإداريين" },
     profile?.eligibleAt && { t: "أنت مؤهل للامتحان الكتابي. الموعد: 15 ربيع الآخر، الساعة 09:00، على المنصة.", who: "شؤون الإداريين" },
     profile?.receipt && { t: `تم استلام طلب مشاركتك في موسم 1448 ورسم التسجيل (الإيصال ${profile.receipt}). سيتم التحقق من الأهلية حتى 10 ربيع الآخر.`, who: "المنصة" },
     { t: "باب طلبات المشاركة لموسم 1448 مفتوح من 10 ربيع الأول حتى 1 ربيع الآخر.", who: "الإدارة" },
@@ -99,7 +102,7 @@ export function AdminDashboard() {
                 ["العمر", `${ageOf(admin.person)} عاماً`],
                 ["المحافظة", admin.person.governorate],
                 ["الهاتف", profile?.phone ? `${profile.phone.slice(0, 4)} ••• ${profile.phone.slice(-3)}` : "—"],
-                ["الصفة المطلوبة", profile?.positions.length ? POSITIONS.find((p) => p.key === profile.positions[0])?.label ?? "—" : "لم تُحدَّد"],
+                ["الصفة لموسم 1448", profile?.positions.length ? `${POSITIONS.find((p) => p.key === profile.positions[0])?.label ?? "—"}${profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-2xl bg-sand p-3">
                   <dt className="text-xs text-hint">{k}</dt>
