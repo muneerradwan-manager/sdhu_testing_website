@@ -5,7 +5,7 @@ import { EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, scoreExam } from "@/lib/data/
 import { fullName, getPerson } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
-import { actions, useStore, type AdminProfile } from "@/lib/store";
+import { actions, useStore, type AdminProfile, type AdminRecord, type VaultDoc } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
 
@@ -26,7 +26,7 @@ export const DEMO_ADMINS: DemoAdmin[] = [
   { id: "01033300871", phone: "0944271449", position: "group-head", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وقُبلت مجموعته 27 في تكتل النور بعقد. يستلم العائلات ويفتح التجمّعات." },
   { id: "01033300885", phone: "0944285449", position: "group-head", mode: "start", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له: يريد رئاسة مجموعة يشكّلها بنفسه، ويخضع للامتحانين. لم يبدأ." },
   { id: "01033300872", phone: "0944272449", position: "group-deputy", mode: "done", title: "ياسر عبد الله — معاون رئيس مجموعة", note: "40 عاماً — معاون المجموعة 27 في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
-  { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون رئيس مجموعة", note: "34 عاماً — أول موسم له. لم يبدأ." },
+  { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون المجموعة 41 في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
   { id: "01033300874", phone: "0944274449", position: "tech", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق المجموعة 27 في 1447 (4.8)، جدّد الصفة نفسها. يسجّل طلبات الحج في مكتب دمشق، وفي مرحلة التفويج يسجّل في مجموعته من يختارها، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
   { id: "01033300887", phone: "0944287449", position: "tech", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص، أول موسم له. لم يبدأ." },
   { id: "01033300873", phone: "0944273449", position: "guide-m", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه المجموعة 27 في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
@@ -56,11 +56,17 @@ export const POSITIONS = [
   { key: "tech", label: "منسق تقني", desc: "يسجّل طلبات الحج في مكتبه، ويسجّل في مجموعته من يختارها في مرحلة التفويج، ويأخذ ملفاتهم الصحية.", elected: false },
 ] as const;
 
+/**
+ * The documents the administration asks for, each with the validity IT sets. `validSeasons` counts the
+ * issuing season itself: 0 = never expires, 1 = this season only, 3 = the issuing season and two after
+ * it. A document in the administrator's permanent file is carried into the new season's application
+ * when it is still valid; when it has expired he updates it instead of uploading everything again.
+ */
 export const DOCUMENTS = [
-  { key: "degree", label: "صورة عن الشهادة الجامعية", hint: "PDF أو صورة واضحة", file: "university-degree.pdf" },
-  { key: "first-aid", label: "شهادة دورة إسعافات أولية (2026)", hint: "صادرة خلال آخر سنتين", file: "first-aid-2026.pdf" },
-  { key: "record", label: "وثيقة «لا حكم عليه»", hint: "غير مضى عليها أكثر من 3 أشهر", file: "no-criminal-record.pdf" },
-  { key: "recommendation", label: "تزكية من رئيس تكتل سابق", hint: "من موسم سابق عملت فيه", file: "recommendation-1446.pdf" },
+  { key: "degree", label: "صورة عن الشهادة الجامعية", hint: "PDF أو صورة واضحة", file: "university-degree.pdf", validSeasons: 0 },
+  { key: "first-aid", label: "شهادة دورة إسعافات أولية", hint: "صادرة خلال آخر سنتين", file: "first-aid-2026.pdf", validSeasons: 3 },
+  { key: "record", label: "وثيقة «لا حكم عليه»", hint: "غير مضى عليها أكثر من 3 أشهر — تُجدَّد كل موسم", file: "no-criminal-record.pdf", validSeasons: 1 },
+  { key: "recommendation", label: "تزكية من رئيس تكتل سابق", hint: "من موسم سابق عملت فيه", file: "recommendation.pdf", validSeasons: 2 },
 ] as const;
 
 export const COMMITMENTS = [
@@ -79,6 +85,76 @@ export const SKILLS = [
   { key: "sign", label: "لغة الإشارة", emoji: "🤟" },
   { key: "elderly", label: "خبرة في رعاية كبار السن", emoji: "🧓" },
 ] as const;
+
+export function documentType(key: string) {
+  return DOCUMENTS.find((d) => d.key === key);
+}
+
+/** Is this document still valid for the season? (0 = a document that never expires) */
+export function docState(doc: VaultDoc, season: number = SEASON.hijriYear) {
+  const valid = documentType(doc.key)?.validSeasons ?? 0;
+  if (valid === 0) return { ok: true, text: "سارية — لا تنتهي", until: null as number | null };
+  const until = doc.issuedSeason + valid - 1;
+  return until >= season
+    ? { ok: true, text: until === season ? `سارية لهذا الموسم` : `سارية حتى موسم ${until}`, until }
+    : { ok: false, text: `منتهية منذ موسم ${until + 1} — حدّثها`, until };
+}
+
+const EMPTY_RECORD: AdminRecord = { documents: [], languages: ["العربية"], skills: [], updatedAt: 0 };
+
+/**
+ * The permanent file an administrator arrives with. Whoever served before has documents, languages and
+ * skills already on the platform; a first-season administrator starts with an empty file and builds it
+ * this season. Written to the store the first time he changes anything.
+ */
+export function seedRecord(id: string): AdminRecord | undefined {
+  const served = seasonHistory(id).filter((h) => h.roleKey);
+  if (!served.length) return undefined;
+  const firstSeason = Number(served[0].season);
+  const lastSeason = Number(served[served.length - 1].season);
+  const role = served[served.length - 1].roleKey;
+  const at = firstSeason * 1000;
+  const doc = (key: string, issuedSeason: number, label?: string, file?: string): VaultDoc => ({
+    id: `${key}-${issuedSeason}`,
+    key,
+    label: label ?? documentType(key)?.label ?? key,
+    file: file ?? documentType(key)?.file ?? `${key}.pdf`,
+    issuedSeason,
+    addedAt: at,
+  });
+  const documents: VaultDoc[] = [
+    doc("degree", firstSeason),
+    doc("first-aid", lastSeason),
+    // Renewed every season: the copy in the file is last season's, so it has expired
+    doc("record", lastSeason),
+  ];
+  if (served.length >= 2) documents.push(doc("recommendation", lastSeason, `تزكية من رئيس تكتل — موسم ${lastSeason}`, `recommendation-${lastSeason}.pdf`));
+  // A certificate the administrator added himself in an earlier season
+  documents.push({ id: "custom-academy", key: "custom", label: `شهادة مسار «خدمة كبار السن» — أكاديمية الحج`, file: "academy-elderly-care.pdf", issuedSeason: lastSeason, addedAt: at });
+  const skills = role === "tech" ? ["computer"] : role === "guide-m" || role === "guide-f" ? ["elderly", "computer"] : ["first-aid", "computer"];
+  if (served.length >= 2) skills.push("إدارة الحشود في المشاعر");
+  return { documents, languages: ["العربية", "الإنجليزية"], skills, updatedAt: at };
+}
+
+/**
+ * The file of an administrator who has already registered for this season: every document that had
+ * expired was renewed with a copy issued this season, which is exactly what the documents step does.
+ */
+export function renewedRecord(id: string): AdminRecord | undefined {
+  const rec = seedRecord(id);
+  if (!rec) return undefined;
+  const season = SEASON.hijriYear;
+  return {
+    ...rec,
+    documents: rec.documents.map((d) => (docState(d, season).ok ? d : { ...d, id: `${d.key}-${season}`, issuedSeason: season, updatedAt: season * 1000 })),
+    updatedAt: season * 1000,
+  };
+}
+
+/** The file as it stands now: what is in the store, or the seeded file of a returning administrator */
+export function recordOf(p: AdminProfile | undefined, id: string): AdminRecord {
+  return p?.record ?? seedRecord(id) ?? EMPTY_RECORD;
+}
 
 /** Administrator calendar for season 1448 (dates from the operating document, shifted to 1448) */
 export const ADMIN_CALENDAR = [
@@ -106,6 +182,7 @@ const HISTORY: Record<string, { season: string; roleKey: string | null; group?: 
   "01033300871": [{ season: "1446", roleKey: "group-deputy", group: "المجموعة 12", rating: 4.6 }, { season: "1447", roleKey: null }],
   "01033300872": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", group: "المجموعة 27", rating: 4.1 }],
   "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", group: "المجموعة 27", rating: 4.8 }],
+  "01033300886": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", group: "المجموعة 41", rating: 4.3 }],
   "01033300873": [{ season: "1446", roleKey: "guide-m", group: "المجموعة 27", rating: 4.9 }, { season: "1447", roleKey: "guide-m", group: "المجموعة 27", rating: 4.9 }],
 };
 
@@ -299,6 +376,8 @@ export function demoAdminLogin(
       languages: ["العربية", "الإنجليزية"],
       skills: tech ? ["computer", "first-aid"] : ["first-aid", "computer"],
       documents: DOCUMENTS.map((d) => d.key),
+      // The permanent file he arrived with, its expired documents renewed for this season
+      record: renewedRecord(id),
       commitmentsAt: now - 90 * min,
       feePaidAt: now - 88 * min,
       receipt: adminReceipt(id, "A"),

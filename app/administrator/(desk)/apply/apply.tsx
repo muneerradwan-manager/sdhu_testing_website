@@ -10,12 +10,10 @@ import {
   CircleCheck,
   CircleX,
   FileCheck2,
-  FileText,
   FolderLock,
   Loader2,
   Lock,
   ShieldCheck,
-  Upload,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -24,17 +22,17 @@ import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, StarRating, useToast } from "@/components/ui/widgets";
 import { ageOf } from "@/lib/registry";
+import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import {
   COMMITMENTS,
-  DOCUMENTS,
-  LANGUAGES,
   POSITIONS,
-  SKILLS,
   adminReceipt,
+  docState,
   logAdmin,
+  recordOf,
   previousRating,
   positionLabelOf,
   roleOptions,
@@ -43,9 +41,9 @@ import {
   type RoleOption,
 } from "../../_lib/admin";
 import { AdminShell, ReceiptCard } from "../../_components/ui";
+import { DocumentsStep, REQUIRED_DOCS, SkillsStep, attachedDocs, useRecord } from "./record";
 
-const STEPS = ["الصفة", "الوثائق", "أسئلة الطلب", "الالتزامات", "رسم التسجيل"];
-const REQUIRED_DOCS = ["degree", "record"];
+const STEPS = ["الصفة", "وثائقي", "لغاتي ومهاراتي", "الالتزامات", "رسم التسجيل"];
 
 export function AdminApply() {
   const admin = useAdmin()!;
@@ -82,37 +80,17 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const options = roleOptions(admin.id, season.administrators);
   const [positions, setPositions] = useState<string[]>(admin.profile?.positions.length ? [admin.profile.positions[0]] : []);
   const [renewal, setRenewal] = useState<"keep" | "change" | "first">(admin.profile?.renewal ?? (options.last ? "change" : "first"));
-  const [uploads, setUploads] = useState<Record<string, number>>({});
-  const [languages, setLanguages] = useState<string[]>(["العربية"]);
-  const [skills, setSkills] = useState<Record<string, boolean>>({ bus: false, "first-aid": true, computer: true });
   const [commit, setCommit] = useState<Record<string, boolean>>({});
   const [method, setMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
-  const timers = useRef<number[]>([]);
 
-  useEffect(() => {
-    const list = timers.current;
-    return () => list.forEach((t) => window.clearInterval(t));
-  }, []);
-
-  const history = seasonHistory(admin.id);
-  const docsReady = REQUIRED_DOCS.every((k) => uploads[k] === 100) && Object.values(uploads).every((v) => v === 100);
+  // Whoever served before arrives with his documents, languages and skills already in his file
+  const { rec } = useRecord();
+  const attached = attachedDocs(rec);
+  const docsReady = REQUIRED_DOCS.every((k) => attached.some((d) => d.key === k));
   const allCommitted = COMMITMENTS.every((c) => commit[c.key]);
   const chosen = renewal === "keep" ? options.keep : options.others.find((o) => o.key === positions[0]);
-  const canNext = [!!chosen?.ok, docsReady, languages.length > 0, allCommitted, false][step];
-
-  const upload = (key: string) => {
-    if (uploads[key] !== undefined) return;
-    setUploads((u) => ({ ...u, [key]: 0 }));
-    const t = window.setInterval(() => {
-      setUploads((u) => {
-        const v = Math.min(100, (u[key] ?? 0) + 7 + Math.round(Math.random() * 14));
-        if (v >= 100) window.clearInterval(t);
-        return { ...u, [key]: v };
-      });
-    }, 140);
-    timers.current.push(t);
-  };
+  const canNext = [!!chosen?.ok, docsReady, rec.languages.length > 0, allCommitted, false][step];
 
   const pay = (m: PayMethod) => {
     setMethod(m);
@@ -121,21 +99,21 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
       onPaid();
       const now = Date.now();
       const receipt = adminReceipt(admin.id, "A");
-      const documents = Object.keys(uploads).filter((k) => uploads[k] === 100);
+      const documents = attached.map((d) => d.key);
       const exempt = renewal === "keep" && !!options.keep?.examExempt;
       actions.upsertAdmin(admin.id, {
         positions,
         renewal,
         examExempt: exempt,
         documents,
-        languages,
-        skills: Object.keys(skills).filter((k) => skills[k]),
+        languages: rec.languages,
+        skills: rec.skills,
         commitmentsAt: now,
         feePaidAt: now,
         receipt,
       });
       const label = POSITIONS.find((x) => x.key === positions[0])?.label;
-      logAdmin(admin.id, "التسجيل الموسمي — موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الامتحانين" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — ${documents.length} وثائق — الموافقة على الالتزامات`);
+      logAdmin(admin.id, "التسجيل الموسمي — موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الامتحانين" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — ${documents.length} وثائق من ملفه الدائم (${attached.filter((d) => d.issuedSeason === SEASON.hijriYear).length} محدّثة هذا الموسم) — الموافقة على الالتزامات`);
       logAdmin(admin.id, "تسديد رسم تسجيل الإداري", receipt, `${formatUSD(fee)} — ${payMethodLabel(m)}`);
       toast({ title: "تم استلام تسجيلك لموسم 1448", body: `ورسم التسجيل (الإيصال ${receipt}). سيتم التحقق من الأهلية حتى 10 ربيع الآخر.`, icon: "📨", tone: "success" });
       setPaying(false);
@@ -193,106 +171,9 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
                 <p className="mt-4 text-xs leading-5 text-hint">الشروط من إعدادات الموسم: أدنى تقييم للاستمرار في الصفة {season.administrators.keepRoleMinRating} من 5، ورئاسة التكتل تشترط {season.administrators.clusterHeadSeasons} مواسم رئيساً أو معاوناً.</p>
               </div>
             )}
-            {step === 1 && (
-              <div>
-                <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">ارفع وثائقك</h2>
-                <p className="mt-2 text-ink-soft">تُحفظ في خزنة وثائقك، ويراجعها ماهر عيسى من شؤون الإداريين.</p>
-                <ul className="mt-6 space-y-3">
-                  {DOCUMENTS.map((d) => {
-                    const v = uploads[d.key];
-                    const done = v === 100;
-                    return (
-                      <li key={d.key} className={cn("relative overflow-hidden rounded-2xl border-2 p-4 transition", done ? "border-green-light/50 bg-green-light/5" : "border-gold/40 bg-white")}>
-                        <div className="flex flex-wrap items-center gap-4">
-                          <span className={cn("grid size-12 shrink-0 place-items-center rounded-xl transition", done ? "bg-green-light text-white" : "bg-sand text-gold-dark")}>
-                            {done ? (
-                              <motion.span initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }}><FileCheck2 className="size-6" /></motion.span>
-                            ) : (
-                              <FileText className="size-6" />
-                            )}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
-                              {d.label}
-                              {REQUIRED_DOCS.includes(d.key) ? <Badge tone="maroon">إلزامية</Badge> : <Badge tone="ink">تُقوّي الطلب</Badge>}
-                            </p>
-                            <p className="text-xs text-hint">{v !== undefined ? <span dir="ltr" className="font-mono">{d.file}</span> : d.hint}</p>
-                          </div>
-                          {v === undefined ? (
-                            <Button size="sm" variant="outline" onClick={() => upload(d.key)}>
-                              <Upload className="size-4" /> رفع
-                            </Button>
-                          ) : done ? (
-                            <span className="flex items-center gap-1 text-sm font-bold text-green"><Check className="size-4" /> تم الرفع</span>
-                          ) : (
-                            <span className="font-mono text-sm font-bold text-maroon tabular-nums">{v}%</span>
-                          )}
-                        </div>
-                        {v !== undefined && !done && (
-                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
-                            <motion.div className="h-full bg-gradient-to-l from-maroon to-gold-dark" animate={{ width: `${v}%` }} />
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <button type="button" onClick={() => DOCUMENTS.forEach((d) => upload(d.key))} className="mt-4 text-sm font-semibold text-maroon underline">
-                  رفع جميع الوثائق التجريبية
-                </button>
-              </div>
-            )}
+            {step === 1 && <DocumentsStep />}
 
-            {step === 2 && (
-              <div className="space-y-8">
-                <div>
-                  <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">أسئلة الطلب</h2>
-                  <p className="mt-2 text-ink-soft">الخبرة السابقة تُجلب تلقائياً من سجلك الموسمي.</p>
-                </div>
-                <div className="rounded-2xl bg-sand p-5">
-                  <p className="flex items-center gap-2 text-sm font-bold text-green-dark"><ShieldCheck className="size-4" /> الخبرة السابقة (من المنصة)</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {history.map((h) => (
-                      <li key={h.season} className="flex items-center justify-between gap-2 text-sm">
-                        <span><span className="font-bold">{h.season}</span> — {h.role}{h.group && ` — ${h.group}`}</span>
-                        {h.rating && <Badge tone="gold">★ {h.rating}</Badge>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <fieldset>
-                  <legend className="font-bold text-ink">اللغات التي تتحدثها</legend>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {LANGUAGES.map((l) => {
-                      const on = languages.includes(l);
-                      return (
-                        <motion.button whileTap={{ scale: 0.94 }} key={l} type="button" aria-pressed={on} onClick={() => setLanguages(on ? languages.filter((x) => x !== l) : [...languages, l])} className={cn("flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-bold transition", on ? "border-green-dark bg-green-dark text-white" : "border-gold/50 bg-white text-ink-soft hover:border-green-dark/40")}>
-                          {on && <Check className="size-4" />} {l}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-                <fieldset>
-                  <legend className="font-bold text-ink">المهارات</legend>
-                  <ul className="mt-3 space-y-2">
-                    {SKILLS.map((s) => (
-                      <li key={s.key} className="flex items-center justify-between gap-3 rounded-2xl border border-gold/30 bg-white p-3">
-                        <span className="flex items-center gap-3 font-semibold"><span className="text-2xl">{s.emoji}</span> {s.label}؟</span>
-                        <div className="flex rounded-xl bg-sand p-1" role="radiogroup" aria-label={s.label}>
-                          {[true, false].map((val) => (
-                            <button key={String(val)} type="button" role="radio" aria-checked={skills[s.key] === val} onClick={() => setSkills({ ...skills, [s.key]: val })} className={cn("relative rounded-lg px-4 py-1.5 text-sm font-bold", skills[s.key] === val ? (val ? "text-white" : "text-ink") : "text-hint")}>
-                              {skills[s.key] === val && <motion.span layoutId={`skill-${s.key}`} className={cn("absolute inset-0 rounded-lg", val ? "bg-green-dark" : "bg-white shadow")} />}
-                              <span className="relative">{val ? "نعم" : "لا"}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </fieldset>
-              </div>
-            )}
+            {step === 2 && <SkillsStep />}
 
             {step === 3 && (
               <div>
@@ -377,8 +258,11 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
               <dd className="mt-1 flex flex-wrap gap-1">{positions[0] ? <Badge tone="maroon">{POSITIONS.find((x) => x.key === positions[0])?.label}{renewal === "keep" ? " — تجديد" : ""}</Badge> : <span className="text-sm text-hint">لم تُحدَّد</span>}</dd>
             </div>
             <div>
-              <dt className="text-xs text-hint">الوثائق</dt>
-              <dd className="font-bold">{Object.values(uploads).filter((v) => v === 100).length} من {DOCUMENTS.length}</dd>
+              <dt className="text-xs text-hint">وثائق ملفك</dt>
+              <dd className="font-bold">
+                {attached.length} سارية
+                {rec.documents.length > attached.length && <span className="mr-1 font-normal text-maroon">— {rec.documents.length - attached.length} تحتاج تحديثاً</span>}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-hint">الالتزامات</dt>
@@ -568,7 +452,7 @@ function EligibleSummary() {
           {[
             { t: "استمارة التسجيل — موقّعة إلكترونياً", s: "مؤرشفة" },
             { t: `إيصال ${p.receipt}`, s: "مسدد" },
-            ...DOCUMENTS.filter((d) => p.documents.includes(d.key)).map((d) => ({ t: d.label, s: "مقبولة" })),
+            ...recordOf(p, admin.id).documents.filter((d) => docState(d).ok).map((d) => ({ t: d.label, s: "مقبولة" })),
           ].map((d) => (
             <li key={d.t} className="flex items-center justify-between gap-2 rounded-xl border border-gold/30 px-3 py-2.5">
               <span className="flex items-center gap-2"><FileCheck2 className="size-4 text-green" /> {d.t}</span>

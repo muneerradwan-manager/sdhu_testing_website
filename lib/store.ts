@@ -168,6 +168,35 @@ export type PostAcceptance = {
 };
 
 /** Seasonal administrator journey (الجزء الثاني), keyed by national id */
+/**
+ * A certificate or document in the administrator's permanent vault. The account is permanent, so a
+ * document stays in the file from season to season; what changes is whether it is STILL VALID under
+ * the validity the administration sets for its type (see DOCUMENTS in the administrator lib).
+ */
+export type VaultDoc = {
+  id: string;
+  /** A key from the administration's document list, or "custom" for a certificate the administrator added himself */
+  key: string;
+  label: string;
+  file: string;
+  /** The Hijri season the document was issued in — the validity rule is applied to it every season */
+  issuedSeason: number;
+  addedAt: number;
+  updatedAt?: number;
+};
+
+/**
+ * The administrator's permanent file. It survives the season: every new season's application starts
+ * from it, and the administrator may add to it, update an entry, or delete one — he already has a record.
+ */
+export type AdminRecord = {
+  documents: VaultDoc[];
+  languages: string[];
+  /** Keys from the skills list, plus any free-text skill the administrator added himself */
+  skills: string[];
+  updatedAt: number;
+};
+
 export type AdminProfile = {
   nationalId: string;
   createdAt: number;
@@ -176,6 +205,8 @@ export type AdminProfile = {
   positions: string[];
   /** How this season's application relates to the last season served */
   renewal?: "keep" | "change" | "first";
+  /** The permanent file (documents, languages, skills) that carries across seasons */
+  record?: AdminRecord;
   /** Same role, rating met: exams waived by the season's rules */
   examExempt?: boolean;
   languages: string[];

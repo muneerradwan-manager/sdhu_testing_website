@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Check,
   CircleDot,
+  FolderLock,
   History,
   Lock,
   PartyPopper,
@@ -21,7 +22,7 @@ import { Badge } from "@/components/ui/widgets";
 import { ageOf } from "@/lib/registry";
 import { useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
-import { POSITIONS, journeyOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
+import { POSITIONS, SKILLS, docState, journeyOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
 import { AdminShell } from "../../_components/ui";
 
 const NEXT: Record<string, { title: string; text: string; cta: string }> = {
@@ -51,6 +52,7 @@ export function AdminDashboard() {
   const failed = !!result.published && result.final !== undefined && !result.passed;
   const mine = useMemo(() => events.filter((e) => e.actor === admin.name).slice(-7).reverse(), [events, admin.name]);
   const history = seasonHistory(admin.id);
+  const record = recordOf(profile, admin.id);
   const next = current ? NEXT[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const status1448 = profile?.cluster
@@ -136,6 +138,42 @@ export function AdminDashboard() {
                 </li>
               ))}
             </ol>
+          </Card>
+
+          <Card className="md:p-7">
+            <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
+              <FolderLock className="size-5 text-gold-dark" /> ملفي الدائم
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">حسابك دائم: وثائقك ولغاتك ومهاراتك تبقى بين المواسم، ويبدأ منها طلب كل موسم جديد.</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {record.documents.length === 0 && <li className="rounded-xl bg-sand px-3 py-2.5 text-hint">لا وثائق بعد — ترفعها في طلب المشاركة وتبقى في ملفك.</li>}
+              {record.documents.map((d) => {
+                const st = docState(d);
+                return (
+                  <li key={d.id} className="flex items-center justify-between gap-2 rounded-xl border border-gold/30 px-3 py-2.5">
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">{d.label}</span>
+                      <span className="block text-xs text-hint">نسخة موسم {d.issuedSeason}</span>
+                    </span>
+                    <Badge tone={st.ok ? "green" : "maroon"}>{st.ok ? "سارية" : "منتهية"}</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["اللغات", record.languages.join("، ") || "—"],
+                ["المهارات", record.skills.map((k) => SKILLS.find((s) => s.key === k)?.label ?? k).join("، ") || "—"],
+              ].map(([k, v]) => (
+                <div key={k} className="rounded-2xl bg-sand p-3">
+                  <dt className="text-xs text-hint">{k}</dt>
+                  <dd className="mt-0.5 text-sm font-semibold leading-6">{v}</dd>
+                </div>
+              ))}
+            </dl>
+            <ButtonLink href="/administrator/apply" size="sm" variant="outline" className="mt-4">
+              إدارة ملفي من طلب الموسم <ArrowLeft className="size-4" />
+            </ButtonLink>
           </Card>
 
           <Card className="md:p-7">
