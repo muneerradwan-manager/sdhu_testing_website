@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
-import { cn, formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 import { clusterGroupsOf, clusterTotals, clusterViewOf } from "../../_lib/cluster";
 import { useAdmin } from "../../_lib/admin";
 import { AdminShell } from "../../_components/ui";
@@ -49,7 +49,7 @@ export function ClusterGroups() {
                 {[
                   [head ? "المجموعات التي تديرها" : "مجموعات التكتل", formatNumber(totals.groups), `من سعة ${cluster.capacityGroups}`],
                   ["حجاج التكتل", formatNumber(totals.pilgrims), `من أصل ${formatNumber(totals.capacity)} مقعداً`],
-                  ["مجموعتك الأصلية", `المجموعة ${p.group?.number}`, head ? "قبل الانتخاب" : "ضمن التكتل"],
+                  ["حجاج التكتل بالمقاعد", `${formatNumber(totals.capacity)}`, "مجموع سعات مجموعاته"],
                 ].map(([k, v, hint]) => (
                   <div key={k} className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
                     <dt className="text-xs text-white/70">{k}</dt>
@@ -65,7 +65,7 @@ export function ClusterGroups() {
             <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
               <LayoutList className="size-5 text-gold-dark" /> مجموعات التكتل — {formatNumber(totals.groups)} مجموعة
             </h3>
-            <p className="mt-1 text-sm leading-6 text-ink-soft">{head ? "أنت رئيس التكتل ومسؤول عن مجموعاته كلها، ولكل مجموعة رئيسها المباشر. أولها مجموعتك الأصلية التي كنت ترأسها قبل الانتخاب، ثم المجموعات التي طلبت الانضمام ووقّعتَ معها العقد." : "مجموعات التكتل كلها تتابعها نيابةً عن رئيسه، ولكل مجموعة رئيسها المباشر. منها مجموعتك الأصلية."}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">{head ? "كلها مجموعاتك وتديرها جميعاً بالتساوي: تفتح حجاج أي منها وتتابع أعدادها وبرنامجها. ولكل مجموعة رئيسها المباشر وفريقها الذي يعمل معك." : "مجموعات التكتل كلها تتابعها نيابةً عن رئيسه، ولكل مجموعة رئيسها المباشر وفريقها."}</p>
             <ul className="mt-4 space-y-2">
               {groups.map((g, i) => (
                 <motion.li
@@ -73,19 +73,15 @@ export function ClusterGroups() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={cn("rounded-2xl border-2 transition", g.own ? "border-gold-dark/60 bg-gold/10" : "border-gold/30 bg-white")}
+                  className="rounded-2xl border-2 border-gold/30 bg-white transition"
                 >
                   <button type="button" onClick={() => setOpen(open === g.number ? null : g.number)} className="flex w-full flex-wrap items-center gap-3 p-3 text-right">
-                    <span className={cn("grid size-12 shrink-0 place-items-center rounded-xl font-display text-lg font-bold", g.own ? "bg-maroon text-gold" : "bg-sand text-green-dark")}>{g.number}</span>
+                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand font-display text-lg font-bold text-green-dark">{g.number}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2 font-bold text-ink">
-                        المجموعة {g.number}
-                        {g.own && <Badge tone="gold">{head ? "مجموعتك الأصلية" : "مجموعتك"}</Badge>}
-                      </span>
+                      <span className="block font-bold text-ink">المجموعة {g.number}</span>
                       <span className="block text-xs text-ink-soft">
                         {g.own ? "رئيسها المباشر: أنت" : `رئيسها المباشر: ${g.head}`} — {g.office}
                       </span>
-                      <span className="block text-xs text-hint">{g.joined}</span>
                     </span>
                     <span className="text-left">
                       <span className="block font-display text-xl font-bold text-green-dark">
@@ -111,15 +107,13 @@ export function ClusterGroups() {
                         ))}
                       </div>
                       <p className="mt-3 leading-6 text-ink-soft">
-                        {g.own
-                          ? "هذه مجموعتك الأصلية التي كنت ترأسها مباشرةً قبل الانتخاب، فتظهر لك شاشة حجاجها وفريقها ووضع الميدان."
-                          : `لهذه المجموعة رئيسها وفريقها ومنسقها، وهم من يستلمون حجاجها. دورك عليها على مستوى التكتل: البرنامج والنقل والإسكان والمتابعة${head ? " والتقييم" : " نيابةً عن الرئيس"}.`}
+                        {head
+                          ? `هذه مجموعة من مجموعاتك تديرها كغيرها: تفتح شاشة حجاجها وتستلم عائلاتها وتتابع ملفاتها${g.own ? "" : `، ويعمل معك فيها رئيسها المباشر ${g.head} وفريقه`}.`
+                          : `تتابع هذه المجموعة نيابةً عن رئيس التكتل، ويعمل فيها رئيسها المباشر ${g.own ? admin.name : g.head} وفريقه.`}
                       </p>
-                      {g.own && (
-                        <ButtonLink href="/administrator/requests" size="sm" className="mt-3">
-                          حجاج مجموعتي <ArrowLeft className="size-4" />
-                        </ButtonLink>
-                      )}
+                      <ButtonLink href="/administrator/requests" size="sm" className="mt-3">
+                        حجاج المجموعة {g.number} <ArrowLeft className="size-4" />
+                      </ButtonLink>
                     </div>
                   )}
                 </motion.li>

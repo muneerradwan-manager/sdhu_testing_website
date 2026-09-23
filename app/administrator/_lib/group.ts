@@ -99,6 +99,41 @@ export function requestFromApplication(sid: string, app: Application, post: Post
 }
 
 /** Real families enrolled in this group by its coordinator */
+/**
+ * The families waiting in one group. A cluster head manages every group of his cluster the same way,
+ * so each group carries its own families, not one shared demo list.
+ */
+export function seedRequestsFor(groupNumber: number | undefined, homeNumber: number | undefined): JoinRequest[] {
+  if (groupNumber === undefined || groupNumber === homeNumber) return SEED_REQUESTS;
+  const rnd = seeded(`group-${groupNumber}-families`);
+  const count = 2 + Math.floor(rnd() * 2);
+  const out: JoinRequest[] = [];
+  for (let i = 0; i < count; i++) {
+    const woman = rnd() < 0.4;
+    const first = woman ? WOMEN[Math.floor(rnd() * WOMEN.length)] : MEN[Math.floor(rnd() * MEN.length)];
+    const last = LASTS[Math.floor(rnd() * LASTS.length)];
+    const age = 55 + Math.floor(rnd() * 20);
+    const id = `010${String(groupNumber).padStart(2, "0")}${String(41000 + i * 131).padStart(6, "0")}`;
+    const withCompanion = rnd() < 0.55;
+    const members = [{ id, name: `${first} ${last}`, age, gender: woman ? ("F" as const) : ("M" as const), relation: "صاحب الطلب", needs: age > 70 ? ["مرافقة كبير سن"] : rnd() < 0.3 ? ["سكري"] : [] }];
+    if (withCompanion) {
+      const cFirst = rnd() < 0.5 ? WOMEN[Math.floor(rnd() * WOMEN.length)] : MEN[Math.floor(rnd() * MEN.length)];
+      members.push({ id: id + "1", name: `${cFirst} ${last}`, age: 30 + Math.floor(rnd() * 18), gender: rnd() < 0.5 ? ("F" as const) : ("M" as const), relation: "مرافق", needs: [] });
+    }
+    out.push({
+      id: `seed-g${groupNumber}-${i}`,
+      real: false,
+      applicant: `${first} ${last}`,
+      number: String(4000 + groupNumber * 13 + i),
+      kind: rnd() < 0.25 ? "transfer" : "enrolled",
+      receivedLabel: `سجّله منسق المجموعة ${groupNumber} — قبل ${1 + Math.floor(rnd() * 4)} أيام`,
+      note: withCompanion ? "طلب عائلي — يُنقل كاملاً أو لا يُنقل." : "اختار المجموعة ليكون مع أهل منطقته.",
+      members,
+    });
+  }
+  return out;
+}
+
 export function assignedRealFamilies(groupNumber: number, post: Record<string, PostAcceptance>, applications: Record<string, Application>) {
   return Object.entries(post)
     .filter(([sid, p]) => p.groupNumber === groupNumber && p.groupApprovedAt && applications[sid])
@@ -112,11 +147,11 @@ export function memberCountOf(id: string, applications: Record<string, Applicati
   return applications[id]?.members.length ?? 0;
 }
 
-export function activeCount(groupNumber: number | undefined, post: Record<string, PostAcceptance>, applications: Record<string, Application>) {
-  if (groupNumber === undefined) return BASE_ACTIVE;
-  const seeds = SEED_REQUESTS.reduce((n, r) => n + r.members.length, 0);
+export function activeCount(groupNumber: number | undefined, post: Record<string, PostAcceptance>, applications: Record<string, Application>, base = BASE_ACTIVE, homeNumber = groupNumber) {
+  if (groupNumber === undefined) return base;
+  const seeds = seedRequestsFor(groupNumber, homeNumber).reduce((n, r) => n + r.members.length, 0);
   const real = assignedRealFamilies(groupNumber, post, applications).reduce((n, r) => n + r.members.length, 0);
-  return BASE_ACTIVE + seeds + real;
+  return base + seeds + real;
 }
 
 /** Group composition for the capacity board: men, women and elderly (69+) — nobody under 17 travels */
@@ -140,9 +175,14 @@ export const MISSING_ID = "01011105130";
  * 48 pilgrims of group 27: real assigned families first, then stable generated members.
  * سليم حسن is always on the list — he is the one who is late at the muster.
  */
-export function buildRoster(profile: AdminProfile | undefined, applications: Record<string, Application>, post: Record<string, PostAcceptance> = {}): RosterEntry[] {
+export function buildRoster(
+  profile: AdminProfile | undefined,
+  applications: Record<string, Application>,
+  post: Record<string, PostAcceptance> = {},
+  opts: { groupNumber?: number; size?: number } = {},
+): RosterEntry[] {
   const real: RosterEntry[] = [];
-  const groupNumber = profile?.group?.number;
+  const groupNumber = opts.groupNumber ?? profile?.group?.number;
   for (const [sid, p] of Object.entries(post)) {
     if (groupNumber === undefined || p.groupNumber !== groupNumber || !p.groupApprovedAt) continue;
     const app = applications[sid];
@@ -161,8 +201,8 @@ export function buildRoster(profile: AdminProfile | undefined, applications: Rec
     });
   }
   const salim: RosterEntry = { id: MISSING_ID, name: "سليم حسن", age: 66, gender: "M", room: "1211", needs: ["ضغط الدم"], phone: "0933105130" };
-  const target = Math.max(48, real.length + 1);
-  const rnd = seeded("group-27-roster");
+  const target = Math.max(opts.size ?? 48, real.length + 1);
+  const rnd = seeded(`group-${groupNumber ?? 27}-roster`);
   const filler: RosterEntry[] = [];
   let i = 0;
   while (real.length + 1 + filler.length < target) {

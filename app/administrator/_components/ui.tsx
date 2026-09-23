@@ -12,7 +12,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   Lock,
-  LogOut,
   MapPinned,
   UserRoundPlus,
   UsersRound,
@@ -22,9 +21,9 @@ import { useEffect, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
-import { actions, useHydrated, useStore } from "@/lib/store";
+import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD, samePath } from "@/lib/utils";
-import { isClusterRole, isTechCoordinator, logAdmin, useAdmin } from "../_lib/admin";
+import { isClusterRole, isTechCoordinator, useAdmin } from "../_lib/admin";
 
 // ───────────────────────── Guard ─────────────────────────
 
@@ -62,7 +61,7 @@ const NAV: NavItem[] = [
   { href: "/administrator/apply", label: "طلب المشاركة", icon: ClipboardList },
   { href: "/administrator/exam", label: "الامتحان والنتيجة", icon: GraduationCap },
   { href: "/administrator/group", label: "مجموعتي", icon: FileSignature },
-  { href: "/administrator/cluster", label: "التكتلات", icon: Building2 },
+  { href: "/administrator/cluster", label: "التكتل", icon: Building2 },
   // تسجيل المواطنين من اختصاص المنسق التقني وحده
   { href: "/administrator/pilgrims", label: "تسجيل الحجاج", icon: UserRoundPlus, techOnly: true },
   { href: "/administrator/requests", label: "حجاج المجموعة", icon: UsersRound },
@@ -71,7 +70,6 @@ const NAV: NavItem[] = [
 
 export function AdminNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const admin = useAdmin();
   const items = NAV.filter((n) => !n.techOnly || isTechCoordinator(admin?.profile)).map((n) =>
     // A cluster head manages several groups, not one
@@ -99,29 +97,6 @@ export function AdminNav() {
           );
         })}
       </nav>
-      {/* The bar shows who is signed in and links to his file; the labelled logout lives at the end of
-          that file, the way it does for the pilgrim and for the staff panel. On phones, where the file
-          is a scroll away, the icon stays here. */}
-      {admin && (
-        <div className="flex items-center gap-2 text-sm text-white/80">
-          <Link href="/administrator/dashboard" className="flex items-center gap-2 rounded-2xl py-1 pl-3 pr-1 transition hover:bg-white/10" title="ملفي">
-            <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-gold to-gold-dark font-display font-bold text-ink">{admin.person.firstName[0]}</span>
-            <span className="hidden sm:inline">{admin.name}</span>
-          </Link>
-          <button
-            onClick={() => {
-              logAdmin(admin.id, "تسجيل خروج الإداري");
-              actions.adminLogout();
-              router.push("/administrator");
-            }}
-            className="grid size-9 place-items-center rounded-xl text-white/70 transition hover:bg-maroon/40 hover:text-white sm:hidden"
-            aria-label="تسجيل الخروج"
-            title="تسجيل الخروج"
-          >
-            <LogOut className="size-4" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

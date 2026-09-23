@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, FileSignature, HeartPulse, Inbox, Radio, Search, Stethoscope, UserPlus, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { CONDITIONS, NEEDS, recordHealth } from "@/app/portal/application/_components/post/model";
 import { enrollFamily, groupInfo } from "@/lib/assignment";
@@ -14,7 +14,7 @@ import { directAccepted, trackOf } from "@/lib/journey";
 import { actions, useStore, type Application, type HealthRecord } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
-import { LIFT_NEEDS, SEED_REQUESTS, activeCount, assignedRealFamilies, buildRoster, compositionOf, type JoinRequest } from "../../_lib/group";
+import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard } from "../../_components/ui";
 import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
 
@@ -36,20 +36,24 @@ export function AdminRequests() {
   const applications = useStore((s) => s.applications);
   const decisions = useMemo(() => p?.joinDecisions ?? {}, [p?.joinDecisions]);
   const [filter, setFilter] = useState<"all" | "new" | "health">("all");
-  // A cluster head or his deputy works over several groups, so the screen always says which one is open
+  // A cluster head manages every group of his cluster alike, so the screen opens whichever one he picks
   const myCluster = clusterViewOf(p, admin.name);
   const myGroups = useMemo(() => clusterGroupsOf(p, admin.name), [p, admin.name]);
-  const [openNumber, setOpenNumber] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null);
+  const home = p?.group?.number;
+  const openNumber = (myCluster ? (picked ?? myGroups[0]?.number) : home) ?? home;
   const openGroup = myGroups.find((x) => x.number === openNumber);
-  const ownOpen = !myCluster || openNumber === null || openNumber === p?.group?.number;
   const [healthFor, setHealthFor] = useState<string | null>(null);
   const tech = isTechCoordinator(p);
 
   const families = useMemo(() => {
-    if (!g) return [];
-    return [...assignedRealFamilies(g.number, post, applications), ...SEED_REQUESTS];
-  }, [g, post, applications]);
-  const roster = useMemo(() => buildRoster(p, applications, post), [p, applications, post]);
+    if (openNumber === undefined) return [];
+    return [...assignedRealFamilies(openNumber, post, applications), ...seedRequestsFor(openNumber, home)];
+  }, [openNumber, home, post, applications]);
+  const roster = useMemo(
+    () => buildRoster(p, applications, post, { groupNumber: openNumber, size: openGroup && openNumber !== home ? openGroup.pilgrims : undefined }),
+    [p, applications, post, openNumber, home, openGroup],
+  );
 
   if (!g?.approvedAt) {
     return (
@@ -59,33 +63,35 @@ export function AdminRequests() {
     );
   }
 
-  const info = groupInfo(g.clusterId, g.number);
-  const openLabel = ownOpen ? g.number : openNumber;
+  const info = groupInfo(g.clusterId, openNumber ?? g.number);
+  const capacity = openGroup && openNumber !== home ? openGroup.capacity : g.capacity;
+  const headOfOpen = openGroup && openNumber !== home ? openGroup.head : admin.name;
   const switcher = myCluster && myGroups.length > 1 && (
     <Card className="md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs text-hint">المجموعة المفتوحة الآن</p>
           <p className="font-display text-2xl font-bold text-green-dark">
-            المجموعة {openLabel}
-            {ownOpen ? <span className="mr-2 text-sm font-normal text-ink-soft">مجموعتك الأصلية</span> : <span className="mr-2 text-sm font-normal text-ink-soft">رئيسها المباشر {openGroup?.head}</span>}
+            المجموعة {openNumber}
+            <span className="mr-2 text-sm font-normal text-ink-soft">رئيسها المباشر {headOfOpen}</span>
           </p>
         </div>
-        <Badge tone="gold">{myCluster.name} — {myGroups.length} مجموعات</Badge>
+        <Badge tone="gold">
+          {myCluster.name} — {myGroups.length} مجموعات تديرها كلها
+        </Badge>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {myGroups.map((x) => {
-          const on = x.number === openLabel;
+          const on = x.number === openNumber;
           return (
             <button
               key={x.id}
               type="button"
               aria-pressed={on}
-              onClick={() => setOpenNumber(x.number)}
+              onClick={() => setPicked(x.number)}
               className={cn("rounded-2xl border-2 px-4 py-2 text-sm font-bold transition", on ? "border-maroon bg-maroon text-white" : "border-gold/40 bg-white text-ink-soft hover:border-gold-dark")}
             >
               المجموعة {x.number}
-              {x.own && <span className={cn("mr-1.5 text-xs font-normal", on ? "text-gold" : "text-hint")}>(الأصلية)</span>}
             </button>
           );
         })}
@@ -93,50 +99,7 @@ export function AdminRequests() {
     </Card>
   );
 
-  // Another group of the cluster: its own head and coordinator receive its pilgrims, so this is a follow-up view
-  if (!ownOpen && openGroup) {
-    return (
-      <AdminShell
-        title={`حجاج المجموعة ${openGroup.number}`}
-        subtitle={`مجموعة من مجموعات ${myCluster.name} التي تشرف عليها. رئيسها المباشر ${openGroup.head} ومنسقها هما من يستلمان حجاجها ويأخذان ملفاتهم الصحية.`}
-      >
-        <div className="space-y-5">
-          {switcher}
-          <Card className="md:p-7">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-sm text-hint">أعضاء المجموعة {openGroup.number}</p>
-                <p className="font-display text-4xl font-bold text-green-dark tabular-nums">
-                  {openGroup.pilgrims}
-                  <span className="text-2xl text-hint"> / {openGroup.capacity}</span>
-                </p>
-              </div>
-              <Badge tone="green">{Math.round((openGroup.pilgrims / openGroup.capacity) * 100)}% من السعة</Badge>
-            </div>
-            <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-              {[
-                ["رئيسها المباشر", openGroup.head],
-                ["المكتب", openGroup.office],
-                ["صفة الانضمام", openGroup.joined],
-              ].map(([k, v]) => (
-                <div key={k} className="rounded-2xl bg-sand p-3">
-                  <dt className="text-xs text-hint">{k}</dt>
-                  <dd className="mt-0.5 font-semibold">{v}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-5 rounded-2xl bg-gold/20 p-4 text-sm leading-7 text-maroon">
-              استلام العائلات والترحيب بها وأخذ الملفات الصحية من عمل رئيس هذه المجموعة ومنسقها. دورك عليها على مستوى التكتل: متابعة الأعداد والبرنامج والنقل والإسكان، وما يصلك منها من ملاحظات.
-            </p>
-            <ButtonLink href="/administrator/group" variant="outline" size="sm" className="mt-4">
-              مجموعات التكتل
-            </ButtonLink>
-          </Card>
-        </div>
-      </AdminShell>
-    );
-  }
-  const active = activeCount(g.number, post, applications);
+  const active = activeCount(openNumber, post, applications, openGroup && openNumber !== home ? Math.max(0, openGroup.pilgrims - 6) : undefined, home);
   const healthMissing = (r: JoinRequest) => r.real && !post[r.id]?.health;
   const isNew = (r: JoinRequest) => !decisions[r.id];
   const shown = families.filter((r) => (filter === "all" ? true : filter === "new" ? isNew(r) : healthMissing(r)));
@@ -145,7 +108,7 @@ export function AdminRequests() {
 
   const welcome = (r: JoinRequest) => {
     actions.upsertAdmin(admin.id, { joinDecisions: { ...decisions, [r.id]: "accepted" } });
-    logAdmin(admin.id, `استلام عائلة في المجموعة ${g.number} والترحيب بها`, `${r.applicant} — الطلب ${r.number}`, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
+    logAdmin(admin.id, `استلام عائلة في المجموعة ${openNumber} والترحيب بها`, `${r.applicant} — الطلب ${r.number}`, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
     if (needsLift(r)) logAdmin(admin.id, "إحالة احتياج خاص إلى مشرف البرج", "وسام خوري — البرج (ب)", `${r.applicant}: غرفة قريبة من المصعد`);
     toast({ title: `رحّبت بعائلة ${r.applicant.split(" ")[0]}`, body: "يصلهم إشعار الترحيب وموعد اللقاء التعريفي.", icon: "🤝", tone: "success" });
   };
@@ -154,8 +117,8 @@ export function AdminRequests() {
 
   return (
     <AdminShell
-      title={myCluster ? `حجاج المجموعة ${g.number}` : "حجاج المجموعة"}
-      subtitle={`${myCluster ? `مجموعتك الأصلية في ${info.clusterName} — ولكل مجموعة أخرى من مجموعات تكتلك رئيسها ومنسقها وهم من يستلمون حجاجها. ` : `المجموعة ${g.number} — ${info.clusterName}. `}في مرحلة التفويج يختار الحاج المقبول مجموعتك من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.`}
+      title={myCluster ? `حجاج المجموعة ${openNumber}` : "حجاج المجموعة"}
+      subtitle={`${myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `المجموعة ${g.number} — ${info.clusterName}. `}في مرحلة التفويج يختار الحاج المقبول المجموعة من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.`}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
@@ -168,7 +131,7 @@ export function AdminRequests() {
                   <motion.span key={active} initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="inline-block tabular-nums">
                     {active}
                   </motion.span>
-                  <span className="text-2xl text-hint"> / {g.capacity}</span>
+                  <span className="text-2xl text-hint"> / {capacity}</span>
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-sm">
@@ -180,10 +143,10 @@ export function AdminRequests() {
                 </Badge>
               </div>
             </div>
-            <PeopleBoard roster={roster} active={active} capacity={g.capacity} />
+            <PeopleBoard roster={roster} active={active} capacity={capacity} />
           </Card>
 
-          {tech && <EnrollPanel group={{ clusterId: g.clusterId ?? "al-nour", number: g.number }} capacity={g.capacity} active={active} />}
+          {tech && <EnrollPanel group={{ clusterId: g.clusterId ?? "al-nour", number: openNumber ?? g.number }} capacity={capacity} active={active} />}
 
           <div className="flex flex-wrap items-center gap-2">
             {(
@@ -209,7 +172,7 @@ export function AdminRequests() {
                 <Card className="text-center">
                   <Inbox className="mx-auto size-12 text-gold-dark" />
                   <p className="mt-3 font-display text-xl font-bold text-green-dark">لا عائلات في هذا التصنيف</p>
-                  <p className="mt-1 text-sm leading-7 text-ink-soft">حين يسجّل منسق المجموعة حاجاً اختار المجموعة {g.number} يظهر هنا مباشرة.</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">حين يسجّل منسق المجموعة حاجاً اختار المجموعة {openNumber} يظهر هنا مباشرة.</p>
                 </Card>
               </motion.div>
             )}
