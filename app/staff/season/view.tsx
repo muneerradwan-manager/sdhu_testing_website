@@ -72,7 +72,10 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     icon: <Coins />,
     fields: [
       { key: "keepRoleMinRating", label: "الاستمرار في الصفة نفسها: أدنى تقييم للموسم السابق (ومعه إعفاء من الامتحانين)", unit: "من 5", min: 0, max: 5, step: 0.1 },
-      { key: "clusterHeadSeasons", label: "رئيس تكتل: مواسم سابقة رئيساً أو معاوناً", unit: "مواسم", min: 0, max: 5 },
+      { key: "clusterCount", label: "عدد التكتلات هذا الموسم (يُنتخب رؤساؤها من رؤساء المجموعات)", unit: "تكتلات", min: 1, max: 30 },
+      { key: "clusterHeadSeasons", label: "الترشح لرئاسة تكتل: مواسم متتالية رئيساً لمجموعة", unit: "مواسم", min: 0, max: 6 },
+      { key: "clusterHeadMinRating", label: "الترشح لرئاسة تكتل: أدنى تقييم في كل موسم منها", unit: "من 5", min: 0, max: 5, step: 0.1 },
+      { key: "deputySeasons", label: "معاون رئيس التكتل (يختاره الرئيس): مواسم سابقة رئيساً لمجموعة", unit: "مواسم", min: 0, max: 5 },
     ],
   },
 ];
@@ -92,7 +95,10 @@ const LABELS: Record<Key, string> = {
   firstInstallment: "الدفعة الأولى",
   installmentCount: "عدد دفعات تكلفة الحج",
   keepRoleMinRating: "أدنى تقييم للاستمرار في الصفة",
-  clusterHeadSeasons: "مواسم رئيس التكتل",
+  clusterCount: "عدد التكتلات",
+  clusterHeadSeasons: "مواسم الترشح لرئاسة تكتل",
+  clusterHeadMinRating: "أدنى تقييم للترشح",
+  deputySeasons: "مواسم معاون رئيس التكتل",
   hady: "الهدي",
 };
 
@@ -109,7 +115,10 @@ function valuesOf(s: LiveSeason): Values {
     firstInstallment: s.fees.firstInstallment,
     installmentCount: s.fees.installmentCount,
     keepRoleMinRating: s.administrators.keepRoleMinRating,
+    clusterCount: s.administrators.clusterCount,
     clusterHeadSeasons: s.administrators.clusterHeadSeasons,
+    clusterHeadMinRating: s.administrators.clusterHeadMinRating,
+    deputySeasons: s.administrators.deputySeasons,
     hady: s.fees.hady,
   };
 }
@@ -119,7 +128,7 @@ const DEFAULTS = valuesOf(mergeSeason({}));
 function show(key: Key, v: number) {
   if (key === "directShare") return `${v}%`;
   if (key === "installmentCount") return v === 1 ? "دفعة واحدة كاملة" : "دفعتان";
-  if (key === "keepRoleMinRating") return `${v} من 5`;
+  if (key === "keepRoleMinRating" || key === "clusterHeadMinRating") return `${v} من 5`;
   if (key === "registrationPerPerson" || key === "hajjCost" || key === "firstInstallment" || key === "hady") return `${formatNumber(v)} $`;
   if (key.endsWith("BirthYear")) return String(v);
   return formatNumber(v);

@@ -40,8 +40,8 @@ const ROLES: { level: string; items: { title: string; text: string; icon: Lucide
     level: "مستوى التكتل",
     tone: "from-maroon-dark to-maroon",
     items: [
-      { title: "رئيس تكتل", text: "يشرف على مجموعات التكتل كلها ويمثّله أمام الإدارة.", icon: Crown },
-      { title: "معاون رئيس تكتل", text: "ينوب عنه ويتابع النقل والإسكان على مستوى التكتل.", icon: Building2 },
+      { title: "رئيس تكتل", text: "رئيس مجموعة ينتخبه رؤساء المجموعات — لا يُتقدَّم إليها — ويدير التكتل كاملاً.", icon: Crown },
+      { title: "معاون رئيس تكتل", text: "رئيس مجموعة سابق يختاره رئيس التكتل المنتخب، وينوب عنه في النقل والإسكان.", icon: Building2 },
     ],
   },
   {
@@ -64,7 +64,7 @@ const ROLES: { level: string; items: { title: string; text: string; icon: Lucide
 
 const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
   { title: "التأهيل", text: "طلب مشاركة، أهلية، امتحان كتابي على المنصة، وشفهي أمام لجنة.", icon: GraduationCap },
-  { title: "التشكيل", text: "الناجحون يشكّلون مجموعاتهم بأنفسهم، ويعتمدها مدير المكتب.", icon: FileSignature },
+  { title: "التشكيل", text: "الناجحون يشكّلون مجموعاتهم، ويعتمدها مدير المكتب، ثم يُنتخب رؤساء التكتلات وتنضم المجموعات بعقود.", icon: FileSignature },
   { title: "التحضير", text: "تدريب إلزامي، استلام الحجاج المفوَّجين، وتسجيل ملفاتهم الصحية.", icon: HandHeart },
   { title: "الميدان", text: "تجمّعات بمسح البطاقة، إعلانات، بلاغات، وتقرير كل ليلة.", icon: MapPinned },
   { title: "التقييم", text: "من الموظفين والحجاج ورئيس التكتل ومؤشرات آلية.", icon: Star },
@@ -99,7 +99,7 @@ export function AdministratorLanding() {
   const demo = (id: string, mode: "start" | "done") => {
     const error = demoAdminLogin({ accounts, admins }, id, mode);
     if (error) return toast({ title: "لا يمكن الدخول كإداري", body: error, tone: "warning", icon: "⛔" });
-    toast({ title: "دخول تجريبي سريع", body: mode === "done" ? "ملف مكتمل: ناجح، المجموعة 27 معتمدة والعقود موقّعة." : "ملف إداري جديد لموسم 1448.", icon: "⚡", tone: "success" });
+    toast({ title: "دخول تجريبي سريع", body: mode === "done" ? "ملف مكتمل: المجموعة معتمدة، والانتخاب أُغلق، والمجموعة في تكتلها بعقد." : "ملف إداري جديد لموسم 1448.", icon: "⚡", tone: "success" });
     router.push(mode === "done" ? "/administrator/requests" : "/administrator/dashboard");
   };
 
@@ -233,7 +233,7 @@ export function AdministratorLanding() {
       <section className="relative overflow-hidden bg-green-dark py-20 text-white">
         <div className="bg-pattern absolute inset-0 opacity-10" />
         <div className="relative mx-auto max-w-7xl px-4 md:px-8">
-          <SectionHeading light eyebrow="الرحلة" title="من الامتحان إلى الميدان" description="مسار الإداري كله يسبق تسجيل الحجاج؛ لأن التكتلات والمجموعات تُشكَّل وتُعتمد قبل فتح التسجيل." />
+          <SectionHeading light eyebrow="الرحلة" title="من الامتحان إلى الميدان" description="مسار الإداري كله يسبق تسجيل الحجاج: تُشكَّل المجموعات وتُعتمد، ثم يُنتخب رؤساء التكتلات وتنضم إليهم المجموعات بعقود، قبل فتح التسجيل." />
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {PHASES.map((p, i) => (
               <StaggerItem key={p.title} className="relative rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur transition hover:bg-white/10">

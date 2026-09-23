@@ -99,7 +99,7 @@ export function AdminRequests() {
             <PeopleBoard roster={roster} active={active} capacity={g.capacity} />
           </Card>
 
-          {tech && <EnrollPanel group={{ clusterId: g.clusterId, number: g.number }} capacity={g.capacity} active={active} />}
+          {tech && <EnrollPanel group={{ clusterId: g.clusterId ?? "al-nour", number: g.number }} capacity={g.capacity} active={active} />}
 
           <div className="flex flex-wrap items-center gap-2">
             {(

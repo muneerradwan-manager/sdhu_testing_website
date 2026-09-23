@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import {
+  Building2,
   ClipboardList,
   FileSignature,
   FlaskConical,
@@ -61,6 +62,7 @@ const NAV: NavItem[] = [
   { href: "/administrator/apply", label: "طلب المشاركة", icon: ClipboardList },
   { href: "/administrator/exam", label: "الامتحان والنتيجة", icon: GraduationCap },
   { href: "/administrator/group", label: "مجموعتي", icon: FileSignature },
+  { href: "/administrator/cluster", label: "التكتلات", icon: Building2 },
   // تسجيل المواطنين من اختصاص المنسق التقني وحده
   { href: "/administrator/pilgrims", label: "تسجيل الحجاج", icon: UserRoundPlus, techOnly: true },
   { href: "/administrator/requests", label: "حجاج المجموعة", icon: UsersRound },

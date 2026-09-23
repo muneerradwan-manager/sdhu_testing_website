@@ -93,7 +93,11 @@ export type SeasonOverrides = Partial<{
   installmentCount: number;
   /** Administrators: rating needed to keep last season's role; seasons of seniority for a cluster head */
   keepRoleMinRating: number;
+  /** Clusters this season, and consecutive seasons as group head needed to stand for cluster head */
+  clusterCount: number;
   clusterHeadSeasons: number;
+  clusterHeadMinRating: number;
+  deputySeasons: number;
   hady: number;
 }>;
 
@@ -185,16 +189,37 @@ export type AdminProfile = {
   oral?: { score: number; by: string; at: number; note?: string };
   finalScore?: number;
   resultPublishedAt?: number;
+  /** Formed without a cluster: clusters exist only after all groups are formed and their heads elected */
   group?: {
     number: number;
-    clusterId: string;
+    /** Set once a cluster accepted the group (or the head was elected and created his own) */
+    clusterId?: string;
     capacity: number;
     requestedAt: number;
     feePaidAt?: number;
     approvedAt?: number;
     approvedBy?: string;
+    /** Team charter (deputy, guide, coordinator) */
     contractSignedAt?: number;
   };
+  /** Stood for cluster head this season */
+  candidate?: { at: number; statement: string };
+  /** The candidate this group head voted for (admin id) */
+  vote?: string;
+  /** The cluster this elected head created — he manages it fully and chooses its deputy */
+  cluster?: {
+    id: string;
+    name: string;
+    deputyId?: string;
+    deputyName?: string;
+    capacityGroups: number;
+    createdAt: number;
+    feePaidAt?: number;
+    /** Group heads' requests to join: admin id -> decision */
+    decisions: Record<string, { status: "accepted" | "declined"; at: number; reason?: string }>;
+  };
+  /** This group's request to join a cluster: never forced, the cluster head decides, then both sign */
+  clusterRequest?: { clusterId: string; at: number; status: "pending" | "accepted" | "declined"; reason?: string; contractSignedAt?: number };
   /**
    * Families enrolled in this group that the leader has received and welcomed: pilgrim session id -> "accepted".
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
@@ -253,6 +278,8 @@ type State = {
   drafts: Record<string, ApplyDraft>;
   inSeason: Record<string, InSeason>;
   lottery: { importedAt?: number; importedBy?: string; publishedAt?: number; publishedBy?: string };
+  /** Election of the cluster heads by the group heads, run once per season by the administration */
+  election: { openedAt?: number; closedAt?: number; elected?: string[] };
   tourSeen: boolean;
 };
 
@@ -276,6 +303,7 @@ const initial: State = {
   drafts: {},
   inSeason: {},
   lottery: {},
+  election: {},
   tourSeen: false,
 };
 
@@ -509,6 +537,9 @@ export const actions = {
   },
   setLottery(patch: State["lottery"]) {
     setState((s) => ({ ...s, lottery: { ...s.lottery, ...patch } }));
+  },
+  setElection(patch: State["election"]) {
+    setState((s) => ({ ...s, election: { ...s.election, ...patch } }));
   },
   markTourSeen() {
     setState((s) => ({ ...s, tourSeen: true }));

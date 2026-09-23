@@ -85,11 +85,20 @@ export const SEASON = {
       /** Seasons without participation before the exams are required again even for the same role */
       maxGapSeasons: 1,
     },
-    /** Seniority a role requires from earlier seasons; roles not listed are open to first-timers (with the general conditions) */
-    requirements: {
-      "cluster-head": { seasons: 2, roles: ["cluster-deputy", "group-head"], minRating: 4 },
-      "cluster-deputy": { seasons: 1, roles: ["group-head", "group-deputy"], minRating: 3.5 },
-    } as Record<string, { seasons: number; roles: string[]; minRating: number }>,
+    /**
+     * Cluster head and deputy are never applied for. The administration decides how many clusters the
+     * season has and opens candidacy; the group heads elect the cluster heads from among themselves.
+     * An elected head keeps his own group, manages the cluster, and picks his deputy — who must have
+     * headed a group before.
+     */
+    clusters: {
+      count: 10,
+      /** To stand: this many consecutive seasons as group head, each rated at least this */
+      candidacy: { consecutiveSeasons: 3, minRating: 4 },
+      /** The deputy the elected head picks must have headed a group for at least this many seasons */
+      deputySeasons: 1,
+      window: "1 – 10 جمادى الآخرة",
+    },
   },
 
   /** The office opens this window for accepted pilgrims to join groups through the group's coordinator */

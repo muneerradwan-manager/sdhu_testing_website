@@ -30,7 +30,7 @@ import { Badge, StarRating, useToast } from "@/components/ui/widgets";
 import { clustersNow } from "@/lib/cms/content";
 import { CLUSTER, GROUP } from "@/lib/journey";
 import { useSeason } from "@/lib/season-live";
-import { actions, useStore } from "@/lib/store";
+import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { activeCount } from "../../_lib/group";
@@ -39,8 +39,10 @@ import { AdminShell, LockedCard, ReceiptCard, SimButton } from "../../_component
 const TEAM = GROUP.team.slice(1);
 const AUTO_APPROVE_MS = 12_000;
 
-function clusterName(id: string) {
-  return clustersNow().find((c) => c.slug === id)?.name ?? CLUSTER.name;
+function clusterName(id: string | undefined, admins: Record<string, AdminProfile>) {
+  if (!id) return "لم تنضم إلى تكتل بعد";
+  const created = Object.values(admins).find((a) => a.cluster?.id === id)?.cluster?.name;
+  return created ?? clustersNow().find((c) => c.slug === id)?.name ?? CLUSTER.name;
 }
 
 export function AdminGroup() {
@@ -56,14 +58,14 @@ export function AdminGroup() {
       ? "اعتُمدت مجموعتك. وقّع العقود إلكترونياً لتُفعَّل صلاحياتك كرئيس مجموعة."
       : view === "mine"
         ? "صلاحياتك تغيّرت تلقائياً: ترى مجموعتك فقط، وتستلم الحجاج المفوَّجين، وتنشر الإعلانات، وتفتح التجمّعات."
-        : "يتقدم الناجحون بأنفسهم بطلبات تشكيل المجموعات من 11 إلى 25 جمادى الأولى، وتراجعها الإدارة وتعتمدها وتوقّع العقود.";
+        : "يتقدم الناجحون بأنفسهم بطلبات تشكيل المجموعات من 11 إلى 25 جمادى الأولى، وتراجعها الإدارة وتعتمدها. لا يُختار تكتل الآن: التكتلات تُنشأ بعد تشكيل كل المجموعات وانتخاب رؤسائها.";
 
   return (
     <AdminShell image="/images/clock-tower.jpg" title={view === "mine" && g ? `مجموعتي — المجموعة ${g.number}` : "تشكيل مجموعة"} subtitle={subtitle}>
       <AnimatePresence mode="wait">
         <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.35 }}>
           {view === "locked" && (
-            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد نشر نتيجتك النهائية واجتياز حد النجاح (70) يمكنك تقديم طلب تشكيل مجموعة ضمن تكتل." href="/administrator/exam" cta="نتيجتي في التأهيل" />
+            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد نشر نتيجتك النهائية واجتياز حد النجاح (70) — أو تجديد صفتك معفى — يمكنك تقديم طلب تشكيل مجموعة." href="/administrator/exam" cta="نتيجتي في التأهيل" />
           )}
           {view === "request" && <RequestForm onPaid={() => setShowReceipt(true)} />}
           {view === "receipt" && <FeeReceipt onContinue={() => setShowReceipt(false)} />}
@@ -84,13 +86,12 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const season = useSeason();
   const fee = season.fees.groupFormation;
   const existing = admin.profile?.group;
-  const [form, setForm] = useState({ number: existing?.number ?? 27, clusterId: existing?.clusterId ?? "al-nour", capacity: existing?.capacity ?? 50, name: "مجموعة المزة للعائلات وكبار السن" });
+  const [form, setForm] = useState({ number: existing?.number ?? 27, capacity: existing?.capacity ?? 50, name: "مجموعة المزة للعائلات وكبار السن" });
   const [invited, setInvited] = useState<number>(existing ? TEAM.length : 0);
   const [inviting, setInviting] = useState(false);
   const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
   const stage = existing?.requestedAt ? "pay" : "form";
-  const cluster = clustersNow().find((c) => c.slug === form.clusterId);
 
   const invite = () => {
     setInviting(true);
@@ -98,8 +99,8 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   };
 
   const submit = () => {
-    actions.upsertAdmin(admin.id, { group: { number: form.number, clusterId: form.clusterId, capacity: form.capacity, requestedAt: Date.now() } });
-    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, clusterName(form.clusterId), `«${form.name}» — السعة ${form.capacity} — الفريق: ${TEAM.map((t) => t.name).join("، ")}`);
+    actions.upsertAdmin(admin.id, { group: { number: form.number, capacity: form.capacity, requestedAt: Date.now() } });
+    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, `«${form.name}»`, `السعة ${form.capacity} — الفريق: ${TEAM.map((t) => t.name).join("، ")} — دون تكتل حتى انتخاب رؤساء التكتلات`);
     toast({ title: "أُرسل طلب التشكيل", body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
   };
 
@@ -136,7 +137,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
             <h2 className="mt-4 font-display text-3xl font-bold text-green-dark">رسم تشكيل المجموعة {g.number}</h2>
             <p className="mt-2 text-ink-soft">بعد التسديد يصدر إيصال رقمي، وتظهر «استمارة المجموعة» في خزنة الوثائق.</p>
             <p className="mt-6 font-display text-6xl font-bold text-maroon" dir="ltr">{formatUSD(fee)}</p>
-            <p className="mt-1 text-sm text-hint">{clusterName(g.clusterId)} — السعة {g.capacity}</p>
+            <p className="mt-1 text-sm text-hint">السعة {g.capacity} حاجاً — التكتل يُحدَّد لاحقاً</p>
             <div className="mt-8 text-right">
               <PayMethods amount={fee} reference={adminReceipt(admin.id, "G", g.number)} bankReference={adminReceipt(admin.id, "G", g.number).replace("-G-", "-BANK-")} onConfirm={pay} />
             </div>
@@ -158,14 +159,6 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
           <label className="block">
             <span className="mb-2 block font-bold">اسم تعريفي</span>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className="mb-2 block font-bold">التكتل</span>
-            <select value={form.clusterId} onChange={(e) => setForm({ ...form, clusterId: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-gold/50 bg-white px-4 outline-none focus:border-green-light">
-              {clustersNow().map((c) => (
-                <option key={c.slug} value={c.slug}>{c.name} — {c.level}</option>
-              ))}
-            </select>
           </label>
           <div className="sm:col-span-2">
             <span className="mb-2 flex items-center justify-between font-bold">
@@ -219,22 +212,16 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
       </Card>
 
       <div className="space-y-4">
-        {cluster && (
-          <motion.div key={cluster.slug} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white">
-            <div className="bg-pattern absolute inset-0 opacity-15" />
-            <div className="relative">
-              <Badge tone="gold">{cluster.level}</Badge>
-              <p className="mt-3 font-display text-2xl font-bold">{cluster.name}</p>
-              <p className="mt-1 text-sm text-white/70">منذ {cluster.since}هـ — {cluster.governorate}</p>
-              <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-white/10 p-3"><dt className="text-white/60">رئيس التكتل</dt><dd className="font-bold">{cluster.slug === "al-nour" ? CLUSTER.head : "—"}</dd></div>
-                <div className="rounded-2xl bg-white/10 p-3"><dt className="text-white/60">التقييم</dt><dd className="font-bold">★ {cluster.rating}</dd></div>
-                <div className="col-span-2 rounded-2xl bg-white/10 p-3"><dt className="text-white/60">فندق مكة</dt><dd className="font-bold">{cluster.makkah.hotel} — {cluster.makkah.distance}</dd></div>
-              </dl>
-              <p className="mt-4 text-xs leading-5 text-white/70">يوافق رئيس التكتل على ضم المجموعة إلى تكتله قبل اعتماد مدير المكتب.</p>
-            </div>
-          </motion.div>
-        )}
+        <div className="relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white">
+          <div className="bg-pattern absolute inset-0 opacity-15" />
+          <div className="relative">
+            <Badge tone="gold">التكتل لاحقاً</Badge>
+            <p className="mt-3 font-display text-2xl font-bold">لا تكتل عند التشكيل</p>
+            <p className="mt-2 text-sm leading-7 text-white/80">
+              التكتلات لا تكون موجودة بعد: تُشكَّل كل المجموعات أولاً، ثم تعلن الإدارة عدد التكتلات ويُنتخب رؤساؤها من رؤساء المجموعات، فينشئون تكتلاتهم. بعدها تطلب مجموعتك الانضمام إلى التكتل الذي تختاره، ويقرر رئيسه بحسب سعته وما يراه في مجموعتك، وتوقّعان عقداً.
+            </p>
+          </div>
+        </div>
         <p className="rounded-3xl bg-gold/20 p-4 text-sm leading-7 text-ink">
           <b>لماذا نُظهر الرسم الآن؟</b> لأن الإداريين طلبوا معرفة رسم التشكيل قبل تقديم الطلب — ملاحظة من تقييم الموسم.
         </p>
@@ -252,7 +239,7 @@ function FeeReceipt({ onContinue }: { onContinue: () => void }) {
       <h2 className="font-display text-3xl font-bold text-green-dark">تم تسديد رسم التشكيل</h2>
       <p className="mt-2 text-ink-soft">«استمارة المجموعة» محفوظة في خزنة وثائقك.</p>
       <div className="mt-8">
-        <ReceiptCard receipt={adminReceipt(admin.id, "G", g.number)} item={`رسم تشكيل المجموعة ${g.number}`} amount={season.fees.groupFormation} lines={[["التكتل", clusterName(g.clusterId)], ["رئيس المجموعة", admin.name]]} />
+        <ReceiptCard receipt={adminReceipt(admin.id, "G", g.number)} item={`رسم تشكيل المجموعة ${g.number}`} amount={season.fees.groupFormation} lines={[["رئيس المجموعة", admin.name], ["التكتل", "يُحدَّد بعد انتخاب رؤساء التكتلات"]]} />
       </div>
       <Button size="xl" variant="gold" className="mt-8" onClick={onContinue}>
         متابعة الاعتماد <ArrowLeft className="size-6" />
@@ -282,9 +269,9 @@ function Pending() {
     const t = setTimeout(() => {
       const at = Date.now();
       actions.upsertAdmin(admin.id, { group: { ...g, approvedAt: at, approvedBy: "مازن الحلبي (محاكاة)" } });
-      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: `اعتماد المجموعة ${g.number}`, target: clusterName(g.clusterId), detail: `رئيس المجموعة: ${admin.name} — بعد مراجعة ماهر عيسى` });
-      logAdmin(admin.id, `استلام اعتماد المجموعة ${g.number}`, clusterName(g.clusterId), "العقود جاهزة للتوقيع في خزنة الوثائق");
-      toast({ title: `اعتُمدت المجموعة ${g.number}`, body: `ضمن ${clusterName(g.clusterId)} لموسم 1448. العقود جاهزة للتوقيع.`, icon: "🏛️", tone: "success" });
+      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: `اعتماد المجموعة ${g.number}`, target: `رئيس المجموعة: ${admin.name}`, detail: "بعد مراجعة ماهر عيسى" });
+      logAdmin(admin.id, `استلام اعتماد المجموعة ${g.number}`, undefined, "ميثاق الفريق جاهز للتوقيع في خزنة الوثائق");
+      toast({ title: `اعتُمدت المجموعة ${g.number}`, body: "لموسم 1448. وقّع ميثاق الفريق، وبعد انتخاب رؤساء التكتلات تختار تكتلك.", icon: "🏛️", tone: "success" });
     }, wait);
     return () => clearTimeout(t);
   }, [g, admin.id, admin.name, toast]);
@@ -292,7 +279,6 @@ function Pending() {
   const steps = [
     { t: "استلام طلب التشكيل والرسم", d: adminReceipt(admin.id, "G", g.number), at: 0 },
     { t: "موافقة أعضاء الفريق", d: "3 من 3 وافقوا من تطبيقاتهم", at: 0 },
-    { t: `موافقة رئيس التكتل — ${CLUSTER.head}`, d: `ضم المجموعة ${g.number} إلى التكتل`, at: 2500 },
     { t: "مراجعة شؤون الإداريين — ماهر عيسى", d: "اكتمال الفريق، وصفات أعضائه، والرسوم", at: 6000 },
     { t: "اعتماد مدير المكتب — مازن الحلبي", d: "الاعتماد النهائي والتوقيع بالنيابة عن الإدارة", at: AUTO_APPROVE_MS },
   ];
@@ -424,7 +410,8 @@ function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void
 function ContractDoc({ kind, signature, signedName }: { kind: "cluster" | "team"; signature: string | null; signedName: string }) {
   const admin = useAdmin()!;
   const g = admin.profile!.group!;
-  const cName = clusterName(g.clusterId);
+  const admins = useStore((s) => s.admins);
+  const cName = clusterName(g.clusterId ?? admin.profile?.clusterRequest?.clusterId, admins);
   const title = kind === "cluster" ? `عقد انضمام المجموعة ${g.number} إلى ${cName}` : `ميثاق فريق المجموعة ${g.number}`;
   const clauses =
     kind === "cluster"
@@ -515,7 +502,7 @@ function Contracts() {
   const admin = useAdmin()!;
   const toast = useToast();
   const g = admin.profile!.group!;
-  const [tab, setTab] = useState<"cluster" | "team">("cluster");
+  const [tab, setTab] = useState<"cluster" | "team">("team");
   const [read, setRead] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [signed, setSigned] = useState<string | null>(null);
@@ -524,9 +511,8 @@ function Contracts() {
     setSigned(signature);
     setTimeout(() => {
       actions.upsertAdmin(admin.id, { group: { ...g, contractSignedAt: Date.now() } });
-      logAdmin(admin.id, `توقيع عقد انضمام المجموعة ${g.number} إلى التكتل`, clusterName(g.clusterId), "توقيع إلكتروني — مصادقة الإدارة");
       logAdmin(admin.id, `توقيع ميثاق فريق المجموعة ${g.number}`, TEAM.map((t) => t.name).join("، "), "توقيع إلكتروني");
-      toast({ title: "وُقّعت العقود وصودق عليها", body: "تغيّرت صلاحياتك تلقائياً: مجموعتك، حجاجها، الإعلانات، التجمّعات.", icon: "✍️", tone: "success" });
+      toast({ title: "وُقّع ميثاق الفريق وصودق عليه", body: "تغيّرت صلاحياتك تلقائياً: مجموعتك، حجاجها، الإعلانات، التجمّعات. عقد التكتل يأتي بعد انتخاب رؤساء التكتلات.", icon: "✍️", tone: "success" });
       confetti({ particleCount: 160, spread: 100, origin: { y: 0.45 }, colors: ["#D9C89E", "#AD9E6E", "#00594F", "#672146"] });
     }, 2200);
   };
@@ -535,10 +521,7 @@ function Contracts() {
     <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
       <Card className="md:p-8">
         <div className="flex flex-wrap gap-2 rounded-2xl bg-sand p-1">
-          {([
-            ["cluster", "المجموعة ↔ التكتل"],
-            ["team", "ميثاق الفريق"],
-          ] as const).map(([k, l]) => (
+          {([["team", "ميثاق الفريق"]] as const).map(([k, l]) => (
             <button key={k} type="button" onClick={() => setTab(k)} className={cn("relative flex-1 rounded-xl px-4 py-2.5 text-sm font-bold", tab === k ? "text-white" : "text-ink-soft")}>
               {tab === k && <motion.span layoutId="contract-tab" className="absolute inset-0 rounded-xl bg-green-dark" />}
               <span className="relative">{l}</span>
@@ -553,16 +536,16 @@ function Contracts() {
       <div className="space-y-4 lg:sticky lg:top-28">
         <Card className="md:p-7">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><FileSignature className="size-5 text-gold-dark" /> التوقيع الإلكتروني</h3>
-          <p className="mt-1 text-sm text-ink-soft">توقيع واحد يُعتمد على العقدين، ويُربط برقمك الوطني ووقت التوقيع.</p>
+          <p className="mt-1 text-sm text-ink-soft">يُربط التوقيع برقمك الوطني ووقت التوقيع. عقد المجموعة مع التكتل يُوقَّع لاحقاً في صفحة «التكتلات».</p>
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-sand p-3 text-sm">
             <input type="checkbox" checked={read} onChange={(e) => setRead(e.target.checked)} className="mt-1 size-4 accent-green-dark" />
-            <span>قرأت العقدين وأوافق على بنودهما.</span>
+            <span>قرأت الميثاق وأوافق على بنوده.</span>
           </label>
           <div className="mt-4">
             <SignaturePad onChange={setSignature} />
           </div>
           <Button size="lg" variant="maroon" className="mt-4 w-full" disabled={!read || !signature || !!signed} onClick={sign}>
-            {signed ? <><Loader2 className="size-5 animate-spin" /> نُصادق على العقود...</> : <><ShieldCheck className="size-5" /> توقيع العقدين</>}
+            {signed ? <><Loader2 className="size-5 animate-spin" /> نُصادق على الميثاق...</> : <><ShieldCheck className="size-5" /> توقيع الميثاق</>}
           </Button>
         </Card>
         <div className="flex items-center gap-3 rounded-3xl bg-green-dark/6 p-4 text-sm text-green-dark">
@@ -576,7 +559,7 @@ function Contracts() {
 // ───────────────────────── My group ─────────────────────────
 
 const TASKS = [
-  { key: "program", t: "تجهيز برنامج المجموعة مع التكتل" },
+  { key: "program", t: "الانضمام إلى تكتل (بعد انتخاب رؤساء التكتلات)", href: "/administrator/cluster" },
   { key: "training", t: "إكمال التدريب الإلزامي (6 وحدات)" },
   { key: "requests", t: "استلام الحجاج المفوَّجين", href: "/administrator/requests" },
   { key: "needs", t: "مراجعة الاحتياجات الخاصة" },
@@ -590,9 +573,12 @@ function MyGroup() {
   const season = useSeason();
   const applications = useStore((s) => s.applications);
   const post = useStore((s) => s.post);
+  const admins = useStore((s) => s.admins);
   const g = admin.profile!.group!;
   const members = activeCount(g.number, post, applications);
-  const [done, setDone] = useState<string[]>([]);
+  // The cluster task is done by the platform itself once the group is in a cluster by contract
+  const [ticked, setDone] = useState<string[]>([]);
+  const done = g.clusterId && !ticked.includes("program") ? ["program", ...ticked] : ticked;
   const [stars, setStars] = useState(0);
 
   return (
@@ -602,7 +588,7 @@ function MyGroup() {
           <div className="bg-pattern absolute inset-0 opacity-15" />
           <div className="relative flex flex-wrap items-start justify-between gap-6">
             <div>
-              <p className="text-sm text-gold">الموسم 1448 — {clusterName(g.clusterId)} (معتمد، مستوى محسّن)</p>
+              <p className="text-sm text-gold">الموسم 1448 — {g.clusterId ? `${clusterName(g.clusterId, admins)} (بعقد موقّع)` : "لم تنضم إلى تكتل بعد"}</p>
               <p className="mt-2 font-display text-5xl font-bold">المجموعة {g.number}</p>
               <p className="mt-2 text-white/80">رئيس المجموعة: <b className="text-gold">أنت</b></p>
             </div>
@@ -640,8 +626,8 @@ function MyGroup() {
           <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-3">
             {[
               `رسم التشكيل ${formatUSD(season.fees.groupFormation)} ✓`,
-              "عقد المجموعة مع التكتل ✓",
-              "عقد التكتل مع الإدارة ✓",
+              "ميثاق الفريق ✓",
+              g.clusterId ? "عقد المجموعة مع التكتل ✓" : "عقد التكتل — بعد الانضمام",
             ].map((x) => (
               <li key={x} className="rounded-xl border border-green-light/30 bg-green-light/5 px-3 py-2 font-semibold text-green">{x}</li>
             ))}

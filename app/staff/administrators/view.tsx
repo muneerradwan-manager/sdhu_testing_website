@@ -328,14 +328,14 @@ function Groups({ rows }: { rows: AdminRow[] }) {
           { label: "الرئيس ناجح في التأهيل", ok: (r.profile.finalScore ?? 0) >= PASS },
           { label: `رسم التشكيل ${formatNumber(200)} $`, ok: !!g.feePaidAt },
           { label: "اكتمال الفريق (معاون، موجّه، منسق)", ok: true },
-          { label: "موافقة رئيس التكتل", ok: true },
+          { label: "ميثاق الفريق (التكتل لاحقاً)", ok: true },
         ];
         const complete = checks.every((c) => c.ok);
         return (
           <Panel key={r.id} delay={i * 0.05}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold text-gold">{cluster?.name ?? g.clusterId}</p>
+                <p className="text-xs font-bold text-gold">{cluster?.name ?? "دون تكتل — يُنضم إليه بعد الانتخاب"}</p>
                 <h3 className="font-display text-2xl font-bold text-white">المجموعة {g.number}</h3>
                 <p className="text-sm text-white/90">
                   رئيسها: {r.name} · السعة {g.capacity} حاجاً
@@ -385,7 +385,7 @@ function Groups({ rows }: { rows: AdminRow[] }) {
                   onClick={() => {
                     const at = Date.now();
                     patchAdmin(r, { group: { ...g, approvedAt: at, approvedBy: user.name } }, actions.upsertAdmin);
-                    logAs(user, { action: "اعتماد مجموعة", target: `المجموعة ${g.number} — ${cluster?.name ?? g.clusterId}`, after: `رئيسها ${r.name}` });
+                    logAs(user, { action: "اعتماد مجموعة", target: `المجموعة ${g.number}${cluster ? ` — ${cluster.name}` : ""}`, after: `رئيسها ${r.name}` });
                     toast({ title: `اعتُمدت المجموعة ${g.number}`, body: "تُعلن في قائمة المجموعات المعتمدة، والعقود جاهزة للتوقيع.", tone: "success", icon: "🏅" });
                   }}
                 >
