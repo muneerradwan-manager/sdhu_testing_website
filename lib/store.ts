@@ -96,6 +96,10 @@ export type SeasonOverrides = Partial<{
   /** Clusters this season, and consecutive seasons as group head needed to stand for cluster head */
   clusterCount: number;
   clusterHeadSeasons: number;
+  /** Classification: the share of each tier promoted, the share demoted, and how many are honoured */
+  promoteShare: number;
+  demoteShare: number;
+  honorTop: number;
   clusterHeadMinRating: number;
   deputySeasons: number;
   hady: number;
@@ -313,6 +317,8 @@ type State = {
   lottery: { importedAt?: number; importedBy?: string; publishedAt?: number; publishedBy?: string };
   /** Election of the cluster heads by the group heads, run once per season by the administration */
   election: { openedAt?: number; closedAt?: number; elected?: string[] };
+  /** End-of-season classification of the groups and the clusters, once the administration publishes it */
+  grading: { publishedAt?: number; publishedBy?: string };
   tourSeen: boolean;
 };
 
@@ -337,6 +343,7 @@ const initial: State = {
   inSeason: {},
   lottery: {},
   election: {},
+  grading: {},
   tourSeen: false,
 };
 
@@ -573,6 +580,9 @@ export const actions = {
   },
   setElection(patch: State["election"]) {
     setState((s) => ({ ...s, election: { ...s.election, ...patch } }));
+  },
+  setGrading(patch: State["grading"]) {
+    setState((s) => ({ ...s, grading: { ...s.grading, ...patch } }));
   },
   markTourSeen() {
     setState((s) => ({ ...s, tourSeen: true }));

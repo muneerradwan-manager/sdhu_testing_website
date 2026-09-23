@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, CalendarRange, Coins, History, Lock, RotateCcw, Save, Scale, Settings2, Sparkles, UsersRound, Zap } from "lucide-react";
+import { ArrowLeft, CalendarRange, Coins, Layers, History, Lock, RotateCcw, Save, Scale, Settings2, Sparkles, UsersRound, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -80,6 +80,18 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
   },
 ];
 
+const GRADING_GROUP: { title: string; icon: React.ReactNode; fields: FieldDef[] } = {
+  title: "تصنيف المجموعات والتكتلات — نهاية الموسم",
+  icon: <Layers />,
+  fields: [
+    { key: "promoteShare" as Key, label: "نسبة الترقية من كل فئة (الأعلى تقييماً)", unit: "%", min: 0, max: 60, hint: (v: number) => `في فئة فيها 126 مجموعة: ${Math.round(126 * v / 100)} مجموعة تُرقّى فئةً واحدة` },
+    { key: "demoteShare" as Key, label: "نسبة التخفيض من كل فئة (الأدنى تقييماً)", unit: "%", min: 0, max: 60, hint: (v: number) => `في فئة فيها 126 مجموعة: ${Math.round(126 * v / 100)} مجموعة تُخفَّض فئةً واحدة` },
+    { key: "honorTop" as Key, label: "عدد المكرَّمين في كل فئة", unit: "الأوائل", min: 0, max: 10, hint: () => "يُكرَّمون في ختام الموسم — الترتيب داخل الفئة على مستوى كل المكاتب" },
+  ],
+};
+
+GROUPS.push(GRADING_GROUP);
+
 const LABELS: Record<Key, string> = {
   quota: "الحصة الإجمالية",
   directShare: "نسبة القبول المباشر",
@@ -99,6 +111,9 @@ const LABELS: Record<Key, string> = {
   clusterHeadSeasons: "مواسم الترشح لرئاسة تكتل",
   clusterHeadMinRating: "أدنى تقييم للترشح",
   deputySeasons: "مواسم معاون رئيس التكتل",
+  promoteShare: "نسبة الترقية من كل فئة",
+  demoteShare: "نسبة التخفيض من كل فئة",
+  honorTop: "المكرَّمون في كل فئة",
   hady: "الهدي",
 };
 
@@ -119,6 +134,9 @@ function valuesOf(s: LiveSeason): Values {
     clusterHeadSeasons: s.administrators.clusterHeadSeasons,
     clusterHeadMinRating: s.administrators.clusterHeadMinRating,
     deputySeasons: s.administrators.deputySeasons,
+    promoteShare: Math.round(s.grading.promoteShare * 100),
+    demoteShare: Math.round(s.grading.demoteShare * 100),
+    honorTop: s.grading.honorTop,
     hady: s.fees.hady,
   };
 }
@@ -126,7 +144,7 @@ function valuesOf(s: LiveSeason): Values {
 const DEFAULTS = valuesOf(mergeSeason({}));
 
 function show(key: Key, v: number) {
-  if (key === "directShare") return `${v}%`;
+  if (key === "directShare" || key === "promoteShare" || key === "demoteShare") return `${v}%`;
   if (key === "installmentCount") return v === 1 ? "دفعة واحدة كاملة" : "دفعتان";
   if (key === "keepRoleMinRating" || key === "clusterHeadMinRating") return `${v} من 5`;
   if (key === "registrationPerPerson" || key === "hajjCost" || key === "firstInstallment" || key === "hady") return `${formatNumber(v)} $`;

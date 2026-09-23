@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ClipboardCheck,
   Dices,
+  Layers,
   LayoutDashboard,
   LogOut,
   PencilLine,
@@ -38,6 +39,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/administrators", label: "الإداريون والمجموعات", icon: <UsersRound />, perms: ["administrators.manage", "groups.approve"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
+  { href: "/staff/grading", label: "التصنيف والترقية", icon: <Layers />, perms: ["season.settings", "audit.read"] },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
   { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: ["season.settings", "audit.read"] },
 ];

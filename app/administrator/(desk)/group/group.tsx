@@ -33,6 +33,7 @@ import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { activeCount } from "../../_lib/group";
 import { TEAM_ROLES } from "../../_lib/roster";
+import { StandingCard } from "../../_components/standing";
 import { TeamPicker, teamComplete, teamNames, type TeamPick } from "./team-picker";
 import { AdminShell, LockedCard, ReceiptCard, SimButton } from "../../_components/ui";
 
@@ -578,6 +579,8 @@ function MyGroup() {
             <ButtonLink href="/administrator/field" variant="glass">وضع الميدان</ButtonLink>
           </div>
         </motion.div>
+
+        <StandingCard scope="group" name={g.number} />
 
         <Card className="md:p-8">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><UsersRound className="size-5 text-gold-dark" /> فريق المجموعة</h3>

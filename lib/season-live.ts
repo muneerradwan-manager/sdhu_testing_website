@@ -14,6 +14,8 @@ export type LiveSeason = {
   acceptedDirectAge: number;
   fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; privateRoomDiff: number; administratorRegistration: number; groupFormation: number; clusterFormation: number };
   administrators: { keepRoleMinRating: number; clusterCount: number; clusterHeadSeasons: number; clusterHeadMinRating: number; deputySeasons: number };
+  /** End-of-season classification: the shares that move between tiers, and how many are honoured */
+  grading: { tiers: typeof SEASON.grading.tiers; promoteShare: number; demoteShare: number; honorTop: number; entryTier: number };
   overridden: (keyof SeasonOverrides)[];
 };
 
@@ -50,6 +52,12 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
       clusterHeadSeasons: o.clusterHeadSeasons ?? SEASON.administrators.clusters.candidacy.consecutiveSeasons,
       clusterHeadMinRating: o.clusterHeadMinRating ?? SEASON.administrators.clusters.candidacy.minRating,
       deputySeasons: o.deputySeasons ?? SEASON.administrators.clusters.deputySeasons,
+    },
+    grading: {
+      ...SEASON.grading,
+      promoteShare: (o.promoteShare ?? SEASON.grading.promoteShare * 100) / 100,
+      demoteShare: (o.demoteShare ?? SEASON.grading.demoteShare * 100) / 100,
+      honorTop: o.honorTop ?? SEASON.grading.honorTop,
     },
     overridden: Object.keys(o) as (keyof SeasonOverrides)[],
   };

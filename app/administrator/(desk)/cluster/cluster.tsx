@@ -17,6 +17,7 @@ import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { DEMO_ADMINS, adminName, candidacy, demoGroupNumber, deputyEligible, lastServed, logAdmin, nowMs, seasonHistory, useAdmin, type ClusterRules } from "../../_lib/admin";
 import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
+import { StandingCard } from "../../_components/standing";
 
 /** Group heads of other groups this season (fictional), so the vote and the cluster requests have company */
 const SEED_HEADS: { id: string; name: string; group: number; seasons: number; rating: number; votes: number; candidate: boolean }[] = [
@@ -410,6 +411,7 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
             </p>
           </div>
         </Card>
+        <StandingCard scope="cluster" name={cluster.name} />
         <Card>
           <SectionTitle icon={Inbox} action={<Badge tone="gold">{pending.length} بانتظار قرارك</Badge>}>
             طلبات الانضمام إلى تكتلك

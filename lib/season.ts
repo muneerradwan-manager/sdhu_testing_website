@@ -101,6 +101,28 @@ export const SEASON = {
     },
   },
 
+  /**
+   * Classification of the groups and the clusters at the end of the season. A group head in his first
+   * season starts at the entry tier; after that his tier follows his evaluation. Inside every tier,
+   * across all offices together, the top share moves up one tier, the bottom share moves down one,
+   * and the rest stay. The same rule and the same shares apply to the clusters.
+   */
+  grading: {
+    tiers: [
+      { key: 1, label: "الفئة الأولى", service: "عادي", note: "فئة البداية — كل رئيس مجموعة جديد يبدأ منها" },
+      { key: 2, label: "الفئة الثانية", service: "محسّن", note: "تُنال بالترقية من الفئة الأولى" },
+      { key: 3, label: "الفئة الثالثة", service: "خمس نجوم", note: "أعلى فئة — لا ترقية فوقها" },
+    ],
+    /** Share of each tier promoted one tier up */
+    promoteShare: 0.3,
+    /** Share of each tier moved one tier down */
+    demoteShare: 0.2,
+    /** Honoured at the end of the season in every tier */
+    honorTop: 3,
+    /** The tier a first-season group head starts at */
+    entryTier: 1,
+  },
+
   /** The office opens this window for accepted pilgrims to join groups through the group's coordinator */
   groupingWindow: "2 – 25 شعبان",
 
