@@ -99,17 +99,22 @@ export function AdminNav() {
           );
         })}
       </nav>
+      {/* The bar shows who is signed in and links to his file; the labelled logout lives at the end of
+          that file, the way it does for the pilgrim and for the staff panel. On phones, where the file
+          is a scroll away, the icon stays here. */}
       {admin && (
         <div className="flex items-center gap-2 text-sm text-white/80">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-gold to-gold-dark font-display font-bold text-ink">{admin.person.firstName[0]}</span>
-          <span className="hidden sm:inline">{admin.name}</span>
+          <Link href="/administrator/dashboard" className="flex items-center gap-2 rounded-2xl py-1 pl-3 pr-1 transition hover:bg-white/10" title="ملفي">
+            <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-gold to-gold-dark font-display font-bold text-ink">{admin.person.firstName[0]}</span>
+            <span className="hidden sm:inline">{admin.name}</span>
+          </Link>
           <button
             onClick={() => {
               logAdmin(admin.id, "تسجيل خروج الإداري");
               actions.adminLogout();
               router.push("/administrator");
             }}
-            className="grid size-9 place-items-center rounded-xl border border-white/15 hover:bg-white/10"
+            className="grid size-9 place-items-center rounded-xl text-white/70 transition hover:bg-maroon/40 hover:text-white sm:hidden"
             aria-label="تسجيل الخروج"
             title="تسجيل الخروج"
           >

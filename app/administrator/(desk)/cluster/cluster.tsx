@@ -67,10 +67,17 @@ export function AdminCluster() {
   const iAmElected = elected.includes(admin.id);
   const phase = p.deputyOf ? "deputy" : !election.openedAt ? "waiting" : !election.closedAt ? "voting" : iAmElected ? (p.cluster ? "manage" : "create") : "join";
 
+  const myCluster = clusterViewOf(p, admin.name);
   return (
     <AdminShell
-      title="التكتلات"
-      subtitle={`${rules.clusterCount} تكتلات هذا الموسم بقرار الإدارة. رؤساؤها يُنتخبون من رؤساء المجموعات (${SEASON.administrators.clusters.window})، ثم تطلب كل مجموعة الانضمام إلى التكتل الذي تختاره ويقرر رئيسه.`}
+      title={myCluster ? myCluster.name : "التكتلات"}
+      subtitle={
+        myCluster
+          ? myCluster.isHead
+            ? `تكتلك الذي انتُخبت رئيساً له. تدير مجموعاته وتقرر في طلبات الانضمام إليه بحسب سعته — ${myCluster.capacityGroups} مجموعات.`
+            : `تكتلك الذي اختارك رئيسه ${myCluster.headName} معاوناً له. تتابع مجموعاته وتنوب عنه في متابعتها.`
+          : `${rules.clusterCount} تكتلات هذا الموسم بقرار الإدارة. رؤساؤها يُنتخبون من رؤساء المجموعات (${SEASON.administrators.clusters.window})، ثم تطلب كل مجموعة الانضمام إلى التكتل الذي تختاره ويقرر رئيسه.`
+      }
     >
       <AnimatePresence mode="wait">
         <motion.div key={phase} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>

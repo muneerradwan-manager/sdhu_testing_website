@@ -49,7 +49,7 @@ export function ClusterGroups() {
                 {[
                   [head ? "المجموعات التي تديرها" : "مجموعات التكتل", formatNumber(totals.groups), `من سعة ${cluster.capacityGroups}`],
                   ["حجاج التكتل", formatNumber(totals.pilgrims), `من أصل ${formatNumber(totals.capacity)} مقعداً`],
-                  ["مجموعتك الأصلية", `المجموعة ${p.group?.number}`, head ? "تبقى رئيسها" : "ضمن التكتل"],
+                  ["مجموعتك الأصلية", `المجموعة ${p.group?.number}`, head ? "قبل الانتخاب" : "ضمن التكتل"],
                 ].map(([k, v, hint]) => (
                   <div key={k} className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
                     <dt className="text-xs text-white/70">{k}</dt>
@@ -65,7 +65,7 @@ export function ClusterGroups() {
             <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
               <LayoutList className="size-5 text-gold-dark" /> مجموعات التكتل — {formatNumber(totals.groups)} مجموعة
             </h3>
-            <p className="mt-1 text-sm leading-6 text-ink-soft">{head ? "مجموعتك الأصلية أولاً، ثم المجموعات التي طلبت الانضمام ووقّعتَ معها العقد. مسؤوليتك عليها جميعاً على مستوى التكتل." : "مجموعة رئيس التكتل أولاً، ثم المجموعات التي انضمت بعقد، ومنها مجموعتك. تتابعها كلها نيابةً عن الرئيس."}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">{head ? "أنت رئيس التكتل ومسؤول عن مجموعاته كلها، ولكل مجموعة رئيسها المباشر. أولها مجموعتك الأصلية التي كنت ترأسها قبل الانتخاب، ثم المجموعات التي طلبت الانضمام ووقّعتَ معها العقد." : "مجموعات التكتل كلها تتابعها نيابةً عن رئيسه، ولكل مجموعة رئيسها المباشر. منها مجموعتك الأصلية."}</p>
             <ul className="mt-4 space-y-2">
               {groups.map((g, i) => (
                 <motion.li
@@ -80,10 +80,10 @@ export function ClusterGroups() {
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2 font-bold text-ink">
                         المجموعة {g.number}
-                        {g.own && <Badge tone="gold">مجموعتك — أنت رئيسها</Badge>}
+                        {g.own && <Badge tone="gold">{head ? "مجموعتك الأصلية" : "مجموعتك"}</Badge>}
                       </span>
                       <span className="block text-xs text-ink-soft">
-                        {g.own ? "رئيسها: أنت" : `رئيسها: ${g.head}`} — {g.office}
+                        {g.own ? "رئيسها المباشر: أنت" : `رئيسها المباشر: ${g.head}`} — {g.office}
                       </span>
                       <span className="block text-xs text-hint">{g.joined}</span>
                     </span>
@@ -99,7 +99,7 @@ export function ClusterGroups() {
                     <div className="border-t border-gold/30 p-4 text-sm">
                       <div className="grid gap-2 sm:grid-cols-2">
                         {[
-                          ["رئيس المجموعة", g.own ? admin.name : g.head],
+                          ["رئيسها المباشر", g.own ? admin.name : g.head],
                           ["المكتب", g.office],
                           ["المقاعد المشغولة", `${g.pilgrims} من ${g.capacity}`],
                           ["صفة الانضمام", g.joined],
@@ -112,7 +112,7 @@ export function ClusterGroups() {
                       </div>
                       <p className="mt-3 leading-6 text-ink-soft">
                         {g.own
-                          ? "أنت رئيس هذه المجموعة، فتظهر لك شاشة حجاجها وفريقها ووضع الميدان."
+                          ? "هذه مجموعتك الأصلية التي كنت ترأسها مباشرةً قبل الانتخاب، فتظهر لك شاشة حجاجها وفريقها ووضع الميدان."
                           : `لهذه المجموعة رئيسها وفريقها ومنسقها، وهم من يستلمون حجاجها. دورك عليها على مستوى التكتل: البرنامج والنقل والإسكان والمتابعة${head ? " والتقييم" : " نيابةً عن الرئيس"}.`}
                       </p>
                       {g.own && (

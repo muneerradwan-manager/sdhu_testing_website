@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -12,17 +13,18 @@ import {
   FolderLock,
   History,
   Lock,
+  LogOut,
   PartyPopper,
   ScrollText,
 } from "lucide-react";
 import { useMemo } from "react";
 import { Card } from "@/components/portal/shell";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
 import { ageOf } from "@/lib/registry";
-import { useStore } from "@/lib/store";
+import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
-import { SKILLS, docState, effectiveRole, journeyOf, positionLabelOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
+import { SKILLS, docState, effectiveRole, journeyOf, logAdmin, positionLabelOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
 import { clusterGroupsOf } from "../../_lib/cluster";
 import { AdminShell } from "../../_components/ui";
 
@@ -44,6 +46,7 @@ const NEXT: Record<string, { title: string; text: string; cta: string }> = {
 export function AdminDashboard() {
   const admin = useAdmin()!;
   const profile = admin.profile;
+  const router = useRouter();
   const events = useStore((s) => s.events);
   const joinCount = Object.keys(profile?.joinDecisions ?? {}).length;
   const steps = useMemo(() => journeyOf(profile, joinCount), [profile, joinCount]);
@@ -143,6 +146,20 @@ export function AdminDashboard() {
                 </li>
               ))}
             </ol>
+
+            <div className="mt-8 border-t border-gold-light pt-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  logAdmin(admin.id, "تسجيل خروج الإداري");
+                  actions.adminLogout();
+                  router.push("/administrator");
+                }}
+              >
+                <LogOut className="size-4" /> تسجيل الخروج
+              </Button>
+            </div>
           </Card>
 
           <Card className="md:p-7">
