@@ -236,9 +236,10 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
   },
 ];
 
-export function scoreExam(answers: Record<number, number>) {
-  const correct = EXAM_QUESTIONS.filter((q) => answers[q.id] === q.answer).length;
-  return { correct, total: EXAM_QUESTIONS.length, score: Math.round((correct / EXAM_QUESTIONS.length) * 100) };
+/** Graded against the bank as the administration left it this season, not against the shipped one */
+export function scoreExam(answers: Record<number, number>, bank: ExamQuestion[] = EXAM_QUESTIONS) {
+  const correct = bank.filter((q) => answers[q.id] === q.answer).length;
+  return { correct, total: bank.length, score: bank.length ? Math.round((correct / bank.length) * 100) : 0 };
 }
 
 export function finalScoreOf(written: number, oral: number) {

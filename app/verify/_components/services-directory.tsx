@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, BookOpen, Bus, EyeOff, Hotel, MapPin, Search, Sparkles, Star, Users, Utensils, Wallet } from "lucide-react";
+import { ArrowLeft, BadgeCheck, EyeOff, Hotel, MapPin, Search, Sparkles, Star } from "lucide-react";
 import { useState } from "react";
-import { Badge, Modal } from "@/components/ui/widgets";
-import { useClusters } from "@/lib/cms/content";
+import { useClusterDirectory } from "@/lib/cluster-profile";
 import { normalizeArabic, type Cluster, type ServiceLevel } from "@/lib/data/clusters";
-import { SEASON } from "@/lib/season";
-import { cn, formatNumber, formatUSD } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 const LEVELS: ("الكل" | ServiceLevel)[] = ["الكل", "عادي", "محسّن", "خمس نجوم"];
 
@@ -28,14 +27,13 @@ const LEVEL_STYLE: Record<ServiceLevel, string> = {
   "خمس نجوم": "bg-gradient-to-l from-gold-dark to-gold text-ink",
 };
 
-export function ServicesDirectory({ openSlug, onOpenChange }: { openSlug: string | null; onOpenChange: (slug: string | null) => void }) {
+export function ServicesDirectory() {
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("الكل");
   const [q, setQ] = useState("");
-  const CLUSTERS = useClusters();
+  const CLUSTERS = useClusterDirectory();
   const list = CLUSTERS.filter(
     (c) => (level === "الكل" || c.level === level) && (!q.trim() || normalizeArabic(`${c.name} ${c.governorate} ${c.specialty}`).includes(normalizeArabic(q))),
   ).sort((a, b) => b.rating - a.rating);
-  const selected = CLUSTERS.find((c) => c.slug === openSlug) ?? null;
 
   return (
     <div>
@@ -132,12 +130,12 @@ export function ServicesDirectory({ openSlug, onOpenChange }: { openSlug: string
                     <SeatBar key={g.no} group={g} />
                   ))}
                 </div>
-                <button
-                  onClick={() => onOpenChange(c.slug)}
+                <Link
+                  href={`/verify/clusters/${c.slug}`}
                   className="mt-5 flex h-11 items-center justify-center gap-2 rounded-2xl border-2 border-green-dark/15 font-bold text-green-dark transition group-hover:border-green-dark group-hover:bg-green-dark group-hover:text-white"
                 >
-                  عرض البرنامج الكامل
-                </button>
+                  عرض البرنامج الكامل <ArrowLeft className="size-4" />
+                </Link>
               </div>
             </motion.article>
           ))}
@@ -145,9 +143,6 @@ export function ServicesDirectory({ openSlug, onOpenChange }: { openSlug: string
       </motion.div>
       {list.length === 0 && <p className="py-16 text-center text-ink-soft">لا توجد تكتلات مطابقة.</p>}
 
-      <Modal open={!!selected} onClose={() => onOpenChange(null)} className="max-w-2xl p-0">
-        {selected && <ClusterDetail cluster={selected} />}
-      </Modal>
     </div>
   );
 }
@@ -201,112 +196,3 @@ function SeatBar({ group }: { group: Cluster["groups"][number] }) {
   );
 }
 
-function ClusterDetail({ cluster: c }: { cluster: Cluster }) {
-  const blocks = [
-    { icon: Bus, title: "النقل", items: c.transport },
-    { icon: Utensils, title: "الوجبات", items: c.meals },
-    { icon: BookOpen, title: "البرامج", items: c.programs },
-  ];
-  return (
-    <div>
-      <div className="relative h-48 overflow-hidden rounded-t-3xl">
-        <Image src={IMAGES[c.slug]} alt="" fill sizes="672px" quality={70} className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-green-dark via-green-dark/50 to-transparent" />
-        <div className="absolute inset-x-6 bottom-5 text-white">
-          <span className={cn("rounded-full px-3 py-1 text-xs font-bold", LEVEL_STYLE[c.level])}>{c.level}</span>
-          <h3 className="mt-2 font-display text-3xl font-bold">{c.name}</h3>
-          <p className="text-sm text-white/80">برنامج معتمد في {c.approvedOn}</p>
-        </div>
-      </div>
-
-      <div className="space-y-6 p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Rating value={c.rating} />
-          <Badge tone="ink">
-            <Users className="size-3" /> {c.groupsCount} مجموعة · {formatNumber(c.pilgrims)} حاج
-          </Badge>
-          <Badge tone="gold">منذ {c.since}هـ</Badge>
-        </div>
-        <p className="leading-8 text-ink-soft">{c.about}</p>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-gold/40 bg-sand/60 p-4">
-            <p className="flex items-center gap-2 text-xs font-bold text-maroon">
-              <Hotel className="size-4" /> السكن في مكة المكرمة
-            </p>
-            <p className="mt-2 font-bold text-ink">{c.makkah.hotel}</p>
-            <p className="text-sm text-ink-soft">
-              {c.makkah.area} · {c.makkah.distance}
-            </p>
-            <p className="mt-1 text-sm text-ink-soft">{c.makkah.rooms}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {c.makkah.features.map((f) => (
-                <span key={f} className="rounded-full bg-white px-2 py-0.5 text-[11px] text-ink-soft ring-1 ring-gold/40">
-                  {f}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-gold/40 bg-sand/60 p-4">
-            <p className="flex items-center gap-2 text-xs font-bold text-maroon">
-              <MapPin className="size-4" /> السكن في المدينة المنورة
-            </p>
-            <p className="mt-2 font-bold text-ink">{c.madinah.hotel}</p>
-            <p className="text-sm text-ink-soft">{c.madinah.area}</p>
-            <p className="mt-1 text-sm font-semibold text-green">{c.madinah.distance}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          {blocks.map((b) => (
-            <div key={b.title} className="rounded-2xl border border-gold/40 p-4">
-              <p className="flex items-center gap-2 text-sm font-bold text-green-dark">
-                <b.icon className="size-4 text-gold-dark" /> {b.title}
-              </p>
-              <ul className="mt-2 space-y-1.5 text-sm leading-6 text-ink-soft">
-                {b.items.map((it) => (
-                  <li key={it}>• {it}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="rounded-2xl bg-green-dark p-4 text-white">
-          <p className="flex items-center gap-2 text-sm font-bold text-gold">
-            <Wallet className="size-4" /> التكلفة المعتمدة للفرد
-          </p>
-          <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-            {[
-              ["تكلفة الحج", SEASON.fees.hajjCost],
-              ["الهدي", SEASON.fees.hady],
-              ["فارق الغرفة الخاصة", c.privateRoomDiff],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-white/10 p-2">
-                <p className="text-[11px] text-white/70">{k}</p>
-                <p className="font-display text-lg font-bold">{formatUSD(v as number)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="font-bold text-ink">المجموعات المتاحة</p>
-          <div className="mt-3 space-y-3">
-            {c.groups.map((g) => (
-              <div key={g.no} className="rounded-2xl border border-gold/30 p-3">
-                <SeatBar group={g} />
-                <p className="mt-1.5 text-xs text-ink-soft">رئيس المجموعة: {g.leader}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="flex items-start gap-2 rounded-2xl bg-maroon/5 p-3 text-xs leading-6 text-maroon">
-          <EyeOff className="mt-0.5 size-4 shrink-0" />
-          ما لا يظهر هنا: أرقام الغرف، وأسماء الحجاج الآخرين، وخطط النقل التفصيلية — معلومات تشغيلية لا تُعرض للعامة. في مرحلة التفويج يختار الحاج المقبول مجموعته من هذا الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.
-        </p>
-      </div>
-    </div>
-  );
-}

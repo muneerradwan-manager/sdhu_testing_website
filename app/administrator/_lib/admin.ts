@@ -242,7 +242,7 @@ export function deputyEligible(id: string, rules: ClusterRules) {
  * - another role: its seniority requirements (cluster head/deputy), exams required;
  * - first season: any open role, exams required.
  */
-export function roleOptions(id: string, rules: { keepRoleMinRating: number }): { last: SeasonRecord | null; keep: RoleOption | null; others: RoleOption[] } {
+export function roleOptions(id: string, rules: { keepRoleMinRating: number }, openRoles?: string[]): { last: SeasonRecord | null; keep: RoleOption | null; others: RoleOption[] } {
   const history = seasonHistory(id);
   const last = lastServed(id);
   const A = SEASON.administrators;
@@ -258,7 +258,8 @@ export function roleOptions(id: string, rules: { keepRoleMinRating: number }): {
     : null;
 
   // Cluster head and deputy are not applied for: elected by the group heads, and picked by the elected head
-  const others = POSITIONS.filter((p) => !p.elected && p.key !== last?.roleKey).map(
+  // Only the roles the administration left open this season, and never an elected one
+  const others = POSITIONS.filter((p) => !p.elected && p.key !== last?.roleKey && (!openRoles || openRoles.includes(p.key))).map(
     (p): RoleOption => ({ key: p.key, label: p.label, ok: true, reason: last ? "صفة جديدة — تخضع للامتحانين" : "أول موسم — تخضع للامتحانين", examExempt: false }),
   );
   return { last, keep, others };

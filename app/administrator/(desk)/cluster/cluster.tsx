@@ -19,6 +19,7 @@ import { DEMO_ADMINS, adminName, candidacy, deputyEligible, lastServed, logAdmin
 import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
 import { HEADS_POOL as SEED_HEADS, clusterGroupsOf, clusterTotals, clusterViewOf } from "../../_lib/cluster";
 import { StandingCard } from "../../_components/standing";
+import { ClusterPublicProfile } from "./public-profile";
 
 
 type Candidate = { id: string; name: string; group: number; seasons: number; rating: number; votes: number; real: boolean };
@@ -84,7 +85,12 @@ export function AdminCluster() {
           {phase === "waiting" && <Waiting rules={rules} />}
           {phase === "voting" && <Election rules={rules} admins={admins} />}
           {phase === "create" && <CreateCluster rules={rules} admins={admins} />}
-          {phase === "manage" && <ManageCluster admins={admins} />}
+          {phase === "manage" && (
+            <div className="space-y-6">
+              <ManageCluster admins={admins} />
+              <ClusterPublicProfile />
+            </div>
+          )}
           {phase === "deputy" && <DeputyCluster />}
           {phase === "join" && <JoinCluster admins={admins} />}
         </motion.div>

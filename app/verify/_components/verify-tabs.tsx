@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { AnimatePresence, motion } from "motion/react";
 import { Building, FileSearch, Hotel } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
@@ -17,8 +19,8 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 export function VerifyTabs() {
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>("entity");
-  const [openCluster, setOpenCluster] = useState<string | null>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const index = TABS.findIndex((t) => t.key === tab);
 
@@ -97,15 +99,10 @@ export function VerifyTabs() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
             {tab === "entity" && (
-              <EntityCheck
-                onOpenCluster={(slug) => {
-                  setOpenCluster(slug);
-                  setTab("directory");
-                }}
-              />
+              <EntityCheck onOpenCluster={(slug) => router.push(`/verify/clusters/${slug}`)} />
             )}
             {tab === "document" && <DocumentCheck />}
-            {tab === "directory" && <ServicesDirectory openSlug={openCluster} onOpenChange={setOpenCluster} />}
+            {tab === "directory" && <ServicesDirectory />}
           </motion.div>
         </AnimatePresence>
       </div>

@@ -421,6 +421,23 @@ export const SEED_ADMINS: SeedAdmin[] = [
 
 export const EVALUATION_ITEMS = ["دقة التجمّعات والحضور", "التعامل مع البلاغات", "الالتزام بالمواعيد", "سلامة كبار السن", "التقرير اليومي"];
 
+/**
+ * The administrator is not scored once at the end: he is scored stage by stage through the season,
+ * because his work differs from one stage to the next. Each stage takes a score, a note, and a piece
+ * of evidence when the staff have one — a photo or a document from that stage itself.
+ */
+export const EVALUATION_STAGES: { key: string; label: string; hint: string }[] = [
+  { key: "training", label: "التدريب والتحضير قبل السفر", hint: "حضور الوحدات الإلزامية والاستعداد" },
+  { key: "prep", label: "تجهيز الحجاج والوثائق", hint: "اكتمال الملفات والجوازات والملفات الصحية" },
+  { key: "airport", label: "السفر والمطارات", hint: "التجمّع والمغادرة والوصول وتسليم الأمتعة" },
+  { key: "housing", label: "الاستقبال والإسكان في مكة", hint: "توزيع الغرف والاحتياجات الخاصة" },
+  { key: "umrah", label: "العمرة والمسجد الحرام", hint: "التفويج والمرافقة والتذكير بالمواعيد" },
+  { key: "mashaer", label: "المشاعر: منى وعرفة ومزدلفة", hint: "الخيام والنقل والماء والطعام والسلامة" },
+  { key: "jamarat", label: "رمي الجمرات وطواف الإفاضة", hint: "الالتزام بالمسار والوقت وتجنّب الزحام" },
+  { key: "madinah", label: "المدينة المنورة والزيارة", hint: "الإسكان والزيارات والبرنامج" },
+  { key: "return", label: "العودة وتسليم العهدة", hint: "العودة وتسليم التقارير والعهدة" },
+];
+
 // ───────────────────────── Operations room ─────────────────────────
 
 export type Zone = "arafat" | "mina" | "muzdalifah" | "jamarat" | "makkah";

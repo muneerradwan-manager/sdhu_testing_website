@@ -252,6 +252,8 @@ const CLUSTER_COLLECTION: CollectionDef = {
       def: [],
     },
   ],
+  // Reserved URLs, so a cluster the staff add opens its own full page in the exported site
+  slots: Array.from({ length: 6 }, (_, i) => `cluster-${i + 1}`),
   builtIn: CLUSTERS.map((c) => ({
     id: c.slug,
     values: {

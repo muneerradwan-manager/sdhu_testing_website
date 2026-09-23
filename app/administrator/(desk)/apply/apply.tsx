@@ -27,7 +27,6 @@ import { useSeason } from "@/lib/season-live";
 import { actions } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import {
-  COMMITMENTS,
   POSITIONS,
   adminReceipt,
   docState,
@@ -41,6 +40,7 @@ import {
   type RoleOption,
 } from "../../_lib/admin";
 import { AdminShell, ReceiptCard } from "../../_components/ui";
+import { useCommitments, useRoles } from "../../_lib/admin-rules";
 import { DocumentsStep, REQUIRED_DOCS, SkillsStep, attachedDocs, useRecord } from "./record";
 
 const STEPS = ["الصفة", "وثائقي", "لغاتي ومهاراتي", "الالتزامات", "رسم التسجيل"];
@@ -77,7 +77,9 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const season = useSeason();
   const fee = season.fees.administratorRegistration;
   const [step, setStep] = useState(0);
-  const options = roleOptions(admin.id, season.administrators);
+  const roles = useRoles();
+  const commitments = useCommitments();
+  const options = roleOptions(admin.id, season.administrators, roles.map((r) => r.key));
   const [positions, setPositions] = useState<string[]>(admin.profile?.positions.length ? [admin.profile.positions[0]] : []);
   const [renewal, setRenewal] = useState<"keep" | "change" | "first">(admin.profile?.renewal ?? (options.last ? "change" : "first"));
   const [commit, setCommit] = useState<Record<string, boolean>>({});
@@ -88,7 +90,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
   const { rec } = useRecord();
   const attached = attachedDocs(rec);
   const docsReady = REQUIRED_DOCS.every((k) => attached.some((d) => d.key === k));
-  const allCommitted = COMMITMENTS.every((c) => commit[c.key]);
+  const allCommitted = commitments.every((c) => commit[c.key]);
   const chosen = renewal === "keep" ? options.keep : options.others.find((o) => o.key === positions[0]);
   const canNext = [!!chosen?.ok, docsReady, rec.languages.length > 0, allCommitted, false][step];
 
@@ -180,7 +182,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
                 <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">التزامات الإداري</h2>
                 <p className="mt-2 text-ink-soft">اقرأ كل التزام ووافق عليه. تُحفظ موافقتك مع تاريخها في استمارة التسجيل الموقّعة إلكترونياً.</p>
                 <ul className="mt-6 space-y-3">
-                  {COMMITMENTS.map((c, i) => {
+                  {commitments.map((c, i) => {
                     const on = !!commit[c.key];
                     return (
                       <motion.li key={c.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
@@ -198,7 +200,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
                     );
                   })}
                 </ul>
-                <button type="button" onClick={() => setCommit(Object.fromEntries(COMMITMENTS.map((c) => [c.key, true])))} className="mt-4 text-sm font-semibold text-maroon underline">
+                <button type="button" onClick={() => setCommit(Object.fromEntries(commitments.map((c) => [c.key, true])))} className="mt-4 text-sm font-semibold text-maroon underline">
                   أوافق على جميع الالتزامات
                 </button>
               </div>
@@ -266,7 +268,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
             </div>
             <div>
               <dt className="text-xs text-hint">الالتزامات</dt>
-              <dd className="font-bold">{COMMITMENTS.filter((c) => commit[c.key]).length} من {COMMITMENTS.length}</dd>
+              <dd className="font-bold">{commitments.filter((c) => commit[c.key]).length} من {commitments.length}</dd>
             </div>
           </dl>
         </div>
@@ -468,7 +470,7 @@ function EligibleSummary() {
 
 /** One role option with the administration's verdict on it */
 function RoleCard({ option, selected, onSelect, badge }: { option: RoleOption; selected: boolean; onSelect: () => void; badge: string }) {
-  const pos = POSITIONS.find((x) => x.key === option.key);
+  const pos = useRoles().find((x) => x.key === option.key) ?? POSITIONS.find((x) => x.key === option.key);
   return (
     <button
       type="button"

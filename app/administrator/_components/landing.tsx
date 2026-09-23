@@ -33,7 +33,8 @@ import { useToast } from "@/components/ui/widgets";
 import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { ADMIN_CALENDAR, DEMO_ADMINS, POSITIONS, demoAdminLogin } from "../_lib/admin";
+import { DEMO_ADMINS, POSITIONS, demoAdminLogin } from "../_lib/admin";
+import { useAdminCalendar } from "../_lib/admin-rules";
 
 const ROLES: { level: string; items: { title: string; text: string; icon: LucideIcon }[]; tone: string }[] = [
   {
@@ -88,6 +89,7 @@ const WEIGHTS = [
 ];
 
 export function AdministratorLanding() {
+  const calendar = useAdminCalendar();
   const router = useRouter();
   const toast = useToast();
   const hydrated = useHydrated();
@@ -254,7 +256,7 @@ export function AdministratorLanding() {
         <div>
           <SectionHeading align="start" eyebrow="تقويم الإداريين" title="مواعيد موسم 1448هـ" className="mb-8" />
           <ol className="relative space-y-3 border-r-2 border-gold-light pr-6">
-            {ADMIN_CALENDAR.map((c, i) => (
+            {calendar.map((c, i) => (
               <Reveal key={c.title} delay={i * 0.04} y={14}>
                 <li className="relative rounded-2xl border border-gold/25 bg-white p-4 transition hover:-translate-x-1 hover:shadow-md">
                   <span className={cn("absolute -right-[33px] top-5 size-4 rounded-full ring-4 ring-sand", i < 6 ? "bg-maroon" : "bg-green-light")} />

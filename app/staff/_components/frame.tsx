@@ -40,6 +40,8 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/administrators", label: "الإداريون والمجموعات", icon: <UsersRound />, perms: ["administrators.manage", "groups.approve"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
+  { href: "/staff/cluster-profiles", label: "برامج التكتلات", icon: <ShieldCheck />, perms: ["groups.approve", "content.manage"] },
+  { href: "/staff/admin-rules", label: "قواعد الإداريين", icon: <ScrollText />, perms: ["season.settings", "administrators.manage"] },
   { href: "/staff/election", label: "انتخاب رؤساء التكتلات", icon: <Vote />, perms: ["season.settings", "groups.approve"] },
   { href: "/staff/grading", label: "التصنيف والترقية", icon: <Layers />, perms: ["season.settings", "audit.read"] },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },

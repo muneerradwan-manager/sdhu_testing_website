@@ -30,7 +30,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { EXAM_DISTRIBUTION, EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, scoreExam } from "@/lib/data/admin-exam";
+import { EXAM_DISTRIBUTION, scoreExam } from "@/lib/data/admin-exam";
+import { finalScoreWith, useExamQuestions, useExamRules } from "../../_lib/admin-rules";
 import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
@@ -75,12 +76,13 @@ export function AdminExam() {
 // ───────────────────────── Rules ─────────────────────────
 
 function RulesScreen() {
+  const rules = useExamRules();
   const admin = useAdmin()!;
   const [agree, setAgree] = useState(false);
   const max = Math.max(...EXAM_DISTRIBUTION.map((d) => d.count));
   const start = () => {
     actions.upsertAdmin(admin.id, { exam: { startedAt: Date.now(), answers: {} } });
-    logAdmin(admin.id, "بدء الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `${EXAM_RULES.questions} سؤالاً — ${EXAM_RULES.minutes} دقيقة`);
+    logAdmin(admin.id, "بدء الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `${rules.questions} سؤالاً — ${rules.minutes} دقيقة`);
   };
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
@@ -88,15 +90,15 @@ function RulesScreen() {
         <div className="flex items-center gap-4">
           <span className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-green-dark to-green text-gold"><GraduationCap className="size-8" /></span>
           <div>
-            <p className="text-sm text-hint">{EXAM_RULES.date}</p>
+            <p className="text-sm text-hint">{rules.date}</p>
             <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">تعليمات الامتحان</h2>
           </div>
         </div>
         <dl className="mt-6 grid grid-cols-3 gap-3 text-center">
           {[
-            [String(EXAM_RULES.questions), "سؤالاً"],
-            [String(EXAM_RULES.minutes), "دقيقة"],
-            [`${EXAM_RULES.writtenMin}+`, "للاجتياز"],
+            [String(rules.questions), "سؤالاً"],
+            [String(rules.minutes), "دقيقة"],
+            [`${rules.writtenMin}+`, "لاجتياز الكتابي"],
           ].map(([v, k]) => (
             <div key={k} className="rounded-2xl bg-sand p-4">
               <dd className="font-display text-3xl font-bold text-maroon">{v}</dd>
@@ -118,7 +120,7 @@ function RulesScreen() {
           ))}
         </ul>
         <p className="mt-4 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
-          النسخة التجريبية: {EXAM_RULES.questions} سؤالاً في {EXAM_RULES.minutes} دقيقة. الامتحان الفعلي 60 سؤالاً في 90 دقيقة، ويضم صح/خطأ واختياراً متعدداً وترتيب خطوات وسيناريوهات يصححها مصحح مخوّل.
+          النسخة التجريبية: {rules.questions} سؤالاً في {rules.minutes} دقيقة. الامتحان الفعلي 60 سؤالاً في 90 دقيقة، ويضم صح/خطأ واختياراً متعدداً وترتيب خطوات وسيناريوهات يصححها مصحح مخوّل.
         </p>
         <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-2xl bg-sand p-4">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="size-5 accent-green-dark" />
@@ -147,7 +149,10 @@ function RulesScreen() {
         </ul>
         <div className="mt-6 rounded-2xl border border-gold/40 p-4 text-sm leading-7">
           <p className="font-bold text-green-dark">بعد الكتابي</p>
-          <p className="text-ink-soft">الامتحان الشفهي: {EXAM_RULES.oralDate}. تُدخل النتيجة على المنصة من شؤون الإداريين.</p>
+          <p className="text-ink-soft">الامتحان الشفهي: {rules.oralDate}. تُدخل النتيجة على المنصة من شؤون الإداريين.</p>
+          <p className="mt-1 text-ink-soft">
+            النتيجة النهائية: الكتابي {Math.round(rules.writtenWeight * 100)}% + الشفهي {Math.round(rules.oralWeight * 100)}%، والنجاح من <b className="text-maroon">{rules.passMark}</b> — كما حددتها الإدارة لهذا الموسم.
+          </p>
         </div>
       </Card>
     </div>
@@ -157,6 +162,8 @@ function RulesScreen() {
 // ───────────────────────── Runner ─────────────────────────
 
 function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
+  const rules = useExamRules();
+  const questions = useExamQuestions();
   const admin = useAdmin()!;
   const toast = useToast();
   const exam = admin.profile!.exam!;
@@ -171,11 +178,11 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   const saveTimer = useRef<number | undefined>(undefined);
   const container = useRef<HTMLDivElement>(null);
 
-  const total = EXAM_RULES.minutes * 60_000;
+  const total = rules.minutes * 60_000;
   const remaining = Math.max(0, total - (now - exam.startedAt));
   const expired = remaining <= 0;
-  const q = EXAM_QUESTIONS[idx];
-  const answeredCount = EXAM_QUESTIONS.filter((x) => answers[x.id] !== undefined).length;
+  const q = questions[idx];
+  const answeredCount = questions.filter((x) => answers[x.id] !== undefined).length;
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -198,12 +205,12 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
     (auto: boolean) => {
       if (submitted.current) return;
       submitted.current = true;
-      const { score, correct, total: n } = scoreExam(exam.answers);
+      const { score, correct, total: n } = scoreExam(exam.answers, questions);
       onSubmitted();
       actions.upsertAdmin(admin.id, { exam: { ...exam, submittedAt: Date.now(), score } });
       logAdmin(admin.id, auto ? "إرسال الامتحان الكتابي تلقائياً (انتهى الوقت)" : "إرسال الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `${correct} من ${n} إجابات صحيحة — النتيجة ${score} من 100`);
     },
-    [admin.id, exam, onSubmitted],
+    [admin.id, exam, onSubmitted, questions],
   );
 
   useEffect(() => {
@@ -218,7 +225,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   };
 
   const goTo = (i: number) => {
-    if (i < 0 || i >= EXAM_QUESTIONS.length) return;
+    if (i < 0 || i >= questions.length) return;
     setDir(i > idx ? 1 : -1);
     setIdx(i);
   };
@@ -247,7 +254,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
             <span className="grid size-10 place-items-center rounded-xl bg-gold text-ink"><GraduationCap className="size-5" /></span>
             <div>
               <p className="font-display font-bold">الامتحان الكتابي — موسم 1448</p>
-              <p className="text-xs text-white/70">{admin.name} — السؤال {idx + 1} من {EXAM_QUESTIONS.length}</p>
+              <p className="text-xs text-white/70">{admin.name} — السؤال {idx + 1} من {questions.length}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -272,7 +279,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
           </div>
         </div>
         <div className="h-1 bg-white/10">
-          <motion.div className="h-full bg-gold" animate={{ width: `${(answeredCount / EXAM_QUESTIONS.length) * 100}%` }} />
+          <motion.div className="h-full bg-gold" animate={{ width: `${(answeredCount / questions.length) * 100}%` }} />
         </div>
       </div>
 
@@ -324,7 +331,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
             <Button variant="ghost" onClick={() => goTo(idx - 1)} disabled={idx === 0}>
               <ArrowRight className="size-4" /> السابق
             </Button>
-            {idx < EXAM_QUESTIONS.length - 1 ? (
+            {idx < questions.length - 1 ? (
               <Button onClick={() => goTo(idx + 1)}>
                 التالي <ArrowLeft className="size-4" />
               </Button>
@@ -340,7 +347,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
           <div className="rounded-3xl border border-gold/30 bg-white p-5">
             <p className="text-sm font-bold text-green-dark">شبكة الأسئلة</p>
             <div className="mt-3 grid grid-cols-5 gap-2">
-              {EXAM_QUESTIONS.map((x, i) => {
+              {questions.map((x, i) => {
                 const answered = answers[x.id] !== undefined;
                 const flagged = flags.includes(x.id);
                 return (
@@ -363,7 +370,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
             </div>
             <ul className="mt-4 space-y-1.5 text-xs text-ink-soft">
               <li className="flex items-center gap-2"><span className="size-3 rounded bg-green-dark" /> مُجاب ({answeredCount})</li>
-              <li className="flex items-center gap-2"><span className="size-3 rounded bg-sand ring-1 ring-gold" /> بلا إجابة ({EXAM_QUESTIONS.length - answeredCount})</li>
+              <li className="flex items-center gap-2"><span className="size-3 rounded bg-sand ring-1 ring-gold" /> بلا إجابة ({questions.length - answeredCount})</li>
               <li className="flex items-center gap-2"><span className="size-3 rounded-full bg-maroon" /> للمراجعة ({flags.length})</li>
             </ul>
           </div>
@@ -378,7 +385,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
           <p className="mt-2 text-ink-soft">لا يمكن الرجوع أو تعديل الإجابات بعد الإرسال.</p>
           <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
             <div className="rounded-2xl bg-green-light/10 p-3"><p className="font-display text-2xl font-bold text-green">{answeredCount}</p>مُجاب</div>
-            <div className="rounded-2xl bg-sand p-3"><p className="font-display text-2xl font-bold text-ink">{EXAM_QUESTIONS.length - answeredCount}</p>بلا إجابة</div>
+            <div className="rounded-2xl bg-sand p-3"><p className="font-display text-2xl font-bold text-ink">{questions.length - answeredCount}</p>بلا إجابة</div>
             <div className="rounded-2xl bg-maroon/8 p-3"><p className="font-display text-2xl font-bold text-maroon">{flags.length}</p>للمراجعة</div>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -427,11 +434,13 @@ function ScoreRing({ value, label, tone = "green", size = 150 }: { value: number
 }
 
 function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void }) {
+  const rules = useExamRules();
+  const questions = useExamQuestions();
   const admin = useAdmin()!;
   const toast = useToast();
   const p = admin.profile!;
   const r = resultOf(p);
-  const { correct, total } = scoreExam(p.exam!.answers);
+  const { correct, total } = scoreExam(p.exam!.answers, questions);
   const [review, setReview] = useState(false);
   const [stars, setStars] = useState(0);
 
@@ -444,14 +453,14 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
   const simulateOral = () => {
     const at = Date.now();
     const written = p.exam?.score ?? 0;
-    const final = finalScoreOf(written, 84);
+    const final = finalScoreWith(written, 84, rules);
     actions.upsertAdmin(admin.id, {
       oral: { score: 84, by: "ماهر عيسى", at, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
       finalScore: final,
       resultPublishedAt: at,
     });
     actions.logEvent({ actor: "ماهر عيسى", role: "موظف", action: "إدخال نتيجة الامتحان الشفهي (محاكاة)", target: admin.name, detail: "84 من 100 (17 من 20) — اللجنة رقم 3" });
-    actions.logEvent({ actor: "رئيس اللجان", role: "موظف", action: "اعتماد ونشر النتائج النهائية (محاكاة)", target: admin.name, detail: `النهائية ${final} — ${final >= EXAM_RULES.passMark ? "ناجح" : "لم يجتز"}` });
+    actions.logEvent({ actor: "رئيس اللجان", role: "موظف", action: "اعتماد ونشر النتائج النهائية (محاكاة)", target: admin.name, detail: `النهائية ${final} — ${final >= rules.passMark ? "ناجح" : "لم يجتز"}` });
     logAdmin(admin.id, "الاطلاع على النتيجة النهائية", `الإداري ${admin.id.slice(-3)}`, `الكتابي ${written} × 60% + الشفهي 84 × 40% = ${final}`);
     toast({ title: "نُشرت نتيجتك النهائية", body: `النتيجة: ${final} من 100`, icon: "📜", tone: "gold" });
   };
@@ -506,7 +515,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
           <AnimatePresence initial={false}>
             {review && (
               <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                {EXAM_QUESTIONS.map((q, i) => {
+                {questions.map((q, i) => {
                   const ok = p.exam!.answers[q.id] === q.answer;
                   return (
                     <li key={q.id} className="mt-3 rounded-2xl border border-gold/30 p-3 text-sm">
@@ -524,7 +533,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
           </AnimatePresence>
           {!r.writtenPassed && (
             <div className="mt-6 rounded-2xl bg-maroon/6 p-4">
-              <p className="text-sm leading-7 text-maroon">لم تبلغ الحد الأدنى ({EXAM_RULES.writtenMin}) في الكتابي، فلا تنتقل إلى الشفهي هذا الموسم.</p>
+              <p className="text-sm leading-7 text-maroon">لم تبلغ الحد الأدنى ({rules.writtenMin}) في الكتابي، فلا تنتقل إلى الشفهي هذا الموسم.</p>
               <SimButton className="mt-3" onClick={retake}><RotateCcw className="size-4" /> إعادة المحاولة (للتجربة فقط)</SimButton>
             </div>
           )}
@@ -535,7 +544,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
           <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark"><Gavel className="size-6 text-gold-dark" /> الامتحان الشفهي</h3>
           <p className="mt-1 text-sm text-hint">خارج المنصة — ونتيجته على المنصة</p>
           <ul className="mt-5 space-y-2 text-sm">
-            <li className="flex items-center gap-2"><Landmark className="size-4 text-gold-dark" /> {EXAM_RULES.oralDate}</li>
+            <li className="flex items-center gap-2"><Landmark className="size-4 text-gold-dark" /> {rules.oralDate}</li>
             <li className="flex items-center gap-2"><UsersRound className="size-4 text-gold-dark" /> ثلاثة أعضاء — 20 دقيقة: حاج غاضب، إغماء في الحافلة، قراءة خريطة المشاعر</li>
           </ul>
           {r.oral !== undefined ? (
@@ -583,6 +592,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
 }
 
 function FinalResult({ written, oral, final, passed, note, by }: { written: number; oral: number; final: number; passed: boolean; note?: string; by?: string }) {
+  const rules = useExamRules();
   const fired = useRef(false);
   useEffect(() => {
     if (!passed || fired.current) return;
@@ -616,10 +626,10 @@ function FinalResult({ written, oral, final, passed, note, by }: { written: numb
           </div>
         </motion.div>
         <div>
-          <p className="text-sm text-gold">نتيجتي النهائية — نُشرت في {EXAM_RULES.resultsDate}</p>
+          <p className="text-sm text-gold">نتيجتي النهائية — نُشرت في {rules.resultsDate}</p>
           <h2 className="mt-2 font-display text-3xl font-bold md:text-4xl">{passed ? "تهانينا، اجتزت التأهيل!" : "لم تجتز التأهيل هذا الموسم"}</h2>
           <p className="mt-2 leading-8 text-white/80">
-            {passed ? "الترتيب: 41 من 1,380 متقدماً — اسمك في قائمة الناجحين — مرشّح لمنصب رئيس مجموعة." : `الحد الأدنى للنجاح ${EXAM_RULES.passMark}. يبقى سجلك مرجعاً في أي تأهيل لاحق.`}
+            {passed ? "الترتيب: 41 من 1,380 متقدماً — اسمك في قائمة الناجحين — مرشّح لمنصب رئيس مجموعة." : `الحد الأدنى للنجاح ${rules.passMark}. يبقى سجلك مرجعاً في أي تأهيل لاحق.`}
           </p>
           <div className="mt-6 space-y-3">
             {parts.map((x, i) => (
@@ -640,9 +650,9 @@ function FinalResult({ written, oral, final, passed, note, by }: { written: numb
               </div>
               <div className="relative mt-1 h-3.5 overflow-hidden rounded-full bg-white/15">
                 <motion.div className="h-full rounded-full bg-gradient-to-l from-gold to-gold-dark" initial={{ width: 0 }} animate={{ width: `${final}%` }} transition={{ delay: 1, duration: 1.2 }} />
-                <span className="absolute inset-y-0 w-0.5 bg-white" style={{ right: `${EXAM_RULES.passMark}%` }} />
+                <span className="absolute inset-y-0 w-0.5 bg-white" style={{ right: `${rules.passMark}%` }} />
               </div>
-              <p className="mt-1 text-xs text-white/60" style={{ marginRight: `calc(${EXAM_RULES.passMark}% - 1.5rem)` }}>حد النجاح {EXAM_RULES.passMark}</p>
+              <p className="mt-1 text-xs text-white/60" style={{ marginRight: `calc(${rules.passMark}% - 1.5rem)` }}>حد النجاح {rules.passMark}</p>
             </div>
           </div>
           {note && <p className="mt-4 text-sm text-white/70">ملاحظات اللجنة ({by}): «{note}»</p>}

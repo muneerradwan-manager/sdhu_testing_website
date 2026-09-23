@@ -14,6 +14,7 @@ import { fullName, getPerson } from "@/lib/registry";
 import { evaluate, type EligibilityResult, type Member } from "@/lib/rules";
 import { useSeason } from "@/lib/season-live";
 import { setState, useStore, type AdminProfile, type AuditEvent, type Review, type Ticket } from "@/lib/store";
+import { positionLabelOf } from "@/app/administrator/_lib/admin";
 
 // ───────────────────────── Reviews ─────────────────────────
 
@@ -182,7 +183,8 @@ export function useAdminRows() {
       return {
         id: p.nationalId,
         name: seed?.name ?? (person ? fullName(person) : p.nationalId),
-        position: p.positions[0] ?? seed?.position ?? "إداري",
+        // The portal stores a role key; the seeded rows carry an Arabic label — show a label either way
+        position: p.positions[0] ? positionLabelOf(p.positions[0]) : (seed?.position ?? "إداري"),
         profile: seed ? { ...seed.profile, ...p } : p,
         seed: false,
         previous: seed?.previous,

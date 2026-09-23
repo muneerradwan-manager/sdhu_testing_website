@@ -76,6 +76,29 @@ export type AuditEvent = {
 export type Review = { status: "approved" | "rejected"; note: string; by: string; at: number };
 
 /** Season settings edited by the season director; merged over SEASON by useSeason() */
+/**
+ * What the administration changed this season in the administrators rules: the exam, its question
+ * bank, the list of roles, the commitments and the calendar. Empty means the season runs on the
+ * defaults the platform ships with.
+ */
+export type AdminRules = {
+  exam?: Partial<{ minutes: number; questions: number; passMark: number; writtenMin: number; writtenWeight: number }>;
+  /** Questions taken out of the bank this season */
+  questionsOff?: number[];
+  /** Questions whose wording, options, answer or explanation the administration edited */
+  questionEdits?: Record<number, { text?: string; options?: string[]; answer?: number; explanation?: string }>;
+  /** Roles closed this season, and edited descriptions */
+  rolesOff?: string[];
+  roleDesc?: Record<string, string>;
+  /** Commitments dropped this season, and edited wording */
+  commitmentsOff?: string[];
+  commitmentEdits?: Record<string, { label?: string; detail?: string }>;
+  /** The administrators calendar, once the administration edits a row */
+  calendar?: { hijri: string; title: string; detail: string }[];
+  /** The stages an administrator is evaluated through, once the administration edits them */
+  stages?: { key: string; label: string; hint: string }[];
+};
+
 export type SeasonOverrides = Partial<{
   applicantMaxBirthYear: number;
   companionMaxBirthYear: number;
@@ -332,8 +355,15 @@ type State = {
   election: { openedAt?: number; closedAt?: number; elected?: string[] };
   /** End-of-season classification of the groups and the clusters, once the administration publishes it */
   grading: { publishedAt?: number; publishedBy?: string };
+  /** The administrators rules the administration changed this season */
+  adminRules: AdminRules;
+  /**
+   * The public programme of each cluster as its head wrote it. The page carries the administrations
+   * approval, so a change waits in pending until the administration approves or sends it back.
+   */
+  clusterProfiles: Record<string, import("./cluster-profile").ClusterProfileState>;
   /** What the staff scored each administrator at the end of the season, by national id */
-  evaluations: Record<string, { avg: number; at: number; by: string; items: Record<string, number> }>;
+  evaluations: Record<string, { avg: number; at: number; by: string; stages: Record<string, { score: number; note?: string; file?: string }> }>;
   tourSeen: boolean;
 };
 
@@ -359,6 +389,8 @@ const initial: State = {
   lottery: {},
   election: {},
   grading: {},
+  adminRules: {},
+  clusterProfiles: {},
   evaluations: {},
   tourSeen: false,
 };
@@ -596,6 +628,28 @@ export const actions = {
   },
   setElection(patch: State["election"]) {
     setState((s) => ({ ...s, election: { ...s.election, ...patch } }));
+  },
+  /** The cluster head submits his programme for approval */
+  submitClusterProfile(slug: string, change: import("./cluster-profile").ClusterProfileChange) {
+    setState((s) => ({ ...s, clusterProfiles: { ...s.clusterProfiles, [slug]: { ...s.clusterProfiles[slug], pending: change, rejected: undefined } } }));
+  },
+  /** The administration approves it onto the public page, or sends it back with a reason */
+  decideClusterProfile(slug: string, decision: "approved" | "rejected", by: string, reason?: string) {
+    setState((s) => {
+      const cur = s.clusterProfiles[slug];
+      if (!cur?.pending) return s;
+      const next =
+        decision === "approved"
+          ? { approved: { ...cur.pending, approvedAt: Date.now(), approvedBy: by }, pending: undefined, rejected: undefined }
+          : { ...cur, pending: undefined, rejected: { at: Date.now(), by, reason: reason ?? "", fields: cur.pending.fields } };
+      return { ...s, clusterProfiles: { ...s.clusterProfiles, [slug]: { ...cur, ...next } } };
+    });
+  },
+  setAdminRules(patch: AdminRules) {
+    setState((s) => ({ ...s, adminRules: { ...s.adminRules, ...patch } }));
+  },
+  resetAdminRules() {
+    setState((s) => ({ ...s, adminRules: {} }));
   },
   setEvaluation(id: string, value: State["evaluations"][string]) {
     setState((s) => ({ ...s, evaluations: { ...s.evaluations, [id]: value } }));

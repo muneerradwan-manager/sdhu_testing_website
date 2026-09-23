@@ -10,6 +10,7 @@ import {
   GraduationCap,
   Lock,
   Megaphone,
+  Paperclip,
   PencilLine,
   Receipt,
   Star,
@@ -26,8 +27,9 @@ import { Modal, useToast } from "@/components/ui/widgets";
 import { clustersNow } from "@/lib/cms/content";
 import { useSeason } from "@/lib/season-live";
 import { DOCUMENTS, SKILLS, docState, effectiveRole, positionLabelOf, recordOf } from "@/app/administrator/_lib/admin";
+import { useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
 import { clusterGroupsOf } from "@/app/administrator/_lib/cluster";
-import { EVALUATION_ITEMS } from "@/lib/data/staff-seed";
+
 import { can } from "@/lib/staff";
 import { actions } from "@/lib/store";
 import { cn, formatNumber, maskNationalId } from "@/lib/utils";
@@ -453,34 +455,57 @@ function Evaluate({ rows }: { rows: AdminRow[] }) {
   );
 }
 
+/**
+ * The administrator is evaluated stage by stage through the season, not once at the end: his work in
+ * the airports is not his work in the camps. Every stage takes a score out of five, a note that
+ * becomes mandatory under three, and a piece of evidence when the staff hold one — a photo or a
+ * document from that stage. The administrator sees the average, never who scored him.
+ */
 function EvaluationForm({ row }: { row: AdminRow }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const events = useAllEvents();
+  const stages = useEvaluationStages();
   const [scores, setScores] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, string>>({});
   const [tried, setTried] = useState(false);
   const history = useMemo(() => events.filter((e) => e.action === "تقييم إداري" && e.target === row.name), [events, row.name]);
 
-  const allScored = EVALUATION_ITEMS.every((it) => scores[it]);
-  const missingNotes = EVALUATION_ITEMS.filter((it) => scores[it] && scores[it] < 3 && !(notes[it] ?? "").trim());
-  const values = EVALUATION_ITEMS.map((it) => scores[it]).filter(Boolean);
+  const scored = stages.filter((st) => scores[st.key]);
+  const missingNotes = stages.filter((st) => scores[st.key] && scores[st.key] < 3 && !(notes[st.key] ?? "").trim());
+  const values = scored.map((st) => scores[st.key]);
   const avg = values.length ? round1(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+  const allScored = scored.length === stages.length;
   const extreme = allScored && (values.every((v) => v === 5) || values.every((v) => v === 1)) && !Object.values(notes).some((n) => n.trim());
 
   const submit = () => {
     setTried(true);
-    if (!allScored || missingNotes.length) return;
-    actions.setEvaluation(row.id, { avg, at: stamp(), by: user.name, items: { ...scores } });
+    if (!scored.length || missingNotes.length) return;
+    const detail = scored
+      .map((st) => `${st.label}: ${scores[st.key]}${notes[st.key]?.trim() ? ` (${notes[st.key].trim()})` : ""}${files[st.key] ? ` [دليل: ${files[st.key]}]` : ""}`)
+      .join(" · ");
+    actions.setEvaluation(row.id, {
+      avg,
+      at: stamp(),
+      by: user.name,
+      stages: Object.fromEntries(scored.map((st) => [st.key, { score: scores[st.key], note: notes[st.key]?.trim() || undefined, file: files[st.key] }])),
+    });
     logAs(user, {
       action: "تقييم إداري",
       target: row.name,
-      after: `${avg} من 5`,
-      detail: EVALUATION_ITEMS.map((it) => `${it}: ${scores[it]}${notes[it]?.trim() ? ` (${notes[it].trim()})` : ""}`).join(" · ") + (extreme ? " — مُعلَّم للمراجعة: درجات متطرفة دون ملاحظة" : ""),
+      after: `${avg} من 5 — ${scored.length} من ${stages.length} مراحل`,
+      detail: detail + (extreme ? " — مُعلَّم للمراجعة: درجات متطرفة دون ملاحظة" : ""),
     });
-    toast({ title: "حُفظ التقييم", body: `${row.name}: ${avg} من 5${extreme ? " — عُلّم للمراجعة" : ""}. يرى الإداري المتوسط فقط لا اسم المقيّم.`, tone: extreme ? "gold" : "success", icon: "⭐" });
+    toast({
+      title: "حُفظ التقييم",
+      body: `${row.name}: ${avg} من 5 في ${scored.length} مراحل${extreme ? " — عُلّم للمراجعة" : ""}. يرى الإداري المتوسط فقط لا اسم المقيّم.`,
+      tone: extreme ? "gold" : "success",
+      icon: "⭐",
+    });
     setScores({});
     setNotes({});
+    setFiles({});
     setTried(false);
   };
 
@@ -490,27 +515,36 @@ function EvaluationForm({ row }: { row: AdminRow }) {
       icon={<Star />}
       action={
         <span className="flex items-center gap-2 rounded-full bg-gold/20 px-3 py-1 text-sm font-bold text-gold ring-1 ring-gold/40">
-          المتوسط <motion.span key={avg} initial={{ scale: 0.7 }} animate={{ scale: 1 }} className="font-display text-lg">{avg || "—"}</motion.span>
+          المتوسط{" "}
+          <motion.span key={avg} initial={{ scale: 0.7 }} animate={{ scale: 1 }} className="font-display text-lg">
+            {avg || "—"}
+          </motion.span>
         </span>
       }
     >
-      <p className="mb-4 text-sm text-white/90">درجة من 5 لكل بند — الملاحظة إلزامية إذا كانت الدرجة أقل من 3.</p>
+      <p className="mb-4 text-sm leading-7 text-white/90">
+        التقييم بالمراحل: درجة من 5 لكل مرحلة، والملاحظة إلزامية إذا كانت الدرجة أقل من 3. وإذا كان معك دليل من تلك المرحلة — صورة أو وثيقة — أرفقه معها.
+        قيّم ما مرّ من مراحل واترك الباقي إلى حينه.
+      </p>
       <ul className="space-y-3">
-        {EVALUATION_ITEMS.map((it) => {
-          const v = scores[it] ?? 0;
+        {stages.map((st) => {
+          const v = scores[st.key] ?? 0;
           const needNote = v > 0 && v < 3;
           return (
-            <li key={it} className={cn("rounded-2xl p-3 ring-1 transition", tried && !v ? "bg-maroon/40 ring-gold/50" : "bg-white/[.06] ring-white/10")}>
+            <li key={st.key} className={cn("rounded-2xl p-3 ring-1 transition", tried && needNote && !(notes[st.key] ?? "").trim() ? "bg-maroon/40 ring-gold/50" : "bg-white/[.06] ring-white/10")}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="font-semibold text-white">{it}</span>
-                <div className="flex gap-1" role="radiogroup" aria-label={it}>
+                <span className="min-w-0">
+                  <span className="block font-semibold text-white">{st.label}</span>
+                  <span className="block text-xs text-white/60">{st.hint}</span>
+                </span>
+                <div className="flex gap-1" role="radiogroup" aria-label={st.label}>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <motion.button
                       key={n}
                       role="radio"
                       aria-checked={v === n}
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => setScores((s) => ({ ...s, [it]: n }))}
+                      onClick={() => setScores((x) => ({ ...x, [st.key]: n }))}
                       className={cn(
                         "grid size-9 place-items-center rounded-xl text-sm font-bold transition",
                         v === n
@@ -530,15 +564,38 @@ function EvaluationForm({ row }: { row: AdminRow }) {
                 </div>
               </div>
               <AnimatePresence>
-                {needNote && (
+                {v > 0 && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                     <textarea
                       rows={2}
-                      value={notes[it] ?? ""}
-                      onChange={(e) => setNotes((x) => ({ ...x, [it]: e.target.value }))}
-                      placeholder="ملاحظة إلزامية: ما الذي حدث؟"
-                      className={cn(textareaClass, "mt-2 text-sm", tried && !(notes[it] ?? "").trim() && "border-gold")}
+                      value={notes[st.key] ?? ""}
+                      onChange={(e) => setNotes((x) => ({ ...x, [st.key]: e.target.value }))}
+                      placeholder={needNote ? "ملاحظة إلزامية: ما الذي حدث في هذه المرحلة؟" : "ملاحظة (اختيارية)"}
+                      aria-label={`ملاحظة ${st.label}`}
+                      className={cn(textareaClass, "mt-2 text-sm", tried && needNote && !(notes[st.key] ?? "").trim() && "border-gold")}
                     />
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {files[st.key] ? (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-light/20 px-3 py-1 text-xs font-bold text-white ring-1 ring-green-light/40">
+                            <Paperclip className="size-3.5" /> {files[st.key]}
+                          </span>
+                          <button type="button" onClick={() => setFiles((x) => { const n = { ...x }; delete n[st.key]; return n; })} className="text-xs font-bold text-white/60 hover:text-white" aria-label={`إزالة دليل ${st.label}`}>
+                            إزالة
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setFiles((x) => ({ ...x, [st.key]: `${st.key}-${row.id.slice(-4)}.jpg` }))}
+                          aria-label={`إرفاق دليل ${st.label}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white/85 ring-1 ring-white/15 transition hover:ring-gold/60"
+                        >
+                          <Paperclip className="size-3.5" /> إرفاق دليل — صورة أو وثيقة
+                        </button>
+                      )}
+                      {needNote && !files[st.key] && <span className="text-xs text-gold">درجة منخفضة: الدليل يقوّي الملاحظة.</span>}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -548,10 +605,12 @@ function EvaluationForm({ row }: { row: AdminRow }) {
       </ul>
       {extreme && (
         <p className="mt-3 flex items-center gap-2 rounded-2xl bg-gold/20 p-3 text-sm font-bold text-gold ring-1 ring-gold/40">
-          <Flag className="size-4" /> درجات متطرفة في كل البنود دون ملاحظة — سيُعلَّم التقييم للمراجعة.
+          <Flag className="size-4" /> درجات متطرفة في كل المراحل دون ملاحظة — سيُعلَّم التقييم للمراجعة.
         </p>
       )}
-      {tried && (!allScored || missingNotes.length > 0) && <p className="mt-3 text-sm font-bold text-gold">قيّم كل البنود، واكتب ملاحظة لكل درجة أقل من 3.</p>}
+      {tried && (!scored.length || missingNotes.length > 0) && (
+        <p className="mt-3 text-sm font-bold text-gold">{!scored.length ? "قيّم مرحلة واحدة على الأقل." : "اكتب ملاحظة لكل درجة أقل من 3."}</p>
+      )}
       <Button variant="gold" className="mt-4" onClick={submit}>
         <CheckCircle2 className="size-4" /> حفظ التقييم
       </Button>
@@ -563,7 +622,9 @@ function EvaluationForm({ row }: { row: AdminRow }) {
             {history.map((e) => (
               <li key={e.id} className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
                 <p className="flex justify-between gap-2 font-bold text-white">
-                  <span>{e.actor} — {e.after}</span>
+                  <span>
+                    {e.actor} — {e.after}
+                  </span>
                   <span className="text-xs font-normal text-white/75">{fmtDateTime(e.at)}</span>
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/90">{e.detail}</p>
