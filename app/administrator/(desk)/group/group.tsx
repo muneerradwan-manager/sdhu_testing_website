@@ -15,10 +15,8 @@ import {
   Loader2,
   Lock,
   PenLine,
-  Send,
   ShieldCheck,
   Stamp,
-  UserCheck,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -34,9 +32,16 @@ import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { activeCount } from "../../_lib/group";
+import { TEAM_ROLES } from "../../_lib/roster";
+import { TeamPicker, teamComplete, teamNames, type TeamPick } from "./team-picker";
 import { AdminShell, LockedCard, ReceiptCard, SimButton } from "../../_components/ui";
 
 const TEAM = GROUP.team.slice(1);
+
+/** The team the head actually invited, or the demo team for profiles that were fast-forwarded */
+function teamOf(g: { team?: { role: string; name: string }[] } | undefined) {
+  return g?.team?.length ? g.team : TEAM;
+}
 const AUTO_APPROVE_MS = 12_000;
 
 function clusterName(id: string | undefined, admins: Record<string, AdminProfile>) {
@@ -87,20 +92,15 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const fee = season.fees.groupFormation;
   const existing = admin.profile?.group;
   const [form, setForm] = useState({ number: existing?.number ?? 27, capacity: existing?.capacity ?? 50, name: "مجموعة المزة للعائلات وكبار السن" });
-  const [invited, setInvited] = useState<number>(existing ? TEAM.length : 0);
-  const [inviting, setInviting] = useState(false);
+  const [team, setTeam] = useState<TeamPick>({});
   const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
   const stage = existing?.requestedAt ? "pay" : "form";
 
-  const invite = () => {
-    setInviting(true);
-    TEAM.forEach((_, i) => setTimeout(() => setInvited((n) => Math.max(n, i + 1)), 500 + i * 650));
-  };
-
   const submit = () => {
-    actions.upsertAdmin(admin.id, { group: { number: form.number, capacity: form.capacity, requestedAt: Date.now() } });
-    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, `«${form.name}»`, `السعة ${form.capacity} — الفريق: ${TEAM.map((t) => t.name).join("، ")} — دون تكتل حتى انتخاب رؤساء التكتلات`);
+    const picked = TEAM_ROLES.map((r) => ({ roleKey: r.key, role: r.label, name: team[r.key]!.candidate.name, id: team[r.key]!.candidate.id }));
+    actions.upsertAdmin(admin.id, { group: { number: form.number, capacity: form.capacity, requestedAt: Date.now(), team: picked } });
+    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, `«${form.name}»`, `السعة ${form.capacity} — الفريق بدعوات فردية: ${teamNames(team).join("، ")} — دون تكتل حتى انتخاب رؤساء التكتلات`);
     toast({ title: "أُرسل طلب التشكيل", body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
   };
 
@@ -170,42 +170,12 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
         </div>
 
         <h3 className="mt-8 flex items-center gap-2 font-bold text-ink"><UsersRound className="size-5 text-gold-dark" /> فريق المجموعة (من الناجحين)</h3>
-        <ul className="mt-3 space-y-2">
-          {TEAM.map((t, i) => {
-            const ok = invited > i;
-            return (
-              <li key={t.name} className="flex items-center gap-3 rounded-2xl border border-gold/30 p-3">
-                <span className="grid size-11 place-items-center rounded-xl bg-sand font-display font-bold text-green-dark">{t.name.replace("الشيخ ", "")[0]}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold">{t.name}</p>
-                  <p className="text-xs text-ink-soft">{t.role}</p>
-                </div>
-                <AnimatePresence mode="wait">
-                  {ok ? (
-                    <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-1 rounded-full bg-green-light/15 px-2.5 py-1 text-xs font-bold text-green">
-                      <UserCheck className="size-3.5" /> وافق من تطبيقه
-                    </motion.span>
-                  ) : (
-                    <motion.span key="wait" className="flex items-center gap-1 text-xs text-hint">
-                      {inviting && <Loader2 className="size-3.5 animate-spin" />}
-                      {inviting ? "بانتظار الموافقة..." : "لم يُرسل بعد"}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button variant="outline" size="sm" onClick={invite} disabled={inviting || invited >= TEAM.length}>
-            <Send className="size-4" /> إرسال طلبات الانضمام للفريق
-          </Button>
-          <span className="text-xs text-hint">يصل كلاً منهم طلب انضمام يوافق عليه من تطبيقه.</span>
-        </div>
+        <p className="mt-1 text-sm leading-6 text-ink-soft">ابحث عن كل واحد باسمه أو منطقته أو رقمه الوطني، وأرسل له دعوة فردية. لا تُرسل دعوة جماعية: يصل الطلب إلى شخص واحد يوافق أو يعتذر من تطبيقه، ولك أن تسحب الدعوة أو تدعو غيره.</p>
+        <TeamPicker team={team} setTeam={setTeam} groupNumber={form.number} />
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
           <p className="text-sm text-ink-soft">رسم التشكيل بعد الإرسال: <b className="text-maroon">{formatUSD(fee)}</b></p>
-          <Button size="lg" onClick={submit} disabled={invited < TEAM.length || form.number < 1}>
+          <Button size="lg" onClick={submit} disabled={!teamComplete(team) || form.number < 1}>
             إرسال طلب التشكيل <ArrowLeft className="size-5" />
           </Button>
         </div>
@@ -438,7 +408,7 @@ function ContractDoc({ kind, signature, signedName }: { kind: "cluster" | "team"
         ]
       : [
           { role: "رئيس المجموعة", name: admin.name, signed: !!signature },
-          ...TEAM.map((t) => ({ role: t.role, name: t.name, signed: true })),
+          ...teamOf(g).map((t) => ({ role: t.role, name: t.name, signed: true })),
         ];
 
   return (
@@ -511,7 +481,7 @@ function Contracts() {
     setSigned(signature);
     setTimeout(() => {
       actions.upsertAdmin(admin.id, { group: { ...g, contractSignedAt: Date.now() } });
-      logAdmin(admin.id, `توقيع ميثاق فريق المجموعة ${g.number}`, TEAM.map((t) => t.name).join("، "), "توقيع إلكتروني");
+      logAdmin(admin.id, `توقيع ميثاق فريق المجموعة ${g.number}`, teamOf(g).map((t) => t.name).join("، "), "توقيع إلكتروني");
       toast({ title: "وُقّع ميثاق الفريق وصودق عليه", body: "تغيّرت صلاحياتك تلقائياً: مجموعتك، حجاجها، الإعلانات، التجمّعات. عقد التكتل يأتي بعد انتخاب رؤساء التكتلات.", icon: "✍️", tone: "success" });
       confetti({ particleCount: 160, spread: 100, origin: { y: 0.45 }, colors: ["#D9C89E", "#AD9E6E", "#00594F", "#672146"] });
     }, 2200);
@@ -612,7 +582,7 @@ function MyGroup() {
         <Card className="md:p-8">
           <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><UsersRound className="size-5 text-gold-dark" /> فريق المجموعة</h3>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {GROUP.team.map((t, i) => (
+            {[{ role: "رئيس المجموعة", name: admin.name }, ...teamOf(g)].map((t, i) => (
               <motion.li key={t.name} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} className="flex items-center gap-3 rounded-2xl bg-sand p-3">
                 <span className={cn("grid size-11 place-items-center rounded-xl font-display font-bold", i === 0 ? "bg-maroon text-gold" : "bg-white text-green-dark")}>{t.name.replace("الشيخ ", "")[0]}</span>
                 <div className="min-w-0">

@@ -230,6 +230,8 @@ export type AdminProfile = {
     feePaidAt?: number;
     approvedAt?: number;
     approvedBy?: string;
+    /** The team the head invited one by one from the administrators who qualified this season */
+    team?: { roleKey: string; role: string; name: string; id: string }[];
     /** Team charter (deputy, guide, coordinator) */
     contractSignedAt?: number;
   };
