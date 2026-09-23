@@ -39,7 +39,7 @@ export function NextPrayerHero({ city, nowMs, sched }: { city: City; nowMs: numb
   const now = new Date(nowMs);
 
   return (
-    <div className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-green-dark via-green-dark to-ink p-6 text-white shadow-[0_30px_80px_-30px_rgba(0,89,79,.8)] ring-1 ring-gold/25 md:p-10">
+    <div className="relative isolate flex h-full flex-col justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-green-dark via-green-dark to-ink p-6 text-white shadow-[0_30px_80px_-30px_rgba(0,89,79,.8)] ring-1 ring-gold/25 md:p-10">
       <div className="bg-pattern absolute inset-0 -z-10 opacity-20 [mask-image:radial-gradient(circle_at_30%_40%,black,transparent_75%)]" />
       <div className="absolute -left-24 -top-24 -z-10 size-72 rounded-full bg-gold/15 blur-3xl" />
       <div className="absolute -bottom-32 right-10 -z-10 size-80 rounded-full bg-green-light/20 blur-3xl" />
