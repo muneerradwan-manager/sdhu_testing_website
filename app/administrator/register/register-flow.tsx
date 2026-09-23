@@ -12,7 +12,6 @@ import {
   Briefcase,
   CalendarClock,
   FileSignature,
-  FlaskConical,
   FolderLock,
   GraduationCap,
   IdCard,
@@ -32,7 +31,7 @@ import { Badge, useToast } from "@/components/ui/widgets";
 import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
-import { DEMO_ADMINS, logAdmin, seasonHistory } from "../_lib/admin";
+import { logAdmin, seasonHistory } from "../_lib/admin";
 
 const STEPS = ["البيانات الأساسية", "رمز التحقق", "الشؤون المدنية", "الملف الإداري"];
 
@@ -141,26 +140,6 @@ export function AdminRegisterFlow() {
               ))}
             </ol>
           </div>
-          {step === 0 && (
-            <div className="rounded-3xl border border-dashed border-gold-dark/60 bg-gold/15 p-4">
-              <p className="flex items-center gap-2 font-bold text-maroon">
-                <FlaskConical className="size-4" /> إداريون تجريبيون
-              </p>
-              <ul className="mt-2 space-y-2">
-                {DEMO_ADMINS.map((d) => (
-                  <li key={d.id}>
-                    <button type="button" onClick={() => setForm((f) => ({ ...f, nationalId: d.id, phone: d.phone }))} className="w-full rounded-2xl bg-white p-3 text-right transition hover:-translate-y-0.5 hover:shadow-md">
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-green-dark">{d.title}</span>
-                        <span className="font-mono text-xs text-hint" dir="ltr">{d.id}</span>
-                      </span>
-                      <span className="mt-0.5 block text-xs leading-5 text-ink-soft">{d.note}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           <p className="flex items-start gap-2 rounded-3xl bg-green-dark/6 p-4 text-sm leading-6 text-green-dark">
             <ShieldCheck className="mt-0.5 size-5 shrink-0" />
             لكل شخص نوع حساب واحد: حاج، أو إداري، أو موظف. حساب الموظف لا يُنشأ ذاتياً.
