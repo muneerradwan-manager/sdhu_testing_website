@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, CalendarRange, Coins, Layers, History, Lock, RotateCcw, Save, Scale, Settings2, Sparkles, UsersRound, Zap } from "lucide-react";
+import { ArrowLeft, CalendarRange, Coins, FileCheck2, Layers, History, Lock, RotateCcw, Save, Scale, Settings2, Sparkles, UsersRound, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -68,6 +68,24 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     ],
   },
   {
+    title: "رسوم الإداريين",
+    icon: <Coins />,
+    fields: [
+      { key: "administratorRegistration", label: "رسم التسجيل الموسمي للإداري", unit: "$", min: 0, max: 500, step: 5 },
+      { key: "groupFormation", label: "رسم تشكيل المجموعة", unit: "$", min: 0, max: 2000, step: 10 },
+      { key: "clusterFormation", label: "رسم إنشاء التكتل (يدفعه الرئيس المنتخب)", unit: "$", min: 0, max: 5000, step: 10 },
+    ],
+  },
+  {
+    title: "صلاحية وثائق الإداري",
+    icon: <FileCheck2 />,
+    fields: [
+      { key: "firstAidValidSeasons", label: "شهادة الإسعافات الأولية: تبقى سارية", unit: "مواسم", min: 1, max: 6, hint: () => "الشهادة الجامعية لا تنتهي، ولا تُطلب من جديد في أي موسم" },
+      { key: "recordValidSeasons", label: "وثيقة «لا حكم عليه»: تبقى سارية", unit: "مواسم", min: 1, max: 6, hint: (v: number) => (v === 1 ? "تُجدَّد كل موسم" : `تُجدَّد كل ${v} مواسم`) },
+      { key: "recommendationValidSeasons", label: "تزكية رئيس تكتل سابق: تبقى سارية", unit: "مواسم", min: 1, max: 6 },
+    ],
+  },
+  {
     title: "الإداريون — تجديد الصفة كل موسم",
     icon: <Coins />,
     fields: [
@@ -106,6 +124,12 @@ const LABELS: Record<Key, string> = {
   hajjCost: "تكلفة الحج",
   firstInstallment: "الدفعة الأولى",
   installmentCount: "عدد دفعات تكلفة الحج",
+  administratorRegistration: "رسم تسجيل الإداري",
+  groupFormation: "رسم تشكيل المجموعة",
+  clusterFormation: "رسم إنشاء التكتل",
+  firstAidValidSeasons: "صلاحية شهادة الإسعافات",
+  recordValidSeasons: "صلاحية وثيقة لا حكم عليه",
+  recommendationValidSeasons: "صلاحية التزكية",
   keepRoleMinRating: "أدنى تقييم للاستمرار في الصفة",
   clusterCount: "عدد التكتلات",
   clusterHeadSeasons: "مواسم الترشح لرئاسة تكتل",
@@ -138,6 +162,12 @@ function valuesOf(s: LiveSeason): Values {
     demoteShare: Math.round(s.grading.demoteShare * 100),
     honorTop: s.grading.honorTop,
     hady: s.fees.hady,
+    administratorRegistration: s.fees.administratorRegistration,
+    groupFormation: s.fees.groupFormation,
+    clusterFormation: s.fees.clusterFormation,
+    firstAidValidSeasons: s.documents["first-aid"],
+    recordValidSeasons: s.documents.record,
+    recommendationValidSeasons: s.documents.recommendation,
   };
 }
 

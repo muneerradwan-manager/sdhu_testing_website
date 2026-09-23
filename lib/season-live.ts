@@ -14,6 +14,7 @@ export type LiveSeason = {
   acceptedDirectAge: number;
   fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; privateRoomDiff: number; administratorRegistration: number; groupFormation: number; clusterFormation: number };
   administrators: { keepRoleMinRating: number; clusterCount: number; clusterHeadSeasons: number; clusterHeadMinRating: number; deputySeasons: number };
+  documents: Record<string, number>;
   /** End-of-season classification: the shares that move between tiers, and how many are honoured */
   grading: { tiers: typeof SEASON.grading.tiers; promoteShare: number; demoteShare: number; honorTop: number; entryTier: number };
   overridden: (keyof SeasonOverrides)[];
@@ -45,6 +46,9 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
       firstInstallment: Math.min(o.firstInstallment ?? SEASON.fees.firstInstallment, o.hajjCost ?? SEASON.fees.hajjCost),
       installmentCount: (o.installmentCount ?? SEASON.installments.count) === 1 ? 1 : 2,
       hady: o.hady ?? SEASON.fees.hady,
+      administratorRegistration: o.administratorRegistration ?? SEASON.fees.administratorRegistration,
+      groupFormation: o.groupFormation ?? SEASON.fees.groupFormation,
+      clusterFormation: o.clusterFormation ?? SEASON.fees.clusterFormation,
     },
     administrators: {
       keepRoleMinRating: o.keepRoleMinRating ?? SEASON.administrators.keepRole.minRating,
@@ -53,6 +57,13 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
       clusterHeadMinRating: o.clusterHeadMinRating ?? SEASON.administrators.clusters.candidacy.minRating,
       deputySeasons: o.deputySeasons ?? SEASON.administrators.clusters.deputySeasons,
     },
+    /** How long each administrator document stays valid, in seasons (0 = never expires) */
+    documents: {
+      degree: 0,
+      "first-aid": o.firstAidValidSeasons ?? 3,
+      record: o.recordValidSeasons ?? 1,
+      recommendation: o.recommendationValidSeasons ?? 2,
+    } as Record<string, number>,
     grading: {
       ...SEASON.grading,
       promoteShare: (o.promoteShare ?? SEASON.grading.promoteShare * 100) / 100,

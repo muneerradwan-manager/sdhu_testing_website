@@ -19,6 +19,7 @@ import {
   Settings2,
   ShieldCheck,
   UsersRound,
+  Vote,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
@@ -39,6 +40,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/administrators", label: "الإداريون والمجموعات", icon: <UsersRound />, perms: ["administrators.manage", "groups.approve"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
+  { href: "/staff/election", label: "انتخاب رؤساء التكتلات", icon: <Vote />, perms: ["season.settings", "groups.approve"] },
   { href: "/staff/grading", label: "التصنيف والترقية", icon: <Layers />, perms: ["season.settings", "audit.read"] },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
   { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: ["season.settings", "audit.read"] },

@@ -96,6 +96,14 @@ export type SeasonOverrides = Partial<{
   /** Clusters this season, and consecutive seasons as group head needed to stand for cluster head */
   clusterCount: number;
   clusterHeadSeasons: number;
+  /** The administrator's own fees: the seasonal registration, forming a group, forming a cluster */
+  administratorRegistration: number;
+  groupFormation: number;
+  clusterFormation: number;
+  /** How many seasons each administrator document stays valid (0 = never expires) */
+  firstAidValidSeasons: number;
+  recordValidSeasons: number;
+  recommendationValidSeasons: number;
   /** Classification: the share of each tier promoted, the share demoted, and how many are honoured */
   promoteShare: number;
   demoteShare: number;
@@ -324,6 +332,8 @@ type State = {
   election: { openedAt?: number; closedAt?: number; elected?: string[] };
   /** End-of-season classification of the groups and the clusters, once the administration publishes it */
   grading: { publishedAt?: number; publishedBy?: string };
+  /** What the staff scored each administrator at the end of the season, by national id */
+  evaluations: Record<string, { avg: number; at: number; by: string; items: Record<string, number> }>;
   tourSeen: boolean;
 };
 
@@ -349,6 +359,7 @@ const initial: State = {
   lottery: {},
   election: {},
   grading: {},
+  evaluations: {},
   tourSeen: false,
 };
 
@@ -585,6 +596,9 @@ export const actions = {
   },
   setElection(patch: State["election"]) {
     setState((s) => ({ ...s, election: { ...s.election, ...patch } }));
+  },
+  setEvaluation(id: string, value: State["evaluations"][string]) {
+    setState((s) => ({ ...s, evaluations: { ...s.evaluations, [id]: value } }));
   },
   setGrading(patch: State["grading"]) {
     setState((s) => ({ ...s, grading: { ...s.grading, ...patch } }));

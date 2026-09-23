@@ -98,6 +98,7 @@ export function AdminCluster() {
 function Waiting({ rules }: { rules: ClusterRules }) {
   const admin = useAdmin()!;
   const toast = useToast();
+  const fees = useSeason().fees;
   const c = candidacy(admin.id, rules);
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
@@ -111,7 +112,7 @@ function Waiting({ rules }: { rules: ClusterRules }) {
             `عدد التكتلات هذا الموسم: ${rules.clusterCount}`,
             `شرط الترشح: ${rules.clusterHeadSeasons} مواسم متتالية رئيساً لمجموعة بتقييم ${rules.clusterHeadMinRating} فأكثر`,
             `المعاون يختاره الرئيس المنتخب، ويُشترط أن يكون رئيس مجموعة سابقاً (${rules.deputySeasons} ${rules.deputySeasons === 1 ? "موسماً" : "مواسم"} فأكثر)`,
-            `رسم إنشاء التكتل ${formatUSD(SEASON.fees.clusterFormation)} يدفعه الرئيس المنتخب`,
+            `رسم إنشاء التكتل ${formatUSD(fees.clusterFormation)} يدفعه الرئيس المنتخب`,
           ].map((t) => (
             <li key={t} className="flex gap-2 rounded-xl bg-sand px-3 py-2">
               <Check className="mt-0.5 size-4 shrink-0 text-green-light" /> {t}
@@ -267,7 +268,8 @@ function deputyPool(admins: Record<string, AdminProfile>, meId: string, rules: C
 function CreateCluster({ rules, admins }: { rules: ClusterRules; admins: Record<string, AdminProfile> }) {
   const admin = useAdmin()!;
   const toast = useToast();
-  const fee = SEASON.fees.clusterFormation;
+  const season = useSeason();
+  const fee = season.fees.clusterFormation;
   const [name, setName] = useState(`تكتل ${getPerson(admin.id)?.firstName ?? ""} لخدمة الحجاج`);
   const [deputy, setDeputy] = useState<string>("");
   const [capacity, setCapacity] = useState(12);

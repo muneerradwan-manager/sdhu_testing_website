@@ -13,12 +13,20 @@ import {
   PencilLine,
   Receipt,
   Star,
+  Building2,
+  FileCheck2,
+  FolderLock,
+  Languages,
+  Sparkles,
   UsersRound,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { clustersNow } from "@/lib/cms/content";
+import { useSeason } from "@/lib/season-live";
+import { DOCUMENTS, SKILLS, docState, effectiveRole, positionLabelOf, recordOf } from "@/app/administrator/_lib/admin";
+import { clusterGroupsOf } from "@/app/administrator/_lib/cluster";
 import { EVALUATION_ITEMS } from "@/lib/data/staff-seed";
 import { can } from "@/lib/staff";
 import { actions } from "@/lib/store";
@@ -41,7 +49,7 @@ function Chip({ tone = "green", children }: { tone?: keyof typeof CHIP; children
   return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ring-1", CHIP[tone])}>{children}</span>;
 }
 
-type Tab = "exams" | "groups" | "evaluate";
+type Tab = "exams" | "groups" | "evaluate" | "files";
 
 export function AdministratorsView() {
   return (
@@ -56,7 +64,7 @@ function Administrators() {
   const [tab, setTab] = useState<Tab>("exams");
   const groups = rows.filter((r) => r.profile.group);
   const pendingGroups = groups.filter((r) => !r.profile.group?.approvedAt).length;
-  const awaitingOral = rows.filter((r) => !r.profile.oral && (r.profile.exam?.score !== undefined || r.previous)).length;
+  const awaitingOral = rows.filter((r) => !r.profile.examExempt && !r.profile.oral && (r.profile.exam?.score !== undefined || r.previous)).length;
   const passed = rows.filter((r) => (r.profile.finalScore ?? 0) >= PASS).length;
 
   return (
@@ -83,6 +91,7 @@ function Administrators() {
             { value: "exams", label: "الامتحانات والنتائج", count: rows.length },
             { value: "groups", label: "طلبات تشكيل المجموعات", count: groups.length },
             { value: "evaluate", label: "تقييم الإداريين" },
+            { value: "files", label: "الملفات الدائمة" },
           ]}
         />
       </div>
@@ -92,6 +101,7 @@ function Administrators() {
           {tab === "exams" && <Exams rows={rows} />}
           {tab === "groups" && <Groups rows={groups} />}
           {tab === "evaluate" && <Evaluate rows={rows} />}
+          {tab === "files" && <Files rows={rows} />}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -141,8 +151,9 @@ function Exams({ rows }: { rows: AdminRow[] }) {
                     {!r.seed && <Chip tone="gold">من بوابة الإداريين</Chip>}
                   </p>
                   <p className="text-xs text-white/75">
-                    {r.position} · <span dir="ltr">{maskNationalId(r.id)}</span>
+                    {roleLabel(r)} · <span dir="ltr">{maskNationalId(r.id)}</span>
                   </p>
+                  {r.profile.examExempt && <Chip tone="green">مجدَّد في صفته — معفى من الامتحانين</Chip>}
                   {r.previous && <p className="text-[11px] text-gold">{r.previous}</p>}
                 </div>
               </div>
@@ -312,6 +323,7 @@ function OralForm({ row, onClose }: { row: AdminRow; onClose: () => void }) {
 function Groups({ rows }: { rows: AdminRow[] }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const season = useSeason();
   const events = useAllEvents();
   const approve = can(user, "groups.approve");
   const manage = can(user, "administrators.manage");
@@ -324,10 +336,11 @@ function Groups({ rows }: { rows: AdminRow[] }) {
         const g = r.profile.group!;
         const cluster = clustersNow().find((c) => c.slug === g.clusterId);
         const reviewed = events.find((e) => e.action === "مراجعة طلب تشكيل مجموعة" && e.target === `المجموعة ${g.number} — ${r.name}`);
+        const team = g.team ?? [];
         const checks = [
-          { label: "الرئيس ناجح في التأهيل", ok: (r.profile.finalScore ?? 0) >= PASS },
-          { label: `رسم التشكيل ${formatNumber(200)} $`, ok: !!g.feePaidAt },
-          { label: "اكتمال الفريق (معاون، موجّه، منسق)", ok: true },
+          { label: "الرئيس ناجح في التأهيل", ok: (r.profile.finalScore ?? 0) >= PASS || !!r.profile.examExempt },
+          { label: `رسم التشكيل ${formatNumber(season.fees.groupFormation)} $`, ok: !!g.feePaidAt },
+          { label: `اكتمال الفريق بدعوات فردية (${team.length} من 3)`, ok: team.length >= 3 },
           { label: "ميثاق الفريق (التكتل لاحقاً)", ok: true },
         ];
         const complete = checks.every((c) => c.ok);
@@ -351,6 +364,16 @@ function Groups({ rows }: { rows: AdminRow[] }) {
                 </li>
               ))}
             </ul>
+            {team.length > 0 && (
+              <ul className="mt-3 grid gap-1.5 text-xs sm:grid-cols-3">
+                {team.map((t) => (
+                  <li key={t.id} className="rounded-xl bg-white/5 px-2.5 py-2 ring-1 ring-white/10">
+                    <span className="block text-white/60">{t.role}</span>
+                    <span className="block truncate font-bold text-white">{t.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/75">
               <span>قُدّم {fmtDateTime(g.requestedAt)}</span>
               {g.feePaidAt && (
@@ -448,6 +471,7 @@ function EvaluationForm({ row }: { row: AdminRow }) {
   const submit = () => {
     setTried(true);
     if (!allScored || missingNotes.length) return;
+    actions.setEvaluation(row.id, { avg, at: stamp(), by: user.name, items: { ...scores } });
     logAs(user, {
       action: "تقييم إداري",
       target: row.name,
@@ -549,5 +573,122 @@ function EvaluationForm({ row }: { row: AdminRow }) {
         </div>
       )}
     </Panel>
+  );
+}
+
+// ───────────────────────── The permanent files ─────────────────────────
+
+/** The role the season produced: an election outranks the role he applied with */
+function roleLabel(r: AdminRow) {
+  const key = effectiveRole(r.profile);
+  const label = key ? positionLabelOf(key) : r.position;
+  if (r.profile.cluster) return `${label} — ${r.profile.cluster.name}`;
+  if (r.profile.deputyOf) return `${label} — ${r.profile.deputyOf.clusterName}`;
+  return label;
+}
+
+/**
+ * The administrator is told his documents are reviewed by the administrators' affairs desk, so the
+ * desk has to see them: his permanent file with every document, its issuing season and whether it is
+ * still valid under this season's settings, beside his languages and skills.
+ */
+function Files({ rows }: { rows: AdminRow[] }) {
+  const season = useSeason();
+  const [id, setId] = useState(rows[0]?.id ?? "");
+  const row = rows.find((r) => r.id === id);
+  const record = row ? recordOf(row.profile, row.id) : null;
+  const expired = record?.documents.filter((d) => !docState(d, undefined, season.documents).ok) ?? [];
+  const missing = row ? DOCUMENTS.filter((d) => !record?.documents.some((x) => x.key === d.key)) : [];
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[18rem_1fr]">
+      <Panel title="اختر إدارياً" icon={<UsersRound />} bodyClass="space-y-1.5">
+        {rows.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => setId(r.id)}
+            className={cn("relative flex w-full items-center gap-3 rounded-2xl p-2.5 text-right transition", r.id === id ? "text-ink" : "text-white hover:bg-white/10")}
+          >
+            {r.id === id && <motion.span layoutId="file-pick" className="absolute inset-0 rounded-2xl bg-gold" />}
+            <span className={cn("relative grid size-9 shrink-0 place-items-center rounded-xl font-bold", r.id === id ? "bg-ink/10 text-ink" : "bg-gold/20 text-gold ring-1 ring-gold/40")}>{r.name.replace("الشيخ ", "")[0]}</span>
+            <span className="relative min-w-0">
+              <span className="block truncate text-sm font-bold">{r.name}</span>
+              <span className={cn("block truncate text-xs", r.id === id ? "text-ink/75" : "text-white/75")}>{roleLabel(r)}</span>
+            </span>
+          </button>
+        ))}
+      </Panel>
+
+      {row && record && (
+        <div className="space-y-4">
+          <Panel
+            icon={<FolderLock />}
+            title={`الملف الدائم — ${row.name}`}
+            action={<Chip tone={expired.length ? "maroon" : "green"}>{expired.length ? `${expired.length} وثيقة منتهية` : "كل الوثائق سارية"}</Chip>}
+          >
+            <p className="text-sm leading-7 text-white/70">
+              الحساب دائم، فوثائق الإداري تبقى بين المواسم وتُرفق بطلبه ما دامت سارية. مدة صلاحية كل نوع من إعدادات الموسم، وما انتهى يُطلب منه تحديثه وحده.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {record.documents.length === 0 && <li className="rounded-2xl bg-white/5 p-4 text-sm text-white/60">لا وثائق في ملفه بعد.</li>}
+              {record.documents.map((d) => {
+                const st = docState(d, undefined, season.documents);
+                return (
+                  <li key={d.id} className={cn("flex flex-wrap items-center gap-3 rounded-2xl p-3 ring-1", st.ok ? "bg-white/5 ring-white/10" : "bg-maroon/20 ring-maroon/40")}>
+                    <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", st.ok ? "bg-green-light/20 text-green-light" : "bg-maroon/40 text-white")}>
+                      <FileCheck2 className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2 font-bold text-white">
+                        {d.label}
+                        {d.key === "custom" && <Chip>أضافها بنفسه</Chip>}
+                      </span>
+                      <span className="block text-xs text-white/60">
+                        <span dir="ltr" className="font-mono">{d.file}</span> — نسخة موسم {d.issuedSeason}
+                      </span>
+                    </span>
+                    <Chip tone={st.ok ? "green" : "maroon"}>{st.text}</Chip>
+                  </li>
+                );
+              })}
+            </ul>
+            {missing.length > 0 && (
+              <p className="mt-4 rounded-2xl bg-gold/15 p-3 text-sm text-gold ring-1 ring-gold/30">
+                ينقص ملفه: {missing.map((d) => d.label).join("، ")}
+              </p>
+            )}
+          </Panel>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Panel icon={<Languages />} title="اللغات">
+              <div className="flex flex-wrap gap-2">
+                {record.languages.length === 0 && <span className="text-sm text-white/60">لم يسجّل لغات.</span>}
+                {record.languages.map((l) => (
+                  <Chip key={l} tone="green">{l}</Chip>
+                ))}
+              </div>
+            </Panel>
+            <Panel icon={<Sparkles />} title="المهارات">
+              <div className="flex flex-wrap gap-2">
+                {record.skills.length === 0 && <span className="text-sm text-white/60">لم يسجّل مهارات.</span>}
+                {record.skills.map((k) => (
+                  <Chip key={k}>{SKILLS.find((x) => x.key === k)?.label ?? k}</Chip>
+                ))}
+              </div>
+            </Panel>
+          </div>
+
+          {(row.profile.cluster || row.profile.deputyOf) && (
+            <Panel icon={<Building2 />} title="موقعه في التكتل">
+              <p className="text-sm leading-7 text-white/80">
+                {row.profile.cluster
+                  ? `انتخبه رؤساء المجموعات رئيساً لـ${row.profile.cluster.name}، فصارت صفته على مستوى التكتل ويدير ${clusterGroupsOf(row.profile, row.name).length} مجموعات، ومعاونه ${row.profile.cluster.deputyName ?? "لم يُختر"}.`
+                  : `اختاره رئيس ${row.profile.deputyOf!.clusterName} ${row.profile.deputyOf!.headName} معاوناً له، فصارت صفته على مستوى التكتل.`}
+              </p>
+            </Panel>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

@@ -90,9 +90,12 @@ export function documentType(key: string) {
   return DOCUMENTS.find((d) => d.key === key);
 }
 
-/** Is this document still valid for the season? (0 = a document that never expires) */
-export function docState(doc: VaultDoc, season: number = SEASON.hijriYear) {
-  const valid = documentType(doc.key)?.validSeasons ?? 0;
+/**
+ * Is this document still valid for the season? The validity comes from the season settings the
+ * administration edits; the list here only carries the default. 0 = a document that never expires.
+ */
+export function docState(doc: VaultDoc, season: number = SEASON.hijriYear, validity?: Record<string, number>) {
+  const valid = validity?.[doc.key] ?? documentType(doc.key)?.validSeasons ?? 0;
   if (valid === 0) return { ok: true, text: "سارية — لا تنتهي", until: null as number | null };
   const until = doc.issuedSeason + valid - 1;
   return until >= season
@@ -140,13 +143,13 @@ export function seedRecord(id: string): AdminRecord | undefined {
  * The file of an administrator who has already registered for this season: every document that had
  * expired was renewed with a copy issued this season, which is exactly what the documents step does.
  */
-export function renewedRecord(id: string): AdminRecord | undefined {
+export function renewedRecord(id: string, validity?: Record<string, number>): AdminRecord | undefined {
   const rec = seedRecord(id);
   if (!rec) return undefined;
   const season = SEASON.hijriYear;
   return {
     ...rec,
-    documents: rec.documents.map((d) => (docState(d, season).ok ? d : { ...d, id: `${d.key}-${season}`, issuedSeason: season, updatedAt: season * 1000 })),
+    documents: rec.documents.map((d) => (docState(d, season, validity).ok ? d : { ...d, id: `${d.key}-${season}`, issuedSeason: season, updatedAt: season * 1000 })),
     updatedAt: season * 1000,
   };
 }

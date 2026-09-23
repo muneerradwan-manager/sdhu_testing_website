@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
+import { useSeason } from "@/lib/season-live";
 import { actions, type AdminRecord, type VaultDoc } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { DOCUMENTS, LANGUAGES, SKILLS, docState, documentType, logAdmin, nowMs, recordOf, seasonHistory, useAdmin } from "../../_lib/admin";
@@ -40,6 +41,8 @@ export function DocumentsStep() {
   const { rec, save, returning } = useRecord();
   const toast = useToast();
   const season = SEASON.hijriYear;
+  // The administration sets how long each type stays valid
+  const validity = useSeason().documents;
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [confirm, setConfirm] = useState<VaultDoc | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -96,7 +99,7 @@ export function DocumentsStep() {
   };
 
   const missing = DOCUMENTS.filter((d) => !rec.documents.some((x) => x.key === d.key));
-  const expired = rec.documents.filter((d) => !docState(d, season).ok);
+  const expired = rec.documents.filter((d) => !docState(d, season, validity).ok);
 
   return (
     <div>
@@ -121,7 +124,7 @@ export function DocumentsStep() {
           </p>
           <ul className="mt-3 space-y-3">
             {rec.documents.map((d) => {
-              const st = docState(d, season);
+              const st = docState(d, season, validity);
               const type = documentType(d.key);
               const required = REQUIRED_DOCS.includes(d.key);
               const v = progress[`${d.key}-${season}`];
@@ -148,7 +151,7 @@ export function DocumentsStep() {
                           </p>
                           <p className="text-xs text-hint">
                             <span dir="ltr" className="font-mono">{d.file}</span> — نسخة موسم {d.issuedSeason}
-                            {type && type.validSeasons > 0 && ` — صلاحيتها ${type.validSeasons} ${type.validSeasons === 1 ? "موسم" : "مواسم"}`}
+                            {type && (validity[d.key] ?? type.validSeasons) > 0 && ` — صلاحيتها ${validity[d.key] ?? type.validSeasons} ${(validity[d.key] ?? type.validSeasons) === 1 ? "موسم" : "مواسم"}`}
                           </p>
                           <p className={cn("mt-0.5 text-xs font-bold", st.ok ? "text-green" : "text-maroon")}>{st.ok ? `تُرفق بطلب موسم ${season} — ${st.text}` : st.text}</p>
                         </>

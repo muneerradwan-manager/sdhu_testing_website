@@ -6,7 +6,8 @@ import { ArrowDownRight, ArrowLeft, ArrowUpRight, BadgeCheck, Layers, Medal, Min
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { DEMO_CLUSTERS, DEMO_GROUPS, SCORE_PARTS } from "@/lib/data/grading-demo";
+import { SCORE_PARTS } from "@/lib/data/grading-demo";
+import { useEvaluatedIds, useGraded } from "@/lib/grading-live";
 import { OUTCOME_TEXT, classify, tierLabel, type Outcome, type Ranked, type TierResult } from "@/lib/grading";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
@@ -58,7 +59,8 @@ function Grading() {
   const published = useStore((s) => s.grading);
   const [scope, setScope] = useState<Scope>("groups");
   const rules = { promoteShare: season.grading.promoteShare, demoteShare: season.grading.demoteShare, honorTop: season.grading.honorTop };
-  const entries = scope === "groups" ? DEMO_GROUPS : DEMO_CLUSTERS;
+  const entries = useGraded(scope);
+  const evaluated = useEvaluatedIds(scope);
   const tiers = useMemo(() => classify(entries, rules), [entries, rules.promoteShare, rules.demoteShare, rules.honorTop]); // eslint-disable-line react-hooks/exhaustive-deps
   const meta = SCOPES.find((s) => s.key === scope)!;
   const totals = tiers.reduce(
@@ -118,7 +120,7 @@ function Grading() {
       </div>
 
       {tiers.map((tier, i) => (
-        <TierPanel key={tier.tier} tier={tier} unit={meta.unit} one={meta.one} honorTop={rules.honorTop} shares={rules} delay={i * 0.05} />
+        <TierPanel key={tier.tier} tier={tier} unit={meta.unit} one={meta.one} honorTop={rules.honorTop} shares={rules} evaluated={evaluated} delay={i * 0.05} />
       ))}
     </div>
   );
@@ -130,6 +132,7 @@ function TierPanel({
   one,
   honorTop,
   shares,
+  evaluated,
   delay,
 }: {
   tier: TierResult;
@@ -137,6 +140,7 @@ function TierPanel({
   one: string;
   honorTop: number;
   shares: { promoteShare: number; demoteShare: number };
+  evaluated: Set<string>;
   delay: number;
 }) {
   const [query, setQuery] = useState("");
@@ -234,7 +238,7 @@ function TierPanel({
       <ul className="mt-3 space-y-1.5">
         {rows.length === 0 && <li className="rounded-xl bg-white/5 px-3 py-3 text-sm text-white/50">لا نتائج مطابقة.</li>}
         {rows.map((r) => (
-          <Row key={r.entry.id} r={r} one={one} />
+          <Row key={r.entry.id} r={r} one={one} evaluated={evaluated.has(r.entry.id)} />
         ))}
       </ul>
       {!q && only === "all" && tier.rows.length > 12 && (
@@ -253,7 +257,7 @@ function TierPanel({
   );
 }
 
-function Row({ r, one }: { r: Ranked; one: string }) {
+function Row({ r, one, evaluated }: { r: Ranked; one: string; evaluated?: boolean }) {
   const [open, setOpen] = useState(false);
   const info = OUTCOME_TEXT[r.outcome];
   const Icon = OUTCOME_ICON[r.outcome];
@@ -268,6 +272,7 @@ function Row({ r, one }: { r: Ranked; one: string }) {
           </span>
           <span className="block truncate text-xs text-white/55">
             {r.entry.head} — {r.entry.office}
+            {evaluated && <span className="mr-1.5 font-bold text-gold">— محتسبة من تقييم الموظفين</span>}
           </span>
         </span>
         <span className="font-display text-xl font-bold text-white tabular-nums">{r.entry.score}%</span>

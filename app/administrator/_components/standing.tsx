@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { ArrowDownRight, ArrowUpRight, Layers, Medal, Minus, ShieldAlert, Trophy } from "lucide-react";
 import { Card } from "@/components/portal/shell";
 import { Badge } from "@/components/ui/widgets";
-import { DEMO_CLUSTERS, DEMO_GROUPS } from "@/lib/data/grading-demo";
+import { useGraded } from "@/lib/grading-live";
 import { OUTCOME_TEXT, standingOf, tierLabel } from "@/lib/grading";
 import { useSeason } from "@/lib/season-live";
 import { useStore } from "@/lib/store";
@@ -20,7 +20,7 @@ const ICON = { promote: ArrowUpRight, ceiling: Trophy, hold: Minus, demote: Arro
 export function StandingCard({ scope, name }: { scope: "group" | "cluster"; name: string | number | undefined }) {
   const season = useSeason();
   const published = useStore((s) => s.grading.publishedAt);
-  const entries = scope === "group" ? DEMO_GROUPS : DEMO_CLUSTERS;
+  const entries = useGraded(scope === "group" ? "groups" : "clusters");
   const id = scope === "group" ? `g-${name}` : entries.find((e) => e.name === name)?.id;
   const rules = { promoteShare: season.grading.promoteShare, demoteShare: season.grading.demoteShare, honorTop: season.grading.honorTop };
   const standing = id ? standingOf(id, entries, rules) : null;
