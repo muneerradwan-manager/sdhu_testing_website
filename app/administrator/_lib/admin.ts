@@ -19,9 +19,9 @@ export type DemoAdmin = { id: string; phone: string; position: string; title: st
 
 /** Twelve demo administrators: two for each role — one finished, one not started */
 export const DEMO_ADMINS: DemoAdmin[] = [
-  { id: "01033300881", phone: "0944281449", position: "group-head", mode: "done", title: "عبد الرحمن العلي — رئيس مجموعة، رئيس تكتل منتخب", note: "58 عاماً — رئيس المجموعة 31 ثلاثة مواسم متتالية (4.6 – 4.8). جدّد صفته معفى من الامتحانين، ثم انتخبه رؤساء المجموعات رئيساً لتكتل النور، فأنشأ التكتل واختار معاونه ويستقبل طلبات المجموعات." },
+  { id: "01033300881", phone: "0944281449", position: "group-head", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور المنتخب", note: "58 عاماً — رئيس المجموعة 31 ثلاثة مواسم متتالية (4.6 – 4.8). جدّد صفته معفى من الامتحانين، ثم انتخبه رؤساء المجموعات رئيساً لتكتل النور: بقي رئيس مجموعته وارتفعت مهامه إلى مستوى التكتل، فصار يدير عدة مجموعات لكل واحدة رئيسها، ويقرر في طلبات الانضمام." },
   { id: "01033300882", phone: "0944282449", position: "group-head", mode: "start", title: "نبيل الساعاتي — رئيس مجموعة، مرشح لرئاسة تكتل", note: "54 عاماً — رئيس المجموعة 9 ثلاثة مواسم متتالية بتقييم 4.3 – 4.6: يستوفي شروط الترشح لرئاسة تكتل حين تفتح الإدارة الترشيح. لم يبدأ موسم 1448." },
-  { id: "01033300883", phone: "0944283449", position: "group-head", mode: "done", title: "بسام درويش — رئيس مجموعة، معاون رئيس تكتل", note: "51 عاماً — رئيس المجموعة 5 في 1446 و1447 (4.4)، اختاره رئيس تكتل النور معاوناً له لأنه رئيس مجموعة سابق. أنهى رحلته." },
+  { id: "01033300883", phone: "0944283449", position: "group-head", mode: "done", title: "بسام درويش — معاون رئيس تكتل النور", note: "51 عاماً — رئيس المجموعة 5 في 1446 و1447 (4.4)، اختاره رئيس تكتل النور معاوناً له لأنه رئيس مجموعة سابق. بذلك صارت صفته معاون رئيس تكتل: يرى مجموعات التكتل ومعلوماته، لا مجموعة واحدة." },
   { id: "01033300884", phone: "0944284449", position: "group-head", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "45 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالامتحانين. لم يبدأ." },
   { id: "01033300871", phone: "0944271449", position: "group-head", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وقُبلت مجموعته 27 في تكتل النور بعقد. يستلم العائلات ويفتح التجمّعات." },
   { id: "01033300885", phone: "0944285449", position: "group-head", mode: "start", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له: يريد رئاسة مجموعة يشكّلها بنفسه، ويخضع للامتحانين. لم يبدأ." },
@@ -306,7 +306,7 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0): JourneySt
     { key: "written", title: "الامتحان الكتابي", date: "15 ربيع الآخر", href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : "15 سؤالاً — 20 دقيقة", done: r.exempt || !!p?.exam?.submittedAt },
     { key: "oral", title: "الامتحان الشفهي", date: "1 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
     { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : "الكتابي 60% + الشفهي 40%", done: !!r.published && r.passed },
-    { key: "group", title: "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق والتكتل ورسم 200 $", done: !!g?.feePaidAt },
+    { key: "group", title: p?.cluster ? "مجموعات تكتلي" : "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: p?.cluster ? `يدير مجموعات ${p.cluster.name}، منها مجموعته ${g?.number}` : g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق ورسم 200 $", done: !!g?.feePaidAt },
     { key: "approval", title: "اعتماد مدير المكتب", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "مراجعة ماهر ثم اعتماد مازن", done: !!g?.approvedAt },
     { key: "contracts", title: "ميثاق الفريق", date: "جمادى الآخرة", href: "/administrator/group", detail: g?.contractSignedAt ? "موقّع ومصادق عليه" : "المعاون والموجّه والمنسق", done: !!g?.contractSignedAt },
     { key: "election", title: "انتخاب رؤساء التكتلات", date: SEASON.administrators.clusters.window, href: "/administrator/cluster", detail: p?.cluster ? `انتُخبت رئيساً — ${p.cluster.name}` : p?.vote ? "صوّتَ" : p?.candidate ? "مرشح" : `${SEASON.administrators.clusters.count} تكتلات — يصوّت رؤساء المجموعات`, done: !!p?.vote || !!p?.cluster },
@@ -447,10 +447,32 @@ function clusterStateFor(id: string, position: string, at: number): Partial<Admi
       },
     };
   }
-  return {
+  const joined: Partial<AdminProfile> = {
     vote: CLUSTER_DEMO.head,
     clusterRequest: { clusterId: TECH_POSTING.clusterId, at: at + 30_000, status: "accepted", contractSignedAt: at + 2 * 60_000 },
   };
+  if (id !== CLUSTER_DEMO.deputy) return joined;
+  // The head picked him as his deputy, so his season role became a cluster role
+  return {
+    ...joined,
+    deputyOf: { clusterId: TECH_POSTING.clusterId, clusterName: "تكتل النور", headId: CLUSTER_DEMO.head, headName: adminName(CLUSTER_DEMO.head), headGroup: demoGroupNumber(CLUSTER_DEMO.head), capacityGroups: 12 },
+  };
+}
+
+/**
+ * The role an administrator actually holds this season. A group head elected to run a cluster becomes
+ * a cluster head, and the group head he picks as his deputy becomes a cluster deputy: the election
+ * changes what they are, not only what they do, so their screens change with it.
+ */
+export function effectiveRole(p: AdminProfile | undefined) {
+  if (p?.cluster) return "cluster-head";
+  if (p?.deputyOf) return "cluster-deputy";
+  return p?.positions[0] ?? "";
+}
+
+/** Does this administrator work at the cluster level (head or deputy)? */
+export function isClusterRole(p: AdminProfile | undefined) {
+  return !!p?.cluster || !!p?.deputyOf;
 }
 
 export function positionLabelOf(key: string) {

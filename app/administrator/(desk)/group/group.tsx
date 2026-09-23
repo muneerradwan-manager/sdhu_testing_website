@@ -32,8 +32,10 @@ import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { activeCount } from "../../_lib/group";
+import { isClusterRole } from "../../_lib/admin";
 import { TEAM_ROLES } from "../../_lib/roster";
 import { StandingCard } from "../../_components/standing";
+import { ClusterGroups } from "./cluster-groups";
 import { TeamPicker, teamComplete, teamNames, type TeamPick } from "./team-picker";
 import { AdminShell, LockedCard, ReceiptCard, SimButton } from "../../_components/ui";
 
@@ -57,6 +59,8 @@ export function AdminGroup() {
   const r = resultOf(p);
   const g = p?.group;
   const [showReceipt, setShowReceipt] = useState(false);
+  // Elected to a cluster role: the head and his deputy stop seeing one group and see the cluster's groups
+  if (isClusterRole(p)) return <ClusterGroups />;
 
   const view = !r.published || !r.passed ? "locked" : !g?.feePaidAt ? "request" : showReceipt ? "receipt" : !g.approvedAt ? "pending" : !g.contractSignedAt ? "contracts" : "mine";
   const subtitle =

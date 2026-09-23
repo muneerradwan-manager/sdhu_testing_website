@@ -72,7 +72,7 @@ export function AdminRequests() {
   return (
     <AdminShell
       title="حجاج المجموعة"
-      subtitle={`المجموعة ${g.number} — ${info.clusterName}. في مرحلة التفويج يختار الحاج المقبول مجموعتك من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.`}
+      subtitle={`${p?.cluster ? `مجموعتك ${g.number} في ${info.clusterName} — لكل مجموعة أخرى في تكتلك رئيسها ومنسقها وهم من يستلمون حجاجها. ` : `المجموعة ${g.number} — ${info.clusterName}. `} في مرحلة التفويج يختار الحاج المقبول مجموعتك من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.`}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">

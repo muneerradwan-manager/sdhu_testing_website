@@ -239,6 +239,11 @@ export type AdminProfile = {
     /** Team charter (deputy, guide, coordinator) */
     contractSignedAt?: number;
   };
+  /**
+   * Picked as the deputy of an elected cluster head. Like the head, his role for the season becomes a
+   * cluster role: he stops seeing one group and sees the cluster's groups and its information.
+   */
+  deputyOf?: { clusterId: string; clusterName: string; headId: string; headName: string; headGroup: number; capacityGroups: number };
   /** Stood for cluster head this season */
   candidate?: { at: number; statement: string };
   /** The candidate this group head voted for (admin id) */

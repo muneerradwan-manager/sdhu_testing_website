@@ -22,7 +22,8 @@ import { Badge } from "@/components/ui/widgets";
 import { ageOf } from "@/lib/registry";
 import { useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
-import { POSITIONS, SKILLS, docState, journeyOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
+import { SKILLS, docState, effectiveRole, journeyOf, positionLabelOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
+import { clusterGroupsOf } from "../../_lib/cluster";
 import { AdminShell } from "../../_components/ui";
 
 const NEXT: Record<string, { title: string; text: string; cta: string }> = {
@@ -55,8 +56,11 @@ export function AdminDashboard() {
   const record = recordOf(profile, admin.id);
   const next = current ? NEXT[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
-  const status1448 = profile?.cluster
-    ? `رئيس ${profile.cluster.name} — المجموعة ${profile.group?.number}`
+  const clusterGroups = clusterGroupsOf(profile, admin.name).length;
+  const status1448 = profile?.deputyOf
+    ? `معاون رئيس ${profile.deputyOf.clusterName} — يتابع ${clusterGroups} مجموعات، منها مجموعته ${profile.group?.number}`
+    : profile?.cluster
+    ? `رئيس ${profile.cluster.name} — يدير ${clusterGroups} مجموعات، منها مجموعته ${profile.group?.number}`
     : profile?.group?.approvedAt
     ? `رئيس مجموعة — المجموعة ${profile.group.number}${clusterName ? ` — ${clusterName}` : " — دون تكتل بعد"}`
     : result.exempt
@@ -68,7 +72,8 @@ export function AdminDashboard() {
         : "لم يتقدم بعد";
 
   const notes = [
-    profile?.cluster && { t: `انتخبك رؤساء المجموعات رئيساً لتكتل، وأنشأت ${profile.cluster.name} واخترت ${profile.cluster.deputyName ?? "معاونك"} معاوناً. تصلك طلبات المجموعات في صفحة التكتلات.`, who: "شؤون الإداريين" },
+    profile?.deputyOf && { t: `اختارك رئيس ${profile.deputyOf.clusterName} ${profile.deputyOf.headName} معاوناً له، فصارت صفتك لهذا الموسم معاون رئيس تكتل: ترى مجموعات التكتل كلها ومعلوماته، وتنوب عن الرئيس في متابعتها.`, who: "شؤون الإداريين" },
+    profile?.cluster && { t: `انتخبك رؤساء المجموعات رئيساً لتكتل، فبقيتَ رئيس المجموعة ${profile.group?.number} وارتفعت مهامك إلى مستوى التكتل: تدير الآن ${clusterGroups} مجموعات في ${profile.cluster.name}، لكل واحدة رئيسها وفريقها. معاونك ${profile.cluster.deputyName ?? "—"}.`, who: "شؤون الإداريين" },
     !profile?.cluster && profile?.group?.clusterId && { t: `قبِل رئيس تكتل النور عبد الرحمن العلي انضمام المجموعة ${profile.group.number}، ووُقّع العقد وصودق عليه.`, who: "شؤون التكتلات" },
     profile?.group?.approvedAt && { t: `اعتُمدت المجموعة ${profile.group.number} لموسم 1448. ميثاق الفريق جاهز للتوقيع في خزنة الوثائق. التكتل يُحدَّد بعد انتخاب رؤساء التكتلات.`, who: "مدير المكتب" },
     result.exempt && { t: "جُدّدت صفتك لموسم 1448 دون امتحان، لأنك شغلتها الموسم الماضي بتقييم مستوفٍ. رسم الموسم مسدد.", who: "شؤون الإداريين" },
@@ -111,7 +116,7 @@ export function AdminDashboard() {
                 ["العمر", `${ageOf(admin.person)} عاماً`],
                 ["المحافظة", admin.person.governorate],
                 ["الهاتف", profile?.phone ? `${profile.phone.slice(0, 4)} ••• ${profile.phone.slice(-3)}` : "—"],
-                ["الصفة لموسم 1448", profile?.positions.length ? `${POSITIONS.find((p) => p.key === profile.positions[0])?.label ?? "—"}${profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
+                ["الصفة لموسم 1448", profile?.positions.length ? `${positionLabelOf(effectiveRole(profile))}${profile.cluster || profile.deputyOf ? " (بالانتخاب)" : profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-2xl bg-sand p-3">
                   <dt className="text-xs text-hint">{k}</dt>

@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { clustersNow } from "@/lib/cms/content";
 import { getPerson } from "@/lib/registry";
@@ -15,22 +15,11 @@ import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { DEMO_ADMINS, adminName, candidacy, demoGroupNumber, deputyEligible, lastServed, logAdmin, nowMs, seasonHistory, useAdmin, type ClusterRules } from "../../_lib/admin";
+import { DEMO_ADMINS, adminName, candidacy, deputyEligible, lastServed, logAdmin, nowMs, seasonHistory, useAdmin, type ClusterRules } from "../../_lib/admin";
 import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
+import { HEADS_POOL as SEED_HEADS, clusterGroupsOf, clusterTotals, clusterViewOf } from "../../_lib/cluster";
 import { StandingCard } from "../../_components/standing";
 
-/** Group heads of other groups this season (fictional), so the vote and the cluster requests have company */
-const SEED_HEADS: { id: string; name: string; group: number; seasons: number; rating: number; votes: number; candidate: boolean }[] = [
-  { id: "seed-01", name: "عبد الرحمن القباني", group: 5, seasons: 4, rating: 4.7, votes: 9, candidate: true },
-  { id: "seed-02", name: "فراس البيطار", group: 9, seasons: 3, rating: 4.2, votes: 6, candidate: true },
-  { id: "seed-03", name: "رضوان الزعبي", group: 41, seasons: 3, rating: 4.4, votes: 7, candidate: true },
-  { id: "seed-04", name: "حسام الساعاتي", group: 52, seasons: 5, rating: 4.6, votes: 8, candidate: true },
-  { id: "seed-05", name: "صالح العلي", group: 61, seasons: 3, rating: 4.1, votes: 4, candidate: true },
-  { id: "seed-06", name: "نزار الشيخ", group: 70, seasons: 3, rating: 4.3, votes: 5, candidate: true },
-  { id: "seed-07", name: "طارق الحوراني", group: 81, seasons: 4, rating: 4.5, votes: 7, candidate: true },
-  { id: "seed-08", name: "ماهر الجابي", group: 55, seasons: 2, rating: 4.0, votes: 0, candidate: false },
-  { id: "seed-09", name: "غسان النحاس", group: 44, seasons: 1, rating: 3.9, votes: 0, candidate: false },
-];
 
 type Candidate = { id: string; name: string; group: number; seasons: number; rating: number; votes: number; real: boolean };
 
@@ -76,7 +65,7 @@ export function AdminCluster() {
 
   const elected = election.elected ?? [];
   const iAmElected = elected.includes(admin.id);
-  const phase = !election.openedAt ? "waiting" : !election.closedAt ? "voting" : iAmElected ? (p.cluster ? "manage" : "create") : "join";
+  const phase = p.deputyOf ? "deputy" : !election.openedAt ? "waiting" : !election.closedAt ? "voting" : iAmElected ? (p.cluster ? "manage" : "create") : "join";
 
   return (
     <AdminShell
@@ -89,6 +78,7 @@ export function AdminCluster() {
           {phase === "voting" && <Election rules={rules} admins={admins} />}
           {phase === "create" && <CreateCluster rules={rules} admins={admins} />}
           {phase === "manage" && <ManageCluster admins={admins} />}
+          {phase === "deputy" && <DeputyCluster />}
           {phase === "join" && <JoinCluster admins={admins} />}
         </motion.div>
       </AnimatePresence>
@@ -301,7 +291,7 @@ function CreateCluster({ rules, admins }: { rules: ClusterRules; admins: Record<
           <Crown className="size-4" /> انتُخبت رئيساً لتكتل
         </Badge>
         <h2 className="mt-3 font-display text-3xl font-bold text-green-dark">أنشئ تكتلك</h2>
-        <p className="mt-2 leading-8 text-ink-soft">تبقى رئيساً لمجموعتك {admin.profile?.group?.number}، وتدير التكتل كاملاً. اختر معاونك من رؤساء المجموعات السابقين، وحدد كم مجموعة يتسع لها تكتلك.</p>
+<p className="mt-2 leading-8 text-ink-soft">تبقى رئيساً لمجموعتك {admin.profile?.group?.number}، وترتفع مهامك إلى مستوى التكتل: تدير مجموعاته كلها، لكل واحدة رئيسها وفريقها. اختر معاونك من رؤساء المجموعات السابقين، وحدد كم مجموعة يتسع لها تكتلك.</p>
         <div className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-2 block font-bold">اسم التكتل</span>
@@ -373,13 +363,10 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
   const real: JoinReq[] = Object.values(admins)
     .filter((a) => a.clusterRequest?.clusterId === cluster.id && a.nationalId !== admin.id)
     .map((a) => ({ id: a.nationalId, head: adminName(a.nationalId), group: a.group?.number ?? 0, capacity: a.group?.capacity ?? 50, rating: lastServed(a.nationalId)?.rating ?? null, note: "طلب حقيقي من بوابة الإداريين", real: true }));
-  const story: JoinReq[] = Object.keys(cluster.decisions)
-    .filter((id) => !real.some((r) => r.id === id) && !SEED_REQUESTS.some((r) => r.id === id) && DEMO_ADMINS.some((d) => d.id === id))
-    .map((id) => ({ id, head: adminName(id), group: demoGroupNumber(id), capacity: 50, rating: lastServed(id)?.rating ?? null, note: "انضمت بطلب وعقد موقّع", real: false }));
-  const all = [...real, ...story, ...SEED_REQUESTS];
+  const all = [...real, ...SEED_REQUESTS];
   const pending = all.filter((r) => !cluster.decisions[r.id]);
-  const accepted = all.filter((r) => cluster.decisions[r.id]?.status === "accepted");
-  const used = 1 + accepted.length;
+  const myGroups = clusterGroupsOf(admin.profile, admin.name);
+  const used = clusterTotals(myGroups).groups;
 
   const decide = (r: JoinReq, status: "accepted" | "declined", why?: string) => {
     if (status === "accepted" && used >= cluster.capacityGroups) {
@@ -447,22 +434,25 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
       </div>
       <aside className="space-y-4 lg:sticky lg:top-28">
         <Card className="md:p-6">
-          <p className="font-bold text-green-dark">مجموعات التكتل</p>
+          <p className="font-bold text-green-dark">مجموعات التكتل — {used} مجموعة تديرها</p>
           <ul className="mt-3 space-y-2 text-sm">
-            <li className="flex items-center gap-2 rounded-xl bg-sand px-3 py-2">
-              <Crown className="size-4 text-gold-dark" /> المجموعة {admin.profile?.group?.number} — {admin.name} (الرئيس)
-            </li>
-            {accepted.map((r) => (
-              <li key={r.id} className="flex items-center gap-2 rounded-xl bg-sand px-3 py-2">
-                <BadgeCheck className="size-4 text-green-light" /> المجموعة {r.group} — {r.head}
+            {myGroups.map((x) => (
+              <li key={x.id} className="flex items-center gap-2 rounded-xl bg-sand px-3 py-2">
+                {x.own ? <Crown className="size-4 shrink-0 text-gold-dark" /> : <BadgeCheck className="size-4 shrink-0 text-green-light" />}
+                <span className="min-w-0 truncate">
+                  المجموعة {x.number} — {x.own ? `${admin.name} (مجموعتك)` : x.head}
+                </span>
               </li>
             ))}
           </ul>
+          <ButtonLink href="/administrator/group" size="sm" variant="outline" className="mt-3 w-full">
+            شاشة مجموعات تكتلي
+          </ButtonLink>
         </Card>
         <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
           <p className="font-bold text-gold">قواعد التكتل</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
-            <li>الرئيس منتخب من رؤساء المجموعات، ويبقى رئيساً لمجموعته.</li>
+            <li>الرئيس منتخب من رؤساء المجموعات، يبقى رئيساً لمجموعته وتضاف إليه إدارة مجموعات التكتل كلها.</li>
             <li>المعاون يختاره الرئيس، ويُشترط أن يكون رئيس مجموعة سابقاً.</li>
             <li>الانضمام بطلب من المجموعة وقرار من الرئيس — لا إجبار.</li>
             <li>لكل مجموعة عقد مع التكتل، وللتكتل عقد مع الإدارة.</li>
@@ -493,6 +483,68 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+// ───────────────────────── The deputy's view of his cluster ─────────────────────────
+
+/**
+ * The deputy of an elected cluster head holds a cluster role too: he does not look for a cluster for
+ * his group, he already works in one. He sees the cluster and its groups; the decisions on join
+ * requests stay with the head.
+ */
+function DeputyCluster() {
+  const admin = useAdmin()!;
+  const view = clusterViewOf(admin.profile, admin.name)!;
+  const groups = clusterGroupsOf(admin.profile, admin.name);
+  const totals = clusterTotals(groups);
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <Card className="md:p-7">
+        <Badge tone="gold" className="text-sm">
+          <UserCheck className="size-4" /> معاون رئيس التكتل
+        </Badge>
+        <h2 className="mt-3 font-display text-3xl font-bold text-green-dark">{view.name}</h2>
+        <p className="mt-2 leading-8 text-ink-soft">
+          اختارك رئيس التكتل <b>{view.headName}</b> معاوناً له لأنك رئيس مجموعة سابق، فصارت صفتك هذا الموسم على مستوى التكتل: تنوب عنه في متابعة مجموعات التكتل كلها، وتبقى مجموعتك {admin.profile?.group?.number} إحداها.
+        </p>
+        <dl className="mt-6 grid gap-3 sm:grid-cols-3">
+          {[
+            ["مجموعات التكتل", `${totals.groups}`, `من سعة ${view.capacityGroups}`],
+            ["حجاج التكتل", `${totals.pilgrims}`, `من أصل ${totals.capacity} مقعداً`],
+            ["رئيس التكتل", view.headName, `المجموعة ${view.headGroup}`],
+          ].map(([k, v, hint]) => (
+            <div key={k} className="rounded-2xl bg-sand p-3">
+              <dt className="text-xs text-hint">{k}</dt>
+              <dd className="mt-0.5 font-display text-xl font-bold text-green-dark">{v}</dd>
+              <dd className="text-xs text-ink-soft">{hint}</dd>
+            </div>
+          ))}
+        </dl>
+        <ButtonLink href="/administrator/group" className="mt-6">
+          مجموعات التكتل بالتفصيل
+        </ButtonLink>
+      </Card>
+      <div className="space-y-4">
+        <Card className="md:p-6">
+          <p className="font-bold text-green-dark">مجموعات التكتل</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {groups.map((g) => (
+              <li key={g.id} className="flex items-center gap-2 rounded-xl bg-sand px-3 py-2">
+                {g.own ? <UserCheck className="size-4 shrink-0 text-gold-dark" /> : <BadgeCheck className="size-4 shrink-0 text-green-light" />}
+                <span className="min-w-0 truncate">
+                  المجموعة {g.number} — {g.own ? `${admin.name} (مجموعتك)` : g.head}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
+          <p className="font-bold text-gold">حدود صلاحيتك</p>
+          <p className="mt-2">قبول طلبات انضمام المجموعات وتوقيع عقودها من صلاحية رئيس التكتل وحده. أنت تتابع وتنوب عنه عند غيابه، وتُرفع ملاحظاتك إليه وإلى الإدارة.</p>
+        </div>
+      </div>
     </div>
   );
 }

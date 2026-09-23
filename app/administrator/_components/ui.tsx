@@ -24,7 +24,7 @@ import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD, samePath } from "@/lib/utils";
-import { isTechCoordinator, logAdmin, useAdmin } from "../_lib/admin";
+import { isClusterRole, isTechCoordinator, logAdmin, useAdmin } from "../_lib/admin";
 
 // ───────────────────────── Guard ─────────────────────────
 
@@ -73,7 +73,10 @@ export function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
   const admin = useAdmin();
-  const items = NAV.filter((n) => !n.techOnly || isTechCoordinator(admin?.profile));
+  const items = NAV.filter((n) => !n.techOnly || isTechCoordinator(admin?.profile)).map((n) =>
+    // A cluster head manages several groups, not one
+    n.href === "/administrator/group" && isClusterRole(admin?.profile) ? { ...n, label: "مجموعات تكتلي" } : n,
+  );
   return (
     <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
       <nav aria-label="أقسام حساب الإداري" className="scrollbar-none -mx-4 flex max-w-full gap-1 overflow-x-auto px-4 md:mx-0 md:rounded-2xl md:border md:border-white/15 md:bg-white/8 md:p-1 md:px-1 md:backdrop-blur-md">
