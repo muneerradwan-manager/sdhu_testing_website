@@ -6,9 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   BarChart3,
+  BriefcaseBusiness,
   ChevronDown,
   ClipboardCheck,
+  Contact,
+  Database,
   Dices,
+  FileStack,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -34,10 +38,14 @@ type NavItem = { href: string; label: string; icon: ReactNode; perms: Permission
 
 export const STAFF_NAV: NavItem[] = [
   { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [] },
+  { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
   { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
   { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: ["season.settings"] },
   { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
   { href: "/staff/administrators", label: "الإداريون والمجموعات", icon: <UsersRound />, perms: ["administrators.manage", "groups.approve"] },
+  { href: "/staff/employees", label: "الموظفون", icon: <Contact />, perms: ["staff.create", "ops.files"] },
+  { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: ["ops.files", "operations.room"] },
+  { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: ["ops.files"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
   { href: "/staff/cluster-profiles", label: "برامج التكتلات", icon: <ShieldCheck />, perms: ["groups.approve", "content.manage"] },

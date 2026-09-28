@@ -16,7 +16,8 @@ export type Permission =
   | "content.manage" // إدارة محتوى الموقع
   | "medical" // الفريق الطبي
   | "transport" // المواصلات
-  | "staff.create"; // إنشاء حسابات الموظفين
+  | "staff.create" // إدارة الموظفين وحساباتهم
+  | "ops.files"; // الملفات التشغيلية والبيانات المرجعية
 
 export type StaffUser = {
   id: string;
@@ -29,7 +30,7 @@ export type StaffUser = {
 };
 
 export const STAFF: StaffUser[] = [
-  { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: ["season.settings", "lottery.approve", "registration.review", "audit.read", "content.manage"] },
+  { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: ["season.settings", "lottery.approve", "registration.review", "audit.read", "content.manage", "ops.files"] },
   { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", permissions: ["registration.review", "lottery.import"] },
   { id: "maher", username: "maher", name: "ماهر عيسى", title: "شؤون الإداريين", travels: false, initials: "م", permissions: ["administrators.manage"] },
   { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", permissions: ["groups.approve", "administrators.manage"] },
@@ -49,6 +50,7 @@ export const STAFF: StaffUser[] = [
   { id: "samira", username: "samira", name: "د. سميرة الخوري", title: "الفريق الطبي — المدينة المنورة", travels: true, initials: "س", permissions: ["medical", "operations.room"] },
   { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف الإسكان — البرج (ب)", travels: true, initials: "و", permissions: ["operations.room"] },
   { id: "nader", username: "nader", name: "نادر قاسم", title: "الإسكان — نطاق القطاع", travels: true, initials: "ن", permissions: ["operations.room"] },
+  { id: "ghassan", username: "ghassan", name: "غسان العمر", title: "مدير شؤون البعثة — الملفات التشغيلية", travels: true, initials: "غ", permissions: ["ops.files", "staff.create", "operations.room"] },
   { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مديرة موسم مساعدة — لا تملك صلاحية النشر", travels: false, initials: "ل", permissions: ["season.settings", "audit.read"] },
 ];
 
@@ -66,7 +68,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "content.manage": "إدارة محتوى الموقع",
   medical: "الفريق الطبي",
   transport: "المواصلات",
-  "staff.create": "إنشاء حسابات الموظفين",
+  "staff.create": "إدارة الموظفين وحساباتهم",
+  "ops.files": "الملفات التشغيلية والبيانات المرجعية",
 };
 
 export function getStaff(id: string | null | undefined) {

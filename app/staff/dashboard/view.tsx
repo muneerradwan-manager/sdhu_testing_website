@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { DAILY_REGISTRATIONS, EXEC, REG_STATS } from "@/lib/data/staff-seed";
+import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, inSeason, useEmployees, useOpFiles } from "@/lib/ops";
 import { useSeason } from "@/lib/season-live";
 import { can, PERMISSION_LABELS, STAFF, type StaffUser } from "@/lib/staff";
 import { useStore } from "@/lib/store";
@@ -49,6 +50,13 @@ export function DashboardView() {
   const events = useAllEvents();
   const applications = useStore((s) => s.applications);
   const lottery = useStore((s) => s.lottery);
+  const employees = useEmployees();
+  const seasonFiles = useOpFiles().filter((f) => f.season === CURRENT_SEASON);
+  const opsGaps = seasonFiles.reduce((a, f) => a + gapsOf(f).length, 0);
+  const opsMissing = FILE_TYPES.length - seasonFiles.length;
+  const opsActive = seasonFiles.filter((f) => fileState(f) === "active").length;
+  const me = employees.find((e) => e.staffId === user.id);
+  const myPosts = me ? seasonFiles.reduce((a, f) => a + [...f.members, ...f.nodes.flatMap((o) => [...o.members, ...o.children.flatMap((c) => c.members)])].filter((m) => m.employeeId === me.id).length, 0) : 0;
 
   const pendingReviews = reviews.filter((r) => !r.review).length;
   const openTickets = tickets.filter((t) => t.status !== "resolved");
@@ -60,6 +68,7 @@ export function DashboardView() {
 
   const todos = useMemo<Todo[]>(() => {
     const list: Todo[] = [];
+    if (myPosts > 0) list.push({ id: "my-files", text: `مواقعك في الملفات التشغيلية لموسم ${CURRENT_SEASON} (${myPosts}): البرج والمخيمات وفريقك`, href: "/staff/my-files", tone: "gold" });
     if (can(user, "registration.review")) list.push({ id: "rev", text: `مراجعة ${pendingReviews} طلبات تحتاج قراراً بشرياً`, href: "/staff/reviews", tone: "gold", done: pendingReviews === 0 });
     if (can(user, "lottery.import")) list.push({ id: "imp", text: lottery.importedAt ? "تم رفع ملف نتائج القرعة" : "رفع ملف نتائج القرعة المعتمد من اللجنة", href: "/staff/lottery", done: !!lottery.importedAt });
     if (can(user, "lottery.approve")) list.push({ id: "pub", text: lottery.publishedAt ? "نُشرت نتائج القرعة" : lottery.importedAt ? "اعتماد ونشر نتائج القرعة" : "بانتظار رفع ملف القرعة من إدارة التسجيل", href: "/staff/lottery", done: !!lottery.publishedAt, tone: "maroon" });
@@ -74,8 +83,13 @@ export function DashboardView() {
     if (can(user, "transport")) list.push({ id: "drivers", text: "تأكيد حضور السائقين 13 من 14" });
     if (can(user, "audit.read")) list.push({ id: "obj", text: "الرد على اعتراض الطلب 51877 مع الدليل", href: "/staff/audit", tone: "gold" });
     if (can(user, "staff.create")) list.push({ id: "nader", text: "إرسال كلمة مرور مؤقتة لموظف جديد (نادر قاسم)" });
+    if (can(user, "ops.files")) {
+      if (opsMissing > 0) list.push({ id: "create", text: `إنشاء الملفات التشغيلية الناقصة لموسم ${CURRENT_SEASON} (${opsMissing})`, href: "/staff/operational-files", tone: "gold" });
+      list.push({ id: "gaps", text: `إسناد المناصب الإلزامية الشاغرة في الملفات التشغيلية (${opsGaps})`, href: "/staff/operational-files", tone: "maroon", done: opsGaps === 0 });
+      list.push({ id: "activate", text: `تفعيل الملفات التشغيلية بعد إدخال أرقام القرارات (${opsActive} من ${FILE_TYPES.length} مفعّلة)`, href: "/staff/operational-files", tone: "gold", done: opsActive === FILE_TYPES.length });
+    }
     return list;
-  }, [user, pendingReviews, lottery, awaitingOral, groupRequests, critical]);
+  }, [user, pendingReviews, lottery, awaitingOral, groupRequests, critical, opsGaps, opsMissing, opsActive, myPosts]);
 
   const hour = new Date(now).getHours();
 
@@ -140,8 +154,8 @@ export function DashboardView() {
         )}
         {can(user, "staff.create") && (
           <>
-            <Kpi dark label="الموظفون الدائمون" value={STAFF.length} icon={<UsersRound />} />
-            <Kpi dark label="المسافرون مع البعثة" value={210} icon={<Activity />} tone="teal" delay={0.05} />
+            <Kpi dark label="الموظفون الدائمون" value={employees.filter((e) => e.kind === "permanent").length} icon={<UsersRound />} />
+            <Kpi dark label="المسافرون مع البعثة" value={employees.filter((e) => inSeason(e) && !e.suspended).length} icon={<Activity />} tone="teal" delay={0.05} hint={`مسجلون في موسم ${CURRENT_SEASON}`} />
             <Kpi dark label="حسابات جديدة هذا الشهر" value={4} icon={<UserPlus />} tone="gold" delay={0.1} />
             <Kpi dark label="صلاحيات ممنوحة" value={STAFF.reduce((a, s) => a + s.permissions.length, 0)} icon={<UserCog />} tone="maroon" delay={0.15} />
           </>

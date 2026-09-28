@@ -364,6 +364,8 @@ type State = {
   clusterProfiles: Record<string, import("./cluster-profile").ClusterProfileState>;
   /** What the staff scored each administrator at the end of the season, by national id */
   evaluations: Record<string, { avg: number; at: number; by: string; stages: Record<string, { score: number; note?: string; file?: string }> }>;
+  /** Employees, reference data and operational files as the staff edited them (lib/ops.ts); a missing list means the seed */
+  ops: import("./ops").OpsState;
   tourSeen: boolean;
 };
 
@@ -392,6 +394,7 @@ const initial: State = {
   adminRules: {},
   clusterProfiles: {},
   evaluations: {},
+  ops: {},
   tourSeen: false,
 };
 

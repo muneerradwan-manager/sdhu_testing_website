@@ -260,9 +260,16 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
         <p className="min-w-0 flex-1 text-sm leading-6">
           <b className="text-gold">يُطبَّق فوراً:</b> معالج طلب الحج يقرأ هذه القيم مباشرة. أي تعديل تحفظه يظهر للحاج في الطلب التالي دون تحديث البرمجة.
         </p>
-        <Link href="/portal/apply" className="flex items-center gap-1 text-sm font-bold text-gold hover:underline">
-          افتح معالج الطلب <ArrowLeft className="size-4" />
-        </Link>
+        {/* The wizard itself sits behind the pilgrim login (a staff session is not a pilgrim session), so the
+            direct check is the public eligibility test, and the wizard link says that it asks for a pilgrim account. */}
+        <div className="flex flex-col items-start gap-1">
+          <Link href="/conditions#precheck" target="_blank" className="flex items-center gap-1 text-sm font-bold text-gold hover:underline">
+            جرّبها في فحص الأهلية <ArrowLeft className="size-4" />
+          </Link>
+          <Link href="/login?next=%2Fportal%2Fapply" target="_blank" className="text-xs text-white/70 hover:text-white hover:underline">
+            أو افتح معالج الطلب بحساب حاج تجريبي
+          </Link>
+        </div>
       </motion.div>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
