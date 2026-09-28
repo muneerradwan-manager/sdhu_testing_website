@@ -179,12 +179,19 @@ export function Header() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
-      <motion.div
-        animate={{ height: scrolled ? 0 : "auto", opacity: scrolled ? 0 : 1 }}
-        className="overflow-hidden"
+      {/* Collapses with a CSS grid-rows transition, not motion's height: "auto". Animating to "auto" makes motion
+          measure the page and then call window.scrollTo to restore the position — which cancels any smooth scroll
+          in progress, so «اكتشف المزيد» and every in-page link stopped ~100px down on the first click. */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+          scrolled ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
+        )}
       >
-        <TopBar />
-      </motion.div>
+        <div className="min-h-0 overflow-hidden">
+          <TopBar />
+        </div>
+      </div>
       <div
         className={cn(
           "transition-all duration-500 ease-out-expo",
