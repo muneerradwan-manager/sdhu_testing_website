@@ -303,23 +303,29 @@ export type JourneyStep = { key: string; title: string; date: string; href: stri
 export function journeyOf(p: AdminProfile | undefined, joinCount = 0): JourneyStep[] {
   const r = resultOf(p);
   const g = p?.group;
-  const raw: (Omit<JourneyStep, "state"> & { done: boolean })[] = [
+  // The election and the cluster request belong to group heads (and the cluster roles they become).
+  // A team member (deputy, guide, technical coordinator) joins a group by the head's invitation and
+  // has no station there — before any role is chosen, the full journey is shown.
+  const teamMember = !!p?.positions?.length && p.positions[0] !== "group-head" && !isClusterRole(p);
+  const raw: (Omit<JourneyStep, "state"> & { done: boolean; headOnly?: boolean })[] = [
     { key: "account", title: "إنشاء الحساب الإداري", date: "5 ربيع الأول", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
     { key: "apply", title: "التسجيل الموسمي والرسم", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "يتجدد كل موسم: صفة واحدة، الوثائق، الالتزامات، 30 $", done: !!p?.feePaidAt },
     { key: "eligibility", title: "التحقق من الأهلية", date: "حتى 10 ربيع الآخر", href: "/administrator/apply", detail: p?.eligibleAt ? "مؤهل للامتحان الكتابي" : "ستة شروط من إعدادات الموسم", done: !!p?.eligibleAt },
     { key: "written", title: "الامتحان الكتابي", date: "15 ربيع الآخر", href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : "15 سؤالاً — 20 دقيقة", done: r.exempt || !!p?.exam?.submittedAt },
     { key: "oral", title: "الامتحان الشفهي", date: "1 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
     { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : "الكتابي 60% + الشفهي 40%", done: !!r.published && r.passed },
-    { key: "group", title: p?.cluster ? "مجموعات تكتلي" : "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: p?.cluster ? `يدير مجموعات ${p.cluster.name}، منها مجموعته ${g?.number}` : g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق ورسم 200 $", done: !!g?.feePaidAt },
+    teamMember
+      ? { key: "team", title: "الانضمام إلى فريق مجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: g ? `المجموعة ${g.number}` : "بدعوة فردية من رئيس المجموعة توافق عليها", done: !!g?.feePaidAt }
+      : { key: "group", title: p?.cluster ? "مجموعات تكتلي" : "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: p?.cluster ? `يدير مجموعات ${p.cluster.name}، منها مجموعته ${g?.number}` : g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق ورسم 200 $", done: !!g?.feePaidAt },
     { key: "approval", title: "اعتماد مدير المكتب", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "مراجعة ماهر ثم اعتماد مازن", done: !!g?.approvedAt },
     { key: "contracts", title: "ميثاق الفريق", date: "جمادى الآخرة", href: "/administrator/group", detail: g?.contractSignedAt ? "موقّع ومصادق عليه" : "المعاون والموجّه والمنسق", done: !!g?.contractSignedAt },
-    { key: "election", title: "انتخاب رؤساء التكتلات", date: SEASON.administrators.clusters.window, href: "/administrator/cluster", detail: p?.cluster ? `انتُخبت رئيساً — ${p.cluster.name}` : p?.vote ? "صوّتَ" : p?.candidate ? "مرشح" : `${SEASON.administrators.clusters.count} تكتلات — يصوّت رؤساء المجموعات`, done: !!p?.vote || !!p?.cluster },
-    { key: "cluster", title: "الانضمام إلى تكتل", date: "بعد الانتخاب", href: "/administrator/cluster", detail: g?.clusterId ? "بعقد موقّع مع التكتل" : p?.clusterRequest?.status === "pending" ? "طلبك عند رئيس التكتل" : "تطلب، ويقرر رئيس التكتل، وتوقّعان العقد", done: !!g?.clusterId },
+    { key: "election", title: "انتخاب رؤساء التكتلات", date: SEASON.administrators.clusters.window, href: "/administrator/cluster", detail: p?.cluster ? `انتُخبت رئيساً — ${p.cluster.name}` : p?.vote ? "صوّتَ" : p?.candidate ? "مرشح" : `${SEASON.administrators.clusters.count} تكتلات — يصوّت رؤساء المجموعات`, done: !!p?.vote || !!p?.cluster, headOnly: true },
+    { key: "cluster", title: "الانضمام إلى تكتل", date: "بعد الانتخاب", href: "/administrator/cluster", detail: g?.clusterId ? "بعقد موقّع مع التكتل" : p?.clusterRequest?.status === "pending" ? "طلبك عند رئيس التكتل" : "تطلب، ويقرر رئيس التكتل، وتوقّعان العقد", done: !!g?.clusterId, headOnly: true },
     { key: "requests", title: "استلام حجاج المجموعة", date: "من 2 شعبان", href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "يسجّلهم منسق المجموعة + ملفات صحية", done: joinCount > 0 },
     { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "أول تجمّع أُغلق — انطلقنا" : "التجمّعات والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;
-  return raw.map(({ done, ...s }) => {
+  return raw.filter((s) => !(teamMember && s.headOnly)).map(({ done, headOnly: _headOnly, ...s }) => {
     if (done) return { ...s, state: "done" as const };
     if (!currentGiven) {
       currentGiven = true;
