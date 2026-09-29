@@ -8,6 +8,7 @@
  * - الانتقال بين المجموعات ممكن: يسجّله منسق المجموعة الجديدة، والطلب العائلي ينتقل كاملاً أو لا ينتقل.
  */
 import { clustersNow } from "./cms/content";
+import { syncFamily } from "./flights";
 import { GROUP } from "./journey";
 import { fullName } from "./registry";
 import { officeFor } from "./season";
@@ -101,4 +102,6 @@ export function enrollFamily(opts: {
     target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`,
     detail: `${app.members.length} أفراد معاً — ${info.clusterName} — عقد الحاج مع المجموعة موقّع بموافقة الحاج برمز تحقق`,
   });
+  // everyone registered in a group travels with it: if the group is already on its flights, so is the family
+  syncFamily(sessionId, app, { clusterId: group.clusterId, groupNumber: group.number });
 }

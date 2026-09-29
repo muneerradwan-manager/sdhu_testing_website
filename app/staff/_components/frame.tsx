@@ -46,6 +46,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/employees", label: "الموظفون", icon: <Contact />, perms: ["staff.create", "ops.files"] },
   { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: ["ops.files", "operations.room"] },
   { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: ["ops.files"] },
+  { href: "/staff/flights", label: "الطيران", icon: <Plane />, perms: ["flights.manage", "flights.view"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
   { href: "/staff/cluster-profiles", label: "برامج التكتلات", icon: <ShieldCheck />, perms: ["groups.approve", "content.manage"] },

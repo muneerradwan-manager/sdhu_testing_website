@@ -6,9 +6,9 @@ import { BadgeCheck, FileSpreadsheet, Globe2, Loader2, Plane, Send, Stamp } from
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { FLIGHTS } from "@/lib/journey";
+import { simulateGroupFlights } from "@/lib/flights";
 import { fullName } from "@/lib/registry";
-import { actions } from "@/lib/store";
+import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
 import { logPilgrim, useNow, type StepProps } from "./shared";
@@ -20,6 +20,10 @@ export function StepVisa({ app, sessionId }: StepProps) {
   const toast = useToast();
   const now = useNow(150);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const post = useStore((s) => s.post[sessionId]);
+  const allPost = useStore((s) => s.post);
+  const applications = useStore((s) => s.applications);
+  const admins = useStore((s) => s.admins);
   const n = app.members.length;
   const elapsed = startedAt ? now - startedAt : 0;
 
@@ -29,7 +33,9 @@ export function StepVisa({ app, sessionId }: StepProps) {
     setTimeout(() => {
       actions.setPost(sessionId, { visaAt: Date.now() });
       actions.logEvent({ actor: "رنا حداد (محاكاة)", role: "إدارة التسجيل", action: "صدور التأشيرات عبر نسك مسار", target: `طلب ${app.number}`, detail: `${n} تأشيرات` });
-      toast({ title: "صدرت تأشيرات جميع أفراد طلبك", body: `رحلتك: دمشق ← جدة ${FLIGHTS.outbound.hijri} ${FLIGHTS.outbound.departure}. الحضور إلى المطار ${FLIGHTS.outbound.airportAt}.`, icon: "🛂", tone: "success" });
+      // the family travels with its group: on the group's flights, or the officer's placing of the group is simulated
+      if (post) simulateGroupFlights(sessionId, app, post, admins, allPost, applications);
+      toast({ title: "صدرت تأشيرات جميع أفراد طلبك", body: "حُددت رحلتا الذهاب والعودة لأفراد طلبك. بطاقتا الرحلة في قسم «رحلة الذهاب والعودة».", icon: "🛂", tone: "success" });
       const colors = ["#D9C89E", "#00594F", "#289E92", "#ffffff"];
       confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 }, colors });
     }, LEAD + PER_MEMBER * n + 600);
@@ -110,7 +116,7 @@ export function StepVisa({ app, sessionId }: StepProps) {
           <motion.span animate={{ x: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
             <Plane className="size-6" />
           </motion.span>
-          نحجز مقاعدكم على الرحلة {FLIGHTS.outbound.code}...
+          نحجز مقاعدكم على رحلة مجموعتكم...
         </p>
       )}
     </Question>

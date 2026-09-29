@@ -41,7 +41,7 @@ export function stayText(ctx: SeasonCtx) {
     case "muzdalifah":
       return { icon: <Tent className="size-6" />, main: "المبيت في العراء — نقطة المجموعة 27 قرب المشعر الحرام", family: "العائلة معاً مع المجموعة" };
     case "damascus":
-      return { icon: <MapPin className="size-6" />, main: "ساحة المزة ← مطار دمشق — الرحلة 1448-07 — البوابة 3", family: `المقاعد: ${assignments.map((a) => `${a.person.firstName} ${a.seat}`).join(" | ")}` };
+      return { icon: <MapPin className="size-6" />, main: "ساحة المزة ← مطار دمشق — الرحلة RB 507 — البوابة 3", family: `المقاعد: ${assignments.map((a) => `${a.person.firstName} ${a.seat}`).join(" | ")}` };
     case "jeddah":
       return { icon: <MapPin className="size-6" />, main: "صالة الحجاج — الساحة (ج) — الحافلة 32", family: "الوصول إلى الفندق نحو 12:05" };
     case "home":
@@ -97,7 +97,7 @@ export function NowCard({ ctx }: { ctx: SeasonCtx }) {
           <Fact icon={<UtensilsCrossed className="size-6" />} label="الوجبة التالية" value={meal ? `${meal.name} ${meal.time} — ${meal.place}` : "انتهت وجبات اليوم — الفطور غداً"} />
           <div className="grid gap-3 sm:grid-cols-2">
             <Fact icon={<UsersRound className="size-6" />} label="المجموعة" value={`27 — ${GROUP.team[0].name.split(" ").slice(0, 2).join(" ")}`} sub={`الموجّه: ${GROUP.team[2].name}`} />
-            <Fact icon={<CalendarHeart className="size-6" />} label="العودة إلى الوطن" value={daysLeft ? `بعد ${daysLeft} يوماً — 23 ذو الحجة` : "اليوم — الرحلة 1448-07R"} />
+            <Fact icon={<CalendarHeart className="size-6" />} label="العودة إلى الوطن" value={daysLeft ? `بعد ${daysLeft} يوماً — 23 ذو الحجة` : "اليوم — الرحلة RB 508"} />
           </div>
         </div>
         <div id="map" className="scroll-mt-40">

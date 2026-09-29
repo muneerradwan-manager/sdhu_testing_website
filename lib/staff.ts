@@ -17,7 +17,9 @@ export type Permission =
   | "medical" // الفريق الطبي
   | "transport" // المواصلات
   | "staff.create" // إدارة الموظفين وحساباتهم
-  | "ops.files"; // الملفات التشغيلية والبيانات المرجعية
+  | "ops.files" // الملفات التشغيلية والبيانات المرجعية
+  | "flights.manage" // ملف الطيران: الرحلات والمقاعد وإسناد الموظفين
+  | "flights.view"; // الاطلاع على الرحلات وتسجيل الإقلاع والهبوط
 
 export type StaffUser = {
   id: string;
@@ -30,13 +32,13 @@ export type StaffUser = {
 };
 
 export const STAFF: StaffUser[] = [
-  { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: ["season.settings", "lottery.approve", "registration.review", "audit.read", "content.manage", "ops.files"] },
+  { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: ["season.settings", "lottery.approve", "registration.review", "audit.read", "content.manage", "ops.files", "flights.view"] },
   { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", permissions: ["registration.review", "lottery.import"] },
   { id: "maher", username: "maher", name: "ماهر عيسى", title: "شؤون الإداريين", travels: false, initials: "م", permissions: ["administrators.manage"] },
-  { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", permissions: ["groups.approve", "administrators.manage"] },
-  { id: "fadi", username: "fadi", name: "فادي سلوم", title: "غرفة العمليات — مكة", travels: true, initials: "ف", permissions: ["operations.room"] },
+  { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", permissions: ["groups.approve", "administrators.manage", "flights.view"] },
+  { id: "fadi", username: "fadi", name: "فادي سلوم", title: "غرفة العمليات — مكة", travels: true, initials: "ف", permissions: ["operations.room", "flights.view"] },
   { id: "layla", username: "layla", name: "د. ليلى شمس", title: "الفريق الطبي", travels: true, initials: "ل", permissions: ["medical", "operations.room"] },
-  { id: "haitham", username: "haitham", name: "هيثم زيدان", title: "فريق المواصلات", travels: true, initials: "ه", permissions: ["transport", "operations.room"] },
+  { id: "haitham", username: "haitham", name: "هيثم زيدان", title: "فريق المواصلات", travels: true, initials: "ه", permissions: ["transport", "flights.manage", "operations.room"] },
   { id: "tarek", username: "tarek", name: "طارق مصطفى", title: "التدقيق", travels: false, initials: "ط", permissions: ["audit.read"] },
   { id: "abusami", username: "abusami", name: "سامي حلاق (أبو سامي)", title: "الموارد البشرية", travels: false, initials: "س", permissions: ["staff.create"] },
   { id: "nour", username: "nour", name: "نور العابد", title: "محرّرة محتوى المنصة", travels: false, initials: "ن", permissions: ["content.manage"] },
@@ -70,6 +72,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   transport: "المواصلات",
   "staff.create": "إدارة الموظفين وحساباتهم",
   "ops.files": "الملفات التشغيلية والبيانات المرجعية",
+  "flights.manage": "إدارة الطيران",
+  "flights.view": "الاطلاع على الطيران",
 };
 
 export function getStaff(id: string | null | undefined) {

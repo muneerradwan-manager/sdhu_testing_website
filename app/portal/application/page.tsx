@@ -36,7 +36,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { FLIGHTS, ITINERARY, PLACES, assign, directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { ITINERARY, PLACES, assign, directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { itineraryOf, passCardOf, useFlightsData } from "@/lib/flights";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
@@ -157,6 +158,18 @@ export default function ApplicationPage() {
     [app],
   );
   const lines = useMemo(() => (app ? costLines(app, fees) : []), [app, fees]);
+  // the family's seats as the cluster head assigned them (one itinerary: the family travels together)
+  const flightsData = useFlightsData();
+  const myTrip = useMemo(() => {
+    if (!applicant) return null;
+    const it = itineraryOf(applicant.person.id, flightsData);
+    const of = (id?: string) => flightsData.flights.find((f) => f.id === id);
+    return {
+      outbound: of(it.outbound?.flightId),
+      inbound: of(it.return?.flightId),
+      seatOf: (memberId: string, dir: "outbound" | "return") => flightsData.assignments.find((x) => x.travelerId === memberId && x.flightId === (dir === "outbound" ? it.outbound?.flightId : it.return?.flightId))?.seat,
+    };
+  }, [applicant, flightsData]);
 
   // Notifications + celebration on live transitions
   useEffect(() => {
@@ -393,8 +406,16 @@ export default function ApplicationPage() {
 
             <Section id="flights" title="رحلة الذهاب والعودة" icon={<Plane className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="التأشيرة صادرة لجميع أفراد الطلب">
               <div className="grid gap-6 xl:grid-cols-2">
-                <BoardingPass f={FLIGHTS.outbound} label="رحلة الذهاب" seats={assignments.map((a) => ({ name: a.person.firstName, seat: a.seat }))} />
-                <BoardingPass f={FLIGHTS.inbound} label="رحلة العودة" tone="maroon" seats={assignments.map((a) => ({ name: a.person.firstName, seat: a.returnSeat }))} />
+                {myTrip?.outbound ? (
+                  <BoardingPass f={passCardOf(myTrip.outbound, flightsData)} label="رحلة الذهاب" seats={assignments.map((a) => ({ name: a.person.firstName, seat: myTrip.seatOf(a.person.id, "outbound") ?? a.seat }))} />
+                ) : (
+                  <NoFlightYet label="رحلة الذهاب" />
+                )}
+                {myTrip?.inbound ? (
+                  <BoardingPass f={passCardOf(myTrip.inbound, flightsData)} label="رحلة العودة" tone="maroon" seats={assignments.map((a) => ({ name: a.person.firstName, seat: myTrip.seatOf(a.person.id, "return") ?? a.returnSeat }))} />
+                ) : (
+                  <NoFlightYet label="رحلة العودة" />
+                )}
               </div>
               {assignments.some((a) => a.needs.includes("كرسي متحرك")) && (
                 <p className="mt-4 flex items-center gap-2 rounded-2xl bg-green-light/10 p-4 font-semibold text-green">
@@ -683,5 +704,17 @@ export default function ApplicationPage() {
         )}
       </Modal>
     </PortalShell>
+  );
+}
+
+/** Shown until the cluster head seats the family: the pilgrim never picks a flight himself */
+function NoFlightYet({ label }: { label: string }) {
+  return (
+    <div className="grid min-h-48 place-items-center rounded-[2rem] border-2 border-dashed border-gold/50 bg-white/60 p-6 text-center">
+      <div>
+        <p className="font-display text-xl font-bold text-green-dark">{label}: لم تُحدد بعد</p>
+        <p className="mt-1 text-sm text-ink-soft">تُحدد رحلتكم حين تضع إدارة الحج مجموعتكم على رحلة، فتظهر بطاقتها هنا ويصلك إشعار. المجموعة كلها، ومعها أسرتك، على الرحلة نفسها.</p>
+      </div>
+    </div>
   );
 }

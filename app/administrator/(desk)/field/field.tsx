@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
+import { flightsActions, isActive, useFlightsData } from "@/lib/flights";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
@@ -135,6 +136,13 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
   const g = admin.profile!.group!;
   const musters = admin.profile!.musters;
   const open = [...musters].reverse().find((m) => !m.closedAt);
+  // the group's outbound flight, so the muster to the airport doubles as boarding
+  const fd = useFlightsData();
+  const outFlight = useMemo(() => {
+    const a = fd.assignments.find((x) => x.groupNumber === g.number && isActive(x) && fd.flights.find((f) => f.id === x.flightId)?.direction === "outbound");
+    return a ? fd.flights.find((f) => f.id === a.flightId) : undefined;
+  }, [fd, g.number]);
+  const boardsFlight = open?.flightId ? fd.flights.find((f) => f.id === open.flightId) : undefined;
   const [title, setTitle] = useState(MUSTER_PRESETS[0]);
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState<string[]>(open?.present ?? []);
@@ -179,10 +187,11 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
   }, [scanning, scanned, targets, open?.id]);
 
   const create = () => {
-    const m = { id: `m-${Date.now().toString(36)}`, title: title.trim() || MUSTER_PRESETS[0], at: Date.now(), present: [] as string[] };
+    const toAirport = (title.trim() || MUSTER_PRESETS[0]) === MUSTER_PRESETS[0] ? outFlight : undefined;
+    const m = { id: `m-${Date.now().toString(36)}`, title: title.trim() || MUSTER_PRESETS[0], at: Date.now(), present: [] as string[], ...(toAirport ? { flightId: toAirport.id } : {}) };
     actions.upsertAdmin(admin.id, { musters: [...musters, m] });
-    logAdmin(admin.id, `فتح تجمّع «${m.title}»`, `المجموعة ${g.number}`, `المتوقع: ${expected}`);
-    toast({ title: "فُتح التجمّع", body: `«${m.title}» — المتوقع ${expected} حاجاً. ابدأ مسح البطاقات.`, icon: "📍", tone: "info" });
+    logAdmin(admin.id, `فتح تجمّع «${m.title}»`, `المجموعة ${g.number}`, `المتوقع: ${expected}${toAirport ? ` — الرحلة ${toAirport.flightNo}` : ""}`);
+    toast({ title: "فُتح التجمّع", body: `«${m.title}» — المتوقع ${expected} حاجاً.${toAirport ? ` مسح البطاقة يسجّل الصعود على الرحلة ${toAirport.flightNo}.` : " ابدأ مسح البطاقات."}`, icon: "📍", tone: "info" });
   };
 
   const arrive = (r: RosterEntry) => {
@@ -197,6 +206,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
     if (!open) return;
     actions.upsertAdmin(admin.id, { musters: musters.map((m) => (m.id === open.id ? { ...m, present: scanned, closedAt: Date.now() } : m)) });
     logAdmin(admin.id, `إغلاق تجمّع «${open.title}» وإرسال «انطلقنا» للجميع`, `المجموعة ${g.number}`, `الحاضرون ${scanned.length} من ${expected}`);
+    if (open.flightId) flightsActions.markBoarded(open.flightId, scanned, { name: admin.name, role: "رئيس مجموعة" });
     toast({ title: "انطلقنا 🚌", body: `وصل إلى ${expected} حاجاً: «انطلقت حافلة المجموعة ${g.number}.»`, icon: "📣", tone: "success" });
     confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 }, colors: ["#D9C89E", "#00594F", "#289E92"] });
   };
@@ -239,6 +249,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
               <div>
                 <p className="text-sm text-hint">تجمّع مفتوح منذ {new Date(open.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p>
                 <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">تجمّع: {open.title}</h2>
+                {boardsFlight && <p className="mt-1 text-sm font-bold text-gold-dark">مرتبط بالرحلة <span dir="ltr" className="font-mono">{boardsFlight.flightNo}</span>: كل بطاقة تُمسح تسجّل الصعود في ملف الطيران.</p>}
               </div>
               <Badge tone={complete ? "green" : "gold"}>{complete ? "اكتمل الحضور" : scanning ? "المسح جارٍ..." : "مفتوح"}</Badge>
             </div>

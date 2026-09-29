@@ -298,7 +298,7 @@ export type AdminProfile = {
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
    */
   joinDecisions: Record<string, "accepted" | "rejected">;
-  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number }[];
+  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string }[];
 };
 
 /** One companion's approval to be added to an application — it stays open until they answer */
@@ -366,6 +366,8 @@ type State = {
   evaluations: Record<string, { avg: number; at: number; by: string; stages: Record<string, { score: number; note?: string; file?: string }> }>;
   /** Employees, reference data and operational files as the staff edited them (lib/ops.ts); a missing list means the seed */
   ops: import("./ops").OpsState;
+  /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
+  flights: import("./flights").FlightsState;
   tourSeen: boolean;
 };
 
@@ -395,6 +397,7 @@ const initial: State = {
   clusterProfiles: {},
   evaluations: {},
   ops: {},
+  flights: {},
   tourSeen: false,
 };
 

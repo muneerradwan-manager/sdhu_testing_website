@@ -1,6 +1,6 @@
 /**
  * Everything a pilgrim sees after acceptance — taken from the operating document's worked example
- * (Cluster Al-Nour, Group 27, Abraj Al-Nour hotel, flight 1448-07, Mina camp 42...).
+ * (Cluster Al-Nour, Group 27, Abraj Al-Nour hotel, flight RB 507, Mina camp 42...).
  * Assignments (rooms, seats, cards) are derived deterministically from the application members.
  */
 import { SEASON } from "./season";
@@ -102,8 +102,8 @@ export const PLACES = {
 
 export const FLIGHTS = {
   outbound: {
-    code: "1448-07",
-    carrier: "الحملة الوطنية — طيران الحج",
+    code: "RB 507",
+    carrier: "السورية للطيران",
     from: { code: "DAM", city: "دمشق", airport: "مطار دمشق الدولي" },
     to: { code: "JED", city: "جدة", airport: "مطار الملك عبد العزيز — صالة الحجاج" },
     hijri: "24 ذو القعدة 1448",
@@ -119,8 +119,8 @@ export const FLIGHTS = {
     afterLanding: "الحافلة 32 في الساحة (ج) — مهيأة للكرسي المتحرك — الوصول إلى الفندق نحو 12:05",
   },
   inbound: {
-    code: "1448-07R",
-    carrier: "الحملة الوطنية — طيران الحج",
+    code: "RB 508",
+    carrier: "السورية للطيران",
     from: { code: "MED", city: "المدينة المنورة", airport: "مطار الأمير محمد بن عبد العزيز" },
     to: { code: "DAM", city: "دمشق", airport: "مطار دمشق الدولي" },
     hijri: "23 ذو الحجة 1448",
@@ -147,7 +147,7 @@ export const ITINERARY = [
   { hijri: "11 – 12 ذو الحجة", title: "أيام التشريق", place: "منى", detail: "رمي الجمرات الثلاث يومياً وفق المواعيد المخصصة للتكتل", icon: "tent" },
   { hijri: "12 – 16 ذو الحجة", title: "العودة إلى مكة", place: "فندق أبراج النور", detail: "طواف الإفاضة ثم طواف الوداع", icon: "kaaba" },
   { hijri: "16 – 23 ذو الحجة", title: "المدينة المنورة", place: "فندق روضة طيبة", detail: "الصلاة في المسجد النبوي، زيارة الروضة، رحلة قباء وأحد والقبلتين", icon: "mosque" },
-  { hijri: "23 ذو الحجة", title: "العودة إلى الوطن", place: "المدينة ← دمشق", detail: "رحلة 1448-07R — الوصول 17:10 — حمداً لله على السلامة", icon: "home" },
+  { hijri: "23 ذو الحجة", title: "العودة إلى الوطن", place: "المدينة ← دمشق", detail: "رحلة RB 508 — الوصول 17:10 — حمداً لله على السلامة", icon: "home" },
 ] as const;
 
 export type Track = "direct" | "lottery";

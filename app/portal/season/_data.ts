@@ -158,11 +158,11 @@ export function mealsFor(where: Where, i: number): Meal[] {
   }
   if (where === "jeddah" || where === "damascus")
     return [
-      { key: "breakfast", name: "وجبة الطائرة", time: "06:30", start: "06:30", place: "على متن الرحلة 1448-07", menu: "سندويشة جبن، كعك، عصير، ماء" },
+      { key: "breakfast", name: "وجبة الطائرة", time: "06:30", start: "06:30", place: "على متن الرحلة RB 507", menu: "سندويشة جبن، كعك، عصير، ماء" },
       { key: "lunch", name: "الغداء", time: "13:00 – 15:00", start: "13:00", place: "فندق أبراج النور — الطابق (م)", menu: HOTEL_MENUS.lunch[0] },
       { key: "dinner", name: "العشاء", time: "19:00 – 22:00", start: "19:00", place: "فندق أبراج النور — الطابق (م)", menu: HOTEL_MENUS.dinner[0] },
     ];
-  return [{ key: "lunch", name: "وجبة الطائرة", time: "14:30", start: "14:30", place: "على متن الرحلة 1448-07R", menu: "أرز ودجاج، سلطة، كعكة، ماء" }];
+  return [{ key: "lunch", name: "وجبة الطائرة", time: "14:30", start: "14:30", place: "على متن الرحلة RB 508", menu: "أرز ودجاج، سلطة، كعكة، ماء" }];
 }
 
 export function nextMeal(meals: Meal[], time: string) {
@@ -266,7 +266,7 @@ export function noticesFor(i: number, n: number, companion?: { name: string; eld
       add("20:00", "رسمي", "غداً رحلة العودة. الوزن المسموح 23 كغ. ماء زمزم (5 لتر) يُسلَّم مغلّفاً في المطار حسب تعليمات الناقل.");
       break;
     case 28:
-      add("14:05", "حسب الحالة", "أقلعت رحلة العودة 1448-07R — الوصول المتوقع 17:10.");
+      add("14:05", "حسب الحالة", "أقلعت رحلة العودة RB 508 — الوصول المتوقع 17:10.");
       add("17:12", "رسمي", "حمداً لله على السلامة. حج مبرور وسعي مشكور. نرجو تقييم رحلتك كاملة من التطبيق.", "good");
       break;
     default:

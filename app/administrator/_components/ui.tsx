@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Lock,
   MapPinned,
+  Plane,
   UserRoundPlus,
   UsersRound,
   type LucideIcon,
@@ -65,6 +66,7 @@ const NAV: NavItem[] = [
   // تسجيل المواطنين من اختصاص المنسق التقني وحده
   { href: "/administrator/pilgrims", label: "تسجيل الحجاج", icon: UserRoundPlus, techOnly: true },
   { href: "/administrator/requests", label: "حجاج المجموعة", icon: UsersRound },
+  { href: "/administrator/flights", label: "الرحلات", icon: Plane },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned },
 ];
 
