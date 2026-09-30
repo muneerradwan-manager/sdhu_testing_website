@@ -1,0 +1,22 @@
+from cap import Cap
+c = Cap(); p = c.page; S = "E"
+def btn(text, wait=900):
+    p.get_by_role("button", name=text).first.click(); c.settle(wait)
+c.goto("/login", wait=1200)
+p.locator("button:has-text('كريم الشامي')").click(); c.settle(2500)
+c.goto("/portal/apply", wait=1500)
+btn("لنبدأ"); btn("التسجيل على القبول المباشر")
+btn("لشخص آخر")
+c.shot("other-id", "طلب لشخص آخر: أدخل رقمه الوطني", section=S)
+p.locator("button:has-text('تجريبي: خديجة')").click(); c.settle(400)
+btn("ابحث", wait=400)
+p.wait_for_selector("text=هل هذا صاحب الطلب؟", timeout=15000); c.settle(800)
+c.shot("other-confirm", "تأكيد صاحب الطلب", section=S)
+btn("نعم", wait=1500)
+c.shot("other-otp", "رمز الموافقة يصل إلى هاتف صاحب الطلب", section=S)
+c.otp("1448")
+btn("تأكيد الموافقة", wait=1200)
+c.shot("other-residence", "بعد الموافقة: أين يقيم صاحب الطلب؟", section=S)
+btn("داخل سوريا"); btn("نعم"); btn("بالرقم الوطني لكل شخص")
+c.shot("count", "كم شخصاً تريد أن تصطحب؟", section=S)
+c.close(); print("DONE")

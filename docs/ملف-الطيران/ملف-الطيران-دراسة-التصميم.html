@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملف الطيران</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F7F4EF; --surface:#FFFFFF; --surface2:#F1ECE2; --ink:#021526; --soft:#5A6470;
+  --green:#00594F; --green2:#289E92; --gold:#AD9E6E; --gold-soft:#F3EDDC; --maroon:#672146; --maroon-soft:#F6E9EF;
+  --green-soft:#E6F2EF; --line:#E1DBCE; --code:#F0EBE1;
+  --font-body:"itf Qomra Arabic","IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  --font-display:"itf Qomra Arabic","Readex Pro","IBM Plex Sans Arabic",Tahoma,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E181D; --surface:#152229; --surface2:#1B2B33; --ink:#E9EDE9; --soft:#A6B2AF;
+    --green:#4CBDAE; --green2:#3FA99B; --gold:#CDBD8E; --gold-soft:#2A2A1F; --maroon:#D48CB0; --maroon-soft:#2E1B27;
+    --green-soft:#16302D; --line:#2A3B43; --code:#1E2E36;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E181D; --surface:#152229; --surface2:#1B2B33; --ink:#E9EDE9; --soft:#A6B2AF;
+  --green:#4CBDAE; --green2:#3FA99B; --gold:#CDBD8E; --gold-soft:#2A2A1F; --maroon:#D48CB0; --maroon-soft:#2E1B27;
+  --green-soft:#16302D; --line:#2A3B43; --code:#1E2E36;
+}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.9;direction:rtl}
+.wrap{max-width:900px;margin:0 auto;padding-block:24px 80px;padding-inline:18px}
+h1,h2,h3,h4{font-family:var(--font-display);color:var(--green);line-height:1.35;text-wrap:balance;margin:0}
+h1{font-size:2.4rem;font-weight:700}
+h2{font-size:1.55rem;font-weight:700;margin-top:64px;padding-top:18px;border-top:2px solid var(--gold)}
+h2 .num{display:inline-block;min-width:2.2em;color:var(--gold);font-variant-numeric:tabular-nums}
+h3{font-size:1.15rem;font-weight:700;margin-top:32px;color:var(--maroon)}
+h4{font-size:1rem;font-weight:700;margin-top:20px;color:var(--ink)}
+p{margin:10px 0;max-width:72ch}
+ul,ol{margin:8px 0;padding-inline-start:1.4em;max-width:72ch}
+li{margin:4px 0}
+li::marker{color:var(--gold)}
+strong{color:var(--green);font-weight:600}
+.eyebrow{font-size:.8rem;letter-spacing:.06em;color:var(--gold);font-weight:600;text-transform:uppercase}
+.cover{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:32px 30px 26px;display:grid;gap:14px}
+.cover .lead{font-size:1.1rem;color:var(--soft);max-width:60ch}
+.meta{display:flex;flex-wrap:wrap;gap:10px 26px;font-size:.9rem;color:var(--soft);border-top:1px solid var(--line);padding-top:14px}
+.meta b{color:var(--ink);font-weight:600}
+.toc{margin-top:26px;background:var(--surface2);border-radius:12px;padding:18px 22px}
+.toc ol{columns:2;column-gap:30px;padding-inline-start:1.5em;max-width:none}
+.toc li{break-inside:avoid;font-size:.95rem}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--green);text-decoration:underline}
+a{color:var(--green2)}
+section{scroll-margin-top:16px}
+.callout{border-inline-start:4px solid var(--green);background:var(--green-soft);border-radius:8px;padding:10px 16px;margin:16px 0;max-width:80ch}
+.callout.warn{border-color:var(--maroon);background:var(--maroon-soft)}
+.callout.decision{border-color:var(--gold);background:var(--gold-soft)}
+.callout b:first-child{display:block;font-family:var(--font-display);margin-bottom:2px}
+.callout p{margin:4px 0}
+.tbl{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;line-height:1.6}
+th,td{padding:8px 12px;text-align:right;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--surface2);font-family:var(--font-display);font-weight:600;color:var(--green);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+code{font-family:Consolas,"Courier New",monospace;font-size:.85em;background:var(--code);padding:1px 6px;border-radius:5px;direction:ltr;unicode-bidi:embed}
+.chip{display:inline-block;padding:1px 10px;border-radius:999px;font-size:.8rem;font-weight:600;line-height:1.6;white-space:nowrap}
+.chip.g{background:var(--green-soft);color:var(--green)}
+.chip.m{background:var(--maroon-soft);color:var(--maroon)}
+.chip.y{background:var(--gold-soft);color:#6E5F2E}
+:root[data-theme="dark"] .chip.y{color:var(--gold)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip.y{color:var(--gold)}}
+figure{margin:22px 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 12px 8px}
+figure .fig{overflow-x:auto}
+figure svg{max-width:100%;height:auto;display:block;margin:0 auto;font-family:var(--font-body)}
+figcaption{font-size:.88rem;color:var(--soft);margin-top:8px;padding-inline:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card h4{margin-top:0;color:var(--green)}
+.card p,.card ul{font-size:.93rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.kpi .v{font-family:var(--font-display);font-size:1.5rem;color:var(--green);font-variant-numeric:tabular-nums;line-height:1.3}
+.kpi .l{font-size:.82rem;color:var(--soft)}
+.steps{counter-reset:s;list-style:none;padding:0;max-width:80ch}
+.steps li{counter-increment:s;position:relative;padding-inline-start:2.4em;margin:8px 0}
+.steps li::before{content:counter(s);position:absolute;inset-inline-start:0;top:.2em;width:1.7em;height:1.7em;border-radius:50%;background:var(--green);color:#fff;font-size:.8rem;display:grid;place-items:center;font-weight:700}
+.src{font-size:.86rem;color:var(--soft)}
+.src li{margin:2px 0}
+hr{border:0;border-top:1px solid var(--line);margin:30px 0}
+@media (max-width:640px){.toc ol{columns:1} h1{font-size:1.9rem} .cover{padding:22px 18px}}
+@media print{body{background:#fff} .wrap{max-width:none;padding:0} h2{break-before:page;border-top:0;margin-top:0} figure,.card,.tbl,.callout{break-inside:avoid} .cover{border:0}}
+</style>
+
+</head>
+<body>
+<div class="wrap" lang="ar">
+
+<header class="cover">
+  <div class="eyebrow">المنصة الوطنية للحج — دراسة تصميم</div>
+  <h1>ملف الطيران: رحلات الموظفين ورحلات الحجاج</h1>
+  <p class="lead">تحليل الدورة التشغيلية الكاملة قبل التنفيذ: من إنشاء الرحلة وتحديد مقاعدها، إلى إسناد الحجاج والموظفين، وربط الذهاب بالعودة، وما يحدث عند الإلغاء والتأجيل. ثم ما يلزم من كيانات وحالات وصلاحيات وشاشات.</p>
+  <div class="meta">
+    <span>الجمهور: <b>فريق التطوير وصاحب المنتج</b></span>
+    <span>المصدر: <b>النسخة التجريبية الحالية + الواقع التشغيلي لموسمي 1446 و1447</b></span>
+    <span>التاريخ: <b>29 أيلول 2026</b></span>
+    <span>الإصدار: <b>1.1 — بعد قرار الإدارة، ومنفَّذ في النسخة التجريبية</b></span>
+  </div>
+</header>
+
+<div class="callout decision" id="update" style="margin-top:22px">
+  <b>تحديث 1.1 — 29 أيلول 2026: الإسناد لمسؤول الطيران وحده</b>
+  <p>قررت الإدارة آلية أبسط من المقترح الأصلي، ونُفّذت في النسخة التجريبية بها:</p>
+  <ul>
+    <li><strong>الموظف المسؤول يدير كل شيء:</strong> ينشئ الرحلات، ويسند الموظفين، ويضع مجموعات الحجاج على الرحلات.</li>
+    <li><strong>رحلات الموظفين:</strong> لموظف واحد أو لعدة موظفين بلا حد إلا السعة، ذهاباً فقط أو عودة فقط أو ذهاباً وعودة معاً (رحلتان مرتبطتان تُنشآن وتُنشران معاً).</li>
+    <li><strong>الحجاج على مستوى المجموعة:</strong> تُوضع المجموعة كاملة على الرحلة، فيسافر عليها كل المسجلين فيها وفريقها، ومن يُسجَّل فيها لاحقاً يلحق بها تلقائياً.</li>
+    <li><strong>لا إجراء لرئيس التكتل في المنصة:</strong> لا ينشئ رحلة ولا يرسل طلب حجز ولا طلب تغيير. التنسيق بينه وبين الموظف المسؤول خارج المنصة، وصفحة «الرحلات» عنده للاطلاع فقط.</li>
+    <li><strong>أُلغيت حصص التكتلات وطلبات التغيير.</strong> بقيت بقية الدراسة كما هي: دورة حياة الرحلة، والإقفال وكشف الركاب، والتأجيل والتحويل والإلغاء، والاستثناءات.</li>
+  </ul>
+  <p>حيث يذكر النص أدناه أن رئيس التكتل يسند، أو يذكر الحصص أو طلبات التغيير، فالمعتمد هو هذا التحديث.</p>
+</div>
+
+<nav class="toc" aria-label="المحتويات">
+  <div class="eyebrow">المحتويات</div>
+  <ol>
+    <li><a href="#s1">الخلاصة</a></li>
+    <li><a href="#s2">الواقع التشغيلي في موسمي 1446 و1447</a></li>
+    <li><a href="#s3">ما تملكه المنصة اليوم وما ينقصها</a></li>
+    <li><a href="#s4">المبادئ الحاكمة</a></li>
+    <li><a href="#s5">الكيانات والعلاقات</a></li>
+    <li><a href="#s6">دورة حياة الرحلة</a></li>
+    <li><a href="#s7">إسناد الحجاج ودورة حياته</a></li>
+    <li><a href="#s8">إسناد الموظفين</a></li>
+    <li><a href="#s9">إدارة المقاعد</a></li>
+    <li><a href="#s10">ربط الذهاب بالعودة</a></li>
+    <li><a href="#s11">الصلاحيات</a></li>
+    <li><a href="#s12">الدورة التشغيلية الكاملة</a></li>
+    <li><a href="#s13">الشاشات</a></li>
+    <li><a href="#s14">ما يستطيع كل مستخدم فعله</a></li>
+    <li><a href="#s15">الحالات الاستثنائية</a></li>
+    <li><a href="#s16">التكامل والمخرجات</a></li>
+    <li><a href="#s17">خطة التنفيذ في النسخة التجريبية</a></li>
+    <li><a href="#s18">قرارات مطلوبة من الإدارة</a></li>
+    <li><a href="#s19">المصادر</a></li>
+  </ol>
+</nav>
+
+<style>
+.bx{fill:var(--surface2);stroke:var(--green);stroke-width:1.5}
+.bxm{fill:var(--maroon-soft);stroke:var(--maroon);stroke-width:1.5}
+.bxy{fill:var(--gold-soft);stroke:var(--gold);stroke-width:1.5}
+.bxg{fill:var(--green);stroke:var(--green)}
+.tx{fill:var(--ink);font-size:13px}
+.txb{fill:var(--ink);font-size:13px;font-weight:700}
+.txw{fill:#fff;font-size:13px;font-weight:700}
+.lb{fill:var(--soft);font-size:11px}
+.ln{stroke:var(--soft);fill:none;stroke-width:1.5}
+.lnm{stroke:var(--maroon);fill:none;stroke-width:1.5;stroke-dasharray:5 4}
+.lane{fill:none;stroke:var(--line);stroke-width:1}
+.lanel{fill:var(--gold);font-size:12px;font-weight:700}
+</style>
+
+<section id="s1">
+<h2><span class="num">1</span>الخلاصة</h2>
+<p>ملف الطيران ليس جدول رحلات. هو <strong>سوق مقاعد مضبوط</strong>: مسؤول الطيران يوفّر الرحلات ويحدد مقاعدها، والجهات المخوّلة في التكتلات تسند الحجاج إليها، والنظام يضمن ألا يتجاوز أحد السعة، وأن يسافر أفراد العائلة معاً، وأن يعرف كل حاج وكل موظف رحلته ذهاباً وعودة من ملفه.</p>
+<div class="grid2">
+  <div class="card"><h4>مستخدم واحد يدير الطيران</h4><p>مسؤول الطيران (موظف) ينشئ الرحلات، ويسند الموظفين واحداً أو عدة، ويضع مجموعات الحجاج على الرحلات كاملة. رئيس التكتل ينسّق معه خارج المنصة ويرى النتيجة فقط.</p></div>
+  <div class="card"><h4>الرحلة مورد له سعة</h4><p>لكل رحلة سعة كلية، وحجز للموظفين المرافقين، وما يبقى للحجاج. كل إسناد يُحجز في معاملة واحدة، فلا يتجاوز الإجمالي المقاعد المتاحة، ولا تُقسم العائلة على رحلتين إلا باستثناء موثّق.</p></div>
+  <div class="card"><h4>الذهاب والعودة زوج على مستوى المسافر</h4><p>الرحلة ذهاب أو عودة. الربط يتم في ملف المسافر: إسناد ذهاب ثم إسناد عودة، وتُحسب حالته من الاثنين: لم يُسند، ذهاب فقط، ذهاب وعودة، سافر، عاد.</p></div>
+  <div class="card"><h4>الاستثناء هو القاعدة في الطيران</h4><p>في موسم 1447 أُجّلت كل رحلات العودة يوماً كاملاً، وحُوّلت رحلتان إلى عمّان. التصميم يعامل التأجيل والتحويل والإلغاء وإعادة الإسناد كحالات أولية في دورة حياة الرحلة، لا كتعديل يدوي.</p></div>
+</div>
+<p>ما تقترحه هذه الدراسة باختصار:</p>
+<ul>
+  <li><strong>خمسة كيانات جديدة:</strong> المطار، الناقل الجوي، الرحلة، الإسناد، كشف الركاب. وتعديل واحد: تحويل الرحلة من ثابت في الكود إلى بيانات في المخزن.</li>
+  <li><strong>ست حالات للرحلة:</strong> مسودة، منشورة، مكتملة، مقفلة، أقلعت، وصلت. وثلاث حالات جانبية: مؤجلة، محوّلة، ملغاة.</li>
+  <li><strong>صلاحيتان جديدتان للموظفين:</strong> إدارة الطيران، والاطلاع على الطيران. ولا حق إسناد للإداريين: رئيس التكتل ورئيس المجموعة يطّلعان فقط.</li>
+  <li><strong>تسع شاشات:</strong> أربع في بوابة الموظفين، وثلاث في بوابة الإداريين، وواحدة للحاج، وواحدة للموظف المسافر.</li>
+  <li><strong>ثلاث مراحل تنفيذ</strong> في النسخة التجريبية، أولها رحلات الموظفين لأنها أبسط وتثبت النموذج.</li>
+</ul>
+<div class="callout decision"><b>ما يحتاج قرار الإدارة قبل التنفيذ</b><p>سبعة قرارات في الفصل 18، أهمها ثلاثة: هل تُخصَّص الرحلة لتكتل بعينه أم تُفتح لكل التكتلات؟ هل يُسمح بتقسيم المجموعة الواحدة على رحلتين؟ ومن يعتمد الإسناد بعد إقفال الرحلة؟</p></div>
+</section>
+
+<section id="s2">
+<h2><span class="num">2</span>الواقع التشغيلي في موسمي 1446 و1447</h2>
+<p>الأرقام التالية من التغطية الرسمية والصحفية لموسم 1447 (أيار وحزيران 2026)، وهي أول موسم يُنظَّم من داخل سوريا بعد التحرير بطاقة كاملة. الغاية ليست نسخ ما جرى، بل استخلاص ما يجب أن يتحمّله النظام.</p>
+<div class="kpis">
+  <div class="kpi"><div class="v">24,500</div><div class="l">حاج وحاجة في 1447 (الحصة 22,500 + 2,000 إضافية)</div></div>
+  <div class="kpi"><div class="v">≈ 57</div><div class="l">رحلة ذهاب من دمشق لنحو 12,900 حاج</div></div>
+  <div class="kpi"><div class="v">≈ 9,000</div><div class="l">حاج غادروا من حلب</div></div>
+  <div class="kpi"><div class="v">340</div><div class="l">حاجاً على أول رحلة (9 أيار 2026)</div></div>
+  <div class="kpi"><div class="v">15 يوماً</div><div class="l">نافذة الذهاب: 9 – 23 أيار</div></div>
+  <div class="kpi"><div class="v">16 يوماً</div><div class="l">نافذة العودة: 5 – 20 حزيران، من المدينة</div></div>
+</div>
+<h3>ما جرى فعلاً</h3>
+<ul>
+  <li><strong>خمسة مطارات مغادرة:</strong> دمشق وحلب للمقيمين في سوريا، وإسطنبول وغازي عنتاب والقاهرة للمقيمين في الخارج. الذهاب إلى جدة، والعودة من المدينة المنورة إلى دمشق وحلب.</li>
+  <li><strong>ثلاثة ناقلين:</strong> السورية للطيران، والسعودية، وطيران ناس. الطائرات مختلفة السعة، فمتوسط الرحلة من دمشق نحو 226 مقعداً، وأكبرها 340.</li>
+  <li><strong>لا سفر فردي:</strong> الحاج يسافر ضمن مجموعته المعتمدة، ومع المجموعة فرق مرافقة من دخول مطار المغادرة حتى السكن في السعودية، وفرق أخرى في مطار الوصول.</li>
+  <li><strong>تكلفة الحج تشمل الطيران:</strong> 4,750 دولاراً للمقيم، فلا خطوة دفع خاصة بالرحلة في المنصة.</li>
+  <li><strong>التأشيرات قبل الرحلات بأسابيع:</strong> صدرت معظم التأشيرات في 6 نيسان، والرحلات بدأت في 9 أيار. وبيانات الرحلة لكل حاج تُرفع إلى منصة «نسك مسار» ضمن بيانات الاستعداد المسبق.</li>
+  <li><strong>يوم واحد قلب الجدول:</strong> في 8 حزيران 2026 أُجّلت كل رحلات العودة المقررة ذلك اليوم بسبب إغلاق الأجواء، ثم أُعيدت جدولة رحلتين (نحو 700 حاج) إلى مطار الملكة علياء في عمّان، ونُقل الحجاج منه بحافلات سعة كل منها 35 إلى 40 راكباً إلى دمشق وحلب. الإعلان جاء عبر قناة الإدارة على تلغرام، مع وعد بإبلاغ الحجاج وذويهم بأي تغيير.</li>
+</ul>
+<h3>ما يفرضه ذلك على التصميم</h3>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>الواقع</th><th>المتطلب في النظام</th></tr></thead>
+<tbody>
+<tr><td class="num">R1</td><td>نحو 145 رحلة في الموسم (ذهاب وعودة)، من 5 مطارات و3 ناقلين</td><td>قائمة رحلات قابلة للتصفية بالاتجاه والمطار والتاريخ والحالة، واستيراد الجدول من ملف، لا إدخال يدوي فقط</td></tr>
+<tr><td class="num">R2</td><td>مطار العودة يختلف عن مطار الذهاب</td><td>الرحلة كيان مستقل باتجاه واحد. الربط ذهاب/عودة في ملف المسافر لا في الرحلة</td></tr>
+<tr><td class="num">R3</td><td>الحاج يسافر مع عائلته ومجموعته، ومع مرافقين</td><td>الإسناد بوحدة الطلب (العائلة) لا الفرد. مقاعد محجوزة للمرافقين على رحلات الحجاج. تنبيه إذا سافرت مجموعة دون أي مرافق من فريقها</td></tr>
+<tr><td class="num">R4</td><td>رحلة واحدة تحمل 6 إلى 7 مجموعات، والتكتل نحو 45 مجموعة</td><td>تخصيص الرحلة لتكتل أو أكثر (حصص مقاعد)، أو فتحها للجميع مع سباق مضبوط على المقاعد</td></tr>
+<tr><td class="num">R5</td><td>التأجيل الجماعي والتحويل إلى مطار آخر وقع فعلاً</td><td>حالات «مؤجلة» و«محوّلة» و«ملغاة» تحفظ الإسنادات، وتبلّغ الجميع، وتضيف مرحلة أرضية (حافلات) عند الحاجة</td></tr>
+<tr><td class="num">R6</td><td>بيانات الرحلة مطلوبة في نسك مسار قبل الوصول</td><td>تصدير كشف الركاب بصيغة مسار بعد إقفال الرحلة، وربط الإسناد بحالة التأشيرة</td></tr>
+<tr><td class="num">R7</td><td>الإبلاغ كان عبر تلغرام والإعلام</td><td>إشعار في ملف الحاج والموظف مع كل إنشاء أو تغيير، إضافة إلى الرسائل النصية، وسجل لكل من أُبلغ</td></tr>
+<tr><td class="num">R8</td><td>فرق المطار تحتاج كشوفاً ورقية ورقمية</td><td>كشف ركاب لكل رحلة مرتب بالمجموعة والعائلة، مع الاحتياجات الخاصة من الملف الصحي، وطباعة</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s3">
+<h2><span class="num">3</span>ما تملكه المنصة اليوم وما ينقصها</h2>
+<p>راجعنا النسخة التجريبية كما هي في الكود. معظم ما يحتاجه ملف الطيران من محيط موجود، وما ينقص هو الرحلة نفسها والإسناد إليها.</p>
+<h3>موجود ويُعاد استعماله</h3>
+<div class="tbl"><table>
+<thead><tr><th>العنصر</th><th>أين هو</th><th>كيف يخدم الطيران</th></tr></thead>
+<tbody>
+<tr><td>الطلب والعائلة</td><td><code>Application.members</code> في <code>lib/store.ts</code>، والربط بالمجموعة في <code>post[sessionId].groupNumber / clusterId</code></td><td>وحدة الإسناد. الطلب الواحد يضم حتى 5 أفراد، ويُسند كاملاً</td></tr>
+<tr><td>المجموعة والتكتل</td><td><code>AdminProfile.group</code> و<code>cluster</code> و<code>deputyOf</code>، و<code>clusterGroupsOf()</code></td><td>يحدد من يحق له الإسناد، وأي مجموعات يراها</td></tr>
+<tr><td>الصلاحيات</td><td><code>lib/staff.ts</code>: 13 صلاحية، منها <code>transport</code> غير المستعملة إلا عند هيثم زيدان</td><td>تُضاف <code>flights.manage</code> و<code>flights.view</code>، ويحملهما فريق المواصلات وغرفة العمليات</td></tr>
+<tr><td>الموظفون والملفات التشغيلية</td><td><code>Employee</code> في <code>lib/ops.ts</code> مع <code>seasons</code> و<code>phoneSa</code>، وصفحة «ملفاتي التشغيلية»</td><td>مصدر قائمة المسافرين، ومكان عرض رحلات الموظف</td></tr>
+<tr><td>البيانات المرجعية</td><td>الفنادق والقطاعات والمراكز والمخيمات، مع «نقل من موسم 1447»</td><td>يُضاف المطار والناقل الجوي بالنمط نفسه</td></tr>
+<tr><td>الملف الصحي</td><td><code>post.health.members[nid].needs</code></td><td>يظهر على كشف الركاب: كرسي متحرك، أكسجين، مرافق</td></tr>
+<tr><td>التجمّعات الميدانية</td><td><code>musters</code> في ملف الإداري، والقالب «ساحة المزة ← المطار»</td><td>التجمّع يُربط برحلة، ومسح البطاقة يعني «صعد»</td></tr>
+<tr><td>سجل الأحداث</td><td><code>AuditEvent</code> مع <code>before / after</code></td><td>كل إسناد وتغيير يُسجَّل باسم من فعله</td></tr>
+<tr><td>بطاقة الصعود</td><td><code>BoardingPass</code> في بوابة الحاج، تظهر بعد <code>visaAt</code></td><td>تبقى كما هي، لكن تقرأ من الإسناد الحقيقي بدل الثابت</td></tr>
+</tbody></table></div>
+<h3>ناقص</h3>
+<ul>
+  <li><strong>الرحلة ثابتة في الكود.</strong> رحلتان فقط في <code>lib/journey.ts</code> (1448-07 و1448-07R) يراهما كل الحجاج. لا كيان رحلة في المخزن، ولا مطار، ولا ناقل.</li>
+  <li><strong>لا إسناد.</strong> المقعد ورقم الحافلة يُشتقان حسابياً في <code>assign()</code>، ولا يُحفظ شيء.</li>
+  <li><strong>لا جدول مجموعات.</strong> المجموعة رقم في ملف رئيسها فقط، وهذا يكفي للإسناد لأن العائلة تحمل رقم المجموعة ومعرّف التكتل.</li>
+  <li><strong>لا صندوق إشعارات.</strong> الإشعارات تُشتق من الحالة عند كل عرض. يكفي في النسخة التجريبية أن تُشتق إشعارات الطيران من الإسناد بالطريقة نفسها، مع سجل إبلاغ في النسخة الفعلية.</li>
+  <li><strong>موعد سفر واحد.</strong> <code>SEASON.dates</code> فيه يوم ذهاب واحد (24 ذو القعدة) ويوم عودة واحد، والواقع نافذتان من أسبوعين.</li>
+</ul>
+</section>
+
+<section id="s4">
+<h2><span class="num">4</span>المبادئ الحاكمة</h2>
+<ol class="steps">
+  <li><strong>الرحلة باتجاه واحد.</strong> لا كيان «رحلة ذهاب وعودة». الزوج يُبنى في ملف المسافر، لأن مطار العودة ومواعيدها وحتى الناقل قد تختلف.</li>
+  <li><strong>الموظف المسؤول يوفّر ويختار.</strong> مسؤول الطيران ينشئ الرحلات ويضع عليها المجموعات بعد التنسيق مع رئيس التكتل خارج المنصة. لا طلبات إلكترونية بينهما.</li>
+  <li><strong>وحدة الإسناد هي الطلب.</strong> العائلة كلها على الرحلة نفسها أو لا شيء. تقسيمها استثناء بسبب مكتوب، من مسؤول الطيران وحده.</li>
+  <li><strong>المجموعة تسافر معاً كلما أمكن.</strong> النظام يشجّع لا يجبر: إسناد المجموعة كلها بضغطة واحدة، وتنبيه عند تفرّقها، وتنبيه أشد إذا لم يكن على الرحلة مرافق من فريقها.</li>
+  <li><strong>السعة قانون لا تنبيه.</strong> الإسناد معاملة واحدة تفحص المقاعد المتبقية وتحجزها. لا حجز فوق السعة، ولا مقاعد «معلّقة» بلا مالك.</li>
+  <li><strong>الإقفال يفصل زمنين.</strong> قبل الإقفال يعدّل رئيس التكتل بحرية. بعده يصدر كشف الركاب، ولا يغيّر إلا مسؤول الطيران بسبب، مع إشعار المسافر.</li>
+  <li><strong>الاستثناء حالة مسمّاة.</strong> التأجيل والتحويل والإلغاء وإعادة الإسناد أزرار واضحة لها آثار محددة، لا تعديلاً في الحقول.</li>
+  <li><strong>كل شيء مسجَّل ومبلَّغ.</strong> من أسند، ومتى، وماذا كان قبل وبعد، ومن أُبلغ. المسافر يرى رحلته في ملفه دائماً، والتغيير يصله إشعاراً.</li>
+</ol>
+</section>
+
+<section id="s5">
+<h2><span class="num">5</span>الكيانات والعلاقات</h2>
+<p>خمسة كيانات جديدة ومرجعان. الأسماء بالإنجليزية كما ستظهر في الكود، والعربية كما ستظهر للمستخدم.</p>
+<figure>
+<div class="fig">
+<svg viewBox="0 0 920 470" role="img" aria-label="الرحلة تشير إلى مطارين وناقل، والإسناد يربط الرحلة بمسافر واحد: فرد في طلب عائلي ينتمي لمجموعة وتكتل، أو موظف. كشف الركاب لقطة من إسنادات رحلة مقفلة.">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g style="color:var(--soft)">
+<!-- reference row -->
+<rect x="700" y="20" width="180" height="56" rx="10" class="bxy"/><text x="790" y="44" text-anchor="middle" class="txb">Airport — مطار</text><text x="790" y="64" text-anchor="middle" class="lb">code, name, city, country</text>
+<rect x="480" y="20" width="180" height="56" rx="10" class="bxy"/><text x="570" y="44" text-anchor="middle" class="txb">Carrier — ناقل جوي</text><text x="570" y="64" text-anchor="middle" class="lb">code, name, contact</text>
+<!-- flight -->
+<rect x="540" y="130" width="300" height="110" rx="12" class="bx"/><text x="690" y="156" text-anchor="middle" class="txb">Flight — الرحلة</text>
+<text x="690" y="178" text-anchor="middle" class="lb">season · direction: outbound|return · flightNo</text>
+<text x="690" y="196" text-anchor="middle" class="lb">from · to · departAt · arriveAt · carrier</text>
+<text x="690" y="214" text-anchor="middle" class="lb">capacity · staffReserve · quotas[] · status</text>
+<text x="690" y="232" text-anchor="middle" class="lb">lockedAt · groundLegs[] · notes</text>
+<line x1="760" y1="130" x2="780" y2="78" class="ln" marker-end="url(#ar)"/><text text-anchor="end" x="800" y="108" class="lb">from / to</text>
+<line x1="620" y1="130" x2="590" y2="78" class="ln" marker-end="url(#ar)"/><text x="548" y="108" text-anchor="start" class="lb">carrier</text>
+<!-- assignment -->
+<rect x="540" y="300" width="300" height="120" rx="12" class="bxm"/><text x="690" y="326" text-anchor="middle" class="txb">Assignment — الإسناد</text>
+<text x="690" y="348" text-anchor="middle" class="lb">flightId · travelerKind: pilgrim|employee</text>
+<text x="690" y="366" text-anchor="middle" class="lb">travelerId · requestId · groupNumber · clusterId</text>
+<text x="690" y="384" text-anchor="middle" class="lb">status · seat · assignedBy · assignedAt</text>
+<text x="690" y="402" text-anchor="middle" class="lb">movedTo · reason</text>
+<line x1="690" y1="300" x2="690" y2="242" class="ln" marker-end="url(#ar)"/><text text-anchor="end" x="700" y="275" class="lb">على رحلة واحدة</text>
+<!-- travelers -->
+<rect x="60" y="130" width="330" height="110" rx="12" class="bx"/><text x="225" y="156" text-anchor="middle" class="txb">Pilgrim — الحاج (فرد في طلب)</text>
+<text x="225" y="178" text-anchor="middle" class="lb">Application.members[] · post.groupNumber · post.clusterId</text>
+<text x="225" y="196" text-anchor="middle" class="lb">health.needs · visaAt · document status</text>
+<text x="225" y="222" text-anchor="middle" class="lb">موجود اليوم — لا يتغير</text>
+<rect x="60" y="300" width="330" height="70" rx="12" class="bx"/><text x="225" y="326" text-anchor="middle" class="txb">Employee — الموظف</text>
+<text x="225" y="348" text-anchor="middle" class="lb">Employee.id · seasons · mission · phoneSa — موجود اليوم</text>
+<line x1="540" y1="340" x2="392" y2="200" class="ln" marker-end="url(#ar)"/><text x="470" y="262" text-anchor="middle" class="lb">مسافر: حاج</text>
+<line x1="540" y1="370" x2="392" y2="336" class="ln" marker-end="url(#ar)"/><text x="470" y="368" text-anchor="middle" class="lb">أو موظف</text>
+<!-- manifest -->
+<rect x="60" y="400" width="330" height="56" rx="10" class="bxy"/><text x="225" y="424" text-anchor="middle" class="txb">Manifest — كشف الركاب</text><text x="225" y="444" text-anchor="middle" class="lb">flightId · version · issuedAt · rows[] (لقطة) · exportedTo</text>
+<line x1="540" y1="410" x2="392" y2="428" class="lnm" marker-end="url(#ar)"/><text x="470" y="434" text-anchor="middle" class="lb">لقطة عند الإقفال</text>
+<!-- itinerary -->
+<rect x="60" y="20" width="330" height="70" rx="12" style="fill:none;stroke:var(--gold);stroke-width:1.5;stroke-dasharray:6 4"/><text x="225" y="46" text-anchor="middle" class="txb">Itinerary — رحلة المسافر (مشتقة)</text>
+<text x="225" y="68" text-anchor="middle" class="lb">outbound + return ⇒ travelStatus — لا تُخزَّن، تُحسب من الإسنادات</text>
+<line x1="225" y1="130" x2="225" y2="92" class="ln" marker-end="url(#ar)"/>
+</g>
+</svg>
+</div>
+<figcaption>الشكل 1: الرحلة كيان باتجاه واحد يشير إلى مطارين وناقل. الإسناد يربط رحلة بمسافر واحد، حاجاً كان أم موظفاً. رحلة المسافر ذهاباً وعودة لا تُخزَّن، بل تُشتق من إسناداته.</figcaption>
+</figure>
+
+<h3>الرحلة <code>Flight</code></h3>
+<div class="tbl"><table>
+<thead><tr><th>الحقل</th><th>النوع</th><th>المعنى</th></tr></thead>
+<tbody>
+<tr><td><code>id</code></td><td>string</td><td>معرّف داخلي، مثل <code>f48-017</code></td></tr>
+<tr><td><code>season</code></td><td>number</td><td>الموسم الهجري، كما في الملفات التشغيلية</td></tr>
+<tr><td><code>direction</code></td><td><code>"outbound" | "return"</code></td><td>ذهاب أو عودة. لا قيمة ثالثة</td></tr>
+<tr><td><code>audience</code></td><td><code>"pilgrims" | "staff" | "mixed"</code></td><td>رحلة حجاج (مع مقاعد مرافقين)، أو رحلة موظفين فقط (طليعة البعثة، الفريق المتأخر)، أو مختلطة</td></tr>
+<tr><td><code>flightNo</code></td><td>string</td><td>رقم الرحلة عند الناقل، مثل <code>RB 501</code></td></tr>
+<tr><td><code>carrierId</code>، <code>fromId</code>، <code>toId</code></td><td>مرجع</td><td>الناقل ومطار المغادرة ومطار الوصول من البيانات المرجعية</td></tr>
+<tr><td><code>departAt</code>، <code>arriveAt</code></td><td>timestamp</td><td>بالتوقيت المحلي لكل مطار، مع التاريخ الهجري المشتق للعرض</td></tr>
+<tr><td><code>capacity</code></td><td>number</td><td>مقاعد الطائرة المتعاقد عليها</td></tr>
+<tr><td><code>staffReserve</code></td><td>number</td><td>مقاعد محجوزة للموظفين المرافقين. مقاعد الحجاج = السعة − هذا الحجز</td></tr>
+<tr><td><code>quotas</code></td><td><code>{clusterId, seats}[]</code></td><td>حصص التكتلات من مقاعد الحجاج. فارغة تعني رحلة مفتوحة لكل التكتلات</td></tr>
+<tr><td><code>status</code></td><td>enum</td><td>الفصل 6</td></tr>
+<tr><td><code>publishedAt</code>، <code>lockedAt</code>، <code>departedAt</code>، <code>arrivedAt</code></td><td>timestamp</td><td>طوابع الانتقالات الرئيسية</td></tr>
+<tr><td><code>groundLegs</code></td><td><code>{kind, from, to, at, note}[]</code></td><td>مراحل أرضية مرتبطة: حافلة التجمّع إلى المطار، أو حافلات من مطار بديل عند التحويل</td></tr>
+<tr><td><code>pairedFlightId</code></td><td>string?</td><td>اقتراح فقط: رحلة العودة المقابلة لتسهيل الإسناد المزدوج. ليس قيداً</td></tr>
+<tr><td><code>notes</code>، <code>createdBy</code>، <code>createdAt</code></td><td></td><td>ملاحظات داخلية ومن أنشأها</td></tr>
+</tbody></table></div>
+
+<h3>الإسناد <code>Assignment</code></h3>
+<div class="tbl"><table>
+<thead><tr><th>الحقل</th><th>النوع</th><th>المعنى</th></tr></thead>
+<tbody>
+<tr><td><code>id</code>، <code>flightId</code></td><td>string</td><td>إسناد واحد لكل مسافر على كل رحلة</td></tr>
+<tr><td><code>travelerKind</code></td><td><code>"pilgrim" | "employee"</code></td><td>يحدد كيف يُفسَّر <code>travelerId</code></td></tr>
+<tr><td><code>travelerId</code></td><td>string</td><td>الرقم الوطني للحاج، أو <code>Employee.id</code> للموظف</td></tr>
+<tr><td><code>requestId</code>، <code>groupNumber</code>، <code>clusterId</code></td><td></td><td>للحاج فقط: طلبه (عائلته) ومجموعته وتكتله لحظة الإسناد</td></tr>
+<tr><td><code>status</code></td><td>enum</td><td><code>assigned</code> مسند، <code>locked</code> مثبت، <code>boarded</code> صعد، <code>arrived</code> وصل، <code>cancelled</code> ملغى، <code>moved</code> منقول</td></tr>
+<tr><td><code>seat</code></td><td>string?</td><td>رقم المقعد إن وزّعه الناقل</td></tr>
+<tr><td><code>assignedBy</code>، <code>assignedAt</code></td><td></td><td>من أسند ومتى. للحاج: رئيس التكتل أو معاونه أو مسؤول الطيران. للموظف: مسؤول الطيران</td></tr>
+<tr><td><code>movedTo</code></td><td>string?</td><td>معرّف الإسناد الجديد عند النقل، فتبقى السلسلة كاملة</td></tr>
+<tr><td><code>reason</code></td><td>string?</td><td>إلزامي عند الإلغاء أو النقل بعد الإقفال، وعند تقسيم العائلة</td></tr>
+</tbody></table></div>
+
+<h3>كشف الركاب <code>Manifest</code></h3>
+<p>لقطة ثابتة من إسنادات الرحلة لحظة الإقفال: الاسم الرباعي، الرقم الوطني، رقم الجواز، الجنس، العمر، المجموعة والتكتل، الاحتياجات الخاصة، المرافق. لها رقم إصدار يزيد مع كل إعادة إقفال، وحقل <code>exportedTo</code> يسجّل تصديرها إلى نسك مسار أو الناقل أو المطار. الكشف لا يُعدَّل، بل يُصدر إصدار جديد.</p>
+
+<h3>المراجع: المطار والناقل</h3>
+<p>يُضافان إلى البيانات المرجعية بالنمط الموجود: قائمة لكل موسم مع «نقل من الموسم السابق»، وأرشفة بدل الحذف، ومنع الأرشفة إذا كان العنصر مستعملاً في رحلة. المطارات المتوقعة: دمشق، حلب، إسطنبول، غازي عنتاب، القاهرة، جدة، المدينة، وعمّان كبديل طوارئ.</p>
+
+<h3>رحلة المسافر <code>Itinerary</code> (مشتقة)</h3>
+<p>لا تُخزَّن. تُحسب لكل مسافر من إسناداته النشطة: إسناد الذهاب، إسناد العودة، والحالة الإجمالية. الفصل 7 يشرح الحالات.</p>
+</section>
+
+<section id="s6">
+<h2><span class="num">6</span>دورة حياة الرحلة</h2>
+<p>ست حالات على المسار الطبيعي، وثلاث حالات جانبية. الانتقال بين الحالات فعل صريح له صاحب وأثر، لا تعديل في حقل الحالة.</p>
+<figure>
+<div class="fig">
+<svg viewBox="0 0 920 330" role="img" aria-label="مسار الرحلة: مسودة ثم منشورة ثم مكتملة ثم مقفلة ثم أقلعت ثم وصلت. من المنشورة والمقفلة يمكن التأجيل أو التحويل أو الإلغاء.">
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g style="color:var(--soft)">
+<!-- main path right to left -->
+<rect x="790" y="60" width="110" height="46" rx="23" class="bx"/><text x="845" y="88" text-anchor="middle" class="txb">مسودة</text>
+<rect x="640" y="60" width="110" height="46" rx="23" class="bxg"/><text x="695" y="88" text-anchor="middle" class="txw">منشورة</text>
+<rect x="490" y="60" width="110" height="46" rx="23" class="bx"/><text x="545" y="88" text-anchor="middle" class="txb">مكتملة</text>
+<rect x="340" y="60" width="110" height="46" rx="23" class="bxg"/><text x="395" y="88" text-anchor="middle" class="txw">مقفلة</text>
+<rect x="190" y="60" width="110" height="46" rx="23" class="bx"/><text x="245" y="88" text-anchor="middle" class="txb">أقلعت</text>
+<rect x="40" y="60" width="110" height="46" rx="23" class="bx"/><text x="95" y="88" text-anchor="middle" class="txb">وصلت</text>
+<line x1="790" y1="83" x2="752" y2="83" class="ln" marker-end="url(#ar2)"/><text x="771" y="50" text-anchor="middle" class="lb">نشر</text>
+<line x1="640" y1="83" x2="602" y2="83" class="ln" marker-end="url(#ar2)"/><text x="621" y="50" text-anchor="middle" class="lb">آخر مقعد</text>
+<path d="M545,106 C545,140 695,140 695,106" class="ln" marker-end="url(#ar2)"/><text x="620" y="150" text-anchor="middle" class="lb">إلغاء إسناد يعيدها منشورة</text>
+<line x1="490" y1="83" x2="452" y2="83" class="ln" marker-end="url(#ar2)"/><text x="471" y="50" text-anchor="middle" class="lb">إقفال + كشف</text>
+<path d="M640,66 C620,20 420,20 400,58" class="ln" marker-end="url(#ar2)"/><text x="520" y="24" text-anchor="middle" class="lb">إقفال ولو بقيت مقاعد</text>
+<line x1="340" y1="83" x2="302" y2="83" class="ln" marker-end="url(#ar2)"/><text x="321" y="50" text-anchor="middle" class="lb">إقلاع</text>
+<line x1="190" y1="83" x2="152" y2="83" class="ln" marker-end="url(#ar2)"/><text x="171" y="50" text-anchor="middle" class="lb">هبوط</text>
+<!-- side states -->
+<rect x="640" y="220" width="110" height="46" rx="23" class="bxm"/><text x="695" y="248" text-anchor="middle" class="txb">مؤجلة</text>
+<rect x="490" y="220" width="110" height="46" rx="23" class="bxm"/><text x="545" y="248" text-anchor="middle" class="txb">محوّلة</text>
+<rect x="340" y="220" width="110" height="46" rx="23" class="bxm"/><text x="395" y="248" text-anchor="middle" class="txb">ملغاة</text>
+<line x1="695" y1="106" x2="695" y2="218" class="lnm" marker-end="url(#ar2)"/>
+<line x1="395" y1="106" x2="395" y2="218" class="lnm" marker-end="url(#ar2)"/>
+<line x1="545" y1="106" x2="545" y2="218" class="lnm" marker-end="url(#ar2)"/>
+<text x="770" y="180" text-anchor="middle" class="lb">من منشورة أو مكتملة أو مقفلة:</text>
+<text x="770" y="198" text-anchor="middle" class="lb">تأجيل (تبقى الإسنادات)</text>
+<text x="620" y="300" text-anchor="middle" class="lb">تحويل الوجهة + مرحلة أرضية</text>
+<text x="395" y="300" text-anchor="middle" class="lb">إلغاء: كل الإسنادات ← «بحاجة إلى رحلة»</text>
+<path d="M640,243 C600,243 560,180 545,110" class="ln" marker-end="url(#ar2)" style="stroke-dasharray:2 3"/><text x="630" y="190" text-anchor="start" class="lb">موعد جديد</text>
+</g>
+</svg>
+</div>
+<figcaption>الشكل 2: المسار الطبيعي للرحلة من اليمين إلى اليسار، والحالات الجانبية أسفله. التأجيل يحفظ الإسنادات ويعيد الرحلة إلى حالتها عند تحديد الموعد الجديد.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>الحالة</th><th>معناها</th><th>من ينقلها إليها</th><th>ما يحدث عند الدخول</th><th>ما يُسمح به فيها</th></tr></thead>
+<tbody>
+<tr><td><span class="chip y">مسودة</span></td><td>أُنشئت ولم تُعرض على أحد</td><td>مسؤول الطيران</td><td>لا شيء</td><td>تعديل كل الحقول، الحذف</td></tr>
+<tr><td><span class="chip g">منشورة</span></td><td>متاحة للإسناد</td><td>مسؤول الطيران</td><td>تظهر للتكتلات المخصصة (أو للجميع). إشعار لرؤساء التكتلات المعنيين</td><td>إسناد وإلغاء إسناد من أصحاب الحق. تعديل الموعد والسعة من مسؤول الطيران مع إشعار المسندين</td></tr>
+<tr><td><span class="chip g">مكتملة</span></td><td>لا مقاعد متبقية للحجاج</td><td>تلقائياً</td><td>تختفي من قائمة «المتاحة» وتبقى في «رحلاتي»</td><td>إلغاء إسناد يعيدها منشورة. لا إسناد جديد</td></tr>
+<tr><td><span class="chip m">مقفلة</span></td><td>الإسنادات مثبتة، كشف الركاب صادر</td><td>مسؤول الطيران</td><td>كل الإسنادات ← مثبتة. يصدر كشف الركاب (إصدار 1). فحص التأشيرات: من لا تأشيرة له يُعلَّم</td><td>تغيير فردي من مسؤول الطيران فقط بسبب، ويصدر كشف بإصدار جديد. رئيس التكتل يقدّم طلب تغيير</td></tr>
+<tr><td><span class="chip g">أقلعت</span></td><td>غادرت فعلاً</td><td>مسؤول الطيران أو غرفة العمليات</td><td>من صعد ← «صعد». من لم يصعد ← إسناده يُعلَّم «تخلّف» وتُفتح تذكرة</td><td>تسجيل المتخلفين فقط</td></tr>
+<tr><td><span class="chip g">وصلت</span></td><td>هبطت</td><td>مسؤول الطيران أو غرفة العمليات</td><td>إسنادات الصاعدين ← «وصل». حالة المسافر تتقدم</td><td>لا شيء. الرحلة أرشيف</td></tr>
+<tr><td><span class="chip m">مؤجلة</span></td><td>الموعد أُلغي ولم يُحدد بديل</td><td>مسؤول الطيران</td><td>الإسنادات تبقى. إشعار لكل مسافر ولرؤساء التكتلات والمجموعات. تُفتح مهمة في غرفة العمليات</td><td>تحديد موعد جديد يعيدها إلى حالتها السابقة. أو إلغاء</td></tr>
+<tr><td><span class="chip m">محوّلة</span></td><td>مطار الوصول تغيّر</td><td>مسؤول الطيران</td><td>يُسجَّل المطار البديل وتُضاف مرحلة أرضية (حافلات). إشعار للجميع. تُفتح مهمة لفريق المواصلات</td><td>تكمل مسارها الطبيعي</td></tr>
+<tr><td><span class="chip m">ملغاة</span></td><td>لن تُسيَّر</td><td>مسؤول الطيران، بسبب إلزامي</td><td>كل الإسنادات ← ملغاة بسبب «إلغاء الرحلة»، والمسافرون في قائمة «بحاجة إلى رحلة». إشعار للجميع</td><td>لا شيء</td></tr>
+</tbody></table></div>
+<div class="callout"><b>قاعدة الإقفال</b><p>الإقفال هو الحد بين «التفويج» و«التشغيل». يُنصح بإقفال الرحلة قبل موعدها بـ 72 ساعة على الأقل، لأن كشف الركاب يُرفع إلى نسك مسار والناقل. يقدر النظام أن يذكّر مسؤول الطيران بالرحلات التي اقترب موعدها ولم تُقفل.</p></div>
+</section>
+
+<section id="s7">
+<h2><span class="num">7</span>إسناد الحجاج ودورة حياته</h2>
+<h3>من يُسند ومن يُسنَد</h3>
+<div class="callout decision"><b>بعد التحديث 1.1</b><p>يُسند مسؤول الطيران وحده، والوحدة هي المجموعة كاملة. الفقرتان التاليتان تصفان المقترح الأصلي؛ ما بقي منهما صحيحاً: شروط أهلية الحاج للإسناد، ودور التأشيرة عند الإقفال.</p></div>
+<p>يُسند رئيس التكتل أو معاونه حجاج مجموعات تكتله فقط. يرى الرحلات المخصصة لتكتله والرحلات المفتوحة، ولا يرى رحلات التكتلات الأخرى. يقدر مسؤول الطيران أن يُسند أي حاج لأي رحلة، وهو الوحيد الذي يقسم عائلة أو يغيّر بعد الإقفال.</p>
+<p>يُسنَد الحاج إذا كان طلبه مقبولاً ومسدداً ومسجلاً في مجموعة معتمدة. التأشيرة ليست شرطاً للإسناد لأن التفويج يبدأ قبل صدورها، لكنها شرط للتثبيت: عند الإقفال يُعلَّم كل مسافر بلا تأشيرة، ويقرر مسؤول الطيران إبقاءه أو نقله.</p>
+<h3>ثلاث وحدات للإسناد</h3>
+<div class="grid2">
+  <div class="card"><h4>المجموعة كاملة</h4><p>الطريقة الافتراضية. يختار رئيس التكتل المجموعة، فيرى عدد أفرادها وعدد المقاعد المتبقية، ويسند الكل بضغطة واحدة. إن لم تكفِ المقاعد يعرض النظام العائلات التي تدخل والتي لا تدخل ويطلب قراراً.</p></div>
+  <div class="card"><h4>عائلات مختارة</h4><p>عند تفريق المجموعة على رحلتين. يختار العائلات (الطلبات) واحدة واحدة. كل عائلة تدخل كاملة أو لا تدخل.</p></div>
+  <div class="card"><h4>فرد واحد</h4><p>لمسؤول الطيران فقط، وبسبب مكتوب: مريض يعود مبكراً، أو حاج فقد رحلته، أو تقسيم عائلة لضرورة.</p></div>
+</div>
+<h3>حالات الإسناد الواحد</h3>
+<div class="tbl"><table>
+<thead><tr><th>الحالة</th><th>متى</th><th>الانتقال التالي</th></tr></thead>
+<tbody>
+<tr><td><span class="chip g">مسند</span> <code>assigned</code></td><td>عند الإسناد والرحلة منشورة</td><td>مثبت عند إقفال الرحلة، أو ملغى، أو منقول</td></tr>
+<tr><td><span class="chip g">مثبت</span> <code>locked</code></td><td>عند إقفال الرحلة، وظهر على كشف الركاب</td><td>صعد، أو ملغى/منقول من مسؤول الطيران بسبب</td></tr>
+<tr><td><span class="chip g">صعد</span> <code>boarded</code></td><td>مسح بطاقته في تجمّع الرحلة، أو تأكيد يدوي عند الإقلاع</td><td>وصل عند هبوط الرحلة</td></tr>
+<tr><td><span class="chip g">وصل</span> <code>arrived</code></td><td>هبطت الرحلة</td><td>نهائي</td></tr>
+<tr><td><span class="chip m">ملغى</span> <code>cancelled</code></td><td>أُلغي الإسناد أو الرحلة</td><td>نهائي. المسافر يعود «بحاجة إلى رحلة» في هذا الاتجاه</td></tr>
+<tr><td><span class="chip m">منقول</span> <code>moved</code></td><td>نُقل إلى رحلة أخرى في الاتجاه نفسه</td><td>نهائي، ويشير إلى الإسناد الجديد</td></tr>
+<tr><td><span class="chip y">تخلّف</span> <code>noShow</code></td><td>أقلعت الرحلة ولم يصعد</td><td>نهائي. تُفتح تذكرة، ويُسند من جديد يدوياً</td></tr>
+</tbody></table></div>
+<h3>حالة المسافر الإجمالية</h3>
+<figure>
+<div class="fig">
+<svg viewBox="0 0 920 150" role="img" aria-label="حالة المسافر تتقدم من لم يُسند إلى ذهاب فقط إلى ذهاب وعودة إلى سافر إلى في السعودية إلى عاد. الحالة عودة فقط شاذة وتُعلَّم.">
+<defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g style="color:var(--soft)">
+<rect x="790" y="30" width="120" height="44" rx="22" class="bx"/><text x="850" y="57" text-anchor="middle" class="txb">لم يُسند</text>
+<rect x="640" y="30" width="120" height="44" rx="22" class="bx"/><text x="700" y="57" text-anchor="middle" class="txb">ذهاب فقط</text>
+<rect x="490" y="30" width="120" height="44" rx="22" class="bxg"/><text x="550" y="57" text-anchor="middle" class="txw">ذهاب وعودة</text>
+<rect x="340" y="30" width="120" height="44" rx="22" class="bx"/><text x="400" y="57" text-anchor="middle" class="txb">سافر</text>
+<rect x="190" y="30" width="120" height="44" rx="22" class="bx"/><text x="250" y="57" text-anchor="middle" class="txb">في السعودية</text>
+<rect x="40" y="30" width="120" height="44" rx="22" class="bx"/><text x="100" y="57" text-anchor="middle" class="txb">عاد</text>
+<line x1="790" y1="52" x2="762" y2="52" class="ln" marker-end="url(#ar3)"/><text x="776" y="22" text-anchor="middle" class="lb">إسناد ذهاب</text>
+<line x1="640" y1="52" x2="612" y2="52" class="ln" marker-end="url(#ar3)"/><text x="626" y="22" text-anchor="middle" class="lb">إسناد عودة</text>
+<line x1="490" y1="52" x2="462" y2="52" class="ln" marker-end="url(#ar3)"/><text x="476" y="22" text-anchor="middle" class="lb">صعد الذهاب</text>
+<line x1="340" y1="52" x2="312" y2="52" class="ln" marker-end="url(#ar3)"/><text x="326" y="22" text-anchor="middle" class="lb">وصل</text>
+<line x1="190" y1="52" x2="162" y2="52" class="ln" marker-end="url(#ar3)"/><text x="176" y="22" text-anchor="middle" class="lb">وصلت العودة</text>
+<rect x="640" y="100" width="120" height="36" rx="18" class="bxm"/><text x="700" y="123" text-anchor="middle" class="txb">عودة فقط</text>
+<text x="620" y="123" text-anchor="start" class="lb">حالة شاذة: تظهر في قائمة التنبيهات حتى تُصحَّح</text>
+<path d="M850,74 C850,118 780,118 762,118" class="lnm" marker-end="url(#ar3)"/>
+</g>
+</svg>
+</div>
+<figcaption>الشكل 3: حالة المسافر مشتقة من إسناديه. «عودة فقط» ممكنة تقنياً لكنها خطأ تشغيلي يُعرض في التنبيهات.</figcaption>
+</figure>
+<p>القيم في الكود: <code>none</code>، <code>outboundOnly</code>، <code>returnOnly</code>، <code>complete</code>، <code>departed</code>، <code>inKsa</code>، <code>returned</code>. وحالة خاصة <code>otherMeans</code> لمن يسافر بوسيلة أخرى بقرار موثّق، كي لا يظهر في قوائم النقص.</p>
+<h3>قواعد الإسناد التي يفرضها النظام</h3>
+<ol class="steps">
+  <li>الرحلة منشورة وغير مقفلة، والمسافر لم يُسنَد في الاتجاه نفسه لرحلة أخرى نشطة.</li>
+  <li>عدد أفراد العائلة ≤ المقاعد المتبقية للتكتل على هذه الرحلة. الفحص والحجز في معاملة واحدة.</li>
+  <li>الحاج في مجموعة من مجموعات المُسنِد. مسؤول الطيران مستثنى.</li>
+  <li>العائلة كاملة. التقسيم لمسؤول الطيران بسبب.</li>
+  <li>إسناد العودة يتطلب إسناد ذهاب نشطاً أو علامة «وسيلة أخرى». وموعد العودة بعد موعد الذهاب.</li>
+  <li>تحذير غير مانع: المجموعة على أكثر من رحلة. تحذير أشد: رحلة تحمل حجاج مجموعة ولا تحمل أحداً من فريقها (رئيس، معاون، موجّه، منسق) ولا موظفاً مرافقاً.</li>
+  <li>كل إسناد وإلغاء ونقل يكتب حدثاً في السجل ويولّد إشعاراً للمسافر (ولولي الأمر في الطلب العائلي: صاحب الطلب).</li>
+</ol>
+</section>
+
+<section id="s8">
+<h2><span class="num">8</span>إسناد الموظفين</h2>
+<p>أبسط من إسناد الحجاج لأنه من طرف واحد. مسؤول الطيران ينشئ رحلة الموظفين أو يستعمل مقاعد المرافقين على رحلة حجاج، ثم يختار الموظفين ويسندهم. الموظف يرى النتيجة في «ملفاتي التشغيلية» تحت قسم جديد «رحلاتي».</p>
+<h3>أنماط رحلات الموظفين</h3>
+<div class="tbl"><table>
+<thead><tr><th>النمط</th><th>مثال</th><th>كيف يُنفَّذ</th></tr></thead>
+<tbody>
+<tr><td>طليعة البعثة</td><td>فريق الإسكان يسافر قبل أول رحلة حجاج بأسبوع لاستلام الفنادق</td><td>رحلة <code>audience: "staff"</code> ذهاب، إسناد جماعي لأعضاء ملف التسكين</td></tr>
+<tr><td>المرافقون</td><td>على كل رحلة حجاج 4 إلى 8 مرافقين من فرق المجموعات أو فريق المطار</td><td>مقاعد <code>staffReserve</code> على رحلة الحجاج. الإداريون (رئيس المجموعة وفريقه) يُسندون كحجاج لأنهم في كشوف الحجاج، والموظفون يُسندون كموظفين</td></tr>
+<tr><td>الفريق المتأخر</td><td>غرفة العمليات وفريق المواصلات يعودون بعد آخر رحلة حجاج</td><td>رحلة موظفين عودة</td></tr>
+<tr><td>تنقّل داخلي</td><td>موظف يتنقل بين مكة والمدينة بحكم عمله</td><td>خارج ملف الطيران. يبقى في الملفات التشغيلية والحافلات</td></tr>
+</tbody></table></div>
+<h3>الإسناد الجماعي</h3>
+<p>مسؤول الطيران يختار الموظفين من قائمة قابلة للتصفية: بالبعثة، بالملف التشغيلي والمنصب، بحالة «مسجّل في الموسم»، وبمن لم يُسند بعد. يقدر أن يختار ملفاً تشغيلياً كاملاً (مثل «فريق الكوسترات») فيُضاف كل أعضائه. ثم يسند الكل لرحلة الذهاب ورحلة العودة في خطوة واحدة إن أراد. الفحص نفسه: مقاعد الموظفين المتبقية ≥ عدد المختارين.</p>
+<h3>ما يراه الموظف</h3>
+<p>في صفحة «ملفاتي التشغيلية» قسم «رحلاتي»: رحلة الذهاب ورحلة العودة، لكل منهما رقم الرحلة والناقل والمطار والموعد ومكان التجمّع، وحالته، ومن أسنده. وعند أي تغيير إشعار. الموظف الذي عليه أن يسافر (مسجّل في الموسم وله منصب) ولم يُسنَد يظهر عند مسؤول الطيران في قائمة «موظفون بلا رحلة».</p>
+</section>
+
+<section id="s9">
+<div class="callout decision"><b>بعد التحديث 1.1</b><p>أُلغيت الحصص: المقاعد المتبقية واحدة للرحلة، والمجموعة كلها تدخل أو لا تدخل. واقتراح الرحلة للمجموعة يفضّل رحلة عليها مجموعات من تكتلها، ثم رحلة من مطار التكتل.</p></div>
+<h2><span class="num">9</span>إدارة المقاعد</h2>
+<p>العدّاد الوحيد الذي يهم الجميع هو «المتبقي». يُحسب دائماً من الإسنادات النشطة، ولا يُخزَّن كرقم يُعدَّل يدوياً.</p>
+<figure>
+<div class="fig">
+<svg viewBox="0 0 920 170" role="img" aria-label="شريط سعة رحلة من 340 مقعداً: 12 للموظفين، 328 للحجاج، منها 250 مسندة و78 متبقية، والمتبقي مقسوم حصصاً بين تكتلين.">
+<g style="color:var(--soft)">
+<text x="900" y="24" text-anchor="start" class="txb">رحلة RB 501 · السعة 340</text>
+<rect x="20" y="40" width="880" height="34" rx="6" style="fill:var(--surface2);stroke:var(--line)"/>
+<!-- staff reserve: 12/340 of 880 = 31 -->
+<rect x="869" y="40" width="31" height="34" rx="6" style="fill:var(--gold)"/>
+<!-- assigned 250/340 = 647 -->
+<rect x="222" y="40" width="647" height="34" style="fill:var(--green)"/>
+<!-- remaining 78/340 = 202 -->
+<rect x="20" y="40" width="202" height="34" rx="6" style="fill:var(--green-soft);stroke:var(--green);stroke-dasharray:4 3"/>
+<text x="884" y="100" text-anchor="middle" class="lb">موظفون</text><text x="884" y="116" text-anchor="middle" class="txb">12</text>
+<text x="545" y="100" text-anchor="middle" class="lb">حجاج مسندون</text><text x="545" y="116" text-anchor="middle" class="txb">250</text>
+<text x="121" y="100" text-anchor="middle" class="lb">متبقٍّ</text><text x="121" y="116" text-anchor="middle" class="txb">78</text>
+<!-- quota split of remaining -->
+<line x1="130" y1="40" x2="130" y2="74" style="stroke:var(--maroon);stroke-width:2"/>
+<text x="176" y="145" text-anchor="middle" class="lb">تكتل النور: 42 من حصته 200</text>
+<text x="75" y="145" text-anchor="middle" class="lb">تكتل الصفا: 36 من 128</text>
+<text x="545" y="145" text-anchor="middle" class="lb">مقاعد الحجاج = السعة − حجز الموظفين = 328 · المتبقي = 328 − 250 = 78</text>
+</g>
+</svg>
+</div>
+<figcaption>الشكل 4: السعة تنقسم إلى حجز للموظفين ومقاعد للحجاج. المتبقي يُحسب من الإسنادات النشطة، ويُقسَّم حصصاً بين التكتلات إن كانت الرحلة مخصصة.</figcaption>
+</figure>
+<h3>الحساب</h3>
+<div class="tbl"><table>
+<thead><tr><th>الكمية</th><th>الصيغة</th></tr></thead>
+<tbody>
+<tr><td>مقاعد الحجاج</td><td><code>pilgrimSeats = capacity − staffReserve</code></td></tr>
+<tr><td>المسند (نشط)</td><td>عدد الإسنادات بحالة <code>assigned | locked | boarded | arrived</code></td></tr>
+<tr><td>المتبقي للرحلة</td><td><code>remaining = pilgrimSeats − assignedPilgrims</code></td></tr>
+<tr><td>المتبقي لتكتل على رحلة مخصصة</td><td><code>min(quota[cluster] − assigned[cluster], remaining)</code></td></tr>
+<tr><td>المتبقي للموظفين</td><td><code>staffReserve − assignedStaff</code></td></tr>
+</tbody></table></div>
+<h3>ثلاث آليات لتوزيع رحلة على التكتلات</h3>
+<div class="grid2">
+  <div class="card"><h4>رحلة مخصصة لتكتل واحد (الموصى بها)</h4><p>الأبسط تشغيلياً ويطابق ما يجري فعلاً: التكتل نحو 2,250 حاجاً أي 7 رحلات تقريباً. مسؤول الطيران يوزّع الرحلات على التكتلات بحسب مطار المغادرة وحجم التكتل، ورئيس التكتل يوزّع مجموعاته على رحلاته. لا تنافس بين التكتلات.</p></div>
+  <div class="card"><h4>حصص على رحلة مشتركة</h4><p>للرحلات التي تكمل بقايا تكتلين أو ثلاثة. لكل تكتل حصة، ولا يرى المتبقي إلا من حصته. ما لا يُستعمل من حصة يقدر مسؤول الطيران أن ينقله لتكتل آخر.</p></div>
+  <div class="card"><h4>رحلة مفتوحة</h4><p>يراها كل التكتلات، والمقاعد لمن يسبق. مناسبة للرحلات الأخيرة ولإعادة الإسناد بعد إلغاء. تحتاج فحص السعة في معاملة واحدة على الخادم، لأن رئيسي تكتلين قد يسندان في اللحظة نفسها.</p></div>
+</div>
+<h3>مثال المطلوب في الطلب</h3>
+<p>رئيس تكتل لديه 12 مجموعة. أُتيحت رحلة ذهاب فيها 40 مقعداً متبقياً لتكتله. المجموعة 20 فيها 40 حاجاً في 11 طلباً عائلياً. يفتح الرحلة، يختار «المجموعة 20»، فيرى: 40 من 40، كل العائلات تدخل. يضغط «إسناد»، فيُحجز 40 مقعداً، وتصبح الرحلة «مكتملة» لتكتله، ويصل إشعار لكل صاحب طلب في المجموعة ولرئيس المجموعة. لو كان في المجموعة 43 حاجاً لعرض النظام العائلات التي لا تدخل واقترح رحلة أخرى لها من رحلات التكتل.</p>
+<h3>ما لا نفعله</h3>
+<ul>
+  <li><strong>لا حجز فوق السعة.</strong> لا «قائمة انتظار» في المرحلة الأولى. من لم يجد مقعداً يبقى في قائمة «بحاجة إلى رحلة»، ورئيس التكتل يعالجها.</li>
+  <li><strong>لا مقاعد معلّقة بمهلة.</strong> الإسناد فوري، فلا حاجة لحجز مؤقت أثناء الاختيار. الشاشة تعرض المتبقي الحي، وإن سبقك أحد فشل الإسناد برسالة واضحة.</li>
+  <li><strong>لا تعديل يدوي للعدّادات.</strong> تغيير السعة أو حجز الموظفين يُعاد حسابه فوراً، ولا يُقبل رقم أقل من المسند فعلاً.</li>
+</ul>
+</section>
+
+<section id="s10">
+<h2><span class="num">10</span>ربط الذهاب بالعودة</h2>
+<p>الربط في ملف المسافر، لا في الرحلة. لكل مسافر إسناد ذهاب واحد نشط وإسناد عودة واحد نشط على الأكثر، والزوج هو رحلته.</p>
+<h3>القواعد</h3>
+<ol class="steps">
+  <li>لا إسناد عودة قبل إسناد ذهاب، إلا مع علامة «وسيلة أخرى» بسبب موثّق.</li>
+  <li>موعد العودة بعد موعد الذهاب، وبعد يوم النفر (13 ذو الحجة) للحجاج.</li>
+  <li>إلغاء إسناد الذهاب لا يلغي العودة تلقائياً، لكنه ينقل المسافر إلى حالة «عودة فقط» الشاذة ويضعه في التنبيهات، لأن العودة قد تبقى صحيحة (سافر بوسيلة أخرى).</li>
+  <li>إسناد المجموعة يقترح تلقائياً إسناد العودة على الرحلة المقابلة <code>pairedFlightId</code> إن وُجدت وكانت فيها مقاعد، بخطوة واحدة اسمها «إسناد الذهاب والعودة معاً».</li>
+  <li>مطار العودة قد يختلف عن مطار الذهاب، والوجهة النهائية قد تختلف عن نقطة المغادرة (يغادر من حلب ويعود إلى دمشق). لا قيد على ذلك.</li>
+</ol>
+<h3>ما يراه الحاج</h3>
+<p>بطاقتان في ملفه، كما هما اليوم في قسم «الرحلات»: بطاقة الذهاب وبطاقة العودة. تحت كل بطاقة حالة الإسناد بكلمة واحدة (مسند، مثبت، صعد)، وموعد التجمّع ومكانه، ومرافق المجموعة وهاتفه. وقبل صدور بطاقة العودة تظهر «تُحدد رحلة العودة بعد وصولك، وسيصلك إشعار». وفي الطلب العائلي: «الأسرة كلها على الرحلة نفسها» أو تنبيه إن كانت مقسومة.</p>
+</section>
+
+<section id="s11">
+<div class="callout decision"><b>بعد التحديث 1.1</b><p>في الجدول التالي: عمود رئيس التكتل ومعاونه صار «يرى رحلات مجموعات تكتله» فقط، وعمود رئيس المجموعة «يرى رحلتي مجموعته ويطبع كشفها ويسجّل الصعود في التجمّع». لا إسناد ولا إلغاء ولا طلب تغيير لأي منهما. كل الإسناد لمسؤول الطيران.</p></div>
+<h2><span class="num">11</span>الصلاحيات</h2>
+<p>تُضاف صلاحيتان إلى قائمة صلاحيات الموظفين في <code>lib/staff.ts</code>: <code>flights.manage</code> «إدارة الطيران» و<code>flights.view</code> «الاطلاع على الطيران». في النسخة التجريبية يحملهما هيثم زيدان (فريق المواصلات، صاحب صلاحية <code>transport</code> غير المستعملة اليوم)، وتُعطى «الاطلاع» لغرفة العمليات ومدير المكتب ومديرة الموسم. حقوق الإداريين تُشتق من دورهم كما في بقية بوابة الإداريين.</p>
+<div class="tbl"><table>
+<thead><tr><th>الإجراء</th><th>مسؤول الطيران</th><th>اطلاع (عمليات، مدير المكتب)</th><th>رئيس التكتل ومعاونه</th><th>رئيس المجموعة</th><th>المنسق التقني</th><th>الحاج</th><th>الموظف</th></tr></thead>
+<tbody>
+<tr><td>إضافة مطار وناقل</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>إنشاء رحلة وتعديلها ونشرها</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>تحديد السعة والحجز والحصص</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>رؤية كل الرحلات وعدّاداتها</td><td>✔</td><td>✔</td><td>رحلات تكتله والمفتوحة</td><td>رحلات مجموعته</td><td>رحلات مجموعته</td><td>رحلته</td><td>رحلته</td></tr>
+<tr><td>إسناد حجاج (مجموعة/عائلات)</td><td>✔ أي حاج</td><td>—</td><td>✔ حجاج تكتله</td><td>بتفويض من رئيس التكتل فقط</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>إلغاء إسناد قبل الإقفال</td><td>✔</td><td>—</td><td>✔ ما أسنده تكتله</td><td>بتفويض</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>إسناد فرد / تقسيم عائلة</td><td>✔ بسبب</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>إقفال الرحلة وإصدار الكشف</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>تغيير بعد الإقفال</td><td>✔ بسبب</td><td>—</td><td>طلب تغيير</td><td>طلب تغيير</td><td>طلب تغيير</td><td>—</td><td>—</td></tr>
+<tr><td>تأجيل / تحويل / إلغاء رحلة</td><td>✔ بسبب</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>إسناد موظفين</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>تسجيل الإقلاع والهبوط والمتخلفين</td><td>✔</td><td>✔ غرفة العمليات</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>تسجيل الصعود (مسح البطاقات في التجمّع)</td><td>—</td><td>—</td><td>✔</td><td>✔</td><td>✔</td><td>—</td><td>—</td></tr>
+<tr><td>تصدير الكشوف (مسار، الناقل، المطار)</td><td>✔</td><td>✔</td><td>كشف تكتله</td><td>كشف مجموعته</td><td>كشف مجموعته</td><td>—</td><td>—</td></tr>
+<tr><td>طباعة بطاقة الرحلة</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔ بطاقته</td><td>✔ بطاقته</td></tr>
+</tbody></table></div>
+<div class="callout"><b>ملاحظة على رئيس المجموعة</b><p>رئيس المجموعة ليس مُسنِداً افتراضياً. لكن رئيس التكتل يقدر أن يفوّضه لمجموعته وحدها بخيار «تفويض رؤساء المجموعات» في إعدادات التكتل. هذا يحل حالة التكتلات الكبيرة دون أن يفتح الباب للجميع.</p></div>
+</section>
+
+<section id="s12">
+<h2><span class="num">12</span>الدورة التشغيلية الكاملة</h2>
+<figure>
+<div class="fig">
+<svg viewBox="0 0 960 400" role="img" aria-label="ثلاثة مسارات: مسؤول الطيران ينشئ الرحلة ويحدد المقاعد وينشرها ثم يقفلها ويصدر الكشف ويسجل الإقلاع. رئيس التكتل يرى الرحلات المتاحة ويسند مجموعاته ويتابع لوحة التفويج. الحاج والموظف يريان الرحلة في ملفيهما ويصلهما إشعار بكل تغيير ويصعدان بمسح البطاقة.">
+<defs><marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g style="color:var(--soft)">
+<!-- lanes -->
+<rect x="20" y="20" width="920" height="110" rx="8" class="lane"/><text x="930" y="42" text-anchor="start" class="lanel">مسؤول ملف الطيران</text>
+<rect x="20" y="145" width="920" height="110" rx="8" class="lane"/><text x="930" y="167" text-anchor="start" class="lanel">رئيس التكتل / معاونه</text>
+<rect x="20" y="270" width="920" height="110" rx="8" class="lane"/><text x="930" y="292" text-anchor="start" class="lanel">الحاج والموظف</text>
+<!-- lane 1 boxes (right to left) -->
+<rect x="700" y="60" width="130" height="50" rx="8" class="bx"/><text x="765" y="82" text-anchor="middle" class="txb">إنشاء الرحلة</text><text x="765" y="100" text-anchor="middle" class="lb">مطار، ناقل، موعد</text>
+<rect x="540" y="60" width="130" height="50" rx="8" class="bx"/><text x="605" y="82" text-anchor="middle" class="txb">السعة والحصص</text><text x="605" y="100" text-anchor="middle" class="lb">حجز الموظفين، التكتلات</text>
+<rect x="380" y="60" width="130" height="50" rx="8" class="bxg"/><text x="445" y="82" text-anchor="middle" class="txw">نشر</text><text x="445" y="100" text-anchor="middle" class="lb" style="fill:#fff">إسناد الموظفين</text>
+<rect x="200" y="60" width="130" height="50" rx="8" class="bxg"/><text x="265" y="82" text-anchor="middle" class="txw">إقفال + كشف</text><text x="265" y="100" text-anchor="middle" class="lb" style="fill:#fff">تصدير إلى مسار</text>
+<rect x="40" y="60" width="130" height="50" rx="8" class="bx"/><text x="105" y="82" text-anchor="middle" class="txb">إقلاع / هبوط</text><text x="105" y="100" text-anchor="middle" class="lb">المتخلفون</text>
+<line x1="700" y1="85" x2="672" y2="85" class="ln" marker-end="url(#ar4)"/>
+<line x1="540" y1="85" x2="512" y2="85" class="ln" marker-end="url(#ar4)"/>
+<line x1="200" y1="85" x2="172" y2="85" class="ln" marker-end="url(#ar4)"/>
+<!-- lane 2 -->
+<rect x="380" y="185" width="130" height="50" rx="8" class="bx"/><text x="445" y="207" text-anchor="middle" class="txb">الرحلات المتاحة</text><text x="445" y="225" text-anchor="middle" class="lb">المتبقي لتكتلي</text>
+<rect x="290" y="185" width="0" height="0"/>
+<rect x="220" y="185" width="130" height="50" rx="8" class="bxg"/><text x="285" y="207" text-anchor="middle" class="txw">إسناد المجموعات</text><text x="285" y="225" text-anchor="middle" class="lb" style="fill:#fff">عائلة كاملة، ذهاب وعودة</text>
+<line x1="445" y1="110" x2="445" y2="183" class="ln" marker-end="url(#ar4)"/><text text-anchor="end" x="470" y="150" class="lb">تظهر</text>
+<line x1="380" y1="210" x2="352" y2="210" class="ln" marker-end="url(#ar4)"/>
+<path d="M285,185 C285,150 265,140 265,112" class="ln" marker-end="url(#ar4)"/><text x="330" y="150" text-anchor="middle" class="lb">حتى الإقفال</text>
+<rect x="40" y="185" width="130" height="50" rx="8" class="bx"/><text x="105" y="207" text-anchor="middle" class="txb">تجمّع ← المطار</text><text x="105" y="225" text-anchor="middle" class="lb">مسح البطاقات = صعد</text>
+<line x1="220" y1="210" x2="172" y2="210" class="ln" marker-end="url(#ar4)"/><text x="196" y="250" text-anchor="middle" class="lb">لوحة التفويج</text>
+<line x1="105" y1="185" x2="105" y2="112" class="ln" marker-end="url(#ar4)"/>
+<!-- lane 3 -->
+<rect x="220" y="310" width="130" height="50" rx="8" class="bx"/><text x="285" y="332" text-anchor="middle" class="txb">بطاقة الرحلة</text><text x="285" y="350" text-anchor="middle" class="lb">في ملفي + إشعار</text>
+<line x1="285" y1="235" x2="285" y2="308" class="ln" marker-end="url(#ar4)"/>
+<rect x="540" y="310" width="130" height="50" rx="8" class="bx"/><text x="605" y="332" text-anchor="middle" class="txb">الموظف: رحلاتي</text><text x="605" y="350" text-anchor="middle" class="lb">ذهاب وعودة</text>
+<path d="M445,110 C445,140 560,250 605,308" class="ln" marker-end="url(#ar4)" style="stroke-dasharray:3 3"/>
+<rect x="40" y="310" width="130" height="50" rx="8" class="bx"/><text x="105" y="332" text-anchor="middle" class="txb">صعد ← وصل</text><text x="105" y="350" text-anchor="middle" class="lb">الحالة في الملف</text>
+<line x1="105" y1="235" x2="105" y2="308" class="ln" marker-end="url(#ar4)"/>
+<path d="M265,110 C265,140 280,290 220,335" class="lnm" marker-end="url(#ar4)"/><text x="340" y="290" text-anchor="middle" class="lb">أي تغيير بعد الإقفال = إشعار</text>
+</g>
+</svg>
+</div>
+<figcaption>الشكل 5: من يفعل ماذا. الرحلة تنزل من مسؤول الطيران إلى التكتلات فإلى الملفات الشخصية، والحالة تصعد في الاتجاه المعاكس من مسح البطاقة إلى تسجيل الإقلاع.</figcaption>
+</figure>
+<h3>على تقويم موسم 1448</h3>
+<p>التقويم الحالي في <code>SEASON.dates</code> فيه يوم سفر واحد. نقترح تحويله إلى نوافذ، على نمط ما جرى في 1447:</p>
+<div class="tbl"><table>
+<thead><tr><th>المرحلة</th><th>الموعد المقترح</th><th>من</th><th>ما يحدث في ملف الطيران</th></tr></thead>
+<tbody>
+<tr><td>التعاقد على الرحلات</td><td>شعبان – رمضان</td><td>مسؤول الطيران</td><td>إدخال المطارات والناقلين، واستيراد جدول الرحلات كمسودات</td></tr>
+<tr><td>تخصيص الرحلات للتكتلات ونشرها</td><td>1 – 10 ذو القعدة</td><td>مسؤول الطيران</td><td>الحصص، رحلات الموظفين، نشر</td></tr>
+<tr><td>التفويج</td><td>1 – 15 ذو القعدة (كما هو اليوم: «إصدار التأشيرات وتوزيع الرحلات»)</td><td>رؤساء التكتلات</td><td>إسناد المجموعات ذهاباً وعودة. لوحة التفويج تعرض النقص</td></tr>
+<tr><td>الإقفال والتصدير</td><td>قبل كل رحلة بـ 72 ساعة</td><td>مسؤول الطيران</td><td>كشف الركاب، نسك مسار، الناقل</td></tr>
+<tr><td>نافذة الذهاب</td><td>16 ذو القعدة – 1 ذو الحجة (نحو 15 يوماً)</td><td>الميدان + غرفة العمليات</td><td>تجمّعات، صعود، إقلاع، هبوط</td></tr>
+<tr><td>نافذة العودة</td><td>14 – 29 ذو الحجة</td><td>الميدان + غرفة العمليات</td><td>من المدينة إلى دمشق وحلب</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s13">
+<div class="callout decision"><b>بعد التحديث 1.1 — ما بُني</b><p>بوابة الموظفين: قائمة الرحلات، ونموذج رحلة بثلاثة أنواع (ذهاب، عودة، ذهاب وعودة)، وصفحة الرحلة مع «إضافة مجموعات» و«إسناد موظفين»، ولوحة التفويج مع زر «إسناد» لكل مجموعة. بوابة الإداريين: صفحة «الرحلات» للاطلاع. بوابة الحاج: بطاقتا الرحلة من الإسناد الفعلي.</p></div>
+<h2><span class="num">13</span>الشاشات</h2>
+<p>تسع شاشات، مرتبة حسب البوابة. الوصف هنا للمحتوى والسلوك لا للشكل، والشكل يتبع مكونات البوابات الحالية.</p>
+<h3>بوابة الموظفين</h3>
+<div class="grid2">
+  <div class="card"><h4>1. الرحلات <code>/staff/flights</code></h4>
+  <p>قائمة رحلات الموسم. فوقها أرقام: رحلات، مقاعد، مسند، متبقٍّ، بلا رحلة (حجاج وموظفون). تصفية بالاتجاه والمطار والناقل والتاريخ والحالة والتكتل. لكل صف: رقم الرحلة، المسار، الموعد، شريط السعة (موظفون/مسند/متبقٍّ)، الحالة، وأزرار الحالة المسموحة. زر «رحلة جديدة» وزر «استيراد جدول» من ملف.</p></div>
+  <div class="card"><h4>2. نموذج الرحلة</h4>
+  <p>الحقول في الفصل 5. التحقق: مطارا المغادرة والوصول مختلفان، الوصول بعد المغادرة، السعة أكبر من صفر، الحجز أقل من السعة، مجموع الحصص لا يتجاوز مقاعد الحجاج. التعديل بعد النشر يعرض «سيُبلَّغ N مسافراً بهذا التغيير».</p></div>
+  <div class="card"><h4>3. تفاصيل الرحلة</h4>
+  <p>رأس بالحالة وشريط السعة والموعد. تبويبات: <strong>الحجاج</strong> مرتبين بالتكتل ثم المجموعة ثم العائلة، مع الاحتياجات وحالة التأشيرة. <strong>الموظفون</strong> مع أزرار إسناد جماعي. <strong>الحصص</strong>. <strong>كشف الركاب</strong> بإصداراته وتصديره. <strong>السجل</strong>. الأزرار: نشر، إقفال، تأجيل، تحويل، إلغاء، تسجيل الإقلاع، تسجيل الهبوط، كل منها بحوار يذكر الأثر.</p></div>
+  <div class="card"><h4>4. لوحة التفويج <code>/staff/flights/board</code></h4>
+  <p>لكل تكتل ثم لكل مجموعة: عدد الحجاج، مسند ذهاباً، مسند عودة، بلا رحلة. ألوان للنقص. قائمة «بحاجة إلى رحلة» (بعد إلغاء أو تخلّف) و«موظفون بلا رحلة» و«تنبيهات» (عائلة مقسومة، مجموعة بلا مرافق، عودة فقط، بلا تأشيرة على رحلة مقفلة).</p></div>
+</div>
+<p>ويُضاف إلى «البيانات المرجعية» تبويبان: المطارات والناقلون. وإلى «ملفاتي التشغيلية» قسم «رحلاتي» للموظف.</p>
+<h3>بوابة الإداريين</h3>
+<div class="grid2">
+  <div class="card"><h4>5. رحلات التكتل <code>/administrator/flights</code></h4>
+  <p>لرئيس التكتل ومعاونه. بطاقات الرحلات المتاحة لتكتله: المسار والموعد والمتبقي من حصته. تصفية بالاتجاه والمطار. زر «إسناد» يفتح المنتقي: اختيار مجموعة أو أكثر، ثم العائلات، مع عدّاد حي «سيُسنَد 40 من 40 متبقياً». خيار «إسناد العودة أيضاً على الرحلة المقابلة». تأكيد ثم ملخص.</p></div>
+  <div class="card"><h4>6. تفويج تكتلي</h4>
+  <p>جدول مجموعات التكتل: لكل مجموعة رحلة الذهاب ورحلة العودة والأعداد والتنبيهات. من هنا يلغي رئيس التكتل إسناداً أو ينقله قبل الإقفال، ويقدّم طلب تغيير بعده. ترتبط بصفحة «مجموعات تكتلي» الموجودة.</p></div>
+  <div class="card"><h4>7. رحلات المجموعة (في «مجموعتي»)</h4>
+  <p>لرئيس المجموعة وفريقه: تبويب «الرحلات» فيه عائلات المجموعة ورحلة كل منها ذهاباً وعودة، وحالة كل فرد. طباعة كشف المجموعة للمطار. وفي «الميدان» يُربط التجمّع «ساحة المزة ← المطار» برحلة، فيصبح مسح البطاقة تسجيل صعود.</p></div>
+</div>
+<h3>بوابة الحاج والموظف</h3>
+<div class="grid2">
+  <div class="card"><h4>8. بطاقة الرحلة للحاج</h4>
+  <p>قسم «الرحلات» الموجود في صفحة الطلب، يقرأ من الإسناد الفعلي. بطاقة الذهاب وبطاقة العودة لكل فرد في الطلب، والحالة، والتجمّع، ومرافق المجموعة. قبل الإسناد: «لم تُحدد رحلتك بعد، تحددها إدارة تكتلك». إشعار مع كل تغيير في لوحة الإشعارات وفي صفحة «حالتي الآن» أثناء الموسم.</p></div>
+  <div class="card"><h4>9. رحلاتي للموظف</h4>
+  <p>في «ملفاتي التشغيلية»: بطاقتا الذهاب والعودة، ومن أسنده، والتجمّع. رابط إلى منصبه في الملف التشغيلي المرتبط بالرحلة (طليعة الإسكان مثلاً).</p></div>
+</div>
+</section>
+
+<section id="s14">
+<h2><span class="num">14</span>ما يستطيع كل مستخدم فعله</h2>
+<div class="tbl"><table>
+<thead><tr><th>المستخدم</th><th>الإجراءات</th><th>ما يراه</th></tr></thead>
+<tbody>
+<tr><td>مسؤول ملف الطيران</td><td>يضيف مطارات وناقلين. ينشئ الرحلات ويستوردها. يحدد السعة وحجز الموظفين والحصص. ينشر ويقفل ويصدر الكشوف ويصدّرها. يسند الموظفين فرادى وجماعات. يسند أي حاج، ويقسم عائلة بسبب، ويغيّر بعد الإقفال بسبب. يؤجل ويحوّل ويلغي. يسجل الإقلاع والهبوط والمتخلفين. يبتّ في طلبات التغيير.</td><td>كل الرحلات والعدّادات ولوحة التفويج والتنبيهات والسجل</td></tr>
+<tr><td>غرفة العمليات / مدير المكتب / مديرة الموسم</td><td>يسجلون الإقلاع والهبوط والمتخلفين (غرفة العمليات). يصدّرون الكشوف. يتابعون التأجيل والتحويل كمهام.</td><td>كل الرحلات للقراءة، ولوحة التفويج</td></tr>
+<tr><td>رئيس التكتل ومعاونه</td><td>يسند مجموعات تكتله وعائلاتها ذهاباً وعودة. يلغي وينقل قبل الإقفال. يقدّم طلب تغيير بعده. يفوّض رئيس مجموعة لمجموعته. يطبع كشف التكتل.</td><td>رحلات تكتله والمفتوحة، وتفويج تكتله، وتنبيهاته</td></tr>
+<tr><td>رئيس المجموعة</td><td>يرى ويطبع. يسند مجموعته إن فُوِّض. يفتح تجمّع الرحلة ويمسح البطاقات. يقدّم طلب تغيير. يبلّغ عن متخلف.</td><td>رحلات مجموعته وحالة كل عائلة</td></tr>
+<tr><td>معاون رئيس المجموعة، الموجّه، المنسق التقني</td><td>يرون ويطبعون. المعاون يمسح البطاقات في التجمّع. المنسق يطبع بطاقات الرحلة للحجاج الذين سجّلهم، ويرى الاحتياجات الصحية على الكشف.</td><td>رحلات مجموعته</td></tr>
+<tr><td>الحاج (صاحب الطلب)</td><td>يرى بطاقتي الذهاب والعودة لكل فرد في طلبه، ويطبعهما، ويتلقى الإشعارات. لا يختار الرحلة ولا يغيّرها. يطلب المساعدة عبر تذكرة «نقل».</td><td>رحلته ورحلة عائلته</td></tr>
+<tr><td>الموظف المسافر</td><td>يرى رحلتيه ويطبعهما ويتلقى الإشعارات. يبلّغ مسؤول الطيران بتعذّر السفر.</td><td>رحلاته</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s15">
+<h2><span class="num">15</span>الحالات الاستثنائية</h2>
+<p>كل حالة لها فعل مسمّى في النظام وصاحب واضح. الثلاث الأولى وقعت فعلاً في موسم 1447.</p>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>الحالة</th><th>ما يفعله النظام</th><th>من يتصرف</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td>تأجيل رحلة أو كل رحلات يوم (إغلاق أجواء)</td><td>«تأجيل» على الرحلة أو على مجموعة رحلات دفعة واحدة. الإسنادات تبقى. إشعار لكل مسافر وولي طلب ورئيس مجموعة وتكتل. مهمة في غرفة العمليات. عند تحديد الموعد الجديد إشعار ثانٍ</td><td>مسؤول الطيران، وغرفة العمليات للسكن والوجبات في المدينة</td></tr>
+<tr><td class="num">2</td><td>تحويل الوجهة إلى مطار آخر (عمّان بدل دمشق)</td><td>«تحويل» يغيّر مطار الوصول ويضيف مرحلة أرضية بحافلات (35 – 40 راكباً للحافلة ⇒ يحسب عدد الحافلات). إشعار للجميع. مهمة لفريق المواصلات</td><td>مسؤول الطيران، فريق المواصلات</td></tr>
+<tr><td class="num">3</td><td>إلغاء رحلة بعد الإسناد</td><td>«إلغاء» بسبب. كل الإسنادات ملغاة، والمسافرون في «بحاجة إلى رحلة» مع عدّاد. يقترح النظام رحلات بديلة فيها مقاعد في الاتجاه نفسه من رحلات التكتل</td><td>رئيس التكتل يعيد الإسناد، ومسؤول الطيران يفتح مقاعد إن لزم</td></tr>
+<tr><td class="num">4</td><td>حاج تخلّف عن الرحلة</td><td>عند تسجيل الإقلاع: من لم يصعد ← «تخلّف». تُفتح تذكرة نقل باسمه. يبقى إسناد عودته</td><td>رئيس المجموعة يبلّغ، مسؤول الطيران يعيد الإسناد</td></tr>
+<tr><td class="num">5</td><td>حاج يحتاج عودة مبكرة (مرض) أو متأخرة (مستشفى)</td><td>إسناد فردي من مسؤول الطيران بسبب طبي. إن كان على رحلة مقفلة: نقل + كشف بإصدار جديد. الفريق الطبي يرى الحالة</td><td>الفريق الطبي يطلب، مسؤول الطيران ينفّذ</td></tr>
+<tr><td class="num">6</td><td>وفاة حاج في السعودية</td><td>إلغاء إسناد العودة بسبب «وفاة» دون إشعار للحاج، مع إشعار خاص لولي الطلب ورئيس المجموعة. المقعد يعود متاحاً</td><td>مسؤول الطيران بناء على غرفة العمليات</td></tr>
+<tr><td class="num">7</td><td>انسحاب حاج أو إلغاء طلبه قبل السفر</td><td>عند تغيّر حالة الطلب: إسناداته تُلغى تلقائياً بسبب «إلغاء الطلب»، وإشعار لرئيس التكتل بمقاعد تحررت</td><td>تلقائي</td></tr>
+<tr><td class="num">8</td><td>عائلة لا تدخل في المقاعد المتبقية</td><td>الإسناد يرفض العائلة كاملة ويقترح رحلة أخرى. تقسيمها لمسؤول الطيران بسبب، ويُعلَّم الطلب «مقسوم» ويظهر في التنبيهات</td><td>رئيس التكتل، ثم مسؤول الطيران عند الضرورة</td></tr>
+<tr><td class="num">9</td><td>مجموعة على رحلتين بلا مرافق على إحداهما</td><td>تنبيه على الرحلة وفي لوحة التفويج: «12 حاجاً من المجموعة 20 دون مرافق». يُحل بإسناد أحد فريق المجموعة أو موظف مرافق</td><td>رئيس التكتل أو مسؤول الطيران</td></tr>
+<tr><td class="num">10</td><td>حاج بلا تأشيرة على رحلة تُقفل</td><td>الإقفال يعرض القائمة ويسمح بالمتابعة مع تعليم هؤلاء. عند صدور التأشيرة تُزال العلامة. إن لم تصدر قبل الرحلة: نقل أو إلغاء</td><td>مسؤول الطيران، إدارة التسجيل للتأشيرات</td></tr>
+<tr><td class="num">11</td><td>تغيير رقم الرحلة أو موعدها من الناقل</td><td>تعديل الرحلة المنشورة/المقفلة يبلّغ المسافرين، ويصدر كشفاً بإصدار جديد إن كانت مقفلة، ويعلّم التصدير السابق إلى مسار بأنه قديم</td><td>مسؤول الطيران</td></tr>
+<tr><td class="num">12</td><td>رئيسا تكتلين يسندان في اللحظة نفسها على رحلة مفتوحة</td><td>الفحص والحجز في معاملة واحدة على الخادم. الثاني يفشل برسالة «تبقى 12 مقعداً والعائلة 15». في النسخة التجريبية المخزن محلي فلا تنافس</td><td>تلقائي</td></tr>
+<tr><td class="num">13</td><td>تغيّر رئيس التكتل أو نقل مجموعة بين تكتلين</td><td>الإسنادات تحمل التكتل لحظة الإسناد وتبقى صحيحة. الحق في التعديل يتبع التكتل الحالي للمجموعة</td><td>تلقائي</td></tr>
+<tr><td class="num">14</td><td>حاج يسافر بوسيلة أخرى أو من مطار خارجي غير مخطط</td><td>علامة «وسيلة أخرى» بسبب، تُخرجه من قوائم النقص وتسمح بإسناد عودة دون ذهاب</td><td>مسؤول الطيران</td></tr>
+<tr><td class="num">15</td><td>رضيع أو طفل دون سنّ المقعد</td><td>خارج نطاق الحج (الحد الأدنى 17 – 18 سنة في الشروط). يُترك للمستقبل</td><td>—</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s16">
+<h2><span class="num">16</span>التكامل والمخرجات</h2>
+<div class="tbl"><table>
+<thead><tr><th>الجهة أو الوحدة</th><th>ما يتبادله ملف الطيران معها</th><th>متى</th></tr></thead>
+<tbody>
+<tr><td>نسك مسار (السعودية)</td><td>لكل حاج: رقم الرحلة، تاريخ ووقت الوصول، مطار الوصول، وكذلك للمغادرة. تصدير ملف بصيغة مسار من كشف الركاب. أي تغيير بعد التصدير يُعلَّم «يحتاج إعادة رفع»</td><td>بعد إقفال كل رحلة</td></tr>
+<tr><td>الناقل الجوي والمطار</td><td>كشف الركاب بصيغة الناقل (اسم كما في الجواز، رقم الجواز، الجنس، الاحتياجات)، وقائمة الأمتعة الخاصة</td><td>بعد الإقفال، وقبل الرحلة بـ 48 ساعة</td></tr>
+<tr><td>الملف الصحي</td><td>يقرأ منه الاحتياجات (كرسي متحرك، أكسجين، مرافق) ويضعها على الكشف وبطاقة الرحلة</td><td>عند كل عرض</td></tr>
+<tr><td>الميدان (التجمّعات)</td><td>التجمّع «ساحة المزة ← المطار» يُربط برحلة؛ مسح البطاقة يغيّر الإسناد إلى «صعد». في المدينة: تجمّع «بهو الفندق ← المطار» لرحلة العودة</td><td>يوم الرحلة</td></tr>
+<tr><td>غرفة العمليات</td><td>تسجيل الإقلاع والهبوط، ومهام التأجيل والتحويل، واقتراح الحافلات من المطار (الحافلة 35 – 40 راكباً)</td><td>أثناء الموسم</td></tr>
+<tr><td>الملفات التشغيلية والموظفون</td><td>قائمة المسافرين من الموظفين ومناصبهم، والإسناد الجماعي بالملف</td><td>عند إسناد الموظفين</td></tr>
+<tr><td>الإشعارات</td><td>إشعار في الملف (حاج، إداري، موظف) + رسالة نصية في النسخة الفعلية، مع سجل إبلاغ (من، متى، بأي قناة). تلغرام يبقى قناة إعلان عام لا قناة إبلاغ فردي</td><td>عند كل إسناد وتغيير</td></tr>
+<tr><td>سجل الأحداث</td><td>أفعال جديدة: إنشاء رحلة، نشر، إسناد، إلغاء إسناد، نقل، إقفال، إصدار كشف، تصدير، تأجيل، تحويل، إلغاء، إقلاع، هبوط، تخلّف</td><td>دائماً</td></tr>
+<tr><td>التقييم</td><td>مرحلة «السفر والمطارات» في تقييم الإداريين تقرأ من الطيران: هل تفرّقت المجموعة، هل كان معها مرافق، عدد المتخلفين</td><td>بعد الموسم</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s17">
+<h2><span class="num">17</span>خطة التنفيذ في النسخة التجريبية</h2>
+<p>ثلاث مراحل. كل مرحلة تُسلَّم كاملة وتُوثَّق في أدلة المستخدم الثلاثة. الأولى للموظفين وحدهم لأنها تثبت النموذج بلا تعقيد الإسناد المتعدد.</p>
+<div class="tbl"><table>
+<thead><tr><th>المرحلة</th><th>ما يُبنى</th><th>الملفات الرئيسية</th><th>حجم تقريبي</th></tr></thead>
+<tbody>
+<tr><td><strong>1. رحلات الموظفين</strong></td><td>المطارات والناقلون في البيانات المرجعية. شريحة <code>flights</code> في المخزن. صفحة الرحلات ونموذجها وتفاصيلها. إسناد الموظفين فرادى وجماعات. قسم «رحلاتي». صلاحيتا <code>flights.manage</code> و<code>flights.view</code>. بذور 1448 على نمط 1447 (نحو 20 رحلة عيّنة). أحداث السجل</td><td><code>lib/flights.ts</code> جديد، <code>lib/store.ts</code>، <code>lib/staff.ts</code>، <code>lib/ops.ts</code>، <code>app/staff/flights/*</code>، <code>app/staff/reference</code>، <code>app/staff/my-files</code></td><td>أسبوعان لمطوّر واحد</td></tr>
+<tr><td><strong>2. إسناد الحجاج</strong></td><td>الحصص. صفحة رحلات التكتل والمنتقي. تفويج تكتلي. تبويب الرحلات في «مجموعتي». بطاقة الرحلة في بوابة الحاج تقرأ من الإسناد. الإشعارات المشتقة. حالة المسافر. قواعد الفصل 7</td><td><code>app/administrator/(desk)/flights/*</code>، <code>group.tsx</code>، <code>app/portal/application</code>، <code>lib/journey.ts</code> (إزالة الثابت)</td><td>ثلاثة أسابيع</td></tr>
+<tr><td><strong>3. التشغيل والاستثناءات</strong></td><td>الإقفال وكشف الركاب وإصداراته وتصديره. لوحة التفويج والتنبيهات. تأجيل وتحويل وإلغاء مع آثارها. ربط التجمّع بالرحلة ومسح البطاقة. الإقلاع والهبوط والمتخلفون. طلبات التغيير. صفحة «حالتي الآن» تقرأ الرحلة الفعلية</td><td><code>app/staff/flights/board</code>، <code>field.tsx</code>، <code>app/staff/operations</code>، <code>app/portal/season</code></td><td>ثلاثة أسابيع</td></tr>
+</tbody></table></div>
+<h3>شكل الشريحة في المخزن</h3>
+<pre style="background:var(--code);padding:14px 16px;border-radius:10px;overflow-x:auto;direction:ltr;text-align:left;font-size:.85rem;line-height:1.6"><code style="background:none;padding:0">type FlightsState = {
+  airports?: Airport[];        // reference, per season, like hotels
+  carriers?: Carrier[];
+  flights?: Flight[];
+  assignments?: Assignment[];
+  manifests?: Manifest[];
+  otherMeans?: Record&lt;travelerId, { reason: string; at: number; by: string }&gt;;
+  changeRequests?: ChangeRequest[];
+};
+// in State:  flights: FlightsState   (missing lists fall back to the 1448 seed, like `ops`)</code></pre>
+<h3>ما يُزال</h3>
+<ul>
+  <li><code>FLIGHTS</code> الثابت و<code>assign()</code> في <code>lib/journey.ts</code>: يُستبدلان بقراءة من الإسناد، مع بقاء المقعد والحافلة كحقول اختيارية.</li>
+  <li>يوم السفر الواحد في <code>SEASON.dates</code>: يصبح نافذتين.</li>
+  <li>صلاحية <code>transport</code> غير المستعملة: تُدمج في <code>flights.manage</code> أو تُحذف.</li>
+</ul>
+<h3>ما يُحدَّث في الأدلة</h3>
+<p>دليل الموظف: فصل «الطيران» لصلاحية <code>flights.manage</code> وقسم «رحلاتي». دليل الإداري: فصل رئيس التكتل يضاف إليه «رحلات التكتل»، وفصل رئيس المجموعة «الرحلات» و«تجمّع الرحلة». دليل الحاج: فصل السفر يتحدث عن بطاقة الرحلة والإشعارات كما تصدر من الإسناد الفعلي.</p>
+</section>
+
+<section id="s18">
+<div class="callout decision"><b>بعد التحديث 1.1</b><p>حُسمت القرارات 1 و3 و4: لا حصص للتكتلات، والإسناد لمسؤول الطيران وحده، والتغيير بعد الإقفال منه وحده بسبب مكتوب. والقرار 2 حُسم بأن المجموعة تُسند كاملة. تبقى مفتوحة: 5 و6 و7.</p></div>
+<h2><span class="num">18</span>قرارات مطلوبة من الإدارة</h2>
+<p>سبعة قرارات تغيّر التصميم أو التنفيذ. لكل منها توصية، وتُثبَّت الإجابة في إعدادات الموسم لا في الكود.</p>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>القرار</th><th>الخيارات</th><th>التوصية</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td>كيف تُوزَّع الرحلة على التكتلات؟</td><td>مخصصة لتكتل واحد / حصص / مفتوحة للجميع</td><td>مخصصة افتراضياً، والحصص للرحلات المشتركة، والمفتوحة لإعادة الإسناد</td></tr>
+<tr><td class="num">2</td><td>هل يُسمح بتقسيم المجموعة على رحلتين؟</td><td>ممنوع / مسموح مع تنبيه / مسموح</td><td>مسموح مع تنبيه، بشرط مرافق على كل رحلة</td></tr>
+<tr><td class="num">3</td><td>من يُسند في التكتل؟</td><td>رئيس التكتل ومعاونه فقط / مع تفويض اختياري لرؤساء المجموعات / رؤساء المجموعات مباشرة</td><td>رئيس التكتل ومعاونه، مع تفويض اختياري</td></tr>
+<tr><td class="num">4</td><td>من يعتمد التغيير بعد الإقفال؟</td><td>مسؤول الطيران وحده / مسؤول الطيران بموافقة مدير المكتب</td><td>مسؤول الطيران وحده، مع إشعار مدير المكتب، لأن التغييرات بعد الإقفال طارئة</td></tr>
+<tr><td class="num">5</td><td>هل يسافر الإداريون (رئيس المجموعة وفريقه) كحجاج أم كموظفين؟</td><td>كحجاج في كشوف الحجاج / كموظفين</td><td>كحجاج، لأنهم في تأشيرات الحج ومجموعاتهم، ويُحسبون مرافقين تلقائياً</td></tr>
+<tr><td class="num">6</td><td>مصدر السعة</td><td>الإدارة تستأجر طائرات كاملة / تشتري كتل مقاعد على رحلات مجدولة</td><td>يدعم النظام الحالتين: السعة رقم يُدخله مسؤول الطيران</td></tr>
+<tr><td class="num">7</td><td>صيغة التصدير إلى نسك مسار</td><td>حسب ملف القالب الرسمي للموسم</td><td>يُطلب القالب من مكتب شؤون الحجاج قبل المرحلة 3</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s19">
+<h2><span class="num">19</span>المصادر</h2>
+<p>الواقع التشغيلي في الفصل 2 مبني على هذه المصادر. الكود المشار إليه في الفصول الأخرى من النسخة التجريبية كما هي بتاريخ 29 أيلول 2026.</p>
+<ul class="src">
+  <li>الجزيرة نت، 10 أيار 2026: <a href="https://www.aljazeera.net/news/2026/5/10/%D9%85%D9%86-%D8%AF%D9%85%D8%B4%D9%82-%D9%88%D8%AD%D9%84%D8%A8-%D8%A5%D9%84%D9%89-%D9%85%D9%83%D8%A9-%D9%85%D8%B7%D8%A7%D8%B1%D8%A7%D8%AA-%D8%B3%D9%88%D8%B1%D9%8A%D8%A7-%D8%AA%D9%88%D8%AF%D8%B9">من دمشق وحلب إلى مكة: مطارات سوريا تودع قوافل الحجاج</a> (57 رحلة من دمشق، 12,900 و9,000 حاج، نظام المجموعات والمرافقين).</li>
+  <li>سانا، 23 أيار 2026: <a href="https://sana.sy/syria-and-the-world/2483257/">مدير الحج والعمرة: آخر رحلات قدوم الحجاج تصل جدة اليوم</a> (24,500 حاج، 9 – 23 أيار، العودة 5 – 20 حزيران من المدينة).</li>
+  <li>سانا، حزيران 2026: <a href="https://sana.sy/locals/2496025/">إعادة جدولة رحلتين لعودة الحجاج وتحويل وجهتهما إلى مطار الملكة علياء</a>.</li>
+  <li>Arab News، 8 حزيران 2026: <a href="https://www.arabnews.com/node/2646416/middle-east">Syria postpones Hajj return flights</a> (نحو 700 حاج، حافلات 35 – 40 راكباً).</li>
+  <li>تلفزيون سوريا: <a href="https://www.syria.tv/%D8%AA%D8%A3%D8%AC%D9%8A%D9%84-%D8%B1%D8%AD%D9%84%D8%A7%D8%AA-%D8%A7%D9%84%D8%AD%D8%AC%D8%A7%D8%AC-%D8%A7%D9%84%D8%B3%D9%88%D8%B1%D9%8A%D9%8A%D9%86-%D8%A7%D9%84%D9%82%D8%A7%D8%AF%D9%85%D9%8A%D9%86-%D9%85%D9%86-%D8%A7%D9%84%D9%85%D8%AF%D9%8A%D9%86%D8%A9-%D8%A7%D9%84%D9%85%D9%86%D9%88%D8%B1%D8%A9-%D8%AD%D8%AA%D9%89-%D8%A5%D8%B4%D8%B9%D8%A7%D8%B1-%D8%A2%D8%AE%D8%B1">تأجيل رحلات الحجاج القادمين من المدينة المنورة حتى إشعار آخر</a>.</li>
+  <li>ويجو، دليل الحج من سوريا 1447: <a href="https://rahhal.wego.com/blog/%D8%B1%D8%AD%D9%84%D8%A9-%D8%A7%D9%84%D8%AD%D8%AC-%D9%85%D9%86-%D8%B3%D9%88%D8%B1%D9%8A%D8%A7-%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84-%D8%A7%D9%84%D8%A5%D8%AC%D8%B1%D8%A7%D8%A1%D8%A7%D8%AA-%D9%88/">الإجراءات والتكاليف ومواعيد السفر</a> (المطارات الخمسة، الناقلون الثلاثة، التكلفة تشمل الطيران، لا سفر فردي).</li>
+  <li>Arab News، أيار 2025: <a href="https://www.arabnews.com/node/2643035/amp">Syrian pilgrims depart Damascus airport on first Hajj flights</a> (موسم 1446).</li>
+  <li>وكالة الأنباء السعودية، أيار 2026: <a href="https://www.spa.gov.sa/N2576933">منظومة رقمية متكاملة لتيسير رحلة ضيوف الرحمن</a> (نسك مسار: رفع بيانات الحجاج والاستعداد المسبق).</li>
+  <li>مديرية الحج والعمرة السورية: <a href="https://syrianhajj.org/decisions/">قرارات اللجنة</a> و<a href="https://syrianhajj.org/groups_1447/">المجموعات المعتمدة لموسم 1447</a>.</li>
+</ul>
+</section>
+
+<hr>
+<p class="src">أُعدّت هذه الدراسة من قراءة كود النسخة التجريبية ومن المصادر أعلاه. ما لم يُذكر في المصادر عن آليات التفويج الداخلية (كيف وُزّعت المجموعات على الرحلات فعلاً في 1447) هو استنتاج من الأعداد والأنماط، ويحتاج تأكيداً من إدارة الحج والعمرة.</p>
+</div>
+
+</body>
+</html>
