@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, FlaskConical, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { DEMO_SCENARIOS } from "@/lib/registry";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 
 export const DEMO_OTP = "1448";
 
@@ -38,7 +38,7 @@ export function OtpInput({ value, onChange, length = 4, invalid }: { value: stri
           value={d}
           aria-label={`الرقم ${i + 1}`}
           onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "").slice(-1);
+            const v = digitsOnly(e.target.value).slice(-1);
             set(i, v);
             if (v && i < length - 1) refs.current[i + 1]?.focus();
           }}
@@ -46,7 +46,7 @@ export function OtpInput({ value, onChange, length = 4, invalid }: { value: stri
             if (e.key === "Backspace" && !d && i > 0) refs.current[i - 1]?.focus();
           }}
           onPaste={(e) => {
-            const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
+            const text = digitsOnly(e.clipboardData.getData("text")).slice(0, length);
             if (text) {
               e.preventDefault();
               onChange(text);

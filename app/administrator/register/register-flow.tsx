@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
-import { cn, maskNationalId } from "@/lib/utils";
+import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
 import { logAdmin, seasonHistory } from "../_lib/admin";
 
 const STEPS = ["البيانات الأساسية", "رمز التحقق", "الشؤون المدنية", "الملف الإداري"];
@@ -177,8 +177,8 @@ export function AdminRegisterFlow() {
                       maxLength={11}
                       placeholder="01033300871"
                       value={form.nationalId}
-                      onChange={(e) => setForm({ ...form, nationalId: e.target.value.replace(/\D/g, "") })}
-                      className={cn(inputClass, "pr-12 text-left font-mono tracking-[.2em]")}
+                      onChange={(e) => setForm({ ...form, nationalId: digitsOnly(e.target.value) })}
+                      className={cn(inputClass, "pl-16 pr-12 text-left font-mono tracking-[.2em]")}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-hint">{form.nationalId.length}/11</span>
                   </div>
@@ -215,7 +215,7 @@ export function AdminRegisterFlow() {
                 <Field label="رقم الهاتف" hint="سيصلك عليه رمز تحقق برسالة نصية" error={touched && errors.phone}>
                   <div className="relative">
                     <Phone className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-gold-dark" />
-                    <input inputMode="tel" dir="ltr" maxLength={10} placeholder="09xxxxxxxx" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })} className={cn(inputClass, "pr-12 text-left font-mono tracking-widest")} />
+                    <input inputMode="tel" dir="ltr" maxLength={10} placeholder="09xxxxxxxx" value={form.phone} onChange={(e) => setForm({ ...form, phone: digitsOnly(e.target.value) })} className={cn(inputClass, "pr-12 text-left font-mono tracking-widest")} />
                   </div>
                 </Field>
                 <Field label="البريد الإلكتروني" optional hint="للإيصالات والعقود" error={touched && errors.email}>

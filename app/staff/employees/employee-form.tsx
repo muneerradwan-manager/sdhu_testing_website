@@ -4,7 +4,7 @@ import { Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CURRENT_SEASON, GOVERNORATES, JOB_TITLES, MISSIONS, fold, type Employee, type Mission } from "@/lib/ops";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 import { textareaClass } from "../_components/kit";
 import { Field, fieldClass, selectClass } from "../_components/ops-ui";
 
@@ -47,7 +47,7 @@ export function EmployeeForm({ initial, all, onSave, onCancel }: { initial: Draf
   if (!d.surname.trim()) errors.surname = "مطلوب";
   if (!/^\d{11}$/.test(d.nationalId)) errors.nationalId = "11 رقماً";
   else if (idTaken) errors.nationalId = "هذا الرقم مسجّل لموظف آخر";
-  if (d.phoneSy.replace(/\D/g, "").length < 10) errors.phoneSy = "رقم سوري كامل";
+  if (digitsOnly(d.phoneSy).length < 10) errors.phoneSy = "رقم سوري كامل";
   if (d.kind === "external" && !d.organization?.trim()) errors.organization = "اذكر الجهة التي انتدبته";
   const valid = Object.keys(errors).length === 0;
 
@@ -91,7 +91,7 @@ export function EmployeeForm({ initial, all, onSave, onCancel }: { initial: Draf
           <input type="number" min={1950} max={2005} value={d.birthYear} onChange={(e) => set("birthYear", Number(e.target.value))} className={fieldClass} dir="ltr" />
         </Field>
         <Field label="الرقم الوطني">
-          <input inputMode="numeric" maxLength={11} value={d.nationalId} onChange={(e) => set("nationalId", e.target.value.replace(/\D/g, ""))} className={cn(fieldClass, "tabular-nums", ring("nationalId"))} dir="ltr" />
+          <input inputMode="numeric" maxLength={11} value={d.nationalId} onChange={(e) => set("nationalId", digitsOnly(e.target.value))} className={cn(fieldClass, "tabular-nums", ring("nationalId"))} dir="ltr" />
           {err("nationalId")}
         </Field>
       </div>

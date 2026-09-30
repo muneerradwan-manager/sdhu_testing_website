@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { BellRing, CheckCircle2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useToast } from "@/components/ui/widgets";
+import { digitsOnly } from "@/lib/utils";
 
 const KEY = "sdhu-umrah-notify";
 
@@ -56,7 +57,7 @@ export function NotifyForm() {
                 maxLength={10}
                 placeholder="09xxxxxxxx"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setPhone(digitsOnly(e.target.value))}
                 aria-label="رقم الهاتف"
                 className="h-14 flex-1 rounded-2xl border-2 border-gold/50 bg-white px-4 text-left font-mono text-lg tracking-widest outline-none transition focus:border-green-light focus:ring-4 focus:ring-green-light/15"
               />

@@ -2,10 +2,10 @@
 
 import { useMemo } from "react";
 import { EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, scoreExam } from "@/lib/data/admin-exam";
-import { fullName, getPerson } from "@/lib/registry";
+import { ageOf, fullName, getPerson, type Person } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
-import { actions, useStore, type AdminProfile, type AdminRecord, type VaultDoc } from "@/lib/store";
+import { actions, useStore, type AdminProfile, type AdminRecord, type AdminRules, type VaultDoc } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
 
@@ -49,7 +49,7 @@ export const POSITIONS = [
   // The two cluster roles are never applied for: the group heads elect the cluster heads, and each head picks his deputy
   { key: "cluster-head", label: "رئيس تكتل", desc: "رئيس مجموعة ينتخبه رؤساء المجموعات ليدير التكتل كاملاً.", elected: true },
   { key: "cluster-deputy", label: "معاون رئيس تكتل", desc: "رئيس مجموعة سابق يختاره رئيس التكتل المنتخب.", elected: true },
-  { key: "group-head", label: "رئيس مجموعة", desc: "يقود مجموعة حتى 50 حاجاً: استلام الحجاج المسجّلين فيها، التجمّعات، الإعلانات، التقرير اليومي.", elected: false },
+  { key: "group-head", label: "رئيس مجموعة", desc: "يقود مجموعة: استلام الحجاج المسجّلين فيها، التجمّعات، الإعلانات، التقرير اليومي.", elected: false },
   { key: "group-deputy", label: "معاون رئيس مجموعة", desc: "الحضور والتجمّع وتوزيع الوجبات الخاصة.", elected: false },
   { key: "guide-m", label: "موجّه ديني", desc: "الدروس والمناسك والإجابة عن الأسئلة الشرعية.", elected: false },
   { key: "guide-f", label: "موجّهة دينية", desc: "الإرشاد الديني للحاجّات ومتابعة شؤونهن.", elected: false },
@@ -62,12 +62,23 @@ export const POSITIONS = [
  * it. A document in the administrator's permanent file is carried into the new season's application
  * when it is still valid; when it has expired he updates it instead of uploading everything again.
  */
-export const DOCUMENTS = [
+export type DocType = { key: string; label: string; hint: string; file: string; validSeasons: number; custom?: boolean };
+
+/**
+ * Shared documents (the record, the degree, first aid) and the certificates that belong to one kind of
+ * work (the sharia certificate of a guide, the computing certificate of a technical coordinator, the
+ * leadership course of a group head). Which role asks for which, and whether it is required or only
+ * strengthens the application, is the season's requirements table — not this list.
+ */
+export const DOCUMENTS: DocType[] = [
+  { key: "record", label: "وثيقة «لا حكم عليه»", hint: "غير مضى عليها أكثر من 3 أشهر — تُجدَّد كل موسم", file: "no-criminal-record.pdf", validSeasons: 1 },
   { key: "degree", label: "صورة عن الشهادة الجامعية", hint: "PDF أو صورة واضحة", file: "university-degree.pdf", validSeasons: 0 },
   { key: "first-aid", label: "شهادة دورة إسعافات أولية", hint: "صادرة خلال آخر سنتين", file: "first-aid-2026.pdf", validSeasons: 3 },
-  { key: "record", label: "وثيقة «لا حكم عليه»", hint: "غير مضى عليها أكثر من 3 أشهر — تُجدَّد كل موسم", file: "no-criminal-record.pdf", validSeasons: 1 },
+  { key: "sharia", label: "شهادة شرعية أو إجازة في العلوم الشرعية", hint: "من كلية أو معهد شرعي معتمد", file: "sharia-certificate.pdf", validSeasons: 0 },
+  { key: "it", label: "شهادة في المعلوماتية (ICDL أو ما يعادلها)", hint: "أو شهادة جامعية في المعلوماتية", file: "it-certificate.pdf", validSeasons: 0 },
+  { key: "leadership", label: "شهادة دورة قيادة وإدارة مجموعات", hint: "من جهة تدريبية معتمدة", file: "leadership-course.pdf", validSeasons: 3 },
   { key: "recommendation", label: "تزكية من رئيس تكتل سابق", hint: "من موسم سابق عملت فيه", file: "recommendation.pdf", validSeasons: 2 },
-] as const;
+];
 
 export const COMMITMENTS = [
   { key: "travel", label: "السفر مع الحجاج طوال الموسم", detail: "من يوم السفر حتى وصول آخر حاج إلى دمشق." },
@@ -86,8 +97,9 @@ export const SKILLS = [
   { key: "elderly", label: "خبرة في رعاية كبار السن", emoji: "🧓" },
 ] as const;
 
-export function documentType(key: string) {
-  return DOCUMENTS.find((d) => d.key === key);
+/** A document type: the platform's list, then the certificates the administration added this season */
+export function documentType(key: string, types: DocType[] = DOCUMENTS) {
+  return types.find((d) => d.key === key) ?? DOCUMENTS.find((d) => d.key === key);
 }
 
 /**
@@ -101,6 +113,121 @@ export function docState(doc: VaultDoc, season: number = SEASON.hijriYear, valid
   return until >= season
     ? { ok: true, text: until === season ? `سارية لهذا الموسم` : `سارية حتى موسم ${until}`, until }
     : { ok: false, text: `منتهية منذ موسم ${until + 1} — حدّثها`, until };
+}
+
+/**
+ * What each role asks of the administrator, as a table the administration sets every season: one row
+ * per condition, one column per role. The four fixed rows are numbers or a gender — who he is, which no
+ * upload changes. The other rows are things in his permanent file (a document or certificate, a skill,
+ * a language); for each role such a row is "required" (no application without it) or "preferred" (it
+ * strengthens the application but does not stop it). Roles share some rows (the record) and not others
+ * (the sharia certificate of a guide, the computing certificate of a technical coordinator).
+ * `rows`: "age-min", "age-max", "gender", "seasons", "doc:<key>", "skill:<key>", "lang:<name>", top to bottom.
+ * `cells`: role key -> row id -> a number, "M" / "F", or "required" / "preferred".
+ */
+export type RoleRequirements = NonNullable<AdminRules["requirements"]>;
+
+export const FIXED_CRITERIA = ["age-min", "age-max", "gender", "seasons"] as const;
+
+/** The roles an administrator applies for (the cluster roles come by election and choice, not by application) */
+export const APPLIED_ROLES = POSITIONS.filter((p) => !p.elected);
+
+/** The table for season 1448 as the platform ships it */
+export const ROLE_REQUIREMENTS: RoleRequirements = {
+  rows: ["age-min", "age-max", "gender", "seasons", "doc:record", "doc:degree", "doc:first-aid", "doc:sharia", "doc:it", "doc:leadership", "doc:recommendation", "skill:computer", "skill:elderly", "lang:الإنجليزية"],
+  cells: {
+    "group-head": { "age-min": 30, "age-max": 60, "doc:record": "required", "doc:degree": "required", "doc:first-aid": "preferred", "doc:leadership": "preferred", "doc:recommendation": "preferred", "skill:computer": "preferred" },
+    "group-deputy": { "age-min": 25, "age-max": 60, "doc:record": "required", "doc:degree": "required", "doc:first-aid": "preferred", "skill:elderly": "preferred" },
+    "guide-m": { "age-min": 25, "age-max": 65, gender: "M", "doc:record": "required", "doc:sharia": "required", "doc:degree": "preferred", "skill:elderly": "preferred" },
+    "guide-f": { "age-min": 25, "age-max": 65, gender: "F", "doc:record": "required", "doc:sharia": "required", "doc:degree": "preferred", "skill:elderly": "preferred" },
+    tech: { "age-min": 22, "age-max": 55, "doc:record": "required", "doc:it": "required", "skill:computer": "required", "doc:degree": "preferred", "lang:الإنجليزية": "preferred" },
+  },
+};
+
+export type Level = "required" | "preferred";
+
+/** How a file row stands for one role: required, preferred, or not asked */
+export function levelOf(table: RoleRequirements, roleKey: string, id: string): Level | null {
+  const v = table.rows.includes(id) ? table.cells[roleKey]?.[id] : undefined;
+  return v === "required" || v === "preferred" ? v : null;
+}
+
+/** "doc:degree" -> ["doc", "degree"]; a fixed row has no key */
+function splitCriterion(id: string): [string, string] {
+  const i = id.indexOf(":");
+  return i < 0 ? [id, ""] : [id.slice(0, i), id.slice(i + 1)];
+}
+
+/** How a row of the table reads, for the administration and for the administrator */
+export function criterionLabel(id: string, types: DocType[] = DOCUMENTS) {
+  const [kind, key] = splitCriterion(id);
+  if (id === "age-min") return "العمر من";
+  if (id === "age-max") return "العمر حتى";
+  if (id === "gender") return "الجنس";
+  if (id === "seasons") return "مواسم خبرة سابقة (حد أدنى)";
+  if (kind === "doc") return documentType(key, types)?.label ?? key;
+  if (kind === "skill") return SKILLS.find((s) => s.key === key)?.label ?? key;
+  if (kind === "lang") return `اللغة ${key}`;
+  return id;
+}
+
+/** Every file row the administration may add to the table: the documents and certificates, skills and languages */
+export function criteriaCatalog(types: DocType[] = DOCUMENTS) {
+  return [
+    { group: "وثائق وشهادات", ids: types.map((d) => `doc:${d.key}`) },
+    { group: "مهارات", ids: SKILLS.map((s) => `skill:${s.key}`) },
+    { group: "لغات", ids: LANGUAGES.filter((l) => l !== "العربية").map((l) => `lang:${l}`) },
+  ];
+}
+
+/**
+ * One line of the table applied to one administrator. "personal" lines (age, gender, experience) say
+ * whether the role fits who he is; "required" lines must be in his file before he can submit;
+ * "preferred" lines only strengthen the application.
+ */
+export type RequirementCheck = { id: string; k: string; v: string; ok: boolean; level: "personal" | Level; fix?: string };
+
+/** Who the administrator is, as the table needs him: from the civil registry, the platform's records and his own file */
+export type Applicant = { age: number; gender: "M" | "F"; seasons: number; record: AdminRecord; validity?: Record<string, number>; types?: DocType[] };
+
+export function applicantOf(id: string, person: Person, record: AdminRecord, validity?: Record<string, number>, types?: DocType[]): Applicant {
+  return { age: ageOf(person), gender: person.gender, seasons: seasonHistory(id).filter((h) => h.roleKey).length, record, validity, types };
+}
+
+/** The table's column for one role, applied to one administrator, with what to do where he falls short */
+export function requirementChecks(table: RoleRequirements, roleKey: string, a: Applicant): RequirementCheck[] {
+  const col = table.cells[roleKey] ?? {};
+  const out: RequirementCheck[] = [];
+  const min = typeof col["age-min"] === "number" ? (col["age-min"] as number) : null;
+  const max = typeof col["age-max"] === "number" ? (col["age-max"] as number) : null;
+  if (min !== null || max !== null) {
+    const k = min !== null && max !== null ? `العمر بين ${min} و${max}` : min !== null ? `العمر ${min} فأكثر` : `العمر حتى ${max}`;
+    out.push({ id: "age", level: "personal", k, v: `${a.age} سنة`, ok: (min === null || a.age >= min) && (max === null || a.age <= max) });
+  }
+  if (col.gender === "M" || col.gender === "F") {
+    out.push({ id: "gender", level: "personal", k: col.gender === "M" ? "للذكور" : "للإناث", v: a.gender === "M" ? "ذكر" : "أنثى", ok: a.gender === col.gender });
+  }
+  if (typeof col.seasons === "number" && col.seasons > 0) {
+    out.push({ id: "seasons", level: "personal", k: `خبرة ${col.seasons} ${col.seasons === 1 ? "موسم" : "مواسم"} فأكثر`, v: a.seasons ? `${a.seasons} ${a.seasons === 1 ? "موسم" : "مواسم"} في سجل المنصة` : "لا مواسم سابقة", ok: a.seasons >= col.seasons });
+  }
+  for (const id of table.rows) {
+    const level = levelOf(table, roleKey, id);
+    if (!level) continue;
+    const [kind, key] = splitCriterion(id);
+    const k = criterionLabel(id, a.types);
+    if (kind === "doc") {
+      const doc = a.record.documents.find((d) => d.key === key);
+      const st = doc ? docState(doc, SEASON.hijriYear, a.validity) : null;
+      out.push({ id, level, k, v: !doc ? "ليست في ملفك" : st!.ok ? st!.text : "منتهية الصلاحية", ok: !!st?.ok, fix: !doc ? "ارفعها في «وثائقي وشهاداتي»" : st!.ok ? undefined : "حدّثها في «وثائقي وشهاداتي»" });
+    } else if (kind === "skill") {
+      const has = a.record.skills.includes(key);
+      out.push({ id, level, k: `مهارة: ${k}`, v: has ? "في ملفك" : "غير مسجّلة في ملفك", ok: has, fix: has ? undefined : "أضفها في «لغاتي ومهاراتي»" });
+    } else if (kind === "lang") {
+      const has = a.record.languages.includes(key);
+      out.push({ id, level, k, v: has ? "في ملفك" : "غير مسجّلة في ملفك", ok: has, fix: has ? undefined : "أضفها في «لغاتي ومهاراتي»" });
+    }
+  }
+  return out;
 }
 
 const EMPTY_RECORD: AdminRecord = { documents: [], languages: ["العربية"], skills: [], updatedAt: 0 };
@@ -132,6 +259,9 @@ export function seedRecord(id: string): AdminRecord | undefined {
     doc("record", lastSeason),
   ];
   if (served.length >= 2) documents.push(doc("recommendation", lastSeason, `تزكية من رئيس تكتل — موسم ${lastSeason}`, `recommendation-${lastSeason}.pdf`));
+  // The certificate of his kind of work, uploaded the first season he served in it
+  if (role === "guide-m" || role === "guide-f") documents.push(doc("sharia", firstSeason));
+  if (role === "tech") documents.push(doc("it", firstSeason));
   // A certificate the administrator added himself in an earlier season
   documents.push({ id: "custom-academy", key: "custom", label: `شهادة مسار «خدمة كبار السن» — أكاديمية الحج`, file: "academy-elderly-care.pdf", issuedSeason: lastSeason, addedAt: at });
   const skills = role === "tech" ? ["computer"] : role === "guide-m" || role === "guide-f" ? ["elderly", "computer"] : ["first-aid", "computer"];
@@ -162,8 +292,8 @@ export function recordOf(p: AdminProfile | undefined, id: string): AdminRecord {
 /** Administrator calendar for season 1448 (dates from the operating document, shifted to 1448) */
 export const ADMIN_CALENDAR = [
   { hijri: "5 ربيع الأول", title: "فتح إنشاء حسابات الإداريين", detail: "الرقم الوطني ورمز التحقق والشؤون المدنية" },
-  { hijri: "10 ربيع الأول – 1 ربيع الآخر", title: "التسجيل الموسمي ورسم التسجيل", detail: "يتجدد كل موسم: صفة واحدة (الصفة السابقة أو صفة جديدة بشروط الإدارة)، الوثائق، الالتزامات، 30 $" },
-  { hijri: "حتى 10 ربيع الآخر", title: "التحقق من الأهلية", detail: "العمر والشهادة والسجل والتقييم السابق" },
+  { hijri: "10 ربيع الأول – 1 ربيع الآخر", title: "طلب المشاركة والتحقق من الأهلية", detail: "يتجدد كل موسم: الوثائق والمهارات، ثم صفة واحدة يستوفي ملفك شروطها في جدول الإدارة، ثم الالتزامات، ثم التحقق من الأهلية آلياً" },
+  { hijri: "10 ربيع الأول – 1 ربيع الآخر", title: "رسم التسجيل", detail: "30 $ — يُدفع بعد ثبوت الأهلية فقط، فلا يدفع أحد رسماً عن صفة لا يستوفي شروطها" },
   { hijri: "15 ربيع الآخر — 09:00", title: "الامتحان الكتابي المؤتمت", detail: "لمن يتقدم لصفة جديدة أو لأول مرة — من يجدد صفته بتقييم مستوفٍ معفى" },
   { hijri: "1 جمادى الأولى", title: "الامتحان الشفهي", detail: "أمام لجنة من ثلاثة أعضاء — تُدخل النتيجة على المنصة" },
   { hijri: "10 جمادى الأولى", title: "النتيجة النهائية وإعلان الناجحين", detail: "الكتابي 60% + الشفهي 40% — النجاح من 70" },
@@ -285,12 +415,12 @@ export function resultOf(p: AdminProfile | undefined) {
   const final = p?.finalScore ?? (written !== undefined && oral !== undefined ? finalScoreOf(written, oral) : undefined);
   const published = p?.resultPublishedAt ?? (final !== undefined ? p?.oral?.at : undefined);
   // Same role renewed with the required rating: no exams this season, the file counts as qualified
-  const exempt = !!p?.examExempt && !!p?.eligibleAt;
+  const exempt = !!p?.examExempt && !!p?.eligibleAt && !!p?.feePaidAt;
   return {
     written,
     oral,
     final,
-    published: exempt ? p?.eligibleAt : published,
+    published: exempt ? p?.feePaidAt : published,
     exempt,
     writtenPassed: exempt || (written !== undefined && written >= EXAM_RULES.writtenMin),
     passed: exempt || (final !== undefined && final >= EXAM_RULES.passMark),
@@ -309,8 +439,8 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0): JourneySt
   const teamMember = !!p?.positions?.length && p.positions[0] !== "group-head" && !isClusterRole(p);
   const raw: (Omit<JourneyStep, "state"> & { done: boolean; headOnly?: boolean })[] = [
     { key: "account", title: "إنشاء الحساب الإداري", date: "5 ربيع الأول", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
-    { key: "apply", title: "التسجيل الموسمي والرسم", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "يتجدد كل موسم: صفة واحدة، الوثائق، الالتزامات، 30 $", done: !!p?.feePaidAt },
-    { key: "eligibility", title: "التحقق من الأهلية", date: "حتى 10 ربيع الآخر", href: "/administrator/apply", detail: p?.eligibleAt ? "مؤهل للامتحان الكتابي" : "ستة شروط من إعدادات الموسم", done: !!p?.eligibleAt },
+    { key: "apply", title: "طلب المشاركة والتحقق من الأهلية", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
+    { key: "fee", title: "رسم التسجيل", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
     { key: "written", title: "الامتحان الكتابي", date: "15 ربيع الآخر", href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : "15 سؤالاً — 20 دقيقة", done: r.exempt || !!p?.exam?.submittedAt },
     { key: "oral", title: "الامتحان الشفهي", date: "1 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
     { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : "الكتابي 60% + الشفهي 40%", done: !!r.published && r.passed },
@@ -385,7 +515,7 @@ export function demoAdminLogin(
       examExempt: keep,
       languages: ["العربية", "الإنجليزية"],
       skills: tech ? ["computer", "first-aid"] : ["first-aid", "computer"],
-      documents: DOCUMENTS.map((d) => d.key),
+      documents: (renewedRecord(id)?.documents ?? []).map((d) => d.key),
       // The permanent file he arrived with, its expired documents renewed for this season
       record: renewedRecord(id),
       commitmentsAt: now - 90 * min,

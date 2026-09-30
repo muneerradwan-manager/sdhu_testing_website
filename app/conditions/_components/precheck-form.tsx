@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { precheck } from "@/lib/rules";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 
 type Result = ReturnType<typeof precheck>;
 
@@ -115,7 +115,7 @@ export function PrecheckForm() {
               maxLength={4}
               dir="ltr"
               value={birthYear}
-              onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              onChange={(e) => setBirthYear(digitsOnly(e.target.value).slice(0, 4))}
               aria-invalid={yearError}
               className={cn(
                 "h-12 w-full rounded-2xl border bg-white px-4 text-center font-display text-xl font-bold tabular-nums outline-none transition focus:ring-4",

@@ -64,40 +64,45 @@ btn("دخول", wait=2200)
 c.save_state(str(ROOT / "admin" / "state-registered.json"))
 
 # ───────── apply ─────────
+# The file comes first and opens the roles: the record and the degree open group head and deputy;
+# the technical coordinator and the guides stay locked with what they miss.
 S = "D"
+def upload(label):
+    b = p.locator("main li", has_text=label).first.locator("button:text-is('رفع')")
+    b.scroll_into_view_if_needed(); b.click(); c.settle(2300)
 c.goto("/administrator/apply", wait=1800)
-c.shot("apply-role", "طلب المشاركة — الخطوة 1: اختر صفتك لهذا الموسم", section=S)
+c.shot("apply-docs", "طلب المشاركة — الخطوة 1: وثائقك وشهاداتك، وبجانب كل وثيقة الصفات التي تفتحها", hl=[("main li:has-text('لا حكم عليه') button:text-is('رفع')", "1")], section=S)
+for label in ["لا حكم عليه", "الشهادة الجامعية", "إسعافات أولية"]:
+    upload(label)
+c.scroll_top(); c.shot("apply-docs-done", "بعد رفع «لا حكم عليه» والشهادة الجامعية ودورة الإسعافات الأولية", section=S)
+btn("التالي", wait=1200)
+c.scroll_top(); c.shot("apply-skills", "الخطوة 2: لغاتك ومهاراتك، وتحت المهارة الصفات التي تطلبها", section=S)
+for label in ["إسعافات أولية", "رعاية كبار السن"]:
+    p.locator("main li", has_text=label).first.get_by_role("radio", name="نعم").click(); c.settle(250)
+c.scroll_top(); c.shot("apply-skills-set", "تحديد المهارات بنعم أو لا", section=S)
+btn("التالي", wait=1200)
+c.scroll_to("text=الصفات المتاحة لموسم 1448", 110)
+c.shot("apply-role", "الخطوة 3: الصفات التي فتحتها وثائقك، والمقفلة مع ما ينقصها", section=S)
 p.locator("button[aria-pressed]:has-text('رئيس مجموعة')").first.click(); c.settle(600)
 c.shot("apply-role-picked", "اختيار صفة «رئيس مجموعة»", hl=[("button[aria-pressed='true']", "")], section=S)
 btn("التالي", wait=1200)
-c.scroll_top(); c.shot("apply-docs", "الخطوة 2: وثائقك وشهاداتك", section=S)
-for _ in range(8):
-    up = p.locator("main button:text-is('رفع')")
-    if up.count() == 0: break
-    up.first.click(); c.settle(900)
-c.settle(800)
-c.scroll_top(); c.shot("apply-docs-done", "بعد رفع الوثائق المطلوبة", section=S)
-btn("التالي", wait=1200)
-c.scroll_top(); c.shot("apply-skills", "الخطوة 3: لغاتك ومهاراتك", section=S)
-yes = p.locator("main button:text-is('نعم')")
-for i in range(min(3, yes.count())):
-    yes.nth(i).click(); c.settle(200)
-c.scroll_top(); c.shot("apply-skills-set", "تحديد المهارات بنعم أو لا", section=S)
-btn("التالي", wait=1200)
 c.scroll_top(); c.shot("apply-commit", "الخطوة 4: التزامات الإداري", section=S)
 p.get_by_text("أوافق على جميع الالتزامات").first.click(); c.settle(500)
-c.scroll_top(); c.shot("apply-commit-ok", "الموافقة على جميع الالتزامات", section=S)
-btn("التالي", wait=1200)
-c.scroll_top(); c.shot("apply-fee", "الخطوة 5: رسم تسجيل الإداري", section=S)
+c.scroll_top(); c.shot("apply-commit-ok", "الموافقة على جميع الالتزامات", hl=[("button:has-text('تحقق من أهليتي')", "")], section=S)
+btn("تحقق من أهليتي", wait=1500)
+c.scroll_top(); c.shot("apply-checking", "الخطوة 5: التحقق من الأهلية قبل الدفع", section=S)
+p.wait_for_selector("text=ثبتت أهليتك", timeout=30000); c.settle(4000)
+c.scroll_to("text=ثبتت أهليتك", 620)
+c.shot("apply-eligible", "مستوفٍ لجميع الشروط — ثبتت الأهلية قبل الدفع", hl=[("button:has-text('إلى رسم التسجيل')", "")], section=S)
+btn("إلى رسم التسجيل", wait=1200)
+c.scroll_top(); c.shot("apply-fee", "الخطوة 6: رسم تسجيل الإداري بعد ثبوت الأهلية", section=S)
 btn("شام كاش", wait=700)
 p.get_by_text("رقم عملية تجريبي").first.click(); c.settle(400)
 p.locator("button:has-text('ادفع وقدّم الطلب')").first.scroll_into_view_if_needed(); c.settle(300); c.shot("apply-fee-sham", "الدفع عبر شام كاش ثم تقديم الطلب", hl=[("button:has-text('ادفع وقدّم الطلب')", "")], section=S)
 btn("ادفع وقدّم الطلب", wait=3500)
-c.scroll_top(); c.shot("apply-receipt", "تم استلام طلب مشاركتك", hl=[("button:has-text('متابعة التحقق من الأهلية')", "")], section=S)
-btn("متابعة التحقق من الأهلية", wait=2500)
-c.scroll_top(); c.shot("apply-checking", "التحقق من الأهلية: تطبيق شروط الموسم", section=S)
-p.wait_for_selector("text=مستوفٍ لجميع الشروط", timeout=30000); c.settle(2500)
-c.scroll_top(); c.shot("apply-eligible", "مستوفٍ لجميع الشروط — مؤهل للامتحان الكتابي", section=S)
+c.scroll_top(); c.shot("apply-receipt", "تم استلام طلب مشاركتك", hl=[("main button:text-is('متابعة')", "")], section=S)
+btn("متابعة", wait=1800, exact=True)
+c.scroll_top(); c.shot("apply-summary", "طلبك مقدَّم — مؤهل للامتحان الكتابي", section=S)
 c.save_state(str(ROOT / "admin" / "state-eligible.json"))
 
 # ───────── exam ─────────

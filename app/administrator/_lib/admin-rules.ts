@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { EXAM_QUESTIONS, EXAM_RULES, type ExamQuestion } from "@/lib/data/admin-exam";
 import { useStore } from "@/lib/store";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
-import { ADMIN_CALENDAR, COMMITMENTS, POSITIONS } from "./admin";
+import { useSeason } from "@/lib/season-live";
+import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, POSITIONS, ROLE_REQUIREMENTS, type DocType, type RoleRequirements } from "./admin";
 
 /**
  * The administrators' rules as the administration left them this season. The platform ships defaults;
@@ -104,4 +105,26 @@ export function finalScoreWith(written: number, oral: number, rules: { writtenWe
 export function useEvaluationStages() {
   const rows = useStore((s) => s.adminRules.stages);
   return useMemo(() => rows ?? EVALUATION_STAGES.map((st) => ({ key: st.key, label: st.label, hint: st.hint })), [rows]);
+}
+
+/** The season's table of what each role asks of the administrator, as the administration left it */
+export function useRoleRequirements(): RoleRequirements {
+  const t = useStore((s) => s.adminRules.requirements);
+  return t ?? ROLE_REQUIREMENTS;
+}
+
+/**
+ * The documents and certificates this season: the platform's list with the validity the season settings
+ * give it, then the certificates the administration added. `validity` is what docState() needs.
+ */
+export function useDocTypes(): { types: DocType[]; validity: Record<string, number> } {
+  const added = useStore((s) => s.adminRules.docTypes);
+  const season = useSeason();
+  return useMemo(() => {
+    const types: DocType[] = [
+      ...DOCUMENTS.map((d) => ({ ...d, validSeasons: season.documents[d.key] ?? d.validSeasons })),
+      ...(added ?? []).map((d) => ({ ...d, file: "certificate.pdf", custom: true })),
+    ];
+    return { types, validity: Object.fromEntries(types.map((d) => [d.key, d.validSeasons])) };
+  }, [added, season.documents]);
 }

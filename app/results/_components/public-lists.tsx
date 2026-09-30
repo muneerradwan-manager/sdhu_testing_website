@@ -5,7 +5,7 @@ import { BadgeCheck, ChevronLeft, ChevronRight, Dices, Hash, Hourglass, ListFilt
 import { useMemo, useState } from "react";
 import { OFFICES } from "@/lib/season";
 import { getPublicList, RESULTS_SUMMARY, type ListKind } from "@/lib/data/public-results";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, digitsOnly, formatNumber } from "@/lib/utils";
 
 const TABS: { key: ListKind; label: string; count: number; icon: typeof BadgeCheck; hint: string }[] = [
   { key: "direct", label: "المقبولون مباشرة", count: RESULTS_SUMMARY.direct, icon: BadgeCheck, hint: "وفق الأكبر سناً — 66 عاماً فأكثر" },
@@ -138,7 +138,7 @@ export function PublicLists() {
             inputMode="numeric"
             placeholder="رقم الطلب (مثال: 4512)"
             value={appNo}
-            onChange={(e) => change(setAppNo)(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => change(setAppNo)(digitsOnly(e.target.value).slice(0, 6))}
           />
         </label>
         <AnimatePresence>

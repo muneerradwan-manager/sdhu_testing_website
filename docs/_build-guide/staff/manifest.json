@@ -337,776 +337,784 @@
  },
  {
   "n": 43,
-  "key": "rules-stages",
-  "file": "043-rules-stages.png",
-  "caption": "مراحل تقييم الإداري",
+  "key": "rules-requirements",
+  "file": "043-rules-requirements.png",
+  "caption": "شروط الصفات: جدول الموسم — لكل صفة شهاداتها، مطلوبة أو تقوّي الطلب",
   "section": "E",
   "note": null
  },
  {
   "n": 44,
-  "key": "rules-calendar",
-  "file": "044-rules-calendar.png",
-  "caption": "رزنامة الإداريين",
+  "key": "rules-stages",
+  "file": "044-rules-stages.png",
+  "caption": "مراحل تقييم الإداري",
   "section": "E",
   "note": null
  },
  {
   "n": 45,
+  "key": "rules-calendar",
+  "file": "045-rules-calendar.png",
+  "caption": "رزنامة الإداريين",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 46,
   "key": "grp-card",
-  "file": "045-grp-card.png",
+  "file": "046-grp-card.png",
   "caption": "طلب تشكيل المجموعة 40: الشروط مكتملة",
   "section": "F",
   "note": null
  },
  {
-  "n": 46,
+  "n": 47,
   "key": "grp-approve",
-  "file": "046-grp-approve.png",
+  "file": "047-grp-approve.png",
   "caption": "اعتماد المجموعة",
   "section": "F",
   "note": null
  },
  {
-  "n": 47,
+  "n": 48,
   "key": "grp-approved",
-  "file": "047-grp-approved.png",
+  "file": "048-grp-approved.png",
   "caption": "اعتُمدت المجموعة",
   "section": "F",
   "note": null
  },
  {
-  "n": 48,
+  "n": 49,
   "key": "elec-top",
-  "file": "048-elec-top.png",
+  "file": "049-elec-top.png",
   "caption": "انتخاب رؤساء التكتلات: فتح باب الترشح",
   "section": "F",
   "note": null
  },
  {
-  "n": 49,
+  "n": 50,
   "key": "elec-open",
-  "file": "049-elec-open.png",
+  "file": "050-elec-open.png",
   "caption": "الترشح والتصويت مفتوحان: المرشحون والأصوات",
   "section": "F",
   "note": null
  },
  {
-  "n": 50,
+  "n": 51,
   "key": "elec-closed",
-  "file": "050-elec-closed.png",
+  "file": "051-elec-closed.png",
   "caption": "النتيجة النهائية والتكتلات بعد الانتخاب",
   "section": "F",
   "note": null
  },
  {
-  "n": 51,
+  "n": 52,
   "key": "prof-top",
-  "file": "051-prof-top.png",
+  "file": "052-prof-top.png",
   "caption": "برامج التكتلات: تعديلات بانتظار قرارك",
   "section": "G",
   "note": null
  },
  {
-  "n": 52,
+  "n": 53,
   "key": "prof-diff",
-  "file": "052-prof-diff.png",
+  "file": "053-prof-diff.png",
   "caption": "مقارنة قبل وبعد لكل حقل عدّله رئيس التكتل",
   "section": "G",
   "note": null
  },
  {
-  "n": 53,
+  "n": 54,
   "key": "prof-published",
-  "file": "053-prof-published.png",
+  "file": "054-prof-published.png",
   "caption": "اعتُمد البرنامج ونُشر في دليل الخدمات",
   "section": "G",
   "note": null
  },
  {
-  "n": 54,
+  "n": 55,
   "key": "audit-top",
-  "file": "054-audit-top.png",
+  "file": "055-audit-top.png",
   "caption": "سجل الأحداث: للإضافة فقط",
   "section": "H",
   "note": null
  },
  {
-  "n": 55,
+  "n": 56,
   "key": "audit-trace",
-  "file": "055-audit-trace.png",
+  "file": "056-audit-trace.png",
   "caption": "تتبّع طلب عند الاعتراض",
   "section": "H",
   "note": null
  },
  {
-  "n": 56,
+  "n": 57,
   "key": "audit-filters",
-  "file": "056-audit-filters.png",
+  "file": "057-audit-filters.png",
   "caption": "البحث والتصفية حسب الموظف والصفة والإجراء",
   "section": "H",
   "note": null
  },
  {
-  "n": 57,
+  "n": 58,
   "key": "grade-top",
-  "file": "057-grade-top.png",
+  "file": "058-grade-top.png",
   "caption": "تصنيف المجموعات والتكتلات",
   "section": "H",
   "note": null
  },
  {
-  "n": 58,
+  "n": 59,
   "key": "grade-tier",
-  "file": "058-grade-tier.png",
+  "file": "059-grade-tier.png",
   "caption": "الترتيب داخل كل فئة: مرقّاة وثابتة ومخفّضة",
   "section": "H",
   "note": null
  },
  {
-  "n": 59,
+  "n": 60,
   "key": "grade-published",
-  "file": "059-grade-published.png",
+  "file": "060-grade-published.png",
   "caption": "اعتُمدت نتائج التصنيف ونُشرت",
   "section": "H",
   "note": null
  },
  {
-  "n": 60,
+  "n": 61,
   "key": "exec-top",
-  "file": "060-exec-top.png",
+  "file": "061-exec-top.png",
   "caption": "لوحة الإدارة العليا",
   "section": "H",
   "note": null
  },
  {
-  "n": 61,
+  "n": 62,
   "key": "exec-2",
-  "file": "061-exec-2.png",
+  "file": "062-exec-2.png",
   "caption": "رضا الحجاج والشكاوى وترتيب التكتلات",
   "section": "H",
   "note": null
  },
  {
-  "n": 62,
+  "n": 63,
   "key": "ops-top",
-  "file": "062-ops-top.png",
+  "file": "063-ops-top.png",
   "caption": "غرفة العمليات: المؤشرات الحية",
   "section": "I",
   "note": null
  },
  {
-  "n": 63,
+  "n": 64,
   "key": "ops-map",
-  "file": "063-ops-map.png",
+  "file": "064-ops-map.png",
   "caption": "خريطة المشاعر وطابور البلاغات",
   "section": "I",
   "note": null
  },
  {
-  "n": 64,
+  "n": 65,
   "key": "ops-drawer",
-  "file": "064-ops-drawer.png",
+  "file": "065-ops-drawer.png",
   "caption": "تفاصيل البلاغ: الحالة والإسناد ومسار البلاغ",
   "section": "I",
   "note": null
  },
  {
-  "n": 65,
+  "n": 66,
   "key": "ops-update",
-  "file": "065-ops-update.png",
+  "file": "066-ops-update.png",
   "caption": "إسناد البلاغ وإضافة تحديث",
   "section": "I",
   "note": null
  },
  {
-  "n": 66,
+  "n": 67,
   "key": "ops-closed",
-  "file": "066-ops-closed.png",
+  "file": "067-ops-closed.png",
   "caption": "تغيير حالة البلاغ إلى «مغلق»",
   "section": "I",
   "note": null
  },
  {
-  "n": 67,
+  "n": 68,
   "key": "ops-bus",
-  "file": "067-ops-bus.png",
+  "file": "068-ops-bus.png",
   "caption": "اقتراح حافلات مزدلفة المبكرة لكبار السن",
   "section": "I",
   "note": null
  },
  {
-  "n": 68,
+  "n": 69,
   "key": "ops-tasks",
-  "file": "068-ops-tasks.png",
+  "file": "069-ops-tasks.png",
   "caption": "المهام الداخلية (كانبان)",
   "section": "I",
   "note": null
  },
  {
-  "n": 69,
+  "n": 70,
   "key": "ops-task-new",
-  "file": "069-ops-task-new.png",
+  "file": "070-ops-task-new.png",
   "caption": "إضافة مهمة جديدة وإسنادها",
   "section": "I",
   "note": null
  },
  {
-  "n": 70,
+  "n": 71,
   "key": "ops-log",
-  "file": "070-ops-log.png",
+  "file": "071-ops-log.png",
   "caption": "سجل المناوبة",
   "section": "I",
   "note": null
  },
  {
-  "n": 71,
+  "n": 72,
   "key": "ops-files-view",
-  "file": "071-ops-files-view.png",
+  "file": "072-ops-files-view.png",
   "caption": "الملفات التشغيلية لغرفة العمليات: عرض فقط",
   "section": "I",
   "note": null
  },
  {
-  "n": 72,
+  "n": 73,
   "key": "cms-top",
-  "file": "072-cms-top.png",
+  "file": "073-cms-top.png",
   "caption": "محتوى المنصة: الصفحات والأقسام",
   "section": "J",
   "note": null
  },
  {
-  "n": 73,
+  "n": 74,
   "key": "cms-pages",
-  "file": "073-cms-pages.png",
+  "file": "074-cms-pages.png",
   "caption": "قائمة الصفحات: اضغط بطاقة الصفحة لتعديلها",
   "section": "J",
   "note": null
  },
  {
-  "n": 74,
+  "n": 75,
   "key": "cms-editor",
-  "file": "074-cms-editor.png",
+  "file": "075-cms-editor.png",
   "caption": "محرر الصفحة: أقسام الصفحة ونموذج القسم",
   "section": "J",
   "note": null
  },
  {
-  "n": 75,
+  "n": 76,
   "key": "cms-edit",
-  "file": "075-cms-edit.png",
+  "file": "076-cms-edit.png",
   "caption": "تعديل نص في قسم: يُحفظ في المسودة تلقائياً",
   "section": "J",
   "note": null
  },
  {
-  "n": 76,
+  "n": 77,
   "key": "cms-preview",
-  "file": "076-cms-preview.png",
+  "file": "077-cms-preview.png",
   "caption": "معاينة المسودة قبل النشر",
   "section": "J",
   "note": null
  },
  {
-  "n": 77,
+  "n": 78,
   "key": "cms-collections",
-  "file": "077-cms-collections.png",
+  "file": "078-cms-collections.png",
   "caption": "مجموعات المحتوى: الأخبار والأسئلة الشائعة والتكتلات والأكاديمية",
   "section": "J",
   "note": null
  },
  {
-  "n": 78,
+  "n": 79,
   "key": "cms-news",
-  "file": "078-cms-news.png",
+  "file": "079-cms-news.png",
   "caption": "مقالات الأخبار: إضافة مقال جديد أو تعديل مقال",
   "section": "J",
   "note": null
  },
  {
-  "n": 79,
+  "n": 80,
   "key": "cms-media",
-  "file": "079-cms-media.png",
+  "file": "080-cms-media.png",
   "caption": "مكتبة الوسائط",
   "section": "J",
   "note": null
  },
  {
-  "n": 80,
+  "n": 81,
   "key": "cms-revisions",
-  "file": "080-cms-revisions.png",
+  "file": "081-cms-revisions.png",
   "caption": "النسخ السابقة واستعادتها",
   "section": "J",
   "note": null
  },
  {
-  "n": 81,
+  "n": 82,
   "key": "cms-archive",
-  "file": "081-cms-archive.png",
+  "file": "082-cms-archive.png",
   "caption": "الأرشيف واستعادة المحذوف",
   "section": "J",
   "note": null
  },
  {
-  "n": 82,
+  "n": 83,
   "key": "emp-top",
-  "file": "082-emp-top.png",
+  "file": "083-emp-top.png",
   "caption": "الموظفون: البحث والتصفية والجدول",
   "section": "K",
   "note": null
  },
  {
-  "n": 83,
+  "n": 84,
   "key": "emp-search",
-  "file": "083-emp-search.png",
+  "file": "084-emp-search.png",
   "caption": "البحث عن موظف",
   "section": "K",
   "note": null
  },
  {
-  "n": 84,
+  "n": 85,
   "key": "emp-drawer",
-  "file": "084-emp-drawer.png",
+  "file": "085-emp-drawer.png",
   "caption": "ملف الموظف: البيانات والمشاركة في الموسم والصلاحيات",
   "section": "K",
   "note": null
  },
  {
-  "n": 85,
+  "n": 86,
   "key": "emp-asseen",
-  "file": "085-emp-asseen.png",
+  "file": "086-emp-asseen.png",
   "caption": "صفحة الموظف كما يراها هو",
   "section": "K",
   "note": null
  },
  {
-  "n": 86,
+  "n": 87,
   "key": "emp-new",
-  "file": "086-emp-new.png",
+  "file": "087-emp-new.png",
   "caption": "إضافة موظف: البيانات الأساسية",
   "section": "K",
   "note": null
  },
  {
-  "n": 87,
+  "n": 88,
   "key": "emp-new-filled",
-  "file": "087-emp-new-filled.png",
+  "file": "088-emp-new-filled.png",
   "caption": "بعد تعبئة بيانات الموظف",
   "section": "K",
   "note": null
  },
  {
-  "n": 88,
+  "n": 89,
   "key": "emp-new-save",
-  "file": "088-emp-new-save.png",
+  "file": "089-emp-new-save.png",
   "caption": "حفظ الموظف الجديد",
   "section": "K",
   "note": null
  },
  {
-  "n": 89,
+  "n": 90,
   "key": "emp-added",
-  "file": "089-emp-added.png",
+  "file": "090-emp-added.png",
   "caption": "أُضيف الموظف",
   "section": "K",
   "note": null
  },
  {
-  "n": 90,
+  "n": 91,
   "key": "ref-hotels",
-  "file": "090-ref-hotels.png",
+  "file": "091-ref-hotels.png",
   "caption": "البيانات المرجعية: الفنادق",
   "section": "L",
   "note": null
  },
  {
-  "n": 91,
+  "n": 92,
   "key": "ref-hotel-new",
-  "file": "091-ref-hotel-new.png",
+  "file": "092-ref-hotel-new.png",
   "caption": "نموذج إضافة فندق",
   "section": "L",
   "note": null
  },
  {
-  "n": 92,
+  "n": 93,
   "key": "ref-copy",
-  "file": "092-ref-copy.png",
+  "file": "093-ref-copy.png",
   "caption": "نقل عناصر من موسم 1447",
   "section": "L",
   "note": null
  },
  {
-  "n": 93,
+  "n": 94,
   "key": "ref-camps",
-  "file": "093-ref-camps.png",
+  "file": "094-ref-camps.png",
   "caption": "المخيمات في منى وعرفات",
   "section": "L",
   "note": null
  },
  {
-  "n": 94,
+  "n": 95,
   "key": "of-top",
-  "file": "094-of-top.png",
+  "file": "095-of-top.png",
   "caption": "الملفات التشغيلية: ثلاثة أنواع لكل موسم",
   "section": "L",
   "note": null
  },
  {
-  "n": 95,
+  "n": 96,
   "key": "of-vacant",
-  "file": "095-of-vacant.png",
+  "file": "096-of-vacant.png",
   "caption": "ملف التسكين في مكة: المناصب الإلزامية الشاغرة",
   "section": "L",
   "note": null
  },
  {
-  "n": 96,
+  "n": 97,
   "key": "of-picker",
-  "file": "096-of-picker.png",
+  "file": "097-of-picker.png",
   "caption": "اختيار موظف لمنصب شاغر",
   "section": "L",
   "note": null
  },
  {
-  "n": 97,
+  "n": 98,
   "key": "of-assigned",
-  "file": "097-of-assigned.png",
+  "file": "098-of-assigned.png",
   "caption": "بعد إسناد المنصب",
   "section": "L",
   "note": null
  },
  {
-  "n": 98,
+  "n": 99,
   "key": "of-info",
-  "file": "098-of-info.png",
+  "file": "099-of-info.png",
   "caption": "معلومات الملف: رقم القرار وفترة العمل",
   "section": "L",
   "note": null
  },
  {
-  "n": 99,
+  "n": 100,
   "key": "of-activate",
-  "file": "099-of-activate.png",
+  "file": "100-of-activate.png",
   "caption": "محاولة التفعيل: يُفعَّل الملف عند اكتمال المناصب الإلزامية ووجود رقم القرار",
   "section": "L",
   "note": null
  },
  {
-  "n": 100,
+  "n": 101,
   "key": "med-tasks",
-  "file": "100-med-tasks.png",
+  "file": "101-med-tasks.png",
   "caption": "الفريق الطبي: مهامي اليوم في لوحتي",
   "section": "M",
   "note": null
  },
  {
-  "n": 101,
+  "n": 102,
   "key": "med-files",
-  "file": "101-med-files.png",
+  "file": "102-med-files.png",
   "caption": "الفريق الطبي: ملفاتي التشغيلية",
   "section": "M",
   "note": null
  },
  {
-  "n": 102,
+  "n": 103,
   "key": "trn-tasks",
-  "file": "102-trn-tasks.png",
+  "file": "103-trn-tasks.png",
   "caption": "فريق المواصلات: مهامي اليوم في لوحتي",
   "section": "M",
   "note": null
  },
  {
-  "n": 103,
+  "n": 104,
   "key": "trn-files",
-  "file": "103-trn-files.png",
+  "file": "104-trn-files.png",
   "caption": "فريق المواصلات: ملفاتي التشغيلية",
   "section": "M",
   "note": null
  },
  {
-  "n": 104,
+  "n": 105,
   "key": "fl-top",
-  "file": "104-fl-top.png",
+  "file": "105-fl-top.png",
   "caption": "الطيران: أرقام الموسم والتبويبات الثلاثة",
   "section": "N",
   "note": null
  },
  {
-  "n": 105,
+  "n": 106,
   "key": "fl-list",
-  "file": "105-fl-list.png",
+  "file": "106-fl-list.png",
   "caption": "قائمة الرحلات: المقاعد، والمجموعات على كل رحلة، والحالة",
   "section": "N",
   "note": null
  },
  {
-  "n": 106,
+  "n": 107,
   "key": "fl-new",
-  "file": "106-fl-new.png",
+  "file": "107-fl-new.png",
   "caption": "رحلة جديدة: لمن الرحلة، ونوعها (ذهاب فقط، عودة فقط، ذهاب وعودة)، والسعة",
   "section": "N",
   "note": null
  },
  {
-  "n": 107,
+  "n": 108,
   "key": "fl-new-return",
-  "file": "107-fl-new-return.png",
+  "file": "108-fl-new-return.png",
   "caption": "في «ذهاب وعودة» تُملأ رحلة العودة تحت رحلة الذهاب، ثم «حفظ الرحلتين»",
   "section": "N",
   "note": null
  },
  {
-  "n": 108,
+  "n": 109,
   "key": "fl-draft",
-  "file": "108-fl-draft.png",
+  "file": "109-fl-draft.png",
   "caption": "المسودة: الرحلة المقابلة مرتبطة بها، و«نشر الرحلتين»",
   "section": "N",
   "note": null
  },
  {
-  "n": 109,
+  "n": 110,
   "key": "fl-picker",
-  "file": "109-fl-picker.png",
+  "file": "110-fl-picker.png",
   "caption": "اختيار الموظفين: واحد أو أكثر، بلا حد إلا مقاعد الرحلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 110,
+  "n": 111,
   "key": "fl-picker-return",
-  "file": "110-fl-picker-return.png",
+  "file": "111-fl-picker-return.png",
   "caption": "رحلة العودة المقابلة مختارة سلفاً: يُسند الموظفون ذهاباً وعودة معاً",
   "section": "N",
   "note": null
  },
  {
-  "n": 111,
+  "n": 112,
   "key": "fl-staff-done",
-  "file": "111-fl-staff-done.png",
+  "file": "112-fl-staff-done.png",
   "caption": "الموظفون الأربعة على الرحلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 112,
+  "n": 113,
   "key": "fl-drawer",
-  "file": "112-fl-drawer.png",
+  "file": "113-fl-drawer.png",
   "caption": "رحلة حجاج: المجموعات عليها، ثم الحجاج مرتبون بالمجموعة والعائلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 113,
+  "n": 114,
   "key": "fl-groups",
-  "file": "113-fl-groups.png",
+  "file": "114-fl-groups.png",
   "caption": "إضافة مجموعات: تُختار المجموعة كاملة، والعدد والمتبقي في الأسفل",
   "section": "N",
   "note": null
  },
  {
-  "n": 114,
+  "n": 115,
   "key": "fl-groups-return",
-  "file": "114-fl-groups-return.png",
+  "file": "115-fl-groups-return.png",
   "caption": "وإسنادها إلى رحلة العودة المقابلة في الخطوة نفسها",
   "section": "N",
   "note": null
  },
  {
-  "n": 115,
+  "n": 116,
   "key": "fl-groups-done",
-  "file": "115-fl-groups-done.png",
+  "file": "116-fl-groups-done.png",
   "caption": "المجموعتان على الرحلة مع أفرادهما وفريقيهما",
   "section": "N",
   "note": null
  },
  {
-  "n": 116,
+  "n": 117,
   "key": "fl-group-remove",
-  "file": "116-fl-group-remove.png",
+  "file": "117-fl-group-remove.png",
   "caption": "إزالة مجموعة من الرحلة: تعود مقاعدها متاحة",
   "section": "N",
   "note": null
  },
  {
-  "n": 117,
+  "n": 118,
   "key": "fl-lock",
-  "file": "117-fl-lock.png",
+  "file": "118-fl-lock.png",
   "caption": "إقفال الرحلة وإصدار كشف الركاب",
   "section": "N",
   "note": null
  },
  {
-  "n": 118,
+  "n": 119,
   "key": "fl-manifest",
-  "file": "118-fl-manifest.png",
+  "file": "119-fl-manifest.png",
   "caption": "كشف الركاب: الإصدار، والتصدير إلى نسك مسار والناقل",
   "section": "N",
   "note": null
  },
  {
-  "n": 119,
+  "n": 120,
   "key": "fl-manifest-rows",
-  "file": "119-fl-manifest-rows.png",
+  "file": "120-fl-manifest-rows.png",
   "caption": "صفوف الكشف: الاسم والصفة والمجموعة والاحتياجات",
   "section": "N",
   "note": null
  },
  {
-  "n": 120,
+  "n": 121,
   "key": "fl-select",
-  "file": "120-fl-select.png",
+  "file": "121-fl-select.png",
   "caption": "اختيار أفراد على رحلة مقفلة: إلغاء الإسناد أو النقل",
   "section": "N",
   "note": null
  },
  {
-  "n": 121,
+  "n": 122,
   "key": "fl-move",
-  "file": "121-fl-move.png",
+  "file": "122-fl-move.png",
   "caption": "النقل بعد الإقفال: الرحلة الجديدة والسبب الإلزامي",
   "section": "N",
   "note": null
  },
  {
-  "n": 122,
+  "n": 123,
   "key": "fl-reissue",
-  "file": "122-fl-reissue.png",
+  "file": "123-fl-reissue.png",
   "caption": "تغيّرت الإسنادات بعد الكشف: أصدر كشفاً جديداً",
   "section": "N",
   "note": null
  },
  {
-  "n": 123,
+  "n": 124,
   "key": "fl-postpone",
-  "file": "123-fl-postpone.png",
+  "file": "124-fl-postpone.png",
   "caption": "تأجيل رحلة: السبب، والإسنادات تبقى",
   "section": "N",
   "note": null
  },
  {
-  "n": 124,
+  "n": 125,
   "key": "fl-postponed",
-  "file": "124-fl-postponed.png",
+  "file": "125-fl-postponed.png",
   "caption": "الرحلة مؤجلة: حدّد الموعد الجديد أو ألغها",
   "section": "N",
   "note": null
  },
  {
-  "n": 125,
+  "n": 126,
   "key": "fl-reschedule",
-  "file": "125-fl-reschedule.png",
+  "file": "126-fl-reschedule.png",
   "caption": "الموعد الجديد: تاريخ ووقت المغادرة والوصول",
   "section": "N",
   "note": null
  },
  {
-  "n": 126,
+  "n": 127,
   "key": "fl-divert",
-  "file": "126-fl-divert.png",
+  "file": "127-fl-divert.png",
   "caption": "تحويل الوجهة: المطار البديل وعدد الحافلات",
   "section": "N",
   "note": null
  },
  {
-  "n": 127,
+  "n": 128,
   "key": "fl-diverted",
-  "file": "127-fl-diverted.png",
+  "file": "128-fl-diverted.png",
   "caption": "الرحلة محوّلة: المرحلة الأرضية بالحافلات",
   "section": "N",
   "note": null
  },
  {
-  "n": 128,
+  "n": 129,
   "key": "fl-cancel",
-  "file": "128-fl-cancel.png",
+  "file": "129-fl-cancel.png",
   "caption": "إلغاء رحلة: المسافرون يصيرون «بحاجة إلى رحلة»",
   "section": "N",
   "note": null
  },
  {
-  "n": 129,
+  "n": 130,
   "key": "fl-board",
-  "file": "129-fl-board.png",
+  "file": "130-fl-board.png",
   "caption": "لوحة التفويج: كل مجموعة ورحلتاها، وزر «إسناد» لمن ليس على رحلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 130,
+  "n": 131,
   "key": "fl-board-assign",
-  "file": "130-fl-board-assign.png",
+  "file": "131-fl-board-assign.png",
   "caption": "إسناد مجموعة من اللوحة: رحلة الذهاب ورحلة العودة مقترحتان",
   "section": "N",
   "note": null
  },
  {
-  "n": 131,
+  "n": 132,
   "key": "fl-board-lists",
-  "file": "131-fl-board-lists.png",
+  "file": "132-fl-board-lists.png",
   "caption": "بحاجة إلى رحلة، وموظفون بلا رحلة، والتنبيهات",
   "section": "N",
   "note": null
  },
  {
-  "n": 132,
+  "n": 133,
   "key": "fl-assign-one",
-  "file": "132-fl-assign-one.png",
+  "file": "133-fl-assign-one.png",
   "caption": "إسناد فردي لمن فقد مقعده",
   "section": "N",
   "note": null
  },
  {
-  "n": 133,
+  "n": 134,
   "key": "fl-refs",
-  "file": "133-fl-refs.png",
+  "file": "134-fl-refs.png",
   "caption": "المطارات والناقلون الجويون",
   "section": "N",
   "note": null
  },
  {
-  "n": 134,
+  "n": 135,
   "key": "fl-my",
-  "file": "134-fl-my.png",
+  "file": "135-fl-my.png",
   "caption": "رحلاتي: رحلة الموظف ذهاباً وعودة في «ملفاتي التشغيلية»",
   "section": "N",
   "note": null
  },
  {
-  "n": 135,
+  "n": 136,
   "key": "fl-view",
-  "file": "135-fl-view.png",
+  "file": "136-fl-view.png",
   "caption": "الاطلاع على الطيران (غرفة العمليات): لا إنشاء ولا إسناد",
   "section": "N",
   "note": null
  },
  {
-  "n": 136,
+  "n": 137,
   "key": "fl-depart-btn",
-  "file": "136-fl-depart-btn.png",
+  "file": "137-fl-depart-btn.png",
   "caption": "غرفة العمليات تسجّل الإقلاع للرحلة المقفلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 137,
+  "n": 138,
   "key": "fl-depart",
-  "file": "137-fl-depart.png",
+  "file": "138-fl-depart.png",
   "caption": "تسجيل الإقلاع: علّم من تخلّف فقط",
   "section": "N",
   "note": null
  },
  {
-  "n": 138,
+  "n": 139,
   "key": "fl-departed",
-  "file": "138-fl-departed.png",
+  "file": "139-fl-departed.png",
   "caption": "أقلعت: الصاعدون «صعد» والمتخلف «تخلّف»",
   "section": "N",
   "note": null
  },
  {
-  "n": 139,
+  "n": 140,
   "key": "fl-arrived",
-  "file": "139-fl-arrived.png",
+  "file": "140-fl-arrived.png",
   "caption": "وصلت الرحلة",
   "section": "N",
   "note": null

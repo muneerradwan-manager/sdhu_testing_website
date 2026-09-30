@@ -20,6 +20,18 @@ export function cn(...classes: Array<string | false | null | undefined>) {
 
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 
+/**
+ * The digits of what was typed, whatever the keyboard: an Arabic keyboard (on a Mac, the default
+ * «Arabic» layout) types ٠١٢٣٤٥٦٧٨٩ on the number row, and a Persian one ۰۱۲…, so they are read as
+ * 0–9 before anything that is not a digit is dropped. Every numeric field goes through here.
+ */
+export function digitsOnly(value: string) {
+  return value
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/\D/g, "");
+}
+
 /** Western digits are the norm on Syrian government portals; keep this for decorative spots only. */
 export function toArabicDigits(value: string | number) {
   return String(value).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);

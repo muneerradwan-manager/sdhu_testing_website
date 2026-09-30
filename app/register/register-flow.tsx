@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
-import { cn, maskNationalId } from "@/lib/utils";
+import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
 
 /** Step 0 (account type) was removed: this page creates a pilgrim account directly */
 const STEPS = ["البيانات الأساسية", "رمز التحقق", "الشؤون المدنية", "معلومات إضافية", "تم"];
@@ -197,7 +197,7 @@ export function RegisterFlow() {
                       maxLength={11}
                       placeholder="01012345412"
                       value={form.nationalId}
-                      onChange={(e) => setForm({ ...form, nationalId: e.target.value.replace(/\D/g, "") })}
+                      onChange={(e) => setForm({ ...form, nationalId: digitsOnly(e.target.value) })}
                       className={cn(inputClass, "pl-16 pr-12 text-left font-mono tracking-[.2em]")}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-hint">{form.nationalId.length}/11</span>
@@ -212,7 +212,7 @@ export function RegisterFlow() {
                       maxLength={10}
                       placeholder="09xxxxxxxx"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })}
+                      onChange={(e) => setForm({ ...form, phone: digitsOnly(e.target.value) })}
                       className={cn(inputClass, "pr-12 text-left font-mono tracking-widest")}
                     />
                   </div>
@@ -423,14 +423,14 @@ export function RegisterFlow() {
                 </div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label="رقم هاتف بديل" optional>
-                    <input dir="ltr" inputMode="tel" className={cn(inputClass, "text-left")} value={extra.altPhone} onChange={(e) => setExtra({ ...extra, altPhone: e.target.value.replace(/\D/g, "") })} />
+                    <input dir="ltr" inputMode="tel" className={cn(inputClass, "text-left")} value={extra.altPhone} onChange={(e) => setExtra({ ...extra, altPhone: digitsOnly(e.target.value) })} />
                   </Field>
                   <div />
                   <Field label="جهة اتصال للطوارئ" optional hint="شخص يبقى في سوريا ونبلغه بمحطات رحلتك">
                     <input className={inputClass} placeholder="مثال: سارة (ابنتي)" value={extra.emergencyName} onChange={(e) => setExtra({ ...extra, emergencyName: e.target.value })} />
                   </Field>
                   <Field label="هاتف جهة الطوارئ" optional>
-                    <input dir="ltr" inputMode="tel" className={cn(inputClass, "text-left")} value={extra.emergencyPhone} onChange={(e) => setExtra({ ...extra, emergencyPhone: e.target.value.replace(/\D/g, "") })} />
+                    <input dir="ltr" inputMode="tel" className={cn(inputClass, "text-left")} value={extra.emergencyPhone} onChange={(e) => setExtra({ ...extra, emergencyPhone: digitsOnly(e.target.value) })} />
                   </Field>
                 </div>
                 <div className="flex flex-wrap justify-between gap-3 pt-2">

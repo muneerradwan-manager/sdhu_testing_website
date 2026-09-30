@@ -25,7 +25,8 @@ FONT = "itf Qomra Arabic"
 GREEN = RGBColor(0x00, 0x59, 0x4F); GREEN2 = RGBColor(0x28, 0x9E, 0x92)
 GOLD = RGBColor(0xAD, 0x9E, 0x6E); MAROON = RGBColor(0x67, 0x21, 0x46)
 INK = RGBColor(0x02, 0x15, 0x26); SOFT = RGBColor(0x55, 0x5F, 0x6B)
-LOGO = Path(r"C:\Users\ASUS\Documents\المنصة الوطنية\projects\sdhu_testing_website\public\icons\icon-512.png")
+# The site's own icon, found from this folder (docs/_build-guide) on any machine
+LOGO = ROOT.parent.parent / "public" / "icons" / "icon-512.png"
 
 man = json.loads((SHOTS / "manifest.json").read_text("utf-8"))
 IMG = {}

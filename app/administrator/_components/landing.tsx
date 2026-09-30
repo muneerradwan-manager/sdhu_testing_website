@@ -33,8 +33,8 @@ import { useToast } from "@/components/ui/widgets";
 import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { DEMO_ADMINS, POSITIONS, demoAdminLogin } from "../_lib/admin";
-import { useAdminCalendar } from "../_lib/admin-rules";
+import { APPLIED_ROLES, DEMO_ADMINS, POSITIONS, criterionLabel, demoAdminLogin } from "../_lib/admin";
+import { useAdminCalendar, useDocTypes, useRoleRequirements } from "../_lib/admin-rules";
 
 const ROLES: { level: string; items: { title: string; text: string; icon: LucideIcon }[]; tone: string }[] = [
   {
@@ -49,7 +49,7 @@ const ROLES: { level: string; items: { title: string; text: string; icon: Lucide
     level: "مستوى المجموعة",
     tone: "from-green-dark to-green",
     items: [
-      { title: "رئيس مجموعة", text: "يقود حتى 50 حاجاً يختارون مجموعته ويسجّلهم منسقها: التجمّعات والإعلانات والتقرير اليومي.", icon: UsersRound },
+      { title: "رئيس مجموعة", text: "يقود مجموعته من الحجاج الذين يختارونها ويسجّلهم منسقها: التجمّعات والإعلانات والتقرير اليومي.", icon: UsersRound },
       { title: "معاون رئيس مجموعة", text: "الحضور والتجمّع وتوزيع الوجبات الخاصة.", icon: ClipboardCheck },
     ],
   },
@@ -71,14 +71,6 @@ const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
   { title: "التقييم", text: "من الموظفين والحجاج ورئيس التكتل ومؤشرات آلية.", icon: Star },
 ];
 
-const CONDITIONS = [
-  { k: "العمر", v: "بين 25 و60 عاماً" },
-  { k: "المؤهل", v: "شهادة جامعية أو خبرة موسمين" },
-  { k: "السجل", v: "وثيقة «لا حكم عليه» حديثة" },
-  { k: "التقييم السابق", v: "لا يقل عن 3.5 من 5 (لمن عمل سابقاً)" },
-  { k: "الانضباط", v: "لم يُستبعد تأديبياً في موسم سابق" },
-  { k: "الرسم", v: "رسم تسجيل الإداري مسدد" },
-];
 
 const WEIGHTS = [
   { k: "الموظفون", v: 40, c: "bg-green-dark" },
@@ -90,6 +82,8 @@ const WEIGHTS = [
 
 export function AdministratorLanding() {
   const calendar = useAdminCalendar();
+  const requirements = useRoleRequirements();
+  const { types: docTypes } = useDocTypes();
   const router = useRouter();
   const toast = useToast();
   const hydrated = useHydrated();
@@ -97,6 +91,14 @@ export function AdministratorLanding() {
   const accounts = useStore((s) => s.accounts);
   const admins = useStore((s) => s.admins);
   const session = useStore((s) => s.adminSessionId);
+  const conditions = [
+    { k: "الصفة", v: "تتقدم فقط لصفة يستوفي ملفك شروطها" },
+    { k: "شروط كل صفة", v: "جدول تحدده الإدارة كل موسم" },
+    { k: "التقييم السابق", v: `لا يقل عن ${season.administrators.keepRoleMinRating} من 5 للاستمرار في الصفة نفسها` },
+    { k: "الانضباط", v: "لم يُستبعد تأديبياً في موسم سابق" },
+    { k: "الرسم", v: "بعد ثبوت الأهلية فقط" },
+  ];
+  const reqRows = requirements.rows.filter((id) => APPLIED_ROLES.some((r) => requirements.cells[r.key]?.[id] !== undefined));
 
   const demo = (id: string, mode: "start" | "done") => {
     const error = demoAdminLogin({ accounts, admins }, id, mode);
@@ -276,17 +278,46 @@ export function AdministratorLanding() {
             <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
               <ShieldCheck className="size-6 text-gold-dark" /> شروط الأهلية
             </h3>
-            <p className="mt-1 text-sm text-hint">من إعدادات الموسم — تُطبَّق آلياً على كل طلب</p>
+            <p className="mt-1 text-sm text-hint">من إعدادات الموسم — تُطبَّق آلياً على كل طلب قبل الدفع</p>
             <ul className="mt-5 divide-y divide-gold-light">
-              {CONDITIONS.map((c) => (
+              {conditions.map((c) => (
                 <li key={c.k} className="flex items-center justify-between gap-3 py-3 text-sm">
                   <span className="font-bold text-ink">{c.k}</span>
                   <span className="text-left text-ink-soft">{c.v}</span>
                 </li>
               ))}
             </ul>
+            <p className="mt-5 text-sm font-bold text-green-dark">جدول شروط الصفات ووثائقها — موسم 1448</p>
+            <p className="mt-1 text-xs text-hint">«مطلوبة»: لا يُقدَّم الطلب دونها. «تقوّي»: تقوّي الطلب ولا تمنعه.</p>
+            <div className="mt-2 overflow-x-auto rounded-2xl border border-gold/30">
+              <table className="w-full min-w-[520px] text-center text-xs">
+                <thead className="bg-sand text-ink">
+                  <tr>
+                    <th className="p-2 text-right font-bold">الشرط</th>
+                    {APPLIED_ROLES.map((r) => (
+                      <th key={r.key} className="p-2 font-bold">{r.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {reqRows.map((id) => (
+                    <tr key={id} className="border-t border-gold-light">
+                      <td className="p-2 text-right font-semibold text-ink">{criterionLabel(id, docTypes)}</td>
+                      {APPLIED_ROLES.map((r) => {
+                        const v = requirements.cells[r.key]?.[id];
+                        return (
+                          <td key={r.key} className={cn("p-2", v === undefined ? "text-hint" : v === "preferred" ? "text-gold-dark" : "font-bold text-green-dark")}>
+                            {v === undefined ? "—" : v === "required" ? "مطلوبة" : v === "preferred" ? "تقوّي" : v === "M" ? "ذكور" : v === "F" ? "إناث" : String(v)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <p className="mt-4 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
-              من اعتُمد سابقاً بالصفة نفسها يُعفى من الامتحان ويكتفي بلقاء شفهي أمام لجنة اللقاءات.
+              من يجدد الصفة نفسها بتقييم مستوفٍ يُعفى من الامتحانين، بشرط أن يستوفي ملفه شروط الصفة في جدول الموسم.
             </p>
           </Reveal>
 

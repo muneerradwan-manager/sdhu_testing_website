@@ -97,6 +97,13 @@ export type AdminRules = {
   calendar?: { hijri: string; title: string; detail: string }[];
   /** The stages an administrator is evaluated through, once the administration edits them */
   stages?: { key: string; label: string; hint: string }[];
+  /**
+   * The season's table of role requirements, once the administration edits it: its rows (conditions)
+   * and, per role, the value each condition takes. An administrator applies only for a role he meets.
+   */
+  requirements?: { rows: string[]; cells: Record<string, Record<string, number | string | boolean>> };
+  /** Certificates the administration added to the list this season (the platform's own list is in the administrator lib) */
+  docTypes?: { key: string; label: string; hint: string; validSeasons: number }[];
 };
 
 export type SeasonOverrides = Partial<{

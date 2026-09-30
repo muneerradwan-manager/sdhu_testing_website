@@ -1,18 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarRange, Check, ClipboardList, FileQuestion, GraduationCap, Plus, RotateCcw, ScrollText, Trash2, UsersRound, X } from "lucide-react";
+import { CalendarRange, Check, ClipboardList, FileQuestion, GraduationCap, ListChecks, Plus, RotateCcw, ScrollText, Trash2, UsersRound, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { EXAM_QUESTIONS } from "@/lib/data/admin-exam";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { COMMITMENTS, POSITIONS } from "@/app/administrator/_lib/admin";
-import { useAdminCalendar, useCommitments, useEvaluationStages, useExamRules, useRoles } from "@/app/administrator/_lib/admin-rules";
+import { APPLIED_ROLES, COMMITMENTS, FIXED_CRITERIA, POSITIONS, criteriaCatalog, criterionLabel, type RoleRequirements } from "@/app/administrator/_lib/admin";
+import { useAdminCalendar, useCommitments, useDocTypes, useEvaluationStages, useExamRules, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
 import { Gate, Kpi, PageHeader, Panel, Tabs, logAs, smallInputClass, textareaClass, useStaffUser } from "../_components/kit";
 
-type Tab = "exam" | "bank" | "roles" | "stages" | "calendar";
+type Tab = "exam" | "bank" | "roles" | "requirements" | "stages" | "calendar";
 
 const CHIP = {
   green: "bg-green-light/25 text-white ring-green-light/40",
@@ -45,7 +45,8 @@ function AdminRules() {
   const exam = useExamRules();
   const roles = useRoles();
   const commitments = useCommitments();
-  const edited = Object.keys(rules).length;
+  // A rule set back to its default is stored as undefined, so it does not count as edited
+  const edited = Object.values(rules).filter((v) => v !== undefined).length;
 
   return (
     <div>
@@ -53,7 +54,7 @@ function AdminRules() {
         eyebrow="الجزء الثاني — الإداريون الموسميون"
         icon={<ScrollText />}
         title="قواعد الإداريين"
-        description="ما يراه الإداري في بوابته يبدأ من هنا: الامتحان وبنك أسئلته، والصفات المفتوحة هذا الموسم، والالتزامات التي يوقّع عليها، ورزنامة مراحله. تُعدَّل هنا فتظهر عنده في الموسم نفسه."
+        description="ما يراه الإداري في بوابته يبدأ من هنا: الامتحان وبنك أسئلته، والصفات المفتوحة هذا الموسم وجدول شروط كل صفة، والالتزامات التي يوقّع عليها، ورزنامة مراحله. تُعدَّل هنا فتظهر عنده في الموسم نفسه."
         actions={
           edited > 0 && (
             <Button
@@ -88,6 +89,7 @@ function AdminRules() {
             { value: "exam", label: "قواعد الامتحان" },
             { value: "bank", label: "بنك الأسئلة", count: EXAM_QUESTIONS.length },
             { value: "roles", label: "الصفات والالتزامات" },
+            { value: "requirements", label: "شروط الصفات" },
             { value: "stages", label: "مراحل التقييم" },
             { value: "calendar", label: "رزنامة الإداريين" },
           ]}
@@ -99,6 +101,7 @@ function AdminRules() {
           {tab === "exam" && <ExamRules />}
           {tab === "bank" && <Bank />}
           {tab === "roles" && <RolesAndCommitments />}
+          {tab === "requirements" && <Requirements />}
           {tab === "stages" && <Stages />}
           {tab === "calendar" && <Calendar />}
         </motion.div>
@@ -651,5 +654,253 @@ function Stages() {
         ))}
       </ul>
     </Panel>
+  );
+}
+
+// ───────────────────────── Role requirements ─────────────────────────
+
+type Cell = number | string | boolean | undefined;
+
+function cellText(id: string, v: Cell) {
+  if (v === undefined || v === false || v === "") return "—";
+  if (id === "gender") return v === "M" ? "ذكور" : "إناث";
+  if (v === "required") return "مطلوبة";
+  if (v === "preferred") return "تقوّي الطلب";
+  return String(v);
+}
+
+/** A file row cycles: not asked → required → strengthens the application → not asked */
+const NEXT_LEVEL: Record<string, Cell> = { none: "required", required: "preferred", preferred: undefined };
+
+/**
+ * What each role asks of the administrator this season, as one table: a column per role, a row per
+ * condition. Each role has its own documents and certificates, some shared with other roles; for each
+ * role a document is required, strengthens the application, or is not asked. The administration sets
+ * the table again every season and may add certificates of its own. The administrator portal applies
+ * it: a role that does not fit him is locked, and eligibility is checked before he pays.
+ */
+function Requirements() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const table = useRoleRequirements();
+  const { types } = useDocTypes();
+  const stored = useStore((s) => s.adminRules.requirements);
+  const added = useStore((s) => s.adminRules.docTypes) ?? [];
+  const off = useStore((s) => s.adminRules.rolesOff) ?? [];
+  const [adding, setAdding] = useState("");
+  const [cert, setCert] = useState<{ label: string; hint: string; valid: string } | null>(null);
+  const label = (id: string) => criterionLabel(id, types);
+  const free = criteriaCatalog(types).map((g) => ({ ...g, ids: g.ids.filter((id) => !table.rows.includes(id)) })).filter((g) => g.ids.length);
+
+  /** A certificate the platform's list does not have: named by the administration, with its validity, and added as a row */
+  const addCertificate = () => {
+    if (!cert?.label.trim()) return;
+    const valid = Math.max(0, Math.min(9, Math.round(Number(cert.valid) || 0)));
+    const key = `cert-${Date.now()}`;
+    actions.setAdminRules({
+      docTypes: [...added, { key, label: cert.label.trim(), hint: cert.hint.trim() || "صورة واضحة أو PDF", validSeasons: valid }],
+      requirements: { rows: [...table.rows, `doc:${key}`], cells: table.cells },
+    });
+    logAs(user, { action: "إضافة شهادة جديدة إلى جدول شروط الصفات", target: cert.label.trim(), detail: valid ? `سارية ${valid} مواسم` : "لا تنتهي" });
+    toast({ title: "أُضيفت الشهادة", body: `${cert.label.trim()} — حدّد لكل صفة: مطلوبة أو تقوّي الطلب.`, tone: "success", icon: "🏅" });
+    setCert(null);
+  };
+
+  const write = (next: RoleRequirements, e: { action: string; target?: string; before?: string; after?: string }) => {
+    actions.setAdminRules({ requirements: next });
+    logAs(user, e);
+  };
+
+  const setCell = (role: { key: string; label: string }, id: string, value: Cell) => {
+    const col = { ...(table.cells[role.key] ?? {}) };
+    const before = cellText(id, col[id]);
+    if (value === undefined || value === false || value === "") delete col[id];
+    else col[id] = value;
+    if (before === cellText(id, value)) return;
+    write({ rows: table.rows, cells: { ...table.cells, [role.key]: col } }, { action: "تعديل شرط في جدول شروط الصفات", target: `${role.label} — ${label(id)}`, before, after: cellText(id, value) });
+    toast({ title: `حُفظ: ${role.label}`, body: `${label(id)}: ${cellText(id, value)}`, tone: "success", icon: "💾" });
+  };
+
+  const addRow = (id: string) => {
+    write({ rows: [...table.rows, id], cells: table.cells }, { action: "إضافة شرط إلى جدول شروط الصفات", target: label(id) });
+    setAdding("");
+    toast({ title: "أُضيف الشرط", body: `${label(id)} — حدّد لكل صفة: مطلوبة أو تقوّي الطلب.`, tone: "success", icon: "➕" });
+  };
+
+  const removeRow = (id: string) => {
+    const cells = Object.fromEntries(Object.entries(table.cells).map(([k, col]) => [k, Object.fromEntries(Object.entries(col).filter(([c]) => c !== id))]));
+    write({ rows: table.rows.filter((r) => r !== id), cells }, { action: "حذف شرط من جدول شروط الصفات", target: label(id) });
+    toast({ title: "حُذف الشرط", body: label(id), tone: "info", icon: "🗑️" });
+  };
+
+  return (
+    <Panel
+      icon={<ListChecks />}
+      title="شروط الصفات — موسم 1448"
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip tone={stored ? "green" : "gold"}>{stored ? "معدَّل هذا الموسم" : "القيم الافتراضية"}</Chip>
+          {stored && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+              onClick={() => {
+                actions.setAdminRules({ requirements: undefined });
+                logAs(user, { action: "إعادة جدول شروط الصفات إلى الأصل", target: "موسم 1448" });
+                toast({ title: "أُعيد الجدول إلى الأصل", tone: "info", icon: "↩️" });
+              }}
+            >
+              <RotateCcw className="size-4" /> الأصل
+            </Button>
+          )}
+        </div>
+      }
+    >
+      <p className="text-sm leading-7 text-white/70">
+        لكل صفة عمود، ولكل شرط سطر. لكل صفة وثائقها وشهاداتها، وبعضها مشترك: اضغط الخانة لتنتقل بين «مطلوبة» (لا يُقدَّم الطلب دونها) و«تقوّي الطلب» (تظهر للمتقدم ولا تمنعه) و«—» (لا تطلبها الصفة). تطبّق بوابة الإداريين الجدول على كل متقدم: تُقفل الصفة التي لا يناسبها عمره أو جنسه أو خبرته، ولا يدفع الرسم قبل أن يستوفي كل ما هو «مطلوب» لصفته. يُضبط الجدول لكل موسم من جديد.
+      </p>
+      <div className="mt-4 overflow-x-auto rounded-2xl ring-1 ring-white/10">
+        <table className="w-full min-w-[760px] text-right text-sm">
+          <thead className="bg-white/[.08] text-white">
+            <tr>
+              <th className="p-3 font-bold">الشرط</th>
+              {APPLIED_ROLES.map((r) => (
+                <th key={r.key} className="p-3 text-center font-bold">
+                  {r.label}
+                  {off.includes(r.key) && <span className="mt-1 block text-[11px] font-normal text-white/50">مغلقة هذا الموسم</span>}
+                </th>
+              ))}
+              <th className="w-12 p-3" aria-label="حذف" />
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.map((id) => {
+              const fixed = (FIXED_CRITERIA as readonly string[]).includes(id);
+              const kind = id.startsWith("doc:") ? "وثيقة" : id.startsWith("skill:") ? "مهارة" : id.startsWith("lang:") ? "لغة" : null;
+              return (
+                <tr key={id} className="border-t border-white/10">
+                  <td className="p-3">
+                    <span className="font-bold text-white">{label(id)}</span>
+                    {kind && <span className="mr-2 text-[11px] text-gold">{kind}</span>}
+                  </td>
+                  {APPLIED_ROLES.map((r) => {
+                    const v = table.cells[r.key]?.[id];
+                    return (
+                      <td key={r.key} className={cn("p-2 text-center", off.includes(r.key) && "opacity-50")}>
+                        {id === "gender" ? (
+                          <select
+                            value={typeof v === "string" ? v : ""}
+                            onChange={(e) => setCell(r, id, e.target.value || undefined)}
+                            className={cn(smallInputClass, "h-9 px-2 text-sm [&>option]:text-ink")}
+                            aria-label={`${label(id)} — ${r.label}`}
+                          >
+                            <option value="">الكل</option>
+                            <option value="M">ذكور</option>
+                            <option value="F">إناث</option>
+                          </select>
+                        ) : fixed ? (
+                          <NumCell key={`${id}-${String(v)}`} value={typeof v === "number" ? v : undefined} label={`${label(id)} — ${r.label}`} onCommit={(n) => setCell(r, id, n)} />
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={`${label(id)} — ${r.label}: ${cellText(id, v)}`}
+                            onClick={() => setCell(r, id, NEXT_LEVEL[v === "required" || v === "preferred" ? v : "none"])}
+                            className={cn(
+                              "inline-flex h-9 min-w-24 items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold transition",
+                              v === "required" ? "bg-green-light text-white" : v === "preferred" ? "bg-gold/25 text-gold ring-1 ring-gold/50" : "bg-white/[.06] text-white/40 ring-1 ring-white/15 hover:bg-white/10",
+                            )}
+                          >
+                            {v === "required" && <Check className="size-3.5" />}
+                            {cellText(id, v)}
+                          </button>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="p-2 text-center">
+                    {!fixed && (
+                      <Button size="sm" variant="ghost" className="text-white hover:bg-maroon/40" aria-label={`حذف ${label(id)}`} onClick={() => removeRow(id)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {free.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <select value={adding} onChange={(e) => setAdding(e.target.value)} className={cn(smallInputClass, "w-auto min-w-64 flex-1 sm:flex-none [&_option]:text-ink")} aria-label="شرط جديد">
+            <option value="">اختر شرطاً من ملف الإداري...</option>
+            {free.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.ids.map((id) => (
+                  <option key={id} value={id}>
+                    {label(id)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <Button size="sm" variant="gold" disabled={!adding} onClick={() => addRow(adding)}>
+            <Plus className="size-4" /> إضافة شرط
+          </Button>
+        </div>
+      )}
+      {cert ? (
+        <div className="mt-4 space-y-2 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
+          <p className="font-bold text-white">شهادة جديدة لا توجد في القائمة</p>
+          <input value={cert.label} onChange={(e) => setCert({ ...cert, label: e.target.value })} placeholder="اسم الشهادة، مثل: شهادة تجويد القرآن الكريم" className={smallInputClass} aria-label="اسم الشهادة" />
+          <input value={cert.hint} onChange={(e) => setCert({ ...cert, hint: e.target.value })} placeholder="ملاحظة للمتقدم (اختيارية)" className={smallInputClass} aria-label="ملاحظة للمتقدم" />
+          <label className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+            تبقى سارية
+            <input inputMode="numeric" value={cert.valid} onChange={(e) => setCert({ ...cert, valid: e.target.value })} className={cn(smallInputClass, "w-20 text-center")} aria-label="مدة الصلاحية بالمواسم" />
+            مواسم (0 = لا تنتهي)
+          </label>
+          <div className="flex gap-2">
+            <Button size="sm" variant="gold" disabled={!cert.label.trim()} onClick={addCertificate}>
+              <Plus className="size-4" /> إضافة إلى الجدول
+            </Button>
+            <Button size="sm" variant="ghost" className="text-white" onClick={() => setCert(null)}>
+              إلغاء
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setCert({ label: "", hint: "", valid: "0" })} className="mt-3 flex items-center gap-2 text-sm font-semibold text-gold underline">
+          <Plus className="size-4" /> شهادة جديدة لا توجد في القائمة
+        </button>
+      )}
+      <p className="mt-4 text-xs leading-6 text-white/55">
+        صفتا رئيس التكتل ومعاونه خارج الجدول: الأولى بالانتخاب بشروط الترشح في إعدادات الموسم، والثانية باختيار الرئيس المنتخب. أدنى تقييم للاستمرار في الصفة نفسها من إعدادات الموسم أيضاً.
+      </p>
+    </Panel>
+  );
+}
+
+/** A number in the table, saved when the field is left (not on every keystroke); empty = no condition */
+function NumCell({ value, label, onCommit }: { value: number | undefined; label: string; onCommit: (n: number | undefined) => void }) {
+  const [draft, setDraft] = useState(value === undefined ? "" : String(value));
+  const commit = () => {
+    const t = draft.trim();
+    const n = Number(t);
+    if (t === "") onCommit(undefined);
+    else if (Number.isFinite(n) && n >= 0 && n <= 99) onCommit(Math.round(n));
+    else setDraft(value === undefined ? "" : String(value));
+  };
+  return (
+    <input
+      inputMode="numeric"
+      value={draft}
+      placeholder="—"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+      className={cn(smallInputClass, "mx-auto h-9 w-16 px-1 text-center font-display")}
+      aria-label={label}
+    />
   );
 }

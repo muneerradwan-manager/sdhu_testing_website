@@ -8,7 +8,7 @@ import { Badge, Modal } from "@/components/ui/widgets";
 import { ageOf, birthYear, fullName, lookupFamilyBook, registryRelation, relationLabel, type Person } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { SEASON } from "@/lib/season";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 import { DigitsDisplay, NumberPad, PersonChip, Question } from "./ui";
 
 export type Book = NonNullable<Awaited<ReturnType<typeof lookupFamilyBook>>>;
@@ -172,7 +172,7 @@ export function BookletPicker({
               <ArrowLeft className="relative mr-auto size-6 text-gold transition group-hover:-translate-x-2" />
             </button>
             <p className="mb-4 text-center font-bold text-hint">أو اكتب الرقم</p>
-            <input dir="ltr" inputMode="numeric" maxLength={8} value={no} onChange={(e) => setNo(e.target.value.replace(/\D/g, ""))} className="sr-only" aria-label="رقم دفتر العائلة" />
+            <input dir="ltr" inputMode="numeric" maxLength={8} value={no} onChange={(e) => setNo(digitsOnly(e.target.value))} className="sr-only" aria-label="رقم دفتر العائلة" />
             <DigitsDisplay value={no} length={8} groups={[4, 4]} />
             <div className="mt-6">
               <NumberPad value={no} onChange={setNo} maxLength={8} />

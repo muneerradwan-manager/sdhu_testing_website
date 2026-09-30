@@ -26,7 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { clustersNow } from "@/lib/cms/content";
 import { useSeason } from "@/lib/season-live";
-import { DOCUMENTS, SKILLS, docState, effectiveRole, positionLabelOf, recordOf } from "@/app/administrator/_lib/admin";
+import { POSITIONS, SKILLS, docState, effectiveRole, levelOf, positionLabelOf, recordOf } from "@/app/administrator/_lib/admin";
+import { useDocTypes, useRoleRequirements } from "@/app/administrator/_lib/admin-rules";
 import { useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
 import { clusterGroupsOf } from "@/app/administrator/_lib/cluster";
 
@@ -659,7 +660,11 @@ function Files({ rows }: { rows: AdminRow[] }) {
   const row = rows.find((r) => r.id === id);
   const record = row ? recordOf(row.profile, row.id) : null;
   const expired = record?.documents.filter((d) => !docState(d, undefined, season.documents).ok) ?? [];
-  const missing = row ? DOCUMENTS.filter((d) => !record?.documents.some((x) => x.key === d.key)) : [];
+  // What his role requires in the season's table and his file does not have
+  const table = useRoleRequirements();
+  const { types } = useDocTypes();
+  const role = POSITIONS.find((x) => x.key === row?.profile.positions[0] || x.label === row?.profile.positions[0])?.key ?? "";
+  const missing = row ? types.filter((d) => levelOf(table, role, `doc:${d.key}`) === "required" && !record?.documents.some((x) => x.key === d.key)) : [];
 
   return (
     <div className="grid gap-6 xl:grid-cols-[18rem_1fr]">
@@ -715,7 +720,7 @@ function Files({ rows }: { rows: AdminRow[] }) {
             </ul>
             {missing.length > 0 && (
               <p className="mt-4 rounded-2xl bg-gold/15 p-3 text-sm text-gold ring-1 ring-gold/30">
-                ينقص ملفه: {missing.map((d) => d.label).join("، ")}
+                ينقص ملفه مما تطلبه صفته: {missing.map((d) => d.label).join("، ")}
               </p>
             )}
           </Panel>

@@ -34,7 +34,7 @@ import { useSeason } from "@/lib/season-live";
 import { ageOf, fullName, isValidNationalId, lookupPerson, type Person } from "@/lib/registry";
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { useStore } from "@/lib/store";
-import { cn, formatUSD, maskNationalId } from "@/lib/utils";
+import { cn, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, positionOf, useAdmin } from "../../_lib/admin";
 import { blockFor, coordinatorPosting, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
 import { AdminShell, LockedCard, ReceiptCard, SectionTitle } from "../../_components/ui";
@@ -205,7 +205,7 @@ export function AdminPilgrims() {
                       <Field label="الرقم الوطني" error={error}>
                         <input
                           value={id}
-                          onChange={(e) => setId(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                          onChange={(e) => setId(digitsOnly(e.target.value).slice(0, 11))}
                           inputMode="numeric"
                           dir="ltr"
                           placeholder="06055500711"

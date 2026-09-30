@@ -1,0 +1,9 @@
+# Produced by the capture and build runs; the guides themselves (.docx, .pdf) live in ../
+shots/
+jpg/
+*/shots/
+*/jpg/
+*/state-*.json
+manifest.before*.json
+*/manifest.before*.json
+__pycache__/

@@ -6,7 +6,7 @@ import { ArrowLeft, CheckCircle2, FileImage, Landmark, Smartphone, Upload, Walle
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Choice } from "@/app/portal/apply/_components/ui";
-import { cn, formatUSD } from "@/lib/utils";
+import { cn, digitsOnly, formatUSD } from "@/lib/utils";
 
 /**
  * طرق الدفع في المنصة كلها: شام كاش (المحفظة الإلكترونية) أو المصرف المعتمد مع رفع إشعار الدفع.
@@ -59,7 +59,7 @@ export function ShamCashPanel({ amount, reference, onConfirm, cta = "تأكيد 
             inputMode="numeric"
             placeholder="رقم العملية في شام كاش"
             value={tx}
-            onChange={(e) => setTx(e.target.value.replace(/\D/g, "").slice(0, 12))}
+            onChange={(e) => setTx(digitsOnly(e.target.value).slice(0, 12))}
             className="mt-3 h-12 w-full rounded-2xl border-2 border-gold/50 bg-white px-4 text-center font-mono text-lg tracking-widest outline-none focus:border-green-light"
           />
           <button type="button" onClick={() => setTx("73019448")} className="mt-1.5 text-sm font-semibold text-maroon underline">

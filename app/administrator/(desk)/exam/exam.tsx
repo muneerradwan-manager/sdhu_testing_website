@@ -44,10 +44,10 @@ export function AdminExam() {
   const onSubmitted = useCallback(() => setJustSubmitted(true), []);
   const onGraded = useCallback(() => setJustSubmitted(false), []);
 
-  if (!p?.eligibleAt) {
+  if (!p?.eligibleAt || !p.feePaidAt) {
     return (
       <AdminShell title="الامتحان الكتابي المؤتمت" subtitle="15 ربيع الآخر 1448 — الساعة 09:00 — على المنصة.">
-        <LockedCard title="الامتحان غير متاح بعد" text="يُفتح الامتحان الكتابي بعد تقديم طلب المشاركة وتسديد الرسم واكتمال التحقق من الأهلية." href="/administrator/apply" cta="إلى طلب المشاركة" />
+        <LockedCard title="الامتحان غير متاح بعد" text="يُفتح الامتحان الكتابي بعد تقديم طلب المشاركة: التحقق من الأهلية للصفة التي اخترتها، ثم تسديد رسم التسجيل." href="/administrator/apply" cta="إلى طلب المشاركة" />
       </AdminShell>
     );
   }

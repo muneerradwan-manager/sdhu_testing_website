@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/widgets";
 import { seedPilgrimScenario } from "@/lib/demo-scenarios";
 import { DEMO_SCENARIOS, getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 
 export function LoginFlow() {
   const router = useRouter();
@@ -91,7 +91,7 @@ export function LoginFlow() {
                     inputMode="numeric"
                     maxLength={11}
                     value={id}
-                    onChange={(e) => setId(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setId(digitsOnly(e.target.value))}
                     className={cn(inputClass, "pr-12 text-left font-mono tracking-[.2em]")}
                   />
                 </div>

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 import { DEMO_ADMINS, POSITIONS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
 
 export function AdminLoginFlow() {
@@ -69,7 +69,7 @@ export function AdminLoginFlow() {
                 <Field label="الرقم الوطني" error={error?.text}>
                   <div className="relative">
                     <IdCard className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-gold-dark" />
-                    <input inputMode="numeric" dir="ltr" maxLength={11} placeholder="01033300871" value={id} onChange={(e) => setId(e.target.value.replace(/\D/g, ""))} className={cn(inputClass, "pr-12 text-left font-mono tracking-[.2em]")} />
+                    <input inputMode="numeric" dir="ltr" maxLength={11} placeholder="01033300871" value={id} onChange={(e) => setId(digitsOnly(e.target.value))} className={cn(inputClass, "pr-12 text-left font-mono tracking-[.2em]")} />
                   </div>
                 </Field>
                 {error?.link && (

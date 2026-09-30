@@ -28,7 +28,7 @@ import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { can } from "@/lib/staff";
 import { actions, useStore, type AuditEvent } from "@/lib/store";
-import { cn, formatNumber, maskNationalId, sleep } from "@/lib/utils";
+import { cn, digitsOnly, formatNumber, maskNationalId, sleep } from "@/lib/utils";
 import { lastEvent } from "../_components/data";
 import { Donut, fmtDateTime, Gate, Kpi, Legend, logAs, PageHeader, Panel, smallInputClass, useStaffUser } from "../_components/kit";
 
@@ -458,7 +458,7 @@ function ImportResults({ canImport }: { canImport: boolean }) {
                             <input
                               value={f.value}
                               disabled={f.done}
-                              onChange={(e) => setFixes((x) => ({ ...x, [r.row]: { ...f, value: e.target.value.replace(/\D/g, "").slice(0, 11) } }))}
+                              onChange={(e) => setFixes((x) => ({ ...x, [r.row]: { ...f, value: digitsOnly(e.target.value).slice(0, 11) } }))}
                               className={cn(smallInputClass, "h-9 w-36 font-mono text-sm")}
                               dir="ltr"
                               inputMode="numeric"

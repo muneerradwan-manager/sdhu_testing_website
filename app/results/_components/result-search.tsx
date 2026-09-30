@@ -20,7 +20,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { searchResult, type SearchResult, RESULTS_SUMMARY } from "@/lib/data/public-results";
 import { isValidNationalId } from "@/lib/registry";
 import { useHydrated } from "@/lib/store";
-import { cn, maskNationalId } from "@/lib/utils";
+import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
 import { CaptchaImage, makeCaptcha } from "./captcha";
 
 const MAX_SEARCHES = 5;
@@ -186,7 +186,7 @@ export function ResultSearch() {
               maxLength={11}
               value={nationalId}
               onChange={(e) => {
-                setNationalId(e.target.value.replace(/\D/g, "").slice(0, 11));
+                setNationalId(digitsOnly(e.target.value).slice(0, 11));
                 if (error?.field === "id") setError(null);
               }}
               placeholder="01012345412"

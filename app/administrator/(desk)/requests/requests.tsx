@@ -12,7 +12,7 @@ import { ageOf, fullName } from "@/lib/registry";
 import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { directAccepted, trackOf } from "@/lib/journey";
 import { actions, useStore, type Application, type HealthRecord } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, digitsOnly } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard } from "../../_components/ui";
@@ -521,7 +521,7 @@ function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; 
       <div className="mt-4 flex flex-wrap gap-2">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value.replace(/\D/g, "").slice(0, 11))}
+          onChange={(e) => setQ(digitsOnly(e.target.value).slice(0, 11))}
           onKeyDown={(e) => e.key === "Enter" && search()}
           inputMode="numeric"
           dir="ltr"

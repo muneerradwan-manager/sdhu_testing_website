@@ -30,7 +30,7 @@ import {
   type Sector,
 } from "@/lib/ops";
 import { can } from "@/lib/staff";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, digitsOnly, formatNumber } from "@/lib/utils";
 import { Drawer, Empty, Gate, Kpi, PageHeader, Panel, Tabs, logAs, useStaffUser } from "../_components/kit";
 import { Chip, Field, FilterSelect, SearchBox, fieldClass, selectClass } from "../_components/ops-ui";
 
@@ -661,7 +661,7 @@ function HotelForm({ initial, taken, onSave, onCancel }: { initial: Hotel; taken
           <input type="number" min={1} value={h.capacity} onChange={(e) => set("capacity", Number(e.target.value))} className={cn(fieldClass, "tabular-nums")} dir="ltr" />
         </Field>
         <Field label="رقم الترخيص">
-          <input value={h.licence} onChange={(e) => set("licence", e.target.value.replace(/\D/g, ""))} className={cn(fieldClass, "tabular-nums")} dir="ltr" />
+          <input value={h.licence} onChange={(e) => set("licence", digitsOnly(e.target.value))} className={cn(fieldClass, "tabular-nums")} dir="ltr" />
         </Field>
         <Field label="عدد الطوابق">
           <input

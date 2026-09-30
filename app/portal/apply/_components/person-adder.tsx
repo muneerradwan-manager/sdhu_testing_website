@@ -16,7 +16,7 @@ import {
   type Relation,
 } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
-import { maskNationalId } from "@/lib/utils";
+import { digitsOnly, maskNationalId } from "@/lib/utils";
 import { Choice, DigitsDisplay, NumberPad, PersonChip, Question } from "./ui";
 
 type Stage = "id" | "loading" | "confirm" | "relation" | "verify";
@@ -96,7 +96,7 @@ export function PersonAdder({
               inputMode="numeric"
               maxLength={11}
               value={id}
-              onChange={(e) => setId(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setId(digitsOnly(e.target.value))}
               onKeyDown={(e) => e.key === "Enter" && search()}
               className="sr-only"
               aria-label="الرقم الوطني"

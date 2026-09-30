@@ -6,13 +6,42 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
-import { useSeason } from "@/lib/season-live";
 import { actions, type AdminRecord, type VaultDoc } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { DOCUMENTS, LANGUAGES, SKILLS, docState, documentType, logAdmin, nowMs, recordOf, seasonHistory, useAdmin } from "../../_lib/admin";
+import { LANGUAGES, SKILLS, docState, documentType, levelOf, logAdmin, nowMs, recordOf, seasonHistory, useAdmin, type DocType } from "../../_lib/admin";
+import { useDocTypes, useRoleRequirements, useRoles } from "../../_lib/admin-rules";
 
-/** Documents the administration will not accept an application without */
-export const REQUIRED_DOCS = ["degree", "record"];
+/**
+ * Which of the roles open this season ask for a row of the requirements table (a document, a skill, a
+ * language), and how: the file comes before the role, so every entry says which roles it opens.
+ */
+export function useDemand() {
+  const table = useRoleRequirements();
+  const roles = useRoles().filter((r) => !r.elected);
+  const of = (id: string) => ({
+    required: roles.filter((r) => levelOf(table, r.key, id) === "required"),
+    preferred: roles.filter((r) => levelOf(table, r.key, id) === "preferred"),
+  });
+  /** Documents every open role requires: no role opens without them */
+  const universal = table.rows.filter((id) => id.startsWith("doc:") && roles.length > 0 && of(id).required.length === roles.length).map((id) => id.slice(4));
+  return { of, universal, roles, table };
+}
+
+/** What an entry of the file does for the roles, in the administrator's words */
+export function DemandBadges({ id }: { id: string }) {
+  const { of, roles } = useDemand();
+  const { required, preferred } = of(id);
+  return (
+    <>
+      {required.length > 0 && required.length === roles.length ? (
+        <Badge tone="maroon">مطلوبة لكل الصفات</Badge>
+      ) : (
+        required.length > 0 && <Badge tone="green">تفتح صفة: {required.map((r) => r.label).join("، ")}</Badge>
+      )}
+      {preferred.length > 0 && <Badge tone="gold">تقوّي طلب: {preferred.map((r) => r.label).join("، ")}</Badge>}
+    </>
+  );
+}
 
 /**
  * The administrator's account is permanent, so his documents, languages and skills stay on the
@@ -33,16 +62,21 @@ export function useRecord() {
 }
 
 /** The documents of the file that this season's application is submitted with */
-export function attachedDocs(rec: AdminRecord) {
-  return rec.documents.filter((d) => docState(d).ok);
+export function attachedDocs(rec: AdminRecord, validity?: Record<string, number>) {
+  return rec.documents.filter((d) => docState(d, SEASON.hijriYear, validity).ok);
 }
 
+/**
+ * The documents and certificates come before the role, because they are what opens it: every document
+ * the season's table asks for, each marked with the roles it opens (required) or strengthens
+ * (preferred), then the rest of his permanent file.
+ */
 export function DocumentsStep() {
   const { rec, save, returning } = useRecord();
   const toast = useToast();
   const season = SEASON.hijriYear;
-  // The administration sets how long each type stays valid
-  const validity = useSeason().documents;
+  // The administration sets how long each type stays valid, and may add certificates of its own
+  const { types, validity } = useDocTypes();
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [confirm, setConfirm] = useState<VaultDoc | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -98,16 +132,127 @@ export function DocumentsStep() {
     toast({ title: "عُدّل الاسم", icon: "✏️", tone: "success" });
   };
 
-  const missing = DOCUMENTS.filter((d) => !rec.documents.some((x) => x.key === d.key));
-  const expired = rec.documents.filter((d) => !docState(d, season, validity).ok);
+  const { of, universal, table } = useDemand();
+  // In the table's order: the shared documents first, then the certificates of each kind of work
+  const asked = table.rows
+    .filter((id) => id.startsWith("doc:") && (of(id).required.length || of(id).preferred.length))
+    .map((id) => types.find((t) => t.key === id.slice(4)))
+    .filter((t): t is DocType => !!t);
+  const askedKeys = new Set(asked.map((t) => t.key));
+  const others = rec.documents.filter((d) => !askedKeys.has(d.key));
+  const expired = rec.documents.filter((d) => askedKeys.has(d.key) && !docState(d, season, validity).ok);
+
+  /** A document already in the file: its state, and update / rename / delete */
+  const fileRow = (d: VaultDoc, badge?: React.ReactNode) => {
+    const st = docState(d, season, validity);
+    const type = documentType(d.key, types);
+    const valid = type ? (validity[d.key] ?? type.validSeasons) : 0;
+    const v = progress[`${d.key}-${season}`];
+    const busy = v !== undefined && v < 100;
+    return (
+      <li key={d.id} className={cn("rounded-2xl border-2 p-4 transition", st.ok ? "border-green-light/50 bg-green-light/5" : "border-maroon/40 bg-maroon/5")}>
+        <div className="flex flex-wrap items-center gap-4">
+          <span className={cn("grid size-12 shrink-0 place-items-center rounded-xl", st.ok ? "bg-green-light text-white" : "bg-maroon/15 text-maroon")}>
+            {st.ok ? <FileCheck2 className="size-6" /> : <RefreshCw className="size-6" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            {editing === d.id ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-11 min-w-0 flex-1 rounded-xl border-2 border-gold/50 px-3 outline-none focus:border-green-light" aria-label="اسم الشهادة" />
+                <Button size="sm" onClick={() => rename(d)}>حفظ</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>إلغاء</Button>
+              </div>
+            ) : (
+              <>
+                <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
+                  {d.label}
+                  {badge}
+                  {d.key === "custom" && <Badge tone="ink">أضفتها بنفسك</Badge>}
+                </p>
+                <p className="text-xs text-hint">
+                  <span dir="ltr" className="font-mono">{d.file}</span> — نسخة موسم {d.issuedSeason}
+                  {valid > 0 && ` — صلاحيتها ${valid} ${valid === 1 ? "موسم" : "مواسم"}`}
+                </p>
+                <p className={cn("mt-0.5 text-xs font-bold", st.ok ? "text-green" : "text-maroon")}>{st.ok ? `تُرفق بطلب موسم ${season} — ${st.text}` : st.text}</p>
+              </>
+            )}
+          </div>
+          {editing !== d.id && (
+            <div className="flex flex-wrap items-center gap-2">
+              {busy ? (
+                <span className="font-mono text-sm font-bold text-maroon tabular-nums">{v}%</span>
+              ) : (
+                <Button size="sm" variant={st.ok ? "ghost" : "primary"} onClick={() => put(d.key, d.label, d.file)}>
+                  <RefreshCw className="size-4" /> {st.ok ? "تحديث" : "حدّثها الآن"}
+                </Button>
+              )}
+              {d.key === "custom" && (
+                <Button size="sm" variant="ghost" aria-label={`تعديل اسم ${d.label}`} onClick={() => { setEditing(d.id); setLabel(d.label); }}>
+                  <Pencil className="size-4" />
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" aria-label={`حذف ${d.label}`} onClick={() => setConfirm(d)}>
+                <Trash2 className="size-4 text-maroon" />
+              </Button>
+            </div>
+          )}
+        </div>
+        {busy && (
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
+            <motion.div className="h-full bg-gradient-to-l from-maroon to-gold-dark" animate={{ width: `${v}%` }} />
+          </div>
+        )}
+      </li>
+    );
+  };
+
+  /** A document the role asks for that the file does not have yet */
+  const missingRow = (t: DocType, badge: React.ReactNode) => {
+    const v = progress[`${t.key}-${season}`];
+    return (
+      <li key={t.key} className="rounded-2xl border-2 border-gold/40 bg-white p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand text-gold-dark">
+            <FileText className="size-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
+              {t.label}
+              {badge}
+            </p>
+            <p className="text-xs text-hint">{t.hint}</p>
+          </div>
+          {v === undefined ? (
+            <Button size="sm" variant="outline" onClick={() => put(t.key, t.label, t.file)}>
+              <Upload className="size-4" /> رفع
+            </Button>
+          ) : (
+            <span className="font-mono text-sm font-bold text-maroon tabular-nums">{v}%</span>
+          )}
+        </div>
+        {v !== undefined && v < 100 && (
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
+            <motion.div className="h-full bg-gradient-to-l from-maroon to-gold-dark" animate={{ width: `${v}%` }} />
+          </div>
+        )}
+      </li>
+    );
+  };
+
+  const typeRow = (t: DocType) => {
+    const badge = <DemandBadges id={`doc:${t.key}`} />;
+    const d = rec.documents.find((x) => x.key === t.key);
+    return d ? fileRow(d, badge) : missingRow(t, badge);
+  };
 
   return (
     <div>
       <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">وثائقك وشهاداتك</h2>
       <p className="mt-2 leading-8 text-ink-soft">
+        وثائقك وشهاداتك هي التي تفتح لك الصفات: لكل صفة شهاداتها بحسب جدول الإدارة لهذا الموسم، وبعضها مشترك بين الصفات. بجانب كل وثيقة الصفات التي تفتحها، والصفات التي تقوّي طلبها فقط.{" "}
         {returning
-          ? "حسابك دائم، فملفك من المواسم السابقة يظهر هنا كما تركته. ما تزال صلاحيته سارية يُرفق بطلب هذا الموسم تلقائياً، وما انتهت صلاحيته تحدّثه بنسخة جديدة. ولك أن تضيف شهادات أخرى، أو تعدّل، أو تحذف."
-          : "هذا أول موسم لك، فملفك يبدأ فارغاً. ما ترفعه الآن يبقى في ملفك الدائم ويظهر لك جاهزاً في المواسم القادمة."}
+          ? "حسابك دائم، فما في ملفك منها وما يزال سارياً يُرفق تلقائياً، وما انتهت صلاحيته تحدّثه بنسخة جديدة."
+          : "هذا أول موسم لك، فما ترفعه الآن يبقى في ملفك الدائم ويظهر لك جاهزاً في المواسم القادمة."}
       </p>
 
       {expired.length > 0 && (
@@ -117,114 +262,20 @@ export function DocumentsStep() {
         </p>
       )}
 
-      {rec.documents.length > 0 && (
-        <>
-          <p className="mt-6 flex items-center gap-2 text-sm font-bold text-ink">
-            <FolderLock className="size-4 text-gold-dark" /> ملفك الدائم — {rec.documents.length} وثيقة
-          </p>
-          <ul className="mt-3 space-y-3">
-            {rec.documents.map((d) => {
-              const st = docState(d, season, validity);
-              const type = documentType(d.key);
-              const required = REQUIRED_DOCS.includes(d.key);
-              const v = progress[`${d.key}-${season}`];
-              const busy = v !== undefined && v < 100;
-              return (
-                <li key={d.id} className={cn("rounded-2xl border-2 p-4 transition", st.ok ? "border-green-light/50 bg-green-light/5" : "border-maroon/40 bg-maroon/5")}>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <span className={cn("grid size-12 shrink-0 place-items-center rounded-xl", st.ok ? "bg-green-light text-white" : "bg-maroon/15 text-maroon")}>
-                      {st.ok ? <FileCheck2 className="size-6" /> : <RefreshCw className="size-6" />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      {editing === d.id ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input value={label} onChange={(e) => setLabel(e.target.value)} className="h-11 min-w-0 flex-1 rounded-xl border-2 border-gold/50 px-3 outline-none focus:border-green-light" aria-label="اسم الشهادة" />
-                          <Button size="sm" onClick={() => rename(d)}>حفظ</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>إلغاء</Button>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
-                            {d.label}
-                            {required && <Badge tone="maroon">إلزامية</Badge>}
-                            {d.key === "custom" && <Badge tone="ink">أضفتها بنفسك</Badge>}
-                          </p>
-                          <p className="text-xs text-hint">
-                            <span dir="ltr" className="font-mono">{d.file}</span> — نسخة موسم {d.issuedSeason}
-                            {type && (validity[d.key] ?? type.validSeasons) > 0 && ` — صلاحيتها ${validity[d.key] ?? type.validSeasons} ${(validity[d.key] ?? type.validSeasons) === 1 ? "موسم" : "مواسم"}`}
-                          </p>
-                          <p className={cn("mt-0.5 text-xs font-bold", st.ok ? "text-green" : "text-maroon")}>{st.ok ? `تُرفق بطلب موسم ${season} — ${st.text}` : st.text}</p>
-                        </>
-                      )}
-                    </div>
-                    {editing !== d.id && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        {busy ? (
-                          <span className="font-mono text-sm font-bold text-maroon tabular-nums">{v}%</span>
-                        ) : (
-                          <Button size="sm" variant={st.ok ? "ghost" : "primary"} onClick={() => put(d.key, d.label, d.file)}>
-                            <RefreshCw className="size-4" /> {st.ok ? "تحديث" : "حدّثها الآن"}
-                          </Button>
-                        )}
-                        {d.key === "custom" && (
-                          <Button size="sm" variant="ghost" aria-label={`تعديل اسم ${d.label}`} onClick={() => { setEditing(d.id); setLabel(d.label); }}>
-                            <Pencil className="size-4" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" aria-label={`حذف ${d.label}`} onClick={() => setConfirm(d)}>
-                          <Trash2 className="size-4 text-maroon" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {busy && (
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
-                      <motion.div className="h-full bg-gradient-to-l from-maroon to-gold-dark" animate={{ width: `${v}%` }} />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </>
+      <p className="mt-6 flex items-center gap-2 text-sm font-bold text-ink">
+        <ShieldCheck className="size-4 text-maroon" /> الوثائق والشهادات التي تطلبها الإدارة هذا الموسم
+      </p>
+      <ul className="mt-3 space-y-3">{asked.map((t) => typeRow(t))}</ul>
+      {universal.some((k) => !rec.documents.some((d) => d.key === k && docState(d, season, validity).ok)) && (
+        <p className="mt-3 text-xs font-semibold text-maroon">ما هو «مطلوب لكل الصفات» لا تُفتح أي صفة دونه.</p>
       )}
 
-      {missing.length > 0 && (
+      {others.length > 0 && (
         <>
-          <p className="mt-7 text-sm font-bold text-ink">{rec.documents.length ? "وثائق تطلبها الإدارة وليست في ملفك" : "الوثائق التي تطلبها الإدارة"}</p>
-          <ul className="mt-3 space-y-3">
-            {missing.map((d) => {
-              const v = progress[`${d.key}-${season}`];
-              return (
-                <li key={d.key} className="rounded-2xl border-2 border-gold/40 bg-white p-4">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand text-gold-dark">
-                      <FileText className="size-6" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-2 font-bold text-ink">
-                        {d.label}
-                        {REQUIRED_DOCS.includes(d.key) ? <Badge tone="maroon">إلزامية</Badge> : <Badge tone="ink">تُقوّي الطلب</Badge>}
-                      </p>
-                      <p className="text-xs text-hint">{d.hint}</p>
-                    </div>
-                    {v === undefined ? (
-                      <Button size="sm" variant="outline" onClick={() => put(d.key, d.label, d.file)}>
-                        <Upload className="size-4" /> رفع
-                      </Button>
-                    ) : (
-                      <span className="font-mono text-sm font-bold text-maroon tabular-nums">{v}%</span>
-                    )}
-                  </div>
-                  {v !== undefined && v < 100 && (
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
-                      <motion.div className="h-full bg-gradient-to-l from-maroon to-gold-dark" animate={{ width: `${v}%` }} />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <p className="mt-7 flex items-center gap-2 text-sm font-bold text-ink">
+            <FolderLock className="size-4 text-gold-dark" /> بقية ملفك الدائم — لا تطلبها هذه الصفة
+          </p>
+          <ul className="mt-3 space-y-3">{others.map((d) => fileRow(d))}</ul>
         </>
       )}
 
@@ -280,6 +331,8 @@ export function DocumentsStep() {
 
 export function SkillsStep() {
   const { rec, save, admin, returning } = useRecord();
+  const { of } = useDemand();
+  const asked = LANGUAGES.filter((l) => of(`lang:${l}`).required.length || of(`lang:${l}`).preferred.length);
   const toast = useToast();
   const history = seasonHistory(admin.id);
   const [text, setText] = useState("");
@@ -324,6 +377,15 @@ export function SkillsStep() {
       </div>
       <fieldset>
         <legend className="font-bold text-ink">اللغات التي تتحدثها</legend>
+        {asked.length > 0 && (
+          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-hint">
+            {asked.map((l) => (
+              <span key={l} className="flex flex-wrap items-center gap-1">
+                {l}: <DemandBadges id={`lang:${l}`} />
+              </span>
+            ))}
+          </span>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {[...LANGUAGES, ...extraLanguages].map((l) => {
             const on = rec.languages.includes(l);
@@ -359,7 +421,13 @@ export function SkillsStep() {
             return (
               <li key={s.key} className="flex items-center justify-between gap-3 rounded-2xl border border-gold/30 bg-white p-3">
                 <span className="flex items-center gap-3 font-semibold">
-                  <span className="text-2xl">{s.emoji}</span> {s.label}؟
+                  <span className="text-2xl">{s.emoji}</span>
+                  <span>
+                    <span className="block">{s.label}؟</span>
+                    <span className="mt-0.5 flex flex-wrap gap-1 text-xs font-normal">
+                      <DemandBadges id={`skill:${s.key}`} />
+                    </span>
+                  </span>
                 </span>
                 <div className="flex rounded-xl bg-sand p-1" role="radiogroup" aria-label={s.label}>
                   {[true, false].map((val) => (

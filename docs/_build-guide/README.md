@@ -3,6 +3,7 @@
 كل الأدلة مبنية من لقطات حقيقية للموقع التجريبي (`projects/sdhu_testing_website`) عبر Playwright ومتصفح Chrome المثبت على الجهاز.
 
 ## التشغيل
+0. لإعادة كل لقطات دليل الإداري ودليل الموظف دفعة واحدة: `PY=<بايثون فيه Playwright> ./recapture_all.sh` — يحسب كل تشغيل نقطة استئنافه من ملف الـmanifest، فلا تُعدَّل الأرقام يدوياً إذا زادت لقطة أو نقصت. يعمل على Windows وعلى الماك (Chrome المثبت + `pip install playwright python-docx pillow`).
 1. شغّل الموقع: `npm run build && npx next start -p 3001` داخل `sdhu_testing_website`.
 2. الالتقاط (المتغير `CAP_DIR` يحدد مجلد اللقطات، والرقم = عدد اللقطات المحفوظة قبل إعادة التشغيل):
    - الحاج: `run1.py` ثم `run2.py 40` … (انظر تاريخ الجلسة)، في المجلد الجذري.
@@ -11,7 +12,7 @@
    - يحتاج `stf_b.py g` الحالة `admin/state-head-profile.json` التي ينتجها `adm_c.py head`.
 3. تحويل اللقطات: `python -c "from cap import to_jpg; to_jpg()"` مع `CAP_DIR` المناسب.
 4. البناء: `python build_docx.py <content|admin_content|staff_content> <.|admin|staff> <المسار.docx>`
-5. تحديث الفهرس والطباعة إلى PDF: `powershell -File finalize.ps1 -Docx <docx> -Pdf <pdf>`
+5. تحديث الفهرس والطباعة إلى PDF: `powershell -File finalize.ps1 -Docx <docx> -Pdf <pdf>` — يحتاج Word على Windows. على الماك يُبنى ملف Word فقط، ويُحدَّث فهرسه تلقائياً عند فتحه في Word، ويبقى PDF لخطوة Windows.
 6. إعادة الروابط القابلة للضغط إلى PDF (الطابعة تحذفها): `python pdf_links.py <pdf> <رابط الدليل>`
 
 ## ملاحظات
