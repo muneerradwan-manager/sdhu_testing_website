@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { KIND_LABELS, SEED_TASKS, SLA_MINUTES, type TaskColumn, type Zone } from "@/lib/data/staff-seed";
 import { actions, useStore, type Ticket } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { asset, cn } from "@/lib/utils";
 import { ensureTicket, toTicket, useAllEvents, useTicketQueue, type QueueTicket } from "../_components/data";
 import { ago, Drawer, fmtTime, Gate, Kpi, logAs, PageHeader, Panel, smallInputClass, Tabs, textareaClass, useNow, useStaffUser } from "../_components/kit";
 
@@ -212,38 +212,64 @@ function BusKpi() {
 
 // ───────────────────────── Map ─────────────────────────
 
-const ZONES: Record<Zone, { x: number; y: number; label: string; r: number }> = {
-  makkah: { x: 70, y: 110, label: "مكة — الفندق", r: 38 },
-  jamarat: { x: 205, y: 150, label: "الجمرات", r: 22 },
-  mina: { x: 285, y: 170, label: "منى", r: 48 },
-  muzdalifah: { x: 440, y: 235, label: "مزدلفة", r: 46 },
-  arafat: { x: 600, y: 300, label: "عرفة", r: 70 },
+/**
+ * The real map behind the incidents: a picture of OpenStreetMap stitched once by
+ * scripts/build-mashaer-map.py, covering exactly these edges in Web Mercator at the map's 700×400. Every
+ * place is put on it from its latitude and longitude, so the zones sit where they are on the ground.
+ */
+const BOUNDS = { west: 39.79, east: 40.01, north: 21.44352, south: 21.32646 };
+const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+function project(lat: number, lon: number) {
+  return {
+    x: ((lon - BOUNDS.west) / (BOUNDS.east - BOUNDS.west)) * 700,
+    y: ((mercY(BOUNDS.north) - mercY(lat)) / (mercY(BOUNDS.north) - mercY(BOUNDS.south))) * 400,
+  };
+}
+/** Map units per kilometre at Makkah's latitude, for the size of each zone on the ground */
+const PER_KM = 700 / ((BOUNDS.east - BOUNDS.west) * 111.32 * Math.cos((21.385 * Math.PI) / 180));
+
+const PLACES: Record<Zone, { lat: number; lon: number; km: number; label: string }> = {
+  makkah: { lat: 21.4225, lon: 39.8262, km: 1, label: "مكة — الفندق" },
+  jamarat: { lat: 21.421, lon: 39.8727, km: 0.6, label: "الجمرات" },
+  mina: { lat: 21.4135, lon: 39.8925, km: 1.4, label: "منى" },
+  muzdalifah: { lat: 21.3835, lon: 39.9363, km: 1.5, label: "مزدلفة" },
+  arafat: { lat: 21.3557, lon: 39.9754, km: 2.4, label: "عرفة" },
 };
+const ZONES = Object.fromEntries(
+  (Object.keys(PLACES) as Zone[]).map((k) => [k, { ...project(PLACES[k].lat, PLACES[k].lon), r: PLACES[k].km * PER_KM, label: PLACES[k].label }]),
+) as Record<Zone, { x: number; y: number; label: string; r: number }>;
+
+/** The pilgrims' road through the zones, drawn as a smooth curve (Catmull-Rom) through their centres */
+const ROUTE = (() => {
+  const pts = (["makkah", "jamarat", "mina", "muzdalifah", "arafat"] as Zone[]).map((k) => ZONES[k]);
+  const f = (n: number) => n.toFixed(1);
+  let d = `M${f(pts[0].x)} ${f(pts[0].y)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [p0, p1, p2, p3] = [pts[i - 1] ?? pts[i], pts[i], pts[i + 1], pts[i + 2] ?? pts[i + 1]];
+    d += ` C${f(p1.x + (p2.x - p0.x) / 6)} ${f(p1.y + (p2.y - p0.y) / 6)}, ${f(p2.x - (p3.x - p1.x) / 6)} ${f(p2.y - (p3.y - p1.y) / 6)}, ${f(p2.x)} ${f(p2.y)}`;
+  }
+  return d;
+})();
 
 function MashaerMap({ tickets, zone, onZone, onOpen, now }: { tickets: QueueTicket[]; zone: Zone | null; onZone: (z: Zone) => void; onOpen: (id: string) => void; now: number }) {
-  const route = "M70 110 C 140 120, 170 150, 205 150 S 260 170, 285 170 S 380 210, 440 235 S 540 290, 600 300";
+  const route = ROUTE;
+  const arafat = ZONES.arafat;
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[#012a25] ring-1 ring-white/10">
-      <svg viewBox="0 0 700 400" className="h-auto w-full" style={{ direction: "ltr" }} role="img" aria-label="خريطة تخطيطية لمكة ومنى ومزدلفة وعرفة مع مواقع البلاغات">
+      <svg viewBox="0 0 700 400" className="h-auto w-full" style={{ direction: "ltr" }} role="img" aria-label="خريطة مكة ومنى ومزدلفة وعرفة مع مواقع البلاغات">
         <defs>
-          <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
-            <path d="M28 0H0V28" fill="none" stroke="rgba(255,255,255,.04)" />
-          </pattern>
           <radialGradient id="heat">
             <stop offset="0%" stopColor="#F59E0B" stopOpacity=".35" />
             <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="zone">
-            <stop offset="0%" stopColor="#289E92" stopOpacity=".28" />
-            <stop offset="100%" stopColor="#289E92" stopOpacity=".05" />
+            <stop offset="0%" stopColor="#289E92" stopOpacity=".32" />
+            <stop offset="100%" stopColor="#289E92" stopOpacity=".08" />
           </radialGradient>
         </defs>
-        <rect width="700" height="400" fill="url(#grid)" />
-        {/* terrain */}
-        <path d="M0 330 C 120 300, 200 360, 330 330 S 520 380, 700 350 V400 H0Z" fill="rgba(217,200,158,.05)" />
-        <path d="M0 40 C 150 70, 260 20, 400 60 S 600 30, 700 80 V0 H0Z" fill="rgba(217,200,158,.04)" />
-        <circle cx="600" cy="300" r="140" fill="url(#heat)">
-          <animate attributeName="r" values="125;150;125" dur="6s" repeatCount="indefinite" />
+        <image href={asset("/images/mashaer-map.jpg")} width="700" height="400" preserveAspectRatio="none" />
+        <circle cx={arafat.x} cy={arafat.y} r={arafat.r * 1.9} fill="url(#heat)">
+          <animate attributeName="r" values={`${arafat.r * 1.7};${arafat.r * 2.05};${arafat.r * 1.7}`} dur="6s" repeatCount="indefinite" />
         </circle>
         {/* route */}
         <path d={route} fill="none" stroke="rgba(217,200,158,.25)" strokeWidth="10" strokeLinecap="round" />
@@ -258,7 +284,7 @@ function MashaerMap({ tickets, zone, onZone, onOpen, now }: { tickets: QueueTick
           return (
             <g key={k} onClick={() => onZone(k)} className="cursor-pointer" role="button" aria-label={`${z.label}: ${count} بلاغات`}>
               <circle cx={z.x} cy={z.y} r={z.r} fill="url(#zone)" stroke={selected ? "#D9C89E" : "rgba(40,158,146,.45)"} strokeWidth={selected ? 2.5 : 1.2} strokeDasharray={selected ? undefined : "4 4"} />
-              <text x={z.x} y={z.y + z.r + 16} textAnchor="middle" fill="rgba(255,255,255,.92)" fontSize="13" fontWeight="700">
+              <text x={z.x} y={z.y + z.r + 16} textAnchor="middle" fill="rgba(255,255,255,.95)" fontSize="13" fontWeight="700" stroke="#011f1b" strokeWidth="3.5" strokeLinejoin="round" paintOrder="stroke">
                 {z.label}
               </text>
               {count > 0 && (
@@ -272,11 +298,13 @@ function MashaerMap({ tickets, zone, onZone, onOpen, now }: { tickets: QueueTick
             </g>
           );
         })}
-        {/* group 27 marker */}
+        {/* group 27 marker, just above Arafat where the group is */}
         <g>
-          <rect x="545" y="340" width="112" height="24" rx="12" fill="rgba(0,0,0,.35)" stroke="rgba(217,200,158,.4)" />
-          <text x="601" y="356" textAnchor="middle" fill="#D9C89E" fontSize="11">المجموعة 27 — 48 حاجاً</text>
+          <rect x={arafat.x - 56} y={arafat.y - arafat.r - 34} width="112" height="24" rx="12" fill="rgba(0,0,0,.45)" stroke="rgba(217,200,158,.4)" />
+          <text x={arafat.x} y={arafat.y - arafat.r - 18} textAnchor="middle" fill="#D9C89E" fontSize="11">المجموعة 27 — 48 حاجاً</text>
         </g>
+        {/* the map data's licence asks for this credit */}
+        <text x="8" y="393" fill="rgba(255,255,255,.55)" fontSize="9">© OpenStreetMap contributors</text>
         {/* bus */}
         <g>
           <circle r="5" fill="#D9C89E">
