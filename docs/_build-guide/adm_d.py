@@ -16,7 +16,7 @@ def admin(name, path="/administrator/flights"):
     c.goto(path, wait=2200)
 
 # the officer places group 27 on its cluster's flights (the staff guide shows how)
-c.goto("/staff", wait=1500)
+c.goto("/staff/login", wait=1500)
 p.locator("label:has-text('اسم المستخدم') input").first.fill("haitham")
 p.locator("label:has-text('كلمة المرور') input").first.fill("1448")
 p.locator("button[type=submit]").first.click(); c.settle(2000)

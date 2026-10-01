@@ -10,14 +10,18 @@ count() { "$PY" -c "import json,sys; print(len(json.load(open(sys.argv[1] + '/ma
 run() { local dir="$1"; shift; local keep; keep=$( [ "$FIRST" = 1 ] && echo 0 || count "$dir" ); FIRST=0
   echo "── CAP_DIR=$dir $1 $keep ${*:2}"; CAP_DIR="$dir" "$PY" "$1" "$keep" "${@:2}" 2>&1 | tail -2; }
 
+# `./recapture_all.sh staff` redoes the staff guide only (it reuses the administrator states in admin/)
+WHICH="${1:-all}"
 cp admin/manifest.json admin/manifest.before.json
 cp staff/manifest.json staff/manifest.before.json
 set -eo pipefail
 
-FIRST=1; run admin adm_a.py
-run admin adm_b.py
-run admin adm_c.py
-run admin adm_d.py
+if [ "$WHICH" = all ]; then
+  FIRST=1; run admin adm_a.py
+  run admin adm_b.py
+  run admin adm_c.py
+  run admin adm_d.py
+fi
 
 CAP_DIR=staff "$PY" adm_prep.py 2>&1 | tail -1
 FIRST=1; run staff stf_a.py a

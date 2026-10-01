@@ -50,7 +50,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
   { href: "/staff/cluster-profiles", label: "برامج التكتلات", icon: <ShieldCheck />, perms: ["groups.approve", "content.manage"] },
-  { href: "/staff/admin-rules", label: "قواعد الإداريين", icon: <ScrollText />, perms: ["season.settings", "administrators.manage"] },
+  { href: "/staff/admin-rules", label: "قواعد الإداريين", icon: <ScrollText />, perms: ["season.settings", "administrators.manage", "administrators.catalog"] },
   { href: "/staff/election", label: "انتخاب رؤساء التكتلات", icon: <Vote />, perms: ["season.settings", "groups.approve"] },
   { href: "/staff/grading", label: "التصنيف والترقية", icon: <Layers />, perms: ["season.settings", "audit.read"] },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
@@ -62,13 +62,14 @@ export function StaffFrame({ children }: { children: ReactNode }) {
   const router = useRouter();
   const hydrated = useHydrated();
   const user = useStaffUser();
-  const isLogin = samePath(pathname, "/staff");
+  // The front page and the sign-in page are open to anyone; every other page needs a signed-in employee
+  const isPublic = samePath(pathname, "/staff") || samePath(pathname, "/staff/login");
 
   useEffect(() => {
-    if (hydrated && !user && !isLogin) router.replace("/staff");
-  }, [hydrated, user, isLogin, router]);
+    if (hydrated && !user && !isPublic) router.replace("/staff/login");
+  }, [hydrated, user, isPublic, router]);
 
-  if (isLogin) return children;
+  if (isPublic) return children;
   if (!hydrated || !user) {
     return (
       <div data-dark-page className="grid min-h-[calc(100dvh/var(--zoom))] place-items-center bg-green-dark">
@@ -147,7 +148,7 @@ function Sidebar({ user }: { user: StaffUser }) {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });
     actions.staffLogout();
     toast({ title: "تم تسجيل الخروج", body: `إلى اللقاء يا ${user.name.split(" ")[0]}`, tone: "info", icon: "👋" });
-    router.push("/staff");
+    router.push("/staff/login");
   };
 
   return (

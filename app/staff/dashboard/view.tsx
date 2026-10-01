@@ -26,7 +26,7 @@ import { useMemo, useState } from "react";
 import { DAILY_REGISTRATIONS, EXEC, REG_STATS } from "@/lib/data/staff-seed";
 import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, inSeason, useEmployees, useOpFiles } from "@/lib/ops";
 import { useSeason } from "@/lib/season-live";
-import { can, PERMISSION_LABELS, STAFF, type StaffUser } from "@/lib/staff";
+import { ALL_PERMISSIONS, can, holdsAll, PERMISSION_LABELS, STAFF, type StaffUser } from "@/lib/staff";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAdminRows, useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
@@ -245,11 +245,15 @@ export function DashboardView() {
                         </td>
                         <td className="py-2.5">
                           <div className="flex flex-wrap gap-1">
-                            {s.permissions.map((p) => (
-                              <span key={p} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/80 ring-1 ring-white/15">
-                                {PERMISSION_LABELS[p]}
-                              </span>
-                            ))}
+                            {holdsAll(s) ? (
+                              <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[11px] font-bold text-gold ring-1 ring-gold/40">كل الصلاحيات ({ALL_PERMISSIONS.length})</span>
+                            ) : (
+                              s.permissions.map((p) => (
+                                <span key={p} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/80 ring-1 ring-white/15">
+                                  {PERMISSION_LABELS[p]}
+                                </span>
+                              ))
+                            )}
                           </div>
                         </td>
                       </tr>

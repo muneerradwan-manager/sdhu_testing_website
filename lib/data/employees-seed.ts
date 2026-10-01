@@ -5,8 +5,9 @@ import { seeded } from "../utils";
  * The directorate's employees for the demo — the same shape as the operations app's profile
  * (hajjoperations_app, profiles): name in three parts, job title, governorate, mission, permanent or
  * delegated by another body, both phone numbers, and the seasons he travelled with the mission.
- * The 21 staff-portal accounts (lib/staff.ts) come first and carry their staffId; the rest are
- * generated from a fixed seed so the list is identical on every load.
+ * The first 21 staff-portal accounts (lib/staff.ts) come first and carry their staffId; the rest are
+ * generated from a fixed seed so the list is identical on every load. Accounts opened later (one per
+ * permission) come after everyone generated, with their own seed, so no earlier employee changes.
  */
 
 type Base = Omit<Employee, "id" | "languages" | "nationalId" | "phoneSy"> & { languages?: string[] };
@@ -33,6 +34,15 @@ const STAFF_PEOPLE: (Base & { staffId: string })[] = [
   { staffId: "nader", firstName: "نادر", fatherName: "يوسف", surname: "قاسم", gender: "male", birthYear: 1976, city: "ريف دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1446, 1447, 1448], phoneSa: "+966 50 667 1245" },
   { staffId: "lubna", firstName: "لبنى", fatherName: "مروان", surname: "الشهابي", gender: "female", birthYear: 1987, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
   { staffId: "ghassan", firstName: "غسان", fatherName: "عبد الرزاق", surname: "العمر", gender: "male", birthYear: 1974, city: "حماة", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1446, 1447, 1448], phoneSa: "+966 55 902 6610", notes: "مدير شؤون البعثة — يعدّ الملفات التشغيلية" },
+];
+
+/** Portal accounts opened after the list was generated: appended at its end */
+const LATE_STAFF_PEOPLE: (Base & { staffId: string })[] = [
+  { staffId: "kinan", firstName: "كنان", fatherName: "سمير", surname: "الأحمد", gender: "male", birthYear: 1989, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { staffId: "yousef", firstName: "يوسف", fatherName: "عبد الكريم", surname: "الزعبي", gender: "male", birthYear: 1972, city: "درعا", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { staffId: "rahaf", firstName: "رهف", fatherName: "منير", surname: "الخطيب", gender: "female", birthYear: 1991, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { staffId: "omar", firstName: "عمر", fatherName: "فايز", surname: "الشامي", gender: "male", birthYear: 1987, city: "دمشق", jobTitle: "مسؤول تخطيط ومتابعة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { staffId: "bassel", firstName: "باسل", fatherName: "رياض", surname: "النوري", gender: "male", birthYear: 1983, city: "ريف دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 56 220 4471" },
 ];
 
 const MALE = ["أحمد", "محمد", "محمود", "خالد", "عمر", "علي", "حسن", "يوسف", "إبراهيم", "عبد الله", "عبد الرحمن", "سامر", "باسل", "مهند", "وائل", "زياد", "رامي", "معاذ", "أنس", "بشار", "فراس", "هشام", "نزار", "ياسر", "مصطفى", "حمزة", "طلال", "عماد", "قصي", "أيمن", "لؤي", "صهيب", "مؤيد", "ماجد", "جهاد", "نضال", "عبد الحكيم", "مالك", "ثائر", "حسام"];
@@ -141,6 +151,12 @@ function build(): Employee[] {
       notes: n === 58 ? "موقوف مؤقتاً بانتظار استكمال ملف جواز السفر" : n === 97 ? "موقوف بقرار إداري حتى انتهاء التحقيق في شكوى" : undefined,
     });
   }
+  const late = seeded("sdhu-employees-1448-late");
+  LATE_STAFF_PEOPLE.forEach((p) => {
+    const c = contact(late, p.city, p.seasons.length > 0);
+    n += 1;
+    out.push({ ...p, id: `E-${String(n).padStart(3, "0")}`, nationalId: c.nationalId, phoneSy: c.phoneSy, phoneSa: p.phoneSa, email: `${p.staffId}@hajj.gov.sy`, languages: p.languages ?? ["العربية"] });
+  });
   return out;
 }
 

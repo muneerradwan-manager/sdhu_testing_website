@@ -9,7 +9,7 @@ import { useState } from "react";
 import { inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { getStaff, PERMISSION_LABELS, STAFF, STAFF_PASSWORD, type StaffUser } from "@/lib/staff";
+import { ALL_PERMISSIONS, getStaff, holdsAll, PERMISSION_LABELS, STAFF, STAFF_PASSWORD, type StaffUser } from "@/lib/staff";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn, sleep } from "@/lib/utils";
 import { logAs } from "./kit";
@@ -71,7 +71,9 @@ export function StaffLogin() {
           <nav aria-label="مسار التنقل" className="mb-4 flex items-center gap-1.5 text-sm text-white/70">
             <Link href="/" className="transition hover:text-gold">الرئيسية</Link>
             <span aria-hidden>/</span>
-            <span className="text-gold">بوابة الموظفين</span>
+            <Link href="/staff" className="transition hover:text-gold">بوابة الموظفين</Link>
+            <span aria-hidden>/</span>
+            <span className="text-gold">تسجيل الدخول</span>
           </nav>
           <h1 className="mb-4 font-display text-3xl font-bold md:text-4xl">دخول الموظفين</h1>
           <p className="mb-6 max-w-lg leading-8 text-white/70">
@@ -175,11 +177,15 @@ export function StaffLogin() {
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1">
-                  {u.permissions.map((p) => (
-                    <span key={p} className="rounded-full bg-white/10 px-2 py-0.5 text-[10.5px] text-white/70">
-                      {PERMISSION_LABELS[p]}
-                    </span>
-                  ))}
+                  {holdsAll(u) ? (
+                    <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[10.5px] font-bold text-gold">كل الصلاحيات ({ALL_PERMISSIONS.length})</span>
+                  ) : (
+                    u.permissions.map((p) => (
+                      <span key={p} className="rounded-full bg-white/10 px-2 py-0.5 text-[10.5px] text-white/70">
+                        {PERMISSION_LABELS[p]}
+                      </span>
+                    ))
+                  )}
                 </div>
               </motion.button>
             ))}

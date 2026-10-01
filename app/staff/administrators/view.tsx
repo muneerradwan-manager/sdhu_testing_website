@@ -157,6 +157,12 @@ function Exams({ rows }: { rows: AdminRow[] }) {
                     {roleLabel(r)} · <span dir="ltr">{maskNationalId(r.id)}</span>
                   </p>
                   {r.profile.examExempt && <Chip tone="green">مجدَّد في صفته — معفى من الامتحانين</Chip>}
+                  {/* The written exam is sat on camera: say whether it ever stopped */}
+                  {r.profile.exam?.submittedAt && !r.seed && (
+                    <Chip tone={r.profile.exam.interruptions ? "maroon" : "green"}>
+                      {r.profile.exam.interruptions ? `انقطعت الكاميرا أو الميكروفون ${r.profile.exam.interruptions === 1 ? "مرة واحدة" : r.profile.exam.interruptions === 2 ? "مرتين" : `${r.profile.exam.interruptions} مرات`}` : "أدّى الكتابي والكاميرا والميكروفون مفتوحان"}
+                    </Chip>
+                  )}
                   {r.previous && <p className="text-[11px] text-gold">{r.previous}</p>}
                 </div>
               </div>

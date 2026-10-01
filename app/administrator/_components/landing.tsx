@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -14,7 +13,6 @@ import {
   ClipboardCheck,
   Crown,
   FileSignature,
-  FlaskConical,
   GraduationCap,
   HandHeart,
   LogIn,
@@ -24,16 +22,14 @@ import {
   Star,
   UserPlus,
   UsersRound,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { Counter, Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
-import { useToast } from "@/components/ui/widgets";
 import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { APPLIED_ROLES, DEMO_ADMINS, POSITIONS, criterionLabel, demoAdminLogin } from "../_lib/admin";
+import { APPLIED_ROLES, criterionLabel } from "../_lib/admin";
 import { useAdminCalendar, useDocTypes, useRoleRequirements } from "../_lib/admin-rules";
 
 const ROLES: { level: string; items: { title: string; text: string; icon: LucideIcon }[]; tone: string }[] = [
@@ -84,12 +80,8 @@ export function AdministratorLanding() {
   const calendar = useAdminCalendar();
   const requirements = useRoleRequirements();
   const { types: docTypes } = useDocTypes();
-  const router = useRouter();
-  const toast = useToast();
   const hydrated = useHydrated();
   const season = useSeason();
-  const accounts = useStore((s) => s.accounts);
-  const admins = useStore((s) => s.admins);
   const session = useStore((s) => s.adminSessionId);
   const conditions = [
     { k: "الصفة", v: "تتقدم فقط لصفة يستوفي ملفك شروطها" },
@@ -99,13 +91,6 @@ export function AdministratorLanding() {
     { k: "الرسم", v: "بعد ثبوت الأهلية فقط" },
   ];
   const reqRows = requirements.rows.filter((id) => APPLIED_ROLES.some((r) => requirements.cells[r.key]?.[id] !== undefined));
-
-  const demo = (id: string, mode: "start" | "done") => {
-    const error = demoAdminLogin({ accounts, admins }, id, mode);
-    if (error) return toast({ title: "لا يمكن الدخول كإداري", body: error, tone: "warning", icon: "⛔" });
-    toast({ title: "دخول تجريبي سريع", body: mode === "done" ? "ملف مكتمل: المجموعة معتمدة، والانتخاب أُغلق، والمجموعة في تكتلها بعقد." : "ملف إداري جديد لموسم 1448.", icon: "⚡", tone: "success" });
-    router.push(mode === "done" ? "/administrator/requests" : "/administrator/dashboard");
-  };
 
   return (
     <div>
@@ -350,58 +335,7 @@ export function AdministratorLanding() {
           </Reveal>
         </div>
       </section>
-
-      {/* ───────── Demo ───────── */}
-      <section className="mx-auto max-w-7xl px-4 pb-24 md:px-8">
-        <Reveal className="relative overflow-hidden rounded-[2rem] border-2 border-dashed border-gold-dark/60 bg-gold/15 p-6 md:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="flex items-center gap-2 font-display text-2xl font-bold text-maroon">
-                <FlaskConical className="size-6" /> جرّب رحلة الإداري بضغطة واحدة
-              </p>
-              <p className="mt-1 text-ink-soft">حسابات تجريبية من الشؤون المدنية الوهمية — رمز التحقق دائماً 1448.</p>
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-ink-soft">لكل صفة إداريان: الأول أنهى رحلته فترى كل ما يظهر له، والثاني لم يبدأ بعد.</p>
-          <div className="mt-6 space-y-5">
-            {POSITIONS.filter((pos) => DEMO_ADMINS.some((d) => d.position === pos.key)).map((pos) => (
-              <div key={pos.key}>
-                <p className="mb-2 font-bold text-maroon">{pos.label}</p>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {DEMO_ADMINS.filter((d) => d.position === pos.key).map((d) => (
-                    <DemoCard key={d.id} title={d.title} note={d.note} badge={d.mode === "done" ? "أنهى رحلته" : "لم يبدأ بعد"} onClick={() => demo(d.id, d.mode)} id={d.id} gold={d.mode === "done"} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
     </div>
   );
 }
 
-function DemoCard({ title, note, badge, onClick, id, gold }: { title: string; note: string; badge: string; onClick: () => void; id: string; gold?: boolean }) {
-  return (
-    <motion.button
-      type="button"
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className={cn(
-        "group flex h-full flex-col rounded-3xl p-5 text-right shadow-sm transition hover:shadow-xl",
-        gold ? "bg-green-dark text-white" : "bg-white",
-      )}
-    >
-      <span className="flex items-center justify-between gap-2">
-        <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", gold ? "bg-gold text-ink" : "bg-maroon/10 text-maroon")}>{badge}</span>
-        <span className={cn("font-mono text-xs", gold ? "text-white/60" : "text-hint")} dir="ltr">{id}</span>
-      </span>
-      <span className={cn("mt-3 font-display text-lg font-bold", gold ? "text-gold" : "text-green-dark")}>{title}</span>
-      <span className={cn("mt-1 flex-1 text-sm leading-6", gold ? "text-white/75" : "text-ink-soft")}>{note}</span>
-      <span className={cn("mt-4 inline-flex items-center gap-2 text-sm font-bold", gold ? "text-gold" : "text-green-dark")}>
-        <Zap className="size-4" /> دخول فوري <ArrowLeft className="size-4 transition group-hover:-translate-x-1" />
-      </span>
-    </motion.button>
-  );
-}

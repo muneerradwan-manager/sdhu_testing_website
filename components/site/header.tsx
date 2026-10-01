@@ -42,7 +42,7 @@ function areaOf(pathname: string): Area | null {
 const SIGN_IN: Record<Area, { login: { href: string; label: string }; join?: { href: string; label: string } }> = {
   pilgrim: { login: { href: "/login", label: "دخول" }, join: { href: "/register", label: "إنشاء حساب" } },
   admin: { login: { href: "/administrator/login", label: "دخول الإداري" }, join: { href: "/administrator/register", label: "تسجيل إداري" } },
-  staff: { login: { href: "/staff", label: "دخول الموظفين" } },
+  staff: { login: { href: "/staff/login", label: "دخول الموظفين" } },
 };
 
 function SoonBadge() {

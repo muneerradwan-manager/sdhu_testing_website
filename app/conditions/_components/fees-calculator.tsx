@@ -41,14 +41,16 @@ function Toggle({ checked, onChange, label, hint, icon: Icon }: { checked: boole
       onClick={() => onChange(!checked)}
       className={cn(
         "flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition",
-        checked ? "border-green-light/50 bg-green-light/8" : "border-gold/40 bg-white hover:border-gold-dark",
+        // The toggles sit on the calculator's dark green: a selected one stays a solid light card, so its dark text
+        // keeps reading (a see-through tint left dark text on dark green)
+        checked ? "border-green-light bg-white shadow-[0_0_0_3px_rgba(40,158,146,.45)]" : "border-gold/40 bg-white hover:border-gold-dark",
       )}
     >
       <span className={cn("flex size-10 items-center justify-center rounded-xl transition", checked ? "bg-green-dark text-gold" : "bg-sand text-ink-soft")}>
         <Icon className="size-5" />
       </span>
       <span className="flex-1">
-        <span className="block text-sm font-bold text-ink">{label}</span>
+        <span className={cn("block text-sm font-bold", checked ? "text-green-dark" : "text-ink")}>{label}</span>
         <span className="block text-xs text-ink-soft">{hint}</span>
       </span>
       <span className={cn("relative h-7 w-12 rounded-full transition-colors", checked ? "bg-green-light" : "bg-ink/15")}>

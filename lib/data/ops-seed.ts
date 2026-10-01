@@ -787,7 +787,7 @@ for (const f of CAMP_FILES) {
   if (f.season === 1448) {
     place(f, { camp }, "camp-member", "layla");
     place(f, { center: 10 }, "center-supervisor", "nader", f.type === "mina-camps");
-    if (f.type === "mina-camps") place(f, { file: true }, "coaster-lead", "haitham", true);
+    if (f.type === "mina-camps") place(f, { file: true }, "coaster-lead", "bassel", true);
   }
 }
 

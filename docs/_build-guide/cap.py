@@ -37,8 +37,9 @@ UNHL_JS = "() => document.querySelectorAll('.__hl').forEach(e => e.remove())"
 class Cap:
     def __init__(self, width=1440, height=900, scale=1.5, storage=None):
         self.p = sync_playwright().start()
-        self.browser = self.p.chromium.launch(channel="chrome", headless=True)
-        kw = dict(viewport={"width": width, "height": height}, device_scale_factor=scale, locale="ar-SY", timezone_id="Asia/Damascus")
+        # The written exam is sat on camera: a simulated camera and microphone, already allowed
+        self.browser = self.p.chromium.launch(channel="chrome", headless=True, args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"])
+        kw = dict(viewport={"width": width, "height": height}, device_scale_factor=scale, locale="ar-SY", timezone_id="Asia/Damascus", permissions=["camera", "microphone"])
         if storage and Path(storage).exists():
             kw["storage_state"] = storage
         self.ctx = self.browser.new_context(**kw)

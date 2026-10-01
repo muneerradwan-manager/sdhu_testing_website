@@ -146,13 +146,13 @@ c.shot("fl-refs", "المطارات والناقلون الجويون", section=
 c.goto("/staff/my-files", wait=2000)
 c.shot("fl-my", "رحلاتي: رحلة الموظف ذهاباً وعودة في «ملفاتي التشغيلية»", hl=[("section:has(h2:has-text('رحلاتي'))", "")], section=S)
 
-# ── the operations room: view, take-off and landing
-s.login("fadi")
+# ── following the flights: view, take-off and landing
+s.login("omar")
 c.goto("/staff/flights", wait=2300)
-c.shot("fl-view", "الاطلاع على الطيران (غرفة العمليات): لا إنشاء ولا إسناد", section=S)
+c.shot("fl-view", "الاطلاع على الطيران (متابعة الرحلات): لا إنشاء ولا إسناد", section=S)
 c.scroll_to("main table", 330)
 open_flight("RB 507")
-c.shot("fl-depart-btn", "غرفة العمليات تسجّل الإقلاع للرحلة المقفلة", hl=[(f"{D} button:has-text('تسجيل الإقلاع')", "")], section=S)
+c.shot("fl-depart-btn", "متابعة الرحلات تسجّل الإقلاع للرحلة المقفلة", hl=[(f"{D} button:has-text('تسجيل الإقلاع')", "")], section=S)
 dbtn("تسجيل الإقلاع", 900)
 p.locator(D).last.locator("input[type=checkbox]").nth(2).check(); c.settle(300)
 c.shot("fl-depart", "تسجيل الإقلاع: علّم من تخلّف فقط", hl=[(f"{D} button:has-text('تنفيذ')", "")], section=S)

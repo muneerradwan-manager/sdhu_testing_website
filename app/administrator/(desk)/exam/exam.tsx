@@ -30,13 +30,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { EXAM_DISTRIBUTION, scoreExam } from "@/lib/data/admin-exam";
+import { scoreExam, type ExamCategory } from "@/lib/data/admin-exam";
 import { finalScoreWith, useExamQuestions, useExamRules } from "../../_lib/admin-rules";
 import { actions } from "@/lib/store";
 import { useScrollLock } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
-import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
+import { logAdmin, positionLabelOf, resultOf, useAdmin } from "../../_lib/admin";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
+import { ProctorCheck, ProctorDuringExam, stopProctor, useProctor } from "./proctor";
 
 export function AdminExam() {
   const admin = useAdmin()!;
@@ -44,6 +45,9 @@ export function AdminExam() {
   const [justSubmitted, setJustSubmitted] = useState(false);
   const onSubmitted = useCallback(() => setJustSubmitted(true), []);
   const onGraded = useCallback(() => setJustSubmitted(false), []);
+  // Leaving the exam page in any way (after sending, mid-exam, or from the instructions with the camera
+  // already on) turns the camera and the microphone off
+  useEffect(() => () => stopProctor(), []);
 
   if (!p?.eligibleAt || !p.feePaidAt) {
     return (
@@ -80,10 +84,17 @@ function RulesScreen() {
   const rules = useExamRules();
   const admin = useAdmin()!;
   const [agree, setAgree] = useState(false);
-  const max = Math.max(...EXAM_DISTRIBUTION.map((d) => d.count));
+  const proctor = useProctor();
+  // Every role sits its own exam: count this one's questions by subject
+  const role = admin.profile?.positions[0] ?? "";
+  const questions = useExamQuestions(role);
+  const distribution = Object.entries(
+    questions.reduce<Record<string, number>>((acc, q) => ({ ...acc, [q.category]: (acc[q.category] ?? 0) + 1 }), {}),
+  ).map(([category, count]) => ({ category: category as ExamCategory, count }));
+  const max = Math.max(1, ...distribution.map((d) => d.count));
   const start = () => {
     actions.upsertAdmin(admin.id, { exam: { startedAt: Date.now(), answers: {} } });
-    logAdmin(admin.id, "بدء الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `${rules.questions} سؤالاً — ${rules.minutes} دقيقة`);
+    logAdmin(admin.id, "بدء الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `امتحان صفة ${positionLabelOf(role)} — ${questions.length} سؤالاً — ${rules.minutes} دقيقة — الكاميرا والميكروفون مفعّلان`);
   };
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
@@ -97,7 +108,7 @@ function RulesScreen() {
         </div>
         <dl className="mt-6 grid grid-cols-3 gap-3 text-center">
           {[
-            [String(rules.questions), "سؤالاً"],
+            [String(questions.length), "سؤالاً"],
             [String(rules.minutes), "دقيقة"],
             [`${rules.writtenMin}+`, "لاجتياز الكتابي"],
           ].map(([v, k]) => (
@@ -121,22 +132,24 @@ function RulesScreen() {
           ))}
         </ul>
         <p className="mt-4 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
-          النسخة التجريبية: {rules.questions} سؤالاً في {rules.minutes} دقيقة. الامتحان الفعلي 60 سؤالاً في 90 دقيقة، ويضم صح/خطأ واختياراً متعدداً وترتيب خطوات وسيناريوهات يصححها مصحح مخوّل.
+          امتحانك امتحان صفة {positionLabelOf(role)}: أسئلته من بنك صفتك، وبعضها مشترك بين الصفات (الإسعافات والطوارئ والتعامل مع الحجاج). النسخة التجريبية: {questions.length} سؤالاً في {rules.minutes} دقيقة. الامتحان الفعلي 60 سؤالاً في 90 دقيقة، ويضم صح/خطأ واختياراً متعدداً وترتيب خطوات وسيناريوهات يصححها مصحح مخوّل.
         </p>
+        <ProctorCheck />
         <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-2xl bg-sand p-4">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="size-5 accent-green-dark" />
           <span className="font-semibold">قرأت التعليمات، وأتعهد بأداء الامتحان بنفسي.</span>
         </label>
-        <Button size="xl" className="mt-6 w-full" disabled={!agree} onClick={start}>
+        <Button size="xl" className="mt-6 w-full" disabled={!agree || proctor.state !== "on"} onClick={start}>
           ابدأ الامتحان الآن <ArrowLeft className="size-6" />
         </Button>
+        {proctor.state !== "on" && <p className="mt-2 text-center text-xs text-hint">يُفتح الامتحان بعد تشغيل الكاميرا والميكروفون.</p>}
       </Card>
 
       <Card className="md:p-8">
-        <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ListChecks className="size-5 text-gold-dark" /> توزيع الأسئلة في الامتحان الكامل</h3>
-        <p className="text-xs text-hint">كما أعدّته لجنة المناهج لموسم 1448 — 60 سؤالاً</p>
+        <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ListChecks className="size-5 text-gold-dark" /> توزيع أسئلة امتحان صفتك</h3>
+        <p className="text-xs text-hint">امتحان صفة {positionLabelOf(role)} لموسم 1448 — {questions.length} سؤالاً</p>
         <ul className="mt-5 space-y-3">
-          {EXAM_DISTRIBUTION.map((d, i) => (
+          {distribution.map((d, i) => (
             <li key={d.category}>
               <div className="flex justify-between text-sm">
                 <span className="font-semibold">{d.category}</span>
@@ -164,8 +177,8 @@ function RulesScreen() {
 
 function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   const rules = useExamRules();
-  const questions = useExamQuestions();
   const admin = useAdmin()!;
+  const questions = useExamQuestions(admin.profile?.positions[0] ?? "");
   const toast = useToast();
   const exam = admin.profile!.exam!;
   const answers = exam.answers;
@@ -191,9 +204,19 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
     return () => {
       clearInterval(t);
       window.clearTimeout(saveTimer.current);
+      // Leaving the exam (sent, or navigated away) releases the camera and the microphone
+      stopProctor();
     };
   }, []);
   useScrollLock(true);
+
+  /** The camera or the microphone stopped: counted on the exam, and in the audit trail */
+  const onInterrupt = useCallback(() => {
+    const p = admin.profile!;
+    if (!p.exam || p.exam.submittedAt) return;
+    actions.upsertAdmin(admin.id, { exam: { ...p.exam, interruptions: (p.exam.interruptions ?? 0) + 1 } });
+    logAdmin(admin.id, "انقطاع الكاميرا أو الميكروفون أثناء الامتحان", `الإداري ${admin.id.slice(-3)}`, "توقف الامتحان حتى أعاد تشغيلهما — الوقت مستمر");
+  }, [admin]);
 
   useEffect(() => {
     if (Object.keys(exam.answers).length > 0) toast({ title: "استأنفنا من حيث توقفت", body: "إجاباتك السابقة محفوظة، والوقت يُحسب من لحظة البدء.", icon: "☁️", tone: "info" });
@@ -246,6 +269,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
 
   return (
     <div ref={container} className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-sand outline-none" tabIndex={-1} onKeyDown={onKey} role="application" aria-label="الامتحان الكتابي">
+      <ProctorDuringExam onInterrupt={onInterrupt} />
       {/* top bar */}
       <div className="sticky top-0 z-10 border-b border-gold/30 bg-green-dark text-white shadow-lg">
         <div className="bg-pattern pointer-events-none absolute inset-0 opacity-10" />
@@ -435,8 +459,8 @@ function ScoreRing({ value, label, tone = "green", size = 150 }: { value: number
 
 function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void }) {
   const rules = useExamRules();
-  const questions = useExamQuestions();
   const admin = useAdmin()!;
+  const questions = useExamQuestions(admin.profile?.positions[0] ?? "");
   const toast = useToast();
   const p = admin.profile!;
   const r = resultOf(p);

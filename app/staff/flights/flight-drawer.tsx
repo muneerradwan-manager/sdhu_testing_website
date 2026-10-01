@@ -50,7 +50,8 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
   const employees = useEmployees();
   const events = useAllEvents();
   const officer = can(user, "flights.manage");
-  const ops = officer || can(user, "operations.room");
+  // «الاطلاع على الطيران» is the permission to follow the flights and record their take-off and landing
+  const ops = officer || can(user, "flights.view");
   const actor: Actor = { name: user.name, role: user.title };
   const [tab, setTab] = useState<Tab>(f.audience === "staff" ? "staff" : "pilgrims");
   const [dialog, setDialog] = useState<Dialog>(null);

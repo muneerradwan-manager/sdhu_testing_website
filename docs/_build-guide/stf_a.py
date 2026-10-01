@@ -12,7 +12,7 @@ class Staff:
         self.c = Cap(storage=storage); self.p = self.c.page
     def login(self, user, shots=False, S="A"):
         c, p = self.c, self.p
-        c.goto("/staff", wait=1500)
+        c.goto("/staff/login", wait=1500)
         p.locator("label:has-text('اسم المستخدم') input").first.fill(user)
         p.locator("label:has-text('كلمة المرور') input").first.fill("1448"); c.settle(300)
         if shots:
@@ -33,7 +33,9 @@ class Staff:
 # ───────── A. login, dashboard, my files, locked page ─────────
 if ONLY in (None, "a"):
     s = Staff(); c, p = s.c, s.p; S = "A"
-    c.goto("/staff", wait=1600)
+    c.goto("/staff", wait=2200)
+    c.shot("landing", "بوابة الموظفين: الصفحة الأولى، وفيها تسجيل الدخول وحده", hl=[("main a:has-text('تسجيل الدخول')", "1")], section=S)
+    c.goto("/staff/login", wait=1600)
     c.shot("login", "دخول الموظفين: اسم المستخدم وكلمة المرور، وحسابات تجريبية", section=S)
     p.locator("label:has-text('اسم المستخدم') input").first.fill("suha")
     p.locator("label:has-text('كلمة المرور') input").first.fill("0000")
@@ -112,7 +114,7 @@ if ONLY in (None, "c"):
 # ───────── D. lottery (import → approve) ─────────
 if ONLY in (None, "d"):
     s = Staff(); c, p = s.c, s.p; S = "D"
-    s.login("rana")
+    s.login("kinan")
     c.goto("/staff/lottery", wait=1800)
     c.shot("lot-top", "القبول والقرعة: أربع خطوات", section=S)
     s.btn("إرسال للاعتماد", 1200)
@@ -137,7 +139,7 @@ if ONLY in (None, "d"):
     sv.click(); c.settle(1500)
     c.scroll_to("text=4. الاعتماد والنشر", 520)
     c.shot("lot-locked-publish", "النشر يحتاج صلاحية الاعتماد", section=S)
-    s.logout(); s.login("suha")
+    s.logout(); s.login("yousef")
     c.goto("/staff/lottery", wait=1800)
     ap = p.locator("button:has-text('اعتماد وإعلان الأعمار')").first
     ap.scroll_into_view_if_needed(); c.settle(300)

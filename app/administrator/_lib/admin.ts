@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, scoreExam } from "@/lib/data/admin-exam";
+import { EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, questionsForRole, scoreExam } from "@/lib/data/admin-exam";
 import { ageOf, fullName, getPerson, type Person } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
@@ -62,7 +62,7 @@ export const POSITIONS = [
  * it. A document in the administrator's permanent file is carried into the new season's application
  * when it is still valid; when it has expired he updates it instead of uploading everything again.
  */
-export type DocType = { key: string; label: string; hint: string; file: string; validSeasons: number; custom?: boolean };
+export type DocType = { key: string; label: string; hint: string; file: string; validSeasons: number; custom?: boolean; off?: boolean };
 
 /**
  * Shared documents (the record, the degree, first aid) and the certificates that belong to one kind of
@@ -171,12 +171,12 @@ export function criterionLabel(id: string, types: DocType[] = DOCUMENTS) {
   return id;
 }
 
-/** Every file row the administration may add to the table: the documents and certificates, skills and languages */
-export function criteriaCatalog(types: DocType[] = DOCUMENTS) {
+/** Every file row the administration may add to the table: the season's documents and certificates, skills and languages */
+export function criteriaCatalog(types: DocType[] = DOCUMENTS, skills: readonly { key: string }[] = SKILLS, languages: readonly string[] = LANGUAGES) {
   return [
     { group: "وثائق وشهادات", ids: types.map((d) => `doc:${d.key}`) },
-    { group: "مهارات", ids: SKILLS.map((s) => `skill:${s.key}`) },
-    { group: "لغات", ids: LANGUAGES.filter((l) => l !== "العربية").map((l) => `lang:${l}`) },
+    { group: "مهارات", ids: skills.map((s) => `skill:${s.key}`) },
+    { group: "لغات", ids: languages.filter((l) => l !== "العربية").map((l) => `lang:${l}`) },
   ];
 }
 
@@ -477,12 +477,11 @@ export function useAdmin() {
   }, [id, profile]);
 }
 
-/** ورقة امتحان كتابي ناجحة: 13 من 15 — السؤالان السيناريوهان خاطئان */
-function passedExam() {
-  const answers = Object.fromEntries(
-    EXAM_QUESTIONS.map((q) => [q.id, q.id === 3 || q.id === 11 ? (q.answer + 1) % q.options.length : q.answer]),
-  );
-  return { answers, written: scoreExam(answers).score };
+/** ورقة امتحان كتابي ناجحة في امتحان صفته: كلها صحيحة إلا السؤالين الثالث والحادي عشر */
+function passedExam(position: string) {
+  const paper = questionsForRole(EXAM_QUESTIONS, position).slice(0, EXAM_RULES.questions);
+  const answers = Object.fromEntries(paper.map((q, i) => [q.id, i === 2 || i === 10 ? (q.answer + 1) % q.options.length : q.answer]));
+  return { answers, written: scoreExam(answers, paper).score };
 }
 
 /**
@@ -503,8 +502,8 @@ export function demoAdminLogin(
   const min = 60_000;
   // ملف مكتمل حتى آخر مرحلة، فتظهر كل شاشات الصفة: حجاج المجموعة والملفات الصحية والميدان
   if (mode !== "start") {
-    const { answers, written } = passedExam();
     const position = demo?.position ?? "group-head";
+    const { answers, written } = passedExam(position);
     const tech = position === "tech";
     // One role per season. Same role as the last season served, with the rating: renewed without exams
     const last = lastServed(id);

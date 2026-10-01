@@ -1,18 +1,19 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarRange, Check, ClipboardList, FileQuestion, GraduationCap, ListChecks, Plus, RotateCcw, ScrollText, Trash2, UsersRound, X } from "lucide-react";
+import { CalendarRange, Check, ClipboardList, FileQuestion, GraduationCap, Languages, ListChecks, Pencil, Plus, RotateCcw, ScrollText, Sparkles, Trash2, UsersRound, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { EXAM_QUESTIONS } from "@/lib/data/admin-exam";
+import { EXAM_QUESTIONS, questionsForRole } from "@/lib/data/admin-exam";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { APPLIED_ROLES, COMMITMENTS, FIXED_CRITERIA, POSITIONS, criteriaCatalog, criterionLabel, type RoleRequirements } from "@/app/administrator/_lib/admin";
-import { useAdminCalendar, useCommitments, useDocTypes, useEvaluationStages, useExamRules, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
-import { Gate, Kpi, PageHeader, Panel, Tabs, logAs, smallInputClass, textareaClass, useStaffUser } from "../_components/kit";
+import { SEASON_VALIDITY, useAdminCalendar, useExamBank, useCommitments, useDocTypes, useEvaluationStages, useExamRules, useLanguages, useRoleRequirements, useRoles, useSkills } from "@/app/administrator/_lib/admin-rules";
+import { can } from "@/lib/staff";
+import { Gate, Kpi, PageHeader, Panel, Tabs, canAny, logAs, smallInputClass, textareaClass, useStaffUser } from "../_components/kit";
 
-type Tab = "exam" | "bank" | "roles" | "requirements" | "stages" | "calendar";
+type Tab = "exam" | "bank" | "roles" | "requirements" | "catalog" | "stages" | "calendar";
 
 const CHIP = {
   green: "bg-green-light/25 text-white ring-green-light/40",
@@ -31,7 +32,7 @@ function Chip({ tone = "gold", children }: { tone?: keyof typeof CHIP; children:
  */
 export function AdminRulesView() {
   return (
-    <Gate perms={["season.settings", "administrators.manage"]}>
+    <Gate perms={["season.settings", "administrators.manage", "administrators.catalog"]}>
       <AdminRules />
     </Gate>
   );
@@ -40,7 +41,11 @@ export function AdminRulesView() {
 function AdminRules() {
   const user = useStaffUser()!;
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>("exam");
+  // The rules belong to the season and the administrators' affairs; the lists of the administrator's file
+  // (certificates, skills, languages) to whoever holds «قوائم ملف الإداري» — each sees the tabs he may edit
+  const rulesAllowed = canAny(user, ["season.settings", "administrators.manage"]);
+  const listsAllowed = can(user, "administrators.catalog");
+  const [tab, setTab] = useState<Tab>(rulesAllowed ? "exam" : "catalog");
   const rules = useStore((s) => s.adminRules);
   const exam = useExamRules();
   const roles = useRoles();
@@ -56,7 +61,7 @@ function AdminRules() {
         title="قواعد الإداريين"
         description="ما يراه الإداري في بوابته يبدأ من هنا: الامتحان وبنك أسئلته، والصفات المفتوحة هذا الموسم وجدول شروط كل صفة، والالتزامات التي يوقّع عليها، ورزنامة مراحله. تُعدَّل هنا فتظهر عنده في الموسم نفسه."
         actions={
-          edited > 0 && (
+          rulesAllowed && edited > 0 && (
             <Button
               size="sm"
               variant="outline"
@@ -86,12 +91,21 @@ function AdminRules() {
           value={tab}
           onChange={setTab}
           tabs={[
-            { value: "exam", label: "قواعد الامتحان" },
-            { value: "bank", label: "بنك الأسئلة", count: EXAM_QUESTIONS.length },
-            { value: "roles", label: "الصفات والالتزامات" },
-            { value: "requirements", label: "شروط الصفات" },
-            { value: "stages", label: "مراحل التقييم" },
-            { value: "calendar", label: "رزنامة الإداريين" },
+            ...(rulesAllowed
+              ? ([
+                  { value: "exam", label: "قواعد الامتحان" },
+                  { value: "bank", label: "بنك الأسئلة", count: EXAM_QUESTIONS.length },
+                  { value: "roles", label: "الصفات والالتزامات" },
+                  { value: "requirements", label: "شروط الصفات" },
+                ] as const)
+              : []),
+            ...(listsAllowed ? ([{ value: "catalog", label: "الشهادات والمهارات واللغات" }] as const) : []),
+            ...(rulesAllowed
+              ? ([
+                  { value: "stages", label: "مراحل التقييم" },
+                  { value: "calendar", label: "رزنامة الإداريين" },
+                ] as const)
+              : []),
           ]}
         />
       </div>
@@ -102,6 +116,7 @@ function AdminRules() {
           {tab === "bank" && <Bank />}
           {tab === "roles" && <RolesAndCommitments />}
           {tab === "requirements" && <Requirements />}
+          {tab === "catalog" && <Catalog />}
           {tab === "stages" && <Stages />}
           {tab === "calendar" && <Calendar />}
         </motion.div>
@@ -113,7 +128,7 @@ function AdminRules() {
 // ───────────────────────── Exam rules ─────────────────────────
 
 const EXAM_FIELDS: { key: "questions" | "minutes" | "passMark" | "writtenMin" | "writtenWeight"; label: string; unit: string; min: number; max: number; step?: number; hint: (v: number) => string }[] = [
-  { key: "questions", label: "عدد أسئلة الامتحان", unit: "سؤالاً", min: 5, max: 60, hint: () => `تُسحب من بنك الأسئلة — البنك فيه ${EXAM_QUESTIONS.length} سؤالاً` },
+  { key: "questions", label: "عدد أسئلة الامتحان", unit: "سؤالاً", min: 5, max: 60, hint: () => `لكل صفة امتحانها: تُسحب أسئلته من أسئلة صفته في البنك (البنك فيه ${EXAM_QUESTIONS.length} سؤالاً)` },
   { key: "minutes", label: "مدة الامتحان", unit: "دقيقة", min: 5, max: 180, hint: (v) => `${v} دقيقة للامتحان كاملاً` },
   { key: "passMark", label: "علامة النجاح النهائية", unit: "من 100", min: 40, max: 100, hint: () => "الكتابي والشفهي معاً بأوزانهما" },
   { key: "writtenMin", label: "الحد الأدنى للكتابي وحده", unit: "من 100", min: 0, max: 100, hint: () => "من ينزل عنه لا يُستدعى للشفهي" },
@@ -176,13 +191,33 @@ function ExamRules() {
 
 // ───────────────────────── Question bank ─────────────────────────
 
+/**
+ * The question bank. Every role sits its own exam, so every question says whose exam it belongs to: one
+ * role, several, or all of them (first aid, emergencies). The count of each role shows whether its exam
+ * still has enough questions for the season's length.
+ */
 function Bank() {
   const user = useStaffUser()!;
   const toast = useToast();
   const off = useStore((s) => s.adminRules.questionsOff) ?? [];
   const edits = useStore((s) => s.adminRules.questionEdits) ?? {};
+  const questionRoles = useStore((s) => s.adminRules.questionRoles) ?? {};
+  const live = useExamBank();
+  const exam = useExamRules();
   const [open, setOpen] = useState<number | null>(null);
   const [draft, setDraft] = useState<{ text: string; options: string[]; answer: number; explanation: string } | null>(null);
+  const [role, setRole] = useState<string>("all");
+  const rolesOf = (id: number) => questionRoles[id] ?? EXAM_QUESTIONS.find((q) => q.id === id)!.roles;
+  const shown = role === "all" ? EXAM_QUESTIONS : EXAM_QUESTIONS.filter((q) => rolesOf(q.id).includes(role));
+
+  /** A question joins or leaves one role's exam */
+  const toggleRole = (id: number, key: string, label: string) => {
+    const now = rolesOf(id);
+    const on = now.includes(key);
+    actions.setAdminRules({ questionRoles: { ...questionRoles, [id]: on ? now.filter((r) => r !== key) : [...now, key] } });
+    logAs(user, { action: on ? "إخراج سؤال من امتحان صفة" : "إدخال سؤال في امتحان صفة", target: `سؤال ${id}`, detail: label });
+    toast({ title: on ? `خرج السؤال ${id} من امتحان ${label}` : `دخل السؤال ${id} في امتحان ${label}`, tone: on ? "info" : "success", icon: on ? "➖" : "➕" });
+  };
 
   const toggle = (id: number, text: string) => {
     const on = off.includes(id);
@@ -203,10 +238,31 @@ function Bank() {
   return (
     <Panel icon={<FileQuestion />} title="بنك الأسئلة" action={<Chip tone={off.length ? "maroon" : "green"}>{EXAM_QUESTIONS.length - off.length} سؤالاً في البنك</Chip>}>
       <p className="text-sm leading-7 text-white/70">
-        كل متقدم يأخذ أسئلته من هذا البنك. اسحب سؤالاً فلا يظهر لأحد هذا الموسم، أو عدّل نصه وخياراته وإجابته الصحيحة.
+        لكل صفة امتحانها: يأخذ المتقدم أسئلته من أسئلة صفته في البنك، وبعض الأسئلة مشترك بين الصفات. تحت كل سؤال الصفات التي يدخل امتحانها، فاضغط صفة لتُدخله في امتحانها أو تُخرجه. واسحب سؤالاً فلا يظهر لأحد هذا الموسم، أو عدّل نصه وخياراته وإجابته الصحيحة.
       </p>
+      <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="امتحان صفة">
+        {[{ key: "all", label: "كل الأسئلة" }, ...APPLIED_ROLES].map((r) => {
+          const n = r.key === "all" ? live.length : questionsForRole(live, r.key).length;
+          const short = r.key !== "all" && n < exam.questions;
+          return (
+            <button
+              key={r.key}
+              type="button"
+              role="radio"
+              aria-checked={role === r.key}
+              onClick={() => setRole(r.key)}
+              className={cn("rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition", role === r.key ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white/80 ring-white/15 hover:bg-white/10")}
+            >
+              {r.label} <span className={cn("tabular-nums", short && role !== r.key && "text-gold")}>({n})</span>
+            </button>
+          );
+        })}
+      </div>
+      {role !== "all" && questionsForRole(live, role).length < exam.questions && (
+        <p className="mt-2 text-xs font-semibold text-gold">في امتحان هذه الصفة {questionsForRole(live, role).length} أسئلة فقط، والامتحان {exam.questions} سؤالاً: يأخذ المتقدم ما فيه.</p>
+      )}
       <ul className="mt-4 space-y-2">
-        {EXAM_QUESTIONS.map((q) => {
+        {shown.map((q) => {
           const e = edits[q.id];
           const text = e?.text ?? q.text;
           const options = e?.options ?? q.options;
@@ -223,6 +279,26 @@ function Bank() {
                     <Chip>{q.category}</Chip>
                     <span>الإجابة: {options[answer]}</span>
                     {e && <Chip tone="gold">معدَّل</Chip>}
+                  </p>
+                  <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-white/55">في امتحان:</span>
+                    {APPLIED_ROLES.map((r) => {
+                      const on = rolesOf(q.id).includes(r.key);
+                      return (
+                        <button
+                          key={r.key}
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={`السؤال ${q.id} في امتحان ${r.label}`}
+                          onClick={() => toggleRole(q.id, r.key, r.label)}
+                          className={cn("rounded-full px-2 py-0.5 font-bold ring-1 transition", on ? "bg-green-light/30 text-white ring-green-light/50" : "text-white/40 ring-white/15 hover:text-white/70")}
+                        >
+                          {on && <Check className="-mt-0.5 me-0.5 inline size-3" />}
+                          {r.label}
+                        </button>
+                      );
+                    })}
+                    {rolesOf(q.id).length === APPLIED_ROLES.length && <Chip tone="green">مشترك بين الصفات كلها</Chip>}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -684,13 +760,15 @@ function Requirements() {
   const toast = useToast();
   const table = useRoleRequirements();
   const { types } = useDocTypes();
+  const { skills } = useSkills();
+  const { languages } = useLanguages();
   const stored = useStore((s) => s.adminRules.requirements);
   const added = useStore((s) => s.adminRules.docTypes) ?? [];
   const off = useStore((s) => s.adminRules.rolesOff) ?? [];
   const [adding, setAdding] = useState("");
   const [cert, setCert] = useState<{ label: string; hint: string; valid: string } | null>(null);
   const label = (id: string) => criterionLabel(id, types);
-  const free = criteriaCatalog(types).map((g) => ({ ...g, ids: g.ids.filter((id) => !table.rows.includes(id)) })).filter((g) => g.ids.length);
+  const free = criteriaCatalog(types, skills, languages).map((g) => ({ ...g, ids: g.ids.filter((id) => !table.rows.includes(id)) })).filter((g) => g.ids.length);
 
   /** A certificate the platform's list does not have: named by the administration, with its validity, and added as a row */
   const addCertificate = () => {
@@ -857,7 +935,7 @@ function Requirements() {
           <input value={cert.hint} onChange={(e) => setCert({ ...cert, hint: e.target.value })} placeholder="ملاحظة للمتقدم (اختيارية)" className={smallInputClass} aria-label="ملاحظة للمتقدم" />
           <label className="flex flex-wrap items-center gap-2 text-sm text-white/80">
             تبقى سارية
-            <input inputMode="numeric" value={cert.valid} onChange={(e) => setCert({ ...cert, valid: e.target.value })} className={cn(smallInputClass, "w-20 text-center")} aria-label="مدة الصلاحية بالمواسم" />
+            <span className="w-20 shrink-0"><input inputMode="numeric" value={cert.valid} onChange={(e) => setCert({ ...cert, valid: e.target.value })} className={cn(smallInputClass, "px-1 text-center")} aria-label="مدة الصلاحية بالمواسم" /></span>
             مواسم (0 = لا تنتهي)
           </label>
           <div className="flex gap-2">
@@ -902,5 +980,268 @@ function NumCell({ value, label, onCommit }: { value: number | undefined; label:
       className={cn(smallInputClass, "mx-auto h-9 w-16 px-1 text-center font-display")}
       aria-label={label}
     />
+  );
+}
+
+// ───────────────────────── The lists of the administrator's file ─────────────────────────
+
+const VALIDITY_TEXT = (n: number) => (n === 0 ? "لا تنتهي" : n === 1 ? "تُجدَّد كل موسم" : `سارية ${n} مواسم`);
+
+/**
+ * What an administrator can be asked for this season: the certificates and documents (and how long each
+ * stays valid), the skills and the languages. Whoever holds «قوائم ملف الإداري» keeps them. They are what
+ * the administrator sees in his application, and the only rows «شروط الصفات» can ask for. An entry a role
+ * still asks for cannot be set aside or deleted until it is taken out of that table.
+ */
+function Catalog() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const table = useRoleRequirements();
+  const { all: docs } = useDocTypes();
+  const { all: skills } = useSkills();
+  const { all: langs } = useLanguages();
+  const rules = useStore((s) => s.adminRules);
+  const [docDraft, setDocDraft] = useState<{ key: string | null; label: string; hint: string; valid: string } | null>(null);
+  const [skill, setSkill] = useState({ label: "", emoji: "" });
+  const [lang, setLang] = useState("");
+
+  const usedBy = (id: string) =>
+    APPLIED_ROLES.flatMap((r) => {
+      const v = table.rows.includes(id) ? table.cells[r.key]?.[id] : undefined;
+      return v === "required" || v === "preferred" ? [`${r.label} (${v === "required" ? "مطلوبة" : "تقوّي"})`] : [];
+    });
+  /** Nothing a role still asks for may disappear from the application */
+  const free = (id: string, label: string) => {
+    const by = usedBy(id);
+    if (!by.length) return true;
+    toast({ title: "تطلبها صفات في «شروط الصفات»", body: `${label}: ${by.join("، ")}. احذفها من الجدول أولاً.`, tone: "warning", icon: "⛔" });
+    return false;
+  };
+  const toggle = (field: "docsOff" | "skillsOff" | "languagesOff", key: string, label: string, kind: string) => {
+    const off = rules[field] ?? [];
+    const on = off.includes(key);
+    if (!on && !free(`${kind}:${key}`, label)) return;
+    actions.setAdminRules({ [field]: on ? off.filter((x) => x !== key) : [...off, key] });
+    logAs(user, { action: on ? "إعادة عنصر إلى قوائم ملف الإداري" : "إيقاف عنصر من قوائم ملف الإداري هذا الموسم", target: label });
+    toast({ title: on ? `أُعيدت: ${label}` : `أُوقفت هذا الموسم: ${label}`, body: on ? "تظهر في طلب المشاركة." : "لا تظهر في طلب المشاركة هذا الموسم.", tone: on ? "success" : "info", icon: on ? "✅" : "⏸️" });
+  };
+
+  const saveDoc = () => {
+    if (!docDraft?.label.trim()) return;
+    const label = docDraft.label.trim();
+    const hint = docDraft.hint.trim() || "صورة واضحة أو PDF";
+    const valid = Math.max(0, Math.min(9, Math.round(Number(docDraft.valid) || 0)));
+    const key = docDraft.key;
+    const added = rules.docTypes ?? [];
+    if (!key) {
+      actions.setAdminRules({ docTypes: [...added, { key: `cert-${Date.now()}`, label, hint, validSeasons: valid }] });
+      logAs(user, { action: "إضافة شهادة إلى قوائم ملف الإداري", target: label, detail: VALIDITY_TEXT(valid) });
+      toast({ title: "أُضيفت الشهادة", body: `${label} — حدّد في «شروط الصفات» الصفات التي تطلبها.`, tone: "success", icon: "🏅" });
+    } else if (added.some((d) => d.key === key)) {
+      actions.setAdminRules({ docTypes: added.map((d) => (d.key === key ? { ...d, label, hint, validSeasons: valid } : d)) });
+      logAs(user, { action: "تعديل شهادة في قوائم ملف الإداري", target: label, detail: VALIDITY_TEXT(valid) });
+      toast({ title: "حُفظت الشهادة", body: label, tone: "success", icon: "💾" });
+    } else {
+      // The platform's own documents: the wording here, the validity where the season keeps it
+      const field = SEASON_VALIDITY[key as keyof typeof SEASON_VALIDITY];
+      actions.setAdminRules({ docEdits: { ...rules.docEdits, [key]: { label, hint, ...(field ? {} : { validSeasons: valid }) } } });
+      if (field) actions.setSeason({ [field]: Math.max(1, valid) });
+      logAs(user, { action: "تعديل وثيقة في قوائم ملف الإداري", target: label, detail: VALIDITY_TEXT(field ? Math.max(1, valid) : valid) });
+      toast({ title: "حُفظت الوثيقة", body: label, tone: "success", icon: "💾" });
+    }
+    setDocDraft(null);
+  };
+
+  const removeDoc = (key: string, label: string) => {
+    if (!free(`doc:${key}`, label)) return;
+    actions.setAdminRules({
+      docTypes: (rules.docTypes ?? []).filter((d) => d.key !== key),
+      ...(table.rows.includes(`doc:${key}`) && rules.requirements ? { requirements: { ...rules.requirements, rows: rules.requirements.rows.filter((r) => r !== `doc:${key}`) } } : {}),
+    });
+    logAs(user, { action: "حذف شهادة من قوائم ملف الإداري", target: label });
+    toast({ title: "حُذفت الشهادة", body: label, tone: "info", icon: "🗑️" });
+  };
+
+  const addSkill = () => {
+    const label = skill.label.trim();
+    if (!label) return;
+    if (skills.some((k) => k.key === label || k.label === label)) return toast({ title: "المهارة موجودة", body: label, tone: "info", icon: "ℹ️" });
+    actions.setAdminRules({ skillsAdded: [...(rules.skillsAdded ?? []), { key: label, label, emoji: skill.emoji.trim() || "✨" }] });
+    logAs(user, { action: "إضافة مهارة إلى قوائم ملف الإداري", target: label });
+    toast({ title: "أُضيفت المهارة", body: `${label} — يُسأل عنها كل متقدم.`, tone: "success", icon: "✨" });
+    setSkill({ label: "", emoji: "" });
+  };
+  const removeSkill = (key: string, label: string) => {
+    if (!free(`skill:${key}`, label)) return;
+    actions.setAdminRules({ skillsAdded: (rules.skillsAdded ?? []).filter((k) => k.key !== key) });
+    logAs(user, { action: "حذف مهارة من قوائم ملف الإداري", target: label });
+    toast({ title: "حُذفت المهارة", body: label, tone: "info", icon: "🗑️" });
+  };
+
+  const addLang = () => {
+    const name = lang.trim();
+    if (!name) return;
+    if (langs.some((l) => l.name === name)) return toast({ title: "اللغة موجودة", body: name, tone: "info", icon: "ℹ️" });
+    actions.setAdminRules({ languagesAdded: [...(rules.languagesAdded ?? []), name] });
+    logAs(user, { action: "إضافة لغة إلى قوائم ملف الإداري", target: name });
+    toast({ title: "أُضيفت اللغة", body: name, tone: "success", icon: "🗣️" });
+    setLang("");
+  };
+  const removeLang = (name: string) => {
+    if (!free(`lang:${name}`, name)) return;
+    actions.setAdminRules({ languagesAdded: (rules.languagesAdded ?? []).filter((l) => l !== name) });
+    logAs(user, { action: "حذف لغة من قوائم ملف الإداري", target: name });
+    toast({ title: "حُذفت اللغة", body: name, tone: "info", icon: "🗑️" });
+  };
+
+  const usedByLine = (id: string) => {
+    const by = usedBy(id);
+    return <p className={cn("text-xs", by.length ? "text-gold" : "text-white/50")}>{by.length ? `تطلبها: ${by.join("، ")}` : "لا تطلبها صفة بعد"}</p>;
+  };
+  const actionsFor = ({ off, custom, onToggle, onRemove, onEdit, label }: { off?: boolean; custom?: boolean; onToggle: () => void; onRemove: () => void; onEdit?: () => void; label: string }) => (
+    <div className="flex shrink-0 gap-1.5">
+      {onEdit && (
+        <Button size="sm" variant="ghost" className="text-white hover:bg-white/10" onClick={onEdit} aria-label={`تعديل ${label}`}>
+          <Pencil className="size-4" />
+        </Button>
+      )}
+      {custom ? (
+        <Button size="sm" variant="ghost" className="text-white hover:bg-maroon/40" onClick={onRemove} aria-label={`حذف ${label}`}>
+          <Trash2 className="size-4" />
+        </Button>
+      ) : (
+        <Button size="sm" variant={off ? "primary" : "ghost"} className={off ? "" : "text-white hover:bg-maroon/40"} onClick={onToggle}>
+          {off ? "إعادة" : "إيقاف"}
+        </Button>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Panel
+        icon={<ScrollText />}
+        title="الشهادات والوثائق"
+        action={
+          <Button size="sm" variant="gold" onClick={() => setDocDraft({ key: null, label: "", hint: "", valid: "0" })}>
+            <Plus className="size-4" /> شهادة جديدة
+          </Button>
+        }
+      >
+        <p className="text-sm leading-7 text-white/70">
+          كل ما يمكن أن يُطلب من الإداري في ملفه، ومدة صلاحية كل نوع بالمواسم. ما يُضاف هنا يصير سطراً يمكن طلبه في «شروط الصفات»، ومنها يعرف الإداري أي صفة تفتحها شهادته. صلاحية «الإسعافات الأولية» و«لا حكم عليه» و«التزكية» هي نفسها في إعدادات الموسم.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {docDraft && !docDraft.key && <DocForm draft={docDraft} onChange={setDocDraft} onSave={saveDoc} onCancel={() => setDocDraft(null)} />}
+          {docs.map((d) =>
+            docDraft?.key === d.key ? (
+              <DocForm key={d.key} draft={docDraft} fixedValidity={d.key in SEASON_VALIDITY} onChange={setDocDraft} onSave={saveDoc} onCancel={() => setDocDraft(null)} />
+            ) : (
+              <li key={d.key} className={cn("flex flex-wrap items-start justify-between gap-3 rounded-2xl p-3 ring-1", d.off ? "bg-maroon/15 ring-maroon/30" : "bg-white/[.06] ring-white/10")}>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("flex flex-wrap items-center gap-2 font-bold", d.off ? "text-white/50 line-through" : "text-white")}>
+                    {d.label}
+                    <Chip tone={d.custom ? "green" : "gold"}>{d.custom ? "أضافتها الإدارة" : "من المنصة"}</Chip>
+                    <Chip>{VALIDITY_TEXT(d.validSeasons)}</Chip>
+                    {d.off && <Chip tone="maroon">موقوفة هذا الموسم</Chip>}
+                  </p>
+                  <p className="text-xs text-white/60">{d.hint}</p>
+                  {usedByLine(`doc:${d.key}`)}
+                </div>
+                {actionsFor({ label: d.label, off: d.off, custom: d.custom, onEdit: () => setDocDraft({ key: d.key, label: d.label, hint: d.hint, valid: String(d.validSeasons) }), onToggle: () => toggle("docsOff", d.key, d.label, "doc"), onRemove: () => removeDoc(d.key, d.label) })}
+              </li>
+            ),
+          )}
+        </ul>
+      </Panel>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Panel icon={<Sparkles />} title="المهارات" action={<Chip tone="green">{skills.filter((k) => !k.off).length} مهارة</Chip>}>
+          <p className="text-sm leading-7 text-white/70">يُسأل كل متقدم عن كل مهارة هنا بنعم أو لا، وتحفظ إجابته في ملفه الدائم.</p>
+          <ul className="mt-4 space-y-2">
+            {skills.map((k) => (
+              <li key={k.key} className={cn("flex items-start justify-between gap-3 rounded-2xl p-3 ring-1", k.off ? "bg-maroon/15 ring-maroon/30" : "bg-white/[.06] ring-white/10")}>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("flex flex-wrap items-center gap-2 font-bold", k.off ? "text-white/50 line-through" : "text-white")}>
+                    <span className="text-xl">{k.emoji}</span> {k.label}
+                    {k.custom && <Chip tone="green">أضافتها الإدارة</Chip>}
+                  </p>
+                  {usedByLine(`skill:${k.key}`)}
+                </div>
+                {actionsFor({ label: k.label, off: k.off, custom: k.custom, onToggle: () => toggle("skillsOff", k.key, k.label, "skill"), onRemove: () => removeSkill(k.key, k.label) })}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="w-16 shrink-0"><input value={skill.emoji} onChange={(e) => setSkill({ ...skill, emoji: e.target.value })} placeholder="✨" className={cn(smallInputClass, "px-1 text-center")} aria-label="رمز المهارة" /></span>
+            <input value={skill.label} onChange={(e) => setSkill({ ...skill, label: e.target.value })} onKeyDown={(e) => e.key === "Enter" && addSkill()} placeholder="مهارة جديدة، مثل: الطبخ للمجموعات" className={cn(smallInputClass, "min-w-0 flex-1")} aria-label="مهارة جديدة" />
+            <Button size="sm" variant="gold" disabled={!skill.label.trim()} onClick={addSkill}>
+              <Plus className="size-4" /> إضافة
+            </Button>
+          </div>
+        </Panel>
+
+        <Panel icon={<Languages />} title="اللغات" action={<Chip tone="green">{langs.filter((l) => !l.off).length} لغات</Chip>}>
+          <p className="text-sm leading-7 text-white/70">اللغات التي يختار منها المتقدم ما يتحدثه. العربية ثابتة.</p>
+          <ul className="mt-4 space-y-2">
+            {langs.map((l) => (
+              <li key={l.name} className={cn("flex items-start justify-between gap-3 rounded-2xl p-3 ring-1", l.off ? "bg-maroon/15 ring-maroon/30" : "bg-white/[.06] ring-white/10")}>
+                <div className="min-w-0 flex-1">
+                  <p className={cn("flex flex-wrap items-center gap-2 font-bold", l.off ? "text-white/50 line-through" : "text-white")}>
+                    {l.name}
+                    {l.custom && <Chip tone="green">أضافتها الإدارة</Chip>}
+                    {l.name === "العربية" && <Chip>ثابتة</Chip>}
+                  </p>
+                  {l.name !== "العربية" && usedByLine(`lang:${l.name}`)}
+                </div>
+                {l.name !== "العربية" && actionsFor({ label: l.name, off: l.off, custom: l.custom, onToggle: () => toggle("languagesOff", l.name, l.name, "lang"), onRemove: () => removeLang(l.name) })}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input value={lang} onChange={(e) => setLang(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addLang()} placeholder="لغة جديدة، مثل: الإندونيسية" className={cn(smallInputClass, "min-w-0 flex-1")} aria-label="لغة جديدة" />
+            <Button size="sm" variant="gold" disabled={!lang.trim()} onClick={addLang}>
+              <Plus className="size-4" /> إضافة
+            </Button>
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/** Adding or editing one certificate: its name, a word to the applicant, and how many seasons it stays valid */
+function DocForm({
+  draft,
+  fixedValidity,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  draft: { key: string | null; label: string; hint: string; valid: string };
+  fixedValidity?: boolean;
+  onChange: (d: { key: string | null; label: string; hint: string; valid: string }) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <li className="space-y-2 rounded-2xl bg-white/[.08] p-4 ring-1 ring-gold/40">
+      <p className="font-bold text-white">{draft.key ? "تعديل الشهادة" : "شهادة جديدة"}</p>
+      <input value={draft.label} onChange={(e) => onChange({ ...draft, label: e.target.value })} placeholder="اسم الشهادة، مثل: شهادة تجويد القرآن الكريم" className={smallInputClass} aria-label="اسم الشهادة" />
+      <input value={draft.hint} onChange={(e) => onChange({ ...draft, hint: e.target.value })} placeholder="ملاحظة للمتقدم (اختيارية)" className={smallInputClass} aria-label="ملاحظة للمتقدم" />
+      <label className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+        تبقى سارية
+        <span className="w-20 shrink-0"><input inputMode="numeric" value={draft.valid} onChange={(e) => onChange({ ...draft, valid: e.target.value })} className={cn(smallInputClass, "px-1 text-center")} aria-label="مدة الصلاحية بالمواسم" /></span>
+        {fixedValidity ? "مواسم (من 1؛ تُحفظ في إعدادات الموسم)" : "مواسم (0 = لا تنتهي)"}
+      </label>
+      <div className="flex gap-2">
+        <Button size="sm" variant="gold" disabled={!draft.label.trim()} onClick={onSave}>
+          <Check className="size-4" /> حفظ
+        </Button>
+        <Button size="sm" variant="ghost" className="text-white" onClick={onCancel}>
+          <X className="size-4" /> إلغاء
+        </Button>
+      </div>
+    </li>
   );
 }

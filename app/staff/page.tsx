@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { StaffLogin } from "./_components/login";
+import { StaffLanding } from "./_components/landing";
 
-export const metadata: Metadata = { title: "دخول الموظفين" };
+export const metadata: Metadata = {
+  description: "بوابة الموظفين: مراجعة الطلبات، إعدادات الموسم، القرعة، الإداريون والمجموعات، الطيران، غرفة العمليات والملفات التشغيلية — بصلاحية لكل مهمة.",
+};
 
-export default function StaffLoginPage() {
-  return <StaffLogin />;
+export default function StaffHomePage() {
+  return <StaffLanding />;
 }

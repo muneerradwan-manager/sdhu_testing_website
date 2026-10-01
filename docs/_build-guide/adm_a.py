@@ -21,8 +21,6 @@ def field(label):
 S = "A"
 c.goto("/administrator", wait=1500)
 c.shot("landing", "بوابة الإداريين: الصفحة الأولى", hl=[("a:has-text('أنشئ حسابك الإداري')", "1"), ("a:has-text('تسجيل الدخول')", "2")], section=S)
-c.scroll_to("text=جرّب رحلة الإداري بضغطة واحدة", 110)
-c.shot("landing-demo", "بطاقات الدخول التجريبي لكل صفة (للعرض)", section=S)
 
 # ───────── register ─────────
 S = "B"
@@ -109,6 +107,9 @@ c.save_state(str(ROOT / "admin" / "state-eligible.json"))
 S = "E"
 c.goto("/administrator/exam", wait=1800)
 c.shot("exam-rules", "تعليمات الامتحان الكتابي", section=S)
+p.get_by_role("button", name="تشغيل الكاميرا والميكروفون").click(); c.settle(2500)
+c.scroll_to("text=الكاميرا تعمل", 380)
+c.shot("exam-camera", "الكاميرا والميكروفون: يُفتح الامتحان بعد تشغيلهما", hl=[("button:has-text('ابدأ الامتحان الآن')", "")], section=S)
 p.get_by_text("قرأت التعليمات، وأتعهد بأداء الامتحان بنفسي.").first.click(); c.settle(400)
 btn("ابدأ الامتحان الآن", wait=1500)
 c.shot("exam-q1", "شاشة الامتحان: السؤال والخيارات والوقت", section=S)

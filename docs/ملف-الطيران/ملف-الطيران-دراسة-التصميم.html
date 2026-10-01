@@ -226,7 +226,7 @@ hr{border:0;border-top:1px solid var(--line);margin:30px 0}
 <tbody>
 <tr><td>الطلب والعائلة</td><td><code>Application.members</code> في <code>lib/store.ts</code>، والربط بالمجموعة في <code>post[sessionId].groupNumber / clusterId</code></td><td>وحدة الإسناد. الطلب الواحد يضم حتى 5 أفراد، ويُسند كاملاً</td></tr>
 <tr><td>المجموعة والتكتل</td><td><code>AdminProfile.group</code> و<code>cluster</code> و<code>deputyOf</code>، و<code>clusterGroupsOf()</code></td><td>يحدد من يحق له الإسناد، وأي مجموعات يراها</td></tr>
-<tr><td>الصلاحيات</td><td><code>lib/staff.ts</code>: 13 صلاحية، منها <code>transport</code> غير المستعملة إلا عند هيثم زيدان</td><td>تُضاف <code>flights.manage</code> و<code>flights.view</code>، ويحملهما فريق المواصلات وغرفة العمليات</td></tr>
+<tr><td>الصلاحيات</td><td><code>lib/staff.ts</code>: 13 صلاحية، منها <code>transport</code> غير المستعملة إلا عند هيثم زيدان</td><td>تُضاف <code>flights.manage</code> و<code>flights.view</code>، ويحمل الأولى مسؤول الطيران والثانية متابعة الرحلات</td></tr>
 <tr><td>الموظفون والملفات التشغيلية</td><td><code>Employee</code> في <code>lib/ops.ts</code> مع <code>seasons</code> و<code>phoneSa</code>، وصفحة «ملفاتي التشغيلية»</td><td>مصدر قائمة المسافرين، ومكان عرض رحلات الموظف</td></tr>
 <tr><td>البيانات المرجعية</td><td>الفنادق والقطاعات والمراكز والمخيمات، مع «نقل من موسم 1447»</td><td>يُضاف المطار والناقل الجوي بالنمط نفسه</td></tr>
 <tr><td>الملف الصحي</td><td><code>post.health.members[nid].needs</code></td><td>يظهر على كشف الركاب: كرسي متحرك، أكسجين، مرافق</td></tr>
@@ -560,9 +560,9 @@ hr{border:0;border-top:1px solid var(--line);margin:30px 0}
 <section id="s11">
 <div class="callout decision"><b>بعد التحديث 1.1</b><p>في الجدول التالي: عمود رئيس التكتل ومعاونه صار «يرى رحلات مجموعات تكتله» فقط، وعمود رئيس المجموعة «يرى رحلتي مجموعته ويطبع كشفها ويسجّل الصعود في التجمّع». لا إسناد ولا إلغاء ولا طلب تغيير لأي منهما. كل الإسناد لمسؤول الطيران.</p></div>
 <h2><span class="num">11</span>الصلاحيات</h2>
-<p>تُضاف صلاحيتان إلى قائمة صلاحيات الموظفين في <code>lib/staff.ts</code>: <code>flights.manage</code> «إدارة الطيران» و<code>flights.view</code> «الاطلاع على الطيران». في النسخة التجريبية يحملهما هيثم زيدان (فريق المواصلات، صاحب صلاحية <code>transport</code> غير المستعملة اليوم)، وتُعطى «الاطلاع» لغرفة العمليات ومدير المكتب ومديرة الموسم. حقوق الإداريين تُشتق من دورهم كما في بقية بوابة الإداريين.</p>
+<p>تُضاف صلاحيتان إلى قائمة صلاحيات الموظفين في <code>lib/staff.ts</code>: <code>flights.manage</code> «إدارة الطيران» و<code>flights.view</code> «الاطلاع على الطيران». في النسخة التجريبية لكل موظف صلاحية واحدة: «إدارة الطيران» عند مسؤول الطيران هيثم زيدان، و«الاطلاع على الطيران» عند عمر الشامي (متابعة الرحلات)، وتملك مديرة الموسم الصلاحيات كلها. و«الاطلاع» وحدها تكفي لتسجيل الإقلاع والهبوط. حقوق الإداريين تُشتق من دورهم كما في بقية بوابة الإداريين.</p>
 <div class="tbl"><table>
-<thead><tr><th>الإجراء</th><th>مسؤول الطيران</th><th>اطلاع (عمليات، مدير المكتب)</th><th>رئيس التكتل ومعاونه</th><th>رئيس المجموعة</th><th>المنسق التقني</th><th>الحاج</th><th>الموظف</th></tr></thead>
+<thead><tr><th>الإجراء</th><th>مسؤول الطيران</th><th>اطلاع (متابعة الرحلات)</th><th>رئيس التكتل ومعاونه</th><th>رئيس المجموعة</th><th>المنسق التقني</th><th>الحاج</th><th>الموظف</th></tr></thead>
 <tbody>
 <tr><td>إضافة مطار وناقل</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>إنشاء رحلة وتعديلها ونشرها</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
@@ -575,7 +575,7 @@ hr{border:0;border-top:1px solid var(--line);margin:30px 0}
 <tr><td>تغيير بعد الإقفال</td><td>✔ بسبب</td><td>—</td><td>طلب تغيير</td><td>طلب تغيير</td><td>طلب تغيير</td><td>—</td><td>—</td></tr>
 <tr><td>تأجيل / تحويل / إلغاء رحلة</td><td>✔ بسبب</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>إسناد موظفين</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>تسجيل الإقلاع والهبوط والمتخلفين</td><td>✔</td><td>✔ غرفة العمليات</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>تسجيل الإقلاع والهبوط والمتخلفين</td><td>✔</td><td>✔</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>تسجيل الصعود (مسح البطاقات في التجمّع)</td><td>—</td><td>—</td><td>✔</td><td>✔</td><td>✔</td><td>—</td><td>—</td></tr>
 <tr><td>تصدير الكشوف (مسار، الناقل، المطار)</td><td>✔</td><td>✔</td><td>كشف تكتله</td><td>كشف مجموعته</td><td>كشف مجموعته</td><td>—</td><td>—</td></tr>
 <tr><td>طباعة بطاقة الرحلة</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td><td>✔ بطاقته</td><td>✔ بطاقته</td></tr>

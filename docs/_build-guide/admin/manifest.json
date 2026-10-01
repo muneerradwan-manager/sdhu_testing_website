@@ -9,217 +9,217 @@
  },
  {
   "n": 2,
-  "key": "landing-demo",
-  "file": "002-landing-demo.png",
-  "caption": "بطاقات الدخول التجريبي لكل صفة (للعرض)",
-  "section": "A",
-  "note": null
- },
- {
-  "n": 3,
   "key": "reg-basic",
-  "file": "003-reg-basic.png",
+  "file": "002-reg-basic.png",
   "caption": "إنشاء حساب إداري: البيانات الأساسية",
   "section": "B",
   "note": null
  },
  {
-  "n": 4,
+  "n": 3,
   "key": "reg-basic-filled",
-  "file": "004-reg-basic-filled.png",
+  "file": "003-reg-basic-filled.png",
   "caption": "بعد إدخال الرقم الوطني ورقم الهاتف",
   "section": "B",
   "note": null
  },
  {
-  "n": 5,
+  "n": 4,
   "key": "reg-otp",
-  "file": "005-reg-otp.png",
+  "file": "004-reg-otp.png",
   "caption": "رمز التحقق",
   "section": "B",
   "note": null
  },
  {
-  "n": 6,
+  "n": 5,
   "key": "reg-civil",
-  "file": "006-reg-civil.png",
+  "file": "005-reg-civil.png",
   "caption": "بياناتك من الشؤون المدنية وسجلك الموسمي",
   "section": "B",
   "note": null
  },
  {
-  "n": 7,
+  "n": 6,
   "key": "reg-done",
-  "file": "007-reg-done.png",
+  "file": "006-reg-done.png",
   "caption": "ملفك الإداري جاهز",
   "section": "B",
   "note": null
  },
  {
-  "n": 8,
+  "n": 7,
   "key": "dash-new",
-  "file": "008-dash-new.png",
+  "file": "007-dash-new.png",
   "caption": "ملفي كإداري: الخطوة التالية وتقدّم الرحلة",
   "section": "C",
   "note": null
  },
  {
-  "n": 9,
+  "n": 8,
   "key": "dash-new-2",
-  "file": "009-dash-new-2.png",
+  "file": "008-dash-new-2.png",
   "caption": "رحلتي — من الامتحان إلى الميدان (13 محطة)",
   "section": "C",
   "note": null
  },
  {
-  "n": 10,
+  "n": 9,
   "key": "dash-logout",
-  "file": "010-dash-logout.png",
+  "file": "009-dash-logout.png",
   "caption": "زر تسجيل الخروج في ملفك",
   "section": "B",
   "note": null
  },
  {
-  "n": 11,
+  "n": 10,
   "key": "login",
-  "file": "011-login.png",
+  "file": "010-login.png",
   "caption": "تسجيل دخول الإداري: الرقم الوطني",
   "section": "B",
   "note": null
  },
  {
-  "n": 12,
+  "n": 11,
   "key": "login-unknown",
-  "file": "012-login-unknown.png",
+  "file": "011-login-unknown.png",
   "caption": "رقم ليس له حساب إداري",
   "section": "B",
   "note": null
  },
  {
-  "n": 13,
+  "n": 12,
   "key": "login-otp",
-  "file": "013-login-otp.png",
+  "file": "012-login-otp.png",
   "caption": "رمز التحقق عند الدخول",
   "section": "B",
   "note": null
  },
  {
-  "n": 14,
+  "n": 13,
   "key": "apply-docs",
-  "file": "014-apply-docs.png",
+  "file": "013-apply-docs.png",
   "caption": "طلب المشاركة — الخطوة 1: وثائقك وشهاداتك، وبجانب كل وثيقة الصفات التي تفتحها",
   "section": "D",
   "note": null
  },
  {
-  "n": 15,
+  "n": 14,
   "key": "apply-docs-done",
-  "file": "015-apply-docs-done.png",
+  "file": "014-apply-docs-done.png",
   "caption": "بعد رفع «لا حكم عليه» والشهادة الجامعية ودورة الإسعافات الأولية",
   "section": "D",
   "note": null
  },
  {
-  "n": 16,
+  "n": 15,
   "key": "apply-skills",
-  "file": "016-apply-skills.png",
+  "file": "015-apply-skills.png",
   "caption": "الخطوة 2: لغاتك ومهاراتك، وتحت المهارة الصفات التي تطلبها",
   "section": "D",
   "note": null
  },
  {
-  "n": 17,
+  "n": 16,
   "key": "apply-skills-set",
-  "file": "017-apply-skills-set.png",
+  "file": "016-apply-skills-set.png",
   "caption": "تحديد المهارات بنعم أو لا",
   "section": "D",
   "note": null
  },
  {
-  "n": 18,
+  "n": 17,
   "key": "apply-role",
-  "file": "018-apply-role.png",
+  "file": "017-apply-role.png",
   "caption": "الخطوة 3: الصفات التي فتحتها وثائقك، والمقفلة مع ما ينقصها",
   "section": "D",
   "note": null
  },
  {
-  "n": 19,
+  "n": 18,
   "key": "apply-role-picked",
-  "file": "019-apply-role-picked.png",
+  "file": "018-apply-role-picked.png",
   "caption": "اختيار صفة «رئيس مجموعة»",
   "section": "D",
   "note": null
  },
  {
-  "n": 20,
+  "n": 19,
   "key": "apply-commit",
-  "file": "020-apply-commit.png",
+  "file": "019-apply-commit.png",
   "caption": "الخطوة 4: التزامات الإداري",
   "section": "D",
   "note": null
  },
  {
-  "n": 21,
+  "n": 20,
   "key": "apply-commit-ok",
-  "file": "021-apply-commit-ok.png",
+  "file": "020-apply-commit-ok.png",
   "caption": "الموافقة على جميع الالتزامات",
   "section": "D",
   "note": null
  },
  {
-  "n": 22,
+  "n": 21,
   "key": "apply-checking",
-  "file": "022-apply-checking.png",
+  "file": "021-apply-checking.png",
   "caption": "الخطوة 5: التحقق من الأهلية قبل الدفع",
   "section": "D",
   "note": null
  },
  {
-  "n": 23,
+  "n": 22,
   "key": "apply-eligible",
-  "file": "023-apply-eligible.png",
+  "file": "022-apply-eligible.png",
   "caption": "مستوفٍ لجميع الشروط — ثبتت الأهلية قبل الدفع",
   "section": "D",
   "note": null
  },
  {
-  "n": 24,
+  "n": 23,
   "key": "apply-fee",
-  "file": "024-apply-fee.png",
+  "file": "023-apply-fee.png",
   "caption": "الخطوة 6: رسم تسجيل الإداري بعد ثبوت الأهلية",
   "section": "D",
   "note": null
  },
  {
-  "n": 25,
+  "n": 24,
   "key": "apply-fee-sham",
-  "file": "025-apply-fee-sham.png",
+  "file": "024-apply-fee-sham.png",
   "caption": "الدفع عبر شام كاش ثم تقديم الطلب",
   "section": "D",
   "note": null
  },
  {
-  "n": 26,
+  "n": 25,
   "key": "apply-receipt",
-  "file": "026-apply-receipt.png",
+  "file": "025-apply-receipt.png",
   "caption": "تم استلام طلب مشاركتك",
   "section": "D",
   "note": null
  },
  {
-  "n": 27,
+  "n": 26,
   "key": "apply-summary",
-  "file": "027-apply-summary.png",
+  "file": "026-apply-summary.png",
   "caption": "طلبك مقدَّم — مؤهل للامتحان الكتابي",
   "section": "D",
   "note": null
  },
  {
-  "n": 28,
+  "n": 27,
   "key": "exam-rules",
-  "file": "028-exam-rules.png",
+  "file": "027-exam-rules.png",
   "caption": "تعليمات الامتحان الكتابي",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 28,
+  "key": "exam-camera",
+  "file": "028-exam-camera.png",
+  "caption": "الكاميرا والميكروفون: يُفتح الامتحان بعد تشغيلهما",
   "section": "E",
   "note": null
  },

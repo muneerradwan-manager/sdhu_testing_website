@@ -162,7 +162,7 @@ if ONLY == "l":
 
 # ───────── M. medical / transport ─────────
 if ONLY == "m":
-    for user, key, cap in [("layla", "med", "الفريق الطبي"), ("haitham", "trn", "فريق المواصلات")]:
+    for user, key, cap in [("layla", "med", "الفريق الطبي"), ("bassel", "trn", "فريق المواصلات")]:
         s = Staff(); c, p = s.c, s.p; S = "M"
         s.login(user)
         c.scroll_to("text=مهامي اليوم", 130)

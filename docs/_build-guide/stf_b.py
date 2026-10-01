@@ -57,6 +57,13 @@ if ONLY in (None, "e"):
     c.scroll_to("[role=tablist]", 110)
     c.shot("rules-calendar", "رزنامة الإداريين", section=S)
     s.close()
+    # The lists of the administrator's file belong to their own permission: its holder sees that one tab
+    s = Staff(); c, p = s.c, s.p
+    s.login("rahaf")
+    c.goto("/staff/admin-rules", wait=1800)
+    c.scroll_to("[role=tablist]", 110)
+    c.shot("rules-catalog", "الشهادات والمهارات واللغات: القوائم التي يُبنى منها ملف الإداري (رهف الخطيب)", section=S)
+    s.close()
 
 # ───────── F. groups.approve (office manager) ─────────
 if ONLY in (None, "f"):

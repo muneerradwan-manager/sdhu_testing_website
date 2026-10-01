@@ -8,8 +8,8 @@ import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
 import { actions, type AdminRecord, type VaultDoc } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { LANGUAGES, SKILLS, docState, documentType, levelOf, logAdmin, nowMs, recordOf, seasonHistory, useAdmin, type DocType } from "../../_lib/admin";
-import { useDocTypes, useRoleRequirements, useRoles } from "../../_lib/admin-rules";
+import { docState, documentType, levelOf, logAdmin, nowMs, recordOf, seasonHistory, useAdmin, type DocType } from "../../_lib/admin";
+import { useDocTypes, useLanguages, useRoleRequirements, useRoles, useSkills } from "../../_lib/admin-rules";
 
 /**
  * Which of the roles open this season ask for a row of the requirements table (a document, a skill, a
@@ -332,16 +332,19 @@ export function DocumentsStep() {
 export function SkillsStep() {
   const { rec, save, admin, returning } = useRecord();
   const { of } = useDemand();
-  const asked = LANGUAGES.filter((l) => of(`lang:${l}`).required.length || of(`lang:${l}`).preferred.length);
+  // The lists the holder of «قوائم ملف الإداري» keeps for the season
+  const { skills } = useSkills();
+  const { languages } = useLanguages();
+  const asked = languages.filter((l) => of(`lang:${l}`).required.length || of(`lang:${l}`).preferred.length);
   const toast = useToast();
   const history = seasonHistory(admin.id);
   const [text, setText] = useState("");
   const [lang, setLang] = useState("");
-  const custom = rec.skills.filter((k) => !SKILLS.some((s) => s.key === k));
-  const extraLanguages = rec.languages.filter((l) => !LANGUAGES.some((x) => x === l));
+  const custom = rec.skills.filter((k) => !skills.some((s) => s.key === k));
+  const extraLanguages = rec.languages.filter((l) => !languages.includes(l));
 
   const setSkill = (key: string, on: boolean) => {
-    const label = SKILLS.find((s) => s.key === key)?.label ?? key;
+    const label = skills.find((s) => s.key === key)?.label ?? key;
     save({ skills: on ? [...rec.skills, key] : rec.skills.filter((k) => k !== key) }, `${on ? "إضافة" : "حذف"} مهارة في ملفه الدائم: ${label}`);
   };
   const toggleLang = (l: string) => {
@@ -387,7 +390,7 @@ export function SkillsStep() {
           </span>
         )}
         <div className="mt-3 flex flex-wrap gap-2">
-          {[...LANGUAGES, ...extraLanguages].map((l) => {
+          {[...languages, ...extraLanguages].map((l) => {
             const on = rec.languages.includes(l);
             return (
               <motion.button whileTap={{ scale: 0.94 }} key={l} type="button" aria-pressed={on} onClick={() => toggleLang(l)} className={cn("flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-bold transition", on ? "border-green-dark bg-green-dark text-white" : "border-gold/50 bg-white text-ink-soft hover:border-green-dark/40")}>
@@ -416,7 +419,7 @@ export function SkillsStep() {
       <fieldset>
         <legend className="font-bold text-ink">المهارات</legend>
         <ul className="mt-3 space-y-2">
-          {SKILLS.map((s) => {
+          {skills.map((s) => {
             const on = rec.skills.includes(s.key);
             return (
               <li key={s.key} className="flex items-center justify-between gap-3 rounded-2xl border border-gold/30 bg-white p-3">

@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, type ExamQuestion } from "@/lib/data/admin-exam";
+import { EXAM_QUESTIONS, EXAM_RULES, questionsForRole, type ExamQuestion } from "@/lib/data/admin-exam";
 import { useStore } from "@/lib/store";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
 import { useSeason } from "@/lib/season-live";
-import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, POSITIONS, ROLE_REQUIREMENTS, type DocType, type RoleRequirements } from "./admin";
+import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, LANGUAGES, POSITIONS, ROLE_REQUIREMENTS, SKILLS, type DocType, type RoleRequirements } from "./admin";
 
 /**
  * The administrators' rules as the administration left them this season. The platform ships defaults;
@@ -50,15 +50,22 @@ export function mergeQuestion(q: ExamQuestion, edit?: { text?: string; options?:
   };
 }
 
-/** The bank this season: the questions still in it, with the administration's wording, cut to the season's count */
-export function useExamQuestions(): ExamQuestion[] {
+/** The bank this season: the questions still in it, with the administration's wording and the roles it gave each */
+export function useExamBank(): ExamQuestion[] {
   const off = useStore((s) => s.adminRules.questionsOff);
   const edits = useStore((s) => s.adminRules.questionEdits);
+  const roles = useStore((s) => s.adminRules.questionRoles);
+  return useMemo(
+    () => EXAM_QUESTIONS.filter((q) => !off?.includes(q.id)).map((q) => ({ ...mergeQuestion(q, edits?.[q.id]), roles: roles?.[q.id] ?? q.roles })),
+    [off, edits, roles],
+  );
+}
+
+/** One role's exam this season: the bank's questions for that role, cut to the season's count */
+export function useExamQuestions(roleKey: string): ExamQuestion[] {
+  const bank = useExamBank();
   const rules = useExamRules();
-  return useMemo(() => {
-    const live = EXAM_QUESTIONS.filter((q) => !off?.includes(q.id)).map((q) => mergeQuestion(q, edits?.[q.id]));
-    return live.slice(0, rules.questions);
-  }, [off, edits, rules.questions]);
+  return useMemo(() => questionsForRole(bank, roleKey).slice(0, rules.questions), [bank, roleKey, rules.questions]);
 }
 
 /** The roles open for application this season, with the administration's description */
@@ -113,18 +120,57 @@ export function useRoleRequirements(): RoleRequirements {
   return t ?? ROLE_REQUIREMENTS;
 }
 
+/** Documents whose validity is a number in the season settings: the lists page edits it there, so both pages show one value */
+export const SEASON_VALIDITY = { "first-aid": "firstAidValidSeasons", record: "recordValidSeasons", recommendation: "recommendationValidSeasons" } as const;
+
 /**
- * The documents and certificates this season: the platform's list with the validity the season settings
- * give it, then the certificates the administration added. `validity` is what docState() needs.
+ * The documents and certificates this season, as the holder of «قوائم ملف الإداري» left them: the
+ * platform's list (reworded, with its validity, or set aside this season), then the certificates the
+ * administration added. `types` is what an application can ask for; `all` includes what was set aside,
+ * for the lists page; `validity` is what docState() needs, for every type a file may still hold.
  */
-export function useDocTypes(): { types: DocType[]; validity: Record<string, number> } {
+export function useDocTypes(): { types: DocType[]; all: DocType[]; validity: Record<string, number> } {
   const added = useStore((s) => s.adminRules.docTypes);
+  const edits = useStore((s) => s.adminRules.docEdits);
+  const off = useStore((s) => s.adminRules.docsOff);
   const season = useSeason();
   return useMemo(() => {
-    const types: DocType[] = [
-      ...DOCUMENTS.map((d) => ({ ...d, validSeasons: season.documents[d.key] ?? d.validSeasons })),
-      ...(added ?? []).map((d) => ({ ...d, file: "certificate.pdf", custom: true })),
+    const all: DocType[] = [
+      ...DOCUMENTS.map((d) => {
+        const e = edits?.[d.key];
+        const validSeasons = d.key in SEASON_VALIDITY ? (season.documents[d.key] ?? d.validSeasons) : (e?.validSeasons ?? d.validSeasons);
+        return { ...d, label: e?.label ?? d.label, hint: e?.hint ?? d.hint, validSeasons, off: !!off?.includes(d.key) };
+      }),
+      ...(added ?? []).map((d) => ({ ...d, file: "certificate.pdf", custom: true, off: !!off?.includes(d.key) })),
     ];
-    return { types, validity: Object.fromEntries(types.map((d) => [d.key, d.validSeasons])) };
-  }, [added, season.documents]);
+    return { types: all.filter((d) => !d.off), all, validity: Object.fromEntries(all.map((d) => [d.key, d.validSeasons])) };
+  }, [added, edits, off, season.documents]);
+}
+
+export type SkillType = { key: string; label: string; emoji: string; custom?: boolean; off?: boolean };
+
+/** The skills an administrator is asked about this season: the platform's, less those set aside, then those added */
+export function useSkills(): { skills: SkillType[]; all: SkillType[] } {
+  const added = useStore((s) => s.adminRules.skillsAdded);
+  const off = useStore((s) => s.adminRules.skillsOff);
+  return useMemo(() => {
+    const all: SkillType[] = [
+      ...SKILLS.map((k) => ({ ...k, off: !!off?.includes(k.key) })),
+      ...(added ?? []).map((k) => ({ ...k, custom: true, off: !!off?.includes(k.key) })),
+    ];
+    return { skills: all.filter((k) => !k.off), all };
+  }, [added, off]);
+}
+
+/** The languages offered this season; Arabic is always there */
+export function useLanguages(): { languages: string[]; all: { name: string; custom?: boolean; off?: boolean }[] } {
+  const added = useStore((s) => s.adminRules.languagesAdded);
+  const off = useStore((s) => s.adminRules.languagesOff);
+  return useMemo(() => {
+    const all = [
+      ...LANGUAGES.map((name) => ({ name, off: name !== "العربية" && !!off?.includes(name) })),
+      ...(added ?? []).map((name) => ({ name, custom: true, off: !!off?.includes(name) })),
+    ];
+    return { languages: all.filter((l) => !l.off).map((l) => l.name), all };
+  }, [added, off]);
 }

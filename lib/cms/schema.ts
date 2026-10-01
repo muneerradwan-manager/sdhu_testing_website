@@ -1284,7 +1284,7 @@ const GLOBAL: PageDef = {
             { href: "/conditions", label: "شروط التسجيل والتكاليف", note: "مع فحص أهلية مبدئي", soon: false },
             { href: "/verify", label: "التحقق من الجهات والوثائق", note: "حملات معتمدة، إيصالات، شهادات", soon: false },
             { href: "/administrator", label: "بوابة الإداريين", note: "التقديم، الامتحان، تشكيل المجموعة", soon: false },
-            { href: "/staff", label: "دخول الموظفين", note: "المراجعة، القرعة، غرفة العمليات", soon: false },
+            { href: "/staff", label: "بوابة الموظفين", note: "المراجعة، القرعة، غرفة العمليات", soon: false },
           ],
         },
       ],

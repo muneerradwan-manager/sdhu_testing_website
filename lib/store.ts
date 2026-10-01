@@ -87,6 +87,8 @@ export type AdminRules = {
   questionsOff?: number[];
   /** Questions whose wording, options, answer or explanation the administration edited */
   questionEdits?: Record<number, { text?: string; options?: string[]; answer?: number; explanation?: string }>;
+  /** Questions moved to other roles' exams: question id -> the roles whose exam includes it */
+  questionRoles?: Record<number, string[]>;
   /** Roles closed this season, and edited descriptions */
   rolesOff?: string[];
   roleDesc?: Record<string, string>;
@@ -104,6 +106,17 @@ export type AdminRules = {
   requirements?: { rows: string[]; cells: Record<string, Record<string, number | string | boolean>> };
   /** Certificates the administration added to the list this season (the platform's own list is in the administrator lib) */
   docTypes?: { key: string; label: string; hint: string; validSeasons: number }[];
+  /**
+   * The lists an administrator's file is built from, as the holder of «قوائم ملف الإداري» left them: the
+   * platform's own documents reworded or set aside this season, and skills and languages added or set aside.
+   * An added skill's key is its name, so it reads right wherever the file is shown.
+   */
+  docEdits?: Record<string, { label?: string; hint?: string; validSeasons?: number }>;
+  docsOff?: string[];
+  skillsAdded?: { key: string; label: string; emoji: string }[];
+  skillsOff?: string[];
+  languagesAdded?: string[];
+  languagesOff?: string[];
 };
 
 export type SeasonOverrides = Partial<{
@@ -258,7 +271,8 @@ export type AdminProfile = {
   feePaidAt?: number;
   receipt?: string;
   eligibleAt?: number;
-  exam?: { startedAt: number; submittedAt?: number; answers: Record<number, number>; score?: number };
+  /** `interruptions`: how many times the camera or the microphone stopped during the exam */
+  exam?: { startedAt: number; submittedAt?: number; answers: Record<number, number>; score?: number; interruptions?: number };
   oral?: { score: number; by: string; at: number; note?: string };
   finalScore?: number;
   resultPublishedAt?: number;
