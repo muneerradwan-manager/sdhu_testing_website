@@ -33,6 +33,7 @@ import { Badge, Modal, StarRating, useToast } from "@/components/ui/widgets";
 import { EXAM_DISTRIBUTION, scoreExam } from "@/lib/data/admin-exam";
 import { finalScoreWith, useExamQuestions, useExamRules } from "../../_lib/admin-rules";
 import { actions } from "@/lib/store";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
 import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
@@ -186,14 +187,13 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
-    document.body.style.overflow = "hidden";
     container.current?.focus();
     return () => {
       clearInterval(t);
-      document.body.style.overflow = "";
       window.clearTimeout(saveTimer.current);
     };
   }, []);
+  useScrollLock(true);
 
   useEffect(() => {
     if (Object.keys(exam.answers).length > 0) toast({ title: "استأنفنا من حيث توقفت", body: "إجاباتك السابقة محفوظة، والوقت يُحسب من لحظة البدء.", icon: "☁️", tone: "info" });
@@ -245,7 +245,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   const low = remaining < 2 * 60_000;
 
   return (
-    <div ref={container} className="fixed inset-0 z-[60] overflow-y-auto bg-sand outline-none" tabIndex={-1} onKeyDown={onKey} role="application" aria-label="الامتحان الكتابي">
+    <div ref={container} className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-sand outline-none" tabIndex={-1} onKeyDown={onKey} role="application" aria-label="الامتحان الكتابي">
       {/* top bar */}
       <div className="sticky top-0 z-10 border-b border-gold/30 bg-green-dark text-white shadow-lg">
         <div className="bg-pattern pointer-events-none absolute inset-0 opacity-10" />

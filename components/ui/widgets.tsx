@@ -5,6 +5,7 @@ import { ExternalLink, Loader2, MapPin, Star, Volume2, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { STATIC_EXPORT, cn } from "@/lib/utils";
+import { useScrollLock } from "@/lib/scroll-lock";
 
 // ───────────────────────── Map ─────────────────────────
 
@@ -172,12 +173,9 @@ export function Modal({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+  useScrollLock(open);
 
   // Rendered on <body>: inside an animated (transformed / filtered) section, "fixed" would centre the
   // dialog on that section instead of the screen — off-view when the pilgrim has scrolled down.
@@ -200,7 +198,7 @@ export function Modal({
             exit={{ y: 30, opacity: 0, scale: 0.97 }}
             transition={{ type: "spring", damping: 26, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className={cn("relative max-h-[calc(90dvh/var(--zoom))] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl", className)}
+            className={cn("relative max-h-[calc(90dvh/var(--zoom))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-6 shadow-2xl", className)}
           >
             <button onClick={onClose} className="absolute left-4 top-4 rounded-full p-1.5 text-hint hover:bg-sand hover:text-ink" aria-label="إغلاق">
               <X className="size-5" />

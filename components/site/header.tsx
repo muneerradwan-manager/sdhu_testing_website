@@ -22,6 +22,7 @@ import { Logo } from "@/components/brand/logo";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { CITIES, nextPrayer } from "@/lib/prayer";
 import { getPerson } from "@/lib/registry";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { getStaff } from "@/lib/staff";
 import { useNav } from "@/lib/cms/site";
 import { cn, hijriDate } from "@/lib/utils";
@@ -176,16 +177,35 @@ export function Header() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
   const solid = scrolled || open;
   const { nav: NAV, more: MORE } = navItems;
+  // The open phone menu owns the swipe: the page behind it stays still, and the menu scrolls to its last item
+  useScrollLock(open);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
+      {/* Dims the page under the open phone menu, and a tap on it closes the menu. It sits outside the bar:
+          the bar's backdrop blur makes it the box of anything fixed inside it, which would dim the menu itself */}
+      <AnimatePresence>
+        {open && (
+          <motion.button
+            type="button"
+            aria-label="إغلاق القائمة"
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 cursor-default bg-ink/40 xl:hidden"
+          />
+        )}
+      </AnimatePresence>
       {/* Collapses with a CSS grid-rows transition, not motion's height: "auto". Animating to "auto" makes motion
           measure the page and then call window.scrollTo to restore the position — which cancels any smooth scroll
           in progress, so «اكتشف المزيد» and every in-page link stopped ~100px down on the first click. */}
       <div
         className={cn(
           "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
-          scrolled ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
+          // Folded while the phone menu is open too, so the menu starts right under the bar and gets the rest of the screen
+          solid ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
         )}
       >
         <div className="min-h-0 overflow-hidden">
@@ -196,7 +216,11 @@ export function Header() {
         className={cn(
           "transition-all duration-500 ease-out-expo",
           solid
-            ? "border-b border-gold/30 bg-white/90 shadow-[0_10px_40px_-20px_rgba(2,21,38,.35)] backdrop-blur-xl"
+            ? cn(
+                "border-b border-gold/30 shadow-[0_10px_40px_-20px_rgba(2,21,38,.35)] backdrop-blur-xl",
+                // The open phone menu is read on its own, so the page must not show through it
+                open ? "bg-white xl:bg-white/90" : "bg-white/90",
+              )
             : "bg-transparent",
         )}
       >
@@ -353,7 +377,9 @@ export function Header() {
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="overflow-hidden xl:hidden"
             >
-              <div className="mx-auto grid max-w-7xl gap-1 px-4 pb-6">
+              {/* The bar is 4rem (5rem from sm); the list takes the rest of the screen and scrolls inside it. The
+                  bottom room lets the last item scroll clear of the floating guide button in the corner */}
+              <div className="mx-auto grid max-h-[calc(100dvh/var(--zoom)_-_4rem)] max-w-7xl gap-1 overflow-y-auto overscroll-contain px-4 pb-24 sm:max-h-[calc(100dvh/var(--zoom)_-_5rem)]">
                 {[...NAV.map((n) => ({ ...n, soon: false })), ...MORE].map(
                   (item, i) => (
                     <motion.div

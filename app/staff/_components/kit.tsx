@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Counter } from "@/components/ui/motion";
 import { actions, useHydrated, useStore, type AuditEvent } from "@/lib/store";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { can, getStaff, PERMISSION_LABELS, type Permission, type StaffUser } from "@/lib/staff";
 import { cn, formatNumber } from "@/lib/utils";
 
@@ -303,12 +304,9 @@ export function Drawer({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+  useScrollLock(open);
 
   const hydrated = useHydrated();
   if (!hydrated) return null;
@@ -333,7 +331,7 @@ export function Drawer({
                 <X className="size-5" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">{children}</div>
             {footer && <div className="shrink-0 border-t border-gold/30 bg-[#00352f] p-5 shadow-[0_-12px_30px_-20px_rgba(0,0,0,.9)]">{footer}</div>}
           </motion.aside>
         </motion.div>
