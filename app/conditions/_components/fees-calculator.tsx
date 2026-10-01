@@ -5,6 +5,8 @@ import { animate, AnimatePresence, motion, useMotionValue, useTransform } from "
 import { BedDouble, Calculator, Minus, Plus, QrCode, Receipt, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { installmentsOf, planLabel, seasonPlan } from "@/lib/installments";
+import { RoomPicker } from "@/components/ui/room-picker";
+import { accommodationCost, bedsOf, costBreakdown, defaultRooms, describeRooms, type RoomCounts } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
 import { cn, formatUSD } from "@/lib/utils";
 
@@ -19,7 +21,8 @@ const FEE_ROWS = [
   { label: "الدفعة الأولى", amount: F.firstInstallment, unit: "للفرد", when: "مع التسجيل على القبول المباشر، أو عند ظهور الاسم في القرعة", group: "تكاليف" },
   { label: "الدفعة الثانية", amount: F.hajjCost - F.firstInstallment, unit: "للفرد", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
   { label: "الهدي", amount: F.hady, unit: "للفرد", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
-  { label: "فارق الغرفة الخاصة (مثال)", amount: F.privateRoomDiff, unit: "للغرفة — يحدده التكتل", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
+  { label: "السكن العام", amount: 0, unit: "الرجال وحدهم والنساء وحدهن", when: "—", group: "تكاليف" },
+  { label: "السكن الخاص (مثال)", amount: `${formatUSD(F.roomExample[4])} – ${formatUSD(F.roomExample[1])}`, unit: "للفرد — غرف لأفراد الطلب وحدهم، لكل فرد سرير، من غرفة بأربعة أسرّة إلى المفردة؛ يحدده التكتل", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
 ];
 
 function AnimatedUSD({ value, className }: { value: number; className?: string }) {
@@ -32,15 +35,16 @@ function AnimatedUSD({ value, className }: { value: number; className?: string }
   return <motion.span className={cn("tabular-nums", className)}>{text}</motion.span>;
 }
 
-function Toggle({ checked, onChange, label, hint, icon: Icon }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string; icon: typeof Receipt }) {
+function Toggle({ checked, onChange, label, hint, icon: Icon, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint: string; icon: typeof Receipt; disabled?: boolean }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition",
+        "flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition disabled:cursor-not-allowed disabled:opacity-70",
         // The toggles sit on the calculator's dark green: a selected one stays a solid light card, so its dark text
         // keeps reading (a see-through tint left dark text on dark green)
         checked ? "border-green-light bg-white shadow-[0_0_0_3px_rgba(40,158,146,.45)]" : "border-gold/40 bg-white hover:border-gold-dark",
@@ -68,12 +72,21 @@ export function FeesCalculator() {
   const [people, setPeople] = useState(4);
   const [hady, setHady] = useState(true);
   const [room, setRoom] = useState(true);
+  // Private rooms spread the request as the family likes, one bed per member; a new count starts from the fewest rooms
+  const [rooms, setRooms] = useState<RoomCounts>(() => defaultRooms(4));
   const plan = seasonPlan();
+  const fits = bedsOf(rooms) === people;
+  const roomCost = accommodationCost({ kind: "private", rooms }, F.roomExample)!;
+  const changePeople = (next: number) => {
+    setPeople(next);
+    setRooms(defaultRooms(next));
+  };
 
   const lines = [
     ...installmentsOf(plan, people, "0", F).map((i) => ({ key: i.key, label: `${i.title} — ${i.due}`, amount: i.amount, show: true })),
     { key: "hady", label: `الهدي (${people} × ${formatUSD(F.hady)})`, amount: people * F.hady, show: hady },
-    { key: "room", label: "فارق الغرفة الخاصة (غرفة واحدة)", amount: F.privateRoomDiff, show: room },
+    // One receipt for all the rooms, as on the pilgrim's statement
+    { key: "room", label: `السكن الخاص — ${describeRooms(rooms)} (${costBreakdown(roomCost.parts)})`, amount: roomCost.amount, show: room && fits },
   ].filter((l) => l.show);
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const registration = people * F.registrationPerPerson;
@@ -112,7 +125,9 @@ export function FeesCalculator() {
                       {r.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-display text-base font-bold text-green-dark tabular-nums">{formatUSD(r.amount)}</td>
+                  <td className="px-4 py-3 font-display text-base font-bold text-green-dark tabular-nums" dir={typeof r.amount === "string" ? "ltr" : undefined}>
+                    {typeof r.amount === "string" ? r.amount : r.amount === 0 ? "دون كلفة" : formatUSD(r.amount)}
+                  </td>
                   <td className="px-4 py-3 text-ink-soft">{r.unit}</td>
                   <td className="px-4 py-3 text-ink-soft">{r.when}</td>
                 </motion.tr>
@@ -144,7 +159,7 @@ export function FeesCalculator() {
             </span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setPeople((p) => Math.max(1, p - 1))}
+                onClick={() => changePeople(Math.max(1, people - 1))}
                 disabled={people <= 1}
                 aria-label="إنقاص"
                 className="flex size-9 items-center justify-center rounded-xl bg-white/15 transition hover:bg-white/25 active:scale-90 disabled:opacity-30"
@@ -165,7 +180,7 @@ export function FeesCalculator() {
                 </AnimatePresence>
               </span>
               <button
-                onClick={() => setPeople((p) => Math.min(1 + SEASON.rules.maxCompanionsFamily, p + 1))}
+                onClick={() => changePeople(Math.min(1 + SEASON.rules.maxCompanionsFamily, people + 1))}
                 disabled={people >= 1 + SEASON.rules.maxCompanionsFamily}
                 aria-label="زيادة"
                 className="flex size-9 items-center justify-center rounded-xl bg-white/15 transition hover:bg-white/25 active:scale-90 disabled:opacity-30"
@@ -200,8 +215,23 @@ export function FeesCalculator() {
 
           <div className="mt-4 space-y-2 text-ink">
             <Toggle checked={hady} onChange={setHady} label="الهدي" hint={`${formatUSD(F.hady)} للفرد`} icon={Receipt} />
-            <Toggle checked={room} onChange={setRoom} label="غرفة خاصة" hint={`فارق ${formatUSD(F.privateRoomDiff)} (مثال — يحدده التكتل)`} icon={BedDouble} />
+            <Toggle
+              checked={room}
+              onChange={setRoom}
+              label="غرف خاصة لكم"
+              hint={room ? `${describeRooms(rooms) || "وزّعوا الأفراد على الغرف"} — بأسعار مثال، يحددها التكتل` : "وإلا فالسكن العام دون كلفة: الرجال وحدهم والنساء وحدهن"}
+              icon={BedDouble}
+            />
           </div>
+          <AnimatePresence initial={false}>
+            {room && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="pt-3">
+                  <RoomPicker people={people} prices={F.roomExample} rooms={rooms} onChange={setRooms} dark />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <ul className="mt-5 space-y-2 border-t border-white/15 pt-4 text-sm">
             <AnimatePresence initial={false}>

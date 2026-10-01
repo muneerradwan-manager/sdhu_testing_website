@@ -14,6 +14,7 @@ import { actions } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
 import { paidAt, type CostLine } from "./model";
+import { AccommodationChoice } from "./step-group";
 import { applicantOf, logPilgrim, useNow, type StepProps } from "./shared";
 
 const hijriPaid = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit" }).format(at) : "");
@@ -30,9 +31,14 @@ export function StepPayment({ app, post, sessionId, lines }: StepProps) {
     <Question
       step="الخطوة 4 من 6"
       title={`بقي عليك: ${formatUSD(remaining)}`}
-      hint={`حددت الإدارة لهذا الموسم: ${planLabel(app.plan ?? seasonPlan())}. انضممتم إلى مجموعة، فحان موعد ${(app.plan ?? seasonPlan()) === 1 ? "الهدي وفارق الغرفة إن وجد" : "الدفعة الثانية مع الهدي وفارق الغرفة إن وجد"}. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
+      hint={`حددت الإدارة لهذا الموسم: ${planLabel(app.plan ?? seasonPlan())}. انضممتم إلى مجموعة، فحان موعد ${(app.plan ?? seasonPlan()) === 1 ? "الهدي والسكن الخاص إن اخترتموه" : "الدفعة الثانية مع الهدي والسكن الخاص إن اخترتموه"}. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
       speak={`بقي عليك ${remaining} دولاراً، تُدفع الآن بعد انضمامك إلى المجموعة. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
     >
+      {/* Where the family sleeps decides the last line of the statement: chosen here, before paying */}
+      <div className="mb-5">
+        <AccommodationChoice app={app} post={post} sessionId={sessionId} />
+      </div>
+
       {/* Statement */}
       <div className="overflow-hidden rounded-3xl border border-gold/40 bg-white">
         <div className="flex items-center justify-between bg-sand px-5 py-3 font-bold text-gold-dark">

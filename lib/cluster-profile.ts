@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useClusters } from "./cms/content";
 import type { Cluster } from "./data/clusters";
 import { useStore } from "./store";
+import { formatRoomPrices, type RoomPrices } from "./rooms";
 
 /**
  * The part of a cluster's public page that belongs to the cluster itself: its programme, its housing,
@@ -28,7 +29,8 @@ export type ClusterProfileFields = {
   transport: string[];
   meals: string[];
   programs: string[];
-  privateRoomDiff: number;
+  /** What each private room type adds per person */
+  rooms: RoomPrices;
 };
 
 export type ClusterProfileChange = {
@@ -61,7 +63,7 @@ export const PROFILE_LABELS: Record<keyof ClusterProfileFields, string> = {
   transport: "النقل",
   meals: "الإعاشة",
   programs: "البرامج",
-  privateRoomDiff: "فارق الغرفة الخاصة",
+  rooms: "السكن الخاص — للفرد بحسب أسرّة الغرفة",
 };
 
 export function fieldsOf(c: Cluster): ClusterProfileFields {
@@ -79,7 +81,7 @@ export function fieldsOf(c: Cluster): ClusterProfileFields {
     transport: [...c.transport],
     meals: [...c.meals],
     programs: [...c.programs],
-    privateRoomDiff: c.privateRoomDiff,
+    rooms: { ...c.rooms },
   };
 }
 
@@ -93,7 +95,7 @@ export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
     transport: f.transport,
     meals: f.meals,
     programs: f.programs,
-    privateRoomDiff: f.privateRoomDiff,
+    rooms: f.rooms,
   };
 }
 
@@ -101,8 +103,9 @@ export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
 export function diffFields(before: ClusterProfileFields, after: ClusterProfileFields) {
   return (Object.keys(PROFILE_LABELS) as (keyof ClusterProfileFields)[])
     .map((k) => {
-      const a = Array.isArray(before[k]) ? (before[k] as string[]).join(" · ") : String(before[k]);
-      const b = Array.isArray(after[k]) ? (after[k] as string[]).join(" · ") : String(after[k]);
+      const show = (v: ClusterProfileFields[typeof k]) => (k === "rooms" ? formatRoomPrices(v as RoomPrices) : Array.isArray(v) ? v.join(" · ") : String(v));
+      const a = show(before[k]);
+      const b = show(after[k]);
       return { key: k, label: PROFILE_LABELS[k], before: a, after: b, changed: a !== b };
     })
     .filter((x) => x.changed);

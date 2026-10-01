@@ -8,6 +8,7 @@ import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
 import { useClusterDirectory } from "@/lib/cluster-profile";
+import { ROOM_BEDS, ROOM_LABEL, priceRange } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
 import type { ServiceLevel } from "@/lib/data/clusters";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
@@ -114,7 +115,7 @@ export function ClusterPage({ slug }: { slug: string }) {
             { k: "التقييم", v: <Stars value={c.rating} />, hint: `${formatNumber(c.reviews)} تقييماً من حجاج سابقين` },
             { k: "المجموعات", v: <span className="font-display text-2xl font-bold text-green-dark">{c.groupsCount}</span>, hint: `${formatNumber(c.pilgrims)} حاجاً هذا الموسم` },
             { k: "المقاعد المتاحة", v: <span className="font-display text-2xl font-bold text-green-dark">{seats}</span>, hint: "تتغير مع تسجيل الحجاج" },
-            { k: "فارق الغرفة الخاصة", v: <span className="font-display text-2xl font-bold text-green-dark">{formatUSD(c.privateRoomDiff)}</span>, hint: "يُضاف إلى تكلفة الحج" },
+            { k: "السكن الخاص للفرد", v: <span className="font-display text-2xl font-bold text-green-dark" dir="ltr">{formatUSD(priceRange(c.rooms).from)} – {formatUSD(priceRange(c.rooms).to)}</span>, hint: "من غرفة بأربعة أسرّة إلى المفردة؛ السكن العام دون كلفة" },
           ].map((x, i) => (
             <motion.div key={x.k} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-3xl border border-gold/30 bg-white p-5">
               <p className="text-xs text-hint">{x.k}</p>
@@ -246,9 +247,15 @@ export function ClusterPage({ slug }: { slug: string }) {
                   <dd className="font-bold" dir="ltr">{formatUSD(SEASON.fees.hajjCost)}</dd>
                 </div>
                 <div className="flex justify-between gap-2 rounded-xl bg-sand px-3 py-2">
-                  <dt className="text-ink-soft">فارق الغرفة الخاصة</dt>
-                  <dd className="font-bold" dir="ltr">{formatUSD(c.privateRoomDiff)}</dd>
+                  <dt className="text-ink-soft">السكن العام (الرجال وحدهم والنساء وحدهن)</dt>
+                  <dd className="font-bold">دون كلفة</dd>
                 </div>
+                {ROOM_BEDS.map((b) => (
+                  <div key={b} className="flex justify-between gap-2 rounded-xl bg-sand px-3 py-2">
+                    <dt className="text-ink-soft">سكن خاص: {ROOM_LABEL[b]} — للفرد</dt>
+                    <dd className="font-bold" dir="ltr">{formatUSD(c.rooms[b])}</dd>
+                  </div>
+                ))}
                 <div className="flex justify-between gap-2 rounded-xl bg-sand px-3 py-2">
                   <dt className="text-ink-soft">الهدي</dt>
                   <dd className="font-bold" dir="ltr">{formatUSD(SEASON.fees.hady)}</dd>

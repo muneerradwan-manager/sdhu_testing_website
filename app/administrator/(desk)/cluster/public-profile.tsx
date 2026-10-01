@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { useClusters } from "@/lib/cms/content";
 import { diffFields, fieldsOf, type ClusterProfileFields } from "@/lib/cluster-profile";
+import { ROOM_BEDS, ROOM_LABEL, type RoomPrices } from "@/lib/rooms";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, nowMs, useAdmin } from "../../_lib/admin";
@@ -66,7 +67,7 @@ export function ClusterPublicProfile() {
   const values = draft ?? (state?.pending?.fields ?? state?.rejected?.fields ?? live);
   const changes = diffFields(live, values);
   const editing = draft !== null;
-  const set = (k: keyof ClusterProfileFields, v: string | string[] | number) => setDraft({ ...values, [k]: v } as ClusterProfileFields);
+  const set = (k: keyof ClusterProfileFields, v: string | string[] | number | RoomPrices) => setDraft({ ...values, [k]: v } as ClusterProfileFields);
 
   const submit = () => {
     if (!changes.length) return;
@@ -147,18 +148,27 @@ export function ClusterPublicProfile() {
               <input value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)} aria-label={f.label} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
             </label>
           ))}
-          <label className="block">
-            <span className="mb-1 block text-sm font-bold">فارق الغرفة الخاصة ($)</span>
-            <input
-              type="number"
-              min={0}
-              value={values.privateRoomDiff}
-              onChange={(e) => set("privateRoomDiff", Number(e.target.value) || 0)}
-              aria-label="فارق الغرفة الخاصة"
-              dir="ltr"
-              className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 text-center outline-none focus:border-green-light"
-            />
-          </label>
+          {/* The shared accommodation adds nothing; each private room type adds its price per person */}
+          <fieldset className="sm:col-span-2">
+            <legend className="mb-1 text-sm font-bold">السكن الخاص — ما تضيفه كل غرفة للفرد ($)</legend>
+            <p className="mb-2 text-xs text-hint">سعر الفرد في كل نوع غرفة. يتوزع أفراد الطلب على الغرف كما يشاؤون، لكل فرد سرير، وكلما قلّت أسرّة الغرفة ارتفع السعر. السكن العام (الرجال وحدهم والنساء وحدهن) دون كلفة.</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {ROOM_BEDS.map((beds) => (
+                <label key={beds} className="block">
+                  <span className="mb-1 block text-xs font-semibold text-ink-soft">{ROOM_LABEL[beds]}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={values.rooms[beds]}
+                    onChange={(e) => set("rooms", { ...values.rooms, [beds]: Number(e.target.value) || 0 } as RoomPrices)}
+                    aria-label={`السكن الخاص — ${ROOM_LABEL[beds]}`}
+                    dir="ltr"
+                    className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 text-center outline-none focus:border-green-light"
+                  />
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
       </Card>
 

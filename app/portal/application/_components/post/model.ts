@@ -8,12 +8,14 @@
  * 2) uploads a personal photo and passport for every member — no medical document before the assignment window;
  * 3) in the assignment window, reads the group directory and contacts a group: that group's coordinator
  *    enrolls the whole family and both sign the pilgrim–group contract;
- * 4) pays the rest of the Hajj cost by the chosen plan, with the sacrifice and any private-room difference;
+ * 4) pays the rest of the Hajj cost by the chosen plan, with the sacrifice and any private rooms;
  * 5) only after joining a group: the medical file — vaccination certificates and the other medical
  *    documents (the list the administration sets), and the health information the group's coordinator records; 6) visa.
  */import { ageOf, fullName } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
+import { useClusterDirectory } from "@/lib/cluster-profile";
 import { installmentsOf, seasonPlan } from "@/lib/installments";
+import { accommodationCost, costBreakdown, describeRooms } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
 import { actions, type AdminProfile, type Application, type DocStatus, type HealthFile, type PostAcceptance } from "@/lib/store";
 
@@ -100,8 +102,15 @@ export function memberDocsDone(post: PostAcceptance, m: Member) {
 export const CONDITIONS = ["سكري", "ضغط الدم", "أمراض القلب", "ربو أو أمراض تنفسية", "أمراض الكلى", "حساسية دوائية"] as const;
 export const NEEDS = ["كرسي متحرك", "صعوبة في المشي", "وجبة خاصة", "غرفة قريبة من المصعد", "ضعف السمع أو البصر", "أكسجين ليلي"] as const;
 
-/** Needs that call for a private room near the lift (and its price difference) */
+/** Needs the placement takes into account (a room near the lift, the ground floor), at no extra cost */
 export const ROOM_NEEDS: string[] = ["كرسي متحرك", "صعوبة في المشي", "غرفة قريبة من المصعد", "أكسجين ليلي"];
+
+/** The private rooms this request asked for, at its cluster's prices as the pilgrims see them; null for the shared accommodation */
+export function useRoomCost(app: Application | null | undefined, post: PostAcceptance | null | undefined) {
+  const clusters = useClusterDirectory();
+  const cluster = clusters.find((c) => c.slug === post?.clusterId);
+  return app && cluster ? accommodationCost(post?.accommodation, cluster.rooms) : null;
+}
 
 export type MedicalDoc = (typeof SEASON.medicalDocuments)[number];
 
@@ -170,9 +179,10 @@ export type CostLine = { key: string; title: string; detail: string; amount: num
 
 /**
  * The Hajj cost by the chosen plan (the first installment is already paid at registration or at the
- * lottery result), then the sacrifice and any private-room difference with the last installment.
+ * lottery result), then the sacrifice and, when the request asked for private rooms, their price — with the
+ * last installment.
  */
-export function costLines(app: Application, fees: { hajjCost: number; firstInstallment: number; installmentCount?: 1 | 2; hady: number; privateRoomDiff: number }): CostLine[] {
+export function costLines(app: Application, fees: { hajjCost: number; firstInstallment: number; installmentCount?: 1 | 2; hady: number }, room?: ReturnType<typeof accommodationCost>): CostLine[] {
   const n = app.members.length;
   const base = receiptBase(app);
   const plan = app.plan ?? seasonPlan(fees);
@@ -189,9 +199,8 @@ export function costLines(app: Application, fees: { hajjCost: number; firstInsta
   }));
   const tail = plan === 1 ? SEASON.installments.windows[1] : lastDue;
   lines.push({ key: "hady", title: "الهدي", detail: `${n} × ${fees.hady.toLocaleString("en-US")} $`, amount: n * fees.hady, receipt: `${base}-H`, due: tail });
-  const needy = app.members.filter((m) => m.needs.some((x) => ROOM_NEEDS.includes(x)));
-  if (needy.length) {
-    lines.push({ key: "room", title: "فارق الغرفة الخاصة", detail: `غرفة قريبة من المصعد لـ ${needy.map((m) => m.person.firstName).join(" و")}`, amount: fees.privateRoomDiff, receipt: `${base}-R`, due: tail });
+  if (room) {
+    lines.push({ key: "room", title: "السكن الخاص", detail: `${describeRooms(room.rooms)} — ${costBreakdown(room.parts)}`, amount: room.amount, receipt: `${base}-R`, due: tail });
   }
   return lines;
 }

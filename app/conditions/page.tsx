@@ -154,7 +154,7 @@ export default function ConditionsPage() {
 
       {/* Fees */}
       <section id="fees" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading eyebrow="الرسوم والتكاليف" title="كم يكلّف الحج؟" description="رسوم معلنة وتكاليف معتمدة، مع حاسبة تعطيك المجموع فوراً. المثال الافتراضي: عائلة من 4 أفراد مع الهدي وغرفة خاصة." />
+        <SectionHeading eyebrow="الرسوم والتكاليف" title="كم يكلّف الحج؟" description="رسوم معلنة وتكاليف معتمدة، مع حاسبة تعطيك المجموع فوراً. المثال الافتراضي: عائلة من 4 أفراد مع الهدي وغرفة خاصة لهم بأربعة أسرّة." />
         <Reveal>
           <FeesCalculator />
         </Reveal>

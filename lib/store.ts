@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { Member } from "./rules";
+import type { Accommodation } from "./rooms";
 
 export type Account = {
   nationalId: string;
@@ -215,6 +216,11 @@ export type PostAcceptance = {
   health?: HealthFile;
   /** Medical documents — asked only after the full amount is paid. key: `${nationalId}-${doc}` */
   medical?: Record<string, DocStatus>;
+  /**
+   * Where the request sleeps: the shared accommodation (men and women apart, no extra cost), or one private
+   * room for the whole request with as many beds as people, priced per person by the group's cluster
+   */
+  accommodation?: Accommodation;
   /** Paid moments, by line key: i1..i3 (installments), hady, room */
   payments: Partial<Record<string, number>>;
   contractSignedAt?: number;

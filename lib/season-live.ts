@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { RoomPrices } from "./rooms";
 import type { SeasonRules } from "./rules";
 import { SEASON } from "./season";
 import { useStore, type SeasonOverrides } from "./store";
@@ -12,7 +13,7 @@ export type LiveSeason = {
   directSeats: number;
   lotterySeats: number;
   acceptedDirectAge: number;
-  fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; privateRoomDiff: number; administratorRegistration: number; groupFormation: number; clusterFormation: number };
+  fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; roomExample: RoomPrices; administratorRegistration: number; groupFormation: number; clusterFormation: number };
   administrators: { keepRoleMinRating: number; clusterCount: number; clusterHeadSeasons: number; clusterHeadMinRating: number; deputySeasons: number };
   documents: Record<string, number>;
   /** End-of-season classification: the shares that move between tiers, and how many are honoured */

@@ -4,6 +4,8 @@
  * All fictional. Room numbers and pilgrim names are operational data and never appear here.
  */
 
+import type { RoomPrices } from "../rooms";
+
 export type ServiceLevel = "عادي" | "محسّن" | "خمس نجوم";
 
 export type ClusterGroup = { no: number; leader: string; capacity: number; remaining: number };
@@ -27,7 +29,8 @@ export type Cluster = {
   transport: string[];
   meals: string[];
   programs: string[];
-  privateRoomDiff: number;
+  /** What each private room type adds per person (the shared accommodation adds nothing) — see lib/rooms */
+  rooms: RoomPrices;
   groups: ClusterGroup[];
   tone: "green" | "gold" | "maroon";
 };
@@ -58,7 +61,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["حافلة مكيفة إلى الحرم كل ساعة من 04:00 إلى 24:00", "حافلات خاصة للمشاعر", "حافلة مكة – المدينة"],
     meals: ["ثلاث وجبات يومياً (بوفيه)", "وجبات خاصة لمرضى السكري والضغط عند الطلب"],
     programs: ["درس ديني يومي بعد العشاء", "رحلة إلى معالم مكة والمدينة", "مرافقة طبية دائمة"],
-    privateRoomDiff: 500,
+    rooms: { 1: 300, 2: 175, 3: 100, 4: 50 },
     groups: [
       { no: 27, leader: "أحمد سليمان", capacity: 50, remaining: 6 },
       { no: 31, leader: "ياسر عبد الله", capacity: 50, remaining: 14 },
@@ -92,7 +95,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["التنقل سيراً إلى الحرم", "حافلات حديثة للمشاعر بمسارات مخصصة", "قطار الحرمين بين مكة والمدينة"],
     meals: ["بوفيه مفتوح ثلاث مرات يومياً", "ركن ضيافة على مدار اليوم"],
     programs: ["دروس يومية مع نخبة من العلماء", "زيارة مجمع كسوة الكعبة", "جلسات تهيئة قبل كل منسك"],
-    privateRoomDiff: 900,
+    rooms: { 1: 450, 2: 275, 3: 160, 4: 90 },
     groups: [
       { no: 5, leader: "عبد الرحمن القباني", capacity: 50, remaining: 3 },
       { no: 9, leader: "فراس البيطار", capacity: 50, remaining: 11 },
@@ -125,7 +128,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["حافلة ترددية إلى الحرم كل ساعتين", "حافلات للمشاعر", "حافلة مكة – المدينة"],
     meals: ["وجبتان يومياً (فطور وعشاء)", "وجبة غداء في أيام المشاعر"],
     programs: ["درس أسبوعي في فقه المناسك", "مرشد ميداني لكل مجموعة"],
-    privateRoomDiff: 350,
+    rooms: { 1: 220, 2: 130, 3: 75, 4: 40 },
     groups: [
       { no: 41, leader: "رضوان الزعبي", capacity: 50, remaining: 18 },
       { no: 44, leader: "غسان النحاس", capacity: 50, remaining: 27 },
@@ -158,7 +161,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["حافلة كل ساعة إلى الحرم", "حافلات للمشاعر", "حافلة مكة – المدينة"],
     meals: ["ثلاث وجبات يومياً بمطبخ شامي", "وجبات خاصة عند الطلب"],
     programs: ["درس يومي بعد الفجر", "زيارة معالم المدينة المنورة"],
-    privateRoomDiff: 500,
+    rooms: { 1: 300, 2: 175, 3: 100, 4: 50 },
     groups: [
       { no: 52, leader: "حسام الساعاتي", capacity: 50, remaining: 4 },
       { no: 55, leader: "ماهر الجابي", capacity: 50, remaining: 16 },
@@ -190,7 +193,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["حافلة ترددية إلى الحرم", "حافلات للمشاعر"],
     meals: ["وجبتان يومياً", "مياه ومشروبات في الحافلات"],
     programs: ["ورشة تهيئة قبل السفر", "مرشد لكل 25 حاجاً"],
-    privateRoomDiff: 300,
+    rooms: { 1: 200, 2: 120, 3: 70, 4: 35 },
     groups: [
       { no: 61, leader: "صالح العلي", capacity: 50, remaining: 22 },
       { no: 64, leader: "رشيد الحموي", capacity: 50, remaining: 31 },
@@ -222,7 +225,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["التنقل سيراً إلى الحرم", "حافلات فاخرة للمشاعر", "قطار الحرمين"],
     meals: ["ثلاث وجبات بقائمة متنوعة", "وجبات صحية خاصة"],
     programs: ["برنامج علمي يومي", "جولات تاريخية مصحوبة بمرشد", "متابعة طبية فردية"],
-    privateRoomDiff: 1_100,
+    rooms: { 1: 500, 2: 300, 3: 180, 4: 100 },
     groups: [
       { no: 70, leader: "نزار الشيخ", capacity: 50, remaining: 2 },
       { no: 72, leader: "وائل السعدي", capacity: 50, remaining: 12 },
@@ -254,7 +257,7 @@ export const CLUSTERS: Cluster[] = [
     transport: ["حافلة كل ساعة إلى الحرم", "حافلات للمشاعر", "حافلة مكة – المدينة"],
     meals: ["ثلاث وجبات يومياً", "وجبات للأطفال والكبار عند الطلب"],
     programs: ["درس يومي بعد العشاء", "برنامج خاص للشباب المرافقين"],
-    privateRoomDiff: 450,
+    rooms: { 1: 280, 2: 160, 3: 90, 4: 45 },
     groups: [
       { no: 81, leader: "طارق الحوراني", capacity: 50, remaining: 8 },
       { no: 83, leader: "خالد المصري", capacity: 50, remaining: 19 },
@@ -327,7 +330,7 @@ export const DOCUMENTS: IssuedDocument[] = [
   { number: "1448-R-004512", type: "إيصال رسم التسجيل", kind: "receipt", amount: 100, date: "12 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "طلب عائلي — 4 أفراد × 25 دولاراً" },
   { number: "1448-P-004512-1", type: "إيصال الدفعة الأولى من تكلفة الحج", kind: "receipt", amount: 14_000, date: "20 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 3,500 دولار — مع التسجيل على القبول المباشر" },
   { number: "1448-P-004512-2", type: "إيصال الهدي", kind: "receipt", amount: 720, date: "4 رمضان 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 180 دولاراً" },
-  { number: "1448-P-004512-3", type: "إيصال فارق الغرفة الخاصة", kind: "receipt", amount: 500, date: "6 رمضان 1448", holder: "محمد أ. الخ•••", detail: "غرفة خاصة واحدة" },
+  { number: "1448-P-004512-3", type: "إيصال السكن الخاص", kind: "receipt", amount: 200, date: "6 رمضان 1448", holder: "محمد أ. الخ•••", detail: "غرفة بأربعة أسرّة — 4 × 50 $" },
   { number: "1448-A-000871", type: "إيصال رسم تسجيل إداري", kind: "receipt", amount: 30, date: "20 ربيع الآخر 1448", holder: "أحمد م. سل•••", detail: "رسم تسجيل إداري للموسم" },
   { number: "1448-C-004512", type: "شهادة أداء فريضة الحج", kind: "certificate", date: "25 ذو الحجة 1448", holder: "محمد أ. الخ•••", detail: "موسم 1448هـ — تكتل النور لخدمة الحجاج" },
 ];

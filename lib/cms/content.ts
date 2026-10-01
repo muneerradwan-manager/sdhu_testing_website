@@ -245,7 +245,7 @@ export function selectClusters(state: CmsState): Cluster[] {
         transport: toStrings(v.transport),
         meals: toStrings(v.meals),
         programs: toStrings(v.programs),
-        privateRoomDiff: n(v.privateRoomDiff),
+        rooms: { 1: n(v.room1), 2: n(v.room2), 3: n(v.room3), 4: n(v.room4) },
         groups: rows<Record<string, unknown>>(v.groups).map(
           (g) =>
             ({

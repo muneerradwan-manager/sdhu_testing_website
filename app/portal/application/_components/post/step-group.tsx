@@ -4,8 +4,10 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeftRight,
   ArrowRight,
+  BedDouble,
   Building2,
   Bus,
+  Check,
   FileSignature,
   Hotel,
   Landmark,
@@ -22,13 +24,16 @@ import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { coordinatorOf, enrollFamily, groupInfo } from "@/lib/assignment";
-import { clustersNow } from "@/lib/cms/content";
+import { useClusterDirectory } from "@/lib/cluster-profile";
 import type { Cluster, ClusterGroup } from "@/lib/data/clusters";
 import { fullName, relationLabel } from "@/lib/registry";
+import { RoomPicker } from "@/components/ui/room-picker";
+import { GENERAL_DETAIL, GENERAL_LABEL, accommodationCost, bedsOf, costBreakdown, defaultRooms, describeRooms, formatRoomPrices, priceRange, readAccommodation, type Accommodation, type RoomCounts } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
+import { actions } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
-import { COORDINATOR_ID } from "./model";
+import { COORDINATOR_ID, ROOM_NEEDS } from "./model";
 import type { StepProps } from "./shared";
 
 const LEVEL_TONE: Record<Cluster["level"], string> = {
@@ -67,7 +72,8 @@ type DirProps = Omit<StepProps, "lines">;
 function Directory({ app, post, sessionId, excludeGroup }: DirProps & { excludeGroup?: number }) {
   const [area, setArea] = useState<string>(app.governorate);
   const [clusterSlug, setClusterSlug] = useState<string | null>(null);
-  const clusters = clustersNow();
+  // The clusters as the pilgrims see them (with the programme and prices their heads published)
+  const clusters = useClusterDirectory();
   const areas = [...new Set(clusters.map((c) => c.governorate))];
   const shown = clusters.filter((c) => area === "all" || c.governorate === area);
   const cluster = clusters.find((c) => c.slug === clusterSlug);
@@ -138,7 +144,7 @@ function Directory({ app, post, sessionId, excludeGroup }: DirProps & { excludeG
                 <Row icon={<UtensilsCrossed className="size-4" />} text={c.meals[0]} />
                 <div className="mt-auto flex items-center justify-between border-t border-gold-light pt-3">
                   <span className="text-sm text-ink-soft">
-                    الغرفة الخاصة: <b className="text-ink">+{formatUSD(c.privateRoomDiff)}</b>
+                    السكن الخاص للفرد: <b className="text-ink">{formatUSD(priceRange(c.rooms).from)}–{formatUSD(priceRange(c.rooms).to)}</b>
                   </span>
                   <span className={cn("text-sm font-bold", seats ? "text-green" : "text-maroon")}>{seats} مقعداً متاحاً</span>
                 </div>
@@ -171,7 +177,7 @@ function Directory({ app, post, sessionId, excludeGroup }: DirProps & { excludeG
                   ["النقل", (c: Cluster) => c.transport[0]],
                   ["الوجبات", (c: Cluster) => c.meals.join("، ")],
                   ["البرامج", (c: Cluster) => c.programs.join("، ")],
-                  ["فارق الغرفة الخاصة", (c: Cluster) => formatUSD(c.privateRoomDiff)],
+                  ["السكن الخاص (للفرد)", (c: Cluster) => formatRoomPrices(c.rooms)],
                 ] as const
               ).map(([label, get], ri) => (
                 <tr key={label} className={ri % 2 ? "bg-sand/50" : ""}>
@@ -358,7 +364,8 @@ function ClusterDetail({ cluster: c }: { cluster: Cluster }) {
         </Block>
         <Block icon={<UsersRound className="size-5" />} title="البرامج والتكلفة">
           <p>{c.programs.join("، ")}</p>
-          <p className="font-bold text-maroon">الغرفة الخاصة: فارق {formatUSD(c.privateRoomDiff)}</p>
+          <p className="font-bold text-maroon">السكن الخاص للفرد: {formatRoomPrices(c.rooms)}</p>
+          <p className="text-sm text-ink-soft">السكن العام (الرجال وحدهم والنساء وحدهن) دون كلفة إضافية.</p>
         </Block>
       </div>
     </motion.div>
@@ -423,6 +430,8 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
         </div>
       </div>
 
+      <AccommodationChoice app={app} post={post} sessionId={sessionId} />
+
       <div className="rounded-3xl border border-gold/40 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="flex items-center gap-2 font-bold text-green-dark">
@@ -443,6 +452,125 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
           )}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Where the request sleeps, chosen once the family is in a group: the shared accommodation (men and women
+ * apart, no extra cost), or private rooms of its own spread as the family likes — one bed per member — at the
+ * cluster's price per person for each room type. A split is kept as soon as every member has a bed. The price
+ * joins the last payment; once paid the choice is settled.
+ */
+export function AccommodationChoice({ app, post, sessionId }: Omit<StepProps, "lines">) {
+  const toast = useToast();
+  const clusters = useClusterDirectory();
+  const cluster = clusters.find((c) => c.slug === post.clusterId);
+  const n = app.members.length;
+  const current = readAccommodation(post.accommodation);
+  const [draft, setDraft] = useState<RoomCounts>(current.kind === "private" ? current.rooms : defaultRooms(n));
+  const [privateOpen, setPrivateOpen] = useState(current.kind === "private");
+  const settled = !!post.payments.room || (current.kind === "general" && !!post.payments.hady);
+  const needs = app.members.filter((m) => m.needs.some((x) => ROOM_NEEDS.includes(x)));
+  if (!cluster) return null;
+
+  const fits = bedsOf(draft) === n;
+  const draftCost = accommodationCost({ kind: "private", rooms: draft }, cluster.rooms)!;
+  const savedCost = accommodationCost(current, cluster.rooms);
+  const draftSaved = current.kind === "private" && ([1, 2, 3, 4] as const).every((b) => current.rooms[b] === draft[b]);
+
+  const save = (a: Accommodation) => {
+    if (settled) return;
+    const cost = accommodationCost(a, cluster.rooms);
+    actions.setPost(sessionId, { accommodation: a });
+    actions.logEvent({ actor: fullName(app.members[0].person), role: "حاج", action: "اختيار نوع السكن", target: `الطلب ${app.number}`, detail: a.kind === "general" || !cost ? GENERAL_LABEL : `${describeRooms(a.rooms)} — ${costBreakdown(cost.parts)}` });
+    toast({ title: a.kind === "general" || !cost ? GENERAL_LABEL : describeRooms(a.rooms), body: a.kind === "general" || !cost ? GENERAL_DETAIL : `${formatUSD(cost.amount)} تُضاف إلى الدفعة الأخيرة.`, icon: "🛏️", tone: "success" });
+  };
+  const pickGeneral = () => {
+    setPrivateOpen(false);
+    if (current.kind !== "general") save({ kind: "general" });
+  };
+  const pickPrivate = () => {
+    setPrivateOpen(true);
+    if (fits && !draftSaved) save({ kind: "private", rooms: draft });
+  };
+  // Kept as soon as every member has a bed; until then the last complete choice stands
+  const changeRooms = (r: RoomCounts) => {
+    setDraft(r);
+    if (bedsOf(r) === n) save({ kind: "private", rooms: r });
+  };
+
+  const card = (on: boolean, onClick: () => void, title: string, detail: string, price: string, priceTone: string) => (
+    <button
+      type="button"
+      aria-pressed={on}
+      disabled={settled && !on}
+      onClick={onClick}
+      className={cn("rounded-2xl border-2 p-4 text-right transition disabled:cursor-not-allowed disabled:opacity-50", on ? "border-green-dark bg-green-dark/5" : "border-gold/40 hover:border-gold-dark")}
+    >
+      <span className="flex items-center justify-between gap-2">
+        <span className="font-bold text-ink">{title}</span>
+        {on && <Check className="size-5 shrink-0 text-green-dark" />}
+      </span>
+      <span className="mt-1 block text-sm text-ink-soft">{detail}</span>
+      <span className={cn("mt-2 block font-display text-lg font-bold", priceTone)}>{price}</span>
+    </button>
+  );
+
+  return (
+    <div className="rounded-3xl border border-gold/40 bg-white p-5">
+      <p className="flex items-center gap-2 font-bold text-green-dark">
+        <BedDouble className="size-5" /> نوع السكن
+      </p>
+      <p className="mt-1 text-sm leading-7 text-ink-soft">
+        السكن العام دون كلفة، أو غرف خاصة لكم وحدكم تتوزعون عليها كما تشاؤون، لكل فرد سرير: غرفة واحدة لكم جميعاً، أو غرفتان أو أكثر. كلما قلّت أسرّة الغرفة ارتفع سعر الفرد فيها، ويحدده التكتل.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {card(!privateOpen && current.kind === "general", pickGeneral, GENERAL_LABEL, GENERAL_DETAIL, "دون كلفة", "text-green")}
+        {card(
+          privateOpen,
+          pickPrivate,
+          "غرف خاصة لكم",
+          savedCost ? describeRooms(savedCost.rooms) : "تختارون عدد الغرف وأسرّة كل غرفة",
+          savedCost ? `${costBreakdown(savedCost.parts)} = ${formatUSD(savedCost.amount)}` : `${formatUSD(priceRange(cluster.rooms).from)} – ${formatUSD(priceRange(cluster.rooms).to)} للفرد`,
+          "text-maroon",
+        )}
+      </div>
+      <AnimatePresence initial={false}>
+        {privateOpen && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+            <div className="mt-4 rounded-2xl bg-sand p-4">
+              <p className="mb-3 text-sm font-bold text-green-dark">وزّعوا أفراد طلبكم ({n}) على الغرف</p>
+              <RoomPicker people={n} prices={cluster.rooms} rooms={draft} onChange={changeRooms} disabled={settled} />
+              {!settled && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-ink-soft">
+                    {fits ? (
+                      <>
+                        {describeRooms(draft)}: <b className="text-ink" dir="ltr">{costBreakdown(draftCost.parts)}</b> = <b className="text-maroon">{formatUSD(draftCost.amount)}</b>
+                      </>
+                    ) : current.kind === "private" && savedCost ? (
+                      `يُعتمد التوزيع حين يكون لكل فرد سرير؛ حتى ذلك يبقى المعتمد: ${describeRooms(savedCost.rooms)}.`
+                    ) : (
+                      "يُعتمد التوزيع حين يكون لكل فرد سرير؛ حتى ذلك يبقى السكن العام."
+                    )}
+                  </p>
+                  {draftSaved && (
+                    <span className="flex items-center gap-1.5 text-sm font-bold text-green">
+                      <Check className="size-4" /> معتمد في كشف التكاليف
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <p className="mt-3 text-xs leading-6 text-hint">
+        أسعار {cluster.name} للفرد: {formatRoomPrices(cluster.rooms)}. من ينام في أي غرفة تتفقون عليه مع منسق المجموعة.
+        {needs.length > 0 && ` تُراعى احتياجات ${needs.map((m) => m.person.firstName).join(" و")} (غرفة قريبة من المصعد، طابق مناسب) في التوزيع دون كلفة إضافية.`}
+        {settled && " اختياركم مثبّت بعد تسديده."}
+      </p>
     </div>
   );
 }

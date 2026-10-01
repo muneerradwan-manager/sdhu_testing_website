@@ -7,7 +7,7 @@ import { Card } from "@/components/portal/shell";
 import { payMethodLabel } from "@/components/payment/methods";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
-import { DOCS, costLines, docStatus, medicalDocsFor, medicalKey, paidAt } from "@/app/portal/application/_components/post/model";
+import { DOCS, costLines, docStatus, medicalDocsFor, medicalKey, paidAt , useRoomCost } from "@/app/portal/application/_components/post/model";
 import { groupInfo } from "@/lib/assignment";
 import { planLabel, seasonPlan } from "@/lib/installments";
 import { directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
@@ -36,6 +36,8 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
   const account = useStore((s) => s.accounts[applicantId]);
   const events = useStore((s) => s.events);
   const season = useSeason();
+  // The private room the family asked for, at its cluster's price (before any early return: it is a hook)
+  const room = useRoomCost(app, post);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -61,7 +63,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
   const accepted = stage.key === "accepted";
   const fee = app.members.length * season.fees.registrationPerPerson;
   const plan = app.plan ?? seasonPlan(season.fees);
-  const lines = costLines(app, season.fees);
+  const lines = costLines(app, season.fees, room);
   const emptyPost = { documents: {}, payments: {}, ratings: {} };
   const p = post ?? emptyPost;
   const group = post?.groupApprovedAt ? groupInfo(post.clusterId, post.groupNumber) : null;

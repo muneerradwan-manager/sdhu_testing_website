@@ -46,7 +46,7 @@ import { cn, formatUSD } from "@/lib/utils";
 import { BoardingPass, HajjCard } from "./_components/cards";
 import { groupInfo } from "@/lib/assignment";
 import { PostChecklist } from "./_components/post/checklist";
-import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, paidAt } from "./_components/post/model";
+import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, paidAt , useRoomCost } from "./_components/post/model";
 import { ReviewBanner } from "./_components/review-banner";
 import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageNotAccepted, StageSubmitted } from "./_components/stages";
 
@@ -157,7 +157,8 @@ export default function ApplicationPage() {
     () => (app ? assign(app.members, (m) => (m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender))) : []),
     [app],
   );
-  const lines = useMemo(() => (app ? costLines(app, fees) : []), [app, fees]);
+  const room = useRoomCost(app, post);
+  const lines = useMemo(() => (app ? costLines(app, fees, room) : []), [app, fees, room]);
   // the family's seats as the cluster head assigned them (one itinerary: the family travels together)
   const flightsData = useFlightsData();
   const myTrip = useMemo(() => {
@@ -633,7 +634,7 @@ export default function ApplicationPage() {
                   <FileSignature className="size-10 text-gold-dark" />
                   <div>
                     <p className="font-bold">عقد الحاج مع المجموعة {myGroup.number}</p>
-                    <p className="text-sm text-ink-soft">وقّعه الحاج مع منسق المجموعة {post.enrolledBy?.name ?? ""} عند التسجيل فيها، وصادقت عليه الإدارة — تكلفة الحج والهدي {formatUSD(total)}</p>
+                    <p className="text-sm text-ink-soft">وقّعه الحاج مع منسق المجموعة {post.enrolledBy?.name ?? ""} عند التسجيل فيها، وصادقت عليه الإدارة — تكلفة الحج والهدي{room ? " والسكن الخاص" : ""} {formatUSD(total)}</p>
                   </div>
                 </div>
                 <Button variant="outline" onClick={() => toast({ title: "العقد", body: "يُحفظ العقد في خزنة الوثائق في التطبيق.", icon: "📄" })}>عرض العقد</Button>

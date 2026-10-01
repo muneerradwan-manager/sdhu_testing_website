@@ -241,15 +241,3 @@ export function assign(members: Member[], labelFor: (m: Member) => string): Assi
     };
   });
 }
-
-export function costsFor(members: Member[]) {
-  const n = members.length;
-  const f = SEASON.fees;
-  const privateRoom = members.some((m) => m.needs.length > 0) ? f.privateRoomDiff : 0;
-  return {
-    hajj: f.hajjCost * n,
-    hady: f.hady * n,
-    privateRoom,
-    total: f.hajjCost * n + f.hady * n + privateRoom,
-  };
-}

@@ -811,7 +811,7 @@
   "n": 102,
   "key": "post-mygroup",
   "file": "102-post-mygroup.png",
-  "caption": "مجموعتي: الفريق والأفراد وإمكانية الانتقال",
+  "caption": "مجموعتي: الفريق والأفراد ونوع السكن وإمكانية الانتقال",
   "section": "G",
   "note": null
  },
@@ -819,7 +819,7 @@
   "n": 103,
   "key": "post-payment",
   "file": "103-post-payment.png",
-  "caption": "الخطوة 4: الدفعة الثانية — كشف التكاليف",
+  "caption": "الخطوة 4: نوع السكن — غرفتان بسريرين لأفراد الطلب الأربعة",
   "section": "G",
   "note": null
  },
@@ -857,9 +857,9 @@
  },
  {
   "n": 108,
-  "key": "post-room-diff",
-  "file": "108-post-room-diff.png",
-  "caption": "بعد تسجيل الاحتياجات الصحية: تكلفة إضافية (فارق الغرفة الخاصة) تُدفع أولاً",
+  "key": "post-medical-needs",
+  "file": "108-post-medical-needs.png",
+  "caption": "احتياجات خديجة كما سجّلها المنسق: تُراعى في السكن والنقل دون كلفة",
   "section": "G",
   "note": null
  },

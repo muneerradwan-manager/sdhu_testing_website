@@ -55,7 +55,8 @@ export const SEASON = {
      */
     firstInstallment: 3_500,
     hady: 180,
-    privateRoomDiff: 500,
+    /** Private accommodation, as an example of what a cluster asks per person (each cluster sets its own) */
+    roomExample: { 1: 300, 2: 175, 3: 100, 4: 50 },
   },
 
   /**
