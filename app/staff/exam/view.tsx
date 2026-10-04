@@ -1,21 +1,24 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { CheckCircle2, FileQuestion, GraduationCap, Lock, Megaphone, PencilLine, RotateCcw, UsersRound } from "lucide-react";
+import { CheckCircle2, GraduationCap, Lock, Megaphone, PenLine, PencilLine, RotateCcw, UsersRound } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
-import { EXAM_QUESTIONS, weightsLabel } from "@/lib/data/admin-exam";
+import { weightsLabel } from "@/lib/data/admin-exam";
 import { can } from "@/lib/staff";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { resultOf } from "@/app/administrator/_lib/admin";
 import { useExamBank, useExamRules } from "@/app/administrator/_lib/admin-rules";
+import { STAGE_LABEL, centerOf, roleKeyOf, runKey, stageOf, useHalls } from "@/app/administrator/_lib/halls";
 import { awaitsOral, patchAdmin, roleLabel, useAdminRows, type AdminRow } from "../_components/data";
 import { canAny, fmtDateTime, Gate, Kpi, logAs, Meter, PageHeader, Panel, smallInputClass, stamp, Tabs, useStaffUser } from "../_components/kit";
-import { Bank, ExamRules } from "./rules";
+import { Grading, usePendingWritten } from "./grading";
+import { CentersAndSessions } from "./halls";
+import { Bank, Blueprints, ExamRules } from "./rules";
 
-type Tab = "results" | "rules" | "bank";
+type Tab = "results" | "centers" | "blueprints" | "bank" | "grading" | "rules";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const pct = (w: number) => Math.round(w * 100);
@@ -33,8 +36,10 @@ function Chip({ tone = "green", children }: { tone?: keyof typeof CHIP; children
 
 /**
  * The administrators' qualification exam in one place: who sat the written and how it went, the
- * committees' oral marks and the announcement of results, then the exam's rules and its question bank.
- * Every result is judged by the rules on this page as they stand now (resultOf), in both portals.
+ * committees' oral marks and the announcement of results; the centres, their halls and supervisors and
+ * each role's sitting; each role's exam built in weighted sections; the question bank of three types;
+ * the grading of written answers; and the rules results are judged by. Every result is judged by the
+ * rules on this page as they stand now (resultOf), in both portals.
  */
 export function ExamView() {
   return (
@@ -50,12 +55,15 @@ function Exam() {
   // The rules and the bank belong to the season and the administrators' affairs; the office manager
   // follows the results, which decide who may form a group
   const rulesAllowed = canAny(user, ["season.settings", "administrators.manage"]);
+  const manage = can(user, "administrators.manage");
   const [tab, setTab] = useState<Tab>("results");
   const rows = useAdminRows();
   const rules = useExamRules();
   const bank = useExamBank();
   const stored = useStore((s) => s.adminRules);
-  const edited = [stored.exam, stored.questionsOff, stored.questionEdits, stored.questionRoles].some((v) => v !== undefined);
+  const edited = [stored.exam, stored.questionsOff, stored.questionEdits, stored.questionRoles, stored.blueprints, stored.questionsAdded].some((v) => v !== undefined);
+  const pending = usePendingWritten();
+  const toGrade = pending.reduce((a, p) => a + p.ids.length, 0);
   const waiting = rows.filter((r) => awaitsOral(r, rules)).length;
   const passed = rows.filter((r) => resultOf(r.profile, rules).passed).length;
 
@@ -65,7 +73,7 @@ function Exam() {
         eyebrow="الجزء الثاني — الإداريون الموسميون"
         title="إدارة الامتحان"
         icon={<GraduationCap />}
-        description={`امتحان تأهيل الإداريين في صفحة واحدة: الكتابي على المنصة، والشفهي أمام اللجان خارجها وتُدخل نتيجته هنا ثم تُعلن، وقواعد الامتحان وبنك أسئلته. كل نتيجة تُحسب بالقواعد المعمول بها الآن: ${weightsLabel(rules)}، والنجاح من ${rules.passMark}.`}
+        description={`امتحان تأهيل الإداريين في صفحة واحدة: الكتابي جماعي لكل صفة في قاعات المراكز الامتحانية بإشراف مشرفيها، وأقسامه وأسئلته من هنا، وتحريريّه يُصحَّح هنا؛ والشفهي أمام اللجان خارجها وتُدخل نتيجته هنا ثم تُعلن. كل نتيجة تُحسب بالقواعد المعمول بها الآن: ${weightsLabel(rules)}، والنجاح من ${rules.passMark}.`}
         actions={
           rulesAllowed &&
           edited && (
@@ -74,9 +82,9 @@ function Exam() {
               variant="outline"
               className="border-white/25 text-white hover:bg-white/10"
               onClick={() => {
-                actions.setAdminRules({ exam: undefined, questionsOff: undefined, questionEdits: undefined, questionRoles: undefined });
-                logAs(user, { action: "إعادة قواعد الامتحان وبنك أسئلته إلى الأصل", target: "موسم 1448" });
-                toast({ title: "أُعيد الامتحان إلى الأصل", body: "القواعد والأسئلة كما تطلقها المنصة.", tone: "info", icon: "↩️" });
+                actions.setAdminRules({ exam: undefined, questionsOff: undefined, questionEdits: undefined, questionRoles: undefined, blueprints: undefined, questionsAdded: undefined });
+                logAs(user, { action: "إعادة قواعد الامتحان وهيكله وبنك أسئلته إلى الأصل", target: "موسم 1448" });
+                toast({ title: "أُعيد الامتحان إلى الأصل", body: "القواعد والهيكل والأسئلة كما تطلقها المنصة.", tone: "info", icon: "↩️" });
               }}
             >
               <RotateCcw className="size-4" /> إعادة الامتحان إلى الأصل
@@ -88,7 +96,7 @@ function Exam() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="بانتظار الشفهي" value={waiting} icon={<PencilLine />} tone="gold" pulse={waiting > 0} hint={`بلغوا حد الكتابي (${rules.writtenMin})`} />
         <Kpi label="ناجحون في القائمة" value={passed} icon={<UsersRound />} tone="teal" delay={0.05} hint={`من ${rows.length} في القائمة`} />
-        <Kpi label="أسئلة الامتحان" value={rules.questions} icon={<FileQuestion />} delay={0.1} hint={`${rules.minutes} دقيقة — من بنك فيه ${bank.length} سؤالاً`} />
+        <Kpi label="إجابات تحريرية للتصحيح" value={toGrade} icon={<PenLine />} delay={0.1} pulse={toGrade > 0} hint={`في ${pending.length} أوراق — البنك فيه ${bank.length} سؤالاً`} />
         <Kpi label="علامة النجاح من 100" value={rules.passMark} icon={<GraduationCap />} tone="maroon" delay={0.15} hint={weightsLabel(rules)} />
       </div>
 
@@ -101,8 +109,11 @@ function Exam() {
             { value: "results", label: "المتقدمون والنتائج", count: rows.length },
             ...(rulesAllowed
               ? ([
+                  { value: "centers", label: "المراكز والجلسات" },
+                  { value: "blueprints", label: "هيكل الامتحان" },
+                  { value: "bank", label: "بنك الأسئلة", count: bank.length },
+                  { value: "grading", label: "التصحيح", count: toGrade },
                   { value: "rules", label: "قواعد الامتحان" },
-                  { value: "bank", label: "بنك الأسئلة", count: EXAM_QUESTIONS.length },
                 ] as const)
               : []),
           ]}
@@ -112,8 +123,11 @@ function Exam() {
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} className="mt-4 space-y-4">
           {tab === "results" && <Results rows={rows} />}
-          {tab === "rules" && <ExamRules />}
+          {tab === "centers" && <CentersAndSessions manage={manage} />}
+          {tab === "blueprints" && <Blueprints />}
           {tab === "bank" && <Bank />}
+          {tab === "grading" && <Grading manage={manage} />}
+          {tab === "rules" && <ExamRules />}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -126,6 +140,7 @@ function Results({ rows }: { rows: AdminRow[] }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const rules = useExamRules();
+  const halls = useHalls();
   const manage = can(user, "administrators.manage");
   const [editing, setEditing] = useState<AdminRow | null>(null);
 
@@ -146,6 +161,8 @@ function Results({ rows }: { rows: AdminRow[] }) {
         )}
         {rows.map((r, i) => {
           const res = resultOf(r.profile, rules);
+          const center = centerOf(r.id, halls.moved);
+          const sitting = center ? stageOf(halls.runs[runKey(roleKeyOf(r.profile.positions[0] ?? r.position), center.id)]) : "idle";
           const { written, oral, final } = res;
           // Below the written minimum nobody is called to the oral
           const below = written !== undefined && written < rules.writtenMin;
@@ -168,16 +185,12 @@ function Results({ rows }: { rows: AdminRow[] }) {
                     {roleLabel(r)} · <span dir="ltr">{maskNationalId(r.id)}</span>
                   </p>
                   {r.profile.examExempt && <Chip tone="green">مجدَّد في صفته — معفى من الامتحانين</Chip>}
-                  {/* The written exam is sat on camera: say whether it ever stopped */}
-                  {r.profile.exam?.submittedAt && !r.seed && (
-                    <Chip tone={r.profile.exam.interruptions ? "maroon" : "green"}>
-                      {r.profile.exam.interruptions ? `انقطعت الكاميرا أو الميكروفون ${r.profile.exam.interruptions === 1 ? "مرة واحدة" : r.profile.exam.interruptions === 2 ? "مرتين" : `${r.profile.exam.interruptions} مرات`}` : "أدّى الكتابي والكاميرا والميكروفون مفتوحان"}
-                    </Chip>
-                  )}
+                  {/* The written is sat in a centre's hall: say which, and where its sitting stands */}
+                  {!r.profile.examExempt && !r.previous && (center ? <Chip tone="gold">{center.name}{!written && !r.profile.exam?.submittedAt ? ` — ${STAGE_LABEL[sitting]}` : ""}</Chip> : !r.profile.exam?.submittedAt && <Chip tone="maroon">بلا مركز امتحاني</Chip>)}
                   {r.previous && <p className="text-[11px] text-gold">{r.previous}</p>}
                 </div>
               </div>
-              <ScoreCell label={`الكتابي ×${pct(rules.writtenWeight)}%`} value={written} empty={r.previous ? "معفى" : r.profile.exam?.submittedAt ? "قيد التصحيح" : "لم يُقدَّم"} />
+              <ScoreCell label={`الكتابي ×${pct(rules.writtenWeight)}%`} value={written} empty={r.previous ? "معفى" : r.profile.exam?.submittedAt ? `قيد التصحيح — مبدئية ${r.profile.exam.provisional ?? "—"}` : sitting === "closed" ? "غائب عن جلسته" : "لم يُقدَّم"} />
               <ScoreCell label={`الشفهي ×${pct(rules.oralWeight)}%`} value={oral} empty={below ? "لا يُستدعى" : "بانتظار اللجنة"} />
               <div>
                 <p className="text-[11px] text-white/75">النتيجة النهائية</p>

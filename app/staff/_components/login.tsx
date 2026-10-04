@@ -8,6 +8,7 @@ import { AuthShell, DemoAccounts, FormError, PasswordField, UsernameField } from
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { ALL_PERMISSIONS, getStaff, holdsAll, PERMISSION_LABELS, STAFF, STAFF_PASSWORD, type StaffUser } from "@/lib/staff";
+import { useHalls } from "@/app/administrator/_lib/halls";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { sleep } from "@/lib/utils";
 import { logAs } from "./kit";
@@ -18,6 +19,7 @@ export function StaffLogin() {
   const hydrated = useHydrated();
   const sessionId = useStore((s) => s.staffSessionId);
   const current = hydrated ? getStaff(sessionId) : null;
+  const halls = useHalls();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -61,7 +63,7 @@ export function StaffLogin() {
         <DemoAccounts
           hint={
             <>
-              لكل موظف تجريبي صلاحية واحدة، إلا مديرة الموسم فلها الصلاحيات كلها. كلمة المرور للجميع: <b className="font-mono text-green-dark">{STAFF_PASSWORD}</b>. اضغط على بطاقة للدخول مباشرة.
+              لكل موظف تجريبي صلاحية واحدة، إلا مديرة الموسم فلها الصلاحيات كلها، ومشرفة القاعة فلا صلاحية لها: قاعتها من إسناد قسم الامتحانات. كلمة المرور للجميع: <b className="font-mono text-green-dark">{STAFF_PASSWORD}</b>. اضغط على بطاقة للدخول مباشرة.
             </>
           }
           groups={[
@@ -72,7 +74,7 @@ export function StaffLogin() {
                 subtitle: u.title + (u.travels ? " — مسافر مع البعثة" : ""),
                 code: u.username,
                 initial: u.initials,
-                tags: holdsAll(u) ? [`كل الصلاحيات (${ALL_PERMISSIONS.length})`] : u.permissions.map((p) => PERMISSION_LABELS[p]),
+                tags: [...(holdsAll(u) ? [`كل الصلاحيات (${ALL_PERMISSIONS.length})`] : u.permissions.map((p) => PERMISSION_LABELS[p])), ...halls.centersOf(u.id).map((c) => `مشرف قاعة — ${c.name}`)],
                 onPick: () => void enter(u),
               })),
             },

@@ -13,160 +13,265 @@ import {
   CircleX,
   Cloud,
   CloudUpload,
+  DoorClosed,
+  DoorOpen,
   Flag,
   Gavel,
   GraduationCap,
   Hourglass,
+  IdCard,
   Landmark,
   ListChecks,
+  MapPin,
+  PenLine,
   RotateCcw,
   Send,
   ShieldCheck,
   Trophy,
   UsersRound,
-  WifiOff,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { finalScoreWith, scoreExam, weightsLabel, type ExamCategory } from "@/lib/data/admin-exam";
-import { useExamQuestions, useExamRules } from "../../_lib/admin-rules";
-import { actions } from "@/lib/store";
+import { QUESTION_TYPES, TRUE_FALSE, finalScoreWith, pointsOf, questionCount, typeOf, weightsLabel, type ExamQuestion, type QuestionType } from "@/lib/data/admin-exam";
+import { useAllQuestions, useBlueprints, useExamBank, useExamRules } from "../../_lib/admin-rules";
+import { actions, type AdminProfile } from "@/lib/store";
 import { useScrollLock } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
 import { logAdmin, positionLabelOf, resultOf, useAdmin } from "../../_lib/admin";
+import { hallActions, markedExam, mustSit, roleLabelOf, sentExam, useMyHall } from "../../_lib/halls";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
-import { ProctorCheck, ProctorDuringExam, stopProctor, useProctor } from "./proctor";
+
+type Exam = NonNullable<AdminProfile["exam"]>;
 
 export function AdminExam() {
   const admin = useAdmin()!;
   const p = admin.profile;
   const rules = useExamRules();
+  const hall = useMyHall(admin.id, p);
   const [justSubmitted, setJustSubmitted] = useState(false);
   const onSubmitted = useCallback(() => setJustSubmitted(true), []);
   const onGraded = useCallback(() => setJustSubmitted(false), []);
-  // Leaving the exam page in any way (after sending, mid-exam, or from the instructions with the camera
-  // already on) turns the camera and the microphone off
-  useEffect(() => () => stopProctor(), []);
+  const sits = mustSit(p, hall.key) && !!hall.center;
+  const inHall = hall.stage === "open" || hall.stage === "running";
+  const joined = !!hall.run?.joined[admin.id];
+
+  // Opening his account while his hall is open is his arrival: the supervisor sees him and confirms him
+  useEffect(() => {
+    if (!sits || !inHall || joined || p?.exam) return;
+    hallActions.join(hall.key, admin.id);
+    logAdmin(admin.id, "فتح الحساب في القاعة الامتحانية", `الإداري ${admin.id.slice(-3)}`, `${hall.center!.name} — بانتظار تأكيد المشرف للحضور`);
+  }, [sits, inHall, joined, p?.exam, hall.key, hall.center, admin.id]);
+
+  // A paper from before the halls (no sections) cannot be sat: the hall serves a new one
+  useEffect(() => {
+    if (p?.exam && !p.exam.submittedAt && !p.exam.paper) actions.upsertAdmin(admin.id, { exam: undefined });
+  }, [p?.exam, admin.id]);
 
   if (!p?.eligibleAt || !p.feePaidAt) {
     return (
-      <AdminShell title="الامتحان الكتابي المؤتمت" subtitle="15 ربيع الآخر 1448 — الساعة 09:00 — على المنصة.">
-        <LockedCard title="الامتحان غير متاح بعد" text="يُفتح الامتحان الكتابي بعد تقديم طلب المشاركة: التحقق من الأهلية للصفة التي اخترتها، ثم تسديد رسم التسجيل." href="/administrator/apply" cta="إلى طلب المشاركة" />
+      <AdminShell title="الامتحان الكتابي في القاعة" subtitle="جماعي لكل صفة، في قاعة المركز الامتحاني لمحافظتك.">
+        <LockedCard title="الامتحان غير متاح بعد" text="يُفتح الامتحان الكتابي بعد تقديم طلب المشاركة: التحقق من الأهلية للصفة التي اخترتها، ثم تسديد رسم التسجيل. بعدها تظهر هنا قاعتك وموعد امتحان صفتك." href="/administrator/apply" cta="إلى طلب المشاركة" />
       </AdminShell>
     );
   }
 
   if (p.examExempt) {
     return (
-      <AdminShell title="الامتحان الكتابي المؤتمت" subtitle="لا امتحان هذا الموسم: جدّدت الصفة نفسها بتقييم مستوفٍ وفق شروط الإدارة.">
+      <AdminShell title="الامتحان الكتابي في القاعة" subtitle="لا امتحان هذا الموسم: جدّدت الصفة نفسها بتقييم مستوفٍ وفق شروط الإدارة.">
         <LockedCard title="معفى من الامتحانين" text="من يجدد صفته التي شغلها الموسم الماضي بتقييم لا يقل عن الحد الذي حددته الإدارة يُعفى من الامتحانين الكتابي والشفهي، ويعامَل معاملة الناجح في التأهيل." href="/administrator/group" cta="متابعة إلى مجموعتي" />
       </AdminShell>
     );
   }
 
-  if (p.exam && !p.exam.submittedAt) return <ExamRunner onSubmitted={onSubmitted} />;
+  if (p.exam?.paper?.some((x) => x.ids.length) && !p.exam.submittedAt) return <ExamRunner onSubmitted={onSubmitted} />;
 
   return (
     <AdminShell
       image="/images/haram-2022.jpg"
-      title={p.exam?.submittedAt ? "نتيجتي في التأهيل" : "الامتحان الكتابي المؤتمت"}
-      subtitle={p.exam?.submittedAt ? `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.` : "يُولَّد امتحان كل متقدم من بنك الأسئلة، فلا يتطابق امتحان متقدمَين."}
+      title={p.exam?.submittedAt ? "نتيجتي في التأهيل" : "الامتحان الكتابي في القاعة"}
+      subtitle={p.exam?.submittedAt ? `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.` : "جماعي لكل صفة في يومها، في قاعة مركزك الامتحاني، يفتحه مشرف القاعة ويبدؤه للجميع معاً."}
     >
-      {p.exam?.submittedAt ? <Results grading={justSubmitted} onGraded={onGraded} /> : <RulesScreen />}
+      {p.exam?.submittedAt ? <Results grading={justSubmitted} onGraded={onGraded} /> : <HallScreen />}
     </AdminShell>
   );
 }
 
-// ───────────────────────── Rules ─────────────────────────
+// ───────────────────────── The hall ─────────────────────────
 
-function RulesScreen() {
-  const rules = useExamRules();
+const STEPS = [
+  { icon: DoorOpen, t: "يفتح المشرف القاعة" },
+  { icon: IdCard, t: "يؤكد حضورك بهويتك" },
+  { icon: Hourglass, t: "يبدأ الامتحان للجميع" },
+  { icon: Send, t: "ترسل أو ينهيه المشرف" },
+];
+
+function HallScreen() {
   const admin = useAdmin()!;
-  const [agree, setAgree] = useState(false);
-  const proctor = useProctor();
-  // Every role sits its own exam: count this one's questions by subject
-  const role = admin.profile?.positions[0] ?? "";
-  const questions = useExamQuestions(role);
-  const distribution = Object.entries(
-    questions.reduce<Record<string, number>>((acc, q) => ({ ...acc, [q.category]: (acc[q.category] ?? 0) + 1 }), {}),
-  ).map(([category, count]) => ({ category: category as ExamCategory, count }));
-  const max = Math.max(1, ...distribution.map((d) => d.count));
-  const start = () => {
-    actions.upsertAdmin(admin.id, { exam: { startedAt: Date.now(), answers: {} } });
-    logAdmin(admin.id, "بدء الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `امتحان صفة ${positionLabelOf(role)} — ${questions.length} سؤالاً — ${rules.minutes} دقيقة — الكاميرا والميكروفون مفعّلان`);
+  const p = admin.profile!;
+  const rules = useExamRules();
+  const hall = useMyHall(admin.id, p);
+  const blueprints = useBlueprints();
+  const bank = useExamBank();
+  const toast = useToast();
+  const role = hall.role;
+  const blueprint = blueprints[role];
+  const run = hall.run;
+  const joined = !!run?.joined[admin.id];
+  const present = !!run?.present[admin.id];
+  const supervisorName = hall.supervisor?.name ?? "مشرف القاعة";
+  const target = `${hall.center?.name ?? ""} — امتحان ${roleLabelOf(role)}`;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const minutesIn = run?.startedAt ? Math.max(1, Math.round((now - run.startedAt) / 60_000)) : 0;
+  const step = hall.stage === "idle" ? 0 : !present ? 1 : hall.stage === "open" ? 2 : 3;
+
+  // Demo: what the hall's supervisor does in the staff portal, done from here for a visitor trying the portal alone
+  const sim = (action: string, f: () => void) => {
+    f();
+    actions.logEvent({ actor: supervisorName, role: "موظف", action: `${action} (محاكاة)`, target });
   };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
       <Card>
         <div className="flex items-center gap-4">
-          <span className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-green-dark to-green text-gold"><GraduationCap className="size-8" /></span>
-          <div>
-            <p className="text-sm text-hint">{rules.date}</p>
-            <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">تعليمات الامتحان</h2>
+          <span className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-green-dark to-green text-gold">{hall.stage === "idle" ? <DoorClosed className="size-8" /> : <DoorOpen className="size-8" />}</span>
+          <div className="min-w-0">
+            <p className="text-sm text-hint">امتحان صفة {positionLabelOf(role)}</p>
+            <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">{hall.center ? hall.center.name : "مركزك الامتحاني"}</h2>
           </div>
         </div>
-        <dl className="mt-6 grid grid-cols-3 gap-3 text-center">
-          {[
-            [String(questions.length), "سؤالاً"],
-            [String(rules.minutes), "دقيقة"],
-            [`${rules.writtenMin}+`, "لاجتياز الكتابي"],
-          ].map(([v, k]) => (
-            <div key={k} className="rounded-2xl bg-sand p-4">
-              <dd className="font-display text-3xl font-bold text-maroon">{v}</dd>
-              <dt className="text-xs text-hint">{k}</dt>
-            </div>
-          ))}
-        </dl>
+
+        {hall.center ? (
+          <dl className="mt-6 grid gap-3 sm:grid-cols-3">
+            {[
+              { icon: MapPin, k: "القاعة", v: hall.center.hall },
+              { icon: AlarmClock, k: "الموعد", v: `${hall.session?.date ?? ""} — ${hall.session?.time ?? ""}` },
+              { icon: ShieldCheck, k: "مشرف القاعة", v: hall.supervisor?.name ?? "لم يُسند بعد" },
+            ].map((x) => (
+              <div key={x.k} className="rounded-2xl bg-sand p-3">
+                <dt className="flex items-center gap-1.5 text-xs text-hint"><x.icon className="size-3.5" /> {x.k}</dt>
+                <dd className="mt-1 text-sm font-bold leading-6 text-ink">{x.v}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="mt-6 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
+            لم يُحدَّد مركزك الامتحاني بعد: محافظة قيدك لا تتبع أياً من المراكز. تُسندك شؤون الإداريين إلى مركز، فتظهر هنا قاعتك وموعدك.
+          </p>
+        )}
+
+        {hall.center && (
+          <>
+            <ol className="mt-6 grid grid-cols-4 gap-2 text-center">
+              {STEPS.map((s, i) => (
+                <li key={s.t} className={cn("rounded-2xl p-3 text-xs font-bold leading-5 ring-1 transition", i < step ? "bg-green-dark text-white ring-green-dark" : i === step ? "bg-gold/20 text-green-dark ring-gold-dark" : "bg-white text-hint ring-gold/30")}>
+                  {i < step ? <Check className="mx-auto mb-1 size-5" /> : <s.icon className="mx-auto mb-1 size-5" />}
+                  {s.t}
+                </li>
+              ))}
+            </ol>
+
+            <motion.div key={`${hall.stage}-${joined}-${present}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-5 rounded-3xl border-2 border-dashed border-gold-dark/50 bg-gold/10 p-5">
+              {hall.stage === "idle" && (
+                <>
+                  <p className="font-display text-lg font-bold text-green-dark">القاعة لم تُفتح بعد</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">
+                    احضر إلى القاعة يوم {hall.session?.date} قبل الساعة {hall.session?.time} ومعك هويتك الشخصية. الامتحان جماعي: يؤديه كل المتقدمين لصفة {positionLabelOf(role)} في الوقت نفسه، كلٌّ في قاعة مركزه، ولا يُؤدّى من البيت. حين يفتح المشرف القاعة افتح حسابك هنا.
+                  </p>
+                  <SimButton className="mt-4" onClick={() => sim("فتح القاعة الامتحانية", () => hallActions.open(hall.key, supervisorName))}>محاكاة: يفتح المشرف القاعة</SimButton>
+                </>
+              )}
+              {(hall.stage === "open" || hall.stage === "running") && !present && (
+                <>
+                  <p className="font-display text-lg font-bold text-green-dark">دخلت حسابك في القاعة</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">
+                    أرِ المشرف هويتك الشخصية ليطابقها مع اسمك ويؤكد حضورك.
+                    {hall.stage === "running" && ` بدأ الامتحان منذ ${minutesIn} دقيقة: تدخله حين يؤكد حضورك، بالوقت المتبقي فقط.`}
+                  </p>
+                  <SimButton className="mt-4" onClick={() => sim("تأكيد حضور متقدم في القاعة", () => hallActions.confirm(hall.key, admin.id, { bank, blueprint }))}>محاكاة: يؤكد المشرف حضورك</SimButton>
+                </>
+              )}
+              {hall.stage === "open" && present && (
+                <>
+                  <p className="font-display text-lg font-bold text-green-dark">حضورك مؤكد</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">ابقَ في مكانك: يبدأ الامتحان للجميع في اللحظة نفسها حين يبدؤه المشرف، وتنتقل هذه الصفحة إليه وحدها.</p>
+                  <SimButton className="mt-4" onClick={() => sim("بدء الامتحان في القاعة", () => hallActions.start(hall.key, { bank, blueprint }))}>محاكاة: يبدأ المشرف الامتحان</SimButton>
+                </>
+              )}
+              {(hall.stage === "ended" || hall.stage === "closed") && (
+                <>
+                  <p className="font-display text-lg font-bold text-maroon">انتهى امتحان صفتك في قاعتك</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">
+                    {hall.stage === "closed" ? "أُغلقت القاعة ولم تؤدِّ الامتحان، فسُجّلت غائباً عن جلسة صفتك." : "أنهى المشرف الامتحان قبل أن يؤكد حضورك، فلم تعد تدخله."} تواصل مع شؤون الإداريين.
+                  </p>
+                  <SimButton
+                    className="mt-4"
+                    onClick={() => {
+                      hallActions.reset(hall.key);
+                      logAdmin(admin.id, "إعادة جلسة الامتحان (نسخة تجريبية)", `الإداري ${admin.id.slice(-3)}`, target);
+                      toast({ title: "أُعيدت الجلسة", body: "القاعة مغلقة من جديد كما قبل فتحها.", icon: "↩️", tone: "info" });
+                    }}
+                  >
+                    <RotateCcw className="size-4" /> إعادة التجربة: الجلسة من بدايتها
+                  </SimButton>
+                </>
+              )}
+            </motion.div>
+          </>
+        )}
+
         <ul className="mt-6 space-y-3">
           {[
-            { icon: CloudUpload, t: "الإجابات تُحفظ تلقائياً مع كل اختيار." },
-            { icon: WifiOff, t: "عند انقطاع الإنترنت تستأنف من حيث توقفت خلال المدة." },
+            { icon: Hourglass, t: "يبدأ المشرف الامتحان ويُنهيه للجميع معاً، ووقتك يُحسب من لحظة البدء." },
+            { icon: CloudUpload, t: "الإجابات تُحفظ تلقائياً مع كل اختيار وكل كلمة." },
             { icon: Flag, t: "علّم أي سؤال للمراجعة وارجع إليه من شبكة الأسئلة." },
-            { icon: AlarmClock, t: "عند انتهاء الوقت يُرسل الامتحان تلقائياً." },
-            { icon: ShieldCheck, t: "لا يمكن الرجوع بعد الإرسال." },
+            { icon: AlarmClock, t: "حين ينتهي الوقت أو ينهي المشرف الامتحان يُرسل كما هو." },
+            { icon: PenLine, t: "الأسئلة المؤتمتة تُصحَّح فور الإرسال، والتحريرية يصححها مصحح مخوّل دون أن يرى اسمك." },
           ].map((r) => (
             <li key={r.t} className="flex items-center gap-3 rounded-2xl border border-gold/30 p-3">
               <r.icon className="size-5 shrink-0 text-gold-dark" /> <span className="leading-7">{r.t}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-4 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
-          امتحانك امتحان صفة {positionLabelOf(role)}: أسئلته من بنك صفتك، وبعضها مشترك بين الصفات (الإسعافات والطوارئ والتعامل مع الحجاج). النسخة التجريبية: {questions.length} سؤالاً في {rules.minutes} دقيقة. الامتحان الفعلي 60 سؤالاً في 90 دقيقة، ويضم صح/خطأ واختياراً متعدداً وترتيب خطوات وسيناريوهات يصححها مصحح مخوّل.
-        </p>
-        <ProctorCheck />
-        <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-2xl bg-sand p-4">
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="size-5 accent-green-dark" />
-          <span className="font-semibold">قرأت التعليمات، وأتعهد بأداء الامتحان بنفسي.</span>
-        </label>
-        <Button size="xl" className="mt-6 w-full" disabled={!agree || proctor.state !== "on"} onClick={start}>
-          ابدأ الامتحان الآن <ArrowLeft className="size-6" />
-        </Button>
-        {proctor.state !== "on" && <p className="mt-2 text-center text-xs text-hint">يُفتح الامتحان بعد تشغيل الكاميرا والميكروفون.</p>}
       </Card>
 
       <Card className="md:p-8">
-        <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ListChecks className="size-5 text-gold-dark" /> توزيع أسئلة امتحان صفتك</h3>
-        <p className="text-xs text-hint">امتحان صفة {positionLabelOf(role)} لموسم 1448 — {questions.length} سؤالاً</p>
-        <ul className="mt-5 space-y-3">
-          {distribution.map((d, i) => (
-            <li key={d.category}>
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">{d.category}</span>
-                <span className="font-bold tabular-nums text-maroon">{d.count}</span>
+        <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ListChecks className="size-5 text-gold-dark" /> هيكل امتحان صفتك</h3>
+        <p className="text-xs text-hint">
+          امتحان صفة {positionLabelOf(role)} لموسم 1448 — {blueprint ? `${questionCount(blueprint)} سؤالاً في ${blueprint.minutes} دقيقة` : ""}
+        </p>
+        <ul className="mt-5 space-y-4">
+          {blueprint?.sections.map((s, i) => (
+            <li key={s.id}>
+              <div className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="font-bold">{s.name}</span>
+                <span className="font-display font-bold tabular-nums text-maroon">{s.weight}%</span>
               </div>
               <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-sand">
-                <motion.div className="h-full rounded-full bg-gradient-to-l from-green-dark to-green-light" initial={{ width: 0 }} animate={{ width: `${(d.count / max) * 100}%` }} transition={{ delay: 0.2 + i * 0.08, duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
+                <motion.div className="h-full rounded-full bg-gradient-to-l from-green-dark to-green-light" initial={{ width: 0 }} animate={{ width: `${s.weight}%` }} transition={{ delay: 0.2 + i * 0.08, duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
               </div>
+              <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-hint">
+                {(Object.keys(s.counts) as QuestionType[]).filter((t) => s.counts[t] > 0).map((t) => (
+                  <span key={t}>{QUESTION_TYPES[t]}: {s.counts[t]}</span>
+                ))}
+              </p>
             </li>
           ))}
         </ul>
+        <p className="mt-5 rounded-2xl bg-gold/15 p-4 text-xs leading-6 text-ink-soft">
+          علامة الكتابي من 100: نصيب كل قسم من علامته بحسب وزنه. السؤال المؤتمت بدرجة، والتحريري بدرجاته كما يقدّرها المصحح. تُسحب أسئلة كل قسم من بنك صفتك بترتيب خاص بك، فلا يتطابق امتحان متقدمَين.
+        </p>
         <div className="mt-6 rounded-2xl border border-gold/40 p-4 text-sm leading-7">
           <p className="font-bold text-green-dark">بعد الكتابي</p>
           <p className="text-ink-soft">الامتحان الشفهي: {rules.oralDate}. تُدخل النتيجة على المنصة من شؤون الإداريين.</p>
           <p className="mt-1 text-ink-soft">
-            النتيجة النهائية: الكتابي {Math.round(rules.writtenWeight * 100)}% + الشفهي {Math.round(rules.oralWeight * 100)}%، والنجاح من <b className="text-maroon">{rules.passMark}</b> — كما حددتها الإدارة لهذا الموسم.
+            النتيجة النهائية: الكتابي {Math.round(rules.writtenWeight * 100)}% + الشفهي {Math.round(rules.oralWeight * 100)}%، والنجاح من <b className="text-maroon">{rules.passMark}</b>، ولا يُستدعى للشفهي من نزل في الكتابي عن {rules.writtenMin} — كما حددتها الإدارة لهذا الموسم.
           </p>
         </div>
       </Card>
@@ -176,12 +281,25 @@ function RulesScreen() {
 
 // ───────────────────────── Runner ─────────────────────────
 
+type Served = { q: ExamQuestion; section: { id: string; name: string; weight: number } };
+
+/** The paper as served, question by question with its section, from the bank as it stands (withdrawn ones included) */
+function useServed(exam: Exam | undefined): Served[] {
+  const all = useAllQuestions();
+  return useMemo(() => {
+    const byId = new Map(all.map((q) => [q.id, q]));
+    return (exam?.paper ?? []).flatMap((s) => s.ids.flatMap((id) => (byId.has(id) ? [{ q: byId.get(id)!, section: { id: s.id, name: s.name, weight: s.weight } }] : [])));
+  }, [all, exam?.paper]);
+}
+
+const answered = (e: Exam, q: ExamQuestion) => (typeOf(q) === "written" ? !!String(e.answers[q.id] ?? "").trim() : e.answers[q.id] !== undefined);
+
 function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
-  const rules = useExamRules();
   const admin = useAdmin()!;
-  const questions = useExamQuestions(admin.profile?.positions[0] ?? "");
-  const toast = useToast();
+  const bank = useAllQuestions();
+  const hall = useMyHall(admin.id, admin.profile);
   const exam = admin.profile!.exam!;
+  const served = useServed(exam);
   const answers = exam.answers;
   const [idx, setIdx] = useState(0);
   const [flags, setFlags] = useState<number[]>([]);
@@ -193,11 +311,12 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   const saveTimer = useRef<number | undefined>(undefined);
   const container = useRef<HTMLDivElement>(null);
 
-  const total = rules.minutes * 60_000;
+  const total = (exam.minutes ?? 25) * 60_000;
   const remaining = Math.max(0, total - (now - exam.startedAt));
   const expired = remaining <= 0;
-  const q = questions[idx];
-  const answeredCount = questions.filter((x) => answers[x.id] !== undefined).length;
+  const { q, section } = served[idx];
+  const type = typeOf(q);
+  const answeredCount = served.filter((x) => answered(exam, x.q)).length;
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -205,51 +324,41 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
     return () => {
       clearInterval(t);
       window.clearTimeout(saveTimer.current);
-      // Leaving the exam (sent, or navigated away) releases the camera and the microphone
-      stopProctor();
     };
   }, []);
   useScrollLock(true);
-
-  /** The camera or the microphone stopped: counted on the exam, and in the audit trail */
-  const onInterrupt = useCallback(() => {
-    const p = admin.profile!;
-    if (!p.exam || p.exam.submittedAt) return;
-    actions.upsertAdmin(admin.id, { exam: { ...p.exam, interruptions: (p.exam.interruptions ?? 0) + 1 } });
-    logAdmin(admin.id, "انقطاع الكاميرا أو الميكروفون أثناء الامتحان", `الإداري ${admin.id.slice(-3)}`, "توقف الامتحان حتى أعاد تشغيلهما — الوقت مستمر");
-  }, [admin]);
-
-  useEffect(() => {
-    if (Object.keys(exam.answers).length > 0) toast({ title: "استأنفنا من حيث توقفت", body: "إجاباتك السابقة محفوظة، والوقت يُحسب من لحظة البدء.", icon: "☁️", tone: "info" });
-    // Only once, when the runner opens
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const submit = useCallback(
     (auto: boolean) => {
       if (submitted.current) return;
       submitted.current = true;
-      const { score, correct, total: n } = scoreExam(exam.answers, questions);
+      const sent = sentExam(exam, bank);
       onSubmitted();
-      actions.upsertAdmin(admin.id, { exam: { ...exam, submittedAt: Date.now(), score } });
-      logAdmin(admin.id, auto ? "إرسال الامتحان الكتابي تلقائياً (انتهى الوقت)" : "إرسال الامتحان الكتابي", `الإداري ${admin.id.slice(-3)}`, `${correct} من ${n} إجابات صحيحة — النتيجة ${score} من 100`);
+      actions.upsertAdmin(admin.id, { exam: sent });
+      const written = sent.toGrade?.length ?? 0;
+      logAdmin(
+        admin.id,
+        auto ? "إرسال الامتحان الكتابي تلقائياً (انتهى الوقت)" : "إرسال الامتحان الكتابي",
+        `الإداري ${admin.id.slice(-3)}`,
+        `${hall.center?.name ?? ""} — النتيجة ${written ? `المبدئية ${sent.provisional} من 100، و${written} إجابات تحريرية للتصحيح` : `${sent.score} من 100`}`,
+      );
     },
-    [admin.id, exam, onSubmitted, questions],
+    [admin.id, exam, bank, onSubmitted, hall.center],
   );
 
   useEffect(() => {
     if (expired) submit(true);
   }, [expired, submit]);
 
-  const choose = (option: number) => {
-    actions.upsertAdmin(admin.id, { exam: { ...exam, answers: { ...answers, [q.id]: option } } });
+  const save = (value: number | string) => {
+    actions.upsertAdmin(admin.id, { exam: { ...exam, answers: { ...answers, [q.id]: value } } });
     setSaving("saving");
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => setSaving("saved"), 650);
   };
 
   const goTo = (i: number) => {
-    if (i < 0 || i >= questions.length) return;
+    if (i < 0 || i >= served.length) return;
     setDir(i > idx ? 1 : -1);
     setIdx(i);
   };
@@ -257,9 +366,10 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   const toggleFlag = () => setFlags((f) => (f.includes(q.id) ? f.filter((x) => x !== q.id) : [...f, q.id]));
 
   const onKey = (e: React.KeyboardEvent) => {
-    if (confirm) return;
+    // Typing a written answer is not a shortcut
+    if (confirm || (e.target as HTMLElement).tagName === "TEXTAREA") return;
     const n = Number(e.key);
-    if (n >= 1 && n <= q.options.length) choose(n - 1);
+    if (type !== "written" && n >= 1 && n <= q.options.length) save(n - 1);
     if (e.key === "ArrowLeft") goTo(idx + 1);
     if (e.key === "ArrowRight") goTo(idx - 1);
   };
@@ -267,10 +377,10 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   const mm = Math.floor(remaining / 60000);
   const ss = Math.floor((remaining % 60000) / 1000);
   const low = remaining < 2 * 60_000;
+  const sections = exam.paper ?? [];
 
   return (
     <div ref={container} className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-sand outline-none" tabIndex={-1} onKeyDown={onKey} role="application" aria-label="الامتحان الكتابي">
-      <ProctorDuringExam onInterrupt={onInterrupt} />
       {/* top bar */}
       <div className="sticky top-0 z-10 border-b border-gold/30 bg-green-dark text-white shadow-lg">
         <div className="bg-pattern pointer-events-none absolute inset-0 opacity-10" />
@@ -278,8 +388,8 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
           <div className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-xl bg-gold text-ink"><GraduationCap className="size-5" /></span>
             <div>
-              <p className="font-display font-bold">الامتحان الكتابي — موسم 1448</p>
-              <p className="text-xs text-white/70">{admin.name} — السؤال {idx + 1} من {questions.length}</p>
+              <p className="font-display font-bold">الامتحان الكتابي — {hall.center?.name ?? "موسم 1448"}</p>
+              <p className="text-xs text-white/70">{admin.name} — السؤال {idx + 1} من {served.length}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -304,7 +414,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
           </div>
         </div>
         <div className="h-1 bg-white/10">
-          <motion.div className="h-full bg-gold" animate={{ width: `${(answeredCount / questions.length) * 100}%` }} />
+          <motion.div className="h-full bg-gold" animate={{ width: `${(answeredCount / served.length) * 100}%` }} />
         </div>
       </div>
 
@@ -312,8 +422,12 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
         <div className="overflow-hidden rounded-[2rem] border border-gold/30 bg-white p-6 shadow-[0_30px_80px_-40px_rgba(2,21,38,.45)] md:p-10">
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={q.id} initial={{ opacity: 0, x: dir * -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: dir * 40 }} transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Badge tone="gold">{q.category}</Badge>
+              <p className="text-xs font-bold text-gold-dark">{section.name} — {section.weight}% من علامة الكتابي</p>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="flex flex-wrap gap-2">
+                  <Badge tone="gold">{QUESTION_TYPES[type]}</Badge>
+                  {type === "written" && <Badge tone="green">{pointsOf(q)} درجات</Badge>}
+                </span>
                 <button type="button" onClick={toggleFlag} aria-pressed={flags.includes(q.id)} className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold transition", flags.includes(q.id) ? "bg-maroon text-white" : "bg-sand text-ink-soft hover:bg-maroon/10 hover:text-maroon")}>
                   <Flag className={cn("size-4", flags.includes(q.id) && "fill-current")} /> {flags.includes(q.id) ? "معلَّم للمراجعة" : "علّم للمراجعة"}
                 </button>
@@ -327,36 +441,59 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
               <h2 className="mt-5 font-display text-xl font-bold leading-[1.7] text-ink md:text-2xl">
                 <span className="text-maroon">{idx + 1}.</span> {q.text}
               </h2>
-              <ul className="mt-6 space-y-3" role="radiogroup" aria-label="الخيارات">
-                {q.options.map((o, i) => {
-                  const on = answers[q.id] === i;
-                  return (
-                    <li key={o}>
+              {type === "written" ? (
+                <WrittenAnswer key={q.id} value={String(answers[q.id] ?? "")} onSave={save} />
+              ) : type === "truefalse" ? (
+                <div className="mt-6 grid grid-cols-2 gap-3" role="radiogroup" aria-label="صح أو خطأ">
+                  {TRUE_FALSE.map((o, i) => {
+                    const on = answers[q.id] === i;
+                    return (
                       <motion.button
+                        key={o}
                         type="button"
                         role="radio"
                         aria-checked={on}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => choose(i)}
-                        className={cn("flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-right transition", on ? "border-green-dark bg-green-dark/5 shadow-md" : "border-gold/40 hover:border-gold-dark hover:bg-sand")}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => save(i)}
+                        className={cn("flex items-center justify-center gap-3 rounded-2xl border-2 p-6 font-display text-2xl font-bold transition", on ? (i === 0 ? "border-green-dark bg-green-dark text-white" : "border-maroon bg-maroon text-white") : "border-gold/40 text-ink hover:border-gold-dark hover:bg-sand")}
                       >
-                        <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl font-bold transition", on ? "bg-green-dark text-gold" : "bg-sand text-ink-soft")}>
-                          {on ? <Check className="size-5" /> : ["أ", "ب", "ج", "د"][i]}
-                        </span>
-                        <span className="leading-7">{o}</span>
-                        <kbd className="mr-auto hidden rounded-md border border-gold/50 px-1.5 font-mono text-xs text-hint md:inline">{i + 1}</kbd>
+                        {i === 0 ? <CircleCheck className="size-7" /> : <CircleX className="size-7" />} {o}
                       </motion.button>
-                    </li>
-                  );
-                })}
-              </ul>
+                    );
+                  })}
+                </div>
+              ) : (
+                <ul className="mt-6 space-y-3" role="radiogroup" aria-label="الخيارات">
+                  {q.options.map((o, i) => {
+                    const on = answers[q.id] === i;
+                    return (
+                      <li key={o}>
+                        <motion.button
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          whileTap={{ scale: 0.99 }}
+                          onClick={() => save(i)}
+                          className={cn("flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-right transition", on ? "border-green-dark bg-green-dark/5 shadow-md" : "border-gold/40 hover:border-gold-dark hover:bg-sand")}
+                        >
+                          <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl font-bold transition", on ? "bg-green-dark text-gold" : "bg-sand text-ink-soft")}>
+                            {on ? <Check className="size-5" /> : ["أ", "ب", "ج", "د"][i]}
+                          </span>
+                          <span className="leading-7">{o}</span>
+                          <kbd className="mr-auto hidden rounded-md border border-gold/50 px-1.5 font-mono text-xs text-hint md:inline">{i + 1}</kbd>
+                        </motion.button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </motion.div>
           </AnimatePresence>
           <div className="mt-8 flex items-center justify-between gap-3 border-t border-gold-light pt-6">
             <Button variant="ghost" onClick={() => goTo(idx - 1)} disabled={idx === 0}>
               <ArrowRight className="size-4" /> السابق
             </Button>
-            {idx < questions.length - 1 ? (
+            {idx < served.length - 1 ? (
               <Button onClick={() => goTo(idx + 1)}>
                 التالي <ArrowLeft className="size-4" />
               </Button>
@@ -371,35 +508,39 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
         <aside className="space-y-4 lg:sticky lg:top-24">
           <div className="rounded-3xl border border-gold/30 bg-white p-5">
             <p className="text-sm font-bold text-green-dark">شبكة الأسئلة</p>
-            <div className="mt-3 grid grid-cols-5 gap-2">
-              {questions.map((x, i) => {
-                const answered = answers[x.id] !== undefined;
-                const flagged = flags.includes(x.id);
-                return (
-                  <button
-                    key={x.id}
-                    type="button"
-                    onClick={() => goTo(i)}
-                    aria-label={`السؤال ${i + 1}${answered ? " — مُجاب" : ""}${flagged ? " — معلَّم" : ""}`}
-                    className={cn(
-                      "relative grid aspect-square place-items-center rounded-xl text-sm font-bold transition",
-                      answered ? "bg-green-dark text-white" : "bg-sand text-ink-soft hover:bg-gold/30",
-                      i === idx && "ring-2 ring-gold-dark ring-offset-2",
-                    )}
-                  >
-                    {i + 1}
-                    {flagged && <span className="absolute -left-1 -top-1 size-3 rounded-full bg-maroon ring-2 ring-white" />}
-                  </button>
-                );
-              })}
-            </div>
+            {sections.map((s) => (
+              <div key={s.id} className="mt-3">
+                <p className="text-xs font-bold text-hint">{s.name} — {s.weight}%</p>
+                <div className="mt-1.5 grid grid-cols-5 gap-2">
+                  {served.map((x, i) =>
+                    x.section.id !== s.id ? null : (
+                      <button
+                        key={x.q.id}
+                        type="button"
+                        onClick={() => goTo(i)}
+                        aria-label={`السؤال ${i + 1}${answered(exam, x.q) ? " — مُجاب" : ""}${flags.includes(x.q.id) ? " — معلَّم" : ""}`}
+                        className={cn(
+                          "relative grid aspect-square place-items-center rounded-xl text-sm font-bold transition",
+                          answered(exam, x.q) ? "bg-green-dark text-white" : "bg-sand text-ink-soft hover:bg-gold/30",
+                          i === idx && "ring-2 ring-gold-dark ring-offset-2",
+                        )}
+                      >
+                        {typeOf(x.q) === "written" ? <PenLine className="size-4" /> : i + 1}
+                        {flags.includes(x.q.id) && <span className="absolute -left-1 -top-1 size-3 rounded-full bg-maroon ring-2 ring-white" />}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+            ))}
             <ul className="mt-4 space-y-1.5 text-xs text-ink-soft">
               <li className="flex items-center gap-2"><span className="size-3 rounded bg-green-dark" /> مُجاب ({answeredCount})</li>
-              <li className="flex items-center gap-2"><span className="size-3 rounded bg-sand ring-1 ring-gold" /> بلا إجابة ({questions.length - answeredCount})</li>
+              <li className="flex items-center gap-2"><span className="size-3 rounded bg-sand ring-1 ring-gold" /> بلا إجابة ({served.length - answeredCount})</li>
               <li className="flex items-center gap-2"><span className="size-3 rounded-full bg-maroon" /> للمراجعة ({flags.length})</li>
+              <li className="flex items-center gap-2"><PenLine className="size-3" /> سؤال تحريري</li>
             </ul>
           </div>
-          <p className="rounded-3xl bg-green-dark/6 p-4 text-xs leading-6 text-green-dark">اختصارات: الأرقام 1–4 للاختيار، والأسهم للتنقل.</p>
+          <p className="rounded-3xl bg-green-dark/6 p-4 text-xs leading-6 text-green-dark">اختصارات: الأرقام 1–4 للاختيار، والأسهم للتنقل. وقتك ووقت القاعة واحد: حين ينهي المشرف الامتحان يُرسل كما هو.</p>
         </aside>
       </div>
 
@@ -410,7 +551,7 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
           <p className="mt-2 text-ink-soft">لا يمكن الرجوع أو تعديل الإجابات بعد الإرسال.</p>
           <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
             <div className="rounded-2xl bg-green-light/10 p-3"><p className="font-display text-2xl font-bold text-green">{answeredCount}</p>مُجاب</div>
-            <div className="rounded-2xl bg-sand p-3"><p className="font-display text-2xl font-bold text-ink">{questions.length - answeredCount}</p>بلا إجابة</div>
+            <div className="rounded-2xl bg-sand p-3"><p className="font-display text-2xl font-bold text-ink">{served.length - answeredCount}</p>بلا إجابة</div>
             <div className="rounded-2xl bg-maroon/8 p-3"><p className="font-display text-2xl font-bold text-maroon">{flags.length}</p>للمراجعة</div>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -428,6 +569,36 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
         </div>
       </Modal>
     </div>
+  );
+}
+
+/** A written answer, kept as it is typed and saved a moment after the typing stops */
+function WrittenAnswer({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [text, setText] = useState(value);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  return (
+    <label className="mt-6 block">
+      <span className="mb-2 block text-sm font-bold text-ink-soft">إجابتك — يصححها مصحح مخوّل دون أن يرى اسمك</span>
+      <textarea
+        value={text}
+        rows={8}
+        onChange={(e) => {
+          const v = e.target.value;
+          setText(v);
+          window.clearTimeout(timer.current);
+          timer.current = window.setTimeout(() => onSave(v), 500);
+        }}
+        onBlur={() => {
+          window.clearTimeout(timer.current);
+          if (text !== value) onSave(text);
+        }}
+        className="w-full rounded-2xl border-2 border-gold/40 bg-white p-4 leading-8 text-ink outline-none transition focus:border-green-dark"
+        placeholder="اكتب إجابتك هنا بخطوات واضحة..."
+        aria-label="الإجابة التحريرية"
+      />
+      <span className="mt-1 block text-xs text-hint">{text.trim() ? text.trim().split(/\s+/).length : 0} كلمة</span>
+    </label>
   );
 }
 
@@ -461,11 +632,16 @@ function ScoreRing({ value, label, tone = "green", size = 150 }: { value: number
 function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void }) {
   const rules = useExamRules();
   const admin = useAdmin()!;
-  const questions = useExamQuestions(admin.profile?.positions[0] ?? "");
   const toast = useToast();
   const p = admin.profile!;
+  const exam = p.exam!;
+  const served = useServed(exam);
+  const hall = useMyHall(admin.id, p);
   const r = resultOf(p, rules);
-  const { correct, total } = scoreExam(p.exam!.answers, questions);
+  const pending = (exam.toGrade ?? []).filter((id) => exam.marks?.[id] === undefined);
+  const shown = r.written ?? exam.provisional ?? 0;
+  const autoQs = served.filter((x) => typeOf(x.q) !== "written");
+  const correct = autoQs.filter((x) => exam.answers[x.q.id] === x.q.answer).length;
   const [review, setReview] = useState(false);
   const [stars, setStars] = useState(0);
 
@@ -477,7 +653,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
 
   const simulateOral = () => {
     const at = Date.now();
-    const written = p.exam?.score ?? 0;
+    const written = exam.score ?? 0;
     const final = finalScoreWith(written, 84, rules);
     actions.upsertAdmin(admin.id, {
       oral: { score: 84, by: "ماهر عيسى", at, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
@@ -489,8 +665,21 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
     toast({ title: "نُشرت نتيجتك النهائية", body: `النتيجة: ${final} من 100`, icon: "📜", tone: "gold" });
   };
 
+  /** Demo: the grader marks the written answers (one point short of full on each) */
+  const simulateGrading = () => {
+    let e = exam;
+    for (const id of pending) {
+      const q = served.find((x) => x.q.id === id)?.q;
+      if (q) e = markedExam(e, id, Math.max(0, pointsOf(q) - 1), "ماهر عيسى");
+    }
+    actions.upsertAdmin(admin.id, { exam: e });
+    actions.logEvent({ actor: "ماهر عيسى", role: "موظف", action: "تصحيح الإجابات التحريرية (محاكاة)", target: `ورقة ${admin.id.slice(-4)}`, detail: `الكتابي ${e.score} من 100` });
+    toast({ title: "صُحّحت إجاباتك التحريرية", body: `علامة الكتابي: ${e.score} من 100`, icon: "✍️", tone: "gold" });
+  };
+
   const retake = () => {
     actions.upsertAdmin(admin.id, { exam: undefined, oral: undefined, resultPublishedAt: undefined });
+    if (hall.key) hallActions.reset(hall.key);
     logAdmin(admin.id, "إعادة الامتحان الكتابي (نسخة تجريبية)", `الإداري ${admin.id.slice(-3)}`);
   };
 
@@ -503,13 +692,15 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
             <span className="absolute inset-0 grid place-items-center text-green-dark"><ListChecks className="size-10" /></span>
           </div>
           <p className="mt-6 font-display text-2xl font-bold text-green-dark">نصحح إجاباتك تلقائياً...</p>
-          <p className="mt-1 text-hint">الأسئلة الموضوعية تُصحَّح فور الإرسال</p>
+          <p className="mt-1 text-hint">الأسئلة المؤتمتة تُصحَّح فور الإرسال، والتحريرية يصححها مصحح مخوّل</p>
         </div>
       </Card>
     );
   }
 
   const published = r.published && r.final !== undefined;
+  const tally = exam.tally ?? {};
+  const marks = exam.marks ?? {};
 
   return (
     <div className="space-y-6">
@@ -522,32 +713,72 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
         <Card className="md:p-8">
           <div className="flex items-center justify-between gap-3">
             <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark"><GraduationCap className="size-6 text-gold-dark" /> الامتحان الكتابي</h3>
-            <Badge tone={r.writtenPassed ? "green" : "maroon"}>{r.writtenPassed ? "اجتزت الحد الأدنى" : "دون الحد الأدنى"}</Badge>
+            {pending.length ? <Badge tone="gold">مبدئية — بانتظار التصحيح</Badge> : <Badge tone={r.writtenPassed ? "green" : "maroon"}>{r.writtenPassed ? "اجتزت الحد الأدنى" : "دون الحد الأدنى"}</Badge>}
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-6">
-            <ScoreRing value={r.written ?? 0} label="من 100" tone={r.writtenPassed ? "green" : "maroon"} />
+            <ScoreRing value={shown} label={pending.length ? "مبدئية من 100" : "من 100"} tone={pending.length ? "gold" : r.writtenPassed ? "green" : "maroon"} />
             <dl className="space-y-2 text-sm">
-              <div><dt className="inline text-hint">الإجابات الصحيحة: </dt><dd className="inline font-bold">{correct} من {total}</dd></div>
+              {autoQs.length > 0 && <div><dt className="inline text-hint">المؤتمتة الصحيحة: </dt><dd className="inline font-bold">{correct} من {autoQs.length}</dd></div>}
               <div><dt className="inline text-hint">الوزن في النتيجة: </dt><dd className="inline font-bold">{Math.round(rules.writtenWeight * 100)}%</dd></div>
-              <div><dt className="inline text-hint">المدة المستغرقة: </dt><dd className="inline font-bold">{Math.max(1, Math.round(((p.exam!.submittedAt ?? 0) - p.exam!.startedAt) / 60000))} دقيقة</dd></div>
+              <div><dt className="inline text-hint">المدة المستغرقة: </dt><dd className="inline font-bold">{Math.max(1, Math.round(((exam.submittedAt ?? 0) - exam.startedAt) / 60000))} دقيقة</dd></div>
+              {hall.center && <div><dt className="inline text-hint">القاعة: </dt><dd className="inline font-bold">{hall.center.name}</dd></div>}
             </dl>
           </div>
-          <p className="mt-5 rounded-2xl bg-sand p-4 text-xs leading-6 text-ink-soft">في المنصة الفعلية لا تظهر النتيجة إلا بعد اعتماد نتائج الكتابي لجميع المتقدمين، لضمان تصحيح الأسئلة المفتوحة للجميع بمعيار واحد.</p>
+
+          {(exam.paper?.length ?? 0) > 0 && (
+            <ul className="mt-6 space-y-3">
+              {exam.paper!.map((s) => {
+                const t = tally[s.id] ?? { earned: 0, possible: 0 };
+                const earned = t.earned + s.ids.reduce((a, id) => a + (exam.toGrade?.includes(id) ? (marks[id] ?? 0) : 0), 0);
+                const waiting = s.ids.some((id) => pending.includes(id));
+                const pct = t.possible ? Math.round((earned / t.possible) * 100) : 0;
+                return (
+                  <li key={s.id}>
+                    <div className="flex items-baseline justify-between gap-2 text-sm">
+                      <span className="font-bold">{s.name} <span className="font-normal text-hint">— {s.weight}%</span></span>
+                      <span className="tabular-nums text-ink-soft">
+                        {earned} من {t.possible} درجة{waiting && <span className="text-gold-dark"> — تحريري قيد التصحيح</span>}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-sand">
+                      <motion.div className={cn("h-full rounded-full", waiting ? "bg-gold" : "bg-green-light")} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {pending.length > 0 && (
+            <div className="mt-5 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
+              علامتك المبدئية {exam.provisional} من 100 تحسب {pending.length === 1 ? "إجابتك التحريرية" : `إجاباتك التحريرية الـ${pending.length}`} صفراً حتى يصححها مصحح مخوّل في شؤون الإداريين، دون أن يرى اسمك. تكتمل علامة الكتابي بعد التصحيح.
+              <SimButton className="mt-3" onClick={simulateGrading}>محاكاة: يصحح المصحح الإجابات التحريرية</SimButton>
+            </div>
+          )}
+
           <button type="button" onClick={() => setReview((v) => !v)} className="mt-4 flex items-center gap-1.5 text-sm font-bold text-green-dark">
             مراجعة الإجابات <ChevronDown className={cn("size-4 transition", review && "rotate-180")} />
           </button>
           <AnimatePresence initial={false}>
             {review && (
               <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                {questions.map((q, i) => {
-                  const ok = p.exam!.answers[q.id] === q.answer;
+                {served.map(({ q }, i) => {
+                  const written = typeOf(q) === "written";
+                  const ok = !written && exam.answers[q.id] === q.answer;
                   return (
                     <li key={q.id} className="mt-3 rounded-2xl border border-gold/30 p-3 text-sm">
                       <p className="flex items-start gap-2 font-semibold">
-                        {ok ? <CircleCheck className="mt-0.5 size-5 shrink-0 text-green-light" /> : <CircleX className="mt-0.5 size-5 shrink-0 text-maroon" />}
+                        {written ? <PenLine className="mt-0.5 size-5 shrink-0 text-gold-dark" /> : ok ? <CircleCheck className="mt-0.5 size-5 shrink-0 text-green-light" /> : <CircleX className="mt-0.5 size-5 shrink-0 text-maroon" />}
                         {i + 1}. {q.text}
                       </p>
-                      <p className="mr-7 mt-1 text-green">الصحيح: {q.options[q.answer]}</p>
+                      {written ? (
+                        <>
+                          <p className="mr-7 mt-1 whitespace-pre-line rounded-xl bg-sand p-2 text-xs leading-6">{String(exam.answers[q.id] ?? "") || "— لم تُجب —"}</p>
+                          <p className="mr-7 mt-1 text-xs font-bold text-green">{marks[q.id] !== undefined ? `درجتك: ${marks[q.id]} من ${pointsOf(q)}` : exam.toGrade?.includes(q.id) ? "قيد التصحيح" : `0 من ${pointsOf(q)}`}</p>
+                        </>
+                      ) : (
+                        <p className="mr-7 mt-1 text-green">الصحيح: {q.options[q.answer]}</p>
+                      )}
                       <p className="mr-7 mt-0.5 text-xs leading-5 text-ink-soft">{q.explanation}</p>
                     </li>
                   );
@@ -555,7 +786,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
               </motion.ul>
             )}
           </AnimatePresence>
-          {!r.writtenPassed && (
+          {!pending.length && !r.writtenPassed && (
             <div className="mt-6 rounded-2xl bg-maroon/6 p-4">
               <p className="text-sm leading-7 text-maroon">لم تبلغ الحد الأدنى ({rules.writtenMin}) في الكتابي، فلا تنتقل إلى الشفهي هذا الموسم.</p>
               <SimButton className="mt-3" onClick={retake}><RotateCcw className="size-4" /> إعادة المحاولة (للتجربة فقط)</SimButton>
@@ -580,6 +811,8 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
                 {p.oral?.note && <div><dt className="inline text-hint">ملاحظات اللجنة: </dt><dd className="inline font-bold">«{p.oral.note}»</dd></div>}
               </dl>
             </motion.div>
+          ) : pending.length ? (
+            <p className="mt-6 rounded-2xl bg-sand p-4 text-sm text-ink-soft">يُحدَّد بعد اكتمال علامة الكتابي: من بلغ فيه {rules.writtenMin} يُستدعى إلى الشفهي.</p>
           ) : r.writtenPassed ? (
             <div className="mt-6 rounded-3xl border-2 border-dashed border-gold-dark/50 bg-gold/10 p-6 text-center">
               <motion.span animate={{ rotate: [0, 180, 180, 360] }} transition={{ repeat: Infinity, duration: 3, times: [0, 0.4, 0.6, 1] }} className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-gold-dark">

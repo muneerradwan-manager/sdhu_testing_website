@@ -15,7 +15,7 @@ import { Gate, Kpi, PageHeader, Panel, Tabs, canAny, logAs, smallInputClass, tex
 type Tab = "roles" | "requirements" | "catalog" | "stages" | "calendar";
 
 /** The rules that belong to «إدارة الامتحان»: this page neither counts nor resets them */
-const EXAM_KEYS: readonly (keyof AdminRules)[] = ["exam", "questionsOff", "questionEdits", "questionRoles"];
+const EXAM_KEYS: readonly (keyof AdminRules)[] = ["exam", "blueprints", "questionsAdded", "questionsOff", "questionEdits", "questionRoles"];
 
 const CHIP = {
   green: "bg-green-light/25 text-white ring-green-light/40",

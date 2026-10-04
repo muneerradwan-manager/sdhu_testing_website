@@ -44,6 +44,7 @@ import {
 } from "../../_lib/admin";
 import { AdminShell, ReceiptCard } from "../../_components/ui";
 import { useCommitments, useDocTypes, useRoleRequirements, useRoles } from "../../_lib/admin-rules";
+import { useMyHall } from "../../_lib/halls";
 import { DocumentsStep, SkillsStep, attachedDocs, useDemand, useRecord } from "./record";
 
 /**
@@ -479,6 +480,7 @@ function EligibleSummary() {
   const admin = useAdmin()!;
   const p = admin.profile!;
   const rows = useEligibilityRows(p.positions[0], p.renewal, recordOf(p, admin.id));
+  const hall = useMyHall(admin.id, p);
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
       <Card className="relative overflow-hidden">
@@ -489,7 +491,7 @@ function EligibleSummary() {
           <p className="mt-3 max-w-xl leading-8 text-ink-soft">
             {p.examExempt
               ? `الصفة نفسها التي شغلتها الموسم الماضي بتقييم مستوفٍ، فلا امتحان هذا الموسم وفق شروط الإدارة. رسم الموسم مسدد، وتنتقل مباشرة إلى ${positionLabelOf(p.positions[0]) === "رئيس مجموعة" ? "طلب تشكيل المجموعة (برسمه)" : "التعيين في مجموعتك"}.`
-              : <>أنت مؤهل لصفة <b>{positionLabelOf(p.positions[0] ?? "")}</b> والرسم مسدد. موعد الامتحان الكتابي: <b>15 ربيع الآخر، الساعة 09:00</b>، على المنصة — من منزلك أو من قاعة مراقبة إذا قررت الإدارة ذلك.</>}
+              : <>أنت مؤهل لصفة <b>{positionLabelOf(p.positions[0] ?? "")}</b> والرسم مسدد. امتحانك الكتابي: <b>{hall.session?.date}، الساعة {hall.session?.time}</b>، في <b>{hall.center ? `${hall.center.name} — ${hall.center.hall}` : "المركز الامتحاني الذي تُسندك إليه شؤون الإداريين"}</b>، جماعياً مع كل المتقدمين لصفتك. احضر بهويتك، وتفتح حسابك في القاعة بإشراف مشرفها.</>}
           </p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {rows.filter((r) => r.ok).map((r) => (
@@ -502,7 +504,7 @@ function EligibleSummary() {
             </li>
           </ul>
           <ButtonLink href={p.examExempt ? "/administrator/group" : "/administrator/exam"} size="xl" variant="gold" className="mt-8">
-            {p.examExempt ? "متابعة إلى مجموعتي" : "الدخول إلى الامتحان الكتابي"} <ArrowLeft className="size-6" />
+            {p.examExempt ? "متابعة إلى مجموعتي" : "قاعتي وموعد امتحاني"} <ArrowLeft className="size-6" />
           </ButtonLink>
         </div>
       </Card>

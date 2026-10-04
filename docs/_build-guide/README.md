@@ -4,7 +4,7 @@
 
 ## التشغيل
 0. لإعادة كل لقطات دليل الإداري ودليل الموظف دفعة واحدة: `PY=<بايثون فيه Playwright> ./recapture_all.sh` — يحسب كل تشغيل نقطة استئنافه من ملف الـmanifest، فلا تُعدَّل الأرقام يدوياً إذا زادت لقطة أو نقصت. يعمل على Windows وعلى الماك (Chrome المثبت + `pip install playwright python-docx pillow`).
-1. شغّل الموقع: `npm run build && npx next start -p 3001` داخل `sdhu_testing_website`.
+1. شغّل الموقع: `npm run build && npx next start -p 3001` داخل `sdhu_testing_website`. ولالتقاط نسخة ثانية في الوقت نفسه شغّلها على منفذ آخر ومرّر `CAP_BASE=http://localhost:<المنفذ>`.
 2. الالتقاط (المتغير `CAP_DIR` يحدد مجلد اللقطات، والرقم = عدد اللقطات المحفوظة قبل إعادة التشغيل):
    - الحاج: `run1.py` ثم `run2.py 42` … (انظر تاريخ الجلسة)، في المجلد الجذري.
    - الإداري: `CAP_DIR=admin python adm_a.py 0` ← `adm_b.py 35` ← `adm_c.py 75 ret|head|deputy|tech|members`.

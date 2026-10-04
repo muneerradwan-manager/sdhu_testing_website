@@ -84,11 +84,15 @@ export type Review = { status: "approved" | "rejected"; note: string; by: string
  * defaults the platform ships with.
  */
 export type AdminRules = {
-  exam?: Partial<{ minutes: number; questions: number; passMark: number; writtenMin: number; writtenWeight: number }>;
+  exam?: Partial<{ passMark: number; writtenMin: number; writtenWeight: number }>;
+  /** Each role's exam as the administration built it: its duration and its weighted sections (lib/data/admin-exam) */
+  blueprints?: Record<string, import("./data/admin-exam").ExamBlueprint>;
+  /** Questions the administration wrote this season, of any type */
+  questionsAdded?: import("./data/admin-exam").ExamQuestion[];
   /** Questions taken out of the bank this season */
   questionsOff?: number[];
   /** Questions whose wording, options, answer or explanation the administration edited */
-  questionEdits?: Record<number, { text?: string; options?: string[]; answer?: number; explanation?: string }>;
+  questionEdits?: Record<number, { text?: string; options?: string[]; answer?: number; explanation?: string; points?: number }>;
   /** Questions moved to other roles' exams: question id -> the roles whose exam includes it */
   questionRoles?: Record<number, string[]>;
   /** Roles closed this season, and edited descriptions */
@@ -281,8 +285,28 @@ export type AdminProfile = {
   feePaidAt?: number;
   receipt?: string;
   eligibleAt?: number;
-  /** `interruptions`: how many times the camera or the microphone stopped during the exam */
-  exam?: { startedAt: number; submittedAt?: number; answers: Record<number, number>; score?: number; interruptions?: number };
+  /**
+   * The written exam, sat in the hall of his centre (`hall`, see examHalls). `paper` is what he was served,
+   * section by section; `answers` an option's index, or a written answer's text. At sending, `tally` keeps
+   * the automated points and `toGrade` the written answers a grader marks (`marks`). `score` is the
+   * written mark once nothing is left to grade; until then `provisional` counts the ungraded as 0.
+   */
+  exam?: {
+    startedAt: number;
+    submittedAt?: number;
+    hall?: string;
+    /** The role's duration when the hall started, so a change to the exam does not move his clock */
+    minutes?: number;
+    paper?: import("./data/admin-exam").PaperSection[];
+    answers: Record<number, number | string>;
+    tally?: import("./data/admin-exam").Tally;
+    toGrade?: number[];
+    marks?: Record<number, number>;
+    gradedBy?: string;
+    gradedAt?: number;
+    provisional?: number;
+    score?: number;
+  };
   /** The final is never stored: it follows the season's exam rules (resultOf) */
   oral?: { score: number; by: string; at: number; note?: string };
   resultPublishedAt?: number;
@@ -409,7 +433,34 @@ export type State = {
   ops: import("./ops").OpsState;
   /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
   flights: import("./flights").FlightsState;
+  /** The written exam's halls: who supervises each centre, who sits where, and each sitting as its supervisor runs it */
+  examHalls: ExamHalls;
   tourSeen: boolean;
+};
+
+/**
+ * One sitting of a role's exam in one centre, keyed `${role}@${centre}`. Its supervisor opens the hall,
+ * confirms each applicant who opened his account there (`joined` → `present`), starts the exam for all
+ * of them at once, ends it (every paper is sent) and closes the hall; whoever never came is absent.
+ */
+export type HallRun = {
+  openedAt?: number;
+  openedBy?: string;
+  startedAt?: number;
+  endedAt?: number;
+  closedAt?: number;
+  joined: Record<string, number>;
+  present: Record<string, number>;
+};
+
+export type ExamHalls = {
+  /** centre id -> the staff account supervising its hall (an empty string takes the default away) */
+  supervisors?: Record<string, string>;
+  /** applicants the exam desk moved to another centre than their governorate's: national id -> centre id */
+  moved?: Record<string, string>;
+  /** each role's sitting, when the desk changed it: role key -> date and time */
+  sessions?: Record<string, { date: string; time: string }>;
+  runs: Record<string, HallRun>;
 };
 
 export type StoreState = State;
@@ -439,6 +490,7 @@ const initial: State = {
   evaluations: {},
   ops: {},
   flights: {},
+  examHalls: { runs: {} },
   tourSeen: false,
 };
 

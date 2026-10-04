@@ -12,6 +12,7 @@ import {
   Contact,
   Database,
   Dices,
+  DoorOpen,
   FileStack,
   GraduationCap,
   Layers,
@@ -32,14 +33,17 @@ import { useToast } from "@/components/ui/widgets";
 import { PERMISSION_LABELS, type Permission, type StaffUser } from "@/lib/staff";
 import { actions, useHydrated } from "@/lib/store";
 import { cn, hijriDate, samePath } from "@/lib/utils";
+import { useHalls } from "@/app/administrator/_lib/halls";
 import { useReviewQueue, useTicketQueue } from "./data";
 import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
 
-type NavItem = { href: string; label: string; icon: ReactNode; perms: Permission[]; badge?: "reviews" | "tickets" };
+/** `hall`: shown to whoever the exam desk assigned to a centre's hall, whatever his permissions */
+type NavItem = { href: string; label: string; icon: ReactNode; perms: Permission[]; badge?: "reviews" | "tickets" | "hall"; hall?: true };
 
 export const STAFF_NAV: NavItem[] = [
   { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [] },
   { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
+  { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: [], hall: true, badge: "hall" },
   { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
   { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: ["season.settings"] },
   { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
@@ -137,14 +141,20 @@ function Sidebar({ user }: { user: StaffUser }) {
   const [showPerms, setShowPerms] = useState(false);
   const reviews = useReviewQueue();
   const tickets = useTicketQueue();
+  const halls = useHalls();
+  const myCenters = halls.centersOf(user.id);
   const counts = useMemo(
     () => ({
       reviews: reviews.filter((r) => !r.review).length,
       tickets: tickets.filter((t) => t.status !== "resolved").length,
+      // Applicants who opened their account in one of my open halls and wait for me to confirm them
+      hall: Object.entries(halls.runs)
+        .filter(([k, r]) => myCenters.some((c) => k.endsWith(`@${c.id}`)) && !r.endedAt && !r.closedAt)
+        .reduce((a, [, r]) => a + Object.keys(r.joined).filter((id) => !r.present[id]).length, 0),
     }),
-    [reviews, tickets],
+    [reviews, tickets, halls.runs, myCenters],
   );
-  const items = STAFF_NAV.filter((n) => canAny(user, n.perms));
+  const items = STAFF_NAV.filter((n) => (n.hall ? myCenters.length > 0 : canAny(user, n.perms)));
 
   const logout = () => {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });

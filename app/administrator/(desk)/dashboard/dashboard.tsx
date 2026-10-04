@@ -21,20 +21,23 @@ import { useMemo } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
-import { weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
+import { questionCount, weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
 import { ageOf } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { SKILLS, docState, effectiveRole, journeyOf, logAdmin, positionLabelOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
-import { useExamRules } from "../../_lib/admin-rules";
+import { useBlueprints, useExamRules } from "../../_lib/admin-rules";
+import { useMyHall } from "../../_lib/halls";
 import { clusterGroupsOf } from "../../_lib/cluster";
 import { AdminShell } from "../../_components/ui";
 
+type Written = { date: string; time: string; questions: number; minutes: number; center?: string };
+
 /** The next step's card; the exam's numbers are the season's, as the administration left them */
-const nextSteps = (rules: ExamNumbers): Record<string, { title: string; text: string; cta: string }> => ({
+const nextSteps = (rules: ExamNumbers, w: Written): Record<string, { title: string; text: string; cta: string }> => ({
   apply: { title: "سجّل لموسم 1448", text: "التسجيل يتجدد كل موسم: حدّث وثائقك ومهاراتك، واختر صفة واحدة يستوفي ملفك شروطها، ووافق على الالتزامات. تتحقق المنصة من أهليتك قبل أن تدفع.", cta: "ابدأ الطلب" },
   fee: { title: "أنت مؤهل — بقي رسم التسجيل", text: "استوفى ملفك شروط الصفة التي اخترتها. سدّد رسم 30 $ ليُقدَّم طلبك.", cta: "تسديد الرسم" },
-  written: { title: "الامتحان الكتابي جاهز", text: `${rules.questions} سؤالاً — ${rules.minutes} دقيقة — تُحفظ الإجابات تلقائياً، ولا رجوع بعد الإرسال.`, cta: "الدخول إلى الامتحان" },
+  written: { title: "امتحانك الكتابي في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: امتحان جماعي لصفتك، ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر بهويتك، وافتح حسابك في القاعة بعد أن يفتحها المشرف.`, cta: "قاعتي وموعدي" },
   oral: { title: "بانتظار نتيجة الامتحان الشفهي", text: "تُدخل لجنة الامتحانات (ماهر عيسى) النتيجة على المنصة بعد مقابلتك.", cta: "متابعة النتيجة" },
   result: { title: "نتيجتك النهائية", text: `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.`, cta: "عرض النتيجة" },
   group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة واختيار الفريق ورسم 200 $ — حتى 25 جمادى الأولى. التكتل مرحلة لاحقة بعد انتخاب رؤساء التكتلات.", cta: "طلب تشكيل مجموعة" },
@@ -54,7 +57,13 @@ export function AdminDashboard() {
   const events = useStore((s) => s.events);
   const joinCount = Object.keys(profile?.joinDecisions ?? {}).length;
   const rules = useExamRules();
-  const steps = useMemo(() => journeyOf(profile, rules, joinCount), [profile, rules, joinCount]);
+  const hall = useMyHall(admin.id, profile);
+  const blueprint = useBlueprints()[hall.role];
+  const written = useMemo<Written>(
+    () => ({ date: hall.session?.date ?? "", time: hall.session?.time ?? "", questions: blueprint ? questionCount(blueprint) : 0, minutes: blueprint?.minutes ?? 0, center: hall.center?.name }),
+    [hall.session, hall.center, blueprint],
+  );
+  const steps = useMemo(() => journeyOf(profile, rules, joinCount, written), [profile, rules, joinCount, written]);
   const current = steps.find((s) => s.state === "current");
   const done = steps.filter((s) => s.state === "done").length;
   const result = resultOf(profile, rules);
@@ -62,7 +71,7 @@ export function AdminDashboard() {
   const mine = useMemo(() => events.filter((e) => e.actor === admin.name).slice(-7).reverse(), [events, admin.name]);
   const history = seasonHistory(admin.id);
   const record = recordOf(profile, admin.id);
-  const next = current ? nextSteps(rules)[current.key] : null;
+  const next = current ? nextSteps(rules, written)[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = clusterGroupsOf(profile, admin.name).length;
   const status1448 = profile?.deputyOf

@@ -39,7 +39,7 @@ const AREAS: { title: string; text: string; icon: LucideIcon; perms: Permission[
   { title: "مراجعة الطلبات", text: "ما لا تحسمه المنصة آلياً من طلبات الحجاج: اسم أم غير مطابق، أو صلة قرابة غير مؤكدة.", icon: ClipboardCheck, perms: ["registration.review"] },
   { title: "إعدادات الموسم", text: "الحصة والأعمار والرسوم والأقساط، تُطبَّق فوراً على طلبات الحجاج وفحص أهليتهم.", icon: Settings2, perms: ["season.settings"] },
   { title: "القبول والقرعة", text: "الأعمار المقبولة مباشرة، وإحصاء التسجيل الأولي على القرعة، وإدخال ما سُحب في البث، ثم الاعتماد والنشر.", icon: Dices, perms: ["lottery.import", "lottery.approve"] },
-  { title: "إدارة الامتحان", text: "امتحان تأهيل الإداريين: النتائج والشفهي وإعلانها، وقواعد الامتحان وبنك أسئلته.", icon: GraduationCap, perms: ["administrators.manage", "season.settings", "groups.approve"] },
+  { title: "إدارة الامتحان", text: "امتحان تأهيل الإداريين: المراكز وقاعاتها ومشرفوها، وأقسام كل امتحان وبنك أسئلته، وتصحيح التحريري، والنتائج والشفهي.", icon: GraduationCap, perms: ["administrators.manage", "season.settings", "groups.approve"] },
   { title: "الإداريون وقواعدهم", text: "اعتماد المجموعات، وتقييم الإداريين وملفاتهم الدائمة، وشروط كل صفة وقوائم الشهادات والمهارات واللغات.", icon: UsersRound, perms: ["administrators.manage", "groups.approve", "administrators.catalog"] },
   { title: "الطيران", text: "الرحلات ومقاعدها، ووضع المجموعات عليها كاملة، وتسجيل الإقلاع والهبوط.", icon: Plane, perms: ["flights.manage", "flights.view"] },
   { title: "غرفة العمليات", text: "خريطة المشاعر والبلاغات الحية، وزمن الاستجابة لكل بلاغ حتى إغلاقه.", icon: RadioTower, perms: ["operations.room"] },

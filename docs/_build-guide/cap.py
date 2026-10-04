@@ -4,7 +4,8 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 sys.stdout.reconfigure(encoding="utf-8")
-BASE = "http://localhost:3001"
+# CAP_BASE: another build served elsewhere (two captures running side by side)
+BASE = __import__("os").environ.get("CAP_BASE", "http://localhost:3001")
 ROOT = Path(__file__).parent
 import os
 OUTDIR = ROOT / os.environ.get("CAP_DIR", ".")

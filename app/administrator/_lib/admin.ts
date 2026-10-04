@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, finalScoreWith, questionsForRole, scoreExam, weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
+import { DEFAULT_BLUEPRINTS, EXAM_QUESTIONS, drawPaper, finalScoreWith, markPaper, pointsOf, typeOf, weightsLabel, withMarks, type ExamNumbers } from "@/lib/data/admin-exam";
 import { ageOf, fullName, getPerson, type Person } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
@@ -294,7 +294,7 @@ export const ADMIN_CALENDAR = [
   { hijri: "5 ربيع الأول", title: "فتح إنشاء حسابات الإداريين", detail: "الرقم الوطني ورمز التحقق والشؤون المدنية" },
   { hijri: "10 ربيع الأول – 1 ربيع الآخر", title: "طلب المشاركة والتحقق من الأهلية", detail: "يتجدد كل موسم: الوثائق والمهارات، ثم صفة واحدة يستوفي ملفك شروطها في جدول الإدارة، ثم الالتزامات، ثم التحقق من الأهلية آلياً" },
   { hijri: "10 ربيع الأول – 1 ربيع الآخر", title: "رسم التسجيل", detail: "30 $ — يُدفع بعد ثبوت الأهلية فقط، فلا يدفع أحد رسماً عن صفة لا يستوفي شروطها" },
-  { hijri: "15 ربيع الآخر — 09:00", title: "الامتحان الكتابي المؤتمت", detail: "لمن يتقدم لصفة جديدة أو لأول مرة — من يجدد صفته بتقييم مستوفٍ معفى" },
+  { hijri: "15 – 18 ربيع الآخر", title: "الامتحان الكتابي في القاعات", detail: "جماعي لكل صفة في يومها، في قاعة المركز الامتحاني لمحافظتك، على حسابك الذي تفتحه هناك بإشراف مشرف القاعة — من يجدد صفته بتقييم مستوفٍ معفى" },
   { hijri: "1 جمادى الأولى", title: "الامتحان الشفهي", detail: "أمام لجنة من ثلاثة أعضاء — تُدخل النتيجة على المنصة" },
   { hijri: "10 جمادى الأولى", title: "النتيجة النهائية وإعلان الناجحين", detail: "الكتابي 60% + الشفهي 40% — النجاح من 70" },
   { hijri: "11 – 25 جمادى الأولى", title: "طلبات تشكيل المجموعات (دون تكتل)", detail: "رسم تشكيل المجموعة 200 $ — اعتماد مدير المكتب — ميثاق الفريق" },
@@ -433,7 +433,8 @@ export function resultOf(p: AdminProfile | undefined, rules: ExamNumbers) {
 export type StepState = "done" | "current" | "locked";
 export type JourneyStep = { key: string; title: string; date: string; href: string; detail: string; state: StepState };
 
-export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinCount = 0): JourneyStep[] {
+/** `written`: his role's sitting and paper this season (useMyHall, useBlueprints) */
+export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinCount = 0, written?: { date: string; questions: number; minutes: number; center?: string }): JourneyStep[] {
   const r = resultOf(p, rules);
   const g = p?.group;
   // The election and the cluster request belong to group heads (and the cluster roles they become).
@@ -444,7 +445,7 @@ export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinC
     { key: "account", title: "إنشاء الحساب الإداري", date: "5 ربيع الأول", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
     { key: "apply", title: "طلب المشاركة والتحقق من الأهلية", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
     { key: "fee", title: "رسم التسجيل", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
-    { key: "written", title: "الامتحان الكتابي", date: "15 ربيع الآخر", href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : `${rules.questions} سؤالاً — ${rules.minutes} دقيقة`, done: r.exempt || !!p?.exam?.submittedAt },
+    { key: "written", title: "الامتحان الكتابي", date: (written?.date ?? "15 ربيع الآخر 1448").replace(" 1448", ""), href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : p?.exam?.submittedAt ? "أُرسل — بانتظار تصحيح الأسئلة التحريرية" : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || !!p?.exam?.submittedAt },
     { key: "oral", title: "الامتحان الشفهي", date: "1 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
     { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : weightsLabel(rules), done: !!r.published && r.passed },
     teamMember
@@ -480,11 +481,28 @@ export function useAdmin() {
   }, [id, profile]);
 }
 
-/** ورقة امتحان كتابي ناجحة في امتحان صفته: كلها صحيحة إلا السؤالين الثالث والحادي عشر */
-function passedExam(position: string) {
-  const paper = questionsForRole(EXAM_QUESTIONS, position).slice(0, EXAM_RULES.questions);
-  const answers = Object.fromEntries(paper.map((q, i) => [q.id, i === 2 || i === 10 ? (q.answer + 1) % q.options.length : q.answer]));
-  return { answers, written: scoreExam(answers, paper).score };
+/**
+ * ورقة امتحان كتابي ناجحة في امتحان صفته كما تطلقه المنصة: المؤتمتة صحيحة إلا الثالث والعاشر منها،
+ * والتحريري صحّحه المصحح بدرجة دون العلامة الكاملة بدرجة
+ */
+function passedExam(id: string, position: string, startedAt: number, submittedAt: number): NonNullable<AdminProfile["exam"]> {
+  const bank = EXAM_QUESTIONS;
+  const byId = new Map(bank.map((q) => [q.id, q]));
+  const paper = drawPaper(bank, DEFAULT_BLUEPRINTS[position] ?? DEFAULT_BLUEPRINTS["group-head"], position, id);
+  const ids = paper.flatMap((s) => s.ids);
+  const auto = ids.filter((qid) => typeOf(byId.get(qid)!) !== "written");
+  const answers = Object.fromEntries(
+    ids.map((qid) => {
+      const q = byId.get(qid)!;
+      if (typeOf(q) === "written") return [qid, "أجبت بالخطوات المطلوبة بترتيبها، وذكرت من أُبلغ في كل خطوة."];
+      const i = auto.indexOf(qid);
+      return [qid, i === 2 || i === 9 ? (q.answer + 1) % q.options.length : q.answer];
+    }),
+  );
+  const { tally, toGrade } = markPaper(paper, bank, answers);
+  const marks = Object.fromEntries(toGrade.map((qid) => [qid, pointsOf(byId.get(qid)!) - 1]));
+  const { score } = withMarks(paper, tally, toGrade, marks);
+  return { startedAt, submittedAt, paper, answers, tally, toGrade, marks, gradedBy: "ماهر عيسى", gradedAt: submittedAt + 5 * 60_000, provisional: score, score };
 }
 
 /**
@@ -507,7 +525,6 @@ export function demoAdminLogin(
   // ملف مكتمل حتى آخر مرحلة، فتظهر كل شاشات الصفة: حجاج المجموعة والملفات الصحية والميدان
   if (mode !== "start") {
     const position = demo?.position ?? "group-head";
-    const { answers, written } = passedExam(position);
     const tech = position === "tech";
     // One role per season. Same role as the last season served, with the rating: renewed without exams
     const last = lastServed(id);
@@ -525,7 +542,7 @@ export function demoAdminLogin(
       feePaidAt: now - 88 * min,
       receipt: adminReceipt(id, "A"),
       eligibleAt: now - 80 * min,
-      exam: keep ? undefined : { startedAt: now - 70 * min, submittedAt: now - 55 * min, answers, score: written },
+      exam: keep ? undefined : passedExam(id, position, now - 70 * min, now - 55 * min),
       oral: keep
         ? undefined
         : tech

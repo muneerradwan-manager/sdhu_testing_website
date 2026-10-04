@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, questionsForRole, type ExamNumbers, type ExamQuestion } from "@/lib/data/admin-exam";
+import { DEFAULT_BLUEPRINTS, EXAM_QUESTIONS, EXAM_RULES, type ExamBlueprint, type ExamNumbers, type ExamQuestion } from "@/lib/data/admin-exam";
 import { useStore } from "@/lib/store";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
 import { useSeason } from "@/lib/season-live";
@@ -21,8 +21,6 @@ export function useExamRules(): ExamRules {
     const writtenWeight = o?.writtenWeight ?? EXAM_RULES.writtenWeight;
     return {
       ...EXAM_RULES,
-      minutes: o?.minutes ?? EXAM_RULES.minutes,
-      questions: o?.questions ?? EXAM_RULES.questions,
       passMark: o?.passMark ?? EXAM_RULES.passMark,
       writtenMin: o?.writtenMin ?? EXAM_RULES.writtenMin,
       writtenWeight,
@@ -32,7 +30,7 @@ export function useExamRules(): ExamRules {
 }
 
 /** One question as the administration left it */
-export function mergeQuestion(q: ExamQuestion, edit?: { text?: string; options?: string[]; answer?: number; explanation?: string }): ExamQuestion {
+export function mergeQuestion(q: ExamQuestion, edit?: { text?: string; options?: string[]; answer?: number; explanation?: string; points?: number }): ExamQuestion {
   if (!edit) return q;
   return {
     ...q,
@@ -40,25 +38,32 @@ export function mergeQuestion(q: ExamQuestion, edit?: { text?: string; options?:
     options: edit.options ?? q.options,
     answer: edit.answer ?? q.answer,
     explanation: edit.explanation ?? q.explanation,
+    points: edit.points ?? q.points,
   };
+}
+
+/** Every question this season, the platform's and those the administration wrote, withdrawn ones included */
+export function useAllQuestions(): ExamQuestion[] {
+  const added = useStore((s) => s.adminRules.questionsAdded);
+  const edits = useStore((s) => s.adminRules.questionEdits);
+  const roles = useStore((s) => s.adminRules.questionRoles);
+  return useMemo(
+    () => [...EXAM_QUESTIONS, ...(added ?? [])].map((q) => ({ ...mergeQuestion(q, edits?.[q.id]), roles: roles?.[q.id] ?? q.roles })),
+    [added, edits, roles],
+  );
 }
 
 /** The bank this season: the questions still in it, with the administration's wording and the roles it gave each */
 export function useExamBank(): ExamQuestion[] {
+  const all = useAllQuestions();
   const off = useStore((s) => s.adminRules.questionsOff);
-  const edits = useStore((s) => s.adminRules.questionEdits);
-  const roles = useStore((s) => s.adminRules.questionRoles);
-  return useMemo(
-    () => EXAM_QUESTIONS.filter((q) => !off?.includes(q.id)).map((q) => ({ ...mergeQuestion(q, edits?.[q.id]), roles: roles?.[q.id] ?? q.roles })),
-    [off, edits, roles],
-  );
+  return useMemo(() => all.filter((q) => !off?.includes(q.id)), [all, off]);
 }
 
-/** One role's exam this season: the bank's questions for that role, cut to the season's count */
-export function useExamQuestions(roleKey: string): ExamQuestion[] {
-  const bank = useExamBank();
-  const rules = useExamRules();
-  return useMemo(() => questionsForRole(bank, roleKey).slice(0, rules.questions), [bank, roleKey, rules.questions]);
+/** Each role's exam as the administration built it this season: its duration and its weighted sections */
+export function useBlueprints(): Record<string, ExamBlueprint> {
+  const stored = useStore((s) => s.adminRules.blueprints);
+  return useMemo(() => ({ ...DEFAULT_BLUEPRINTS, ...stored }), [stored]);
 }
 
 /** The roles open for application this season, with the administration's description */

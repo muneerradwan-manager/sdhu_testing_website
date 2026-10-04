@@ -60,7 +60,7 @@ const ROLES: { level: string; items: { title: string; text: string; icon: Lucide
 ];
 
 const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
-  { title: "التأهيل", text: "طلب مشاركة، أهلية، امتحان كتابي على المنصة، وشفهي أمام لجنة.", icon: GraduationCap },
+  { title: "التأهيل", text: "طلب مشاركة، أهلية، امتحان كتابي جماعي في قاعة مركزك بأقسام وأوزان، وشفهي أمام لجنة.", icon: GraduationCap },
   { title: "التشكيل", text: "الناجحون يشكّلون مجموعاتهم، ويعتمدها مدير المكتب، ثم يُنتخب رؤساء التكتلات وتنضم المجموعات بعقود.", icon: FileSignature },
   { title: "التحضير", text: "تدريب إلزامي، استلام الحجاج المفوَّجين، وتسجيل ملفاتهم الصحية.", icon: HandHeart },
   { title: "الميدان", text: "تجمّعات بمسح البطاقة، إعلانات، بلاغات، وتقرير كل ليلة.", icon: MapPinned },
