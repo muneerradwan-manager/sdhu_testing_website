@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, questionsForRole, type ExamQuestion } from "@/lib/data/admin-exam";
+import { EXAM_QUESTIONS, EXAM_RULES, questionsForRole, type ExamNumbers, type ExamQuestion } from "@/lib/data/admin-exam";
 import { useStore } from "@/lib/store";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
 import { useSeason } from "@/lib/season-live";
@@ -13,14 +13,7 @@ import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, LANGUAGES, POSITIONS, ROLE_REQU
  * portal reads through these hooks, so a change in the staff portal shows up the same season.
  */
 
-export type ExamRules = Omit<typeof EXAM_RULES, "minutes" | "questions" | "passMark" | "writtenMin" | "writtenWeight" | "oralWeight"> & {
-  minutes: number;
-  questions: number;
-  passMark: number;
-  writtenMin: number;
-  writtenWeight: number;
-  oralWeight: number;
-};
+export type ExamRules = Omit<typeof EXAM_RULES, keyof ExamNumbers> & ExamNumbers;
 
 export function useExamRules(): ExamRules {
   const o = useStore((s) => s.adminRules.exam);
@@ -101,11 +94,6 @@ export function useCommitments() {
 export function useAdminCalendar() {
   const rows = useStore((s) => s.adminRules.calendar);
   return useMemo(() => rows ?? ADMIN_CALENDAR.map((r) => ({ hijri: r.hijri, title: r.title, detail: r.detail })), [rows]);
-}
-
-/** Final score with the season's weights */
-export function finalScoreWith(written: number, oral: number, rules: { writtenWeight: number; oralWeight: number }) {
-  return Math.round(written * rules.writtenWeight + oral * rules.oralWeight);
 }
 
 /** The stages an administrator is evaluated through this season */

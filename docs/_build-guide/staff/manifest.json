@@ -267,7 +267,7 @@
   "n": 34,
   "key": "adm-exams",
   "file": "034-adm-exams.png",
-  "caption": "الإداريون والمجموعات: تبويب الامتحانات والنتائج",
+  "caption": "إدارة الامتحان: المتقدمون ونتائجهم، ومؤشرات الامتحان",
   "section": "E",
   "note": null
  },
@@ -297,41 +297,41 @@
  },
  {
   "n": 38,
-  "key": "adm-eval",
-  "file": "038-adm-eval.png",
-  "caption": "تقييم الإداري مرحلةً مرحلة",
+  "key": "rules-exam",
+  "file": "038-rules-exam.png",
+  "caption": "إدارة الامتحان: قواعد الامتحان",
   "section": "E",
   "note": null
  },
  {
   "n": 39,
-  "key": "adm-files",
-  "file": "039-adm-files.png",
-  "caption": "الملفات الدائمة للإداريين: الوثائق وصلاحيتها واللغات والمهارات",
+  "key": "rules-bank",
+  "file": "039-rules-bank.png",
+  "caption": "بنك الأسئلة: تعديل سؤال أو سحبه",
   "section": "E",
   "note": null
  },
  {
   "n": 40,
-  "key": "adm-groups-view",
-  "file": "040-adm-groups-view.png",
-  "caption": "طلبات تشكيل المجموعات: الاعتماد لمدير المكتب",
+  "key": "adm-eval",
+  "file": "040-adm-eval.png",
+  "caption": "تقييم الإداري مرحلةً مرحلة",
   "section": "E",
   "note": null
  },
  {
   "n": 41,
-  "key": "rules-exam",
-  "file": "041-rules-exam.png",
-  "caption": "قواعد الإداريين: قواعد الامتحان",
+  "key": "adm-files",
+  "file": "041-adm-files.png",
+  "caption": "الملفات الدائمة للإداريين: الوثائق وصلاحيتها واللغات والمهارات",
   "section": "E",
   "note": null
  },
  {
   "n": 42,
-  "key": "rules-bank",
-  "file": "042-rules-bank.png",
-  "caption": "بنك الأسئلة: تعديل سؤال أو سحبه",
+  "key": "adm-groups-view",
+  "file": "042-adm-groups-view.png",
+  "caption": "طلبات تشكيل المجموعات: الاعتماد لمدير المكتب",
   "section": "E",
   "note": null
  },

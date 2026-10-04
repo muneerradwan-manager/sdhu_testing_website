@@ -602,6 +602,18 @@ export function scoreExam(answers: Record<number, number>, bank: ExamQuestion[] 
   return { correct, total: bank.length, score: bank.length ? Math.round((correct / bank.length) * 100) : 0 };
 }
 
-export function finalScoreOf(written: number, oral: number) {
-  return Math.round((written * EXAM_RULES.writtenWeight + oral * EXAM_RULES.oralWeight) * 10) / 10;
+/** The exam's numbers the administration may change for the season (the shipped ones are EXAM_RULES) */
+export type ExamNumbers = { minutes: number; questions: number; passMark: number; writtenMin: number; writtenWeight: number; oralWeight: number };
+
+/**
+ * Written + oral → final, with the season's weights. Whoever was exempt from the written has the oral
+ * alone. Never stored: a change to the weights reaches every result, and both portals read the same one.
+ */
+export function finalScoreWith(written: number | undefined, oral: number, rules: Pick<ExamNumbers, "writtenWeight" | "oralWeight">) {
+  return written === undefined ? oral : Math.round((written * rules.writtenWeight + oral * rules.oralWeight) * 10) / 10;
+}
+
+/** «الكتابي 60% + الشفهي 40%» with the season's weights */
+export function weightsLabel(rules: Pick<ExamNumbers, "writtenWeight" | "oralWeight">) {
+  return `الكتابي ${Math.round(rules.writtenWeight * 100)}% + الشفهي ${Math.round(rules.oralWeight * 100)}%`;
 }

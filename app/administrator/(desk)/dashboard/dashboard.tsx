@@ -21,19 +21,22 @@ import { useMemo } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
+import { weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
 import { ageOf } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { SKILLS, docState, effectiveRole, journeyOf, logAdmin, positionLabelOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
+import { useExamRules } from "../../_lib/admin-rules";
 import { clusterGroupsOf } from "../../_lib/cluster";
 import { AdminShell } from "../../_components/ui";
 
-const NEXT: Record<string, { title: string; text: string; cta: string }> = {
+/** The next step's card; the exam's numbers are the season's, as the administration left them */
+const nextSteps = (rules: ExamNumbers): Record<string, { title: string; text: string; cta: string }> => ({
   apply: { title: "سجّل لموسم 1448", text: "التسجيل يتجدد كل موسم: حدّث وثائقك ومهاراتك، واختر صفة واحدة يستوفي ملفك شروطها، ووافق على الالتزامات. تتحقق المنصة من أهليتك قبل أن تدفع.", cta: "ابدأ الطلب" },
   fee: { title: "أنت مؤهل — بقي رسم التسجيل", text: "استوفى ملفك شروط الصفة التي اخترتها. سدّد رسم 30 $ ليُقدَّم طلبك.", cta: "تسديد الرسم" },
-  written: { title: "الامتحان الكتابي جاهز", text: "15 سؤالاً — 20 دقيقة — تُحفظ الإجابات تلقائياً، ولا رجوع بعد الإرسال.", cta: "الدخول إلى الامتحان" },
+  written: { title: "الامتحان الكتابي جاهز", text: `${rules.questions} سؤالاً — ${rules.minutes} دقيقة — تُحفظ الإجابات تلقائياً، ولا رجوع بعد الإرسال.`, cta: "الدخول إلى الامتحان" },
   oral: { title: "بانتظار نتيجة الامتحان الشفهي", text: "تُدخل لجنة الامتحانات (ماهر عيسى) النتيجة على المنصة بعد مقابلتك.", cta: "متابعة النتيجة" },
-  result: { title: "نتيجتك النهائية", text: "الكتابي 60% + الشفهي 40% — الحد الأدنى للنجاح 70.", cta: "عرض النتيجة" },
+  result: { title: "نتيجتك النهائية", text: `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.`, cta: "عرض النتيجة" },
   group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة واختيار الفريق ورسم 200 $ — حتى 25 جمادى الأولى. التكتل مرحلة لاحقة بعد انتخاب رؤساء التكتلات.", cta: "طلب تشكيل مجموعة" },
   team: { title: "انضم إلى فريق مجموعة", text: "يدعوك رئيس المجموعة إلى فريقه دعوة فردية، فتوافق عليها. لا تشكّل مجموعة ولا تشارك في انتخاب التكتلات، فهي لرؤساء المجموعات.", cta: "مجموعتي" },
   approval: { title: "طلب المجموعة قيد الاعتماد", text: "يراجعه ماهر عيسى ثم يعتمده مدير المكتب مازن الحلبي.", cta: "متابعة الطلب" },
@@ -42,7 +45,7 @@ const NEXT: Record<string, { title: string; text: string; cta: string }> = {
   cluster: { title: "اختر تكتلاً لمجموعتك", text: "أُعلن رؤساء التكتلات. اطلب الانضمام إلى تكتل، ويقرر رئيسه بحسب سعته، ثم توقّعان العقد.", cta: "التكتلات" },
   requests: { title: "عائلات فُوّجت إلى مجموعتك", text: "رحّب بالعائلات الجديدة، وتابع تسجيل ملفاتها الصحية مع المنسق التقني.", cta: "حجاج المجموعة" },
   field: { title: "الميدان: افتح أول تجمّع", text: "«ساحة المزة ← المطار» — مسح البطاقات وإرسال «انطلقنا» للجميع.", cta: "وضع الميدان" },
-};
+});
 
 export function AdminDashboard() {
   const admin = useAdmin()!;
@@ -50,15 +53,16 @@ export function AdminDashboard() {
   const router = useRouter();
   const events = useStore((s) => s.events);
   const joinCount = Object.keys(profile?.joinDecisions ?? {}).length;
-  const steps = useMemo(() => journeyOf(profile, joinCount), [profile, joinCount]);
+  const rules = useExamRules();
+  const steps = useMemo(() => journeyOf(profile, rules, joinCount), [profile, rules, joinCount]);
   const current = steps.find((s) => s.state === "current");
   const done = steps.filter((s) => s.state === "done").length;
-  const result = resultOf(profile);
+  const result = resultOf(profile, rules);
   const failed = !!result.published && result.final !== undefined && !result.passed;
   const mine = useMemo(() => events.filter((e) => e.actor === admin.name).slice(-7).reverse(), [events, admin.name]);
   const history = seasonHistory(admin.id);
   const record = recordOf(profile, admin.id);
-  const next = current ? NEXT[current.key] : null;
+  const next = current ? nextSteps(rules)[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = clusterGroupsOf(profile, admin.name).length;
   const status1448 = profile?.deputyOf

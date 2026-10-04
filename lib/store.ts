@@ -282,8 +282,8 @@ export type AdminProfile = {
   eligibleAt?: number;
   /** `interruptions`: how many times the camera or the microphone stopped during the exam */
   exam?: { startedAt: number; submittedAt?: number; answers: Record<number, number>; score?: number; interruptions?: number };
+  /** The final is never stored: it follows the season's exam rules (resultOf) */
   oral?: { score: number; by: string; at: number; note?: string };
-  finalScore?: number;
   resultPublishedAt?: number;
   /** Formed without a cluster: clusters exist only after all groups are formed and their heads elected */
   group?: {
@@ -684,8 +684,9 @@ export const actions = {
   setAdminRules(patch: AdminRules) {
     setState((s) => ({ ...s, adminRules: { ...s.adminRules, ...patch } }));
   },
-  resetAdminRules() {
-    setState((s) => ({ ...s, adminRules: {} }));
+  /** Back to the platform's defaults, except the rules named in `keep` (another page owns them) */
+  resetAdminRules(keep: readonly (keyof AdminRules)[] = []) {
+    setState((s) => ({ ...s, adminRules: Object.fromEntries(keep.map((k) => [k, s.adminRules[k]])) as AdminRules }));
   },
   setEvaluation(id: string, value: State["evaluations"][string]) {
     setState((s) => ({ ...s, evaluations: { ...s.evaluations, [id]: value } }));

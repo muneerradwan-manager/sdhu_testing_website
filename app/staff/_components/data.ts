@@ -14,7 +14,8 @@ import { fullName, getPerson } from "@/lib/registry";
 import { evaluate, type EligibilityResult, type Member } from "@/lib/rules";
 import { useSeason } from "@/lib/season-live";
 import { setState, useStore, type AdminProfile, type AuditEvent, type Review, type Ticket } from "@/lib/store";
-import { positionLabelOf } from "@/app/administrator/_lib/admin";
+import { effectiveRole, positionLabelOf } from "@/app/administrator/_lib/admin";
+import type { ExamNumbers } from "@/lib/data/admin-exam";
 
 // ───────────────────────── Reviews ─────────────────────────
 
@@ -201,6 +202,24 @@ export function useAdminRows() {
     }));
     return [...real, ...seeds];
   }, [admins]);
+}
+
+/** The role the season produced: an election outranks the role he applied with */
+export function roleLabel(r: AdminRow) {
+  const key = effectiveRole(r.profile);
+  const label = key ? positionLabelOf(key) : r.position;
+  if (r.profile.cluster) return `${label} — ${r.profile.cluster.name}`;
+  if (r.profile.deputyOf) return `${label} — ${r.profile.deputyOf.clusterName}`;
+  return label;
+}
+
+/**
+ * Waiting for the committee: reached the season's written minimum (or was exempt from the written,
+ * renewing in another role) and has no oral mark yet. Below the minimum nobody is called to the oral.
+ */
+export function awaitsOral(r: AdminRow, rules: ExamNumbers) {
+  const written = r.profile.exam?.score;
+  return !r.profile.examExempt && !r.profile.oral && (written !== undefined ? written >= rules.writtenMin : !!r.previous);
 }
 
 /** Patch an administrator; seeded candidates are written to the store in full the first time */

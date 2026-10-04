@@ -29,7 +29,9 @@ import { useSeason } from "@/lib/season-live";
 import { ALL_PERMISSIONS, can, holdsAll, PERMISSION_LABELS, STAFF, type StaffUser } from "@/lib/staff";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
-import { useAdminRows, useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
+import { resultOf } from "@/app/administrator/_lib/admin";
+import { useExamRules } from "@/app/administrator/_lib/admin-rules";
+import { awaitsOral, useAdminRows, useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
 import { ago, BarList, Columns, Donut, fmtDateTime, Kpi, Legend, PageHeader, Panel, useNow, useStaffUser } from "../_components/kit";
 
 type Todo = { id: string; text: string; href?: string; done?: boolean; tone?: "maroon" | "gold" | "green" };
@@ -61,7 +63,8 @@ export function DashboardView() {
   const pendingReviews = reviews.filter((r) => !r.review).length;
   const openTickets = tickets.filter((t) => t.status !== "resolved");
   const critical = openTickets.filter((t) => t.severity === "critical").length;
-  const awaitingOral = admins.filter((a) => a.profile.exam?.score !== undefined && !a.profile.oral).length;
+  const examRules = useExamRules();
+  const awaitingOral = admins.filter((a) => awaitsOral(a, examRules)).length;
   const groupRequests = admins.filter((a) => a.profile.group && !a.profile.group.approvedAt).length;
   const realApps = Object.values(applications);
   const mine = useMemo(() => events.filter((e) => e.actor === user.name).slice(0, 6), [events, user.name]);
@@ -73,7 +76,7 @@ export function DashboardView() {
     if (can(user, "lottery.import")) list.push({ id: "imp", text: lottery.importedAt ? "تم رفع ملف نتائج القرعة" : "رفع ملف نتائج القرعة المعتمد من اللجنة", href: "/staff/lottery", done: !!lottery.importedAt });
     if (can(user, "lottery.approve")) list.push({ id: "pub", text: lottery.publishedAt ? "نُشرت نتائج القرعة" : lottery.importedAt ? "اعتماد ونشر نتائج القرعة" : "بانتظار رفع ملف القرعة من إدارة التسجيل", href: "/staff/lottery", done: !!lottery.publishedAt, tone: "maroon" });
     if (can(user, "season.settings")) list.push({ id: "season", text: "مراجعة إعدادات الموسم قبل فتح حملة الاستدراك", href: "/staff/season" });
-    if (can(user, "administrators.manage")) list.push({ id: "oral", text: `إدخال نتائج الشفهي (${awaitingOral} متقدمين)`, href: "/staff/administrators", done: awaitingOral === 0, tone: "gold" });
+    if (can(user, "administrators.manage")) list.push({ id: "oral", text: `إدخال نتائج الشفهي (${awaitingOral} متقدمين)`, href: "/staff/exam", done: awaitingOral === 0, tone: "gold" });
     if (can(user, "groups.approve")) list.push({ id: "groups", text: `اعتماد طلبات تشكيل المجموعات (${groupRequests})`, href: "/staff/administrators", done: groupRequests === 0, tone: "maroon" });
     if (can(user, "operations.room")) {
       list.push({ id: "crit", text: `متابعة ${critical} بلاغات حرجة حتى الإغلاق`, href: "/staff/operations", tone: "maroon", done: critical === 0 });
@@ -133,7 +136,7 @@ export function DashboardView() {
             <Kpi dark label="المتقدمون للعمل" value={1_380} icon={<GraduationCap />} hint="الإداريون الموسميون" />
             <Kpi dark label="بانتظار الشفهي" value={awaitingOral} icon={<UserCog />} tone="gold" delay={0.05} />
             <Kpi dark label="طلبات تشكيل مجموعات" value={groupRequests} icon={<UsersRound />} tone="maroon" delay={0.1} pulse={groupRequests > 0} />
-            <Kpi dark label="ناجحون حتى الآن" value={admins.filter((a) => (a.profile.finalScore ?? 0) >= 70).length + 1_094} icon={<CheckCircle2 />} tone="teal" delay={0.15} />
+            <Kpi dark label="ناجحون حتى الآن" value={admins.filter((a) => resultOf(a.profile, examRules).passed).length + 1_094} icon={<CheckCircle2 />} tone="teal" delay={0.15} />
           </>
         )}
         {can(user, "operations.room") && (

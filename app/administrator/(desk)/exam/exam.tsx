@@ -30,8 +30,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { scoreExam, type ExamCategory } from "@/lib/data/admin-exam";
-import { finalScoreWith, useExamQuestions, useExamRules } from "../../_lib/admin-rules";
+import { finalScoreWith, scoreExam, weightsLabel, type ExamCategory } from "@/lib/data/admin-exam";
+import { useExamQuestions, useExamRules } from "../../_lib/admin-rules";
 import { actions } from "@/lib/store";
 import { useScrollLock } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,7 @@ import { ProctorCheck, ProctorDuringExam, stopProctor, useProctor } from "./proc
 export function AdminExam() {
   const admin = useAdmin()!;
   const p = admin.profile;
+  const rules = useExamRules();
   const [justSubmitted, setJustSubmitted] = useState(false);
   const onSubmitted = useCallback(() => setJustSubmitted(true), []);
   const onGraded = useCallback(() => setJustSubmitted(false), []);
@@ -71,7 +72,7 @@ export function AdminExam() {
     <AdminShell
       image="/images/haram-2022.jpg"
       title={p.exam?.submittedAt ? "نتيجتي في التأهيل" : "الامتحان الكتابي المؤتمت"}
-      subtitle={p.exam?.submittedAt ? "الكتابي 60% + الشفهي 40% — الحد الأدنى للنجاح 70." : "يُولَّد امتحان كل متقدم من بنك الأسئلة، فلا يتطابق امتحان متقدمَين."}
+      subtitle={p.exam?.submittedAt ? `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.` : "يُولَّد امتحان كل متقدم من بنك الأسئلة، فلا يتطابق امتحان متقدمَين."}
     >
       {p.exam?.submittedAt ? <Results grading={justSubmitted} onGraded={onGraded} /> : <RulesScreen />}
     </AdminShell>
@@ -463,7 +464,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
   const questions = useExamQuestions(admin.profile?.positions[0] ?? "");
   const toast = useToast();
   const p = admin.profile!;
-  const r = resultOf(p);
+  const r = resultOf(p, rules);
   const { correct, total } = scoreExam(p.exam!.answers, questions);
   const [review, setReview] = useState(false);
   const [stars, setStars] = useState(0);
@@ -480,17 +481,16 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
     const final = finalScoreWith(written, 84, rules);
     actions.upsertAdmin(admin.id, {
       oral: { score: 84, by: "ماهر عيسى", at, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
-      finalScore: final,
       resultPublishedAt: at,
     });
     actions.logEvent({ actor: "ماهر عيسى", role: "موظف", action: "إدخال نتيجة الامتحان الشفهي (محاكاة)", target: admin.name, detail: "84 من 100 (17 من 20) — اللجنة رقم 3" });
     actions.logEvent({ actor: "رئيس اللجان", role: "موظف", action: "اعتماد ونشر النتائج النهائية (محاكاة)", target: admin.name, detail: `النهائية ${final} — ${final >= rules.passMark ? "ناجح" : "لم يجتز"}` });
-    logAdmin(admin.id, "الاطلاع على النتيجة النهائية", `الإداري ${admin.id.slice(-3)}`, `الكتابي ${written} × 60% + الشفهي 84 × 40% = ${final}`);
+    logAdmin(admin.id, "الاطلاع على النتيجة النهائية", `الإداري ${admin.id.slice(-3)}`, `الكتابي ${written} × ${Math.round(rules.writtenWeight * 100)}% + الشفهي 84 × ${Math.round(rules.oralWeight * 100)}% = ${final}`);
     toast({ title: "نُشرت نتيجتك النهائية", body: `النتيجة: ${final} من 100`, icon: "📜", tone: "gold" });
   };
 
   const retake = () => {
-    actions.upsertAdmin(admin.id, { exam: undefined, oral: undefined, finalScore: undefined, resultPublishedAt: undefined });
+    actions.upsertAdmin(admin.id, { exam: undefined, oral: undefined, resultPublishedAt: undefined });
     logAdmin(admin.id, "إعادة الامتحان الكتابي (نسخة تجريبية)", `الإداري ${admin.id.slice(-3)}`);
   };
 
@@ -528,7 +528,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
             <ScoreRing value={r.written ?? 0} label="من 100" tone={r.writtenPassed ? "green" : "maroon"} />
             <dl className="space-y-2 text-sm">
               <div><dt className="inline text-hint">الإجابات الصحيحة: </dt><dd className="inline font-bold">{correct} من {total}</dd></div>
-              <div><dt className="inline text-hint">الوزن في النتيجة: </dt><dd className="inline font-bold">60%</dd></div>
+              <div><dt className="inline text-hint">الوزن في النتيجة: </dt><dd className="inline font-bold">{Math.round(rules.writtenWeight * 100)}%</dd></div>
               <div><dt className="inline text-hint">المدة المستغرقة: </dt><dd className="inline font-bold">{Math.max(1, Math.round(((p.exam!.submittedAt ?? 0) - p.exam!.startedAt) / 60000))} دقيقة</dd></div>
             </dl>
           </div>
@@ -632,10 +632,10 @@ function FinalResult({ written, oral, final, passed, note, by }: { written: numb
 
   const parts = useMemo(
     () => [
-      { k: "الكتابي", v: written, w: 0.6, c: "bg-green-light" },
-      { k: "الشفهي", v: oral, w: 0.4, c: "bg-gold-dark" },
+      { k: "الكتابي", v: written, w: rules.writtenWeight, c: "bg-green-light" },
+      { k: "الشفهي", v: oral, w: rules.oralWeight, c: "bg-gold-dark" },
     ],
-    [written, oral],
+    [written, oral, rules.writtenWeight, rules.oralWeight],
   );
 
   return (
@@ -659,7 +659,7 @@ function FinalResult({ written, oral, final, passed, note, by }: { written: numb
             {parts.map((x, i) => (
               <div key={x.k}>
                 <div className="flex justify-between text-sm">
-                  <span>{x.k}: {x.v} × {x.w * 100}%</span>
+                  <span>{x.k}: {x.v} × {Math.round(x.w * 100)}%</span>
                   <span className="font-bold tabular-nums text-gold">{(Math.round(x.v * x.w * 10) / 10).toFixed(1)}</span>
                 </div>
                 <div className="relative mt-1 h-2.5 overflow-hidden rounded-full bg-white/15">

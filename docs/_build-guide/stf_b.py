@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Staff guide — run B: administrators & groups, admin rules, election, grading, cluster programmes, audit, executive.
+"""Staff guide — run B: the exam, administrators & groups, admin rules, election, grading, cluster programmes, audit, executive.
 Usage: CAP_DIR=staff python stf_b.py <keep> [part]"""
 import sys
 from cap import Cap, ROOT, truncate
@@ -12,8 +12,8 @@ ONLY = sys.argv[2] if len(sys.argv) > 2 else None
 if ONLY in (None, "e"):
     s = Staff(); c, p = s.c, s.p; S = "E"
     s.login("maher")
-    c.goto("/staff/administrators", wait=1800)
-    c.shot("adm-exams", "الإداريون والمجموعات: تبويب الامتحانات والنتائج", section=S)
+    c.goto("/staff/exam", wait=1800)
+    c.shot("adm-exams", "إدارة الامتحان: المتقدمون ونتائجهم، ومؤشرات الامتحان", section=S)
     b = p.locator("main button:has-text('إدخال الشفهي')").first
     b.scroll_into_view_if_needed(); c.settle(300)
     c.shot("adm-exams-row", "متقدّم بانتظار نتيجة الشفهي", hl=[("main button:has-text('إدخال الشفهي')", "")], section=S)
@@ -30,6 +30,13 @@ if ONLY in (None, "e"):
         an.scroll_into_view_if_needed(); c.settle(300)
         c.shot("adm-announce", "إعلان النتيجة النهائية للمتقدّم", hl=[("main button:text-is('إعلان')", "")], section=S)
         an.click(); c.settle(1200)
+    s.tab("قواعد الامتحان", 1200)
+    c.scroll_to("[role=tablist]", 110)
+    c.shot("rules-exam", "إدارة الامتحان: قواعد الامتحان", section=S)
+    s.tab("بنك الأسئلة", 1200)
+    c.scroll_to("[role=tablist]", 110)
+    c.shot("rules-bank", "بنك الأسئلة: تعديل سؤال أو سحبه", section=S)
+    c.goto("/staff/administrators", wait=1800)
     s.tab("تقييم الإداريين", 1200)
     c.scroll_to("[role=tablist]", 110)
     c.shot("adm-eval", "تقييم الإداري مرحلةً مرحلة", section=S)
@@ -40,10 +47,6 @@ if ONLY in (None, "e"):
     c.scroll_to("[role=tablist]", 110)
     c.shot("adm-groups-view", "طلبات تشكيل المجموعات: الاعتماد لمدير المكتب", section=S)
     c.goto("/staff/admin-rules", wait=1800)
-    c.shot("rules-exam", "قواعد الإداريين: قواعد الامتحان", section=S)
-    s.tab("بنك الأسئلة", 1200)
-    c.scroll_to("[role=tablist]", 110)
-    c.shot("rules-bank", "بنك الأسئلة: تعديل سؤال أو سحبه", section=S)
     s.tab("الصفات والالتزامات", 1200)
     c.scroll_to("[role=tablist]", 110)
     c.shot("rules-roles", "الصفات المتاحة والتزامات الإداري", section=S)

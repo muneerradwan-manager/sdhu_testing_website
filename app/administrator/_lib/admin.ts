@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, finalScoreOf, questionsForRole, scoreExam } from "@/lib/data/admin-exam";
+import { EXAM_QUESTIONS, EXAM_RULES, finalScoreWith, questionsForRole, scoreExam, weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
 import { ageOf, fullName, getPerson, type Person } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
@@ -408,30 +408,33 @@ export function logAdmin(id: string, action: string, target?: string, detail?: s
   actions.logEvent({ actor: adminName(id), role: ADMIN_ROLE, action, target, detail });
 }
 
-/** Written + oral → final. Works whether the staff side stored finalScore or only the oral mark. */
-export function resultOf(p: AdminProfile | undefined) {
+/** Written + oral → final, judged by the season's exam rules (useExamRules) as the administration left them */
+export function resultOf(p: AdminProfile | undefined, rules: ExamNumbers) {
   const written = p?.exam?.score;
   const oral = p?.oral?.score;
-  const final = p?.finalScore ?? (written !== undefined && oral !== undefined ? finalScoreOf(written, oral) : undefined);
+  // An oral with no written mark is a file exempt from the written: the oral is the whole result
+  const final = oral !== undefined ? finalScoreWith(written, oral, rules) : undefined;
   const published = p?.resultPublishedAt ?? (final !== undefined ? p?.oral?.at : undefined);
   // Same role renewed with the required rating: no exams this season, the file counts as qualified
   const exempt = !!p?.examExempt && !!p?.eligibleAt && !!p?.feePaidAt;
+  // Below the written minimum there is no oral, so no final mark can pass the file
+  const writtenPassed = exempt || (written !== undefined ? written >= rules.writtenMin : oral !== undefined);
   return {
     written,
     oral,
     final,
     published: exempt ? p?.feePaidAt : published,
     exempt,
-    writtenPassed: exempt || (written !== undefined && written >= EXAM_RULES.writtenMin),
-    passed: exempt || (final !== undefined && final >= EXAM_RULES.passMark),
+    writtenPassed,
+    passed: exempt || (writtenPassed && final !== undefined && final >= rules.passMark),
   };
 }
 
 export type StepState = "done" | "current" | "locked";
 export type JourneyStep = { key: string; title: string; date: string; href: string; detail: string; state: StepState };
 
-export function journeyOf(p: AdminProfile | undefined, joinCount = 0): JourneyStep[] {
-  const r = resultOf(p);
+export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinCount = 0): JourneyStep[] {
+  const r = resultOf(p, rules);
   const g = p?.group;
   // The election and the cluster request belong to group heads (and the cluster roles they become).
   // A team member (deputy, guide, technical coordinator) joins a group by the head's invitation and
@@ -441,9 +444,9 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0): JourneySt
     { key: "account", title: "إنشاء الحساب الإداري", date: "5 ربيع الأول", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
     { key: "apply", title: "طلب المشاركة والتحقق من الأهلية", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
     { key: "fee", title: "رسم التسجيل", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
-    { key: "written", title: "الامتحان الكتابي", date: "15 ربيع الآخر", href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : "15 سؤالاً — 20 دقيقة", done: r.exempt || !!p?.exam?.submittedAt },
+    { key: "written", title: "الامتحان الكتابي", date: "15 ربيع الآخر", href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : `${rules.questions} سؤالاً — ${rules.minutes} دقيقة`, done: r.exempt || !!p?.exam?.submittedAt },
     { key: "oral", title: "الامتحان الشفهي", date: "1 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
-    { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : "الكتابي 60% + الشفهي 40%", done: !!r.published && r.passed },
+    { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : weightsLabel(rules), done: !!r.published && r.passed },
     teamMember
       ? { key: "team", title: "الانضمام إلى فريق مجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: g ? `المجموعة ${g.number}` : "بدعوة فردية من رئيس المجموعة توافق عليها", done: !!g?.feePaidAt }
       : { key: "group", title: p?.cluster ? "مجموعات تكتلي" : "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: p?.cluster ? `يدير مجموعات ${p.cluster.name}، منها مجموعته ${g?.number}` : g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق ورسم 200 $", done: !!g?.feePaidAt },
@@ -528,7 +531,6 @@ export function demoAdminLogin(
         : tech
           ? { score: 88, by: "ماهر عيسى", at: now - 40 * min, note: "متمكّن من التطبيق وشرحه لكبار السن" }
           : { score: 84, by: "ماهر عيسى", at: now - 40 * min, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
-      finalScore: keep ? undefined : finalScoreOf(written, tech ? 88 : 84),
       resultPublishedAt: keep ? undefined : now - 35 * min,
       group: {
         number: demoGroupNumber(id),

@@ -30,7 +30,7 @@ import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { APPLIED_ROLES, criterionLabel } from "../_lib/admin";
-import { useAdminCalendar, useDocTypes, useRoleRequirements } from "../_lib/admin-rules";
+import { useAdminCalendar, useDocTypes, useExamRules, useRoleRequirements } from "../_lib/admin-rules";
 
 const ROLES: { level: string; items: { title: string; text: string; icon: LucideIcon }[]; tone: string }[] = [
   {
@@ -82,6 +82,7 @@ export function AdministratorLanding() {
   const { types: docTypes } = useDocTypes();
   const hydrated = useHydrated();
   const season = useSeason();
+  const { passMark } = useExamRules();
   const session = useStore((s) => s.adminSessionId);
   const conditions = [
     { k: "الصفة", v: "تتقدم فقط لصفة يستوفي ملفك شروطها" },
@@ -139,7 +140,7 @@ export function AdministratorLanding() {
             <dl className="mt-10 grid max-w-xl grid-cols-2 gap-4 sm:grid-cols-4">
               {[
                 { k: "متقدماً في الموسم الماضي", v: 1380 },
-                { k: "حد النجاح من 100", v: 70 },
+                { k: "حد النجاح من 100", v: passMark },
                 { k: "حاجاً كحد أعلى للمجموعة", v: 50 },
                 { k: "دولاراً رسم التسجيل", v: season.fees.administratorRegistration },
               ].map((s) => (

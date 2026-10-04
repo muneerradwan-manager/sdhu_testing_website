@@ -30,6 +30,7 @@ import { flightsActions, isActive, useFlightsData } from "@/lib/flights";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
+import { useExamRules } from "../../_lib/admin-rules";
 import { MISSING_ID, buildRoster, type RosterEntry } from "../../_lib/group";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
 
@@ -716,7 +717,7 @@ const WEIGHTS = [
 
 function Evaluations() {
   const admin = useAdmin()!;
-  const r = resultOf(admin.profile);
+  const r = resultOf(admin.profile, useExamRules());
   const qual = r.final ?? 84.4;
   const rows = [...WEIGHTS, { src: "التأهيل", what: "نتيجة الامتحان النهائية", score: String(qual), pct: qual, w: 10 }];
 

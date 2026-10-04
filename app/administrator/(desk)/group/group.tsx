@@ -31,6 +31,7 @@ import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
+import { useExamRules } from "../../_lib/admin-rules";
 import { activeCount } from "../../_lib/group";
 import { isClusterRole } from "../../_lib/admin";
 import { TEAM_ROLES } from "../../_lib/roster";
@@ -56,7 +57,7 @@ function clusterName(id: string | undefined, admins: Record<string, AdminProfile
 export function AdminGroup() {
   const admin = useAdmin()!;
   const p = admin.profile;
-  const r = resultOf(p);
+  const r = resultOf(p, useExamRules());
   const g = p?.group;
   const [showReceipt, setShowReceipt] = useState(false);
   // Elected to a cluster role: the head and his deputy stop seeing one group and see the cluster's groups
