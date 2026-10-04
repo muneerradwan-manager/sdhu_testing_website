@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Pilgrim guide after the accommodation change (no "private-room difference": the shared accommodation at no
-cost, or private rooms the family spreads over as it likes, priced per person by room type). Swaps the
-screenshots of the group, payment and medical steps and replaces the changed text, inside the user's own
-.docx (it carries his direction fixes, so it is patched, not rebuilt).
+"""Patch the pilgrim guide in place after a site change: swap the given screenshots and replace every text the
+change touched (step titles, explanations, actions, results, notes, captions, FAQ, fees table), inside the
+user's own .docx — it carries his direction fixes, so it is patched, not rebuilt.
 
-    python patch_pilgrim_rooms.py <capture dir>   # a dir with manifest.json + shots/ from run1.py + run2.py
+    python patch_pilgrim.py <capture dir> <git rev> <key> [<key> ...]
+
+<capture dir> holds manifest.json + shots/ from the capture runs (run them in a copy of this folder: run1.py
+wipes the tracked manifest.json). <git rev> is a commit whose content.py still has the guide's text as the
+.docx has it; the difference with the current content.py is what gets replaced. The keys are the shots to swap.
+Used for: accommodation (4d5e007; post-group … dossier-payments), sign-in and registration pages (4026ef2).
 """
 import sys, copy, io, json, importlib.util, re, subprocess
 from pathlib import Path
@@ -46,12 +50,11 @@ def _split_ltr(run):
         prev.addnext(r2); prev = r2
 
 DOCX = ROOT.parent / "دليل-الحاج-لاستخدام-المنصة" / "دليل-الحاج-لاستخدام-المنصة.docx"
-CAP = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT
-KEYS = ["post-group", "post-group-dir", "post-group-compare", "post-cluster-detail", "post-mygroup", "post-payment", "post-payment-receipts",
-        "post-payment-modal", "post-payment-done", "post-medical-needs", "dossier-payments"]
+CAP, REV, KEYS = Path(sys.argv[1]), sys.argv[2], sys.argv[3:]
+assert KEYS, __doc__
 
 # The guide's text before this change, from git, step by step beside the new one
-old_src = subprocess.run(["git", "show", "4d5e007:docs/_build-guide/content.py"], cwd=ROOT, capture_output=True, check=True).stdout
+old_src = subprocess.run(["git", "show", f"{REV}:docs/_build-guide/content.py"], cwd=ROOT, capture_output=True, check=True).stdout
 spec = importlib.util.spec_from_loader("content_old", loader=None); O = importlib.util.module_from_spec(spec)
 exec(old_src.decode("utf-8"), O.__dict__)
 steps = lambda M: [s for ch in M.CHAPTERS for sec in ch["sections"] for s in sec["steps"]]
@@ -138,16 +141,18 @@ for a, b in zip(steps(O), steps(C)):
     if a["x"] != b["x"]: swap(a["x"], b["x"], h + 1, nxt, "text " + a["t"])
     for oa, ob in zip(a["do"], b["do"]):
         if oa != ob: swap(oa, ob, h + 1, nxt, "do " + a["t"])
-    if a["r"] != b["r"]: swap(a["r"], b["r"], h + 1, nxt, "result " + a["t"])
+    for k in ("r", "note", "warn", "tip"):
+        if a[k] != b[k] and a[k] and b[k]: swap(a[k], b[k], h + 1, nxt, f"{k} " + a["t"])
 
 # Captions of the swapped pictures
 tracked = json.loads((ROOT / "manifest.json").read_text("utf-8"))
-by_n = {e["n"]: e for e in tracked}
+by_key, by_n = {e["key"]: e for e in tracked}, {e["n"]: e for e in tracked}
 for k in KEYS:
-    new_e = cap_man[k]; old_e = by_n[new_e["n"]]
+    new_e = cap_man[k]
+    old_e = by_key.get(k) or by_n[new_e["n"]]  # a renamed shot keeps its place
     if old_e["caption"] != new_e["caption"]:
         swap(old_e["caption"], new_e["caption"], what="caption " + k)
-    by_n[new_e["n"]].update(key=new_e["key"], file=new_e["file"], caption=new_e["caption"])
+    old_e.update(key=new_e["key"], file=new_e["file"], caption=new_e["caption"])
 (ROOT / "manifest.json").write_text(json.dumps(tracked, ensure_ascii=False, indent=1), "utf-8")
 
 # FAQ: question and answer

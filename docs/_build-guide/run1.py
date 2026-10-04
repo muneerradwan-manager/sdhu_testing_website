@@ -114,7 +114,7 @@ c.shot("portal-home-2", "ملفي — سجل المواسم والإشعارات
 # ───────── C. تسجيل الخروج ثم الدخول ─────────
 c.click("button:has-text('تسجيل الخروج')", wait=1500)
 c.wait_splash()
-c.shot("logout-home", "بعد تسجيل الخروج تعود إلى الصفحة الرئيسية", hl=[("header a[href='/login']", "")], section="C")
+c.shot("logout-home", "بعد تسجيل الخروج تظهر صفحة دخول الحجاج", hl=[("header a[href='/register']", "")], section="C")
 c.goto("/login")
 c.shot("login-empty", "صفحة تسجيل الدخول", hl=[("label:has-text('الرقم الوطني') input", "1"), ("label:has-text('كلمة المرور') input", "2"), ("button[type='submit']", "3")], section="C")
 c.fill("label:has-text('الرقم الوطني') input", "01012345412")
@@ -125,11 +125,12 @@ c.fill("label:has-text('كلمة المرور') input", "Hajj@1448")
 c.click("button[type='submit']", wait=1400)
 c.shot("login-otp", "رمز التحقق عند الدخول", section="C")
 c.otp("1448")
-c.click("button:has-text('متابعة')", wait=1800)
+c.click("main button:text-is('دخول')", wait=1800)
 c.shot("login-done", "بعد الدخول: العودة إلى ملفي", hl=[("header a[href='/portal']", "اسمك في الأعلى")], section="C")
 # demo panel
 c.goto("/login")
-c.shot("login-demo", "بيانات تجريبية جاهزة داخل صفحة الدخول (للعرض)", hl=[("div:has(> button:has-text('بيانات تجريبية جاهزة'))", "")], section="C")
+c.scroll_to("section[aria-labelledby='demo-accounts']", 110)
+c.shot("login-demo", "حسابات تجريبية تحت بطاقة الدخول (للعرض)", hl=[("section[aria-labelledby='demo-accounts'] h2", "")], section="C")
 
 c.save_state(str(ROOT / "state-registered.json"))
 c.close()

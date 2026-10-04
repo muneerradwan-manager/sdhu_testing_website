@@ -498,7 +498,8 @@ export function demoAdminLogin(
   const demo = DEMO_ADMINS.find((d) => d.id === id);
   const existing = state.admins[id];
   const now = Date.now();
-  if (!existing) actions.upsertAdmin(id, { createdAt: now, phone: demo?.phone ?? `0944${id.slice(-6)}` });
+  // The demo administrators' password is the demo pilgrims' one, for anyone who types it in the form
+  if (!existing) actions.upsertAdmin(id, { createdAt: now, phone: demo?.phone ?? `0944${id.slice(-6)}`, password: "hajj1448" });
   const min = 60_000;
   // ملف مكتمل حتى آخر مرحلة، فتظهر كل شاشات الصفة: حجاج المجموعة والملفات الصحية والميدان
   if (mode !== "start") {
@@ -618,5 +619,4 @@ export function positionLabelOf(key: string) {
   return POSITIONS.find((p) => p.key === key)?.label ?? key;
 }
 
-/** Event-handler timestamp helper (keeps the React Compiler purity check happy in large handlers) */
-export const nowMs = () => Date.now();
+export { nowMs } from "@/lib/utils";

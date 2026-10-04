@@ -19,7 +19,7 @@
   "n": 3,
   "key": "reg-basic-filled",
   "file": "003-reg-basic-filled.png",
-  "caption": "بعد إدخال الرقم الوطني ورقم الهاتف",
+  "caption": "بعد إدخال الرقم الوطني ورقم الهاتف وكلمة المرور",
   "section": "B",
   "note": null
  },
@@ -75,7 +75,7 @@
   "n": 10,
   "key": "login",
   "file": "010-login.png",
-  "caption": "تسجيل دخول الإداري: الرقم الوطني",
+  "caption": "دخول الإداريين: الرقم الوطني وكلمة المرور",
   "section": "B",
   "note": null
  },

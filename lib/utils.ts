@@ -86,3 +86,6 @@ export function seeded(seed: string) {
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Event-handler timestamp helper (keeps the React Compiler purity check happy in large handlers) */
+export const nowMs = () => Date.now();

@@ -275,7 +275,7 @@
   "n": 35,
   "key": "logout-home",
   "file": "035-logout-home.png",
-  "caption": "بعد تسجيل الخروج تظهر صفحة الدخول",
+  "caption": "بعد تسجيل الخروج تظهر صفحة دخول الحجاج",
   "section": "C",
   "note": null
  },
@@ -315,7 +315,7 @@
   "n": 40,
   "key": "login-demo",
   "file": "040-login-demo.png",
-  "caption": "بيانات تجريبية جاهزة داخل صفحة الدخول (للعرض)",
+  "caption": "حسابات تجريبية تحت بطاقة الدخول (للعرض)",
   "section": "C",
   "note": null
  },

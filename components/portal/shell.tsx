@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 export function PortalShell({
   children,
   image = "/images/haram-2022.jpg",
+  eyebrow,
   title,
   subtitle,
   aside,
@@ -14,6 +15,8 @@ export function PortalShell({
 }: {
   children: ReactNode;
   image?: string;
+  /** A line above the title (where you are: a breadcrumb) */
+  eyebrow?: ReactNode;
   title?: ReactNode;
   subtitle?: ReactNode;
   aside?: ReactNode;
@@ -48,6 +51,7 @@ export function PortalShell({
       <div className={cn("mx-auto px-4 pb-10 pt-36 md:px-8 md:pt-40", wide ? "max-w-7xl" : "max-w-6xl")}>
         {(title || subtitle) && (
           <div className="mb-8 text-white">
+            {eyebrow && <div className="mb-3">{eyebrow}</div>}
             {title && <h1 className="font-display text-3xl font-bold md:text-5xl">{title}</h1>}
             {subtitle && <div className="mt-3 max-w-2xl text-lg text-white/75">{subtitle}</div>}
           </div>

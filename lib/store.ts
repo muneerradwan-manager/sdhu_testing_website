@@ -262,6 +262,9 @@ export type AdminProfile = {
   nationalId: string;
   createdAt: number;
   phone: string;
+  email?: string;
+  /** Set at registration, as for a pilgrim; profiles from before passwords have none */
+  password?: string;
   /** One role per season (older profiles may hold more; the first one counts) */
   positions: string[];
   /** How this season's application relates to the last season served */
