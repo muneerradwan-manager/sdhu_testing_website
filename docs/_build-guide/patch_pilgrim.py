@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Patch the pilgrim guide in place after a site change: swap the given screenshots and replace every text the
-change touched (step titles, explanations, actions, results, notes, captions, FAQ, fees table), inside the
+"""Patch the pilgrim guide in place after a site change: swap the given screenshots, replace every text the
+change touched (step titles, explanations, actions, results, notes, captions, FAQ, fees table), and add the
+steps that are new (built on the step before them, with the steps and figures after renumbered), inside the
 user's own .docx — it carries his direction fixes, so it is patched, not rebuilt.
 
     python patch_pilgrim.py <capture dir> <git rev> <key> [<key> ...]
@@ -8,9 +9,10 @@ user's own .docx — it carries his direction fixes, so it is patched, not rebui
 <capture dir> holds manifest.json + shots/ from the capture runs (run them in a copy of this folder: run1.py
 wipes the tracked manifest.json). <git rev> is a commit whose content.py still has the guide's text as the
 .docx has it; the difference with the current content.py is what gets replaced. The keys are the shots to swap.
-Used for: accommodation (4d5e007; post-group … dossier-payments), sign-in and registration pages (4026ef2).
+Used for: accommodation (4d5e007; post-group … dossier-payments), sign-in and registration pages (4026ef2),
+the 3D tour page (d6f7a25; home-more-menu, and the new step tour-3d).
 """
-import sys, copy, io, json, importlib.util, re, subprocess
+import sys, copy, difflib, io, json, importlib.util, re, subprocess
 from pathlib import Path
 from docx import Document
 from docx.oxml import OxmlElement
@@ -62,19 +64,6 @@ steps = lambda M: [s for ch in M.CHAPTERS for sec in ch["sections"] for s in sec
 doc = Document(str(DOCX))
 cap_man = {e["key"]: e for e in json.loads((CAP / "manifest.json").read_text("utf-8"))}
 
-# ── pictures: one per step with a picture, after the cover logo ──
-order = [s["img"] for s in steps(C) if s["img"]]
-blips = list(doc.element.body.iter(qn("a:blip")))
-print("pictures in docx:", len(blips), "steps with pictures:", len(order))
-assert len(blips) == len(order) + 1, "the cover logo plus one picture per step"
-for k in KEYS:
-    i = order.index(k) + 1
-    part = doc.part.related_parts[blips[i].get(qn("r:embed"))]
-    im = Image.open(CAP / "shots" / cap_man[k]["file"]).convert("RGB"); im.thumbnail((1600, 1600))
-    buf = io.BytesIO(); im.save(buf, "JPEG", quality=82, optimize=True)
-    print(f"{k}: {len(part.blob)} -> {len(buf.getvalue())}")
-    part._blob = buf.getvalue()
-
 # ── text ──
 RLM = "‏"
 norm = lambda s: s.replace(RLM, "")
@@ -121,6 +110,25 @@ def replace_in(p, old, new):
 body = list(doc.element.body.iter(qn("w:p")))
 ptext = lambda p: norm("".join(t.text or "" for t in p.iter(qn("w:t"))))
 done, missed = 0, []
+tracked = json.loads((ROOT / "manifest.json").read_text("utf-8"))
+
+def jpeg(key):
+    im = Image.open(CAP / "shots" / cap_man[key]["file"]).convert("RGB"); im.thumbnail((1600, 1600))
+    buf = io.BytesIO(); im.save(buf, "JPEG", quality=82, optimize=True)
+    return buf.getvalue()
+
+# Old and new steps side by side: the same step keeps its picture key (or its title when it has none)
+O_STEPS, C_STEPS = steps(O), steps(C)
+skey = lambda s: s["img"] or "t:" + s["t"]
+ops = difflib.SequenceMatcher(None, [skey(s) for s in O_STEPS], [skey(s) for s in C_STEPS], autojunk=False).get_opcodes()
+pairs, inserted = [], []
+for tag, i1, i2, j1, j2 in ops:
+    if tag in ("equal", "replace") and i2 - i1 == j2 - j1:
+        pairs += list(zip(O_STEPS[i1:i2], C_STEPS[j1:j2]))
+    elif tag == "insert":
+        inserted += [(C_STEPS[j - 1], C_STEPS[j]) for j in range(j1, j2)]
+    else:
+        sys.exit(f"steps removed or reshuffled ({tag} {i1}:{i2} → {j1}:{j2}): not handled, rebuild that part by hand")
 
 def swap(old, new, start=0, stop=None, what=""):
     global done
@@ -132,7 +140,7 @@ def swap(old, new, start=0, stop=None, what=""):
     missed.append(what or old[:40])
 
 # Each changed step: its title, explanation, actions and result, looked up after its own heading
-for a, b in zip(steps(O), steps(C)):
+for a, b in pairs:
     if a == b: continue
     h = next((i for i, p in enumerate(body) if ptext(p).startswith("الخطوة ") and ptext(p).endswith(norm(a["t"]))), None)
     if h is None: missed.append("heading " + a["t"]); continue
@@ -144,15 +152,101 @@ for a, b in zip(steps(O), steps(C)):
     for k in ("r", "note", "warn", "tip"):
         if a[k] != b[k] and a[k] and b[k]: swap(a[k], b[k], h + 1, nxt, f"{k} " + a["t"])
 
+# ── new steps: a copy of the step before, with its own text and picture; the steps and figures after move on ──
+def style(e):
+    ps = e.find(qn("w:pPr")); st = ps.find(qn("w:pStyle")) if ps is not None else None
+    return st.get(qn("w:val")) if st is not None else ""
+
+def step_heading(title):
+    return next(e for e in doc.element.body if e.tag == qn("w:p") and style(e) == "Heading3" and ptext(e).startswith("الخطوة ") and ptext(e).endswith(norm(title)))
+
+def block_of(h):
+    els, e = [h], h.getnext()
+    while e is not None and not style(e).startswith("Heading") and e.find(".//" + qn("w:br")) is None:
+        els.append(e); e = e.getnext()
+    return els
+
+def caption_of(key):
+    return next(e["caption"] for e in tracked if e["key"] == key)
+
+new_pics = 0
+for prev, new in inserted:
+    old_prev = next(o for o, c in pairs if c is prev)
+    assert old_prev["img"] and new["img"], "a new step is built on a step with a picture, and has one"
+    assert not any(old_prev[k] or new[k] for k in ("note", "warn", "tip")), "callouts in a new step are not handled"
+    h = step_heading(prev["t"])
+    blk = block_of(h)
+    dup = [copy.deepcopy(e) for e in blk]
+    num = int(re.match(r"الخطوة (\d+):", ptext(h)).group(1))
+    fig = int(re.match(r"صورة (\d+):", next(ptext(e) for e in blk if ptext(e).startswith("صورة "))).group(1))
+    # heading, explanation, caption, result
+    assert replace_in(dup[0], f"الخطوة {num}: {prev['t']}", f"الخطوة {num + 1}: {new['t']}")
+    assert replace_in(dup[1], prev["x"], new["x"])
+    cap = next(e for e in dup if ptext(e).startswith("صورة "))
+    assert replace_in(cap, f"صورة {fig}: {caption_of(prev['img'])}", f"صورة {fig + 1}: {cap_man[new['img']]['caption']}")
+    res = next(e for e in dup if ptext(e).startswith("النتيجة المتوقعة: "))
+    assert replace_in(res, prev["r"], new["r"])
+    # the actions: as many bullets as the new step has
+    bullets = [e for e in dup if style(e) == "ListBullet"]
+    while len(bullets) < len(new["do"]):
+        b2 = copy.deepcopy(bullets[-1]); dup.insert(dup.index(bullets[-1]) + 1, b2); bullets.append(b2)
+    for b2 in bullets[len(new["do"]):]:
+        dup.remove(b2)
+    for b2, text in zip(bullets, new["do"]):
+        assert replace_in(b2, ptext(b2), text)
+    # its own picture, with fresh drawing ids
+    rid, _ = doc.part.get_or_add_image(io.BytesIO(jpeg(new["img"])))
+    pic = next(e for e in dup if e.find(".//" + qn("a:blip")) is not None)
+    pic.find(".//" + qn("a:blip")).set(qn("r:embed"), rid)
+    top = max(int(d.get("id")) for d in doc.element.body.iter(qn("wp:docPr")))
+    for d in pic.iter(qn("wp:docPr")): d.set("id", str(top + 1))
+    # in place, after the step it follows
+    after = blk[-1]
+    for e in dup:
+        after.addnext(e); after = e
+    # the steps after it in this chapter, and every figure after it, move on by one
+    e = after.getnext()
+    while e is not None and style(e) != "Heading1":
+        if style(e) == "Heading3" and (m := re.match(r"الخطوة (\d+):", ptext(e))):
+            replace_in(e, f"الخطوة {m.group(1)}:", f"الخطوة {int(m.group(1)) + 1}:")
+        e = e.getnext()
+    for e in after.itersiblings():
+        if e.tag == qn("w:p") and (m := re.match(r"صورة (\d+):", ptext(e))):
+            replace_in(e, f"صورة {m.group(1)}:", f"صورة {int(m.group(1)) + 1}:")
+    # and in the capture record, after the shot it follows
+    i = next(k for k, e in enumerate(tracked) if e["key"] == prev["img"])
+    tracked.insert(i + 1, {**cap_man[new["img"]]})
+    new_pics += 1
+    done += 1
+    print("added step:", new["t"], "after", prev["t"])
+body = list(doc.element.body.iter(qn("w:p")))
+
+# ── pictures: one per step with a picture, after the cover logo ──
+order = [s["img"] for s in steps(C) if s["img"]]
+blips = list(doc.element.body.iter(qn("a:blip")))
+print("pictures in docx:", len(blips), "steps with pictures:", len(order))
+assert len(blips) == len(order) + 1, "the cover logo plus one picture per step"
+for k in [k for k in KEYS if k not in {n["img"] for _, n in inserted}]:
+    i = order.index(k) + 1
+    part = doc.part.related_parts[blips[i].get(qn("r:embed"))]
+    im = Image.open(CAP / "shots" / cap_man[k]["file"]).convert("RGB"); im.thumbnail((1600, 1600))
+    buf = io.BytesIO(); im.save(buf, "JPEG", quality=82, optimize=True)
+    print(f"{k}: {len(part.blob)} -> {len(buf.getvalue())}")
+    part._blob = buf.getvalue()
+
+
 # Captions of the swapped pictures
-tracked = json.loads((ROOT / "manifest.json").read_text("utf-8"))
 by_key, by_n = {e["key"]: e for e in tracked}, {e["n"]: e for e in tracked}
 for k in KEYS:
+    if k in {n["img"] for _, n in inserted}: continue
     new_e = cap_man[k]
     old_e = by_key.get(k) or by_n[new_e["n"]]  # a renamed shot keeps its place
     if old_e["caption"] != new_e["caption"]:
         swap(old_e["caption"], new_e["caption"], what="caption " + k)
-    old_e.update(key=new_e["key"], file=new_e["file"], caption=new_e["caption"])
+    old_e.update(key=new_e["key"], caption=new_e["caption"])
+# numbered in capture order, as a full capture would number them
+for n, e in enumerate(tracked, 1):
+    e.update(n=n, file=f"{n:03d}-{e['key']}.png")
 (ROOT / "manifest.json").write_text(json.dumps(tracked, ensure_ascii=False, indent=1), "utf-8")
 
 # FAQ: question and answer

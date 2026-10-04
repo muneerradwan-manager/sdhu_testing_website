@@ -1283,6 +1283,7 @@ const GLOBAL: PageDef = {
             { href: "/umrah", label: "العمرة", note: "خدمات العمرة على المنصة", soon: true },
             { href: "/conditions", label: "شروط التسجيل والتكاليف", note: "مع فحص أهلية مبدئي", soon: false },
             { href: "/verify", label: "التحقق من الجهات والوثائق", note: "حملات معتمدة، إيصالات، شهادات", soon: false },
+            { href: "/3d", label: "جولة ثلاثية الأبعاد", note: "الحرمان والمشاعر ومسجدا عائشة وقباء", soon: false },
             { href: "/administrator", label: "بوابة الإداريين", note: "التقديم، الامتحان، تشكيل المجموعة", soon: false },
             { href: "/staff", label: "بوابة الموظفين", note: "المراجعة، القرعة، غرفة العمليات", soon: false },
           ],
