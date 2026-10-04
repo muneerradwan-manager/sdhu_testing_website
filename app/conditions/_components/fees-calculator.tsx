@@ -18,7 +18,7 @@ const FEE_ROWS = [
   { label: "رسم تشكيل مجموعة", amount: F.groupFormation, unit: "لكل مجموعة", when: "عند تشكيل المجموعة", group: "رسوم" },
   { label: "رسم تشكيل تكتل", amount: F.clusterFormation, unit: "لكل تكتل", when: "عند تشكيل التكتل", group: "رسوم" },
   { label: "تكلفة الحج كاملة", amount: F.hajjCost, unit: "للفرد", when: "على دفعتين هذا الموسم (بقرار الإدارة)", group: "تكاليف" },
-  { label: "الدفعة الأولى", amount: F.firstInstallment, unit: "للفرد", when: "مع التسجيل على القبول المباشر، أو عند ظهور الاسم في القرعة", group: "تكاليف" },
+  { label: "الدفعة الأولى", amount: F.firstInstallment, unit: "للفرد", when: "مع التسجيل على القبول المباشر، أو عند تثبيت التسجيل لمن قُبل بالقرعة", group: "تكاليف" },
   { label: "الدفعة الثانية", amount: F.hajjCost - F.firstInstallment, unit: "للفرد", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
   { label: "الهدي", amount: F.hady, unit: "للفرد", when: "عند الانضمام إلى مجموعة", group: "تكاليف" },
   { label: "السكن العام", amount: 0, unit: "الرجال وحدهم والنساء وحدهن", when: "—", group: "تكاليف" },
@@ -259,7 +259,7 @@ export function FeesCalculator() {
             <AnimatedUSD value={total} className="font-display text-3xl font-bold" />
           </div>
           <p className="mt-3 text-xs leading-6 text-white/65">
-            رسم التسجيل ({people} × {formatUSD(F.registrationPerPerson)} = {formatUSD(registration)}) يُدفع عند تقديم الطلب وليس ضمن هذا المجموع. في القبول المباشر تُدفع الأولى معه، وفي القرعة عند ظهور الاسم.
+            رسم التسجيل ({people} × {formatUSD(F.registrationPerPerson)} = {formatUSD(registration)}) يُدفع عند تقديم الطلب وليس ضمن هذا المجموع. في القبول المباشر تُدفع الأولى معه، وفي القرعة عند تثبيت التسجيل لمن قُبل.
           </p>
         </div>
       </div>

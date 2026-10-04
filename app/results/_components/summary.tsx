@@ -1,36 +1,41 @@
-import { BadgeCheck, Dices, Hourglass, ShieldCheck } from "lucide-react";
+"use client";
+
+import { BadgeCheck, CalendarRange, Dices, ShieldCheck } from "lucide-react";
 import { Counter, Reveal, Stagger, StaggerItem } from "@/components/ui/motion";
 import { RESULTS_SUMMARY as S } from "@/lib/data/public-results";
-
-const cards = [
-  {
-    icon: BadgeCheck,
-    label: "مقبولون مباشرة وفق الأكبر سناً",
-    value: S.direct,
-    note: "35% من الحصة — 66 عاماً فأكثر",
-    tone: "from-green-dark to-green text-white",
-    iconTone: "bg-white/15 text-gold",
-  },
-  {
-    icon: Dices,
-    label: "مقبولون بالقرعة",
-    value: S.lottery,
-    note: "65% من الحصة — بث مباشر 1 شعبان",
-    tone: "from-white to-white text-ink",
-    iconTone: "bg-green-light/12 text-green",
-  },
-  {
-    icon: Hourglass,
-    label: "قائمة الاحتياط",
-    value: S.reserve,
-    note: "بترتيب معلن — تُرقّى عند توفر مقعد",
-    tone: "from-white to-white text-ink",
-    iconTone: "bg-gold/35 text-maroon",
-  },
-];
+import { drawTotals, usePublishedDraw } from "@/lib/lottery";
 
 /** Headline numbers and the accepted-ages announcement */
 export function ResultsSummary() {
+  const draw = usePublishedDraw();
+  const lottery = draw ? drawTotals(draw.picks) : null;
+  const byMonth = draw ? draw.picks.filter((p) => p.months !== "all").length : 0;
+  const cards = [
+    {
+      icon: BadgeCheck,
+      label: "مقبولون مباشرة وفق الأكبر سناً",
+      value: S.direct,
+      note: `35% من الحصة — ${S.acceptedAge} عاماً فأكثر`,
+      tone: "from-green-dark to-green text-white",
+      iconTone: "bg-white/15 text-gold",
+    },
+    {
+      icon: Dices,
+      label: "مقبولون بالقرعة",
+      value: lottery?.seats ?? 0,
+      note: lottery ? `65% من الحصة — ${lottery.apps.toLocaleString("en-US")} طلباً، بث مباشر 1 شعبان` : "لم تُنشر نتائج القرعة بعد",
+      tone: "from-white to-white text-ink",
+      iconTone: "bg-green-light/12 text-green",
+    },
+    {
+      icon: CalendarRange,
+      label: "سنوات ميلاد سُحبت",
+      value: draw?.picks.length ?? 0,
+      note: draw ? (byMonth ? `منها ${byMonth} بأشهر محددة — يُطابَق ميلاد صاحب الطلب` : "كلها بجميع أشهرها") : "تُعلن في البث المباشر",
+      tone: "from-white to-white text-ink",
+      iconTone: "bg-gold/35 text-maroon",
+    },
+  ];
   return (
     <section className="relative z-10 mx-auto -mt-10 max-w-7xl px-4 md:-mt-16 md:px-8">
       <div className="grid gap-4 lg:grid-cols-[1.05fr_1.6fr]">
@@ -54,7 +59,7 @@ export function ResultsSummary() {
                 <span className="mb-3 font-display text-2xl font-bold">عاماً فأكثر</span>
               </p>
               <p className="mt-5 text-sm leading-7 text-white/70">
-                اعتُمدت في {S.directApprovedAt}. ولم ينتقل أي طلب إلى القرعة وحده: التسجيل على القرعة كان مستقلاً بطلب جديد من{" "}
+                اعتُمدت في {S.directApprovedAt}. ولم ينتقل أي طلب إلى القرعة وحده: التسجيل الأولي على القرعة كان مستقلاً بطلب جديد من{" "}
                 {S.lotteryWindow}، مفتوحاً لكل مؤهل ومنهم من لم يُقبل مباشرة.
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-2 text-xs">
@@ -63,7 +68,7 @@ export function ResultsSummary() {
                   آخر تحديث: {S.lastUpdate}
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">
-                  طلبات القرعة المؤهلة: <span className="font-bold tabular-nums">{S.lotteryEligible.toLocaleString("en-US")}</span>
+                  طلبات التسجيل الأولي على القرعة: <span className="font-bold tabular-nums">{S.lotteryEligible.toLocaleString("en-US")}</span>
                 </span>
               </div>
             </div>

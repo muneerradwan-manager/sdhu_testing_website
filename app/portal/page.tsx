@@ -23,7 +23,9 @@ import { useEffect, useState } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
-import { directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
+import { usePublishedDraw } from "@/lib/lottery";
+import { useSeason } from "@/lib/season-live";
 import { SEASON } from "@/lib/season";
 import { ageOf, fullName, getPerson } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
@@ -48,13 +50,15 @@ export default function PortalHome() {
   const app = useStore((s) => s.applications[s.sessionId ?? ""]);
   const person = getPerson(sessionId)!;
   const [now, setNow] = useState(() => Date.now());
+  const draw = usePublishedDraw();
+  const { acceptedDirectAge } = useSeason();
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
   const elapsed = app ? (now - app.submittedAt) / 1000 : 0;
-  const steps = app ? trackSteps(trackOf(app), directAccepted(app)) : [];
+  const steps = app ? outcomeOf(app, draw, acceptedDirectAge).steps : [];
   const stage = app ? stageAt(steps, elapsed).stage : null;
 
   return (
@@ -150,7 +154,7 @@ export default function PortalHome() {
               <div className="relative flex flex-wrap items-center justify-between gap-6">
                 <div>
                   <p className="text-sm text-gold">
-                    طلبي رقم {app.number} — {app.members.length} أفراد — {trackOf(app) === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}
+                    طلبي رقم {app.number} — {app.members.length} أفراد — {trackOf(app) === "lottery" ? "التسجيل الأولي على القرعة" : "التسجيل على القبول المباشر"}
                   </p>
                   <p className="mt-2 font-display text-3xl font-bold md:text-4xl">{stage?.title}</p>
                   <p className="mt-2 text-white/75">{stage?.text}</p>
@@ -178,7 +182,7 @@ export default function PortalHome() {
                 </span>
                 <p className="mt-4 font-display text-3xl font-bold leading-[1.4] md:text-4xl">تقديم طلب حج لموسم 1448هـ</p>
                 <p className="mt-3 max-w-xl leading-8 text-white/75">
-                  لك وحدك أو مع عائلتك. التسجيل على القبول المباشر (الأكبر سناً) يُفتح أولاً، ثم يُفتح التسجيل على القرعة بطلب مستقل
+                  لك وحدك أو مع عائلتك. التسجيل على القبول المباشر (الأكبر سناً) يُفتح أولاً، ثم يُفتح التسجيل الأولي على القرعة بطلب مستقل
                   ({SEASON.windows.lottery.hijri}). سنسألك أسئلة بسيطة واحداً تلو الآخر، ونجلب بيانات مرافقيك من الشؤون المدنية.
                 </p>
                 <ButtonLink href="/portal/apply" variant="gold" size="xl" className="mt-7">
@@ -217,7 +221,7 @@ export default function PortalHome() {
               {[
                 app && { t: `تم استلام طلبك رقم ${app.number} لـ ${app.members.length} أفراد، وتم تسديد رسم التسجيل (الإيصال ${app.receipt}).`, when: "طلبك" },
                 { t: `أهلاً ${person.firstName}، تم إنشاء حسابك في منصة الحج الوطنية. التسجيل لموسم 1448هـ مفتوح حتى 1 رجب.`, when: "ترحيب" },
-                { t: "إعلان رسمي: القرعة الإلكترونية يوم 1 شعبان الساعة 20:00 ببث مباشر.", when: "الإدارة" },
+                { t: "إعلان رسمي: القرعة يوم 1 شعبان الساعة 20:00 ببث مباشر — تُسحب سنوات الميلاد وأشهرها، ويُطابَق كل طلب بميلاد صاحبه.", when: "الإدارة" },
               ]
                 .filter(Boolean)
                 .map((n) => n as { t: string; when: string })
@@ -294,7 +298,7 @@ function DraftAndInvitations({ sessionId, hasApplication }: { sessionId: string;
                   {ownerPerson ? fullName(ownerPerson) : "أحد أقاربك"} أضافك إلى طلب حج
                 </p>
                 <p className="text-sm leading-7 text-ink-soft">
-                  صاحب الطلب: {applicant ? fullName(applicant) : "—"} — الأفراد: {d.members.map((m) => m.person.firstName).join("، ")} — {d.track === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}
+                  صاحب الطلب: {applicant ? fullName(applicant) : "—"} — الأفراد: {d.members.map((m) => m.person.firstName).join("، ")} — {d.track === "lottery" ? "التسجيل الأولي على القرعة" : "التسجيل على القبول المباشر"}
                 </p>
               </div>
               {c.status === "pending" ? (

@@ -12,7 +12,7 @@ import { LotteryExplainer } from "./_components/lottery-explainer";
 
 export const metadata: Metadata = {
   title: "نتائج القبول 1448هـ",
-  description: "الأعمار المقبولة وفق الأكبر سناً، وقوائم المقبولين بالقرعة والاحتياط، والبحث بالرقم الوطني — بيانات تجريبية.",
+  description: "الأعمار المقبولة وفق الأكبر سناً، وجدول سنوات الميلاد وأشهرها المسحوبة في القرعة، والبحث بالرقم الوطني — بيانات تجريبية.",
 };
 
 export default function ResultsPage() {
@@ -30,7 +30,7 @@ export default function ResultsPage() {
             href="#lists"
             className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-6 font-semibold text-white backdrop-blur-md transition hover:bg-white/20"
           >
-            <ListChecks className="size-5" /> القوائم العامة
+            <ListChecks className="size-5" /> نتائج القرعة والقوائم
           </a>
           <span className="inline-flex items-center gap-2 rounded-full bg-ink/30 px-3 py-1.5 text-xs text-white/85 ring-1 ring-white/15">
             <ShieldCheck className="size-4 text-gold" /> آخر تحديث: {RESULTS_SUMMARY.lastUpdate}

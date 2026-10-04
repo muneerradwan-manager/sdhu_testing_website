@@ -36,7 +36,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { ITINERARY, PLACES, assign, directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { ITINERARY, PLACES, assign, drawLine, outcomeOf, stageAt, trackOf } from "@/lib/journey";
+import { usePublishedDraw } from "@/lib/lottery";
 import { itineraryOf, passCardOf, useFlightsData } from "@/lib/flights";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
@@ -54,9 +55,10 @@ const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon:
   checking: { title: "بدأ تدقيق طلبك", body: (n) => `طلبك رقم ${n} قيد التحقق من الأهلية.`, icon: "🔎", tone: "info" },
   eligible: { title: "طلبك مؤهل", body: (n) => `طلبك رقم ${n} مؤهل، وينتظر نتيجة التسجيل الذي قدّمته فيه.`, icon: "✅", tone: "success" },
   direct: { title: "اعتُمدت قوائم القبول المباشر", body: () => `طلبك ضمن الأعمار المقبولة: ${SEASON.acceptedDirectAge} عاماً فأكثر.`, icon: "📢", tone: "info" },
-  lottery: { title: "القرعة تبدأ الآن", body: () => "تابع البث المباشر للقرعة الإلكترونية.", icon: "📺", tone: "gold" },
-  accepted: { title: "مبارك! تم قبول طلبك", body: (n) => `تم اختيار طلبك رقم ${n} لأداء فريضة الحج لموسم 1448هـ.`, icon: "🕋", tone: "success" },
-  notAccepted: { title: "لم يُقبل طلبك مباشرة", body: () => `يمكنك التسجيل على القرعة (${SEASON.windows.lottery.hijri}) بالأفراد أنفسهم بضغطة واحدة، دون إعادة الخطوات.`, icon: "📋", tone: "gold" },
+  lottery: { title: "القرعة تبدأ الآن", body: () => "تابع البث المباشر: تُسحب سنوات الميلاد وأشهرها.", icon: "📺", tone: "gold" },
+  accepted: { title: "مبارك! تم قبول طلبك", body: (n) => `قُبل طلبك رقم ${n} لأداء فريضة الحج لموسم 1448هـ.`, icon: "🕋", tone: "success" },
+  notAccepted: { title: "لم يُقبل طلبك مباشرة", body: () => `يمكنك التسجيل الأولي على القرعة (${SEASON.windows.lottery.hijri}) بالأفراد أنفسهم بضغطة واحدة، دون إعادة الخطوات.`, icon: "📋", tone: "gold" },
+  notDrawn: { title: "نُشرت نتائج القرعة", body: () => "لم تُسحب سنة ميلاد صاحب طلبك وشهره هذا الموسم.", icon: "📋", tone: "info" },
 };
 
 type Unlock = "always" | "group" | "payments" | "trip";
@@ -132,7 +134,8 @@ export default function ApplicationPage() {
   const post = useStore((s) => s.post[s.sessionId ?? ""]) ?? EMPTY_POST;
   const review = useStore((s) => s.reviews[s.sessionId ?? ""]);
   const admins = useStore((s) => s.admins);
-  const { fees } = useSeason();
+  const { fees, acceptedDirectAge } = useSeason();
+  const draw = usePublishedDraw();
   const [now, setNow] = useState(() => Date.now());
   const [mashaer, setMashaer] = useState<"mina" | "arafat" | "muzdalifah" | "jamarat">("mina");
   const [sos, setSos] = useState<null | "pick" | "sent">(null);
@@ -148,7 +151,7 @@ export default function ApplicationPage() {
   const elapsed = app ? Math.max(0, (now - app.submittedAt) / 1000) : 0;
   const track = app ? trackOf(app) : "direct";
   const direct = track === "direct";
-  const steps = trackSteps(track, app ? directAccepted(app) : false);
+  const steps = app ? outcomeOf(app, draw, acceptedDirectAge).steps : [];
   const { stage, index: stageIdx } = stageAt(steps, elapsed);
   const accepted = stage.key === "accepted";
   const applicant = app?.members.find((m) => m.relation === "self") ?? app?.members[0];
@@ -176,7 +179,7 @@ export default function ApplicationPage() {
   useEffect(() => {
     if (!app) return;
     if (lastStage.current && lastStage.current !== stage.key) {
-      const n = NOTIFY[stage.key];
+      const n = NOTIFY[stage.key === "notAccepted" && !direct ? "notDrawn" : stage.key];
       if (n) toast({ title: n.title, body: n.body(app.number), icon: n.icon, tone: n.tone });
     }
     if (stage.key === "accepted" && !celebrated.current && lastStage.current !== null && lastStage.current !== "accepted") {
@@ -190,7 +193,7 @@ export default function ApplicationPage() {
       })();
     }
     lastStage.current = stage.key;
-  }, [stage.key, app, toast]);
+  }, [stage.key, app, toast, direct]);
 
   if (!app || !applicant) {
     return (
@@ -267,7 +270,7 @@ export default function ApplicationPage() {
 
         {/* Stepper */}
         <p className="mt-4 text-sm font-bold text-gold-dark">
-          {direct ? `التسجيل على القبول المباشر (${SEASON.windows.direct.hijri})` : `التسجيل على القرعة (${SEASON.windows.lottery.hijri})`}
+          {direct ? `التسجيل على القبول المباشر (${SEASON.windows.direct.hijri})` : `التسجيل الأولي على القرعة (${SEASON.windows.lottery.hijri})`}
           {app.previous && <span className="font-normal text-hint"> — سبقه طلب قبول مباشر رقم {app.previous.number} لم يُقبل</span>}
         </p>
         <ol className="relative mt-6 grid grid-cols-5 gap-1">
@@ -312,8 +315,8 @@ export default function ApplicationPage() {
               {stage.key === "checking" && <StageChecking members={app.members} />}
               {stage.key === "eligible" && <StageEligible app={app} />}
               {stage.key === "direct" && <StageDirect age={ageOf(applicant.person)} />}
-              {stage.key === "lottery" && <StageLottery number={app.number} elapsed={elapsed} />}
-              {stage.key === "notAccepted" && <StageNotAccepted age={ageOf(applicant.person)} />}
+              {stage.key === "lottery" && <StageLottery app={app} draw={draw} elapsed={elapsed} />}
+              {stage.key === "notAccepted" && <StageNotAccepted age={ageOf(applicant.person)} app={app} draw={draw} />}
               {accepted && rejected && (
                 <div className="flex items-center gap-4 rounded-3xl bg-white p-6 ring-1 ring-maroon/20">
                   <AlertOctagon className="size-12 shrink-0 text-maroon" />
@@ -332,7 +335,7 @@ export default function ApplicationPage() {
                       🕋
                     </motion.div>
                     <div>
-                      <p className="text-gold">{direct ? "مقبول مباشرة وفق الأكبر سناً" : "تم اختيارك بالقرعة الإلكترونية"}</p>
+                      <p className="text-gold">{direct ? "مقبول مباشرة وفق الأكبر سناً" : `مقبول بالقرعة: ${drawLine(app, draw) ?? ""}`}</p>
                       <p className="mt-1 font-display text-3xl font-bold md:text-5xl">مبارك! تم قبول طلبك</p>
                       <p className="mt-3 max-w-2xl leading-8 text-white/80">
                         طلب عائلي رقم {app.number} ({app.members.length} أفراد) لأداء فريضة الحج لموسم 1448هـ. أكملوا الخطوات أدناه، فتُفتح تفاصيل رحلتكم خطوة بخطوة.

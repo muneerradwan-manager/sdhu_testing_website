@@ -57,7 +57,7 @@ export const RESET_POST: Partial<PostAcceptance> = {
 export type StepKey = "confirm" | "documents" | "group" | "payment" | "medical" | "visa";
 
 export const STEPS: { key: StepKey; title: string; short: string; emoji: string; question: string; unlocks: string }[] = [
-  { key: "confirm", title: "تأكيد القبول", short: "والدفعة الأولى للمقبولين بالقرعة", emoji: "✍️", question: "هل وصلتك النتيجة بوضوح وفي الوقت المناسب؟", unlocks: "رفع الوثائق" },
+  { key: "confirm", title: "تأكيد القبول", short: "وتثبيت التسجيل بالدفعة الأولى للمقبولين بالقرعة", emoji: "✍️", question: "هل وصلتك النتيجة بوضوح وفي الوقت المناسب؟", unlocks: "رفع الوثائق" },
   { key: "documents", title: "الصورة والجواز", short: "لا وثائق طبية قبل التفويج", emoji: "📄", question: "كيف تقيّم وضوح الوثائق المطلوبة وسرعة الرد عليها؟", unlocks: "التفويج إلى المجموعة" },
   { key: "group", title: "التفويج إلى مجموعة", short: "تختارها ويسجّلك منسقها", emoji: "🧭", question: "كيف تقيّم وضوح دليل المجموعات والتسجيل عند المنسق؟", unlocks: "قسم «المجموعة»" },
   { key: "payment", title: "الدفعة الثانية", short: "عند الانضمام إلى المجموعة", emoji: "🧾", question: "كيف تقيّم وضوح التكاليف والدفعات والإيصالات؟", unlocks: "الوثائق الطبية" },

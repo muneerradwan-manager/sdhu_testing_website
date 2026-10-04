@@ -111,45 +111,51 @@ if ONLY in (None, "c"):
     s.btn("نعم، أعد الضبط", 1200, scope="body")
     s.close()
 
-# ───────── D. lottery (import → approve) ─────────
+# ───────── D. lottery (enter what the broadcast drew → approve and publish) ─────────
 if ONLY in (None, "d"):
     s = Staff(); c, p = s.c, s.p; S = "D"
     s.login("kinan")
     c.goto("/staff/lottery", wait=1800)
-    c.shot("lot-top", "القبول والقرعة: أربع خطوات", section=S)
+    c.shot("lot-top", "القبول والقرعة: أربع خطوات، ونتائج 1448 منشورة في بيئة العرض", hl=[("button:has-text('إعادة التجربة')", "")], section=S)
+    s.btn("إعادة التجربة", 1500)
+    c.scroll_to("text=إعلان الأعمار المقبولة", 120)
+    c.shot("lot-ages", "إعلان الأعمار المقبولة: إرسالها للاعتماد", hl=[("main button:has-text('إرسال للاعتماد')", "")], section=S)
     s.btn("إرسال للاعتماد", 1200)
-    c.shot("lot-sent", "إرسال الأعمار المقبولة للاعتماد (صلاحية الاستيراد)", section=S)
-    b = p.locator("button:has-text('تصدير قائمة طلبات القرعة المؤهلة')").first
-    b.scroll_into_view_if_needed(); b.click(); c.settle(2500)
-    c.shot("lot-export", "تصدير قائمة طلبات القرعة المؤهلة", section=S)
-    smp = p.locator("button:has-text('استخدم الملف التجريبي')").first
-    smp.scroll_into_view_if_needed(); c.settle(300)
-    c.shot("lot-import", "استيراد ملف نتائج القرعة المعتمد", section=S)
-    smp.click(); c.settle(4500)
-    c.shot("lot-check", "فحص الملف: صفوف لم تُطابق", section=S)
-    for _ in range(10):
-        w = p.locator("button[aria-label='تعبئة الاقتراح']").first
-        if not w.count(): break
-        w.scroll_into_view_if_needed(); w.click(); c.settle(250)
-        fx = p.locator("button:text-is('تصحيح')").first
-        if fx.count(): fx.click(); c.settle(350)
-    sv = p.locator("button:has-text('حفظ الاستيراد')").first
-    sv.scroll_into_view_if_needed(); c.settle(300)
-    c.shot("lot-fixed", "تصحيح كل صف بسبب واضح ثم حفظ الاستيراد", hl=[("button:has-text('حفظ الاستيراد')", "")], section=S)
-    sv.click(); c.settle(1500)
+    c.shot("lot-sent", "أُرسلت الأعمار المقبولة للاعتماد", section=S)
+    yr = p.locator("button[aria-pressed]:has-text('1972')").first
+    yr.scroll_into_view_if_needed(); yr.click(); c.settle(900)
+    c.scroll_to("text=2. إحصاء التسجيل الأولي على القرعة", 120)
+    c.shot("lot-pool", "إحصاء التسجيل الأولي بسنة ميلاد صاحب الطلب، وأشهر السنة المختارة", hl=[("button[aria-pressed='true']", "")], section=S)
+    s.btn("تصدير الإحصاء للجنة تنظيم القرعة", 2500)
+    c.shot("lot-export", "صُدّر الإحصاء للجنة تنظيم القرعة", section=S)
+    # one line by hand (1961, all its months), the next being set (1972, January to April)
+    year = p.locator("label:has-text('سنة الميلاد') select").first
+    year.scroll_into_view_if_needed(); year.select_option("1961"); c.settle(300)
+    s.btn("إضافة السطر", 700)
+    year.select_option("1972"); c.settle(300)
+    p.locator("[role=radio]:has-text('أشهر محددة')").first.click(); c.settle(300)
+    for m in ("كانون الثاني", "شباط", "آذار", "نيسان"):
+        p.locator(f"button[aria-pressed]:text-is('{m}')").first.click(); c.settle(150)
+    c.scroll_to("text=3. إدخال نتائج البث", 120)
+    c.shot("lot-entry", "إدخال سطر: سنة الميلاد والأشهر المسحوبة منها", hl=[("button:has-text('إضافة السطر')", "")], section=S)
+    s.btn("إضافة السطر", 700)
+    s.btn("تعبئة ما أُعلن في بث 1448", 900)
+    c.scroll_to("text=3. إدخال نتائج البث", 120)
+    c.shot("lot-entered", "اكتملت مقاعد القرعة: حفظ وإرسال للاعتماد", hl=[("button:has-text('حفظ وإرسال للاعتماد')", "")], section=S)
+    s.btn("حفظ وإرسال للاعتماد", 1500)
     c.scroll_to("text=4. الاعتماد والنشر", 520)
-    c.shot("lot-locked-publish", "النشر يحتاج صلاحية الاعتماد", section=S)
+    c.shot("lot-locked-publish", "أُرسلت النتائج، والنشر يحتاج صلاحية الاعتماد", section=S)
     s.logout(); s.login("yousef")
     c.goto("/staff/lottery", wait=1800)
     ap = p.locator("button:has-text('اعتماد وإعلان الأعمار')").first
     ap.scroll_into_view_if_needed(); c.settle(300)
-    c.shot("lot-approve-ages", "مديرة الموسم: اعتماد وإعلان الأعمار", hl=[("button:has-text('اعتماد وإعلان الأعمار')", "")], section=S)
+    c.shot("lot-approve-ages", "لجنة الاعتماد: اعتماد وإعلان الأعمار", hl=[("button:has-text('اعتماد وإعلان الأعمار')", "")], section=S)
     ap.click(); c.settle(1500)
     pub = p.locator("button:has-text('اعتماد ونشر النتائج')").first
     pub.scroll_into_view_if_needed(); pub.click(); c.settle(900)
     c.shot("lot-publish-modal", "تأكيد اعتماد ونشر نتائج القرعة", section=S)
     p.locator("[role=dialog] button:has-text('اعتماد ونشر'), div button:text-is('اعتماد ونشر')").first.click(); c.settle(2000)
     c.scroll_to("text=4. الاعتماد والنشر", 520)
-    c.shot("lot-published", "نُشرت النتائج", section=S)
+    c.shot("lot-published", "نُشرت نتائج القرعة", section=S)
     s.close()
 print("DONE stf_a")

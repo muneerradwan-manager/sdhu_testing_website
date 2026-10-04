@@ -9,7 +9,7 @@
 export type Permission =
   | "registration.review" // مراجعة الطلبات والوثائق
   | "season.settings" // إعدادات الموسم والاعتماد
-  | "lottery.import" // استيراد نتائج القرعة
+  | "lottery.import" // إدخال نتائج القرعة (سنوات الميلاد وأشهرها كما سُحبت في البث)
   | "lottery.approve" // اعتماد ونشر النتائج
   | "administrators.manage" // لجان الامتحانات ونتائج الشفهي
   | "administrators.catalog" // قوائم ملف الإداري: الشهادات والمهارات واللغات التي يُسأل عنها
@@ -57,7 +57,7 @@ export const ALL_PERMISSIONS: Permission[] = [
 export const STAFF: StaffUser[] = [
   { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: ALL_PERMISSIONS },
   { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", permissions: ["registration.review"] },
-  { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — استيراد نتائج القرعة", travels: false, initials: "ك", permissions: ["lottery.import"] },
+  { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", permissions: ["lottery.import"] },
   { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", permissions: ["lottery.approve"] },
   { id: "maher", username: "maher", name: "ماهر عيسى", title: "شؤون الإداريين", travels: false, initials: "م", permissions: ["administrators.manage"] },
   { id: "rahaf", username: "rahaf", name: "رهف الخطيب", title: "شؤون الإداريين — قوائم ملف الإداري", travels: false, initials: "ر", permissions: ["administrators.catalog"] },
@@ -89,7 +89,7 @@ export const STAFF_PASSWORD = "1448";
 export const PERMISSION_LABELS: Record<Permission, string> = {
   "registration.review": "مراجعة الطلبات والوثائق",
   "season.settings": "إعدادات الموسم",
-  "lottery.import": "استيراد نتائج القرعة",
+  "lottery.import": "إدخال نتائج القرعة",
   "lottery.approve": "اعتماد ونشر النتائج",
   "administrators.manage": "شؤون الإداريين والامتحانات",
   "administrators.catalog": "قوائم ملف الإداري",

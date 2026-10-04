@@ -252,7 +252,7 @@ function Fixes({
                   )}
                   {f.key === "direct-age" && onSwitchToLottery && (
                     <Button size="sm" onClick={onSwitchToLottery}>
-                      <Ticket className="size-4" /> التسجيل على القرعة بدلاً من ذلك
+                      <Ticket className="size-4" /> التسجيل الأولي على القرعة بدلاً من ذلك
                     </Button>
                   )}
                   {f.key === "direct-age" && (

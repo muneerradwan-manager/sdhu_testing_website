@@ -153,7 +153,7 @@ export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules, d
           status: okAge ? "pass" : "fail",
           detail: okAge
             ? `${age} عاماً — القبول المباشر لمن بلغ صاحب طلبه ${direct.minAge} عاماً فأكثر`
-            : `عمر صاحب الطلب ${age} عاماً، والقبول المباشر هذا الموسم لمن بلغ ${direct.minAge} عاماً فأكثر. يمكنك التسجيل على القرعة بالأفراد أنفسهم دون إعادة الخطوات.`,
+            : `عمر صاحب الطلب ${age} عاماً، والقبول المباشر هذا الموسم لمن بلغ ${direct.minAge} عاماً فأكثر. يمكنك التسجيل الأولي على القرعة بالأفراد أنفسهم دون إعادة الخطوات.`,
         });
       }
       const ok = by <= r.applicantMaxBirthYear;

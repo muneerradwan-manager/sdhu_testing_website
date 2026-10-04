@@ -323,9 +323,9 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                 </p>
               </div>
               <div className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-                <p className="font-bold text-white">2. التسجيل على القرعة — طلب مستقل</p>
+                <p className="font-bold text-white">2. التسجيل الأولي على القرعة — طلب مستقل</p>
                 <p className="mt-1 text-xs leading-6 text-white/85">
-                  {SEASON.windows.lottery.hijri} — يسجّل فيه كل مؤهل بطلب جديد، ومنهم من لم يُقبل مباشرة. القرعة: {SEASON.windows.lottery.draw}.
+                  {SEASON.windows.lottery.hijri} — يسجّل فيه كل مؤهل بطلب جديد، ومنهم من لم يُقبل مباشرة. القرعة: {SEASON.windows.lottery.draw}، تُسحب فيها سنوات ميلاد وأشهر.
                 </p>
               </div>
             </div>

@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/widgets";
 import { DOCS, costLines, docStatus, medicalDocsFor, medicalKey, paidAt , useRoomCost } from "@/app/portal/application/_components/post/model";
 import { groupInfo } from "@/lib/assignment";
 import { planLabel, seasonPlan } from "@/lib/installments";
-import { directAccepted, stageAt, trackOf, trackSteps } from "@/lib/journey";
+import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
+import { usePublishedDraw } from "@/lib/lottery";
 import { ageOf, fullName, getPerson, relationLabel } from "@/lib/registry";
 import { useSeason } from "@/lib/season-live";
 import { useStore, type DocStatus } from "@/lib/store";
@@ -36,6 +37,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
   const account = useStore((s) => s.accounts[applicantId]);
   const events = useStore((s) => s.events);
   const season = useSeason();
+  const draw = usePublishedDraw();
   // The private room the family asked for, at its cluster's price (before any early return: it is a hook)
   const room = useRoomCost(app, post);
   const [now, setNow] = useState(() => Date.now());
@@ -58,7 +60,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
   const holder = getPerson(applicantId);
   const applicant = app.members.find((m) => m.relation === "self")?.person ?? holder;
   const track = trackOf(app);
-  const steps = trackSteps(track, directAccepted(app));
+  const steps = outcomeOf(app, draw, season.acceptedDirectAge).steps;
   const { stage } = stageAt(steps, (now - app.submittedAt) / 1000);
   const accepted = stage.key === "accepted";
   const fee = app.members.length * season.fees.registrationPerPerson;
@@ -87,7 +89,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
             <p className="text-sm text-hint">طلب حج — موسم 1448</p>
             <h2 className="font-display text-3xl font-bold text-green-dark">الطلب رقم {app.number}</h2>
             <div className="mt-2 flex flex-wrap gap-2">
-              <Badge tone={track === "lottery" ? "gold" : "green"}>{track === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}</Badge>
+              <Badge tone={track === "lottery" ? "gold" : "green"}>{track === "lottery" ? "التسجيل الأولي على القرعة" : "التسجيل على القبول المباشر"}</Badge>
               <Badge tone={accepted ? "green" : "ink"}>الحالة: {stage.title}</Badge>
               <Badge tone="ink">{app.office}</Badge>
               <Badge tone={group ? "green" : "gold"}>{group ? `المجموعة ${group.number}` : "لم ينضم إلى مجموعة بعد"}</Badge>

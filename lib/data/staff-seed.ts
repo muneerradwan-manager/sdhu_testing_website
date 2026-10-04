@@ -7,6 +7,7 @@
 import type { Person, Relation } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import type { AdminProfile, AuditEvent, Ticket } from "@/lib/store";
+import { OFFICIAL_DRAW, drawTotals } from "@/lib/lottery";
 import { seeded } from "@/lib/utils";
 
 /** Local wall-clock timestamps so every viewer sees the same hour */
@@ -262,22 +263,13 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
 ];
 
 // ───────────────────────── Direct acceptance & lottery ─────────────────────────
-// Two SEPARATE registrations. Direct acceptance ranks its own applications by age; the lottery list is
-// whatever was registered (and found eligible) in the lottery window — nothing moves over automatically.
+// Two SEPARATE registrations. Direct acceptance ranks its own applications by age; the lottery's are
+// counted by the main applicant's birth year and month (lib/lottery.ts) — nothing moves over automatically.
 
 export const LOTTERY = {
   /** Eligible applications from the direct-acceptance registration (9 جمادى الآخرة – 1 رجب), ranked by age */
   directEligible: 61_830,
   directSeats: 7_875,
-  /** Eligible applications registered in the separate lottery window (16 – 25 رجب) */
-  lotteryEligible: 53_955,
-  familyInList: 16_900,
-  accepted: 14_625,
-  acceptedFamily: 4_020,
-  reserve: 3_000,
-  notAccepted: 36_330,
-  rows: 17_634,
-  file: "نتائج-القرعة-1448-معتمد.xlsx",
 };
 
 /** Seats requested by eligible DIRECT-ACCEPTANCE applications, grouped by applicant age (oldest first) */
@@ -298,23 +290,6 @@ export const AGE_BUCKETS: { label: string; minAge: number; seats: number }[] = [
   { label: "50–59", minAge: 50, seats: 14_300 },
   { label: "40–49", minAge: 40, seats: 19_800 },
   { label: "29–39", minAge: 29, seats: 13_355 },
-];
-
-export type UnmatchedRow = { row: number; application: string; fileId: string; suggestion: string; issue: string };
-
-export const UNMATCHED_ROWS: UnmatchedRow[] = [
-  { row: 4_102, application: "51877", fileId: "01058221438", suggestion: "01058221483", issue: "رقمان متبادلان في آخر الرقم الوطني" },
-  { row: 6_311, application: "52940", fileId: "0203311875", suggestion: "02033118750", issue: "الرقم الوطني ناقص خانة" },
-  { row: 7_054, application: "48122", fileId: "05112208841", suggestion: "05112208847", issue: "خطأ في الخانة الأخيرة" },
-  { row: 9_480, application: "55310", fileId: "01099410026", suggestion: "01099140026", issue: "رقمان متبادلان" },
-  { row: 11_236, application: "46615", fileId: "03077520193", suggestion: "03077502193", issue: "رقمان متبادلان" },
-  { row: 13_907, application: "57002", fileId: "07044130558", suggestion: "07041130558", issue: "خطأ في خانة واحدة" },
-  { row: 16_218, application: "49871", fileId: "09010337264", suggestion: "09010337246", issue: "رقمان متبادلان" },
-];
-
-export const DUPLICATE_ROWS = [
-  { row: 8_812, duplicateOf: 8_811, application: "53318" },
-  { row: 15_402, duplicateOf: 15_401, application: "44780" },
 ];
 
 // ───────────────────────── Administrators ─────────────────────────
@@ -577,15 +552,15 @@ export const SEED_EVENTS: AuditEvent[] = [
   { id: "h-06", at: at(2026, 10, 23, 18, 40), actor: "ماهر عيسى", role: "شؤون الإداريين", action: "تعديل نتيجة الشفهي", target: "متقدم 01033301422", before: "12 من 20", after: "14 من 20", detail: "خطأ في الجمع — تصويب اللجنة رقم 5" },
   { id: "h-07", at: at(2026, 11, 20, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", action: "اعتماد مجموعة", target: "المجموعة 31 — تكتل النور" },
   { id: "h-08", at: at(2026, 12, 10, 14, 30), actor: "رنا حداد", role: "إدارة التسجيل", action: "اعتماد طلب بعد المراجعة", target: "الطلب 49120", detail: "اسم الأم: خطأ كتابي مؤكد من بيان القيد" },
-  { id: "h-09", at: at(2026, 12, 24, 9, 40), actor: "رنا حداد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر — 7,875 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },
-  { id: "h-10", at: at(2026, 12, 24, 10, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "اعتماد الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر" },
-  { id: "h-11", at: at(2027, 1, 6, 17, 5), actor: "رنا حداد", role: "إدارة التسجيل", action: "تصدير قائمة طلبات القرعة المؤهلة", target: "53,955 طلباً", detail: "طلبات التسجيل على القرعة (16 – 25 رجب) بعد إغلاقه — منها 16,900 طلب عائلي — بإشراف لجنة تنظيم القرعة" },
-  { id: "h-12", at: at(2027, 1, 9, 23, 40), actor: "رنا حداد", role: "إدارة التسجيل", action: "استيراد نتائج القرعة", target: "الطلب 51877", detail: "الصف 4,102: رقم وطني غير مطابق (خطأ رقم واحد) — الحالة: غير مطابق" },
-  { id: "h-13", at: at(2027, 1, 9, 23, 58), actor: "رنا حداد", role: "إدارة التسجيل", action: "تصحيح صف غير مطابق", target: "الطلب 51877", before: "010-•••••38", after: "010-•••••83", detail: "خطأ كتابي مؤكد من اللجنة، مرفق تصويب اللجنة" },
-  { id: "h-14", at: at(2027, 1, 10, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "اعتماد ونشر نتائج القرعة", target: "14,625 مقبولاً — 3,000 احتياط" },
-  { id: "h-15", at: at(2027, 1, 12, 11, 20), actor: "رنا حداد", role: "إدارة التسجيل", action: "تحويل تذكرة اعتراض", target: "الطلب 51877", detail: "«كنت مقبولاً في الملف المعلن ولم يظهر اسمي» — حُوّلت إلى التدقيق" },
+  { id: "h-09", at: at(2026, 12, 24, 9, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر — 7,875 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },
+  { id: "h-10", at: at(2026, 12, 24, 10, 0), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر" },
+  { id: "h-11", at: at(2027, 1, 6, 17, 5), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "تصدير إحصاء التسجيل الأولي على القرعة", target: "53,955 طلباً — 95,222 شخصاً", detail: "بحسب سنة ميلاد صاحب الطلب وشهره، للجنة تنظيم القرعة" },
+  { id: "h-12", at: at(2027, 1, 9, 23, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إدخال نتائج القرعة", target: "8 سنوات ميلاد — 14,625 مقعداً", detail: "كما سُحبت في البث: 1961، 1965 (كانون الثاني)، 1970، 1972 (كانون الثاني – نيسان)، 1980، 1987، 1989، 1990 (كانون الثاني)" },
+  { id: "h-13", at: at(2027, 1, 9, 23, 52), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إرسال نتائج القرعة للاعتماد", target: "8 سنوات ميلاد — 14,625 مقعداً" },
+  { id: "h-14", at: at(2027, 1, 10, 9, 5), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد ونشر نتائج القرعة", target: "14,625 مقعداً — 8,221 طلباً", detail: "جدول سنوات الميلاد وأشهرها كما أُعلن في البث" },
+  { id: "h-15", at: at(2027, 1, 12, 11, 20), actor: "رنا حداد", role: "إدارة التسجيل", action: "تحويل تذكرة اعتراض", target: "الطلب 51877", detail: "«أنا من مواليد شباط 1972، وشباط مسحوب، ولم يُقبل طلبي» — حُوّلت إلى التدقيق" },
   { id: "h-16", at: at(2027, 1, 12, 11, 48), actor: "طارق مصطفى", role: "التدقيق", action: "الاطلاع على سجل الأحداث", target: "تصفية: الطلب 51877" },
-  { id: "h-17", at: at(2027, 1, 12, 12, 10), actor: "طارق مصطفى", role: "التدقيق", action: "الرد على الاعتراض", target: "الطلب 51877", detail: "الطلب مقبول فعلاً — صاحبه بحث باسمه لا برقمه الوطني" },
+  { id: "h-17", at: at(2027, 1, 12, 12, 10), actor: "طارق مصطفى", role: "التدقيق", action: "الرد على الاعتراض", target: "الطلب 51877", detail: "صاحب الطلب والده، الأكبر سناً فيه، من مواليد 1969، والقرعة تُطابَق بميلاد صاحب الطلب — النتيجة صحيحة" },
 ];
 
 /** The objection example (4.5) — application number to trace */
@@ -593,19 +568,21 @@ export const OBJECTION_APP = "51877";
 
 // ───────────────────────── Executive (end of season) ─────────────────────────
 
+/** People (not applications) the 1448 draw accepted, and the lottery's others */
+const OFFICIAL_LOTTERY = drawTotals(OFFICIAL_DRAW);
+
 export const EXEC = {
   headline: [
     { label: "المتقدمون", value: 72_420 },
     { label: "المؤهلون", value: 61_830 },
     { label: "المقبولون", value: 22_500 },
-    { label: "الاحتياط", value: 3_000 },
+    { label: "ثبّتوا تسجيلهم", value: 22_436 },
     { label: "أدّوا الحج فعلاً", value: 22_318 },
   ],
   split: [
     { label: "قبول مباشر (66+)", value: 7_875, color: "#AD9E6E" },
-    { label: "القرعة", value: 14_625, color: "#00594F" },
-    { label: "احتياط", value: 3_000, color: "#289E92" },
-    { label: "لم يُقبل في القرعة", value: 36_330, color: "#E4DDD3" },
+    { label: "القرعة", value: OFFICIAL_LOTTERY.seats, color: "#00594F" },
+    { label: "لم يُقبل في القرعة", value: OFFICIAL_LOTTERY.notAcceptedSeats, color: "#E4DDD3" },
   ],
   stages: [
     { stage: "إنشاء الحساب", y1447: 4.2, y1448: 4.5 },

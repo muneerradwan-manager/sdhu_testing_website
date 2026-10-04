@@ -83,7 +83,7 @@ function Audit() {
     setAction("");
     setDiffOnly(false);
     setQuery(OBJECTION_APP);
-    logAs(user, { action: "الاطلاع على سجل الأحداث", target: `تصفية: الطلب ${OBJECTION_APP}`, detail: "اعتراض: «كنت مقبولاً في الملف المعلن ولم يظهر اسمي»" });
+    logAs(user, { action: "الاطلاع على سجل الأحداث", target: `تصفية: الطلب ${OBJECTION_APP}`, detail: "اعتراض: «أنا من مواليد شباط 1972، وشباط مسحوب، ولم يُقبل طلبي»" });
   };
 
   const exportCsv = () => {
@@ -153,7 +153,7 @@ function Audit() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-display text-lg font-bold text-white">مثال: اعتراض على نتيجة القرعة</p>
-            <p className="text-sm leading-6 text-white/90">«كنت مقبولاً في الملف المعلن على التلفاز، ولم يظهر اسمي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من رفع الملف، ومن صحّح، ومن نشر، ومتى.</p>
+            <p className="text-sm leading-6 text-white/90">«أنا من مواليد شباط 1972، وشباط مسحوب في القرعة، ولم يُقبل طلبي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من أدخل نتائج البث، ومن اعتمدها ونشرها، ومتى.</p>
           </div>
           <Button variant={tracing ? "glass" : "gold"} onClick={trace} disabled={tracing}>
             <SearchCheck className="size-4" /> تتبّع الطلب {OBJECTION_APP}
@@ -163,9 +163,9 @@ function Audit() {
           {tracing && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <div className="mt-4 rounded-2xl bg-green-light/15 p-4 text-sm leading-7 ring-1 ring-green-light/40">
-                <p className="font-bold text-gold">النتيجة: الطلب {OBJECTION_APP} مقبول فعلاً.</p>
+                <p className="font-bold text-gold">النتيجة: الطلب {OBJECTION_APP} غير مقبول، والنتيجة صحيحة.</p>
                 <p className="text-white/90">
-                  الصف 4,102 في الملف كان فيه رقم وطني غير مطابق (رقمان متبادلان)، وصحّحته رنا بتصويب موقّع من اللجنة قبل النشر. المشكلة أن صاحبه بحث باسمه لا برقمه الوطني، واسمه مطابق لاسم شخص آخر. لو كان هناك تلاعب لظهر هنا: من عدّل، ومتى، ولماذا.
+                  أُدخلت نتائج البث كما أُعلنت واعتُمدت ولم تُعدَّل بعد النشر. صاحب الطلب {OBJECTION_APP} هو والد المعترض، الأكبر سناً فيه، من مواليد 1969، والقرعة تُطابَق بميلاد صاحب الطلب لا بميلاد كل فرد. لو كان هناك تلاعب لظهر هنا: من عدّل، ومتى، ولماذا.
                 </p>
               </div>
             </motion.div>

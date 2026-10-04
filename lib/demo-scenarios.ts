@@ -43,7 +43,8 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
   });
   const number = applicationNumberFor(id);
   // Direct acceptance: the fee and the first installment (two-installment plan) were paid with the registration.
-  // Lottery: the fee only — the first installment is due now that the name came out in the draw.
+  // Lottery: the fee only — the first installment confirms the registration, now that the main applicant's birth
+  // year (1980) was drawn.
   const lottery = scenario.seed === "lotteryAccepted";
   const first = lottery ? 0 : firstPayment(seasonPlan(), members.length);
   const governorate = members[0].person.governorate;

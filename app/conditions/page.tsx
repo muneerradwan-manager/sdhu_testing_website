@@ -201,7 +201,7 @@ export default function ConditionsPage() {
             <ShieldCheck className="mx-auto size-12 animate-float text-gold" />
             <h2 className="mt-5 font-display text-3xl font-bold text-balance md:text-5xl">هل تنطبق عليك الشروط؟</h2>
             <p className="mx-auto mt-4 max-w-xl leading-8 text-white/80">
-              قدّم طلبك لنفسك أو لعائلتك في دقائق. التسجيل على القبول المباشر من {SEASON.windows.direct.hijri}، والتسجيل على القرعة بطلب جديد من {SEASON.windows.lottery.hijri}.
+              قدّم طلبك لنفسك أو لعائلتك في دقائق. التسجيل على القبول المباشر من {SEASON.windows.direct.hijri}، والتسجيل الأولي على القرعة بطلب جديد من {SEASON.windows.lottery.hijri}.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <ButtonLink href="/register" variant="gold" size="lg">

@@ -413,7 +413,7 @@ export function AdminPilgrims() {
                   onChangeApplicant={() => setStep("members")}
                   onSwitchToLottery={() => {
                     setTrack("lottery");
-                    toast({ title: "حُوّل الطلب إلى التسجيل على القرعة", body: "رسم التسجيل فقط الآن، والدفعة الأولى عند ظهور الاسم.", icon: "🎟️", tone: "gold" });
+                    toast({ title: "حُوّل الطلب إلى التسجيل الأولي على القرعة", body: "رسم التسجيل فقط الآن، والدفعة الأولى عند تثبيت التسجيل إن قُبل.", icon: "🎟️", tone: "gold" });
                   }}
                 />
               </Pane>
@@ -432,7 +432,7 @@ export function AdminPilgrims() {
                     {(
                       [
                         ["direct", "التسجيل على القبول المباشر", "رسم التسجيل + الدفعة الأولى من تكلفة الحج"],
-                        ["lottery", "التسجيل على القرعة", "رسم التسجيل فقط — الدفعة الأولى عند ظهور الاسم"],
+                        ["lottery", "التسجيل الأولي على القرعة", "رسم التسجيل فقط — الدفعة الأولى عند تثبيت التسجيل إن قُبل"],
                       ] as const
                     ).map(([k, label, d]) => {
                       const tooYoung = k === "direct" && !!members[0] && ageOf(members[0].person) < season.acceptedDirectAge;
@@ -453,7 +453,7 @@ export function AdminPilgrims() {
                     })}
                   </div>
                   <div className="mt-5">
-                    <SeasonPlanNote people={members.length} fees={season.fees} dueNowLabel={track === "direct" ? "الآن مع رسم التسجيل" : "عند ظهور الاسم في القرعة"} />
+                    <SeasonPlanNote people={members.length} fees={season.fees} dueNowLabel={track === "direct" ? "الآن مع رسم التسجيل" : "عند تثبيت التسجيل إن قُبل بالقرعة"} />
                   </div>
                   {members[0] && members[0].person.id !== citizen.id && (
                     <p className="mt-4 rounded-2xl bg-gold/20 p-3 text-sm leading-7 text-ink">

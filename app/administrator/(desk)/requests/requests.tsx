@@ -10,7 +10,9 @@ import { CONDITIONS, NEEDS, recordHealth } from "@/app/portal/application/_compo
 import { enrollFamily, groupInfo } from "@/lib/assignment";
 import { ageOf, fullName } from "@/lib/registry";
 import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
-import { directAccepted, trackOf } from "@/lib/journey";
+import { outcomeOf } from "@/lib/journey";
+import { usePublishedDraw, type PublishedDraw } from "@/lib/lottery";
+import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type Application, type HealthRecord } from "@/lib/store";
 import { cn, digitsOnly } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
@@ -470,6 +472,9 @@ function PeopleBoard({ roster, active, capacity }: { roster: { age: number; gend
  * الطلب كاملاً ويرسل إليه العقد ليوقّعه برمز على هاتفه. إن كان الحاج في مجموعة أخرى ينتقل الطلب كله.
  */
 function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; number: number }; capacity: number; active: number }) {
+  const draw = usePublishedDraw();
+  const { acceptedDirectAge } = useSeason();
+  const isAccepted = (a: Application) => accepted_(a, draw, acceptedDirectAge);
   const admin = useAdmin()!;
   const toast = useToast();
   const applications = useStore((s) => s.applications);
@@ -584,7 +589,7 @@ function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; 
   );
 }
 
-/** Direct applications are accepted by the announced age, lottery ones when drawn (always, in the demo) */
-function isAccepted(a: Application) {
-  return trackOf(a) === "lottery" || directAccepted(a);
+/** Direct applications are accepted by the announced age, lottery ones by the published draw */
+function accepted_(a: Application, draw: PublishedDraw | null, minAge: number) {
+  return outcomeOf(a, draw, minAge).accepted;
 }

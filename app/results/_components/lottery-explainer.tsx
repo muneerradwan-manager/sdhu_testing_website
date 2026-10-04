@@ -1,5 +1,8 @@
-import { FileSpreadsheet, Gavel, ListChecks, Lock, Radio, ShieldCheck, Tv, Upload, UserCheck } from "lucide-react";
+import { CalendarRange, FileSpreadsheet, Gavel, Keyboard, ListChecks, Lock, ShieldCheck, Tv, UserCheck } from "lucide-react";
 import { Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
+import { drawTotals, OFFICIAL_DRAW } from "@/lib/lottery";
+
+const POOL = drawTotals(OFFICIAL_DRAW);
 
 const PHASES = [
   {
@@ -8,9 +11,9 @@ const PHASES = [
     tone: "bg-white text-ink",
     accent: "bg-green-light/12 text-green",
     steps: [
-      { icon: ListChecks, text: "يُفتح التسجيل على القرعة بطلب جديد من 16 إلى 25 رجب، وتتحقق المنصة من أهلية كل طلب مسجّل فيه." },
-      { icon: FileSpreadsheet, text: "تُصدَّر «قائمة المؤهلين للقرعة»: 53,955 طلباً مسجّلاً على القرعة ومستوفياً للشروط، ويُسجَّل التصدير باسم الموظف ووقته." },
-      { icon: Gavel, text: "تستلم لجنة تنظيم القرعة القائمة وتشرف على كل ما يليها." },
+      { icon: ListChecks, text: "يُفتح التسجيل الأولي على القرعة بطلب جديد من 16 إلى 25 رجب برسم التسجيل فقط، وتتحقق المنصة من أهلية كل طلب." },
+      { icon: FileSpreadsheet, text: `تُحصي المنصة المسجّلين بحسب سنة ميلاد صاحب الطلب وشهره: ${POOL.poolApps.toLocaleString("en-US")} طلباً تضم ${POOL.poolSeats.toLocaleString("en-US")} شخصاً، فيُعرف كم مقعداً تشغل كل سنة وكل شهر.` },
+      { icon: Gavel, text: "تستلم لجنة تنظيم القرعة هذا الإحصاء وتشرف على كل ما يليه." },
     ],
   },
   {
@@ -20,9 +23,9 @@ const PHASES = [
     accent: "bg-white/10 text-gold",
     live: true,
     steps: [
-      { icon: Tv, text: "تُسحب الطلبات على الهواء مباشرة على التلفاز، ويمكن لكل عائلة المتابعة من بيتها." },
-      { icon: Lock, text: "المنصة مقفلة: لا يستطيع أحد تغيير أي شيء فيها أثناء القرعة." },
-      { icon: Radio, text: "الطلب العائلي يُسحب كوحدة واحدة: تُقبل العائلة كلها أو لا تُقبل." },
+      { icon: Tv, text: "تُسحب على الهواء مباشرة سنواتُ ميلاد، ولبعضها أشهر محددة، حتى تكتمل مقاعد القرعة. ويمكن لكل عائلة المتابعة من بيتها." },
+      { icon: CalendarRange, text: "لا تُسحب أسماء: يُقبل كل طلب وُلد صاحبه في سنة مسحوبة، أو في شهر مسحوب من سنة سُحبت بأشهرها." },
+      { icon: Lock, text: "المنصة مقفلة: لا يستطيع أحد تغيير أي طلب فيها أثناء القرعة." },
     ],
   },
   {
@@ -31,9 +34,9 @@ const PHASES = [
     tone: "bg-white text-ink",
     accent: "bg-gold/35 text-maroon",
     steps: [
-      { icon: Upload, text: "يُرفع ملف النتائج المعتمد من اللجنة، وتطابق المنصة كل سطر مع طلب موجود." },
-      { icon: UserCheck, text: "تُصحَّح الأسطر غير المطابقة مع تسجيل السبب، وتُتجاهل الأسطر المكررة." },
-      { icon: ShieldCheck, text: "تعتمد مديرة الموسم النتائج وتنشرها، فتصل الإشعارات وتظهر القوائم العامة في الدقيقة نفسها." },
+      { icon: Keyboard, text: "يُدخل مكتب القرعة في المنصة ما سُحب في البث، سنةً سنة، وتحسب المنصة المقاعد التي يغطيها حتى تطابق مقاعد القرعة." },
+      { icon: ShieldCheck, text: "تعتمد الإدارة النتائج وتنشرها: يظهر جدول السنوات والأشهر للجميع، ويعرف كل مسجّل نتيجته في حسابه وبرقمه الوطني." },
+      { icon: UserCheck, text: "يثبّت المقبولون تسجيلهم من 2 إلى 25 شعبان بتأكيد القبول ودفع الدفعة الأولى، ومن لا يثبّت يسقط قبوله." },
     ],
   },
 ];
@@ -44,7 +47,7 @@ export function LotteryExplainer() {
       <SectionHeading
         eyebrow="الشفافية أولاً"
         title="كيف تتم القرعة؟"
-        description="القرعة لا تُجرى داخل المنصة، بل ببث مباشر بإشراف لجنة رسمية. دور المنصة يكون قبل البث وبعده فقط."
+        description="القرعة لا تُجرى داخل المنصة، بل ببث مباشر بإشراف لجنة رسمية تسحب سنوات الميلاد وأشهرها. دور المنصة يكون قبل البث وبعده فقط."
       />
 
       <Stagger className="relative grid gap-5 lg:grid-cols-3" gap={0.15}>
@@ -91,8 +94,8 @@ export function LotteryExplainer() {
           <div className="relative">
             <p className="font-display text-xl font-bold text-gold md:text-2xl">قاعدة ثابتة: لا شيء يظهر قبل الاعتماد والنشر</p>
             <p className="mt-1 text-sm leading-7 text-white/75">
-              لا تظهر أي نتيجة لأي شخص قبل أن تعتمدها الإدارة وتنشرها. وكل نشر أو تحديث للقوائم مسجّل في سجل الأحداث باسم من نفّذه ووقته،
-              وتبقى القوائم متاحة حتى نهاية الموسم ثم تُؤرشف.
+              لا تظهر أي نتيجة لأي شخص قبل أن تعتمدها الإدارة وتنشرها. وكل إدخال أو نشر مسجّل في سجل الأحداث باسم من نفّذه ووقته،
+              ويبقى جدول النتائج متاحاً حتى نهاية الموسم ثم يُؤرشف.
             </p>
           </div>
         </div>

@@ -10,7 +10,6 @@ export const SEASON = {
   referenceYear: 2026,
 
   quota: 22_500,
-  reserve: 3_000,
   directShare: 0.35,
   lotteryShare: 0.65,
   directSeats: 7_875,
@@ -20,13 +19,14 @@ export const SEASON = {
 
   /**
    * Two SEPARATE registrations, one after the other. Direct acceptance (oldest first, 35%) opens first;
-   * after its accepted ages are announced, lottery registration (65%) opens as its own application.
-   * Nobody moves from one to the other automatically — whoever was not accepted directly may register
-   * for the lottery with a new application.
+   * after its accepted ages are announced, the preliminary lottery registration (65%) opens as its own
+   * application. Nobody moves from one to the other automatically — whoever was not accepted directly
+   * may register for the lottery with a new application. The draw picks birth years (some by months);
+   * the accepted confirm their registration by paying the first installment (see lib/lottery.ts).
    */
   windows: {
     direct: { hijri: "9 جمادى الآخرة – 1 رجب", gregorian: "19 تشرين الثاني – 10 كانون الأول 2026", announce: "15 رجب" },
-    lottery: { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", draw: "1 شعبان — 20:00" },
+    lottery: { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", draw: "1 شعبان — 20:00", results: "2 شعبان", confirm: "2 – 25 شعبان" },
   },
 
   rules: {
@@ -67,7 +67,7 @@ export const SEASON = {
    */
   installments: {
     count: 2 as 1 | 2,
-    windows: ["عند التسجيل على القبول المباشر، أو عند ظهور الاسم في القرعة", "عند الانضمام إلى مجموعة"],
+    windows: ["عند التسجيل على القبول المباشر، أو عند تثبيت التسجيل لمن قُبل بالقرعة", "عند الانضمام إلى مجموعة"],
   },
 
   /**
@@ -144,9 +144,10 @@ export const SEASON = {
     { hijri: "9 جمادى الآخرة – 1 رجب", gregorian: "19 تشرين الثاني – 10 كانون الأول 2026", title: "التسجيل على القبول المباشر لمن بلغ 66 عاماً فأكثر (35%): رسم التسجيل + الدفعة الأولى", who: "الحاج" },
     { hijri: "1 – 10 رجب", gregorian: "10 – 19 كانون الأول 2026", title: "تدقيق طلبات القبول المباشر والتحقق من الأهلية", who: "الموظفون" },
     { hijri: "15 رجب", gregorian: "24 كانون الأول 2026", title: "اعتماد قوائم القبول المباشر", who: "الحاج" },
-    { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", title: "التسجيل على القرعة (65%) — طلب مستقل، رسم التسجيل فقط", who: "الحاج" },
-    { hijri: "1 شعبان — 20:00", gregorian: "9 كانون الثاني 2027", title: "القرعة الإلكترونية ببث مباشر", who: "الحاج" },
-    { hijri: "2 شعبان", gregorian: "10 كانون الثاني 2027", title: "المقبولون بالقرعة: تأكيد القبول ودفع الدفعة الأولى", who: "الحاج" },
+    { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", title: "التسجيل الأولي على القرعة (65%) — طلب مستقل، رسم التسجيل فقط", who: "الحاج" },
+    { hijri: "1 شعبان — 20:00", gregorian: "9 كانون الثاني 2027", title: "القرعة ببث مباشر: تُسحب سنوات ميلاد، ولبعضها أشهر", who: "الحاج" },
+    { hijri: "2 شعبان", gregorian: "10 كانون الثاني 2027", title: "نشر نتائج القرعة: جدول السنوات والأشهر المسحوبة", who: "الحاج" },
+    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "المقبولون بالقرعة يثبّتون تسجيلهم: تأكيد القبول ودفع الدفعة الأولى", who: "الحاج" },
     { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "مرحلة التفويج: يختار الحاج مجموعته ويسجّله منسقها ويوقّعان العقد", who: "الحاج + المنسق" },
     { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "الدفعة الثانية عند الانضمام إلى المجموعة — ثم الوثائق الطبية", who: "الحاج" },
     { hijri: "1 – 15 ذو القعدة", gregorian: "8 – 22 نيسان 2027", title: "إصدار التأشيرات وتوزيع الرحلات", who: "الموظفون" },

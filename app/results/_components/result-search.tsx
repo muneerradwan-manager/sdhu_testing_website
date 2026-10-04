@@ -6,7 +6,7 @@ import {
   CircleCheck,
   Dices,
   EyeOff,
-  Hourglass,
+  CircleSlash,
   LoaderCircle,
   Lock,
   RefreshCw,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { searchResult, type SearchResult, RESULTS_SUMMARY } from "@/lib/data/public-results";
+import { usePublishedDraw } from "@/lib/lottery";
 import { isValidNationalId } from "@/lib/registry";
 import { useHydrated } from "@/lib/store";
 import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
@@ -42,6 +43,7 @@ type FieldError = { field: "id" | "captcha" | "limit"; msg: string; key: number 
 
 export function ResultSearch() {
   const hydrated = useHydrated();
+  const draw = usePublishedDraw();
   const [nationalId, setNationalId] = useState("");
   const [answer, setAnswer] = useState("");
   const [nonce, setNonce] = useState(0);
@@ -137,7 +139,7 @@ export function ResultSearch() {
     setResult(null);
     setStep(0);
     setPhase("searching");
-    const res = searchResult(nationalId);
+    const res = searchResult(nationalId, draw);
     timers.current.push(
       setTimeout(() => setStep(1), 700),
       setTimeout(() => setStep(2), 1500),
@@ -145,7 +147,7 @@ export function ResultSearch() {
         setResult(res);
         setPhase("done");
         refreshCaptcha();
-        if (res.found && res.outcome !== "reserve") void celebrate();
+        if (res.found && res.outcome !== "notDrawn") void celebrate();
       }, 2400),
     );
   }
@@ -412,7 +414,7 @@ function IdleStage() {
             <CircleCheck className="size-4" /> ما يظهر
           </p>
           <ul className="mt-2 space-y-1 text-sm text-ink-soft">
-            {["الاسم", "النتيجة", "ترتيب الاحتياط", "الحملة", "المحافظة"].map((t) => (
+            {["الاسم", "النتيجة", "الحملة", "المحافظة"].map((t) => (
               <li key={t}>• {t}</li>
             ))}
           </ul>
@@ -507,11 +509,10 @@ function SearchingStage({ step, id }: { step: number; id: string }) {
 }
 
 function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found: true }>; onReset: () => void }) {
-  const accepted = result.outcome !== "reserve";
-  const Icon = result.outcome === "direct" ? BadgeCheck : result.outcome === "lottery" ? Dices : Hourglass;
+  const accepted = result.outcome !== "notDrawn";
+  const Icon = result.outcome === "direct" ? BadgeCheck : result.outcome === "lottery" ? Dices : CircleSlash;
   const rows = [
     { k: "النتيجة", v: result.label },
-    ...(result.rank ? [{ k: "ترتيب الاحتياط", v: result.rank.toLocaleString("en-US") }] : []),
     { k: "الحملة", v: result.campaign },
     { k: "المحافظة", v: result.governorate },
   ];
@@ -527,7 +528,7 @@ function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found
             animate={{ x: 520 }}
             transition={{ duration: 1.6, delay: 0.4, ease: "easeInOut" }}
           />
-          <p className="relative text-sm font-semibold text-gold">{accepted ? "مبارك! تقبّل الله منكم" : "أنت ضمن قائمة الاحتياط"}</p>
+          <p className="relative text-sm font-semibold text-gold">{accepted ? "مبارك! تقبّل الله منكم" : "نتيجة القرعة"}</p>
           <p className="relative mt-1 font-display text-3xl font-bold leading-tight">{result.name}</p>
         </div>
         <motion.div
@@ -565,8 +566,10 @@ function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found
       </div>
       <p className="mt-4 text-center text-xs leading-6 text-ink-soft">
         {accepted
-          ? "الخطوات المطلوبة ومهل التأكيد تظهر في حسابك بعد تسجيل الدخول."
-          : "ستُبلَّغ عند توفر مقعد أو عند إعلان أعمار جديدة مقبولة."}
+          ? result.outcome === "lottery"
+            ? "ثبّت تسجيلك من حسابك: أكّد قبولك وادفع الدفعة الأولى قبل 25 شعبان، وإلا سقط القبول."
+            : "الخطوات المطلوبة ومهل التأكيد تظهر في حسابك بعد تسجيل الدخول."
+          : "لم تُسحب سنة ميلاد صاحب طلبك وشهره هذا الموسم. يمكنك التسجيل في الموسم القادم."}
       </p>
     </motion.div>
   );
@@ -584,7 +587,7 @@ function NotFound({ onReset }: { onReset: () => void }) {
         <SearchX className="size-10" />
       </motion.div>
       <p className="mt-6 rounded-3xl bg-white px-6 py-6 font-display text-xl leading-9 font-bold text-ink shadow-sm ring-1 ring-gold/40">
-        لم يرد هذا الرقم ضمن المقبولين أو الاحتياط
+        لم يرد هذا الرقم في طلبات هذا الموسم
       </p>
       <button onClick={onReset} className="mt-5 text-sm font-bold text-green-dark hover:underline">
         بحث جديد

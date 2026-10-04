@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { Member } from "./rules";
+import type { DrawPick } from "./lottery";
 import type { Accommodation } from "./rooms";
 
 export type Account = {
@@ -361,7 +362,7 @@ export type ApplyDraft = {
 /** Simulated in-season position for the pilgrim "حالتي الآن" mode */
 export type InSeason = { day: number; ratings: Record<string, number>; lostReports: number };
 
-type State = {
+export type State = {
   accounts: Record<string, Account>;
   sessionId: string | null;
   applications: Record<string, Application>;
@@ -380,7 +381,17 @@ type State = {
   /** Applications being filled in, saved at every step (keyed by applicant session id) */
   drafts: Record<string, ApplyDraft>;
   inSeason: Record<string, InSeason>;
-  lottery: { importedAt?: number; importedBy?: string; publishedAt?: number; publishedBy?: string };
+  /**
+   * The lottery's results as the desk keeps them: what the broadcast drew, entered line by line (birth
+   * year, all months or some), sent for approval, then published — only the published draw decides who
+   * is accepted. The demo starts after the 1448 results were published; `cleared` takes that back.
+   */
+  lottery: {
+    entry?: { picks: DrawPick[]; by: string; at: number };
+    sent?: { by: string; at: number };
+    published?: { picks: DrawPick[]; by: string; at: number };
+    cleared?: boolean;
+  };
   /** Election of the cluster heads by the group heads, run once per season by the administration */
   election: { openedAt?: number; closedAt?: number; elected?: string[] };
   /** End-of-season classification of the groups and the clusters, once the administration publishes it */

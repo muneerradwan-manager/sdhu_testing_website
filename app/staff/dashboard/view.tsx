@@ -73,8 +73,11 @@ export function DashboardView() {
     const list: Todo[] = [];
     if (myPosts > 0) list.push({ id: "my-files", text: `مواقعك في الملفات التشغيلية لموسم ${CURRENT_SEASON} (${myPosts}): البرج والمخيمات وفريقك`, href: "/staff/my-files", tone: "gold" });
     if (can(user, "registration.review")) list.push({ id: "rev", text: `مراجعة ${pendingReviews} طلبات تحتاج قراراً بشرياً`, href: "/staff/reviews", tone: "gold", done: pendingReviews === 0 });
-    if (can(user, "lottery.import")) list.push({ id: "imp", text: lottery.importedAt ? "تم رفع ملف نتائج القرعة" : "رفع ملف نتائج القرعة المعتمد من اللجنة", href: "/staff/lottery", done: !!lottery.importedAt });
-    if (can(user, "lottery.approve")) list.push({ id: "pub", text: lottery.publishedAt ? "نُشرت نتائج القرعة" : lottery.importedAt ? "اعتماد ونشر نتائج القرعة" : "بانتظار رفع ملف القرعة من إدارة التسجيل", href: "/staff/lottery", done: !!lottery.publishedAt, tone: "maroon" });
+    // The demo opens after the 1448 results were published, until «إعادة التجربة» on the lottery page
+    const published = !!lottery.published || (!lottery.cleared && !lottery.entry);
+    const entered = published || !!lottery.sent;
+    if (can(user, "lottery.import")) list.push({ id: "imp", text: entered ? "أُدخلت نتائج بث القرعة وأُرسلت للاعتماد" : "إدخال نتائج بث القرعة: سنوات الميلاد وأشهرها", href: "/staff/lottery", done: entered });
+    if (can(user, "lottery.approve")) list.push({ id: "pub", text: published ? "نُشرت نتائج القرعة" : entered ? "اعتماد ونشر نتائج القرعة" : "بانتظار إدخال نتائج البث من إدارة التسجيل", href: "/staff/lottery", done: published, tone: "maroon" });
     if (can(user, "season.settings")) list.push({ id: "season", text: "مراجعة إعدادات الموسم قبل فتح حملة الاستدراك", href: "/staff/season" });
     if (can(user, "administrators.manage")) list.push({ id: "oral", text: `إدخال نتائج الشفهي (${awaitingOral} متقدمين)`, href: "/staff/exam", done: awaitingOral === 0, tone: "gold" });
     if (can(user, "groups.approve")) list.push({ id: "groups", text: `اعتماد طلبات تشكيل المجموعات (${groupRequests})`, href: "/staff/administrators", done: groupRequests === 0, tone: "maroon" });
@@ -195,7 +198,6 @@ export function DashboardView() {
                     items={[
                       { label: `قبول مباشر ${Math.round(season.directShare * 100)}% (${season.acceptedDirectAge}+ عاماً)`, color: "#AD9E6E", value: formatNumber(season.directSeats) },
                       { label: `القرعة ${100 - Math.round(season.directShare * 100)}%`, color: "#289E92", value: formatNumber(season.lotterySeats) },
-                      { label: "الاحتياط", color: "#E4DDD3", value: formatNumber(3_000) },
                     ]}
                   />
                   <Link href="/staff/season" className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-gold hover:underline">

@@ -61,6 +61,8 @@ c.shot("guide-bag", "حقيبة الحاج والصحة", section="A")
 # results
 c.goto("/results")
 c.shot("results-top", "صفحة نتائج القبول", section="A")
+c.scroll_to("#lists", 90)
+c.shot("results-draw", "جدول نتائج القرعة: سنوات الميلاد وأشهرها المسحوبة", hl=[("#lists table", "")], section="A")
 c.scroll_to("#search", 90)
 c.shot("results-search", "البحث عن النتيجة بالرقم الوطني", section="A")
 # verify

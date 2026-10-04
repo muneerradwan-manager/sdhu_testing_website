@@ -2,38 +2,46 @@
 
 import { AnimatePresence, motion, useInView } from "motion/react";
 import { useRef, useState } from "react";
-import { GOVERNORATE_STATS, RESULTS_SUMMARY as S } from "@/lib/data/public-results";
+import { governorateStats, RESULTS_SUMMARY as S } from "@/lib/data/public-results";
+import { drawTotals, usePublishedDraw } from "@/lib/lottery";
 import { cn, formatNumber } from "@/lib/utils";
 
-const SEGMENTS = [
-  { key: "direct", label: "قُبلوا مباشرة (الأكبر سناً)", value: S.direct, pct: 13, color: "#00594F" },
-  { key: "lottery", label: "قُبلوا بالقرعة", value: S.lottery, pct: 24, color: "#289E92" },
-  { key: "reserve", label: "الاحتياط", value: S.reserve, pct: 5, color: "#AD9E6E" },
-  { key: "rest", label: "لم يُقبلوا في القرعة", value: S.notAccepted, pct: 58, color: "#E4DDD3" },
-] as const;
+/** People, not applications: accepted directly, accepted by the published draw, and the lottery's others */
+function useSegments() {
+  const draw = usePublishedDraw();
+  const t = drawTotals(draw?.picks ?? []);
+  const won = draw ? t.seats : 0;
+  const parts = [
+    { key: "direct", label: "قُبلوا مباشرة (الأكبر سناً)", value: S.direct, color: "#00594F" },
+    { key: "lottery", label: draw ? "قُبلوا بالقرعة" : "القرعة — لم تُنشر نتائجها بعد", value: won, color: "#289E92" },
+    { key: "rest", label: "لم يُقبلوا في القرعة", value: t.poolSeats - won, color: "#E4DDD3" },
+  ].filter((x) => x.value > 0);
+  const total = parts.reduce((a, x) => a + x.value, 0);
+  return { segments: parts.map((x) => ({ ...x, pct: Math.round((x.value / total) * 100) })), total, won };
+}
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 /** Donut + stacked bar: applications accepted directly + eligible applications registered in the lottery */
 export function OutcomeDonut() {
   const [active, setActive] = useState<string | null>(null);
+  const { segments: SEGMENTS, total } = useSegments();
   const R = 80;
   const C = 2 * Math.PI * R;
   const GAP = 3;
-  const total = SEGMENTS.reduce((a, s) => a + s.value, 0);
   const shown = SEGMENTS.find((s) => s.key === active);
   const starts = SEGMENTS.map((_, i) => SEGMENTS.slice(0, i).reduce((a, s) => a + (s.value / total) * C, 0));
 
   return (
     <div className="relative h-full overflow-hidden rounded-3xl border border-gold/40 bg-white p-6 shadow-[0_20px_60px_-35px_rgba(0,89,79,.45)] md:p-8">
-      <h3 className="font-display text-2xl font-bold text-green-dark">من بين {formatNumber(S.eligible)} طلباً مؤهلاً</h3>
+      <h3 className="font-display text-2xl font-bold text-green-dark">من بين {formatNumber(total)} شخصاً</h3>
       <p className="mt-1 text-sm text-ink-soft">
-        المقبولون مباشرة ({formatNumber(S.direct)}) وطلبات القرعة المؤهلة ({formatNumber(S.lotteryEligible)}). مرّر المؤشر أو اضغط على أي جزء لرؤية تفاصيله.
+        المقبولون مباشرة ({formatNumber(S.direct)}) ومن سجّلوا تسجيلاً أولياً على القرعة ({formatNumber(S.lotteryRegisteredSeats)}، في {formatNumber(S.lotteryEligible)} طلباً). مرّر المؤشر أو اضغط على أي جزء لرؤية تفاصيله.
       </p>
 
       <div className="mt-6 grid items-center gap-8 sm:grid-cols-[220px_1fr]">
         <div className="relative mx-auto size-56">
-          <svg viewBox="0 0 200 200" className="size-full -rotate-90" role="img" aria-label="توزيع الطلبات المؤهلة حسب النتيجة">
+          <svg viewBox="0 0 200 200" className="size-full -rotate-90" role="img" aria-label="توزيع المسجلين حسب النتيجة">
             <circle cx="100" cy="100" r={R} fill="none" stroke="#F7F4EF" strokeWidth="26" />
             {SEGMENTS.map((s, i) => {
               const len = (s.value / total) * C - GAP;
@@ -72,7 +80,7 @@ export function OutcomeDonut() {
                 transition={{ duration: 0.2 }}
               >
                 <p className="font-display text-3xl font-bold text-green-dark tabular-nums">{shown ? `${shown.pct}%` : formatNumber(total)}</p>
-                <p className="max-w-28 text-xs leading-5 text-ink-soft">{shown ? shown.label : "طلب مؤهل"}</p>
+                <p className="max-w-28 text-xs leading-5 text-ink-soft">{shown ? shown.label : "شخصاً"}</p>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -121,7 +129,7 @@ export function OutcomeDonut() {
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-hint">
           <span>0</span>
-          <span>{formatNumber(S.eligible)} طلباً</span>
+          <span>{formatNumber(total)} شخصاً</span>
         </div>
       </div>
     </div>
@@ -131,7 +139,6 @@ export function OutcomeDonut() {
 const BAR_KEYS = [
   { key: "direct", label: "مباشر", color: "bg-green-dark" },
   { key: "lottery", label: "قرعة", color: "bg-green-light" },
-  { key: "reserve", label: "احتياط", color: "bg-gold-dark" },
 ] as const;
 
 /** Aggregated accepted numbers per governorate */
@@ -140,7 +147,8 @@ export function GovernorateChart() {
   const [hover, setHover] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const inView = useInView(listRef, { once: true, margin: "-60px" });
-  const rows = GOVERNORATE_STATS.map((g) => ({ ...g, total: g.direct + g.lottery + g.reserve })).sort((a, b) => b.total - a.total);
+  const { won } = useSegments();
+  const rows = governorateStats(won).map((g) => ({ ...g, total: g.direct + g.lottery })).sort((a, b) => b.total - a.total);
   const max = Math.max(...rows.map((r) => (mode === "accepted" ? r.total : r.eligible)));
 
   return (
@@ -153,7 +161,7 @@ export function GovernorateChart() {
         <div className="relative flex rounded-full bg-sand p-1 text-xs font-bold" role="tablist">
           {(
             [
-              ["accepted", "المقبولون والاحتياط"],
+              ["accepted", "المقبولون"],
               ["share", "مقارنة بالمؤهلين"],
             ] as const
           ).map(([k, label]) => (
@@ -221,7 +229,7 @@ export function GovernorateChart() {
                       className="pointer-events-none absolute bottom-full start-0 z-10 mb-2 w-max rounded-xl bg-ink px-3 py-2 text-[11px] leading-5 text-white shadow-xl"
                     >
                       <p className="font-bold text-gold">{r.governorate}</p>
-                      <p>مباشر {formatNumber(r.direct)} · قرعة {formatNumber(r.lottery)} · احتياط {formatNumber(r.reserve)}</p>
+                      <p>مباشر {formatNumber(r.direct)} · قرعة {formatNumber(r.lottery)}</p>
                       <p className="text-white/60">طلبات مؤهلة: {formatNumber(r.eligible)}</p>
                     </motion.div>
                   )}

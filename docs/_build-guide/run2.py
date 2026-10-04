@@ -50,7 +50,7 @@ p.wait_for_selector("text=هناك ملاحظات تحتاج إلى تعديل",
 c.settle(1000)
 c.shot("apply-elig-fail", "فحص الأهلية: صاحب الطلب دون عمر القبول المباشر", section=S)
 c.scroll_to("text=عدّل الطلب من هنا مباشرة", 140)
-c.shot("apply-elig-fixes", "الحلول المقترحة لتعديل الطلب", hl=[("button:has-text('إضافة والد أو والدة')", "1"), ("button:has-text('التسجيل على القرعة بدلاً من ذلك')", "2")], section=S)
+c.shot("apply-elig-fixes", "الحلول المقترحة لتعديل الطلب", hl=[("button:has-text('إضافة والد أو والدة')", "1"), ("button:has-text('التسجيل الأولي على القرعة بدلاً من ذلك')", "2")], section=S)
 btn("إضافة والد أو والدة", wait=900)
 c.scroll_top()
 c.shot("apply-adder-id", "إضافة مرافق بالرقم الوطني (لوحة أرقام كبيرة)", section=S)

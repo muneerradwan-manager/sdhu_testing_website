@@ -1,17 +1,15 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, ChevronLeft, ChevronRight, Dices, Hash, Hourglass, ListFilter, RotateCcw, Users } from "lucide-react";
+import { BadgeCheck, ChevronLeft, ChevronRight, Dices, Hash, ListFilter, RotateCcw, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { OFFICES } from "@/lib/season";
-import { getPublicList, RESULTS_SUMMARY, type ListKind } from "@/lib/data/public-results";
+import { getDirectList, RESULTS_SUMMARY } from "@/lib/data/public-results";
+import { drawTotals, usePublishedDraw } from "@/lib/lottery";
 import { cn, digitsOnly, formatNumber } from "@/lib/utils";
+import { DrawTable } from "./draw-table";
 
-const TABS: { key: ListKind; label: string; count: number; icon: typeof BadgeCheck; hint: string }[] = [
-  { key: "direct", label: "المقبولون مباشرة", count: RESULTS_SUMMARY.direct, icon: BadgeCheck, hint: "وفق الأكبر سناً — 66 عاماً فأكثر" },
-  { key: "lottery", label: "المقبولون بالقرعة", count: RESULTS_SUMMARY.lottery, icon: Dices, hint: "القرعة الإلكترونية — 1 شعبان 20:00" },
-  { key: "reserve", label: "الاحتياط", count: RESULTS_SUMMARY.reserve, icon: Hourglass, hint: "مرتبة حسب ترتيب الاحتياط" },
-];
+type ListKind = "lottery" | "direct";
 
 const PAGE_SIZE = 10;
 
@@ -25,7 +23,13 @@ export function PublicLists() {
   const [appNo, setAppNo] = useState("");
   const [page, setPage] = useState(1);
 
-  const list = useMemo(() => getPublicList(kind), [kind]);
+  const draw = usePublishedDraw();
+  // The lottery publishes its table of birth years and months; only direct acceptance lists names
+  const TABS: { key: ListKind; label: string; count: number; icon: typeof BadgeCheck; hint: string }[] = [
+    { key: "lottery", label: "نتائج القرعة", count: draw ? drawTotals(draw.picks).seats : 0, icon: Dices, hint: "سنوات الميلاد وأشهرها المسحوبة — 1 شعبان 20:00" },
+    { key: "direct", label: "المقبولون مباشرة", count: RESULTS_SUMMARY.direct, icon: BadgeCheck, hint: `وفق الأكبر سناً — ${RESULTS_SUMMARY.acceptedAge} عاماً فأكثر` },
+  ];
+  const list = useMemo(() => getDirectList(), []);
   const filtered = useMemo(
     () =>
       list.filter(
@@ -80,190 +84,190 @@ export function PublicLists() {
               <t.icon className={cn("relative size-5", active ? "text-gold" : "text-green")} />
               <span className="relative">
                 <span className="block text-sm font-bold">{t.label}</span>
-                <span className={cn("block text-xs tabular-nums", active ? "text-white/70" : "text-ink-soft")}>{formatNumber(t.count)} حاجاً</span>
+                <span className={cn("block text-xs tabular-nums", active ? "text-white/70" : "text-ink-soft")}>{t.count ? `${formatNumber(t.count)} حاجاً` : "لم تُنشر بعد"}</span>
               </span>
             </button>
           );
         })}
       </div>
 
-      {/* Filters */}
-      <div className="mt-6 grid gap-3 rounded-2xl bg-sand/70 p-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_auto] lg:items-center">
-        <span className="hidden items-center gap-1.5 px-2 text-sm font-bold text-green-dark lg:flex">
-          <ListFilter className="size-4" /> تصفية
-        </span>
-        <label className="relative">
-          <span className="sr-only">المكتب</span>
-          <select
-            className={selectCls}
-            value={gov}
-            onChange={(e) => {
-              change(setGov)(e.target.value);
-            }}
-          >
-            <option value="">كل المكاتب</option>
-            <optgroup label="داخل سوريا">
-              {OFFICES.filter((o) => !o.abroad).map((o) => (
-                <option key={o.governorate} value={o.governorate}>{o.office}</option>
-              ))}
-            </optgroup>
-            <optgroup label="مكاتب الخارج">
-              {OFFICES.filter((o) => o.abroad).map((o) => (
-                <option key={o.governorate} value={o.governorate}>{o.office}</option>
-              ))}
-            </optgroup>
-          </select>
-          <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
-        </label>
-        <label className="relative">
-          <span className="sr-only">الحملة</span>
-          <select className={selectCls} value={campaign} onChange={(e) => change(setCampaign)(e.target.value)}>
-            <option value="">كل الحملات</option>
-            {kind === "direct" ? (
-              <>
-                <option>القبول المباشر</option>
-                <option>المنحة</option>
-              </>
-            ) : (
-              <option>القرعة</option>
-            )}
-          </select>
-          <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
-        </label>
-        <label className="relative">
-          <span className="sr-only">رقم الطلب</span>
-          <Hash className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
-          <input
-            className={cn(selectCls, "pr-9")}
-            inputMode="numeric"
-            placeholder="رقم الطلب (مثال: 4512)"
-            value={appNo}
-            onChange={(e) => change(setAppNo)(digitsOnly(e.target.value).slice(0, 6))}
-          />
-        </label>
-        <AnimatePresence>
-          {hasFilters && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              onClick={() => {
-                setGov("");
-                setCampaign("");
-                setAppNo("");
-                setPage(1);
-              }}
-              className="flex h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold text-maroon hover:bg-maroon/5"
-            >
-              <RotateCcw className="size-4" /> مسح
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-1 text-sm text-ink-soft">
-        <p>
-          <span className="font-bold text-green-dark tabular-nums">{formatNumber(filtered.length)}</span> طلباً ·{" "}
-          <span className="font-bold text-green-dark tabular-nums">{formatNumber(people)}</span> شخصاً — {tab.hint}
-        </p>
-        <p className="text-xs">الرقم الوطني مقنّع · آخر تحديث: {RESULTS_SUMMARY.lastUpdate}</p>
-      </div>
-
-      {/* Table — scrolls inside its own container on small screens */}
-      <div className="mt-3 overflow-x-auto rounded-2xl border border-gold/40">
-        <table className="w-full min-w-[820px] border-collapse text-sm">
-          <thead className="bg-green-dark text-white">
-            <tr className="text-start">
-              {kind === "reserve" && <th className="px-4 py-3 text-start font-semibold">الترتيب</th>}
-              <th className="px-4 py-3 text-start font-semibold">رقم الطلب</th>
-              <th className="px-4 py-3 text-start font-semibold">الاسم</th>
-              <th className="px-4 py-3 text-start font-semibold">الرقم الوطني</th>
-              <th className="px-4 py-3 text-start font-semibold">المحافظة / البلد</th>
-              <th className="px-4 py-3 text-start font-semibold">المكتب</th>
-              <th className="px-4 py-3 text-start font-semibold">الحملة</th>
-            </tr>
-          </thead>
-          {slice.map((a, i) => {
-            const family = a.members.length > 1;
-            const span = a.members.length;
-            return (
-              <motion.tbody
-                key={`${kind}-${a.applicationNo}-${current}`}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.035, ease: [0.16, 1, 0.3, 1] }}
-                className={cn(
-                  "group border-t border-gold/30 transition-colors hover:bg-gold-light/40",
-                  a.applicationNo === "4512" || a.applicationNo === "3981" ? "bg-gold/15" : i % 2 ? "bg-sand/40" : "bg-white",
-                )}
+      {kind === "lottery" ? (
+        <div className="mt-6">
+          <DrawTable />
+        </div>
+      ) : (
+        <>
+          {/* Filters */}
+          <div className="mt-6 grid gap-3 rounded-2xl bg-sand/70 p-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_auto] lg:items-center">
+            <span className="hidden items-center gap-1.5 px-2 text-sm font-bold text-green-dark lg:flex">
+              <ListFilter className="size-4" /> تصفية
+            </span>
+            <label className="relative">
+              <span className="sr-only">المكتب</span>
+              <select
+                className={selectCls}
+                value={gov}
+                onChange={(e) => {
+                  change(setGov)(e.target.value);
+                }}
               >
-                {a.members.map((m, j) => (
-                  <tr key={j} className={cn(j > 0 && "border-t border-dashed border-gold/30")}>
-                    {j === 0 && kind === "reserve" && (
-                      <td rowSpan={span} className="px-4 py-3 align-top">
-                        <span className="inline-flex min-w-12 justify-center rounded-lg bg-maroon/10 px-2 py-1 font-bold text-maroon tabular-nums">
-                          {formatNumber(a.rank ?? 0)}
-                        </span>
-                      </td>
-                    )}
-                    {j === 0 && (
-                      <td rowSpan={span} className="px-4 py-3 align-top">
-                        <span className="font-mono font-bold text-green-dark">{a.applicationNo}</span>
-                        {family && (
-                          <span className="mt-1 flex w-max items-center gap-1 rounded-full bg-green-light/12 px-2 py-0.5 text-[11px] font-bold text-green">
-                            <Users className="size-3" /> طلب عائلي · {span} أفراد
-                          </span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-4 py-2.5 font-semibold text-ink">
-                      <span className="flex items-center gap-2">
-                        {family && <span className={cn("size-1.5 shrink-0 rotate-45", j === 0 ? "bg-gold-dark" : "bg-gold")} />}
-                        {m.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-ink-soft" dir="ltr" style={{ textAlign: "right" }}>
-                      {m.maskedId}
-                    </td>
-                    {j === 0 && (
-                      <>
-                        <td rowSpan={span} className="px-4 py-3 align-top text-ink">
-                          {a.governorate}
-                        </td>
-                        <td rowSpan={span} className="px-4 py-3 align-top text-ink-soft">
-                          {a.office}
-                        </td>
-                        <td rowSpan={span} className="px-4 py-3 align-top">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2.5 py-1 text-xs font-bold",
-                              a.campaign === "المنحة" ? "bg-maroon/10 text-maroon" : "bg-gold/35 text-ink",
-                            )}
-                          >
-                            {a.campaign}
-                          </span>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </motion.tbody>
-            );
-          })}
-          {slice.length === 0 && (
-            <tbody>
-              <tr>
-                <td colSpan={7} className="px-4 py-14 text-center text-ink-soft">
-                  لا توجد طلبات مطابقة للتصفية المختارة.
-                </td>
-              </tr>
-            </tbody>
-          )}
-        </table>
-      </div>
+                <option value="">كل المكاتب</option>
+                <optgroup label="داخل سوريا">
+                  {OFFICES.filter((o) => !o.abroad).map((o) => (
+                    <option key={o.governorate} value={o.governorate}>{o.office}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="مكاتب الخارج">
+                  {OFFICES.filter((o) => o.abroad).map((o) => (
+                    <option key={o.governorate} value={o.governorate}>{o.office}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
+            </label>
+            <label className="relative">
+              <span className="sr-only">الحملة</span>
+              <select className={selectCls} value={campaign} onChange={(e) => change(setCampaign)(e.target.value)}>
+                <option value="">كل الحملات</option>
+                {kind === "direct" ? (
+                  <>
+                    <option>القبول المباشر</option>
+                    <option>المنحة</option>
+                  </>
+                ) : (
+                  <option>القرعة</option>
+                )}
+              </select>
+              <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
+            </label>
+            <label className="relative">
+              <span className="sr-only">رقم الطلب</span>
+              <Hash className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
+              <input
+                className={cn(selectCls, "pr-9")}
+                inputMode="numeric"
+                placeholder="رقم الطلب (مثال: 4512)"
+                value={appNo}
+                onChange={(e) => change(setAppNo)(digitsOnly(e.target.value).slice(0, 6))}
+              />
+            </label>
+            <AnimatePresence>
+              {hasFilters && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => {
+                    setGov("");
+                    setCampaign("");
+                    setAppNo("");
+                    setPage(1);
+                  }}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold text-maroon hover:bg-maroon/5"
+                >
+                  <RotateCcw className="size-4" /> مسح
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
 
-      {/* Pagination */}
-      <Pagination page={current} pages={pages} onChange={setPage} />
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-1 text-sm text-ink-soft">
+            <p>
+              <span className="font-bold text-green-dark tabular-nums">{formatNumber(filtered.length)}</span> طلباً ·{" "}
+              <span className="font-bold text-green-dark tabular-nums">{formatNumber(people)}</span> شخصاً — {tab.hint}
+            </p>
+            <p className="text-xs">الرقم الوطني مقنّع · آخر تحديث: {RESULTS_SUMMARY.lastUpdate}</p>
+          </div>
+
+          {/* Table — scrolls inside its own container on small screens */}
+          <div className="mt-3 overflow-x-auto rounded-2xl border border-gold/40">
+            <table className="w-full min-w-[820px] border-collapse text-sm">
+              <thead className="bg-green-dark text-white">
+                <tr className="text-start">
+                  <th className="px-4 py-3 text-start font-semibold">رقم الطلب</th>
+                  <th className="px-4 py-3 text-start font-semibold">الاسم</th>
+                  <th className="px-4 py-3 text-start font-semibold">الرقم الوطني</th>
+                  <th className="px-4 py-3 text-start font-semibold">المحافظة / البلد</th>
+                  <th className="px-4 py-3 text-start font-semibold">المكتب</th>
+                  <th className="px-4 py-3 text-start font-semibold">الحملة</th>
+                </tr>
+              </thead>
+              {slice.map((a, i) => {
+                const family = a.members.length > 1;
+                const span = a.members.length;
+                return (
+                  <motion.tbody
+                    key={`${kind}-${a.applicationNo}-${current}`}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: i * 0.035, ease: [0.16, 1, 0.3, 1] }}
+                    className={cn(
+                      "group border-t border-gold/30 transition-colors hover:bg-gold-light/40",
+                      a.applicationNo === "4512" ? "bg-gold/15" : i % 2 ? "bg-sand/40" : "bg-white",
+                    )}
+                  >
+                    {a.members.map((m, j) => (
+                      <tr key={j} className={cn(j > 0 && "border-t border-dashed border-gold/30")}>
+                        {j === 0 && (
+                          <td rowSpan={span} className="px-4 py-3 align-top">
+                            <span className="font-mono font-bold text-green-dark">{a.applicationNo}</span>
+                            {family && (
+                              <span className="mt-1 flex w-max items-center gap-1 rounded-full bg-green-light/12 px-2 py-0.5 text-[11px] font-bold text-green">
+                                <Users className="size-3" /> طلب عائلي · {span} أفراد
+                              </span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-4 py-2.5 font-semibold text-ink">
+                          <span className="flex items-center gap-2">
+                            {family && <span className={cn("size-1.5 shrink-0 rotate-45", j === 0 ? "bg-gold-dark" : "bg-gold")} />}
+                            {m.name}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-ink-soft" dir="ltr" style={{ textAlign: "right" }}>
+                          {m.maskedId}
+                        </td>
+                        {j === 0 && (
+                          <>
+                            <td rowSpan={span} className="px-4 py-3 align-top text-ink">
+                              {a.governorate}
+                            </td>
+                            <td rowSpan={span} className="px-4 py-3 align-top text-ink-soft">
+                              {a.office}
+                            </td>
+                            <td rowSpan={span} className="px-4 py-3 align-top">
+                              <span
+                                className={cn(
+                                  "inline-flex rounded-full px-2.5 py-1 text-xs font-bold",
+                                  a.campaign === "المنحة" ? "bg-maroon/10 text-maroon" : "bg-gold/35 text-ink",
+                                )}
+                              >
+                                {a.campaign}
+                              </span>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </motion.tbody>
+                );
+              })}
+              {slice.length === 0 && (
+                <tbody>
+                  <tr>
+                    <td colSpan={7} className="px-4 py-14 text-center text-ink-soft">
+                      لا توجد طلبات مطابقة للتصفية المختارة.
+                    </td>
+                  </tr>
+                </tbody>
+              )}
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <Pagination page={current} pages={pages} onChange={setPage} />
+        </>
+      )}
     </div>
   );
 }

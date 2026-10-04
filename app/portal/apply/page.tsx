@@ -24,6 +24,7 @@ import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { applicationNumberFor, directAccepted, stageAt, trackOf, trackSteps, type Track } from "@/lib/journey";
+import { MONTHS, birthOf } from "@/lib/lottery";
 import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { SeasonPlanNote } from "@/components/payment/plan-picker";
@@ -241,7 +242,7 @@ export default function ApplyPage() {
     actions.logEvent({
       actor: `${me.firstName} ${me.lastName}`,
       role: "حاج",
-      action: "نقل أفراد طلب القبول المباشر إلى التسجيل على القرعة",
+      action: "نقل أفراد طلب القبول المباشر إلى التسجيل الأولي على القرعة",
       target: `طلب ${previousDirect.number}`,
       detail: `${carried.length} أفراد — دون إعادة الخطوات`,
     });
@@ -284,14 +285,14 @@ export default function ApplyPage() {
     actions.logEvent({
       actor: me.firstName + " " + me.lastName,
       role: "حاج",
-      action: track === "lottery" ? "تقديم طلب حج — التسجيل على القرعة" : "تقديم طلب حج — التسجيل على القبول المباشر",
+      action: track === "lottery" ? "تقديم طلب حج — التسجيل الأولي على القرعة" : "تقديم طلب حج — التسجيل على القبول المباشر",
       target: `طلب ${number}`,
       detail: `${members.length} أفراد — ${result.members.some((m) => m.checks.some((c) => c.status === "warn")) ? "يحتاج مراجعة" : "مستوفٍ تلقائياً"} — الإيصال ${receipt}`,
     });
     confetti({ particleCount: 180, spread: 100, origin: { y: 0.35 }, colors: ["#D9C89E", "#00594F", "#289E92", "#AD9E6E", "#672146"] });
     toast({
       title: `تم استلام طلبك رقم ${number}`,
-      body: `${track === "lottery" ? "في التسجيل على القرعة" : "في التسجيل على القبول المباشر"} لـ ${members.length} أفراد، وتم تسديد ${first ? "رسم التسجيل والدفعة الأولى" : "رسم التسجيل"} (الإيصال ${receipt}).`,
+      body: `${track === "lottery" ? "في التسجيل الأولي على القرعة" : "في التسجيل على القبول المباشر"} لـ ${members.length} أفراد، وتم تسديد ${first ? "رسم التسجيل والدفعة الأولى" : "رسم التسجيل"} (الإيصال ${receipt}).`,
       icon: "📨",
       tone: "success",
     });
@@ -304,9 +305,9 @@ export default function ApplyPage() {
         <Card className="text-center">
           <CheckCircle2 className="mx-auto size-16 text-green-light" />
           <p className="mt-4 font-display text-2xl font-bold text-green-dark">طلب رقم {existing.number} — {existing.members.length} أفراد</p>
-          <p className="mt-1 font-bold text-gold-dark">{trackOf(existing) === "lottery" ? "في التسجيل على القرعة" : "في التسجيل على القبول المباشر"}</p>
+          <p className="mt-1 font-bold text-gold-dark">{trackOf(existing) === "lottery" ? "في التسجيل الأولي على القرعة" : "في التسجيل على القبول المباشر"}</p>
           <p className="mt-2 text-ink-soft">
-            طلب واحد فقط لكل شخص في كل تسجيل. إن لم يُقبل طلب القبول المباشر، يمكنك التسجيل على القرعة بطلب جديد ({SEASON.windows.lottery.hijri}).
+            طلب واحد فقط لكل شخص في كل تسجيل. إن لم يُقبل طلب القبول المباشر، يمكنك التسجيل الأولي على القرعة بطلب جديد ({SEASON.windows.lottery.hijri}).
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <ButtonLink href="/portal/application" size="lg">
@@ -450,8 +451,8 @@ export default function ApplyPage() {
               {screen === "intro" && previousDirect && (
                 <Question
                   title={`لم يُقبل طلبك ${previousDirect.number} في القبول المباشر`}
-                  hint={`الأعمار المقبولة ${SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب لم يبلغها. باب التسجيل على القرعة مفتوح (${SEASON.windows.lottery.hijri})، ولا حاجة لإعادة الخطوات: ننقل الأفراد أنفسهم إلى طلب القرعة، وتراجع الملخص وتدفع رسم التسجيل فقط.`}
-                  speak="لم يُقبل طلبك في القبول المباشر. يمكنك التسجيل على القرعة بالأفراد أنفسهم دون إعادة الخطوات."
+                  hint={`الأعمار المقبولة ${SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب لم يبلغها. باب التسجيل الأولي على القرعة مفتوح (${SEASON.windows.lottery.hijri})، ولا حاجة لإعادة الخطوات: ننقل الأفراد أنفسهم إلى طلب القرعة، وتراجع الملخص وتدفع رسم التسجيل فقط.`}
+                  speak="لم يُقبل طلبك في القبول المباشر. يمكنك التسجيل الأولي على القرعة بالأفراد أنفسهم دون إعادة الخطوات."
                 >
                   <div className="rounded-3xl border-2 border-gold/50 bg-white p-5">
                     <p className="font-bold text-green-dark">أفراد الطلب — ينتقلون كما هم</p>
@@ -515,8 +516,8 @@ export default function ApplyPage() {
               {screen === "track" && (
                 <Question
                   title="على أي تسجيل تقدّم طلبك؟"
-                  hint={`تسجيلان منفصلان، لكل منهما طلبه وموعده. القبول المباشر لمن بلغ صاحب طلبه ${season.acceptedDirectAge} عاماً فأكثر، ونتحقق من ذلك قبل الدفع؛ ومن كان أصغر يسجّل على القرعة.`}
-                  speak="على أي تسجيل تقدّم طلبك؟ التسجيل على القبول المباشر، أو التسجيل على القرعة."
+                  hint={`تسجيلان منفصلان، لكل منهما طلبه وموعده. القبول المباشر لمن بلغ صاحب طلبه ${season.acceptedDirectAge} عاماً فأكثر، ونتحقق من ذلك قبل الدفع؛ ومن كان أصغر يسجّل تسجيلاً أولياً على القرعة.`}
+                  speak="على أي تسجيل تقدّم طلبك؟ التسجيل على القبول المباشر، أو التسجيل الأولي على القرعة."
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <Choice
@@ -538,8 +539,8 @@ export default function ApplyPage() {
                     <Choice
                       index={1}
                       icon="🎟️"
-                      label="التسجيل على القرعة"
-                      description={`${SEASON.windows.lottery.hijri} — لكل الأعمار المؤهلة. قرعة علنية ببث مباشر على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً) يوم ${SEASON.windows.lottery.draw}.`}
+                      label="التسجيل الأولي على القرعة"
+                      description={`${SEASON.windows.lottery.hijri} — لكل الأعمار المؤهلة، برسم التسجيل فقط. قرعة علنية ببث مباشر يوم ${SEASON.windows.lottery.draw} على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً): تُسحب سنوات ميلاد، ولبعضها أشهر، ويُقبل الطلب إن وافقها ميلاد صاحبه.`}
                       selected={track === "lottery"}
                       onClick={() => {
                         if (previousDirect) return moveToLottery();
@@ -550,7 +551,7 @@ export default function ApplyPage() {
                   </div>
                   <p className="mt-5 rounded-2xl bg-gold/20 p-4 text-sm leading-7 text-ink-soft">
                     {previousDirect
-                      ? "ننقل أفراد طلبك السابق إلى طلب القرعة مباشرة، فتراجع الملخص وتدفع رسم التسجيل فقط."
+                      ? "ننقل أفراد طلبك السابق إلى طلب التسجيل الأولي على القرعة مباشرة، فتراجع الملخص وتدفع رسم التسجيل فقط."
                       :"في العرض التجريبي يمكنك تجربة التسجيلين الآن؛ في الموسم الفعلي يُفتح كل تسجيل في موعده فقط."}
                   </p>
                   <Button variant="ghost" size="lg" className="mt-6" onClick={back}>
@@ -996,8 +997,8 @@ export default function ApplyPage() {
                     setChecks((n) => n + 1);
                     setTrack("lottery");
                     toast({
-                      title: "حوّلنا طلبك إلى التسجيل على القرعة",
-                      body: "بالأفراد أنفسهم ودون إعادة الخطوات. تدفع الآن رسم التسجيل فقط، والدفعة الأولى عند ظهور اسمك.",
+                      title: "حوّلنا طلبك إلى التسجيل الأولي على القرعة",
+                      body: "بالأفراد أنفسهم ودون إعادة الخطوات. تدفع الآن رسم التسجيل فقط، والدفعة الأولى عند تثبيت التسجيل إن قُبلت.",
                       icon: "🎟️",
                       tone: "gold",
                     });
@@ -1036,7 +1037,7 @@ export default function ApplyPage() {
                   title="ملخص طلبك قبل الدفع"
                   hint={
                     track === "lottery"
-                      ? `طلبك في التسجيل على القرعة. تُجرى القرعة ${SEASON.windows.lottery.draw} ببث مباشر.`
+                      ? `طلبك في التسجيل الأولي على القرعة. تُجرى القرعة ${SEASON.windows.lottery.draw} ببث مباشر: تُسحب سنوات ميلاد وأشهر.`
                       : `طلبك في التسجيل على القبول المباشر. إن لم يُقبل، يمكنك نقله إلى القرعة بضغطة واحدة حين يُفتح بابها ${SEASON.windows.lottery.hijri}.`
                   }
                   speak="ملخص طلبك قبل الدفع. لا نطلب الآن جواز السفر ولا الصورة ولا المعلومات الصحية، فهذه تأتي بعد القبول."
@@ -1044,10 +1045,10 @@ export default function ApplyPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-3xl bg-green-dark p-5 text-white">
                       <p className="text-sm text-gold">نوع الطلب</p>
-                      <p className="mt-1 font-display text-xl font-bold">{track === "lottery" ? "التسجيل على القرعة" : "التسجيل على القبول المباشر"}</p>
+                      <p className="mt-1 font-display text-xl font-bold">{track === "lottery" ? "التسجيل الأولي على القرعة" : "التسجيل على القبول المباشر"}</p>
                       <p className="mt-2 text-sm leading-6 text-white/75">
                         {track === "lottery"
-                          ? `قرعة علنية على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة. الطلب العائلي يُسحب كوحدة واحدة.`
+                          ? `قرعة علنية على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة. يُطابَق طلبك بميلاد صاحبه${applicant ? ` (${MONTHS[birthOf(applicant).month - 1]} ${birthOf(applicant).year})` : ""}: إن سُحبت سنته، أو شهره منها، قُبل الطلب بأفراده كلهم.`
                           : `يُرتَّب الطلب بعمر صاحب الطلب (${applicant ? ageOf(applicant) : "—"} عاماً)، ويُقبل الأكبر سناً حتى تكتمل ${Math.round(SEASON.directShare * 100)}% من الحصة.`}
                       </p>
                     </div>
@@ -1067,7 +1068,7 @@ export default function ApplyPage() {
                   <div className="mt-5 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
                     <p className="font-bold text-green-dark">ماذا يحدث بعد القبول؟</p>
                     <ol className="mt-1 list-inside list-decimal">
-                      {track === "lottery" && <li>إن ظهر اسمك في القرعة تدفع الدفعة الأولى من تكلفة الحج{credit ? " — وهي مدفوعة مسبقاً من طلبك السابق (تُعاد إليك إن لم تُسحب)" : ""}.</li>}
+                      {track === "lottery" && <li>إن قُبل طلبك في القرعة تثبّت تسجيلك ({SEASON.windows.lottery.confirm}) بتأكيد القبول ودفع الدفعة الأولى من تكلفة الحج{credit ? " — وهي مدفوعة مسبقاً من طلبك السابق (تُعاد إليك إن لم يُقبل)" : ""}، وإلا سقط القبول.</li>}
                       <li>ترفع لكل فرد الصورة الشخصية وجواز السفر — ولا وثائق طبية قبل التفويج.</li>
                       <li>حين تُفتح مرحلة التفويج ({SEASON.groupingWindow}) تتصفّح دليل المجموعات وتتواصل مع مجموعة، فيسجّلك منسقها فيها ويوقّع معك العقد.</li>
                       <li>{plan === 1 ? "تكلفة الحج مدفوعة كاملة؛ تسدّد عند الانضمام الهدي، وسعر السكن الخاص إن اخترتموه" : "عند الانضمام إلى المجموعة تدفع الدفعة الثانية"}، ثم ترفع شهادات اللقاحات والوثائق الطبية.</li>
@@ -1090,7 +1091,7 @@ export default function ApplyPage() {
                     </ul>
                   </div>
                   <div className="mt-5">
-                    <SeasonPlanNote people={members.length} fees={season.fees} dueNowLabel={track === "direct" ? "تدفع الآن مع رسم التسجيل" : "عند ظهور اسمك في القرعة"} />
+                    <SeasonPlanNote people={members.length} fees={season.fees} dueNowLabel={track === "direct" ? "تدفع الآن مع رسم التسجيل" : "عند تثبيت التسجيل إن قُبلت في القرعة"} />
                     {track === "direct" && <p className="mt-2 text-xs text-hint">تُعاد الدفعة الأولى إن لم يُقبل الطلب ولم تنقله إلى القرعة.</p>}
                   </div>
                   <Button size="xl" className="mt-6" onClick={() => go("payment")}>

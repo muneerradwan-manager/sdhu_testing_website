@@ -22,7 +22,7 @@ export function AcceptanceSplit() {
             <Counter to={SEASON.quota} /> <span className="text-lg text-ink-soft">حاج</span>
           </p>
         </div>
-        <p className="rounded-full bg-gold/30 px-3 py-1.5 text-xs font-bold text-maroon">+ قائمة احتياط {SEASON.reserve.toLocaleString("en-US")}</p>
+        <p className="rounded-full bg-gold/30 px-3 py-1.5 text-xs font-bold text-maroon">{SEASON.directSeats.toLocaleString("en-US")} مباشرة · {SEASON.lotterySeats.toLocaleString("en-US")} بالقرعة</p>
       </div>
 
       {/* The split bar */}
@@ -83,7 +83,7 @@ export function AcceptanceSplit() {
         >
           <span className="flex items-center gap-2 rounded-full bg-gold px-3 py-2 text-xs font-bold text-ink md:flex-col md:px-2 md:py-3">
             <ArrowLeft className="size-4 md:rotate-0" />
-            <span className="md:[writing-mode:vertical-rl]">لم تُقبل؟ سجّل على القرعة بطلب جديد</span>
+            <span className="md:[writing-mode:vertical-rl]">لم تُقبل؟ سجّل تسجيلاً أولياً على القرعة</span>
           </span>
         </motion.div>
 
@@ -94,11 +94,12 @@ export function AcceptanceSplit() {
           className="rounded-3xl border border-green-light/25 bg-green-light/[.06] p-5"
         >
           <Dices className="size-7 text-green" />
-          <p className="mt-3 font-display text-xl font-bold text-green">القرعة الإلكترونية</p>
+          <p className="mt-3 font-display text-xl font-bold text-green">القرعة العلنية</p>
           <p className="font-display text-3xl font-bold text-ink tabular-nums">{SEASON.lotterySeats.toLocaleString("en-US")} <span className="text-sm text-ink-soft">مقعداً</span></p>
           <p className="mt-2 text-sm leading-7 text-ink-soft">
-            تسجيل ثانٍ مستقل يُفتح بعد إعلان الأعمار، بطلب جديد لكل مؤهل، ومنهم من لم يُقبل مباشرة؛ فلا ينتقل أي طلب إليه وحده. تُجرى
-            القرعة على الطلبات المسجّلة فيه ببث مباشر على التلفاز بإشراف لجنة رسمية، والطلب العائلي يُسحب كوحدة واحدة.
+            تسجيل أولي ثانٍ مستقل يُفتح بعد إعلان الأعمار، بطلب جديد لكل مؤهل، ومنهم من لم يُقبل مباشرة؛ فلا ينتقل أي طلب إليه وحده. في
+            بث مباشر بإشراف لجنة رسمية تُسحب سنوات ميلاد، ولبعضها أشهر محددة، فيُقبل كل طلب وُلد صاحبه في سنة وشهر مسحوبين، بأفراده كلهم،
+            ثم يثبّت تسجيله بدفع الدفعة الأولى.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">
@@ -113,7 +114,7 @@ export function AcceptanceSplit() {
 
       <p className="mt-5 flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
         <HandHeart className="mt-1 size-4 shrink-0 text-maroon" />
-        حملة المنحة لأسر الشهداء: {SEASON.scholarshipSeats} مقعد بقبول مباشر. وحملة الاستدراك تُفتح للاحتياط أو لإعلان أعمار جديدة عند عدم اكتمال الحصة.
+        حملة المنحة لأسر الشهداء: {SEASON.scholarshipSeats} مقعد بقبول مباشر. وحملة الاستدراك تُفتح لإعلان أعمار جديدة عند عدم اكتمال الحصة، ومنها مقاعد من لم يثبّت تسجيله.
       </p>
     </div>
   );

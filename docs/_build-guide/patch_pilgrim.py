@@ -11,7 +11,8 @@ wipes the tracked manifest.json). <git rev> is a commit whose content.py still h
 .docx has it; the difference with the current content.py is what gets replaced. The keys are the shots to swap.
 Used for: accommodation (4d5e007; post-group … dossier-payments), sign-in and registration pages (4026ef2),
 the 3D tour page (d6f7a25; home-more-menu, and the new step tour-3d), the live stream (baffdcd; home-hero,
-home-scale, home-more-menu, and the new step home-live).
+home-scale, home-more-menu, and the new step home-live), the lottery by birth years and months (51da5d9; the
+home, results, apply and lottery shots, and the new steps results-draw and sc-lottery-not-drawn).
 """
 import sys, copy, difflib, io, json, importlib.util, re, subprocess
 from pathlib import Path
@@ -140,12 +141,19 @@ def swap(old, new, start=0, stop=None, what=""):
             return body.index(p)
     missed.append(what or old[:40])
 
-# Each changed step: its title, explanation, actions and result, looked up after its own heading
+def style(e):
+    ps = e.find(qn("w:pPr")); st = ps.find(qn("w:pStyle")) if ps is not None else None
+    return st.get(qn("w:val")) if st is not None else ""
+
+# Each changed step: its title, explanation, actions and result, looked up after its own heading — the
+# headings by place, as titles repeat («مُقدَّم») and a step's text may itself begin «الخطوة الأولى»
+heads = [i for i, p in enumerate(body) if style(p) == "Heading3" and ptext(p).startswith("الخطوة ")]
+assert len(heads) == len(O_STEPS), "one heading per step of the old text"
 for a, b in pairs:
     if a == b: continue
-    h = next((i for i, p in enumerate(body) if ptext(p).startswith("الخطوة ") and ptext(p).endswith(norm(a["t"]))), None)
-    if h is None: missed.append("heading " + a["t"]); continue
-    nxt = next((i for i in range(h + 1, len(body)) if ptext(body[i]).startswith("الخطوة ")), len(body))
+    k = next(i for i, s in enumerate(O_STEPS) if s is a)
+    h, nxt = heads[k], (heads[k + 1] if k + 1 < len(heads) else len(body))
+    if not ptext(body[h]).endswith(norm(a["t"])): missed.append("heading " + a["t"]); continue
     if a["t"] != b["t"]: swap(a["t"], b["t"], h, h + 1, "title " + a["t"])
     if a["x"] != b["x"]: swap(a["x"], b["x"], h + 1, nxt, "text " + a["t"])
     for oa, ob in zip(a["do"], b["do"]):
@@ -154,10 +162,6 @@ for a, b in pairs:
         if a[k] != b[k] and a[k] and b[k]: swap(a[k], b[k], h + 1, nxt, f"{k} " + a["t"])
 
 # ── new steps: a copy of the step before, with its own text and picture; the steps and figures after move on ──
-def style(e):
-    ps = e.find(qn("w:pPr")); st = ps.find(qn("w:pStyle")) if ps is not None else None
-    return st.get(qn("w:val")) if st is not None else ""
-
 def step_heading(title):
     return next(e for e in doc.element.body if e.tag == qn("w:p") and style(e) == "Heading3" and ptext(e).startswith("الخطوة ") and ptext(e).endswith(norm(title)))
 
@@ -256,18 +260,21 @@ for (oq, oa), (nq, na) in zip(O.FAQ, C.FAQ):
     i = swap(oq, nq, what="faq " + oq)
     if i is not None: swap(oa, na, i + 1, i + 3, "faq answer " + oq)
 
-# The fees table in the appendix
-for orow, nrow in zip(O.FEES, C.FEES):
-    if orow == nrow: continue
-    for tbl in doc.element.body.iter(qn("w:tbl")):
-        rows = list(tbl.iter(qn("w:tr")))
-        for tr in rows:
+# The appendix tables (season dates, fees, rules…): a changed row is found by its old cells
+cell_text = lambda tc: norm("".join(t.text or "" for t in tc.iter(qn("w:t")))).strip()
+for ot, nt in zip(O.APPENDICES, C.APPENDICES):
+    if ot["rows"] == nt["rows"] or len(ot["rows"]) != len(nt["rows"]): continue
+    for orow, nrow in zip(ot["rows"], nt["rows"]):
+        if orow == nrow: continue
+        hit = False
+        for tr in doc.element.body.iter(qn("w:tr")):
             cells = list(tr.iter(qn("w:tc")))
-            if len(cells) == len(orow) and norm("".join(t.text or "" for t in cells[0].iter(qn("w:t")))).strip() == orow[0]:
+            if len(cells) == len(orow) and all(cell_text(tc) == norm(o) for tc, o in zip(cells, orow)):
                 for tc, o, n in zip(cells, orow, nrow):
-                    p = next(tc.iter(qn("w:p")))
-                    assert replace_in(p, o, n), o
-                done += 1
+                    if o != n: assert replace_in(next(tc.iter(qn("w:p"))), o, n), o
+                done += 1; hit = True
+                break
+        if not hit: missed.append("table row " + str(orow[0]))
 
 print("text replaced:", done, "| missed:", missed)
 doc.save(str(DOCX))

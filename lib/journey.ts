@@ -3,6 +3,7 @@
  * (Cluster Al-Nour, Group 27, Abraj Al-Nour hotel, flight RB 507, Mina camp 42...).
  * Assignments (rooms, seats, cards) are derived deterministically from the application members.
  */
+import { MONTHS, birthOf, mainApplicant, matchingPick, type PublishedDraw } from "./lottery";
 import { SEASON } from "./season";
 import { ageOf, birthYear, type Person } from "./registry";
 import type { Member } from "./rules";
@@ -166,31 +167,59 @@ export function trackOf(app: { track?: Track }): Track {
 }
 
 /** Direct acceptance goes by the applicant's age: accepted when at or above the announced cut-off */
-export function directAccepted(app: { members: Member[] }) {
+export function directAccepted(app: { members: Member[] }, minAge: number = SEASON.acceptedDirectAge) {
   const applicant = app.members.find((m) => m.relation === "self") ?? app.members[0];
-  return !!applicant && ageOf(applicant.person) >= SEASON.acceptedDirectAge;
+  return !!applicant && ageOf(applicant.person) >= minAge;
 }
 
 /**
  * Tracking timeline (seconds after submission in the demo). Each registration has its own:
  * direct → ages announced → accepted directly OR not accepted (nothing moves to the lottery by itself);
- * lottery → live draw → selected.
+ * lottery → live draw of birth years and months → accepted when the main applicant's were drawn, or not.
+ * Until the draw's results are published, a lottery application waits at the draw.
  */
-export function trackSteps(track: Track, accepted: boolean): TrackStep[] {
+export function trackSteps(track: Track, accepted: boolean, lottery?: { published: boolean; line?: string }, minAge: number = SEASON.acceptedDirectAge): TrackStep[] {
   if (track === "direct") {
     return [
       ...COMMON,
-      { key: "direct", at: 6, title: "اعتماد القبول المباشر", text: `صاحب الطلب ضمن الأعمار المقبولة (${SEASON.acceptedDirectAge}+) — ${SEASON.windows.direct.announce}` },
+      { key: "direct", at: 6, title: "اعتماد القبول المباشر", text: `صاحب الطلب ضمن الأعمار المقبولة (${minAge}+) — ${SEASON.windows.direct.announce}` },
       accepted
         ? { key: "accepted", at: 8, title: "مقبول مباشرة", text: "قُبل طلبك وفق الأكبر سناً" }
-        : { key: "notAccepted", at: 8, title: "لم يُقبل مباشرة", text: `التسجيل على القرعة ${SEASON.windows.lottery.hijri}` },
+        : { key: "notAccepted", at: 8, title: "لم يُقبل مباشرة", text: `التسجيل الأولي على القرعة ${SEASON.windows.lottery.hijri}` },
     ];
   }
+  const draw: TrackStep = { key: "lottery", at: 6.5, title: "القرعة العلنية", text: `بث مباشر — ${SEASON.windows.lottery.draw}: تُسحب سنوات ميلاد، ولبعضها أشهر` };
+  if (lottery && !lottery.published) return [...COMMON, { ...draw, text: "انتهى السحب — بانتظار نشر النتائج" }];
   return [
     ...COMMON,
-    { key: "lottery", at: 6.5, title: "القرعة الإلكترونية", text: `بث مباشر — ${SEASON.windows.lottery.draw}` },
-    { key: "accepted", at: 10, title: "مقبول بالقرعة", text: "تم اختيار طلبك" },
+    draw,
+    accepted
+      ? { key: "accepted", at: 10, title: "مقبول بالقرعة", text: lottery?.line ?? "سُحبت سنة ميلاد صاحب الطلب" }
+      : { key: "notAccepted", at: 10, title: "لم يُقبل بالقرعة", text: "لم تُسحب سنة ميلاد صاحب الطلب وشهره هذا الموسم" },
   ];
+}
+
+/** The drawn line a lottery application matched: "سُحبت مواليد 1980 كاملة" / "سُحب مواليد شباط 1972" */
+export function drawLine(app: { members: Member[] }, draw: PublishedDraw | null) {
+  const main = mainApplicant(app);
+  const pick = draw && main ? matchingPick(main, draw.picks) : null;
+  if (!main || !pick) return null;
+  const b = birthOf(main);
+  return pick.months === "all" ? `سُحبت مواليد ${b.year} كاملة` : `سُحب مواليد ${MONTHS[b.month - 1]} ${b.year}`;
+}
+
+/**
+ * Where an application stands: whether it is accepted, and its timeline — direct ones by the announced
+ * age, lottery ones by the published draw (none published yet: waiting at the draw).
+ */
+export function outcomeOf(app: { track?: Track; members: Member[] }, draw: PublishedDraw | null, minAge: number = SEASON.acceptedDirectAge) {
+  const track = trackOf(app);
+  if (track === "direct") {
+    const accepted = directAccepted(app, minAge);
+    return { track, accepted, steps: trackSteps("direct", accepted, undefined, minAge) };
+  }
+  const line = drawLine(app, draw);
+  return { track, accepted: !!line, steps: trackSteps("lottery", !!line, { published: !!draw, line: line ?? undefined }) };
 }
 
 export function stageAt(steps: TrackStep[], elapsed: number) {

@@ -1,9 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, FileCheck2, Radio, ScanSearch, Ticket, XCircle } from "lucide-react";
+import { motion } from "motion/react";
+import { ArrowLeft, BadgeCheck, CalendarClock, CheckCircle2, FileCheck2, Radio, ScanSearch, Table2, Ticket, XCircle } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
+import { MONTHS, birthOf, describePick, drawTotals, mainApplicant, matchingPick, sortPicks, type PublishedDraw } from "@/lib/lottery";
 import { ageOf, fullName } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { SEASON } from "@/lib/season";
@@ -22,7 +23,7 @@ export function StageSubmitted({ app }: { app: Application }) {
           {app.members.length} أفراد — الإيصال <span className="font-mono font-bold" dir="ltr">{app.receipt}</span> — {app.office}
         </p>
         <p className="mt-3 flex items-center gap-2 font-semibold text-gold-dark">
-          <CalendarClock className="size-5" /> {app.track === "lottery" ? "طلب في التسجيل على القرعة" : "طلب في التسجيل على القبول المباشر"} — الخطوة التالية: تدقيق البيانات والتحقق من الأهلية
+          <CalendarClock className="size-5" /> {app.track === "lottery" ? "طلب في التسجيل الأولي على القرعة" : "طلب في التسجيل على القبول المباشر"} — الخطوة التالية: تدقيق البيانات والتحقق من الأهلية
         </p>
       </div>
     </div>
@@ -74,7 +75,10 @@ export function StageEligible({ app }: { app: Application }) {
         <p className="font-display text-3xl font-bold text-green-dark">جميع أفراد الطلب مؤهلون</p>
         {app.track === "lottery" ? (
           <>
-            <p className="mt-2 text-lg leading-8 text-ink-soft">طلبك مسجّل في القرعة الإلكترونية على {Math.round(SEASON.lotteryShare * 100)}% من الحصة. الطلب العائلي يُسحب كوحدة واحدة.</p>
+            <p className="mt-2 text-lg leading-8 text-ink-soft">
+              طلبك في التسجيل الأولي على القرعة ({Math.round(SEASON.lotteryShare * 100)}% من الحصة). في القرعة تُسحب سنوات ميلاد، ولبعضها أشهر، ويُطابَق طلبك بميلاد صاحبه
+              ({MONTHS[birthOf(mainApplicant(app)!).month - 1]} {birthOf(mainApplicant(app)!).year}): إن سُحبت سنته، أو شهره منها، قُبل الطلب بأفراده كلهم.
+            </p>
             <div className="mt-4 flex flex-wrap gap-3 text-sm">
               <span className="rounded-full bg-gold/30 px-3 py-1.5 font-bold text-maroon">القرعة: {SEASON.windows.lottery.draw} — بث مباشر</span>
             </div>
@@ -151,16 +155,17 @@ export function StageDirect({ age }: { age: number }) {
   );
 }
 
-/** Live-broadcast lottery: rolling application numbers that land on yours */
-export function StageLottery({ number, elapsed }: { number: string; elapsed: number }) {
-  const [roll, setRoll] = useState("0000");
-  const landing = elapsed > 9.3;
-  useEffect(() => {
-    if (landing) return;
-    const t = setInterval(() => setRoll(String(1000 + Math.floor(Math.random() * 9000))), 70);
-    return () => clearInterval(t);
-  }, [landing]);
-  const shown = landing ? number.padStart(4, "0") : roll;
+/**
+ * The live broadcast: the drawn birth years come up one by one (all months, or the drawn ones), and the
+ * main applicant's year lights up if it is among them. Until the results are published, it waits.
+ */
+export function StageLottery({ app, draw, elapsed }: { app: Application; draw: PublishedDraw | null; elapsed: number }) {
+  const main = mainApplicant(app)!;
+  const b = birthOf(main);
+  const picks = draw ? sortPicks(draw.picks) : [];
+  // Revealed between the start of the draw (6.5 s) and the result (10 s)
+  const shown = Math.max(0, Math.min(picks.length, Math.floor(((elapsed - 6.5) / 3.2) * picks.length) + 1));
+  const hit = draw ? matchingPick(main, draw.picks) : null;
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-ink p-6 text-white md:p-8">
@@ -174,46 +179,58 @@ export function StageLottery({ number, elapsed }: { number: string; elapsed: num
           بث مباشر
         </span>
         <span className="flex items-center gap-2 text-sm text-white/70">
-          <Radio className="size-4" /> القرعة الإلكترونية — 1 شعبان 20:00 — بإشراف لجنة تنظيم القرعة
+          <Radio className="size-4" /> القرعة العلنية — {SEASON.windows.lottery.draw} — بإشراف لجنة تنظيم القرعة
         </span>
       </div>
-      <div className="relative mt-8 flex justify-center gap-2 md:gap-3" dir="ltr">
-        {shown.split("").map((d, i) => (
-          <div key={i} className="relative h-24 w-16 overflow-hidden rounded-2xl bg-gradient-to-b from-white/15 to-white/5 ring-1 ring-white/20 md:h-28 md:w-20">
-            <AnimatePresence mode="popLayout">
-              <motion.span
-                key={d + i + (landing ? "l" : roll)}
-                initial={{ y: landing ? -60 : -30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 30, opacity: 0 }}
-                transition={landing ? { type: "spring", damping: 10, delay: i * 0.12 } : { duration: 0.06 }}
-                className={cn("absolute inset-0 grid place-items-center font-display text-5xl font-bold md:text-6xl", landing ? "text-gold" : "text-white/80")}
-              >
-                {d}
-              </motion.span>
-            </AnimatePresence>
-            <span className="absolute inset-x-0 top-1/2 h-px bg-black/30" />
-          </div>
-        ))}
-      </div>
-      <p className="relative mt-6 text-center text-white/70">
-        {landing ? (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-gold">
-            سُحب الطلب رقم {number}!
-          </motion.span>
-        ) : (
-          `تُسحب ${formatNumber(SEASON.lotterySeats)} مقعداً من بين 53,955 طلباً مؤهلاً مسجّلاً على القرعة...`
-        )}
+      <p className="relative mt-5 text-center text-white/80">
+        صاحب طلبك من مواليد <b className="text-gold">{MONTHS[b.month - 1]} {b.year}</b>
       </p>
+      {draw ? (
+        <ul className="relative mx-auto mt-5 grid max-w-2xl gap-2 sm:grid-cols-2">
+          {picks.slice(0, shown).map((p) => {
+            const mine = p.year === b.year;
+            return (
+              <motion.li
+                key={p.year}
+                initial={{ opacity: 0, y: -14, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: "spring", damping: 14 }}
+                className={cn("flex items-center gap-3 rounded-2xl px-4 py-2.5 ring-1", mine ? (hit ? "bg-gold text-ink ring-gold" : "bg-white/15 ring-white/30") : "bg-white/[.07] ring-white/15")}
+              >
+                <span className="font-display text-2xl font-bold tabular-nums">{p.year}</span>
+                <span className={cn("text-sm", mine && hit ? "font-bold" : "text-white/80")}>{describePick(p)}</span>
+              </motion.li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="relative mx-auto mt-6 max-w-xl rounded-2xl bg-white/10 p-4 text-center leading-7 text-white/85">
+          <CalendarClock className="mx-auto mb-2 size-7 text-gold" />
+          انتهى البث، والنتائج بانتظار اعتمادها ونشرها. تصلك نتيجة طلبك هنا فور نشرها.
+        </p>
+      )}
+      {draw && (
+        <p className="relative mt-6 text-center text-white/70">
+          {shown >= picks.length ? (
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={cn("font-bold", hit ? "text-gold" : "text-white")}>
+              {hit ? `سُحبت مواليد ${hit.months === "all" ? b.year : `${MONTHS[b.month - 1]} ${b.year}`} — طلبك مقبول!` : `اكتمل السحب: ${formatNumber(drawTotals(draw.picks).seats)} مقعداً`}
+            </motion.span>
+          ) : (
+            `تُسحب سنوات الميلاد حتى تكتمل ${formatNumber(SEASON.lotterySeats)} مقعداً...`
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
 /**
  * Direct acceptance ended without a place. Nothing moves to the lottery by itself — the lottery is a
- * separate registration that the pilgrim makes with a new application.
+ * separate registration that the pilgrim makes with a new application. A lottery application that was
+ * not drawn ends here for this season.
  */
-export function StageNotAccepted({ age }: { age: number }) {
+export function StageNotAccepted({ age, app, draw }: { age: number; app: Application; draw: PublishedDraw | null }) {
+  if (app.track === "lottery") return <LotteryNotDrawn app={app} draw={draw} />;
   return (
     <div className="grid items-center gap-6 md:grid-cols-[auto_1fr]">
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12 }} className="mx-auto grid size-24 place-items-center rounded-full bg-maroon/10 text-maroon">
@@ -222,17 +239,44 @@ export function StageNotAccepted({ age }: { age: number }) {
       <div>
         <p className="font-display text-2xl font-bold text-maroon md:text-3xl">لم يُقبل طلبك في القبول المباشر</p>
         <p className="mt-2 text-lg leading-8 text-ink-soft">
-          الأعمار المقبولة {SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب {age} عاماً. لا ينتقل طلبك إلى القرعة تلقائياً — التسجيل على القرعة طلب مستقل
+          الأعمار المقبولة {SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب {age} عاماً. لا ينتقل طلبك إلى القرعة تلقائياً — التسجيل الأولي على القرعة طلب مستقل
           يُفتح {SEASON.windows.lottery.hijri} ({SEASON.windows.lottery.gregorian}).
         </p>
         <p className="mt-2 rounded-2xl bg-gold/20 p-3 leading-7 text-ink">
-          الدفعة الأولى التي دفعتها مع التسجيل محفوظة لك: إن سجّلت على القرعة تُحسب رصيداً فلا تدفعها مرة أخرى عند ظهور اسمك، وإن لم تسجّل أو لم يظهر اسمك تُعاد إليك.
+          الدفعة الأولى التي دفعتها مع التسجيل محفوظة لك: إن سجّلت على القرعة وقُبلت تُحسب رصيداً فلا تدفعها مرة أخرى، وإن لم تسجّل أو لم تُقبل تُعاد إليك.
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <ButtonLink href="/portal/apply" size="lg" variant="gold">
             <Ticket className="size-5" /> سجّل على القرعة بالأفراد أنفسهم <ArrowLeft className="size-5" />
           </ButtonLink>
-          <span className="text-sm text-hint">بضغطة واحدة دون إعادة الخطوات: الملخص ثم رسم تسجيل القرعة — القرعة: {SEASON.windows.lottery.draw}</span>
+          <span className="text-sm text-hint">بضغطة واحدة دون إعادة الخطوات: الملخص ثم رسم التسجيل الأولي — القرعة: {SEASON.windows.lottery.draw}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The draw did not take the main applicant's birth year (or month): the application ends this season */
+function LotteryNotDrawn({ app, draw }: { app: Application; draw: PublishedDraw | null }) {
+  const b = birthOf(mainApplicant(app)!);
+  const year = draw?.picks.find((p) => p.year === b.year);
+  return (
+    <div className="grid items-center gap-6 md:grid-cols-[auto_1fr]">
+      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 12 }} className="mx-auto grid size-24 place-items-center rounded-full bg-maroon/10 text-maroon">
+        <XCircle className="size-12" />
+      </motion.div>
+      <div>
+        <p className="font-display text-2xl font-bold text-maroon md:text-3xl">لم يُقبل طلبك في قرعة هذا الموسم</p>
+        <p className="mt-2 text-lg leading-8 text-ink-soft">
+          صاحب طلبك من مواليد {MONTHS[b.month - 1]} {b.year}.{" "}
+          {year ? `سُحبت سنة ${b.year} بأشهر محددة (${describePick(year).replace("مواليد ", "")}) ليس منها ${MONTHS[b.month - 1]}.` : `ولم تكن سنة ${b.year} بين سنوات الميلاد المسحوبة.`}
+        </p>
+        {app.firstPaid?.creditFrom && <p className="mt-2 rounded-2xl bg-gold/20 p-3 leading-7 text-ink">الدفعة الأولى المحفوظة من طلب القبول المباشر تُعاد إليك.</p>}
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <ButtonLink href="/results#lists" size="lg" variant="outline">
+            <Table2 className="size-5" /> جدول نتائج القرعة
+          </ButtonLink>
+          <span className="text-sm text-hint">يمكنك التسجيل في الموسم القادم.</span>
         </div>
       </div>
     </div>
