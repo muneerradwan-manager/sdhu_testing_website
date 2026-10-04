@@ -1,13 +1,14 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowLeft, BookOpen, ChevronDown, ShieldCheck, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronDown, Radio, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { list, str } from "@/components/cms/bits";
 import { ButtonLink } from "@/components/ui/button";
 import { useSection } from "@/lib/cms/store";
 import { useMediaUrl } from "@/lib/cms/media";
 import { useHydrated } from "@/lib/store";
+import { LiveHaram } from "./live-haram";
 
 function useCountdown(target: Date) {
   const hydrated = useHydrated();
@@ -54,8 +55,8 @@ export function Hero() {
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
   const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  // The live stream from the Two Holy Mosques (the background video stays silent: its own sound is crowd murmur)
+  const [live, setLive] = useState(false);
 
   const words = list<{ word: string; highlight: boolean }>(v, "titleWords");
   const rows = list<{ label: string; value: string; live: boolean }>(v, "rows");
@@ -70,21 +71,11 @@ export function Hero() {
   }, [v]);
   const c = useCountdown(target);
 
-  const toggleSound = () => {
-    const el = videoRef.current;
-    if (!el) return;
-    const next = !soundOn;
-    el.muted = !next;
-    el.volume = 0.7;
-    if (next) void el.play().catch(() => {});
-    setSoundOn(next);
-  };
-
   return (
     <section ref={ref} className="relative isolate flex min-h-[calc(100svh/var(--zoom))] items-center overflow-hidden bg-ink text-white">
       <motion.div style={{ y, scale }} className="absolute inset-0 -z-20">
         {videoSrc ? (
-          <video ref={videoRef} className="size-full object-cover" src={videoSrc} poster={posterSrc} autoPlay muted loop playsInline preload="metadata" />
+          <video className="size-full object-cover" src={videoSrc} poster={posterSrc} autoPlay muted loop playsInline preload="metadata" />
         ) : posterSrc ? (
           // eslint-disable-next-line @next/next/no-img-element -- خلفية بملء الشاشة، قد تكون صورة مرفوعة من لوحة المحتوى
           <img src={posterSrc} alt="" className="size-full object-cover" />
@@ -191,23 +182,22 @@ export function Hero() {
         </motion.div>
       </motion.div>
 
-      {videoSrc && (
-        <motion.button
-          type="button"
-          onClick={toggleSound}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.6 }}
-          aria-pressed={soundOn}
-          className="absolute bottom-8 left-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 md:left-8"
-        >
-          <span className="relative flex">
-            {soundOn ? <Volume2 className="size-5 text-gold" /> : <VolumeX className="size-5" />}
-            {!soundOn && <span className="absolute inset-0 animate-ping rounded-full bg-white/30" />}
-          </span>
-          {soundOn ? str(v, "soundOn") : str(v, "soundOff")}
-        </motion.button>
-      )}
+      <motion.button
+        type="button"
+        onClick={() => setLive((o) => !o)}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 1.6 }}
+        aria-pressed={live}
+        className="absolute bottom-8 left-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 md:left-8"
+      >
+        <span className="relative flex">
+          {live ? <X className="size-5 text-gold" /> : <Radio className="size-5" />}
+          {!live && <span className="absolute -right-0.5 -top-0.5 size-2 animate-pulse rounded-full bg-red-500" />}
+        </span>
+        {live ? str(v, "soundOn") : str(v, "soundOff")}
+      </motion.button>
+      <LiveHaram open={live} onClose={() => setLive(false)} sources={{ makkah: str(v, "liveMakkah"), madinah: str(v, "liveMadinah") }} />
 
       <motion.a
         href="#services"

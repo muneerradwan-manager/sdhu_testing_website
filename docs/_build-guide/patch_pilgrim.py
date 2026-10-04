@@ -10,7 +10,8 @@ user's own .docx — it carries his direction fixes, so it is patched, not rebui
 wipes the tracked manifest.json). <git rev> is a commit whose content.py still has the guide's text as the
 .docx has it; the difference with the current content.py is what gets replaced. The keys are the shots to swap.
 Used for: accommodation (4d5e007; post-group … dossier-payments), sign-in and registration pages (4026ef2),
-the 3D tour page (d6f7a25; home-more-menu, and the new step tour-3d).
+the 3D tour page (d6f7a25; home-more-menu, and the new step tour-3d), the live stream (baffdcd; home-hero,
+home-scale, home-more-menu, and the new step home-live).
 """
 import sys, copy, difflib, io, json, importlib.util, re, subprocess
 from pathlib import Path

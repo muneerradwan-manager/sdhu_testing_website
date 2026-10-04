@@ -15,6 +15,10 @@ p = c.page
 # ───────── A. البوابة العامة ─────────
 c.goto("/")
 c.shot("home-hero", "الصفحة الرئيسية للمنصة", hl=[("header a[href='/register']", "1"), ("header a[href='/login']", "2")], section="A")
+# the live stream from the Two Holy Mosques (YouTube needs a few seconds to start)
+p.locator("section button[aria-pressed]:has-text('مباشر من الحرم')").click(); c.settle(12000)
+c.shot("home-live", "مباشر من الحرمين: البث الرسمي من المسجد الحرام أو المسجد النبوي", hl=[("[role=dialog][aria-label^='بث مباشر']", "")], section="A")
+p.get_by_role("button", name="إغلاق البث", exact=True).click(); c.settle(600)
 c.scroll_to("#services", 100)
 c.shot("home-services", "بطاقات الخدمات في الصفحة الرئيسية", section="A")
 c.scroll_to("section:has-text('تقويم الموسم')", 90)

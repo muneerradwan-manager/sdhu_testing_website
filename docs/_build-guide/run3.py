@@ -4,7 +4,7 @@ from cap import Cap, ROOT
 
 import json, sys
 from pathlib import Path
-KEEP = int(sys.argv[1]) if len(sys.argv) > 1 else 41
+KEEP = int(sys.argv[1]) if len(sys.argv) > 1 else 42
 man = json.loads((ROOT/"manifest.json").read_text("utf-8"))
 for e in man[KEEP:]:
     f = ROOT/"shots"/e["file"]
