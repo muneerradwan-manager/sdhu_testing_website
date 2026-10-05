@@ -55,7 +55,7 @@ export function useRecord() {
   const rec = recordOf(admin.profile, admin.id);
   const save = (patch: Partial<AdminRecord>, action: string, detail?: string) => {
     actions.upsertAdmin(admin.id, { record: { ...rec, ...patch, updatedAt: nowMs() } });
-    logAdmin(admin.id, action, undefined, detail);
+    logAdmin(admin.id, action, undefined, detail, { area: "applicants" });
   };
   const returning = seasonHistory(admin.id).some((h) => h.roleKey);
   return { rec, save, admin, returning };
@@ -332,7 +332,7 @@ export function DocumentsStep() {
 export function SkillsStep() {
   const { rec, save, admin, returning } = useRecord();
   const { of } = useDemand();
-  // The lists the holder of «قوائم ملف الإداري» keeps for the season
+  // The lists the holder of «إدارة الإداريين» keeps for the season
   const { skills } = useSkills();
   const { languages } = useLanguages();
   const asked = languages.filter((l) => of(`lang:${l}`).required.length || of(`lang:${l}`).preferred.length);

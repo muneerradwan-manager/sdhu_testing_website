@@ -7,47 +7,38 @@ import { Modal, useToast } from "@/components/ui/widgets";
 import {
   DIRECTION_LABEL,
   acceptsAssignment,
-  allClusterIds,
   clusterName,
   familiesOfGroup,
   flightOfGroup,
-  flightWarnings,
   flightsActions,
   fmtClock,
   groupsOnFlight,
   fmtGregShort,
-  groupsOfCluster,
-  isActive,
-  itineraryOf,
   membersOfGroup,
   seatStats,
   type Actor,
   type Direction,
   type Flight,
-  type FlightsData,
   type GroupRef,
   type Traveler,
 } from "@/lib/flights";
-import { CURRENT_SEASON, fullName, inSeason, postingsOf, useEmployees, useOpFiles, usePlaces } from "@/lib/ops";
+import { fullName } from "@/lib/ops";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { Panel } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
-
-type Row = { g: GroupRef; total: number; out: number; back: number; flightOut?: Flight; flightBack?: Flight; warnings: string[] };
+import type { FlightsDesk, GroupRow as Row } from "./desk";
 
 /**
  * لوحة التفويج: every cluster and group, which flights they are on, and what needs the officer's hand. A
  * group is put on its flights from here in one step: the officer picks the outbound and the return.
  */
-export function DispatchBoard({ data, officer, actor, onOpenFlight }: { data: FlightsData; officer: boolean; actor: Actor; onOpenFlight: (id: string) => void }) {
+export function DispatchBoard({ desk, officer, actor, onOpenFlight }: { desk: FlightsDesk; officer: boolean; actor: Actor; onOpenFlight: (id: string) => void }) {
   const toast = useToast();
+  const data = desk.data;
   const post = useStore((s) => s.post);
   const applications = useStore((s) => s.applications);
   const admins = useStore((s) => s.admins);
-  const employees = useEmployees();
-  const files = useOpFiles();
-  const places = usePlaces();
   const [assignOne, setAssignOne] = useState<{ t: Traveler; dir: Direction } | null>(null);
   const [target, setTarget] = useState("");
   const [reason, setReason] = useState("");
@@ -55,58 +46,8 @@ export function DispatchBoard({ data, officer, actor, onOpenFlight }: { data: Fl
   const [pick, setPick] = useState({ out: "", back: "" });
 
   const flightOf = useMemo(() => (id: string) => data.flights.find((f) => f.id === id), [data.flights]);
-  const rows = useMemo(() => {
-    const out: { cluster: string; rows: Row[] }[] = [];
-    for (const cid of allClusterIds()) {
-      const rs: Row[] = [];
-      for (const g of groupsOfCluster(cid)) {
-        const members = membersOfGroup(g, post, applications, admins);
-        const its = members.map((m) => itineraryOf(m.id, data));
-        const warnings: string[] = [];
-        const outs = new Set(its.map((i) => i.outbound?.flightId).filter(Boolean));
-        if (outs.size > 1) warnings.push(`أفراد المجموعة على ${outs.size} رحلات ذهاب`);
-        const missing = its.filter((i) => !i.outbound && i.status !== "otherMeans").length;
-        const fo = flightOfGroup(g.clusterId, g.number, "outbound", data);
-        if (fo && missing) warnings.push(`${missing} بلا مقعد على رحلة المجموعة`);
-        const retOnly = its.filter((i) => i.status === "returnOnly").length;
-        if (retOnly) warnings.push(`${retOnly} على العودة دون ذهاب`);
-        rs.push({ g, total: members.length, out: its.filter((i) => i.outbound).length, back: its.filter((i) => i.return).length, flightOut: fo, flightBack: flightOfGroup(g.clusterId, g.number, "return", data), warnings });
-      }
-      out.push({ cluster: cid, rows: rs });
-    }
-    return out;
-  }, [data, post, applications, admins]);
-
-  // travellers who lost their seat: last assignment cancelled or a no-show, and nothing active that way
-  const needsFlight = useMemo(() => {
-    const seen = new Set<string>();
-    const list: { t: Traveler; dir: Direction; why: string }[] = [];
-    for (const a of [...data.assignments].sort((x, y) => (y.cancelledAt ?? y.assignedAt) - (x.cancelledAt ?? x.assignedAt))) {
-      if (a.status !== "cancelled" && a.status !== "noShow") continue;
-      const f = flightOf(a.flightId);
-      if (!f) continue;
-      const key = `${a.travelerId}:${f.direction}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const hasActive = data.assignments.some((b) => b.travelerId === a.travelerId && isActive(b) && flightOf(b.flightId)?.direction === f.direction);
-      // a group taken off a flight on purpose is not "lost": it shows in the groups table without a flight
-      const groupOff = !!a.reason?.startsWith("إزالة المجموعة من الرحلة");
-      if (hasActive || data.otherMeans[a.travelerId] || groupOff) continue;
-      list.push({ t: { id: a.travelerId, name: a.name, kind: a.travelerKind, gender: a.gender, age: a.age, needs: a.needs, requestId: a.requestId, groupNumber: a.groupNumber, clusterId: a.clusterId }, dir: f.direction, why: a.status === "noShow" ? `تخلّف عن ${f.flightNo}` : `أُلغي إسناده على ${f.flightNo}${a.reason ? ` — ${a.reason}` : ""}` });
-    }
-    return list;
-  }, [data, flightOf]);
-
-  const staffNoFlight = useMemo(() => {
-    const seasonFiles = files.filter((f) => f.season === CURRENT_SEASON);
-    return employees
-      .filter((e) => inSeason(e) && !e.suspended && postingsOf(e.id, seasonFiles, places).length > 0)
-      .filter((e) => !data.assignments.some((a) => a.travelerId === e.id && isActive(a) && flightOf(a.flightId)?.direction === "outbound"))
-      .sort((a, b) => fullName(a).localeCompare(fullName(b), "ar"));
-  }, [employees, files, places, data, flightOf]);
-
-  const alerts = data.flights.filter((f) => ["published", "full", "locked"].includes(f.status)).flatMap((f) => flightWarnings(f, data).map((w) => ({ f, w })));
-  const totals = rows.flatMap((c) => c.rows).reduce((acc, r) => ({ total: acc.total + r.total, out: acc.out + r.out, back: acc.back + r.back }), { total: 0, out: 0, back: 0 });
+  const { clusters: rows, needsFlight, staffNoFlight, flightAlerts: alerts } = desk;
+  const totals = { total: desk.travellers, out: desk.withOut, back: desk.withBack };
 
   const candidates = assignOne ? data.flights.filter((f) => f.direction === assignOne.dir && f.audience === (assignOne.t.kind === "employee" ? "staff" : "pilgrims") && acceptsAssignment(f)) : [];
   const doAssign = () => {
@@ -195,6 +136,7 @@ export function DispatchBoard({ data, officer, actor, onOpenFlight }: { data: Fl
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <div id="needs" className="scroll-mt-28">
         <Panel title="بحاجة إلى رحلة" icon={<UserRoundX />} action={<Chip tone={needsFlight.length ? "maroon" : "green"}>{needsFlight.length}</Chip>}>
           {needsFlight.length === 0 ? (
             <p className="text-sm text-white/60">لا أحد. من يُلغى إسناده أو يتخلف عن رحلة أو تُلغى رحلته يظهر هنا حتى يُسند من جديد.</p>
@@ -217,6 +159,8 @@ export function DispatchBoard({ data, officer, actor, onOpenFlight }: { data: Fl
             </ul>
           )}
         </Panel>
+        </div>
+        <div id="staff" className="scroll-mt-28">
         <Panel title="موظفون بلا رحلة ذهاب" icon={<PlaneTakeoff />} action={<Chip tone={staffNoFlight.length ? "gold" : "green"}>{staffNoFlight.length}</Chip>}>
           <p className="mb-2 text-xs text-white/60">المشاركون في الموسم ولهم منصب في ملف تشغيلي. يُسندون من صفحة الرحلة، واحداً أو فريقاً كاملاً.</p>
           {staffNoFlight.length === 0 ? (
@@ -232,7 +176,9 @@ export function DispatchBoard({ data, officer, actor, onOpenFlight }: { data: Fl
             </ul>
           )}
         </Panel>
-        <Panel title="تنبيهات على الرحلات" icon={<AlertTriangle />} action={<Chip tone={alerts.length ? "maroon" : "green"}>{alerts.length}</Chip>} className="lg:col-span-2">
+        </div>
+        <div id="alerts" className="scroll-mt-28 lg:col-span-2">
+        <Panel title="تنبيهات على الرحلات" icon={<AlertTriangle />} action={<Chip tone={alerts.length ? "maroon" : "green"}>{alerts.length}</Chip>}>
           {alerts.length === 0 ? (
             <p className="text-sm text-white/60">لا تنبيهات: كل مجموعة معها مرافق، ولا أحد على العودة دون ذهاب.</p>
           ) : (
@@ -246,6 +192,7 @@ export function DispatchBoard({ data, officer, actor, onOpenFlight }: { data: Fl
             </ul>
           )}
         </Panel>
+        </div>
       </div>
 
       <Modal open={!!assignOne} onClose={() => setAssignOne(null)}>

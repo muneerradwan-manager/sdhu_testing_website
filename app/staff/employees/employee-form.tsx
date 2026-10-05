@@ -32,9 +32,10 @@ export const emptyDraft = (): Draft => ({
 /**
  * Add or edit one employee. The fields are the operations app's profile: three-part name, gender,
  * birth year, national number, governorate, job title, mission, permanent or delegated (and by whom),
- * the Syrian and Saudi numbers, and languages. Registration for this season is a switch here too.
+ * the Syrian and Saudi numbers, and languages. Registration for this season is a switch here too, under
+ * the season tab's guard: `lock` says why he cannot leave the season (he holds a post in it), and keeps it on.
  */
-export function EmployeeForm({ initial, all, onSave, onCancel }: { initial: Draft; all: Employee[]; onSave: (d: Draft) => void; onCancel: () => void }) {
+export function EmployeeForm({ initial, all, lock, onSave, onCancel }: { initial: Draft; all: Employee[]; lock: string | null; onSave: (d: Draft) => void; onCancel: () => void }) {
   const [d, setD] = useState<Draft>(initial);
   const [tried, setTried] = useState(false);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
@@ -52,6 +53,7 @@ export function EmployeeForm({ initial, all, onSave, onCancel }: { initial: Draf
   const valid = Object.keys(errors).length === 0;
 
   const participates = d.seasons.includes(CURRENT_SEASON);
+  const locked = participates && !!lock;
   const err = (k: keyof Draft) => tried && errors[k] && <span className="mt-1 block text-[11px] font-bold text-[#ffb4c8]">{errors[k]}</span>;
   const ring = (k: keyof Draft) => tried && errors[k] && "border-maroon/80";
 
@@ -172,16 +174,18 @@ export function EmployeeForm({ initial, all, onSave, onCancel }: { initial: Draf
         </div>
       </Field>
 
-      <label className={cn("flex cursor-pointer items-start gap-3 rounded-2xl p-3 ring-1 transition", participates ? "bg-green-light/15 ring-green-light/40" : "bg-white/5 ring-white/15")}>
+      <label className={cn("flex items-start gap-3 rounded-2xl p-3 ring-1 transition", locked ? "cursor-not-allowed" : "cursor-pointer", participates ? "bg-green-light/15 ring-green-light/40" : "bg-white/5 ring-white/15")}>
         <input
           type="checkbox"
           checked={participates}
+          disabled={locked}
           onChange={(e) => set("seasons", e.target.checked ? [...d.seasons, CURRENT_SEASON].sort() : d.seasons.filter((y) => y !== CURRENT_SEASON))}
           className="mt-1 size-4 accent-[#D9C89E]"
         />
         <span>
           <span className="block font-bold text-white">مشارك في موسم {CURRENT_SEASON}</span>
           <span className="block text-xs leading-5 text-white/65">لا يظهر في قوائم الإسناد في الملفات التشغيلية إلا المشاركون في الموسم.</span>
+          {locked && <span className="mt-1 block text-xs font-bold leading-5 text-gold">{lock}</span>}
         </span>
       </label>
 

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { FlightsView } from "./view";
+import { FlightsSummary } from "./summary";
 
-export const metadata: Metadata = { title: "الطيران" };
+export const metadata: Metadata = { title: "ملخص الطيران" };
 
 export default function Page() {
-  return <FlightsView />;
+  return <FlightsSummary />;
 }

@@ -72,6 +72,14 @@ export type AuditEvent = {
   detail?: string;
   before?: string;
   after?: string;
+  /** The system the event belongs to (lib/systems.ts), so its owner and the director can follow it */
+  system?: string;
+  /** Worth the director's attention: it reaches «صلاحيات الإدارة», not only the system's own records */
+  important?: boolean;
+  /** The part of the system it concerns (a tab of its management page), where its record is shown */
+  area?: string;
+  /** The record it concerns — a centre's, an exam's or an applicant's id — for that record's own history */
+  ref?: string;
 };
 
 /** Registration staff decision on an application that needed human review */
@@ -113,7 +121,7 @@ export type AdminRules = {
   /** Certificates the administration added to the list this season (the platform's own list is in the administrator lib) */
   docTypes?: { key: string; label: string; hint: string; validSeasons: number }[];
   /**
-   * The lists an administrator's file is built from, as the holder of «قوائم ملف الإداري» left them: the
+   * The lists an administrator's file is built from, as the holder of «إدارة الإداريين» left them: the
    * platform's own documents reworded or set aside this season, and skills and languages added or set aside.
    * An added skill's key is its name, so it reads right wherever the file is shown.
    */
@@ -320,6 +328,8 @@ export type AdminProfile = {
     feePaidAt?: number;
     approvedAt?: number;
     approvedBy?: string;
+    /** Sent back to the head by the holder of «إدارة الإداريين», with what to fix; cleared when he sends it again */
+    returned?: { at: number; by: string; note: string };
     /** The team the head invited one by one from the administrators who qualified this season */
     team?: { roleKey: string; role: string; name: string; id: string }[];
     /** Team charter (deputy, guide, coordinator) */
@@ -435,6 +445,11 @@ export type State = {
   flights: import("./flights").FlightsState;
   /** The written exam's halls: who supervises each centre, who sits where, and each sitting as its supervisor runs it */
   examHalls: ExamHalls;
+  /**
+   * Who holds each file's management permission (lib/systems.ts) once the director granted or took one back,
+   * and when she last looked at each file's important events. A missing list means the accounts as opened.
+   */
+  systems: { grants?: Record<string, { staffId: string; at?: number; by?: string }[]>; seen?: Record<string, number> };
   tourSeen: boolean;
 };
 
@@ -454,11 +469,15 @@ export type HallRun = {
 };
 
 export type ExamHalls = {
+  /** The centres as the exam system's owner left them; the platform's list until the first change */
+  centers?: import("./data/admin-exam").ExamCenter[];
+  /** Exams the owner edited or created, in full, by id (the five main exams are keyed by their role) */
+  exams?: Record<string, import("./data/admin-exam").ExamDef>;
   /** centre id -> the staff account supervising its hall (an empty string takes the default away) */
   supervisors?: Record<string, string>;
   /** applicants the exam desk moved to another centre than their governorate's: national id -> centre id */
   moved?: Record<string, string>;
-  /** each role's sitting, when the desk changed it: role key -> date and time */
+  /** each role's main exam date, as changed before exams were kept whole in `exams` (read into them) */
   sessions?: Record<string, { date: string; time: string }>;
   runs: Record<string, HallRun>;
 };
@@ -491,6 +510,7 @@ const initial: State = {
   ops: {},
   flights: {},
   examHalls: { runs: {} },
+  systems: {},
   tourSeen: false,
 };
 

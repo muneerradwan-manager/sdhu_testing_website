@@ -43,6 +43,9 @@ const LATE_STAFF_PEOPLE: (Base & { staffId: string })[] = [
   { staffId: "rahaf", firstName: "رهف", fatherName: "منير", surname: "الخطيب", gender: "female", birthYear: 1991, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
   { staffId: "omar", firstName: "عمر", fatherName: "فايز", surname: "الشامي", gender: "male", birthYear: 1987, city: "دمشق", jobTitle: "مسؤول تخطيط ومتابعة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
   { staffId: "bassel", firstName: "باسل", fatherName: "رياض", surname: "النوري", gender: "male", birthYear: 1983, city: "ريف دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 56 220 4471" },
+  // The holder of «إدارة الامتحانات» and the Damascus hall supervisor: their work is in Syria, before the season travels
+  { staffId: "munir", firstName: "منير", fatherName: "عادل", surname: "السيد", gender: "male", birthYear: 1982, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { staffId: "nisreen", firstName: "نسرين", fatherName: "توفيق", surname: "الحكيم", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
 ];
 
 const MALE = ["أحمد", "محمد", "محمود", "خالد", "عمر", "علي", "حسن", "يوسف", "إبراهيم", "عبد الله", "عبد الرحمن", "سامر", "باسل", "مهند", "وائل", "زياد", "رامي", "معاذ", "أنس", "بشار", "فراس", "هشام", "نزار", "ياسر", "مصطفى", "حمزة", "طلال", "عماد", "قصي", "أيمن", "لؤي", "صهيب", "مؤيد", "ماجد", "جهاد", "نضال", "عبد الحكيم", "مالك", "ثائر", "حسام"];
@@ -151,6 +154,8 @@ function build(): Employee[] {
       notes: n === 58 ? "موقوف مؤقتاً بانتظار استكمال ملف جواز السفر" : n === 97 ? "موقوف بقرار إداري حتى انتهاء التحقيق في شكوى" : undefined,
     });
   }
+  // Delegated for this season, their body sent the names before the numbers: the register flags them for HR
+  for (const e of out) if (e.id === "E-041" || e.id === "E-135") Object.assign(e, { phoneSy: "", phoneSa: undefined, notes: `أرسلت ${e.organization} اسمه دون أرقام هواتفه، وتُستكمل منها.` });
   const late = seeded("sdhu-employees-1448-late");
   LATE_STAFF_PEOPLE.forEach((p) => {
     const c = contact(late, p.city, p.seasons.length > 0);

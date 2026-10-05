@@ -35,8 +35,9 @@ import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, Modal, StarRating, useToast } from "@/components/ui/widgets";
 import { QUESTION_TYPES, TRUE_FALSE, finalScoreWith, pointsOf, questionCount, typeOf, weightsLabel, type ExamQuestion, type QuestionType } from "@/lib/data/admin-exam";
-import { useAllQuestions, useBlueprints, useExamBank, useExamRules } from "../../_lib/admin-rules";
+import { useAllQuestions, useExamBank, useExamRules } from "../../_lib/admin-rules";
 import { actions, type AdminProfile } from "@/lib/store";
+import { useHolders } from "@/lib/systems";
 import { useScrollLock } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
 import { logAdmin, positionLabelOf, resultOf, useAdmin } from "../../_lib/admin";
@@ -112,16 +113,15 @@ function HallScreen() {
   const p = admin.profile!;
   const rules = useExamRules();
   const hall = useMyHall(admin.id, p);
-  const blueprints = useBlueprints();
   const bank = useExamBank();
   const toast = useToast();
   const role = hall.role;
-  const blueprint = blueprints[role];
+  const blueprint = hall.exam;
   const run = hall.run;
   const joined = !!run?.joined[admin.id];
   const present = !!run?.present[admin.id];
   const supervisorName = hall.supervisor?.name ?? "مشرف القاعة";
-  const target = `${hall.center?.name ?? ""} — امتحان ${roleLabelOf(role)}`;
+  const target = `${hall.center?.name ?? ""} — ${hall.exam?.name ?? `امتحان ${roleLabelOf(role)}`}`;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
@@ -142,7 +142,7 @@ function HallScreen() {
         <div className="flex items-center gap-4">
           <span className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-green-dark to-green text-gold">{hall.stage === "idle" ? <DoorClosed className="size-8" /> : <DoorOpen className="size-8" />}</span>
           <div className="min-w-0">
-            <p className="text-sm text-hint">امتحان صفة {positionLabelOf(role)}</p>
+            <p className="text-sm text-hint">{hall.exam?.kind === "makeup" ? `${hall.exam.name} — لمن غاب عن الامتحان الأساسي` : `امتحان صفة ${positionLabelOf(role)}`}</p>
             <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">{hall.center ? hall.center.name : "مركزك الامتحاني"}</h2>
           </div>
         </div>
@@ -162,7 +162,7 @@ function HallScreen() {
           </dl>
         ) : (
           <p className="mt-6 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
-            لم يُحدَّد مركزك الامتحاني بعد: محافظة قيدك لا تتبع أياً من المراكز. تُسندك شؤون الإداريين إلى مركز، فتظهر هنا قاعتك وموعدك.
+            لم يُحدَّد مركزك الامتحاني بعد: محافظة قيدك لا تتبع أياً من المراكز. تُسندك إدارة الامتحانات إلى مركز، فتظهر هنا قاعتك وموعدك.
           </p>
         )}
 
@@ -194,21 +194,21 @@ function HallScreen() {
                     أرِ المشرف هويتك الشخصية ليطابقها مع اسمك ويؤكد حضورك.
                     {hall.stage === "running" && ` بدأ الامتحان منذ ${minutesIn} دقيقة: تدخله حين يؤكد حضورك، بالوقت المتبقي فقط.`}
                   </p>
-                  <SimButton className="mt-4" onClick={() => sim("تأكيد حضور متقدم في القاعة", () => hallActions.confirm(hall.key, admin.id, { bank, blueprint }))}>محاكاة: يؤكد المشرف حضورك</SimButton>
+                  <SimButton className="mt-4" onClick={() => sim("تأكيد حضور متقدم في القاعة", () => blueprint && hallActions.confirm(hall.key, admin.id, { bank, blueprint, role }))}>محاكاة: يؤكد المشرف حضورك</SimButton>
                 </>
               )}
               {hall.stage === "open" && present && (
                 <>
                   <p className="font-display text-lg font-bold text-green-dark">حضورك مؤكد</p>
                   <p className="mt-1 text-sm leading-7 text-ink-soft">ابقَ في مكانك: يبدأ الامتحان للجميع في اللحظة نفسها حين يبدؤه المشرف، وتنتقل هذه الصفحة إليه وحدها.</p>
-                  <SimButton className="mt-4" onClick={() => sim("بدء الامتحان في القاعة", () => hallActions.start(hall.key, { bank, blueprint }))}>محاكاة: يبدأ المشرف الامتحان</SimButton>
+                  <SimButton className="mt-4" onClick={() => sim("بدء الامتحان في القاعة", () => blueprint && hallActions.start(hall.key, { bank, blueprint, role }))}>محاكاة: يبدأ المشرف الامتحان</SimButton>
                 </>
               )}
               {(hall.stage === "ended" || hall.stage === "closed") && (
                 <>
                   <p className="font-display text-lg font-bold text-maroon">انتهى امتحان صفتك في قاعتك</p>
                   <p className="mt-1 text-sm leading-7 text-ink-soft">
-                    {hall.stage === "closed" ? "أُغلقت القاعة ولم تؤدِّ الامتحان، فسُجّلت غائباً عن جلسة صفتك." : "أنهى المشرف الامتحان قبل أن يؤكد حضورك، فلم تعد تدخله."} تواصل مع شؤون الإداريين.
+                    {hall.stage === "closed" ? "أُغلقت القاعة ولم تؤدِّ الامتحان، فسُجّلت غائباً عن جلسة صفتك." : "أنهى المشرف الامتحان قبل أن يؤكد حضورك، فلم تعد تدخله."} تواصل مع إدارة الامتحانات: يظهر لك هنا الامتحان الاستدراكي حين تحدد موعده.
                   </p>
                   <SimButton
                     className="mt-4"
@@ -244,7 +244,7 @@ function HallScreen() {
       <Card className="md:p-8">
         <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ListChecks className="size-5 text-gold-dark" /> هيكل امتحان صفتك</h3>
         <p className="text-xs text-hint">
-          امتحان صفة {positionLabelOf(role)} لموسم 1448 — {blueprint ? `${questionCount(blueprint)} سؤالاً في ${blueprint.minutes} دقيقة` : ""}
+          {hall.exam?.name ?? `امتحان صفة ${positionLabelOf(role)}`} لموسم 1448 — {blueprint ? `${questionCount(blueprint)} سؤالاً في ${blueprint.minutes} دقيقة` : ""}
         </p>
         <ul className="mt-5 space-y-4">
           {blueprint?.sections.map((s, i) => (
@@ -269,7 +269,7 @@ function HallScreen() {
         </p>
         <div className="mt-6 rounded-2xl border border-gold/40 p-4 text-sm leading-7">
           <p className="font-bold text-green-dark">بعد الكتابي</p>
-          <p className="text-ink-soft">الامتحان الشفهي: {rules.oralDate}. تُدخل النتيجة على المنصة من شؤون الإداريين.</p>
+          <p className="text-ink-soft">الامتحان الشفهي: {rules.oralDate}. تُدخل النتيجة على المنصة من إدارة الامتحانات.</p>
           <p className="mt-1 text-ink-soft">
             النتيجة النهائية: الكتابي {Math.round(rules.writtenWeight * 100)}% + الشفهي {Math.round(rules.oralWeight * 100)}%، والنجاح من <b className="text-maroon">{rules.passMark}</b>، ولا يُستدعى للشفهي من نزل في الكتابي عن {rules.writtenMin} — كما حددتها الإدارة لهذا الموسم.
           </p>
@@ -631,6 +631,8 @@ function ScoreRing({ value, label, tone = "green", size = 150 }: { value: number
 
 function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void }) {
   const rules = useExamRules();
+  // The marks are entered by whoever holds «إدارة الامتحانات» this season
+  const owner = useHolders().exams[0]?.staff.name ?? "مسؤول الامتحانات";
   const admin = useAdmin()!;
   const toast = useToast();
   const p = admin.profile!;
@@ -656,11 +658,11 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
     const written = exam.score ?? 0;
     const final = finalScoreWith(written, 84, rules);
     actions.upsertAdmin(admin.id, {
-      oral: { score: 84, by: "ماهر عيسى", at, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
+      oral: { score: 84, by: owner, at, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
       resultPublishedAt: at,
     });
-    actions.logEvent({ actor: "ماهر عيسى", role: "موظف", action: "إدخال نتيجة الامتحان الشفهي (محاكاة)", target: admin.name, detail: "84 من 100 (17 من 20) — اللجنة رقم 3" });
-    actions.logEvent({ actor: "رئيس اللجان", role: "موظف", action: "اعتماد ونشر النتائج النهائية (محاكاة)", target: admin.name, detail: `النهائية ${final} — ${final >= rules.passMark ? "ناجح" : "لم يجتز"}` });
+    actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", ref: admin.id, action: "إدخال نتيجة الامتحان الشفهي (محاكاة)", target: admin.name, detail: "84 من 100 (17 من 20) — اللجنة رقم 3" });
+    actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", ref: admin.id, action: "إعلان النتيجة النهائية (محاكاة)", target: admin.name, detail: `النهائية ${final} — ${final >= rules.passMark ? "ناجح" : "لم يجتز"}` });
     logAdmin(admin.id, "الاطلاع على النتيجة النهائية", `الإداري ${admin.id.slice(-3)}`, `الكتابي ${written} × ${Math.round(rules.writtenWeight * 100)}% + الشفهي 84 × ${Math.round(rules.oralWeight * 100)}% = ${final}`);
     toast({ title: "نُشرت نتيجتك النهائية", body: `النتيجة: ${final} من 100`, icon: "📜", tone: "gold" });
   };
@@ -670,10 +672,10 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
     let e = exam;
     for (const id of pending) {
       const q = served.find((x) => x.q.id === id)?.q;
-      if (q) e = markedExam(e, id, Math.max(0, pointsOf(q) - 1), "ماهر عيسى");
+      if (q) e = markedExam(e, id, Math.max(0, pointsOf(q) - 1), owner);
     }
     actions.upsertAdmin(admin.id, { exam: e });
-    actions.logEvent({ actor: "ماهر عيسى", role: "موظف", action: "تصحيح الإجابات التحريرية (محاكاة)", target: `ورقة ${admin.id.slice(-4)}`, detail: `الكتابي ${e.score} من 100` });
+    actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", action: "تصحيح الإجابات التحريرية (محاكاة)", target: `ورقة ${admin.id.slice(-4)}`, detail: `الكتابي ${e.score} من 100` });
     toast({ title: "صُحّحت إجاباتك التحريرية", body: `علامة الكتابي: ${e.score} من 100`, icon: "✍️", tone: "gold" });
   };
 
@@ -751,7 +753,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
 
           {pending.length > 0 && (
             <div className="mt-5 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
-              علامتك المبدئية {exam.provisional} من 100 تحسب {pending.length === 1 ? "إجابتك التحريرية" : `إجاباتك التحريرية الـ${pending.length}`} صفراً حتى يصححها مصحح مخوّل في شؤون الإداريين، دون أن يرى اسمك. تكتمل علامة الكتابي بعد التصحيح.
+              علامتك المبدئية {exam.provisional} من 100 تحسب {pending.length === 1 ? "إجابتك التحريرية" : `إجاباتك التحريرية الـ${pending.length}`} صفراً حتى يصححها مصحح مخوّل في إدارة الامتحانات، دون أن يرى اسمك. تكتمل علامة الكتابي بعد التصحيح.
               <SimButton className="mt-3" onClick={simulateGrading}>محاكاة: يصحح المصحح الإجابات التحريرية</SimButton>
             </div>
           )}
@@ -819,7 +821,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
                 <Hourglass className="size-7" />
               </motion.span>
               <p className="mt-4 font-display text-xl font-bold text-green-dark">بانتظار إدخال نتيجة اللجنة</p>
-              <p className="mt-1 text-sm leading-7 text-ink-soft">يُدخلها ماهر عيسى (شؤون الإداريين) من لوحة الموظفين، ولا تظهر إلا بعد اعتماد رئيس اللجان. الصفحة تتحدث تلقائياً.</p>
+              <p className="mt-1 text-sm leading-7 text-ink-soft">يُدخلها {owner} (إدارة الامتحانات) من بوابة الموظفين، ولا تظهر إلا بعد إعلانها. الصفحة تتحدث تلقائياً.</p>
               <SimButton className="mt-5" onClick={simulateOral}>محاكاة: إدخال اللجنة للنتيجة</SimButton>
             </div>
           ) : (

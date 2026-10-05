@@ -14,6 +14,7 @@ import {
   Dices,
   DoorOpen,
   FileStack,
+  Gauge,
   GraduationCap,
   Layers,
   LayoutDashboard,
@@ -22,43 +23,73 @@ import {
   Plane,
   RadioTower,
   ScrollText,
+  TowerControl,
   Settings2,
   ShieldCheck,
   UsersRound,
-  Vote,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
-import { PERMISSION_LABELS, type Permission, type StaffUser } from "@/lib/staff";
+import { PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
 import { actions, useHydrated } from "@/lib/store";
+import { SYSTEMS, useOwnedSystems, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
+import { useAirportReps, useFlightsData } from "@/lib/flights";
+import { useAdminsDesk } from "../admins/desk";
+import { useEmployeesDesk } from "../employees/desk";
+import { useExamDesk } from "../exam/_components/desk";
+import { useFlightsDesk } from "../flights/desk";
+import { useSystemsUnseen } from "./system";
 import { useReviewQueue, useTicketQueue } from "./data";
 import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
 
-/** `hall`: shown to whoever the exam desk assigned to a centre's hall, whatever his permissions */
-type NavItem = { href: string; label: string; icon: ReactNode; perms: Permission[]; badge?: "reviews" | "tickets" | "hall"; hall?: true };
+/**
+ * `work`: «لوحتي», for whoever holds a task permission — it gathers that work; a management permission
+ * («إدارة الامتحانات»، «إدارة الطيران») has its own summary instead.
+ * `hall`, `airport`: shown to whoever a system's owner assigned in the field — a centre's hall, an airport —
+ * whatever his permissions.
+ * `system`: shown to the holders of that file's management permission: its summary (their dashboard for it,
+ * `exact` so it is not lit on the management pages) and its management.
+ */
+type NavItem = {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  perms: Permission[];
+  badge?: "reviews" | "tickets" | "hall" | "airport" | "systems" | SystemKey;
+  work?: true;
+  hall?: true;
+  airport?: true;
+  system?: SystemKey;
+  exact?: true;
+};
 
 export const STAFF_NAV: NavItem[] = [
-  { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [] },
+  { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [], work: true },
+  { href: "/staff/systems", label: "صلاحيات الإدارة", icon: <Layers />, perms: ["systems.assign"], badge: "systems" },
+  // The management of whole files, in the season's order
+  { href: SYSTEMS.staff.summary.href, label: SYSTEMS.staff.summary.label, icon: <Gauge />, perms: [], system: "staff", badge: "staff", exact: true },
+  { href: SYSTEMS.staff.manage.href, label: SYSTEMS.staff.manage.label, icon: <Contact />, perms: [], system: "staff" },
+  { href: SYSTEMS.admins.summary.href, label: SYSTEMS.admins.summary.label, icon: <Gauge />, perms: [], system: "admins", badge: "admins", exact: true },
+  { href: SYSTEMS.admins.manage.href, label: SYSTEMS.admins.manage.label, icon: <UsersRound />, perms: [], system: "admins" },
+  { href: SYSTEMS.exams.summary.href, label: SYSTEMS.exams.summary.label, icon: <Gauge />, perms: [], system: "exams", badge: "exams", exact: true },
+  { href: SYSTEMS.exams.manage.href, label: SYSTEMS.exams.manage.label, icon: <GraduationCap />, perms: [], system: "exams" },
+  { href: SYSTEMS.flights.summary.href, label: SYSTEMS.flights.summary.label, icon: <Gauge />, perms: [], system: "flights", badge: "flights", exact: true },
+  { href: SYSTEMS.flights.manage.href, label: SYSTEMS.flights.manage.label, icon: <Plane />, perms: [], system: "flights" },
+  // The employee's own place, and the field posts a file's holder gives
   { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
   { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: [], hall: true, badge: "hall" },
-  { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
+  { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: [], airport: true, badge: "airport" },
+  // Task permissions in the order the season is worked: set up first, then run, then looked back on
   { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: ["season.settings"] },
-  { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
-  { href: "/staff/exam", label: "إدارة الامتحان", icon: <GraduationCap />, perms: ["administrators.manage", "season.settings", "groups.approve"] },
-  { href: "/staff/administrators", label: "الإداريون والمجموعات", icon: <UsersRound />, perms: ["administrators.manage", "groups.approve"] },
-  { href: "/staff/employees", label: "الموظفون", icon: <Contact />, perms: ["staff.create", "ops.files"] },
-  { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: ["ops.files", "operations.room"] },
   { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: ["ops.files"] },
-  { href: "/staff/flights", label: "الطيران", icon: <Plane />, perms: ["flights.manage", "flights.view"] },
+  { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: ["ops.files", "operations.room"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
+  { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
+  { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
-  { href: "/staff/cluster-profiles", label: "برامج التكتلات", icon: <ShieldCheck />, perms: ["groups.approve", "content.manage"] },
-  { href: "/staff/admin-rules", label: "قواعد الإداريين", icon: <ScrollText />, perms: ["season.settings", "administrators.manage", "administrators.catalog"] },
-  { href: "/staff/election", label: "انتخاب رؤساء التكتلات", icon: <Vote />, perms: ["season.settings", "groups.approve"] },
-  { href: "/staff/grading", label: "التصنيف والترقية", icon: <Layers />, perms: ["season.settings", "audit.read"] },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
   { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: ["season.settings", "audit.read"] },
 ];
@@ -143,6 +174,10 @@ function Sidebar({ user }: { user: StaffUser }) {
   const tickets = useTicketQueue();
   const halls = useHalls();
   const myCenters = halls.centersOf(user.id);
+  const owned = useOwnedSystems(user);
+  const unseen = useSystemsUnseen();
+  const flights = useFlightsData();
+  const myAirports = useAirportReps().airportsOf(user.id);
   const counts = useMemo(
     () => ({
       reviews: reviews.filter((r) => !r.review).length,
@@ -151,10 +186,20 @@ function Sidebar({ user }: { user: StaffUser }) {
       hall: Object.entries(halls.runs)
         .filter(([k, r]) => myCenters.some((c) => k.endsWith(`@${c.id}`)) && !r.endedAt && !r.closedAt)
         .reduce((a, [, r]) => a + Object.keys(r.joined).filter((id) => !r.present[id]).length, 0),
+      // Flights leaving my airport waiting for their take-off, or in the air to it waiting for their landing
+      airport: flights.flights.filter((f) => (myAirports.includes(f.fromId) && f.status === "locked") || (myAirports.includes(f.divertedToId ?? f.toId) && f.status === "departed")).length,
+      // What the director has not read yet; what waits for a system's owner is counted by its own badge
+      systems: unseen,
+      staff: 0,
+      admins: 0,
+      exams: 0,
+      flights: 0,
     }),
-    [reviews, tickets, halls.runs, myCenters],
+    [reviews, tickets, halls.runs, myCenters, flights.flights, myAirports, unseen],
   );
-  const items = STAFF_NAV.filter((n) => (n.hall ? myCenters.length > 0 : canAny(user, n.perms)));
+  const items = STAFF_NAV.filter((n) =>
+    n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),
+  );
 
   const logout = () => {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });
@@ -203,14 +248,16 @@ function Sidebar({ user }: { user: StaffUser }) {
                   <Plane className="size-3" /> مسافر مع البعثة
                 </span>
               )}
-              <button
-                onClick={() => setShowPerms((v) => !v)}
-                className="mr-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-white/70 hover:bg-white/10 hover:text-white"
-                aria-expanded={showPerms}
-              >
-                <ShieldCheck className="size-3" /> {user.permissions.length} صلاحيات
-                <ChevronDown className={cn("size-3 transition", showPerms && "rotate-180")} />
-              </button>
+              {user.permissions.length > 0 && (
+                <button
+                  onClick={() => setShowPerms((v) => !v)}
+                  className="mr-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-white/70 hover:bg-white/10 hover:text-white"
+                  aria-expanded={showPerms}
+                >
+                  <ShieldCheck className="size-3" /> {user.permissions.length} صلاحيات
+                  <ChevronDown className={cn("size-3 transition", showPerms && "rotate-180")} />
+                </button>
+              )}
             </div>
             <AnimatePresence initial={false}>
               {showPerms && (
@@ -239,7 +286,7 @@ function Sidebar({ user }: { user: StaffUser }) {
         {/* Navigation — vertical on desktop, a swipeable strip on phones */}
         <nav aria-label="أقسام بوابة الموظفين" className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:block lg:space-y-1 lg:overflow-visible">
           {items.map((n) => {
-            const active = pathname.startsWith(n.href);
+            const active = n.exact ? samePath(pathname, n.href) : pathname.startsWith(n.href);
             const count = n.badge ? counts[n.badge] : 0;
             return (
               <Link
@@ -260,15 +307,16 @@ function Sidebar({ user }: { user: StaffUser }) {
                 )}
                 <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{n.icon}</span>
                 <span className="relative whitespace-nowrap">{n.label}</span>
-                {count > 0 && (
-                  <span
-                    className={cn(
-                      "relative mr-auto min-w-6 rounded-full px-1.5 py-0.5 text-center text-[11px] tabular-nums",
-                      n.badge === "tickets" ? "bg-maroon text-white" : active ? "bg-green-dark text-white" : "bg-white/15 text-white",
-                    )}
-                  >
-                    {count}
-                  </span>
+                {n.badge === "staff" ? (
+                  <EmployeesCount active={active} />
+                ) : n.badge === "admins" ? (
+                  <AdminsCount active={active} />
+                ) : n.badge === "exams" ? (
+                  <ExamCount active={active} />
+                ) : n.badge === "flights" ? (
+                  <FlightsCount active={active} />
+                ) : (
+                  <Count n={count} active={active} urgent={n.badge === "tickets" || n.badge === "systems"} />
                 )}
               </Link>
             );
@@ -286,4 +334,30 @@ function Sidebar({ user }: { user: StaffUser }) {
       </p>
     </aside>
   );
+}
+
+function Count({ n, active, urgent }: { n: number; active: boolean; urgent?: boolean }) {
+  if (n <= 0) return null;
+  return <span className={cn("relative mr-auto min-w-6 rounded-full px-1.5 py-0.5 text-center text-[11px] tabular-nums", urgent ? "bg-maroon text-white" : active ? "bg-green-dark text-white" : "bg-white/15 text-white")}>{n}</span>;
+}
+
+/** What waits for a file's holders: computed only where its entry is shown, for them */
+function EmployeesCount({ active }: { active: boolean }) {
+  const desk = useEmployeesDesk();
+  return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
+}
+
+function AdminsCount({ active }: { active: boolean }) {
+  const desk = useAdminsDesk();
+  return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
+}
+
+function ExamCount({ active }: { active: boolean }) {
+  const desk = useExamDesk();
+  return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
+}
+
+function FlightsCount({ active }: { active: boolean }) {
+  const desk = useFlightsDesk();
+  return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
 }

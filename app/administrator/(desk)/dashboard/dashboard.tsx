@@ -26,7 +26,7 @@ import { ageOf } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { SKILLS, docState, effectiveRole, journeyOf, logAdmin, positionLabelOf, recordOf, resultOf, seasonHistory, useAdmin } from "../../_lib/admin";
-import { useBlueprints, useExamRules } from "../../_lib/admin-rules";
+import { useExamRules } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
 import { clusterGroupsOf } from "../../_lib/cluster";
 import { AdminShell } from "../../_components/ui";
@@ -58,7 +58,7 @@ export function AdminDashboard() {
   const joinCount = Object.keys(profile?.joinDecisions ?? {}).length;
   const rules = useExamRules();
   const hall = useMyHall(admin.id, profile);
-  const blueprint = useBlueprints()[hall.role];
+  const blueprint = hall.exam;
   const written = useMemo<Written>(
     () => ({ date: hall.session?.date ?? "", time: hall.session?.time ?? "", questions: blueprint ? questionCount(blueprint) : 0, minutes: blueprint?.minutes ?? 0, center: hall.center?.name }),
     [hall.session, hall.center, blueprint],
@@ -96,8 +96,8 @@ export function AdminDashboard() {
     !profile?.cluster && profile?.group?.clusterId && { t: `قبِل رئيس تكتل النور عبد الرحمن العلي انضمام المجموعة ${profile.group.number}، ووُقّع العقد وصودق عليه.`, who: "شؤون التكتلات" },
     profile?.group?.approvedAt && { t: `اعتُمدت المجموعة ${profile.group.number} لموسم 1448. ميثاق الفريق جاهز للتوقيع في خزنة الوثائق. التكتل يُحدَّد بعد انتخاب رؤساء التكتلات.`, who: "مدير المكتب" },
     result.exempt && { t: "جُدّدت صفتك لموسم 1448 دون امتحان، لأنك شغلتها الموسم الماضي بتقييم مستوفٍ. رسم الموسم مسدد.", who: "شؤون الإداريين" },
-    result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة رئيس مجموعة. يمكنك تقديم طلب تشكيل مجموعة حتى 25 جمادى الأولى.`, who: "شؤون الإداريين" },
-    profile?.feePaidAt && !profile.examExempt && { t: "أنت مؤهل للامتحان الكتابي. الموعد: 15 ربيع الآخر، الساعة 09:00، على المنصة.", who: "شؤون الإداريين" },
+    result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة رئيس مجموعة. يمكنك تقديم طلب تشكيل مجموعة حتى 25 جمادى الأولى.`, who: "إدارة الامتحانات" },
+    profile?.feePaidAt && !profile.examExempt && { t: `أنت مؤهل للامتحان الكتابي: ${hall.exam?.name ?? "امتحان صفتك"}، ${hall.session ? `يوم ${hall.session.date} الساعة ${hall.session.time}` : "يُحدَّد موعده"}، في ${hall.center?.name ?? "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}.`, who: "إدارة الامتحانات" },
     profile?.receipt && { t: `تم استلام طلب مشاركتك في موسم 1448 ورسم التسجيل (الإيصال ${profile.receipt}).`, who: "المنصة" },
     profile?.eligibleAt && { t: `تحققت المنصة من أهليتك لصفة ${positionLabelOf(profile.positions[0] ?? "")} وفق جدول شروط الصفات لموسم 1448${profile.feePaidAt ? "" : ". بقي تسديد رسم التسجيل ليُقدَّم طلبك"}.`, who: "المنصة" },
     { t: "باب طلبات المشاركة لموسم 1448 مفتوح من 10 ربيع الأول حتى 1 ربيع الآخر.", who: "الإدارة" },

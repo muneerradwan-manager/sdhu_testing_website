@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Activity,
@@ -10,29 +11,30 @@ import {
   ClipboardCheck,
   Dices,
   FileClock,
-  GraduationCap,
   HeartPulse,
   ListTodo,
   RadioTower,
   ScrollText,
   Siren,
   Sun,
-  UserCog,
-  UserPlus,
   UsersRound,
   Wallet,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DAILY_REGISTRATIONS, EXEC, REG_STATS } from "@/lib/data/staff-seed";
-import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, inSeason, useEmployees, useOpFiles } from "@/lib/ops";
+import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, useEmployees, useOpFiles } from "@/lib/ops";
 import { useSeason } from "@/lib/season-live";
-import { ALL_PERMISSIONS, can, holdsAll, PERMISSION_LABELS, STAFF, type StaffUser } from "@/lib/staff";
+import { can, taskPermissions, type StaffUser } from "@/lib/staff";
 import { useStore } from "@/lib/store";
+import { SYSTEMS, useHolders } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
-import { resultOf } from "@/app/administrator/_lib/admin";
-import { useExamRules } from "@/app/administrator/_lib/admin-rules";
-import { awaitsOral, useAdminRows, useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
-import { ago, BarList, Columns, Donut, fmtDateTime, Kpi, Legend, PageHeader, Panel, useNow, useStaffUser } from "../_components/kit";
+import { useAdminsDesk } from "../admins/desk";
+import { useEmployeesDesk } from "../employees/desk";
+import { useExamDesk } from "../exam/_components/desk";
+import { useFlightsDesk } from "../flights/desk";
+import { useSystemsUnseen } from "../_components/system";
+import { useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
+import { ago, BarList, Columns, Donut, fmtDateTime, Kpi, Legend, PageHeader, Panel, useNow, useStaffHome, useStaffUser } from "../_components/kit";
 
 type Todo = { id: string; text: string; href?: string; done?: boolean; tone?: "maroon" | "gold" | "green" };
 
@@ -42,13 +44,28 @@ function greeting(hour: number) {
   return "مساء النور";
 }
 
+/**
+ * «لوحتي» gathers the work of an employee's permissions. Whoever holds none has no use for it: the owner of
+ * a system has that system's summary, a hall supervisor his hall — he is sent there.
+ */
 export function DashboardView() {
+  const user = useStaffUser()!;
+  const router = useRouter();
+  const home = useStaffHome(user);
+  // A management permission has its own summary: «لوحتي» is for the task permissions
+  const has = taskPermissions(user).length > 0;
+  useEffect(() => {
+    if (!has) router.replace(home);
+  }, [has, home, router]);
+  return has ? <Dashboard /> : null;
+}
+
+function Dashboard() {
   const user = useStaffUser()!;
   const now = useNow(30_000);
   const season = useSeason();
   const reviews = useReviewQueue();
   const tickets = useTicketQueue();
-  const admins = useAdminRows();
   const events = useAllEvents();
   const applications = useStore((s) => s.applications);
   const lottery = useStore((s) => s.lottery);
@@ -63,9 +80,13 @@ export function DashboardView() {
   const pendingReviews = reviews.filter((r) => !r.review).length;
   const openTickets = tickets.filter((t) => t.status !== "resolved");
   const critical = openTickets.filter((t) => t.severity === "critical").length;
-  const examRules = useExamRules();
-  const awaitingOral = admins.filter((a) => awaitsOral(a, examRules)).length;
-  const groupRequests = admins.filter((a) => a.profile.group && !a.profile.group.approvedAt).length;
+  // The exam is a system: its owner follows it in its summary; here the director sees what reaches her
+  const staffDesk = useEmployeesDesk();
+  const adminsDesk = useAdminsDesk();
+  const examDesk = useExamDesk();
+  const flightsDesk = useFlightsDesk();
+  const unseen = useSystemsUnseen();
+  const holders = useHolders();
   const realApps = Object.values(applications);
   const mine = useMemo(() => events.filter((e) => e.actor === user.name).slice(0, 6), [events, user.name]);
 
@@ -79,8 +100,13 @@ export function DashboardView() {
     if (can(user, "lottery.import")) list.push({ id: "imp", text: entered ? "أُدخلت نتائج بث القرعة وأُرسلت للاعتماد" : "إدخال نتائج بث القرعة: سنوات الميلاد وأشهرها", href: "/staff/lottery", done: entered });
     if (can(user, "lottery.approve")) list.push({ id: "pub", text: published ? "نُشرت نتائج القرعة" : entered ? "اعتماد ونشر نتائج القرعة" : "بانتظار إدخال نتائج البث من إدارة التسجيل", href: "/staff/lottery", done: published, tone: "maroon" });
     if (can(user, "season.settings")) list.push({ id: "season", text: "مراجعة إعدادات الموسم قبل فتح حملة الاستدراك", href: "/staff/season" });
-    if (can(user, "administrators.manage")) list.push({ id: "oral", text: `إدخال نتائج الشفهي (${awaitingOral} متقدمين)`, href: "/staff/exam", done: awaitingOral === 0, tone: "gold" });
-    if (can(user, "groups.approve")) list.push({ id: "groups", text: `اعتماد طلبات تشكيل المجموعات (${groupRequests})`, href: "/staff/administrators", done: groupRequests === 0, tone: "maroon" });
+    if (can(user, "systems.assign")) {
+      for (const [k, high] of [["staff", staffDesk.high.length], ["admins", adminsDesk.high.length], ["exams", examDesk.high.length], ["flights", flightsDesk.high.length]] as const) {
+        const who = holders[k].map((h) => h.staff.name).join(" و") || "صاحب صلاحيتها";
+        if (high) list.push({ id: `sys-high-${k}`, text: `${SYSTEMS[k].label} تحتاج متابعة (${high}) — يعالجها ${who}`, href: "/staff/systems", tone: "maroon" });
+      }
+      list.push({ id: "sys-new", text: unseen ? `أحداث مهمة جديدة في ملفات الإدارة (${unseen})` : "لا أحداث مهمة جديدة في ملفات الإدارة", href: "/staff/systems", done: !unseen, tone: "gold" });
+    }
     if (can(user, "operations.room")) {
       list.push({ id: "crit", text: `متابعة ${critical} بلاغات حرجة حتى الإغلاق`, href: "/staff/operations", tone: "maroon", done: critical === 0 });
       list.push({ id: "bus", text: "مراجعة اقتراح الحافلة التاسعة لمزدلفة", href: "/staff/operations" });
@@ -88,14 +114,13 @@ export function DashboardView() {
     if (can(user, "medical")) list.push({ id: "heat", text: "جولة على خيام كبار السن قبل ذروة الحر (15:00)" });
     if (can(user, "transport")) list.push({ id: "drivers", text: "تأكيد حضور السائقين 13 من 14" });
     if (can(user, "audit.read")) list.push({ id: "obj", text: "الرد على اعتراض الطلب 51877 مع الدليل", href: "/staff/audit", tone: "gold" });
-    if (can(user, "staff.create")) list.push({ id: "nader", text: "إرسال كلمة مرور مؤقتة لموظف جديد (نادر قاسم)" });
     if (can(user, "ops.files")) {
       if (opsMissing > 0) list.push({ id: "create", text: `إنشاء الملفات التشغيلية الناقصة لموسم ${CURRENT_SEASON} (${opsMissing})`, href: "/staff/operational-files", tone: "gold" });
       list.push({ id: "gaps", text: `إسناد المناصب الإلزامية الشاغرة في الملفات التشغيلية (${opsGaps})`, href: "/staff/operational-files", tone: "maroon", done: opsGaps === 0 });
       list.push({ id: "activate", text: `تفعيل الملفات التشغيلية بعد إدخال أرقام القرارات (${opsActive} من ${FILE_TYPES.length} مفعّلة)`, href: "/staff/operational-files", tone: "gold", done: opsActive === FILE_TYPES.length });
     }
     return list;
-  }, [user, pendingReviews, lottery, awaitingOral, groupRequests, critical, opsGaps, opsMissing, opsActive, myPosts]);
+  }, [user, pendingReviews, lottery, critical, opsGaps, opsMissing, opsActive, myPosts, staffDesk.high.length, adminsDesk.high.length, examDesk.high.length, flightsDesk.high.length, unseen, holders]);
 
   const hour = new Date(now).getHours();
 
@@ -134,14 +159,6 @@ export function DashboardView() {
             <Kpi dark label="مرفوضون بسبب واضح" value={REG_STATS.rejected} icon={<FileClock />} tone="maroon" delay={0.15} hint="من طلبات القبول المباشر" />
           </>
         )}
-        {(can(user, "administrators.manage") || can(user, "groups.approve")) && (
-          <>
-            <Kpi dark label="المتقدمون للعمل" value={1_380} icon={<GraduationCap />} hint="الإداريون الموسميون" />
-            <Kpi dark label="بانتظار الشفهي" value={awaitingOral} icon={<UserCog />} tone="gold" delay={0.05} />
-            <Kpi dark label="طلبات تشكيل مجموعات" value={groupRequests} icon={<UsersRound />} tone="maroon" delay={0.1} pulse={groupRequests > 0} />
-            <Kpi dark label="ناجحون حتى الآن" value={admins.filter((a) => resultOf(a.profile, examRules).passed).length + 1_094} icon={<CheckCircle2 />} tone="teal" delay={0.15} />
-          </>
-        )}
         {can(user, "operations.room") && (
           <>
             <Kpi dark label="بلاغات مفتوحة" value={openTickets.length} icon={<Siren />} tone="maroon" pulse={critical > 0} hint={`منها حرجة: ${critical}`} />
@@ -156,14 +173,6 @@ export function DashboardView() {
             <Kpi dark label="أحداث جلسة العرض" value={events.filter((e) => e.live).length} icon={<Activity />} tone="teal" delay={0.05} />
             <Kpi dark label="اعتراضات مفتوحة" value={1} icon={<FileClock />} tone="maroon" delay={0.1} />
             <Kpi dark label="تعديلات بقيم قبل/بعد" value={events.filter((e) => e.before !== undefined).length} icon={<ListTodo />} tone="gold" delay={0.15} />
-          </>
-        )}
-        {can(user, "staff.create") && (
-          <>
-            <Kpi dark label="الموظفون الدائمون" value={employees.filter((e) => e.kind === "permanent").length} icon={<UsersRound />} />
-            <Kpi dark label="المسافرون مع البعثة" value={employees.filter((e) => inSeason(e) && !e.suspended).length} icon={<Activity />} tone="teal" delay={0.05} hint={`مسجلون في موسم ${CURRENT_SEASON}`} />
-            <Kpi dark label="حسابات جديدة هذا الشهر" value={4} icon={<UserPlus />} tone="gold" delay={0.1} />
-            <Kpi dark label="صلاحيات ممنوحة" value={STAFF.reduce((a, s) => a + s.permissions.length, 0)} icon={<UserCog />} tone="maroon" delay={0.15} />
           </>
         )}
       </div>
@@ -223,49 +232,6 @@ export function DashboardView() {
                   </li>
                 ))}
               </ul>
-            </Panel>
-          )}
-          {(can(user, "administrators.manage") || can(user, "groups.approve")) && (
-            <Panel dark title="نتائج التأهيل — توزيع الدرجات النهائية" icon={<GraduationCap />} delay={0.1}>
-              <Columns dark values={[18, 34, 62, 118, 196, 262, 241, 188, 124, 67]} labels={["50", "60", "70", "80", "90", "100"]} highlight={2} height={130} />
-              <p className="mt-3 text-xs text-white/70">الحد الأدنى للنجاح 70 — الكتابي 60% والشفهي 40%.</p>
-            </Panel>
-          )}
-          {can(user, "staff.create") && (
-            <Panel dark title="حسابات الموظفين والصلاحيات" icon={<UserCog />} delay={0.1}>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[36rem] text-sm">
-                  <thead>
-                    <tr className="text-right text-xs text-white/70">
-                      <th className="pb-2 font-bold">الموظف</th>
-                      <th className="pb-2 font-bold">الصلاحيات الفردية</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {STAFF.map((s) => (
-                      <tr key={s.id}>
-                        <td className="py-2.5 align-top">
-                          <p className="font-bold text-gold">{s.name}</p>
-                          <p className="text-xs text-white/70">{s.title}</p>
-                        </td>
-                        <td className="py-2.5">
-                          <div className="flex flex-wrap gap-1">
-                            {holdsAll(s) ? (
-                              <span className="rounded-full bg-gold/25 px-2 py-0.5 text-[11px] font-bold text-gold ring-1 ring-gold/40">كل الصلاحيات ({ALL_PERMISSIONS.length})</span>
-                            ) : (
-                              s.permissions.map((p) => (
-                                <span key={p} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/80 ring-1 ring-white/15">
-                                  {PERMISSION_LABELS[p]}
-                                </span>
-                              ))
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </Panel>
           )}
           {can(user, "audit.read") && !can(user, "season.settings") && (

@@ -72,7 +72,7 @@ export function ClusterPublicProfile() {
   const submit = () => {
     if (!changes.length) return;
     actions.submitClusterProfile(view.id, { fields: values, at: nowMs(), by: admin.name, note: note.trim() || undefined });
-    logAdmin(admin.id, `إرسال برنامج ${view.name} للاعتماد`, `${changes.length} تعديلات`, changes.map((c) => c.label).join("، "));
+    logAdmin(admin.id, `إرسال برنامج ${view.name} للاعتماد`, `${changes.length} تعديلات`, changes.map((c) => c.label).join("، "), { area: "clusters", ref: view.id });
     toast({ title: "أُرسل للاعتماد", body: "لا يظهر للحجاج قبل أن تعتمده الإدارة.", icon: "📨", tone: "info" });
     setDraft(null);
     setNote("");

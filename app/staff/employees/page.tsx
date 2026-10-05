@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { EmployeesView } from "./view";
+import { EmployeesSummary } from "./summary";
 
-export const metadata: Metadata = { title: "الموظفون" };
+export const metadata: Metadata = { title: "ملخص الموظفين" };
 
 export default function Page() {
-  return <EmployeesView />;
+  return <EmployeesSummary />;
 }

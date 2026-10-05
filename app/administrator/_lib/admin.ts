@@ -297,7 +297,7 @@ export const ADMIN_CALENDAR = [
   { hijri: "15 – 18 ربيع الآخر", title: "الامتحان الكتابي في القاعات", detail: "جماعي لكل صفة في يومها، في قاعة المركز الامتحاني لمحافظتك، على حسابك الذي تفتحه هناك بإشراف مشرف القاعة — من يجدد صفته بتقييم مستوفٍ معفى" },
   { hijri: "1 جمادى الأولى", title: "الامتحان الشفهي", detail: "أمام لجنة من ثلاثة أعضاء — تُدخل النتيجة على المنصة" },
   { hijri: "10 جمادى الأولى", title: "النتيجة النهائية وإعلان الناجحين", detail: "الكتابي 60% + الشفهي 40% — النجاح من 70" },
-  { hijri: "11 – 25 جمادى الأولى", title: "طلبات تشكيل المجموعات (دون تكتل)", detail: "رسم تشكيل المجموعة 200 $ — اعتماد مدير المكتب — ميثاق الفريق" },
+  { hijri: "11 – 25 جمادى الأولى", title: "طلبات تشكيل المجموعات (دون تكتل)", detail: "رسم تشكيل المجموعة 200 $ — اعتماد إدارة الإداريين — ميثاق الفريق" },
   { hijri: "1 – 10 جمادى الآخرة", title: "انتخاب رؤساء التكتلات", detail: "تعلن الإدارة عدد التكتلات وشروط الترشح، ويصوّت رؤساء المجموعات، وينشئ المنتخبون تكتلاتهم (500 $) ويختارون معاونيهم" },
   { hijri: "11 – 25 جمادى الآخرة", title: "انضمام المجموعات إلى التكتلات", detail: "تطلب المجموعة، ويقرر رئيس التكتل بحسب سعته، ويوقّعان العقد — لا إجبار" },
   { hijri: "2 – 25 شعبان", title: "مرحلة التفويج: تسجيل الحجاج في المجموعات", detail: "يختار الحاج المجموعة من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد" },
@@ -404,8 +404,12 @@ export function adminName(id: string) {
   return p ? fullName(p) : id;
 }
 
-export function logAdmin(id: string, action: string, target?: string, detail?: string) {
-  actions.logEvent({ actor: adminName(id), role: ADMIN_ROLE, action, target, detail });
+/**
+ * `file`: what the administrators' file («إدارة الإداريين») keeps of it — the tab it belongs to, and the
+ * record it is part of (a group's number, a cluster's id; his own file by default)
+ */
+export function logAdmin(id: string, action: string, target?: string, detail?: string, file?: { area: string; ref?: string }) {
+  actions.logEvent({ actor: adminName(id), role: ADMIN_ROLE, action, target, detail, ...(file && { system: "admins", area: file.area, ref: file.ref ?? id }) });
 }
 
 /** Written + oral → final, judged by the season's exam rules (useExamRules) as the administration left them */
@@ -433,7 +437,7 @@ export function resultOf(p: AdminProfile | undefined, rules: ExamNumbers) {
 export type StepState = "done" | "current" | "locked";
 export type JourneyStep = { key: string; title: string; date: string; href: string; detail: string; state: StepState };
 
-/** `written`: his role's sitting and paper this season (useMyHall, useBlueprints) */
+/** `written`: his exam's sitting and paper this season (useMyHall) */
 export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinCount = 0, written?: { date: string; questions: number; minutes: number; center?: string }): JourneyStep[] {
   const r = resultOf(p, rules);
   const g = p?.group;
@@ -451,7 +455,7 @@ export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinC
     teamMember
       ? { key: "team", title: "الانضمام إلى فريق مجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: g ? `المجموعة ${g.number}` : "بدعوة فردية من رئيس المجموعة توافق عليها", done: !!g?.feePaidAt }
       : { key: "group", title: p?.cluster ? "مجموعات تكتلي" : "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: p?.cluster ? `يدير مجموعات ${p.cluster.name}، منها مجموعته ${g?.number}` : g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق ورسم 200 $", done: !!g?.feePaidAt },
-    { key: "approval", title: "اعتماد مدير المكتب", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "مراجعة ماهر ثم اعتماد مازن", done: !!g?.approvedAt },
+    { key: "approval", title: "اعتماد إدارة الإداريين", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "يقرر فيه صاحب صلاحية «إدارة الإداريين»", done: !!g?.approvedAt },
     { key: "contracts", title: "ميثاق الفريق", date: "جمادى الآخرة", href: "/administrator/group", detail: g?.contractSignedAt ? "موقّع ومصادق عليه" : "المعاون والموجّه والمنسق", done: !!g?.contractSignedAt },
     { key: "election", title: "انتخاب رؤساء التكتلات", date: SEASON.administrators.clusters.window, href: "/administrator/cluster", detail: p?.cluster ? `انتُخبت رئيساً — ${p.cluster.name}` : p?.vote ? "صوّتَ" : p?.candidate ? "مرشح" : `${SEASON.administrators.clusters.count} تكتلات — يصوّت رؤساء المجموعات`, done: !!p?.vote || !!p?.cluster, headOnly: true },
     { key: "cluster", title: "الانضمام إلى تكتل", date: "بعد الانتخاب", href: "/administrator/cluster", detail: g?.clusterId ? "بعقد موقّع مع التكتل" : p?.clusterRequest?.status === "pending" ? "طلبك عند رئيس التكتل" : "تطلب، ويقرر رئيس التكتل، وتوقّعان العقد", done: !!g?.clusterId, headOnly: true },
@@ -546,8 +550,8 @@ export function demoAdminLogin(
       oral: keep
         ? undefined
         : tech
-          ? { score: 88, by: "ماهر عيسى", at: now - 40 * min, note: "متمكّن من التطبيق وشرحه لكبار السن" }
-          : { score: 84, by: "ماهر عيسى", at: now - 40 * min, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
+          ? { score: 88, by: "منير السيد", at: now - 40 * min, note: "متمكّن من التطبيق وشرحه لكبار السن" }
+          : { score: 84, by: "منير السيد", at: now - 40 * min, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
       resultPublishedAt: keep ? undefined : now - 35 * min,
       group: {
         number: demoGroupNumber(id),

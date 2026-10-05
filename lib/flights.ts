@@ -130,6 +130,8 @@ export type FlightsState = {
   manifests?: Manifest[];
   /** Travellers who go by other means, so they leave the "no flight" lists (and may take a return without an outbound) */
   otherMeans?: Record<string, { reason: string; at: number; by: string }>;
+  /** Airport id -> the staff account the owner made its representative (an empty string takes the default away) */
+  reps?: Record<string, string>;
 };
 
 /** Anyone who can take a seat: a pilgrim from a family, a member of the group's team, or an employee */
@@ -435,6 +437,20 @@ export const useGroupLegs = () => useStore((s) => s.flights.groups) ?? groupLegs
 export const useManifests = () => useStore((s) => s.flights.manifests) ?? EMPTY_MANIFESTS;
 export const useOtherMeans = () => useStore((s) => s.flights.otherMeans) ?? EMPTY_OTHER;
 
+/**
+ * Each airport's representative: an employee the flights system's owner assigns, who records the take-offs
+ * from his airport (who boarded, who did not) and the landings at it. Like a hall supervisor, the
+ * assignment gives him that page and nothing else.
+ */
+export const DEFAULT_REPS: Record<string, string> = { "ap-dam": "omar" };
+export function useAirportReps() {
+  const stored = useStore((s) => s.flights.reps);
+  return useMemo(() => {
+    const reps: Record<string, string> = { ...DEFAULT_REPS, ...stored };
+    return { reps, airportsOf: (staffId: string) => Object.keys(reps).filter((a) => reps[a] === staffId) };
+  }, [stored]);
+}
+
 /** Everything a flights page needs, memoised as one object */
 export function useFlightsData() {
   const airports = useAirports();
@@ -457,6 +473,7 @@ function current(s: { flights: FlightsState }) {
     groups: s.flights.groups ?? groupLegsSeed(),
     manifests: s.flights.manifests ?? [],
     otherMeans: s.flights.otherMeans ?? {},
+    reps: s.flights.reps ?? {},
   };
 }
 
@@ -592,8 +609,11 @@ export type Result = { ok: true } | { ok: false; error: string };
 const fail = (error: string): Result => ({ ok: false, error });
 const OK: Result = { ok: true };
 
-function log(actor: Actor, action: string, target?: string, detail?: string, extra?: { before?: string; after?: string }) {
-  later(() => actions.logEvent({ actor: actor.name, role: actor.role, action, target, detail, ...extra }));
+/** Where an event shows: the management tab it belongs to, the flight it concerns, and whether the director sees it */
+type Meta = { area: "flights" | "dispatch"; ref?: string; important?: boolean };
+
+function log(actor: Actor, action: string, target: string | undefined, detail: string | undefined, extra: { before?: string; after?: string } | undefined, meta: Meta) {
+  later(() => actions.logEvent({ actor: actor.name, role: actor.role, action, target, detail, ...extra, system: "flights", ...meta }));
 }
 
 const groupLabel = (g: { clusterId: string; groupNumber: number }) => `المجموعة ${g.groupNumber} (${clusterName(g.clusterId)})`;
@@ -654,13 +674,14 @@ export const flightsActions = {
     const out = returnLeg ? { ...f, pairedFlightId: returnLeg.id } : f;
     const back = returnLeg ? { ...returnLeg, pairedFlightId: f.id } : undefined;
     patch((d) => ({ flights: back ? upsert(upsert(d.flights, out), back) : upsert(d.flights, out) }));
-    if (before) log(actor, "تعديل رحلة", f.flightNo, undefined, { before: `${isoDate(before.departAt)} ${isoTime(before.departAt)} — ${before.capacity}`, after: `${isoDate(f.departAt)} ${isoTime(f.departAt)} — ${f.capacity}` });
-    else if (back) log(actor, "إنشاء رحلة ذهاب وعودة", `${f.flightNo} / ${back.flightNo}`, `${f.capacity} مقعداً ذهاباً و${back.capacity} عودة`);
-    else log(actor, "إنشاء رحلة", f.flightNo, `${DIRECTION_LABEL[f.direction]} — ${f.capacity} مقعداً`);
+    // a published flight changed reaches the director; a draft is the officer's own work
+    if (before) log(actor, "تعديل رحلة", f.flightNo, undefined, { before: `${isoDate(before.departAt)} ${isoTime(before.departAt)} — ${before.capacity}`, after: `${isoDate(f.departAt)} ${isoTime(f.departAt)} — ${f.capacity}` }, { area: "flights", ref: f.id, important: before.status !== "draft" });
+    else if (back) log(actor, "إنشاء رحلة ذهاب وعودة", `${f.flightNo} / ${back.flightNo}`, `${f.capacity} مقعداً ذهاباً و${back.capacity} عودة`, undefined, { area: "flights", ref: f.id });
+    else log(actor, "إنشاء رحلة", f.flightNo, `${DIRECTION_LABEL[f.direction]} — ${f.capacity} مقعداً`, undefined, { area: "flights", ref: f.id });
   },
   deleteDraft(id: string, actor: Actor) {
     patch((d) => ({ flights: d.flights.filter((f) => f.id !== id || f.status !== "draft").map((f) => (f.pairedFlightId === id ? { ...f, pairedFlightId: undefined } : f)) }));
-    log(actor, "حذف مسودة رحلة", id);
+    log(actor, "حذف مسودة رحلة", id, undefined, undefined, { area: "flights", ref: id });
   },
 
   publish(id: string, actor: Actor): Result {
@@ -671,7 +692,7 @@ export const flightsActions = {
       // a round trip is published whole: its other half goes out with it if it is still a draft
       const pair = d.flights.find((x) => x.id === f.pairedFlightId && x.status === "draft");
       const now = Date.now();
-      log(actor, pair ? "نشر رحلة ذهاب وعودة" : "نشر رحلة", pair ? `${f.flightNo} / ${pair.flightNo}` : f.flightNo, `${f.capacity} مقعداً`);
+      log(actor, pair ? "نشر رحلة ذهاب وعودة" : "نشر رحلة", pair ? `${f.flightNo} / ${pair.flightNo}` : f.flightNo, `${f.capacity} مقعداً`, undefined, { area: "flights", ref: f.id, important: true });
       const flights = upsert(d.flights, { ...f, status: "published", publishedAt: now });
       return { flights: pair ? upsert(flights, { ...pair, status: "published", publishedAt: now }) : flights };
     });
@@ -687,7 +708,7 @@ export const flightsActions = {
       const version = (f.manifestVersion ?? 0) + 1;
       const rows = manifestRows(f, d.assignments);
       const manifest: Manifest = { id: `mf-${f.id}-${version}`, flightId: f.id, version, issuedAt: Date.now(), issuedBy: actor.name, rows, exports: [] };
-      log(actor, "إقفال رحلة وإصدار كشف الركاب", f.flightNo, `${rows.length} مسافراً — الإصدار ${version}`);
+      log(actor, "إقفال رحلة وإصدار كشف الركاب", f.flightNo, `${rows.length} مسافراً — الإصدار ${version}`, undefined, { area: "flights", ref: f.id });
       return {
         flights: upsert(d.flights, { ...f, status: "locked", lockedAt: Date.now(), manifestVersion: version }),
         assignments: d.assignments.map((a) => (a.flightId === id && a.status === "assigned" ? { ...a, status: "locked" } : a)),
@@ -703,7 +724,7 @@ export const flightsActions = {
       if (!f || f.status !== "locked") return {};
       const version = (f.manifestVersion ?? 0) + 1;
       const rows = manifestRows(f, d.assignments);
-      log(actor, "إصدار كشف ركاب جديد", f.flightNo, `الإصدار ${version} — ${rows.length} مسافراً`);
+      log(actor, "إصدار كشف ركاب جديد", f.flightNo, `الإصدار ${version} — ${rows.length} مسافراً`, undefined, { area: "flights", ref: f.id });
       return { flights: upsert(d.flights, { ...f, manifestVersion: version }), manifests: [...d.manifests, { id: `mf-${f.id}-${version}`, flightId: f.id, version, issuedAt: Date.now(), issuedBy: actor.name, rows, exports: [] }] };
     });
   },
@@ -713,7 +734,7 @@ export const flightsActions = {
       const m = d.manifests.find((x) => x.id === manifestId);
       if (!m) return {};
       const f = d.flights.find((x) => x.id === m.flightId);
-      log(actor, to === "masar" ? "تصدير كشف الركاب إلى نسك مسار" : "تصدير كشف الركاب إلى الناقل", f?.flightNo, `الإصدار ${m.version} — ${m.rows.length} مسافراً`);
+      log(actor, to === "masar" ? "تصدير كشف الركاب إلى نسك مسار" : "تصدير كشف الركاب إلى الناقل", f?.flightNo, `الإصدار ${m.version} — ${m.rows.length} مسافراً`, undefined, { area: "flights", ref: m.flightId });
       return { manifests: upsert(d.manifests, { ...m, exports: [...m.exports, { to, at: Date.now(), by: actor.name }] }) };
     });
   },
@@ -727,7 +748,7 @@ export const flightsActions = {
       const mine = d.assignments.filter((a) => a.flightId === id && isActive(a));
       const boarded = new Set(boardedIds ?? mine.map((a) => a.travelerId));
       const noShow = mine.filter((a) => !boarded.has(a.travelerId));
-      log(actor, "تسجيل إقلاع", f.flightNo, `صعد ${mine.length - noShow.length}${noShow.length ? ` — تخلّف ${noShow.length}: ${noShow.map((a) => a.name).join("، ")}` : ""}`);
+      log(actor, "تسجيل إقلاع", f.flightNo, `صعد ${mine.length - noShow.length}${noShow.length ? ` — تخلّف ${noShow.length}: ${noShow.map((a) => a.name).join("، ")}` : ""}`, undefined, { area: "flights", ref: f.id, important: true });
       for (const a of noShow) later(() => actions.addTicket({ name: a.name, kind: "transport", severity: "high", location: `الرحلة ${f.flightNo}`, text: `تخلّف ${a.name} عن الرحلة ${f.flightNo}. يحتاج إعادة إسناد إلى رحلة أخرى.`, assignee: "فريق المواصلات — هيثم زيدان" }));
       return {
         flights: upsert(d.flights, { ...f, status: "departed", departedAt: Date.now() }),
@@ -742,7 +763,7 @@ export const flightsActions = {
     patch((d) => {
       const f = d.flights.find((x) => x.id === id);
       if (!f || f.status !== "departed") return (r = fail("يُسجَّل الهبوط للرحلة التي أقلعت فقط")), {};
-      log(actor, "تسجيل هبوط", f.flightNo, airportOf(d, f.divertedToId ?? f.toId)?.name);
+      log(actor, "تسجيل هبوط", f.flightNo, airportOf(d, f.divertedToId ?? f.toId)?.name, undefined, { area: "flights", ref: f.id, important: true });
       return { flights: upsert(d.flights, { ...f, status: "arrived", arrivedAt: Date.now() }), assignments: d.assignments.map((a) => (a.flightId === id && a.status === "boarded" ? { ...a, status: "arrived" } : a)) };
     });
     return r;
@@ -756,7 +777,7 @@ export const flightsActions = {
       const set = new Set(travelerIds);
       const hit = (a: FlightAssignment) => a.flightId === flightId && set.has(a.travelerId) && (a.status === "assigned" || a.status === "locked");
       const n = d.assignments.filter(hit).length;
-      if (n) log(actor, "تسجيل صعود من التجمّع", f.flightNo, `${n} مسافراً`);
+      if (n) log(actor, "تسجيل صعود من التجمّع", f.flightNo, `${n} مسافراً`, undefined, { area: "flights", ref: f.id });
       return { assignments: d.assignments.map((a) => (hit(a) ? { ...a, status: "boarded", boardedAt: Date.now() } : a)) };
     });
   },
@@ -767,7 +788,7 @@ export const flightsActions = {
       const f = d.flights.find((x) => x.id === id);
       if (!f || !["published", "full", "locked"].includes(f.status)) return (r = fail("تُؤجَّل الرحلة المنشورة أو المقفلة فقط")), {};
       const n = d.assignments.filter((a) => a.flightId === id && isActive(a)).length;
-      log(actor, "تأجيل رحلة", f.flightNo, `${reason} — ${n} مسافراً سيُبلَّغون بالموعد الجديد`);
+      log(actor, "تأجيل رحلة", f.flightNo, `${reason} — ${n} مسافراً سيُبلَّغون بالموعد الجديد`, undefined, { area: "flights", ref: f.id, important: true });
       return { flights: upsert(d.flights, { ...f, status: "postponed", beforePostpone: f.status, postponedAt: Date.now(), postponeReason: reason }) };
     });
     return r;
@@ -779,7 +800,7 @@ export const flightsActions = {
       const f = d.flights.find((x) => x.id === id);
       if (!f || ["departed", "arrived", "cancelled"].includes(f.status)) return (r = fail("لا يُعاد جدولة رحلة أقلعت أو أُلغيت")), {};
       const n = d.assignments.filter((a) => a.flightId === id && isActive(a)).length;
-      log(actor, "موعد جديد للرحلة", f.flightNo, `${n} مسافراً يُبلَّغون`, { before: `${isoDate(f.departAt)} ${isoTime(f.departAt)}`, after: `${isoDate(departAt)} ${isoTime(departAt)}` });
+      log(actor, "موعد جديد للرحلة", f.flightNo, `${n} مسافراً يُبلَّغون`, { before: `${isoDate(f.departAt)} ${isoTime(f.departAt)}`, after: `${isoDate(departAt)} ${isoTime(departAt)}` }, { area: "flights", ref: f.id, important: true });
       const status: FlightStatus = f.status === "postponed" ? (f.beforePostpone ?? "published") : f.status;
       return { flights: upsert(d.flights, { ...f, departAt, arriveAt, status, beforePostpone: undefined, postponeReason: undefined }) };
     });
@@ -795,7 +816,7 @@ export const flightsActions = {
       const dest = airportOf(d, f.toId);
       const n = d.assignments.filter((a) => a.flightId === id && isActive(a)).length;
       const leg: GroundLeg = { kind: "bus", from: alt?.city ?? "?", to: dest?.city ?? "?", buses, note, at: f.arriveAt + 2 * HOUR };
-      log(actor, "تحويل وجهة رحلة", f.flightNo, `إلى ${alt?.name} ثم ${buses} حافلات إلى ${dest?.city} — ${n} مسافراً يُبلَّغون`, { before: dest?.code, after: alt?.code });
+      log(actor, "تحويل وجهة رحلة", f.flightNo, `إلى ${alt?.name} ثم ${buses} حافلات إلى ${dest?.city} — ${n} مسافراً يُبلَّغون`, { before: dest?.code, after: alt?.code }, { area: "flights", ref: f.id, important: true });
       later(() => actions.addTicket({ name: `الرحلة ${f.flightNo}`, kind: "transport", severity: "critical", location: alt?.name ?? "", text: `حُوّلت الرحلة ${f.flightNo} إلى ${alt?.name}. مطلوب ${buses} حافلات (35 – 40 راكباً) إلى ${dest?.city}. ${note}`.trim(), assignee: "فريق المواصلات — هيثم زيدان" }));
       return { flights: upsert(d.flights, { ...f, divertedToId: toAirportId, groundLegs: [...f.groundLegs, leg] }) };
     });
@@ -808,7 +829,7 @@ export const flightsActions = {
       const f = d.flights.find((x) => x.id === id);
       if (!f || ["departed", "arrived", "cancelled"].includes(f.status)) return (r = fail("لا تُلغى رحلة أقلعت")), {};
       const n = d.assignments.filter((a) => a.flightId === id && isActive(a)).length;
-      log(actor, "إلغاء رحلة", f.flightNo, `${reason} — ${n} مسافراً صاروا بحاجة إلى رحلة`);
+      log(actor, "إلغاء رحلة", f.flightNo, `${reason} — ${n} مسافراً صاروا بحاجة إلى رحلة`, undefined, { area: "flights", ref: f.id, important: true });
       return {
         flights: upsert(d.flights, { ...f, status: "cancelled", cancelledAt: Date.now(), cancelReason: reason }),
         assignments: d.assignments.map((a) => (a.flightId === id && isActive(a) ? { ...a, status: "cancelled", cancelledAt: Date.now(), reason: `إلغاء الرحلة: ${reason}` } : a)),
@@ -836,7 +857,7 @@ export const flightsActions = {
       if ("error" in res) return (r = fail(res.error)), {};
       const now = Date.now();
       const legs: GroupLeg[] = groups.map((g, i) => ({ id: newFlightId("gl"), flightId, clusterId: g.ref.clusterId, groupNumber: g.ref.number, by: actor.name, at: now + i, active: true }));
-      log(actor, `إسناد ${groups.length === 1 ? "مجموعة" : `${groups.length} مجموعات`} إلى رحلة`, f.flightNo, `${groups.map((g) => groupLabel({ clusterId: g.ref.clusterId, groupNumber: g.ref.number })).join("، ")} — ${members.length} مسافراً — المتبقي ${seatStats(res.flight, res.assignments).remaining}${reason ? ` — ${reason}` : ""}`);
+      log(actor, `إسناد ${groups.length === 1 ? "مجموعة" : `${groups.length} مجموعات`} إلى رحلة`, f.flightNo, `${groups.map((g) => groupLabel({ clusterId: g.ref.clusterId, groupNumber: g.ref.number })).join("، ")} — ${members.length} مسافراً — المتبقي ${seatStats(res.flight, res.assignments).remaining}${reason ? ` — ${reason}` : ""}`, undefined, { area: "dispatch", ref: f.id });
       return { flights: res.flights, assignments: res.assignments, groups: [...d.groups, ...legs] };
     });
     return r;
@@ -854,7 +875,7 @@ export const flightsActions = {
       const hit = (a: FlightAssignment) => a.flightId === leg.flightId && a.clusterId === leg.clusterId && a.groupNumber === leg.groupNumber && isActive(a);
       const n = d.assignments.filter(hit).length;
       const assignments = d.assignments.map((a) => (hit(a) ? { ...a, status: "cancelled" as const, cancelledAt: now, reason: `إزالة المجموعة من الرحلة${reason ? ` — ${reason}` : ""}` } : a));
-      log(actor, "إزالة مجموعة من رحلة", f.flightNo, `${groupLabel(leg)} — ${n} مقعداً عادت متاحة${reason ? ` — ${reason}` : ""}`);
+      log(actor, "إزالة مجموعة من رحلة", f.flightNo, `${groupLabel(leg)} — ${n} مقعداً عادت متاحة${reason ? ` — ${reason}` : ""}`, undefined, { area: "dispatch", ref: f.id });
       return { flights: upsert(d.flights, refreshFull(f, assignments)), assignments, groups: d.groups.map((g) => (g.id === legId ? { ...g, active: false, endedAt: now, endReason: reason ?? "إزالة من مسؤول الطيران" } : g)) };
     });
     return r;
@@ -868,7 +889,7 @@ export const flightsActions = {
       if ("error" in res) return (r = fail(res.error)), {};
       const nStaff = travelers.filter((t) => t.kind === "employee").length;
       const nPil = travelers.length - nStaff;
-      log(actor, `إسناد ${nPil ? `${nPil} ${nPil === 1 ? "مسافر" : "مسافرين"}` : ""}${nStaff ? `${nPil ? " و" : ""}${nStaff} ${nStaff === 1 ? "موظف" : "موظفين"}` : ""} إلى رحلة`, res.flight.flightNo, `المتبقي ${seatStats(res.flight, res.assignments).remaining}${reason ? ` — ${reason}` : ""}`);
+      log(actor, `إسناد ${nPil ? `${nPil} ${nPil === 1 ? "مسافر" : "مسافرين"}` : ""}${nStaff ? `${nPil ? " و" : ""}${nStaff} ${nStaff === 1 ? "موظف" : "موظفين"}` : ""} إلى رحلة`, res.flight.flightNo, `المتبقي ${seatStats(res.flight, res.assignments).remaining}${reason ? ` — ${reason}` : ""}`, undefined, { area: "dispatch", ref: res.flight.id });
       return { flights: res.flights, assignments: res.assignments };
     });
     return r;
@@ -884,7 +905,7 @@ export const flightsActions = {
       if (!isOpenForAssignment(f) && !reason) return (r = fail("الرحلة مقفلة: الإلغاء يحتاج سبباً")), {};
       const now = Date.now();
       const assignments = d.assignments.map((a) => (ids.includes(a.id) && isActive(a) ? { ...a, status: "cancelled" as const, cancelledAt: now, reason } : a));
-      log(actor, `إلغاء إسناد ${targets.length} ${targets.length === 1 ? "مسافر" : "مسافرين"}`, f.flightNo, `${targets.slice(0, 3).map((a) => a.name).join("، ")}${targets.length > 3 ? "…" : ""}${reason ? ` — ${reason}` : ""}`);
+      log(actor, `إلغاء إسناد ${targets.length} ${targets.length === 1 ? "مسافر" : "مسافرين"}`, f.flightNo, `${targets.slice(0, 3).map((a) => a.name).join("، ")}${targets.length > 3 ? "…" : ""}${reason ? ` — ${reason}` : ""}`, undefined, { area: "dispatch", ref: f.id });
       return { flights: upsert(d.flights, refreshFull(f, assignments)), assignments };
     });
     return r;
@@ -906,15 +927,20 @@ export const flightsActions = {
       if ("error" in res) return (r = fail(res.error)), {};
       const byTraveler = new Map(res.added.map((a) => [a.travelerId, a.id]));
       const assignments = res.assignments.map((a) => (ids.includes(a.id) && a.status === "moved" ? { ...a, movedTo: byTraveler.get(a.travelerId) } : a));
-      log(actor, `نقل ${targets.length} ${targets.length === 1 ? "مسافر" : "مسافرين"} إلى رحلة أخرى`, from.flightNo, `إلى ${to.flightNo}${reason ? ` — ${reason}` : ""}`);
+      log(actor, `نقل ${targets.length} ${targets.length === 1 ? "مسافر" : "مسافرين"} إلى رحلة أخرى`, from.flightNo, `إلى ${to.flightNo}${reason ? ` — ${reason}` : ""}`, undefined, { area: "dispatch", ref: from.id });
       return { flights: upsert(res.flights, refreshFull(from, assignments)), assignments };
     });
     return r;
   },
 
+  /** An airport's representative, or none ("") */
+  setRep(airportId: string, staffId: string) {
+    patch((d) => ({ reps: { ...d.reps, [airportId]: staffId } }));
+  },
+
   setOtherMeans(travelerId: string, name: string, reason: string, actor: Actor) {
     patch((d) => {
-      log(actor, "سفر بوسيلة أخرى", name, reason);
+      log(actor, "سفر بوسيلة أخرى", name, reason, undefined, { area: "dispatch", ref: travelerId });
       return { otherMeans: { ...d.otherMeans, [travelerId]: { reason, at: Date.now(), by: actor.name } } };
     });
   },
@@ -950,7 +976,7 @@ export function syncFamily(sid: string, app: Application, post: Pick<PostAccepta
       if ("error" in res) continue;
       flights = res.flights;
       assignments = res.assignments;
-      log(actor, `انضمام عائلة إلى رحلة مجموعتها`, f.flightNo, `${travelers.length} أفراد — ${groupLabel({ clusterId, groupNumber })}`);
+      log(actor, `انضمام عائلة إلى رحلة مجموعتها`, f.flightNo, `${travelers.length} أفراد — ${groupLabel({ clusterId, groupNumber })}`, undefined, { area: "dispatch", ref: f.id });
     }
     return { flights, assignments };
   });

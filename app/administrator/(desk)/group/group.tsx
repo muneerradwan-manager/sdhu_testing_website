@@ -106,7 +106,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const submit = () => {
     const picked = TEAM_ROLES.map((r) => ({ roleKey: r.key, role: r.label, name: team[r.key]!.candidate.name, id: team[r.key]!.candidate.id }));
     actions.upsertAdmin(admin.id, { group: { number: form.number, capacity: form.capacity, requestedAt: Date.now(), team: picked } });
-    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, `«${form.name}»`, `السعة ${form.capacity} — الفريق بدعوات فردية: ${teamNames(team).join("، ")} — دون تكتل حتى انتخاب رؤساء التكتلات`);
+    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, `«${form.name}»`, `السعة ${form.capacity} — الفريق بدعوات فردية: ${teamNames(team).join("، ")} — دون تكتل حتى انتخاب رؤساء التكتلات`, { area: "groups", ref: String(form.number) });
     toast({ title: "أُرسل طلب التشكيل", body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
   };
 
@@ -118,7 +118,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
       const g = admin.profile!.group!;
       const receipt = adminReceipt(admin.id, "G", g.number);
       actions.upsertAdmin(admin.id, { group: { ...g, feePaidAt: Date.now() } });
-      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — المجموعة ${g.number} — ${payMethodLabel(m)}`);
+      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — المجموعة ${g.number} — ${payMethodLabel(m)}`, { area: "groups", ref: String(g.number) });
       setPaying(false);
     }, 2200);
   };
@@ -231,7 +231,9 @@ function Pending() {
   const toast = useToast();
   const g = admin.profile!.group!;
   const [now, setNow] = useState(() => Date.now());
-  const elapsed = now - (g.feePaidAt ?? now);
+  // From the last time it was sent: paying the fee, or sending it again after the administration returned it
+  const sent = Math.max(g.feePaidAt ?? now, g.requestedAt);
+  const elapsed = now - sent;
   const left = Math.max(0, Math.ceil((AUTO_APPROVE_MS - elapsed) / 1000));
 
   useEffect(() => {
@@ -240,23 +242,30 @@ function Pending() {
   }, []);
 
   useEffect(() => {
-    if (g.approvedAt || !g.feePaidAt) return;
-    const wait = Math.max(0, g.feePaidAt + AUTO_APPROVE_MS - Date.now());
+    if (g.approvedAt || !g.feePaidAt || g.returned) return;
+    const wait = Math.max(0, Math.max(g.feePaidAt, g.requestedAt) + AUTO_APPROVE_MS - Date.now());
     const t = setTimeout(() => {
       const at = Date.now();
       actions.upsertAdmin(admin.id, { group: { ...g, approvedAt: at, approvedBy: "مازن الحلبي (محاكاة)" } });
-      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: `اعتماد المجموعة ${g.number}`, target: `رئيس المجموعة: ${admin.name}`, detail: "بعد مراجعة ماهر عيسى" });
+      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: "اعتماد مجموعة", target: `المجموعة ${g.number}`, after: `رئيسها ${admin.name}`, detail: "شروطها مكتملة: الرئيس مؤهل، والرسم مسدد، والفريق مكتمل", system: "admins", area: "groups", ref: String(g.number) });
       logAdmin(admin.id, `استلام اعتماد المجموعة ${g.number}`, undefined, "ميثاق الفريق جاهز للتوقيع في خزنة الوثائق");
       toast({ title: `اعتُمدت المجموعة ${g.number}`, body: "لموسم 1448. وقّع ميثاق الفريق، وبعد انتخاب رؤساء التكتلات تختار تكتلك.", icon: "🏛️", tone: "success" });
     }, wait);
     return () => clearTimeout(t);
   }, [g, admin.id, admin.name, toast]);
 
+  /** Sent back by the administration: he sends it again, and it waits for its decision once more */
+  const resend = () => {
+    actions.upsertAdmin(admin.id, { group: { ...g, returned: undefined, requestedAt: Date.now() } });
+    logAdmin(admin.id, `إعادة إرسال طلب تشكيل المجموعة ${g.number}`, undefined, `بعد ملاحظة ${g.returned?.by}: ${g.returned?.note}`, { area: "groups", ref: String(g.number) });
+    toast({ title: "أُعيد إرسال طلبك", body: "يعود إلى شؤون الإداريين لتقرر فيه.", icon: "📨", tone: "info" });
+  };
+
   const steps = [
     { t: "استلام طلب التشكيل والرسم", d: adminReceipt(admin.id, "G", g.number), at: 0 },
     { t: "موافقة أعضاء الفريق", d: "3 من 3 وافقوا من تطبيقاتهم", at: 0 },
-    { t: "مراجعة شؤون الإداريين — ماهر عيسى", d: "اكتمال الفريق، وصفات أعضائه، والرسوم", at: 6000 },
-    { t: "اعتماد مدير المكتب — مازن الحلبي", d: "الاعتماد النهائي والتوقيع بالنيابة عن الإدارة", at: AUTO_APPROVE_MS },
+    { t: "تحقق المنصة من شروط الطلب", d: "اكتمال الفريق، وصفات أعضائه، والرسوم", at: 6000 },
+    { t: "قرار إدارة الإداريين", d: "يعتمد صاحب صلاحية «إدارة الإداريين» الطلب، أو يعيده إليك مع ملاحظة", at: AUTO_APPROVE_MS },
   ];
 
   return (
@@ -286,14 +295,25 @@ function Pending() {
         </ol>
       </Card>
       <div className="space-y-4">
-        <div className="rounded-[2rem] border-2 border-dashed border-maroon/30 bg-white p-6 text-center">
-          <p className="text-sm text-ink-soft">يمكن اعتماد الطلب من لوحة الموظفين (مدير المكتب — مازن الحلبي).</p>
-          <Link href="/staff" className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-green-dark underline">لوحة الموظفين <ArrowLeft className="size-4" /></Link>
-          <div className="mx-auto mt-5 grid size-24 place-items-center rounded-full bg-maroon/8">
-            <span className="font-display text-4xl font-bold tabular-nums text-maroon">{left}</span>
+        {g.returned ? (
+          <div className="rounded-[2rem] border-2 border-maroon/40 bg-white p-6">
+            <p className="font-display text-xl font-bold text-maroon">أُعيد طلبك إليك</p>
+            <p className="mt-1 text-xs text-hint">{g.returned.by} — شؤون الإداريين</p>
+            <p className="mt-3 rounded-2xl bg-maroon/8 p-3 text-sm leading-7 text-ink">{g.returned.note}</p>
+            <Button variant="maroon" className="mt-4 w-full" onClick={resend}>
+              أصلحتُ ما طُلب — أعد إرسال الطلب
+            </Button>
           </div>
-          <p className="mt-3 text-xs font-bold text-maroon">محاكاة: اعتماد تلقائي بعد {left} ثانية إن لم يُعتمد من لوحة الموظفين</p>
-        </div>
+        ) : (
+          <div className="rounded-[2rem] border-2 border-dashed border-maroon/30 bg-white p-6 text-center">
+            <p className="text-sm text-ink-soft">يعتمد الطلبَ صاحبُ صلاحية «إدارة الإداريين» من بوابة الموظفين.</p>
+            <Link href="/staff" className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-green-dark underline">لوحة الموظفين <ArrowLeft className="size-4" /></Link>
+            <div className="mx-auto mt-5 grid size-24 place-items-center rounded-full bg-maroon/8">
+              <span className="font-display text-4xl font-bold tabular-nums text-maroon">{left}</span>
+            </div>
+            <p className="mt-3 text-xs font-bold text-maroon">محاكاة: اعتماد تلقائي بعد {left} ثانية إن لم يُعتمد من لوحة الموظفين</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -392,7 +412,7 @@ function ContractDoc({ kind, signature, signedName }: { kind: "cluster" | "team"
   const clauses =
     kind === "cluster"
       ? [
-          `تنضم المجموعة ${g.number} بسعة لا تتجاوز ${g.capacity} حاجاً إلى ${cName} لموسم 1448هـ، وتلتزم ببرنامجه المعتمد من لجنة الإعلانات ومدير المكتب.`,
+          `تنضم المجموعة ${g.number} بسعة لا تتجاوز ${g.capacity} حاجاً إلى ${cName} لموسم 1448هـ، وتلتزم ببرنامجه المعتمد من إدارة الإداريين.`,
           "يلتزم رئيس المجموعة بتعليمات رئيس التكتل في النقل والإسكان والمشاعر، وبمسارات وأوقات الرمي المحددة للتكتل.",
           "يُحاسَب التكتل والمجموعة بنظام الأسهم المعتمد من حصيلة الإيصالات الصادرة خلال الموسم.",
           "تُقيَّم المجموعة ككيان في المراحل التسع لبرنامج التقييم الإلكتروني، ويعبّئ التكتل تقييماً ذاتياً للمقارنة.",
@@ -433,7 +453,7 @@ function ContractDoc({ kind, signature, signedName }: { kind: "cluster" | "team"
         </div>
         <h3 className="mt-6 text-center font-display text-2xl font-bold text-maroon">{title}</h3>
         <p className="mt-4 text-sm leading-8 text-ink-soft">
-          حُرّر هذا العقد إلكترونياً على المنصة الوطنية للحج بين الأطراف المذكورة أدناه، بعد اعتماد المجموعة {g.number} من مدير المكتب، واتفقوا على ما يلي:
+          حُرّر هذا العقد إلكترونياً على المنصة الوطنية للحج بين الأطراف المذكورة أدناه، بعد اعتماد المجموعة {g.number} من إدارة الإداريين، واتفقوا على ما يلي:
         </p>
         <ol className="mt-4 space-y-3">
           {clauses.map((c, i) => (
@@ -487,7 +507,7 @@ function Contracts() {
     setSigned(signature);
     setTimeout(() => {
       actions.upsertAdmin(admin.id, { group: { ...g, contractSignedAt: Date.now() } });
-      logAdmin(admin.id, `توقيع ميثاق فريق المجموعة ${g.number}`, teamOf(g).map((t) => t.name).join("، "), "توقيع إلكتروني");
+      logAdmin(admin.id, `توقيع ميثاق فريق المجموعة ${g.number}`, teamOf(g).map((t) => t.name).join("، "), "توقيع إلكتروني", { area: "groups", ref: String(g.number) });
       toast({ title: "وُقّع ميثاق الفريق وصودق عليه", body: "تغيّرت صلاحياتك تلقائياً: مجموعتك، حجاجها، الإعلانات، التجمّعات. عقد التكتل يأتي بعد انتخاب رؤساء التكتلات.", icon: "✍️", tone: "success" });
       confetti({ particleCount: 160, spread: 100, origin: { y: 0.45 }, colors: ["#D9C89E", "#AD9E6E", "#00594F", "#672146"] });
     }, 2200);

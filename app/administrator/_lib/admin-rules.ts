@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { DEFAULT_BLUEPRINTS, EXAM_QUESTIONS, EXAM_RULES, type ExamBlueprint, type ExamNumbers, type ExamQuestion } from "@/lib/data/admin-exam";
+import { EXAM_QUESTIONS, EXAM_RULES, type ExamNumbers, type ExamQuestion } from "@/lib/data/admin-exam";
 import { useStore } from "@/lib/store";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
 import { useSeason } from "@/lib/season-live";
@@ -60,12 +60,6 @@ export function useExamBank(): ExamQuestion[] {
   return useMemo(() => all.filter((q) => !off?.includes(q.id)), [all, off]);
 }
 
-/** Each role's exam as the administration built it this season: its duration and its weighted sections */
-export function useBlueprints(): Record<string, ExamBlueprint> {
-  const stored = useStore((s) => s.adminRules.blueprints);
-  return useMemo(() => ({ ...DEFAULT_BLUEPRINTS, ...stored }), [stored]);
-}
-
 /** The roles open for application this season, with the administration's description */
 export function useRoles() {
   const off = useStore((s) => s.adminRules.rolesOff);
@@ -117,7 +111,7 @@ export function useRoleRequirements(): RoleRequirements {
 export const SEASON_VALIDITY = { "first-aid": "firstAidValidSeasons", record: "recordValidSeasons", recommendation: "recommendationValidSeasons" } as const;
 
 /**
- * The documents and certificates this season, as the holder of «قوائم ملف الإداري» left them: the
+ * The documents and certificates this season, as the holder of «إدارة الإداريين» left them: the
  * platform's list (reworded, with its validity, or set aside this season), then the certificates the
  * administration added. `types` is what an application can ask for; `all` includes what was set aside,
  * for the lists page; `validity` is what docState() needs, for every type a file may still hold.

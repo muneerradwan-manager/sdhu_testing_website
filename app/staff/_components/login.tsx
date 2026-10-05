@@ -7,11 +7,13 @@ import { useState } from "react";
 import { AuthShell, DemoAccounts, FormError, PasswordField, UsernameField } from "@/components/portal/auth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { ALL_PERMISSIONS, getStaff, holdsAll, PERMISSION_LABELS, STAFF, STAFF_PASSWORD, type StaffUser } from "@/lib/staff";
+import { getStaff, holdsAll, PERMISSION_LABELS, STAFF_PASSWORD, TASK_PERMISSIONS, type StaffUser } from "@/lib/staff";
 import { useHalls } from "@/app/administrator/_lib/halls";
+import { SYSTEM_KEYS, SYSTEMS, useStaffAccounts } from "@/lib/systems";
+import { useAirportReps, useAirports } from "@/lib/flights";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { sleep } from "@/lib/utils";
-import { logAs } from "./kit";
+import { logAs, staffHome, useStaffHome } from "./kit";
 
 export function StaffLogin() {
   const router = useRouter();
@@ -20,6 +22,17 @@ export function StaffLogin() {
   const sessionId = useStore((s) => s.staffSessionId);
   const current = hydrated ? getStaff(sessionId) : null;
   const halls = useHalls();
+  // Every account with the management permissions the director granted or took back since it was opened
+  const accounts = useStaffAccounts();
+  const reps = useAirportReps();
+  const airports = useAirports();
+  const currentHome = useStaffHome(current);
+  const homeOf = (u: StaffUser) =>
+    staffHome(
+      u,
+      SYSTEM_KEYS.filter((k) => u.permissions.includes(SYSTEMS[k].permission)),
+      { hall: halls.centersOf(u.id).length > 0, airport: reps.airportsOf(u.id).length > 0 },
+    );
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -32,12 +45,12 @@ export function StaffLogin() {
     actions.staffLogin(user.id);
     logAs(user, { action: "تسجيل دخول", target: "بوابة الموظفين" });
     toast({ title: `أهلاً ${user.name.split(" ")[0]}`, body: `دخلت بصفة: ${user.title}`, tone: "success", icon: "🔐" });
-    router.push("/staff/dashboard");
+    router.push(homeOf(user));
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const user = STAFF.find((s) => s.username === username.trim().toLowerCase());
+    const user = accounts.find((s) => s.username === username.trim().toLowerCase());
     if (!user || password !== STAFF_PASSWORD) {
       setError("اسم المستخدم أو كلمة المرور غير صحيحة.");
       return;
@@ -52,7 +65,7 @@ export function StaffLogin() {
       page="login"
       title="دخول الموظفين"
       subtitle="للموظفين الدائمين في الإدارة والبعثات: تظهر لكل موظف الأقسام التي يملك صلاحيتها، وكل إجراء يُسجَّل باسمه. الدخول باسم المستخدم وكلمة المرور."
-      steps={["اسم المستخدم وكلمة المرور", "لوحتي: الأقسام بحسب صلاحياتك"]}
+      steps={["اسم المستخدم وكلمة المرور", "أقسامك بحسب صلاحياتك"]}
       step={busy ? 1 : 0}
       note={
         <>
@@ -63,18 +76,22 @@ export function StaffLogin() {
         <DemoAccounts
           hint={
             <>
-              لكل موظف تجريبي صلاحية واحدة، إلا مديرة الموسم فلها الصلاحيات كلها، ومشرفة القاعة فلا صلاحية لها: قاعتها من إسناد قسم الامتحانات. كلمة المرور للجميع: <b className="font-mono text-green-dark">{STAFF_PASSWORD}</b>. اضغط على بطاقة للدخول مباشرة.
+              لكل موظف تجريبي صلاحية واحدة. صلاحية الإدارة — «إدارة الموظفين»، «إدارة الإداريين»، «إدارة الامتحانات»، «إدارة الطيران» — تفتح لصاحبها الملف كله، وتمنحها مديرة الموسم، ولها كل صلاحيات المهام الأخرى. ومشرفة القاعة ومندوب المطار لا صلاحية لهما: يسندهما في الميدان صاحب صلاحية الإدارة. كلمة المرور للجميع: <b className="font-mono text-green-dark">{STAFF_PASSWORD}</b>. اضغط على بطاقة للدخول مباشرة.
             </>
           }
           groups={[
             {
-              items: STAFF.map((u) => ({
+              items: accounts.map((u) => ({
                 key: u.id,
                 title: u.name,
                 subtitle: u.title + (u.travels ? " — مسافر مع البعثة" : ""),
                 code: u.username,
                 initial: u.initials,
-                tags: [...(holdsAll(u) ? [`كل الصلاحيات (${ALL_PERMISSIONS.length})`] : u.permissions.map((p) => PERMISSION_LABELS[p])), ...halls.centersOf(u.id).map((c) => `مشرف قاعة — ${c.name}`)],
+                tags: [
+                  ...(holdsAll(u) ? [`كل صلاحيات المهام (${TASK_PERMISSIONS.length})`, PERMISSION_LABELS["systems.assign"]] : u.permissions.map((p) => PERMISSION_LABELS[p])),
+                  ...halls.centersOf(u.id).map((c) => `مشرف قاعة — ${c.name}`),
+                  ...reps.airportsOf(u.id).map((a) => `مندوب مطار — ${airports.find((x) => x.id === a)?.city ?? a}`),
+                ],
                 onPick: () => void enter(u),
               })),
             },
@@ -87,8 +104,8 @@ export function StaffLogin() {
           <p className="text-sm">
             أنت مسجّل الدخول باسم <b className="text-green-dark">{current.name}</b>
           </p>
-          <Button size="sm" variant="gold" onClick={() => router.push("/staff/dashboard")}>
-            متابعة إلى لوحتي <ArrowLeft className="size-4" />
+          <Button size="sm" variant="gold" onClick={() => router.push(currentHome)}>
+            متابعة إلى أقسامي <ArrowLeft className="size-4" />
           </Button>
         </motion.div>
       )}

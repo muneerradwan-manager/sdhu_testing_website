@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { typeOf } from "@/lib/data/admin-exam";
 import { cn, maskNationalId } from "@/lib/utils";
-import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
-import { useAllQuestions, useBlueprints, useExamBank } from "@/app/administrator/_lib/admin-rules";
-import { centerOf, hallActions, mustSit, roleKeyOf, runKey, STAGE_LABEL, stageOf, useHalls, type ExamCenter, type HallStage } from "@/app/administrator/_lib/halls";
+import { useAllQuestions, useExamBank } from "@/app/administrator/_lib/admin-rules";
+import { hallActions, mustSit, roleKeyOf, runKey, STAGE_LABEL, stageOf, targets, useHalls, type ExamCenter, type ExamDef, type HallStage } from "@/app/administrator/_lib/halls";
 import { useAdminRows, type AdminRow } from "../_components/data";
 import { Empty, Kpi, PageHeader, Panel, fmtTime, logAs, useNow, useStaffUser } from "../_components/kit";
 
@@ -27,8 +26,8 @@ function Chip({ tone = "green", children }: { tone?: keyof typeof CHIP; children
 const STAGE_TONE: Record<HallStage, keyof typeof CHIP> = { idle: "muted", open: "gold", running: "green", ended: "gold", closed: "muted" };
 
 /**
- * The hall supervisor's page. The exam desk assigns a staff account to a centre's hall, and the page
- * appears in that account's menu whatever its permissions. Every role sits on its own day; for each
+ * The hall supervisor's page. The exam system's owner assigns a staff account to a centre's hall, and the
+ * page appears in that account's menu whatever its permissions. Every exam is sat on its own day; for each
  * sitting the supervisor opens the hall, confirms each applicant who opened his account there against
  * his identity card, starts the exam for all of them at once, ends it, and closes the hall.
  */
@@ -39,8 +38,8 @@ export function HallView() {
   if (!centers.length) {
     return (
       <div>
-        <PageHeader eyebrow="الامتحان الكتابي" title="قاعتي الامتحانية" icon={<DoorClosed />} description="تظهر هذه الصفحة لمن يسنده قسم الامتحانات مشرفاً على قاعة مركز امتحاني." />
-        <Empty icon={<Lock />} title="لست مشرف قاعة في أي مركز" text="يسند قسم الامتحانات مشرفي القاعات من «إدارة الامتحان»، تبويب «المراكز والجلسات»." />
+        <PageHeader eyebrow="الامتحان الكتابي" title="قاعتي الامتحانية" icon={<DoorClosed />} description="تظهر هذه الصفحة لمن يسنده صاحب صلاحية «إدارة الامتحانات» مشرفاً على قاعة مركز امتحاني." />
+        <Empty icon={<Lock />} title="لست مشرف قاعة في أي مركز" text="يسند صاحب صلاحية «إدارة الامتحانات» مشرفي القاعات من «إدارة الامتحانات» ← «المراكز»." />
       </div>
     );
   }
@@ -51,8 +50,10 @@ function Hall({ centers }: { centers: ExamCenter[] }) {
   const halls = useHalls();
   const [centerId, setCenterId] = useState(centers[0].id);
   const center = centers.find((c) => c.id === centerId) ?? centers[0];
-  // The sitting to run: the first one of the schedule not closed yet
-  const [role, setRole] = useState<string>(() => APPLIED_ROLES.find((r) => stageOf(halls.runs[runKey(r.key, center.id)]) !== "closed")?.key ?? APPLIED_ROLES[0].key);
+  const exams = halls.exams.filter((e) => targets(e, center.id));
+  // The sitting to run: the first active exam of the schedule not closed yet here
+  const [examId, setExamId] = useState<string>(() => (exams.find((e) => !e.off && stageOf(halls.runs[runKey(e.id, center.id)]) !== "closed") ?? exams[0])?.id ?? "");
+  const exam = exams.find((e) => e.id === examId) ?? exams[0];
 
   return (
     <div>
@@ -60,7 +61,7 @@ function Hall({ centers }: { centers: ExamCenter[] }) {
         eyebrow="الامتحان الكتابي — إشراف القاعة"
         title="قاعتي الامتحانية"
         icon={<DoorOpen />}
-        description={`${center.name} — ${center.hall}. الامتحان جماعي لكل صفة في يومها: تفتح القاعة، وتؤكد حضور كل متقدم بعد أن يفتح حسابه أمامك وتطابق هويته، ثم تبدأ الامتحان للجميع معاً، وتنهيه، وتغلق القاعة.`}
+        description={`${center.name} — ${center.hall}. كل امتحان جماعي في يومه: تفتح القاعة، وتؤكد حضور كل متقدم بعد أن يفتح حسابه أمامك وتطابق هويته، ثم تبدأ الامتحان للجميع معاً، وتنهيه، وتغلق القاعة.`}
       />
       {centers.length > 1 && (
         <div className="mb-4 flex flex-wrap gap-2" role="radiogroup" aria-label="المركز">
@@ -71,57 +72,60 @@ function Hall({ centers }: { centers: ExamCenter[] }) {
           ))}
         </div>
       )}
-      <Sessions center={center} role={role} setRole={setRole} />
+      <Sessions center={center} exams={exams} examId={exam?.id} setExamId={setExamId} />
       <AnimatePresence mode="wait">
-        <motion.div key={`${center.id}-${role}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} className="mt-4">
-          <Sitting center={center} role={role} />
-        </motion.div>
+        {exam && (
+          <motion.div key={`${center.id}-${exam.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} className="mt-4">
+            <Sitting center={center} exam={exam} />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
 }
 
-/** Who sits a sitting in a centre: those who must, and anyone already in its run */
-function useSitters(center: ExamCenter, role: string) {
+/** Who sits a sitting in a centre: those of its role expected at it, and anyone already in its run */
+function useSitters(center: ExamCenter, exam: ExamDef) {
   const rows = useAdminRows();
   const halls = useHalls();
-  const key = runKey(role, center.id);
+  const key = runKey(exam.id, center.id);
   const run = halls.runs[key];
   return useMemo(
     () =>
-      rows.filter(
-        (r) =>
-          (roleKeyOf(r.profile.positions[0] ?? r.position) === role && centerOf(r.id, halls.moved)?.id === center.id && mustSit(r.profile, key)) ||
+      rows.filter((r) => {
+        const role = roleKeyOf(r.profile.positions[0] ?? r.position);
+        return (
+          (role === exam.role && halls.centerOf(r.id)?.id === center.id && mustSit(r.profile, key) && halls.sittingOf(r.id, role)?.exam.id === exam.id) ||
           !!run?.joined[r.id] ||
-          !!run?.present[r.id],
-      ),
-    [rows, halls.moved, center.id, role, key, run],
+          !!run?.present[r.id]
+        );
+      }),
+    [rows, halls, center.id, exam.id, exam.role, key, run],
   );
 }
 
-function Sessions({ center, role, setRole }: { center: ExamCenter; role: string; setRole: (r: string) => void }) {
+function Sessions({ center, exams, examId, setExamId }: { center: ExamCenter; exams: ExamDef[]; examId?: string; setExamId: (id: string) => void }) {
   const halls = useHalls();
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" role="radiogroup" aria-label="جلسة الامتحان">
-      {APPLIED_ROLES.map((r) => {
-        const stage = stageOf(halls.runs[runKey(r.key, center.id)]);
-        const s = halls.sessions[r.key];
-        const on = r.key === role;
+      {exams.map((e) => {
+        const stage = stageOf(halls.runs[runKey(e.id, center.id)]);
+        const on = e.id === examId;
         return (
           <button
-            key={r.key}
+            key={e.id}
             type="button"
             role="radio"
             aria-checked={on}
-            onClick={() => setRole(r.key)}
+            onClick={() => setExamId(e.id)}
             className={cn("rounded-2xl p-3 text-right ring-1 transition", on ? "bg-gold/20 ring-gold" : "bg-white/[.06] ring-white/10 hover:bg-white/10")}
           >
-            <p className="font-bold text-white">امتحان {r.label}</p>
+            <p className="font-bold text-white">{e.name}</p>
             <p className="text-xs text-white/65">
-              {s?.date} — {s?.time}
+              {e.date} — {e.time}
             </p>
             <p className="mt-2">
-              <Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>
+              {e.off && stage === "idle" ? <Chip tone="maroon">موقوف</Chip> : <Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>}
             </p>
           </button>
         );
@@ -137,20 +141,19 @@ const STEPS: { stage: HallStage; label: string; icon: ReactNode }[] = [
   { stage: "ended", label: "إغلاق القاعة", icon: <DoorClosed className="size-4" /> },
 ];
 
-function Sitting({ center, role }: { center: ExamCenter; role: string }) {
+function Sitting({ center, exam }: { center: ExamCenter; exam: ExamDef }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const halls = useHalls();
   const bank = useExamBank();
   const all = useAllQuestions();
-  const blueprint = useBlueprints()[role];
   const now = useNow(1000);
-  const key = runKey(role, center.id);
+  const key = runKey(exam.id, center.id);
   const run = halls.runs[key];
   const stage = stageOf(run);
-  const sitters = useSitters(center, role);
-  const label = APPLIED_ROLES.find((r) => r.key === role)!.label;
-  const target = `${center.name} — امتحان ${label}`;
+  const sitters = useSitters(center, exam);
+  const src = { bank, blueprint: exam, role: exam.role };
+  const target = `${center.name} — ${exam.name}`;
   const [confirmEnd, setConfirmEnd] = useState(false);
   const types = useMemo(() => new Map(all.map((q) => [q.id, typeOf(q)])), [all]);
 
@@ -158,23 +161,27 @@ function Sitting({ center, role }: { center: ExamCenter; role: string }) {
   const present = sitters.filter((r) => run?.present[r.id]);
   const sent = sitters.filter((r) => r.profile.exam?.submittedAt && r.profile.exam.hall === key);
   const absent = stage === "closed" || stage === "ended" ? sitters.filter((r) => !run?.present[r.id]) : [];
-  const minutes = blueprint?.minutes ?? 25;
+  const minutes = exam.minutes;
   const left = run?.startedAt ? Math.max(0, minutes * 60_000 - (now - run.startedAt)) : 0;
 
   const step = (action: string, detail: string | undefined, f: () => void, toastTitle: string) => {
     f();
-    logAs(user, { action, target, detail });
+    logAs(user, { action, target, detail, system: "exams", area: "exams", ref: exam.id });
     toast({ title: toastTitle, body: target, tone: "success", icon: "🏛️" });
   };
 
   const run1 = () => {
+    if (stage === "idle" && exam.off) {
+      toast({ title: "الامتحان موقوف", body: "أوقفه صاحب صلاحية «إدارة الامتحانات»، فلا تُفتح له القاعة حتى يفعّله.", tone: "warning", icon: "⏸️" });
+      return;
+    }
     if (stage === "idle") step("فتح القاعة الامتحانية", `${sitters.length} متقدمين متوقعين`, () => hallActions.open(key, user.name), "فُتحت القاعة");
     else if (stage === "open") {
       if (!present.length) {
         toast({ title: "لا حاضرين بعد", body: "أكّد حضور متقدم واحد على الأقل قبل البدء.", tone: "warning", icon: "🪪" });
         return;
       }
-      step("بدء الامتحان في القاعة", `${present.length} حاضرين — ${minutes} دقيقة`, () => hallActions.start(key, { bank, blueprint }), "بدأ الامتحان للجميع");
+      step("بدء الامتحان في القاعة", `${present.length} حاضرين — ${minutes} دقيقة`, () => hallActions.start(key, src), "بدأ الامتحان للجميع");
     } else if (stage === "running") {
       if (!confirmEnd) {
         setConfirmEnd(true);
@@ -186,8 +193,8 @@ function Sitting({ center, role }: { center: ExamCenter; role: string }) {
   };
 
   const confirm = (r: AdminRow) => {
-    hallActions.confirm(key, r.id, { bank, blueprint });
-    logAs(user, { action: "تأكيد حضور متقدم في القاعة", target: r.name, detail: `${target} — طابق الهوية ${maskNationalId(r.id)}${stage === "running" ? " — دخل بعد البدء بالوقت المتبقي" : ""}` });
+    hallActions.confirm(key, r.id, src);
+    logAs(user, { system: "exams", area: "exams", ref: exam.id, action: "تأكيد حضور متقدم في القاعة", target: r.name, detail: `${target} — طابق الهوية ${maskNationalId(r.id)}${stage === "running" ? " — دخل بعد البدء بالوقت المتبقي" : ""}` });
     toast({ title: `تأكد حضور ${r.name.split(" ")[0]}`, body: stage === "running" ? "تُفتح له الورقة بالوقت المتبقي." : "يبدأ مع الجميع.", tone: "success", icon: "🪪" });
   };
 
@@ -196,7 +203,7 @@ function Sitting({ center, role }: { center: ExamCenter; role: string }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="المتوقعون" value={sitters.length} icon={<UsersRound />} hint={`امتحان ${label} — ${center.name}`} />
+        <Kpi label="المتوقعون" value={sitters.length} icon={<UsersRound />} hint={`${exam.name} — ${center.name}`} />
         <Kpi label="دخلوا حساباتهم" value={joined.length} icon={<IdCard />} tone="gold" delay={0.05} pulse={joined.length > present.length && stage !== "closed"} hint={joined.length > present.length ? `${joined.length - present.length} بانتظار تأكيدك` : "لا أحد ينتظر"} />
         <Kpi label="الحاضرون" value={present.length} icon={<UserCheck />} tone="teal" delay={0.1} />
         <Kpi label={stage === "closed" ? "الغائبون" : "سلّموا"} value={stage === "closed" ? absent.length : sent.length} icon={stage === "closed" ? <UserX /> : <CheckCircle2 />} tone="maroon" delay={0.15} />
@@ -204,7 +211,7 @@ function Sitting({ center, role }: { center: ExamCenter; role: string }) {
 
       <Panel
         icon={<DoorOpen />}
-        title={`جلسة امتحان ${label}`}
+        title={`جلسة ${exam.name}`}
         action={<Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>}
       >
         <ol className="grid gap-2 sm:grid-cols-4">
@@ -233,7 +240,7 @@ function Sitting({ center, role }: { center: ExamCenter; role: string }) {
             </span>
           )}
           <p className="text-sm text-white/70">
-            {stage === "idle" && `افتح القاعة يوم ${halls.sessions[role]?.date} قبل ${halls.sessions[role]?.time} ليفتح المتقدمون حساباتهم فيها.`}
+            {stage === "idle" && (exam.off ? "الامتحان موقوف من إدارة الامتحانات: لا تُفتح له القاعة حتى يُفعَّل." : `افتح القاعة يوم ${exam.date} قبل ${exam.time} ليفتح المتقدمون حساباتهم فيها.`)}
             {stage === "open" && "يفتح كل متقدم حسابه في القاعة فيظهر عندك: طابق هويته ثم أكّد حضوره. حين يحضر الجميع ابدأ الامتحان."}
             {stage === "running" && (left ? `الامتحان جارٍ (${minutes} دقيقة). من يصل متأخراً تؤكد حضوره فيدخل بالوقت المتبقي.` : "انتهى الوقت: أُرسلت الأوراق تلقائياً. أنهِ الامتحان.")}
             {stage === "ended" && "أُرسلت كل الأوراق. أغلق القاعة: من لم يحضر يُسجَّل غائباً."}
@@ -243,7 +250,7 @@ function Sitting({ center, role }: { center: ExamCenter; role: string }) {
       </Panel>
 
       <Panel icon={<UsersRound />} title="المتقدمون في القاعة" bodyClass="space-y-2">
-        {!sitters.length && <Empty icon={<UsersRound />} title="لا متقدمين لهذه الجلسة في مركزك" text="يظهر هنا كل من دفع رسم التسجيل لصفة هذه الجلسة وتتبع محافظة قيده مركزك، أو نقله قسم الامتحانات إليه." />}
+        {!sitters.length && <Empty icon={<UsersRound />} title="لا متقدمين لهذه الجلسة في مركزك" text="يظهر هنا كل من دفع رسم التسجيل لصفة هذا الامتحان وتتبع محافظة قيده مركزك، أو نقله إليه صاحب صلاحية «إدارة الامتحانات»." />}
         {sitters.map((r) => {
           const e = r.profile.exam?.hall === key ? r.profile.exam : undefined;
           const isJoined = !!run?.joined[r.id];

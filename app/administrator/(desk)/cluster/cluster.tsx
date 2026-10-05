@@ -14,6 +14,7 @@ import { getPerson } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type AdminProfile } from "@/lib/store";
+import { useHolders } from "@/lib/systems";
 import { cn, formatUSD } from "@/lib/utils";
 import { DEMO_ADMINS, adminName, candidacy, deputyEligible, lastServed, logAdmin, nowMs, seasonHistory, useAdmin, type ClusterRules } from "../../_lib/admin";
 import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
@@ -104,6 +105,7 @@ export function AdminCluster() {
 function Waiting({ rules }: { rules: ClusterRules }) {
   const admin = useAdmin()!;
   const toast = useToast();
+  const holder = useHolders().admins[0]?.staff;
   const fees = useSeason().fees;
   const c = candidacy(admin.id, rules);
   return (
@@ -130,13 +132,13 @@ function Waiting({ rules }: { rules: ClusterRules }) {
         </p>
       </Card>
       <div className="rounded-[2rem] border-2 border-dashed border-maroon/30 bg-white p-6 text-center">
-        <p className="text-sm text-ink-soft">في الموسم الفعلي تفتح مديرة الموسم الترشيح من لوحة الموظفين.</p>
+        <p className="text-sm text-ink-soft">في الموسم الفعلي يفتح الترشيح صاحب صلاحية «إدارة الإداريين» من بوابة الموظفين.</p>
         <Button
           variant="maroon"
           className="mt-4"
           onClick={() => {
             actions.setElection({ openedAt: nowMs(), closedAt: undefined, elected: undefined });
-            actions.logEvent({ actor: "سهى مراد (محاكاة)", role: "مديرة الموسم", action: "فتح الترشيح لرئاسة التكتلات", target: `${rules.clusterCount} تكتلات`, detail: `الشرط: ${rules.clusterHeadSeasons} مواسم متتالية رئيساً لمجموعة بتقييم ${rules.clusterHeadMinRating}+` });
+            actions.logEvent({ actor: `${holder?.name ?? "شؤون الإداريين"} (محاكاة)`, role: holder?.title ?? "موظف", action: "فتح باب الترشح لرئاسة التكتلات", target: `${rules.clusterCount} تكتلات`, detail: `الشرط: ${rules.clusterHeadSeasons} مواسم متتالية رئيساً لمجموعة بتقييم ${rules.clusterHeadMinRating}+`, system: "admins", area: "clusters", important: true });
             toast({ title: `فُتح الترشيح لـ ${rules.clusterCount} تكتلات`, body: "يرشّح المستوفون أنفسهم، ويصوّت رؤساء المجموعات.", icon: "📣", tone: "gold" });
           }}
         >
@@ -173,13 +175,14 @@ function Election({ rules, admins }: { rules: ClusterRules; admins: Record<strin
   const toast = useToast();
   const c = candidacy(admin.id, rules);
   const candidates = useCandidates(admins);
+  const holder = useHolders().admins[0]?.staff;
   const [statement, setStatement] = useState("");
   const voters = 12 + Object.values(admins).filter((a) => isGroupHead(a)).length;
   const votesCast = candidates.reduce((n, x) => n + x.votes, 0);
 
   const stand = () => {
     actions.upsertAdmin(admin.id, { candidate: { at: nowMs(), statement: statement.trim() || "أرشّح نفسي لرئاسة تكتل هذا الموسم." } });
-    logAdmin(admin.id, "الترشح لرئاسة تكتل", undefined, c.reason);
+    logAdmin(admin.id, "الترشح لرئاسة تكتل", undefined, c.reason, { area: "clusters" });
     toast({ title: "سُجّل ترشحك", body: "يراك رؤساء المجموعات في قائمة المرشحين.", icon: "🗳️", tone: "success" });
   };
   const vote = (id: string, name: string) => {
@@ -190,7 +193,7 @@ function Election({ rules, admins }: { rules: ClusterRules; admins: Record<strin
   const close = () => {
     const elected = candidates.slice(0, rules.clusterCount).map((x) => x.id);
     actions.setElection({ closedAt: nowMs(), elected });
-    actions.logEvent({ actor: "سهى مراد (محاكاة)", role: "مديرة الموسم", action: "إغلاق التصويت وإعلان رؤساء التكتلات", target: `${Math.min(rules.clusterCount, candidates.length)} رؤساء`, detail: candidates.slice(0, rules.clusterCount).map((x) => x.name).join("، ") });
+    actions.logEvent({ actor: `${holder?.name ?? "شؤون الإداريين"} (محاكاة)`, role: holder?.title ?? "موظف", action: "إغلاق التصويت وإعلان رؤساء التكتلات", target: `${Math.min(rules.clusterCount, candidates.length)} رؤساء`, detail: candidates.slice(0, rules.clusterCount).map((x) => x.name).join("، "), system: "admins", area: "clusters", important: true });
     if (elected.includes(admin.id)) confetti({ particleCount: 160, spread: 90, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F", "#672146"] });
     toast({ title: "أُغلق التصويت", body: elected.includes(admin.id) ? "انتُخبت رئيساً لتكتل — أنشئ تكتلك الآن." : "أُعلن رؤساء التكتلات. اختر تكتلاً لمجموعتك.", icon: "🏁", tone: "gold" });
   };
@@ -292,7 +295,7 @@ function CreateCluster({ rules, admins }: { rules: ClusterRules; admins: Record<
         cluster: { id, name, deputyId: chosen?.id, deputyName: chosen?.name, capacityGroups: capacity, createdAt: at, feePaidAt: at, decisions: {} },
         group: { ...admin.profile!.group!, clusterId: id },
       });
-      logAdmin(admin.id, `إنشاء ${name}`, `المعاون: ${chosen?.name ?? "—"}`, `السعة ${capacity} مجموعات — رسم الإنشاء ${formatUSD(fee)} — ${payMethodLabel(m)}`);
+      logAdmin(admin.id, `إنشاء ${name}`, `المعاون: ${chosen?.name ?? "—"}`, `السعة ${capacity} مجموعات — رسم الإنشاء ${formatUSD(fee)} — ${payMethodLabel(m)}`, { area: "clusters", ref: id });
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F"] });
       toast({ title: `أُنشئ ${name}`, body: `مجموعتك ${admin.profile?.group?.number} فيه، وتصلك الآن طلبات المجموعات.`, icon: "🏛️", tone: "success" });
       setPaying(false);
@@ -393,7 +396,7 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
       const a = admins[r.id];
       actions.upsertAdmin(r.id, { clusterRequest: { ...a.clusterRequest!, status, reason: why } });
     }
-    logAdmin(admin.id, status === "accepted" ? `قبول انضمام المجموعة ${r.group} إلى ${cluster.name}` : `رفض انضمام المجموعة ${r.group}`, r.head, why ?? `السعة بعد القبول ${used + 1} من ${cluster.capacityGroups}`);
+    logAdmin(admin.id, status === "accepted" ? `قبول انضمام المجموعة ${r.group} إلى ${cluster.name}` : `رفض انضمام المجموعة ${r.group}`, r.head, why ?? `السعة بعد القبول ${used + 1} من ${cluster.capacityGroups}`, { area: "clusters", ref: cluster.id });
     toast(status === "accepted" ? { title: `قُبلت المجموعة ${r.group}`, body: "يصل رئيسها العقد ليوقّعه.", icon: "🤝", tone: "success" } : { title: `رُفض طلب المجموعة ${r.group}`, body: "يصل السبب إلى رئيسها ليختار تكتلاً آخر.", icon: "📩", tone: "info" });
     setDeclining(null);
   };
@@ -594,14 +597,14 @@ function JoinCluster({ admins }: { admins: Record<string, AdminProfile> }) {
     const at = nowMs();
     actions.upsertAdmin(admin.id, { clusterRequest: { ...req!, contractSignedAt: at }, group: { ...p.group!, clusterId: req!.clusterId } });
     const c = clusters.find((x) => x.id === req!.clusterId);
-    logAdmin(admin.id, `توقيع عقد المجموعة ${p.group?.number} مع ${c?.name ?? "التكتل"}`, c?.head, "توقيع إلكتروني — مصادقة الإدارة");
+    logAdmin(admin.id, `توقيع عقد المجموعة ${p.group?.number} مع ${c?.name ?? "التكتل"}`, c?.head, "توقيع إلكتروني — مصادقة الإدارة", { area: "clusters", ref: req!.clusterId });
     confetti({ particleCount: 140, spread: 90, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F", "#672146"] });
     toast({ title: "وُقّع العقد وصودق عليه", body: `مجموعتك الآن في ${c?.name}.`, icon: "✍️", tone: "success" });
   };
   const simulate = (status: "accepted" | "declined") => {
     actions.upsertAdmin(admin.id, { clusterRequest: { ...req!, status, reason: status === "declined" ? "اكتملت سعة التكتل" : undefined } });
     const c = clusters.find((x) => x.id === req!.clusterId);
-    actions.logEvent({ actor: `${c?.head ?? "رئيس التكتل"} (محاكاة)`, role: "رئيس تكتل", action: status === "accepted" ? `قبول انضمام المجموعة ${p.group?.number}` : `رفض انضمام المجموعة ${p.group?.number}`, target: c?.name, detail: status === "declined" ? "اكتملت سعة التكتل" : "ضمن السعة — العقد للتوقيع" });
+    actions.logEvent({ actor: `${c?.head ?? "رئيس التكتل"} (محاكاة)`, role: "رئيس تكتل", action: status === "accepted" ? `قبول انضمام المجموعة ${p.group?.number}` : `رفض انضمام المجموعة ${p.group?.number}`, target: c?.name, detail: status === "declined" ? "اكتملت سعة التكتل" : "ضمن السعة — العقد للتوقيع", system: "admins", area: "clusters", ref: req!.clusterId });
   };
 
   const current = req ? clusters.find((c) => c.id === req.clusterId) : undefined;

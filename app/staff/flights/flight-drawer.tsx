@@ -30,7 +30,7 @@ import {
   type Traveler,
 } from "@/lib/flights";
 import { fullName, useEmployees } from "@/lib/ops";
-import { can } from "@/lib/staff";
+import { useOwns } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
 import { Drawer, Tabs, fmtDateTime, textareaClass, useStaffUser } from "../_components/kit";
@@ -49,9 +49,10 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
   const toast = useToast();
   const employees = useEmployees();
   const events = useAllEvents();
-  const officer = can(user, "flights.manage");
-  // «الاطلاع على الطيران» is the permission to follow the flights and record their take-off and landing
-  const ops = officer || can(user, "flights.view");
+  // The sheet opens inside the flights system's management, for its owner: he does all of it. The airports'
+  // representatives record take-offs and landings from their own page (/staff/airport)
+  const officer = useOwns(user, "flights");
+  const ops = officer;
   const actor: Actor = { name: user.name, role: user.title };
   const [tab, setTab] = useState<Tab>(f.audience === "staff" ? "staff" : "pilgrims");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -72,7 +73,7 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
   const warnings = flightWarnings(f, data);
   const manifests = data.manifests.filter((m) => m.flightId === f.id).sort((a, b) => b.version - a.version);
   const stale = f.status === "locked" && manifests[0] && active.some((a) => a.assignedAt > manifests[0].issuedAt || (a.cancelledAt ?? 0) > manifests[0].issuedAt);
-  const log = events.filter((e) => e.target === f.flightNo).sort((a, b) => b.at - a.at);
+  const log = events.filter((e) => e.ref === f.id || e.target === f.flightNo).sort((a, b) => b.at - a.at);
   const nameOf = (a: FlightAssignment) => (a.travelerKind === "employee" ? (employees.find((e) => e.id === a.travelerId) ? fullName(employees.find((e) => e.id === a.travelerId)!) : a.name) : a.name);
   const carrier = carrierOf(data, f.carrierId);
   const from = airportOf(data, f.fromId);

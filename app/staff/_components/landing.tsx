@@ -31,28 +31,30 @@ import { ButtonLink } from "@/components/ui/button";
 import { Counter, Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
 import { EMPLOYEES_SEED } from "@/lib/data/employees-seed";
 import { ALL_PERMISSIONS, getStaff, PERMISSION_LABELS, STAFF, type Permission } from "@/lib/staff";
+import { SYSTEMS } from "@/lib/systems";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useStaffHome } from "./kit";
 
-/** The portal's areas, each with the permission that opens it */
+/** The portal's areas, each with the permission that opens it, in the order the season is worked: set up first */
 const AREAS: { title: string; text: string; icon: LucideIcon; perms: Permission[] }[] = [
-  { title: "مراجعة الطلبات", text: "ما لا تحسمه المنصة آلياً من طلبات الحجاج: اسم أم غير مطابق، أو صلة قرابة غير مؤكدة.", icon: ClipboardCheck, perms: ["registration.review"] },
   { title: "إعدادات الموسم", text: "الحصة والأعمار والرسوم والأقساط، تُطبَّق فوراً على طلبات الحجاج وفحص أهليتهم.", icon: Settings2, perms: ["season.settings"] },
-  { title: "القبول والقرعة", text: "الأعمار المقبولة مباشرة، وإحصاء التسجيل الأولي على القرعة، وإدخال ما سُحب في البث، ثم الاعتماد والنشر.", icon: Dices, perms: ["lottery.import", "lottery.approve"] },
-  { title: "إدارة الامتحان", text: "امتحان تأهيل الإداريين: المراكز وقاعاتها ومشرفوها، وأقسام كل امتحان وبنك أسئلته، وتصحيح التحريري، والنتائج والشفهي.", icon: GraduationCap, perms: ["administrators.manage", "season.settings", "groups.approve"] },
-  { title: "الإداريون وقواعدهم", text: "اعتماد المجموعات، وتقييم الإداريين وملفاتهم الدائمة، وشروط كل صفة وقوائم الشهادات والمهارات واللغات.", icon: UsersRound, perms: ["administrators.manage", "groups.approve", "administrators.catalog"] },
-  { title: "الطيران", text: "الرحلات ومقاعدها، ووضع المجموعات عليها كاملة، وتسجيل الإقلاع والهبوط.", icon: Plane, perms: ["flights.manage", "flights.view"] },
-  { title: "غرفة العمليات", text: "خريطة المشاعر والبلاغات الحية، وزمن الاستجابة لكل بلاغ حتى إغلاقه.", icon: RadioTower, perms: ["operations.room"] },
+  { title: "إدارة الموظفين", text: "صلاحية واحدة تفتح الملف كله لصاحبها: سجل الموظفين الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم وأين أُسندوا وعلى أي رحلة.", icon: Contact, perms: ["staff.manage"] },
   { title: "الملفات التشغيلية", text: "التسكين في مكة ومخيمات منى وعرفات، والفنادق والقطاعات والمراكز.", icon: FileStack, perms: ["ops.files"] },
-  { title: "الموظفون", text: "سجل الموظفين الدائمين والمنتدبين، وتسجيلهم في الموسم.", icon: Contact, perms: ["staff.create"] },
   { title: "محتوى الموقع", text: "كل عنوان وفقرة وصورة في الموقع العام: مسودة ثم نشر.", icon: PencilLine, perms: ["content.manage"] },
-  { title: "سجل الأحداث", text: "كل إجراء باسم صاحبه ووقته، لا يُعدَّل ولا يُحذف.", icon: ScrollText, perms: ["audit.read"] },
+  { title: "مراجعة الطلبات", text: "ما لا تحسمه المنصة آلياً من طلبات الحجاج: اسم أم غير مطابق، أو صلة قرابة غير مؤكدة.", icon: ClipboardCheck, perms: ["registration.review"] },
+  { title: "القبول والقرعة", text: "الأعمار المقبولة مباشرة، وإحصاء التسجيل الأولي على القرعة، وإدخال ما سُحب في البث، ثم الاعتماد والنشر.", icon: Dices, perms: ["lottery.import", "lottery.approve"] },
+  { title: "إدارة الإداريين", text: "صلاحية واحدة تفتح الملف كله لصاحبها: قواعد الصفات وشروطها، والمتقدمون وملفاتهم، وتشكيل المجموعات واعتمادها، وانتخاب رؤساء التكتلات ومعاونيهم وبرامجهم، والتقييم والتصنيف.", icon: UsersRound, perms: ["admins.manage"] },
+  { title: "إدارة الامتحانات", text: "صلاحية واحدة تفتح الملف كله لصاحبها: المراكز ومشرفو قاعاتها، والمتقدمون ومراكزهم، والامتحانات ومواعيدها، وبنك الأسئلة، والتصحيح والنتائج والتقارير.", icon: GraduationCap, perms: ["exams.manage"] },
+  { title: "إدارة الطيران", text: "صلاحية واحدة تفتح الملف كله لصاحبها: الرحلات ومقاعدها، ووضع المجموعات والموظفين عليها، وكشوف الركاب، ومندوبو المطارات الذين يسجلون الإقلاع والهبوط.", icon: Plane, perms: ["flights.manage"] },
+  { title: "غرفة العمليات", text: "خريطة المشاعر والبلاغات الحية، وزمن الاستجابة لكل بلاغ حتى إغلاقه.", icon: RadioTower, perms: ["operations.room"] },
   { title: "الطبي والمواصلات", text: "مهام الفرق الميدانية في «مهامي اليوم»: جولات الحر، وحضور السائقين.", icon: Bus, perms: ["medical", "transport"] },
+  { title: "سجل الأحداث", text: "كل إجراء باسم صاحبه ووقته، لا يُعدَّل ولا يُحذف.", icon: ScrollText, perms: ["audit.read"] },
 ];
 
 const PRINCIPLES: { title: string; text: string; icon: LucideIcon }[] = [
   { title: "حساب لا يُنشأ ذاتياً", text: "تنشئ الموارد البشرية حساب كل موظف، وتصله كلمة مرور مؤقتة يغيّرها عند أول دخول.", icon: UserCog },
-  { title: "صلاحية لكل مهمة", text: "تُمنح الصلاحيات واحدة واحدة، فلا يرى الموظف في قائمته إلا الأقسام التي يملك صلاحيتها.", icon: KeyRound },
+  { title: "صلاحية لكل ملف", text: "صلاحية إدارة الملف، كالامتحانات أو الطيران، تفتحه كله لصاحبها فيديره بتفاصيله، ويتابع المدير حاله وأحداثه المهمة. وما سواها صلاحية لكل مهمة.", icon: KeyRound },
   { title: "كل إجراء باسمك", text: "اعتماد، تعديل، إسناد، نشر: يُسجَّل كله في سجل الأحداث باسمك ووقته، ولا يُمحى.", icon: Fingerprint },
   { title: "أين أكون ومتى", text: "«ملفاتي التشغيلية» تعرض موقعك في الموسم ورحلتي ذهابك وعودتك ومديرك المباشر.", icon: LayoutDashboard },
 ];
@@ -66,12 +68,12 @@ const SEASON_FLOW: { title: string; text: string }[] = [
   { title: "التقييم", text: "تقييم الإداريين وتصنيف المجموعات والتكتلات لنهاية الموسم." },
 ];
 
-/** What the operations room's officer sees: his sections open, the others locked */
+/** What the holder of «إدارة الامتحانات» sees: the file's summary and management, the rest locked */
 const PREVIEW: { label: string; icon: LucideIcon; open: boolean }[] = [
-  { label: "لوحتي", icon: LayoutDashboard, open: true },
+  { label: SYSTEMS.exams.summary.label, icon: LayoutDashboard, open: true },
+  { label: SYSTEMS.exams.manage.label, icon: GraduationCap, open: true },
   { label: "ملفاتي التشغيلية", icon: FileStack, open: true },
-  { label: "غرفة العمليات", icon: RadioTower, open: true },
-  { label: "إعدادات الموسم", icon: Settings2, open: false },
+  { label: "غرفة العمليات", icon: RadioTower, open: false },
   { label: "القبول والقرعة", icon: Dices, open: false },
 ];
 
@@ -83,6 +85,7 @@ export function StaffLanding() {
   const hydrated = useHydrated();
   const sessionId = useStore((s) => s.staffSessionId);
   const user = hydrated ? getStaff(sessionId) : null;
+  const home = useStaffHome(user);
 
   return (
     <div>
@@ -112,8 +115,8 @@ export function StaffLanding() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               {user ? (
-                <ButtonLink href="/staff/dashboard" variant="gold" size="xl">
-                  متابعة إلى لوحتي <ArrowLeft className="size-6" />
+                <ButtonLink href={home} variant="gold" size="xl">
+                  متابعة إلى أقسامي <ArrowLeft className="size-6" />
                 </ButtonLink>
               ) : (
                 <ButtonLink href="/staff/login" variant="gold" size="xl">
@@ -138,7 +141,7 @@ export function StaffLanding() {
             </dl>
           </Reveal>
 
-          {/* What one officer sees: his own sections, the rest locked */}
+          {/* What one holder sees: his file, the rest locked */}
           <motion.div
             initial={{ opacity: 0, y: 40, rotate: -6 }}
             animate={{ opacity: 1, y: 0, rotate: -3 }}
@@ -151,13 +154,13 @@ export function StaffLanding() {
               <div className="relative flex items-start justify-between">
                 <div>
                   <p className="text-xs text-gold">بطاقة موظف — موسم 1448</p>
-                  <p className="mt-1 font-display text-2xl font-bold">فادي سلوم</p>
-                  <p className="text-sm text-white/75">غرفة العمليات — مكة</p>
+                  <p className="mt-1 font-display text-2xl font-bold">منير السيد</p>
+                  <p className="text-sm text-white/75">مسؤول الامتحانات</p>
                 </div>
-                <span className="grid size-14 place-items-center rounded-2xl bg-gold font-display text-2xl font-bold text-ink">ف</span>
+                <span className="grid size-14 place-items-center rounded-2xl bg-gold font-display text-2xl font-bold text-ink">م</span>
               </div>
               <p className="relative mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-white/85 ring-1 ring-white/15">
-                <KeyRound className="size-3.5 text-gold" /> صلاحية: {PERMISSION_LABELS["operations.room"]}
+                <KeyRound className="size-3.5 text-gold" /> صلاحية: {PERMISSION_LABELS["exams.manage"]}
               </p>
               <ul className="relative mt-4 space-y-1.5">
                 {PREVIEW.map((it, i) => (
@@ -185,7 +188,7 @@ export function StaffLanding() {
 
       {/* ───────── Areas ───────── */}
       <section className="mx-auto max-w-7xl px-4 py-20 md:px-8">
-        <SectionHeading eyebrow="أقسام البوابة" title="ماذا يُدار من هنا؟" description="كل قسم تفتحه صلاحية. تظهر لك في القائمة الجانبية الأقسام التي تملك صلاحيتها، ويبقى الباقي مغلقاً." />
+        <SectionHeading eyebrow="أقسام البوابة" title="ماذا يُدار من هنا؟" description="كل قسم تفتحه صلاحية: لمهمة واحدة، أو لإدارة ملف كامل كالامتحانات والطيران. تظهر لك في القائمة الجانبية أقسامك وحدها، ويبقى الباقي مغلقاً." />
         <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {AREAS.map((a) => (
             <StaggerItem key={a.title}>
@@ -258,8 +261,8 @@ export function StaffLanding() {
               </p>
             </div>
             {user ? (
-              <ButtonLink href="/staff/dashboard" variant="gold" size="xl">
-                متابعة إلى لوحتي <ArrowLeft className="size-6" />
+              <ButtonLink href={home} variant="gold" size="xl">
+                متابعة إلى أقسامي <ArrowLeft className="size-6" />
               </ButtonLink>
             ) : (
               <ButtonLink href="/staff/login" variant="gold" size="xl">

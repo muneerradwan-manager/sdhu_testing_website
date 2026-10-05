@@ -130,7 +130,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
       commitmentsAt: nowMs(),
       eligibleAt: nowMs(),
     });
-    logAdmin(admin.id, "اكتمل التحقق من الأهلية قبل الدفع (آلياً)", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الامتحانين" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — مستوفٍ لشروطها في جدول موسم 1448 — ${attached.length} وثائق سارية من ملفه الدائم (${attached.filter((d) => d.issuedSeason === SEASON.hijriYear).length} محدّثة هذا الموسم) — الموافقة على الالتزامات`);
+    logAdmin(admin.id, "اكتمل التحقق من الأهلية قبل الدفع (آلياً)", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الامتحانين" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — مستوفٍ لشروطها في جدول موسم 1448 — ${attached.length} وثائق سارية من ملفه الدائم (${attached.filter((d) => d.issuedSeason === SEASON.hijriYear).length} محدّثة هذا الموسم) — الموافقة على الالتزامات`, { area: "applicants" });
     toast({ title: `أنت مؤهل لصفة ${label}`, body: `بقي رسم التسجيل (${formatUSD(fee)}) ليُقدَّم طلبك.`, icon: "✅", tone: "success" });
   };
 
@@ -148,8 +148,8 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
       onPaid();
       const receipt = adminReceipt(admin.id, "A");
       actions.upsertAdmin(admin.id, { feePaidAt: Date.now(), receipt });
-      logAdmin(admin.id, "التسجيل الموسمي — موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} — قُدّم الطلب بعد ثبوت الأهلية`);
-      logAdmin(admin.id, "تسديد رسم تسجيل الإداري", receipt, `${formatUSD(fee)} — ${payMethodLabel(m)}`);
+      logAdmin(admin.id, "التسجيل الموسمي — موسم 1448", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} — قُدّم الطلب بعد ثبوت الأهلية`, { area: "applicants" });
+      logAdmin(admin.id, "تسديد رسم تسجيل الإداري", receipt, `${formatUSD(fee)} — ${payMethodLabel(m)}`, { area: "applicants" });
       toast({ title: "تم استلام طلبك لموسم 1448", body: `ورسم التسجيل (الإيصال ${receipt}).`, icon: "📨", tone: "success" });
       setPaying(false);
     }, 2300);
@@ -411,7 +411,7 @@ function Eligibility({ roleKey, renewal, rec, onEligible }: { roleKey: string | 
     if (!finished || wrote.current) return;
     wrote.current = true;
     if (!allOk) {
-      logAdmin(admin.id, "التحقق من الأهلية قبل الدفع — لم يستوفِ", `الإداري ${admin.id.slice(-3)}`, failing);
+      logAdmin(admin.id, "التحقق من الأهلية قبل الدفع — لم يستوفِ", `الإداري ${admin.id.slice(-3)}`, failing, { area: "applicants" });
       return;
     }
     onEligible();
@@ -491,7 +491,7 @@ function EligibleSummary() {
           <p className="mt-3 max-w-xl leading-8 text-ink-soft">
             {p.examExempt
               ? `الصفة نفسها التي شغلتها الموسم الماضي بتقييم مستوفٍ، فلا امتحان هذا الموسم وفق شروط الإدارة. رسم الموسم مسدد، وتنتقل مباشرة إلى ${positionLabelOf(p.positions[0]) === "رئيس مجموعة" ? "طلب تشكيل المجموعة (برسمه)" : "التعيين في مجموعتك"}.`
-              : <>أنت مؤهل لصفة <b>{positionLabelOf(p.positions[0] ?? "")}</b> والرسم مسدد. امتحانك الكتابي: <b>{hall.session?.date}، الساعة {hall.session?.time}</b>، في <b>{hall.center ? `${hall.center.name} — ${hall.center.hall}` : "المركز الامتحاني الذي تُسندك إليه شؤون الإداريين"}</b>، جماعياً مع كل المتقدمين لصفتك. احضر بهويتك، وتفتح حسابك في القاعة بإشراف مشرفها.</>}
+              : <>أنت مؤهل لصفة <b>{positionLabelOf(p.positions[0] ?? "")}</b> والرسم مسدد. امتحانك الكتابي: <b>{hall.session?.date}، الساعة {hall.session?.time}</b>، في <b>{hall.center ? `${hall.center.name} — ${hall.center.hall}` : "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}</b>، جماعياً مع كل المتقدمين لصفتك. احضر بهويتك، وتفتح حسابك في القاعة بإشراف مشرفها.</>}
           </p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {rows.filter((r) => r.ok).map((r) => (

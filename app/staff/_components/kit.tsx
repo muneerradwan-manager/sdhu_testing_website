@@ -2,19 +2,46 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Lock, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Counter } from "@/components/ui/motion";
 import { actions, useHydrated, useStore, type AuditEvent } from "@/lib/store";
 import { useScrollLock } from "@/lib/scroll-lock";
-import { can, getStaff, PERMISSION_LABELS, type Permission, type StaffUser } from "@/lib/staff";
+import { can, getStaff, PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
+import { SYSTEMS, useOwnedSystems, withGrants, type SystemKey } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
+import { useHalls } from "@/app/administrator/_lib/halls";
+import { useAirportReps } from "@/lib/flights";
 
 // ───────────────────────── Hooks & helpers ─────────────────────────
 
+/** The signed-in employee, with the management permissions the director granted or took back since */
 export function useStaffUser(): StaffUser | null {
   const id = useStore((s) => s.staffSessionId);
-  return getStaff(id);
+  const grants = useStore((s) => s.systems?.grants);
+  return useMemo(() => {
+    const u = getStaff(id);
+    return u ? withGrants(u, grants) : null;
+  }, [id, grants]);
+}
+
+/**
+ * Where an employee lands: the summary of the system he runs; else «لوحتي», which gathers the work of his
+ * permissions until each part becomes a system; else the field post a system's owner gave him (a hall, an
+ * airport); else his operational files.
+ */
+export function staffHome(user: StaffUser, owned: SystemKey[], field: { hall: boolean; airport: boolean }) {
+  if (owned.length) return SYSTEMS[owned[0]].summary.href;
+  if (taskPermissions(user).length) return "/staff/dashboard";
+  if (field.hall) return "/staff/hall";
+  return field.airport ? "/staff/airport" : "/staff/my-files";
+}
+
+export function useStaffHome(user: StaffUser | null) {
+  const owned = useOwnedSystems(user);
+  const halls = useHalls();
+  const reps = useAirportReps();
+  return user ? staffHome(user, owned, { hall: halls.centersOf(user.id).length > 0, airport: reps.airportsOf(user.id).length > 0 }) : "/staff/login";
 }
 
 /** Ticking clock; only used below the hydration guard */

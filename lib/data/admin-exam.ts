@@ -730,6 +730,41 @@ export type ExamSection = { id: string; name: string; weight: number; categories
 /** A role's exam as the administration builds it: its duration and its sections, whose weights add up to 100 */
 export type ExamBlueprint = { minutes: number; sections: ExamSection[] };
 
+/**
+ * One exam as the exam system's owner keeps it: what it is called, the role it qualifies for, when it is
+ * sat and where, and how it is built. Every role has its main exam, whose id is the role's key; a make-up
+ * exam is sat by whoever missed his role's main one. `centers` absent means every active centre.
+ */
+export type ExamDef = ExamBlueprint & {
+  id: string;
+  name: string;
+  role: string;
+  kind: "main" | "makeup";
+  date: string;
+  time: string;
+  centers?: string[];
+  /** Stopped: no hall opens it until the owner starts it again */
+  off?: boolean;
+};
+
+export const EXAM_KINDS: Record<ExamDef["kind"], string> = { main: "أساسي", makeup: "استدراكي" };
+
+/** A centre where the written exam is sat: its hall, the governorates it serves, and its seats */
+export type ExamCenter = { id: string; name: string; hall: string; governorates: string[]; capacity?: number; off?: boolean };
+
+/** How many questions an exam asks that its role's bank cannot serve, section by section and type by type */
+export function shortageOf(bank: ExamQuestion[], exam: Pick<ExamDef, "role" | "sections">) {
+  return exam.sections.reduce(
+    (a, s) =>
+      a +
+      (Object.keys(s.counts) as QuestionType[]).reduce((b, t) => {
+        const have = sectionPool(bank, exam.role, s).filter((q) => typeOf(q) === t).length;
+        return b + Math.max(0, s.counts[t] - have);
+      }, 0),
+    0,
+  );
+}
+
 const counts = (choice: number, truefalse = 0, written = 0): TypeCounts => ({ choice, truefalse, written });
 const SAFETY: ExamSection = { id: "safety", name: "قسم السلامة والطوارئ", weight: 20, categories: ["إسعافات أولية", "طوارئ"], counts: counts(3, 1) };
 const SHARIA_SHORT: ExamSection = { id: "sharia", name: "القسم الشرعي", weight: 10, categories: ["ديني"], counts: counts(1) };
@@ -742,7 +777,7 @@ const GUIDE: ExamBlueprint = {
   ],
 };
 
-/** Each role's exam as the platform ships it; the administration rebuilds it in «إدارة الامتحان» */
+/** Each role's exam as the platform ships it; the exam system's owner rebuilds it in «إدارة الامتحانات» */
 export const DEFAULT_BLUEPRINTS: Record<string, ExamBlueprint> = {
   "group-head": {
     minutes: 25,
