@@ -12,7 +12,8 @@ wipes the tracked manifest.json). <git rev> is a commit whose content.py still h
 Used for: accommodation (4d5e007; post-group … dossier-payments), sign-in and registration pages (4026ef2),
 the 3D tour page (d6f7a25; home-more-menu, and the new step tour-3d), the live stream (baffdcd; home-hero,
 home-scale, home-more-menu, and the new step home-live), the lottery by birth years and months (51da5d9; the
-home, results, apply and lottery shots, and the new steps results-draw and sc-lottery-not-drawn).
+home, results, apply and lottery shots, and the new steps results-draw and sc-lottery-not-drawn), the coordinator
+who works for the cluster (4c5f6db; post-group-card post-group-done post-mygroup post-medical dossier-group).
 """
 import sys, copy, difflib, io, json, importlib.util, re, subprocess
 from pathlib import Path
