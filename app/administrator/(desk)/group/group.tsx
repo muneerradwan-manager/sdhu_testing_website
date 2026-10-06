@@ -35,6 +35,7 @@ import { useExamRules } from "../../_lib/admin-rules";
 import { activeCount } from "../../_lib/group";
 import { isClusterRole } from "../../_lib/admin";
 import { TEAM_ROLES } from "../../_lib/roster";
+import { capacityFor, nextGroupNumber, teamLabel, teamRolesOf, useCapacityTiers } from "../../_lib/capacity";
 import { StandingCard } from "../../_components/standing";
 import { ClusterGroups } from "./cluster-groups";
 import { TeamPicker, teamComplete, teamNames, type TeamPick } from "./team-picker";
@@ -42,9 +43,9 @@ import { AdminShell, LockedCard, ReceiptCard, SimButton } from "../../_component
 
 const TEAM = GROUP.team.slice(1);
 
-/** The team the head actually invited, or the demo team for profiles that were fast-forwarded */
-function teamOf(g: { team?: { role: string; name: string }[] } | undefined) {
-  return g?.team?.length ? g.team : TEAM;
+/** The team the head actually invited, or the demo team for profiles that were fast-forwarded (a group its category gave no team has none) */
+function teamOf(g: { team?: { role: string; name: string }[]; teamSize?: number } | undefined) {
+  return g?.team?.length ? g.team : g?.teamSize === 0 ? [] : TEAM;
 }
 const AUTO_APPROVE_MS = 12_000;
 
@@ -66,7 +67,7 @@ export function AdminGroup() {
   const view = !r.published || !r.passed ? "locked" : !g?.feePaidAt ? "request" : showReceipt ? "receipt" : !g.approvedAt ? "pending" : !g.contractSignedAt ? "contracts" : "mine";
   const subtitle =
     view === "contracts"
-      ? "اعتُمدت مجموعتك. وقّع العقود إلكترونياً لتُفعَّل صلاحياتك كرئيس مجموعة."
+      ? "اعتُمدت مجموعتك. ادعُ فريقك واحداً واحداً، ثم وقّعوا ميثاق الفريق لتُفعَّل صلاحياتك كرئيس مجموعة."
       : view === "mine"
         ? "صلاحياتك تغيّرت تلقائياً: ترى مجموعتك فقط، وتستلم الحجاج المفوَّجين، وتنشر الإعلانات، وتفتح التجمّعات."
         : "يتقدم الناجحون بأنفسهم بطلبات تشكيل المجموعات من 11 إلى 25 جمادى الأولى، وتراجعها الإدارة وتعتمدها. لا يُختار تكتل الآن: التكتلات تُنشأ بعد تشكيل كل المجموعات وانتخاب رؤسائها.";
@@ -97,17 +98,19 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const season = useSeason();
   const fee = season.fees.groupFormation;
   const existing = admin.profile?.group;
-  const [form, setForm] = useState({ number: existing?.number ?? 27, capacity: existing?.capacity ?? 50, name: "مجموعة المزة للعائلات وكبار السن" });
-  const [team, setTeam] = useState<TeamPick>({});
+  const admins = useStore((s) => s.admins);
+  const [name, setName] = useState("مجموعة المزة للعائلات وكبار السن");
   const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
   const stage = existing?.requestedAt ? "pay" : "form";
+  // Not the head's to type: the number is the next one this season. The capacity is the administration's,
+  // given when it approves the group, by the season's categories (0 until then)
+  const number = nextGroupNumber(admins, admin.id);
 
   const submit = () => {
-    const picked = TEAM_ROLES.map((r) => ({ roleKey: r.key, role: r.label, name: team[r.key]!.candidate.name, id: team[r.key]!.candidate.id }));
-    actions.upsertAdmin(admin.id, { group: { number: form.number, capacity: form.capacity, requestedAt: Date.now(), team: picked } });
-    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${form.number}`, `«${form.name}»`, `السعة ${form.capacity} — الفريق بدعوات فردية: ${teamNames(team).join("، ")} — دون تكتل حتى انتخاب رؤساء التكتلات`, { area: "groups", ref: String(form.number) });
-    toast({ title: "أُرسل طلب التشكيل", body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
+    actions.upsertAdmin(admin.id, { group: { number, capacity: 0, requestedAt: Date.now() } });
+    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${number}`, `«${name}»`, "السعة تحددها الإدارة عند الاعتماد — الفريق يُدعى بعد الاعتماد — دون تكتل حتى انتخاب رؤساء التكتلات", { area: "groups", ref: String(number) });
+    toast({ title: `أُرسل طلب تشكيل المجموعة ${number}`, body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
   };
 
   const pay = (m: PayMethod) => {
@@ -143,7 +146,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
             <h2 className="mt-4 font-display text-3xl font-bold text-green-dark">رسم تشكيل المجموعة {g.number}</h2>
             <p className="mt-2 text-ink-soft">بعد التسديد يصدر إيصال رقمي، وتظهر «استمارة المجموعة» في خزنة الوثائق.</p>
             <p className="mt-6 font-display text-6xl font-bold text-maroon" dir="ltr">{formatUSD(fee)}</p>
-            <p className="mt-1 text-sm text-hint">السعة {g.capacity} حاجاً — التكتل يُحدَّد لاحقاً</p>
+            <p className="mt-1 text-sm text-hint">السعة تحددها الإدارة عند الاعتماد — التكتل يُحدَّد لاحقاً</p>
             <div className="mt-8 text-right">
               <PayMethods amount={fee} reference={adminReceipt(admin.id, "G", g.number)} bankReference={adminReceipt(admin.id, "G", g.number).replace("-G-", "-BANK-")} onConfirm={pay} />
             </div>
@@ -157,31 +160,30 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
     <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
       <Card>
         <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><ClipboardList className="size-7 text-gold-dark" /> طلب تشكيل مجموعة</h2>
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-2 block font-bold">رقم المجموعة</span>
-            <input type="number" min={1} max={99} value={form.number} onChange={(e) => setForm({ ...form, number: Number(e.target.value) || 0 })} className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 font-display text-2xl font-bold text-maroon outline-none focus:border-green-light" dir="ltr" />
-          </label>
-          <label className="block">
-            <span className="mb-2 block font-bold">اسم تعريفي</span>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-          </label>
-          <div className="sm:col-span-2">
-            <span className="mb-2 flex items-center justify-between font-bold">
-              السعة القصوى <span className="font-display text-2xl text-maroon">{form.capacity} حاجاً</span>
-            </span>
-            <input type="range" min={20} max={50} step={1} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} className="w-full accent-maroon" aria-label="السعة" />
-            <p className="text-xs text-hint">الحد الأعلى للمجموعة في إعدادات الموسم: 50 حاجاً</p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl bg-sand p-4">
+            <p className="text-sm font-bold text-ink-soft">رقم المجموعة</p>
+            <p className="mt-1 font-display text-4xl font-bold text-maroon tabular-nums">{number}</p>
+            <p className="mt-1 text-xs leading-5 text-hint">يُعطى تلقائياً: التالي في أرقام مجموعات هذا الموسم.</p>
           </div>
+          <div className="rounded-2xl bg-sand p-4">
+            <p className="text-sm font-bold text-ink-soft">سعة المجموعة</p>
+            <p className="mt-2 font-bold leading-7 text-green-dark">تحددها إدارة الإداريين عند اعتماد طلبك، وكذلك فريقها</p>
+            <p className="mt-1 text-xs leading-5 text-hint">بفئات الموسم: بحسب خبرتك في رئاسة المجموعات وتقييمك فيها. لا تُختار.</p>
+          </div>
+          <label className="block sm:col-span-2">
+            <span className="mb-2 block font-bold">اسم تعريفي</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
+          </label>
         </div>
 
-        <h3 className="mt-8 flex items-center gap-2 font-bold text-ink"><UsersRound className="size-5 text-gold-dark" /> فريق المجموعة (من الناجحين)</h3>
-        <p className="mt-1 text-sm leading-6 text-ink-soft">ابحث عن كل واحد باسمه أو منطقته أو رقمه الوطني، وأرسل له دعوة فردية. لا تُرسل دعوة جماعية: يصل الطلب إلى شخص واحد يوافق أو يعتذر من تطبيقه، ولك أن تسحب الدعوة أو تدعو غيره.</p>
-        <TeamPicker team={team} setTeam={setTeam} groupNumber={form.number} />
+        <p className="mt-6 flex items-start gap-2 rounded-2xl bg-green-dark/6 p-4 text-sm leading-7 text-green-dark">
+          <UsersRound className="mt-1 size-5 shrink-0" /> لا يُدعى فريق المجموعة الآن. ليس لكل مجموعة موجّه ديني ومنسق تقني: تحدد الإدارة عند الاعتماد صفات فريقك، من المعاون ثم الموجّه ثم المنسق التقني، فتدعوهم واحداً واحداً، ثم توقّعون ميثاق الفريق.
+        </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
           <p className="text-sm text-ink-soft">رسم التشكيل بعد الإرسال: <b className="text-maroon">{formatUSD(fee)}</b></p>
-          <Button size="lg" onClick={submit} disabled={!teamComplete(team) || form.number < 1}>
+          <Button size="lg" onClick={submit}>
             إرسال طلب التشكيل <ArrowLeft className="size-5" />
           </Button>
         </div>
@@ -229,6 +231,7 @@ function FeeReceipt({ onContinue }: { onContinue: () => void }) {
 function Pending() {
   const admin = useAdmin()!;
   const toast = useToast();
+  const tiers = useCapacityTiers();
   const g = admin.profile!.group!;
   const [now, setNow] = useState(() => Date.now());
   // From the last time it was sent: paying the fee, or sending it again after the administration returned it
@@ -246,13 +249,15 @@ function Pending() {
     const wait = Math.max(0, Math.max(g.feePaidAt, g.requestedAt) + AUTO_APPROVE_MS - Date.now());
     const t = setTimeout(() => {
       const at = Date.now();
-      actions.upsertAdmin(admin.id, { group: { ...g, approvedAt: at, approvedBy: "مازن الحلبي (محاكاة)" } });
-      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: "اعتماد مجموعة", target: `المجموعة ${g.number}`, after: `رئيسها ${admin.name}`, detail: "شروطها مكتملة: الرئيس مؤهل، والرسم مسدد، والفريق مكتمل", system: "admins", area: "groups", ref: String(g.number) });
-      logAdmin(admin.id, `استلام اعتماد المجموعة ${g.number}`, undefined, "ميثاق الفريق جاهز للتوقيع في خزنة الوثائق");
-      toast({ title: `اعتُمدت المجموعة ${g.number}`, body: "لموسم 1448. وقّع ميثاق الفريق، وبعد انتخاب رؤساء التكتلات تختار تكتلك.", icon: "🏛️", tone: "success" });
+      const tier = capacityFor(admin.id, tiers).tier;
+      if (!tier) return;
+      actions.upsertAdmin(admin.id, { group: { ...g, capacity: tier.capacity, capacityTier: tier.label, teamSize: tier.team, approvedAt: at, approvedBy: "مازن الحلبي (محاكاة)" } });
+      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: "اعتماد مجموعة", target: `المجموعة ${g.number}`, after: `رئيسها ${admin.name}`, detail: `السعة ${tier.capacity} حاجاً، والفريق: ${teamLabel(tier.team)} (${tier.label})`, system: "admins", area: "groups", ref: String(g.number) });
+      logAdmin(admin.id, `استلام اعتماد المجموعة ${g.number}`, undefined, `السعة ${tier.capacity} حاجاً، والفريق: ${teamLabel(tier.team)} (${tier.label})`);
+      toast({ title: `اعتُمدت المجموعة ${g.number}`, body: `بسعة ${tier.capacity} حاجاً، وفريقها: ${teamLabel(tier.team)}.`, icon: "🏛️", tone: "success" });
     }, wait);
     return () => clearTimeout(t);
-  }, [g, admin.id, admin.name, toast]);
+  }, [g, admin.id, admin.name, toast, tiers]);
 
   /** Sent back by the administration: he sends it again, and it waits for its decision once more */
   const resend = () => {
@@ -263,9 +268,8 @@ function Pending() {
 
   const steps = [
     { t: "استلام طلب التشكيل والرسم", d: adminReceipt(admin.id, "G", g.number), at: 0 },
-    { t: "موافقة أعضاء الفريق", d: "3 من 3 وافقوا من تطبيقاتهم", at: 0 },
-    { t: "تحقق المنصة من شروط الطلب", d: "اكتمال الفريق، وصفات أعضائه، والرسوم", at: 6000 },
-    { t: "قرار إدارة الإداريين", d: "يعتمد صاحب صلاحية «إدارة الإداريين» الطلب، أو يعيده إليك مع ملاحظة", at: AUTO_APPROVE_MS },
+    { t: "تحقق المنصة من شروط الطلب", d: "تأهّل الرئيس، والرسم", at: 6000 },
+    { t: "قرار إدارة الإداريين", d: "يعتمد صاحب صلاحية «إدارة الإداريين» الطلب ويحدد بفئتك سعة المجموعة وفريقها، أو يعيده إليك مع ملاحظة", at: AUTO_APPROVE_MS },
   ];
 
   return (
@@ -419,7 +423,7 @@ function ContractDoc({ kind, signature, signedName }: { kind: "cluster" | "team"
           "أي خلاف يُحال إلى قسم شؤون التكتلات، وتُسجَّل القرارات في سجل الأحداث.",
         ]
       : [
-          "يعمل الفريق بصفاته المعتمدة: رئيس المجموعة، والمعاون، والموجّه الديني، والمنسق التقني، ولكلٍّ صلاحياته في المنصة.",
+          `يعمل الفريق بصفاته المعتمدة: ${["رئيس المجموعة", ...teamOf(g).map((t) => t.role)].join("، ")}، ولكلٍّ صلاحياته في المنصة.`,
           "يرافق أعضاء الفريق الحجاج طوال الموسم، ولا يغادر أحدهم دون تكليف بديل يُسجَّل في المنصة.",
           "التجمّعات تُغلق بعد مسح بطاقات الجميع أو معالجة كل غياب، ويُبلَّغ عن المفقود خلال 5 دقائق.",
           "يُرسل رئيس المجموعة تقريراً يومياً، ويتقاسم الفريق مهامه وفق خطة معلنة في قناة المجموعة.",
@@ -494,7 +498,61 @@ function ContractDoc({ kind, signature, signedName }: { kind: "cluster" | "team"
   );
 }
 
+/**
+ * After approval, and only then, the head builds his team: for every role he searches those who qualified
+ * this season and invites one person, who accepts or apologises from his own application. The charter
+ * the team signs comes once all of them accepted.
+ */
+function TeamStep() {
+  const admin = useAdmin()!;
+  const toast = useToast();
+  const g = admin.profile!.group!;
+  const roles = teamRolesOf(g.teamSize);
+  const [team, setTeam] = useState<TeamPick>({});
+
+  const save = () => {
+    const picked = roles.map((r) => ({ roleKey: r.key, role: r.label, name: team[r.key]!.candidate.name, id: team[r.key]!.candidate.id }));
+    actions.upsertAdmin(admin.id, { group: { ...g, team: picked } });
+    logAdmin(admin.id, `تكوين فريق المجموعة ${g.number}`, teamNames(team, roles).join("، "), "بدعوات فردية قبِلها أصحابها", { area: "groups", ref: String(g.number) });
+    toast({ title: "اكتمل فريق مجموعتك", body: "بقي أن توقّعوا ميثاق الفريق.", icon: "🤝", tone: "success" });
+  };
+
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
+      <Card>
+        <Badge tone="gold">اعتُمدت المجموعة {g.number} بسعة {g.capacity} حاجاً{g.capacityTier ? ` — ${g.capacityTier}` : ""}</Badge>
+        <h2 className="mt-3 flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><UsersRound className="size-7 text-gold-dark" /> فريق المجموعة</h2>
+        <p className="mt-1 text-sm leading-6 text-ink-soft">
+          فريق مجموعتك كما حددته الإدارة بفئتك: <b className="text-green-dark">{teamLabel(g.teamSize)}</b>. ابحث عن كل واحد من الناجحين باسمه أو منطقته أو رقمه الوطني، وأرسل له دعوة فردية. لا تُرسل دعوة جماعية: يصل الطلب إلى شخص واحد يوافق أو يعتذر من تطبيقه، ولك أن تسحب الدعوة أو تدعو غيره.
+        </p>
+        <TeamPicker team={team} setTeam={setTeam} groupNumber={g.number} roles={roles} />
+        {roles.length < TEAM_ROLES.length && (
+          <p className="mt-4 rounded-2xl bg-sand p-3 text-sm leading-7 text-ink-soft">
+            ليس في فريق مجموعتك {TEAM_ROLES.slice(roles.length).map((r) => r.label).join(" ولا ")}: يتولى ذلك عن مجموعتك من يقوم به على مستوى التكتل.
+          </p>
+        )}
+        <div className="mt-8 flex justify-end border-t border-gold-light pt-6">
+          <Button size="lg" onClick={save} disabled={!teamComplete(team, roles)}>
+            اعتماد الفريق والانتقال إلى الميثاق <ArrowLeft className="size-5" />
+          </Button>
+        </div>
+      </Card>
+      <div className="rounded-[2rem] bg-green-dark p-6 text-sm leading-7 text-white/85">
+        <p className="font-display text-xl font-bold text-white">لماذا الآن؟</p>
+        <p className="mt-2">لا يُدعى أحد قبل اعتماد المجموعة: فلا يرتبط ناجح بمجموعة قد لا تُعتمد، ولا تُعرف صفات فريقها قبل أن تحددها الإدارة. وبعد أن يقبل الجميع دعواتهم يوقّع الفريق كله ميثاقه.</p>
+      </div>
+    </div>
+  );
+}
+
 function Contracts() {
+  const admin = useAdmin()!;
+  const g = admin.profile!.group!;
+  // A group its category gave no team goes straight to its charter
+  return g.team?.length || teamRolesOf(g.teamSize).length === 0 ? <Charter /> : <TeamStep />;
+}
+
+function Charter() {
   const admin = useAdmin()!;
   const toast = useToast();
   const g = admin.profile!.group!;

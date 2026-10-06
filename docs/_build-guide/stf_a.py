@@ -4,8 +4,11 @@ Usage: CAP_DIR=staff python stf_a.py <keep> [part]"""
 import sys
 from cap import Cap, ROOT, truncate
 
-truncate(int(sys.argv[1]))
-ONLY = sys.argv[2] if len(sys.argv) > 2 else None
+# The other runs import Staff from here: only a run of this file captures its parts
+MAIN = __name__ == "__main__"
+if MAIN:
+    truncate(int(sys.argv[1]))
+ONLY = (sys.argv[2] if len(sys.argv) > 2 else None) if MAIN else "-"
 
 class Staff:
     def __init__(self, storage=None):
@@ -18,7 +21,8 @@ class Staff:
         if shots:
             c.shot("login-filled", "إدخال اسم المستخدم وكلمة المرور", hl=[("button[type=submit]:has-text('دخول'), main button:text-is('دخول')", "")], section=S)
         p.locator("main button:text-is('دخول')").first.click(); c.settle(2500)
-        p.wait_for_url("**/staff/dashboard**", timeout=20000); c.settle(1500)
+        # each lands on his own home: a file's summary, «لوحتي», his hall, his airport or his files
+        p.wait_for_url(lambda u: "/staff/" in u and "/staff/login" not in u, timeout=20000); c.settle(1500)
     def logout(self):
         b = self.p.locator("button:has-text('تسجيل الخروج')").filter(visible=True).first
         b.scroll_into_view_if_needed(); b.click(); self.c.settle(1500)
@@ -27,6 +31,9 @@ class Staff:
         b.scroll_into_view_if_needed(); b.click(); self.c.settle(wait)
     def tab(self, name, wait=900):
         self.p.get_by_role("tab", name=name).first.click(); self.c.settle(wait)
+    def page_tab(self, name, wait=1200):
+        """A management page's tab: a link in its tab bar, not a role=tab"""
+        self.p.locator(f"nav[aria-label^='تبويبات'] a:has-text('{name}')").first.click(); self.c.settle(wait)
     def close(self):
         self.c.close()
 
@@ -52,6 +59,14 @@ if ONLY in (None, "a"):
     if tog.count():
         tog.click(); c.settle(600)
         c.shot("dash-perms", "بطاقة الموظف في الشريط الجانبي: صلاحياتك والأقسام التي تظهر لك", section=S)
+    # the management of the files: the director grants it and follows each file
+    c.goto("/staff/systems", wait=2000)
+    c.shot("sys-top", "صلاحيات الإدارة: من يحمل إدارة كل ملف، وحال الملف وما يعطّله وأحداثه المهمة", hl=[("aside a[href$='/staff/systems']", "")], section=S)
+    g = p.locator("select[aria-label='منح إدارة الطيران']").first
+    g.scroll_into_view_if_needed(); g.select_option("fadi"); c.settle(500)
+    c.shot("sys-grant", "منح صلاحية الإدارة لموظف، أو سحبها ممن يحملها", hl=[("select[aria-label='منح إدارة الطيران']", "1"), ("button[aria-label='سحب الصلاحية من هيثم زيدان']", "2")], section=S)
+    c.goto("/staff/exam", wait=1800)
+    c.shot("sys-locked", "ملف لا تحمل صلاحية إدارته: من يحملها، ومن أين تُمنح", section=S)
     s.logout()
     c.shot("logout", "بعد تسجيل الخروج تعود صفحة الدخول", section=S)
     s.close()

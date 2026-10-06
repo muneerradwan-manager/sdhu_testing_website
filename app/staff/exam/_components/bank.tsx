@@ -18,13 +18,12 @@ import { Chip, Pick, Segments, downloadCsv } from "./ui";
 
 const TYPES = Object.keys(QUESTION_TYPES) as QuestionType[];
 
-type Draft = { type: QuestionType; category: ExamCategory; roles: string[]; scenario: string; text: string; options: string[]; answer: number; explanation: string; points: number };
+type Draft = { type: QuestionType; category: ExamCategory; roles: string[]; text: string; options: string[]; answer: number; explanation: string; points: number };
 
 const blankDraft = (type: QuestionType, role?: string): Draft => ({
   type,
   category: "إداري",
   roles: role ? [role] : [],
-  scenario: "",
   text: "",
   options: type === "choice" ? ["", "", "", ""] : type === "truefalse" ? [...TRUE_FALSE] : [],
   answer: type === "written" ? -1 : 0,
@@ -41,7 +40,7 @@ function QuestionForm({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d: 
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-white/55">النوع:</span>
             {TYPES.map((t) => (
-              <Pick key={t} on={draft.type === t} onClick={() => setDraft({ ...blankDraft(t), category: draft.category, roles: draft.roles, scenario: draft.scenario, text: draft.text, explanation: draft.explanation })}>
+              <Pick key={t} on={draft.type === t} onClick={() => setDraft({ ...blankDraft(t), category: draft.category, roles: draft.roles, text: draft.text, explanation: draft.explanation })}>
                 {QUESTION_TYPES[t]}
               </Pick>
             ))}
@@ -62,10 +61,6 @@ function QuestionForm({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d: 
               </Pick>
             ))}
           </div>
-          <label className="block">
-            <span className="mb-1 block text-xs text-white/60">سيناريو قبل السؤال (اختياري)</span>
-            <textarea rows={2} value={draft.scenario} onChange={(ev) => setDraft({ ...draft, scenario: ev.target.value })} className={textareaClass} aria-label="السيناريو" />
-          </label>
         </>
       )}
       <label className="block">
@@ -182,7 +177,6 @@ export function Bank() {
         category: draft.category,
         type: draft.type,
         roles: draft.roles,
-        ...(draft.scenario.trim() ? { scenario: draft.scenario.trim() } : {}),
         text: draft.text.trim(),
         options: draft.options,
         answer: draft.answer,
@@ -313,7 +307,7 @@ export function Bank() {
                           if (editing) close();
                           else {
                             setOpen(x.id);
-                            setDraft({ ...blankDraft(t), category: x.category, roles: x.roles, scenario: x.scenario ?? "", text: x.text, options: [...x.options], answer: x.answer, explanation: x.explanation, points: pointsOf(x) });
+                            setDraft({ ...blankDraft(t), category: x.category, roles: x.roles, text: x.text, options: [...x.options], answer: x.answer, explanation: x.explanation, points: pointsOf(x) });
                           }
                         }}
                       >

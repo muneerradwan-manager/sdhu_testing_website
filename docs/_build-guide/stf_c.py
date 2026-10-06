@@ -92,22 +92,34 @@ if ONLY == "j":
         c.shot(key, cap, section=S)
     s.close()
 
-# ───────── K. staff.create ─────────
+# ───────── K. «إدارة الموظفين» (abusami) ─────────
 if ONLY == "k":
     s = Staff(); c, p = s.c, s.p; S = "K"
+    TABS = "nav[aria-label='تبويبات إدارة الموظفين']"
     s.login("abusami")
     c.goto("/staff/employees", wait=2000)
-    c.shot("emp-top", "الموظفون: البحث والتصفية والجدول", section=S)
+    c.shot("emp-top", "ملخص الموظفين: أرقام السجل والحسابات والموسم، وما ينتظرك الآن", hl=[("aside a[href$='/staff/employees']", "1"), ("aside a[href$='/staff/employees/manage']", "2")], section=S)
+    c.scroll_to("main h2:has-text('حسابات البوابة')", 120)
+    c.shot("emp-summary", "تركيب السجل، وحسابات البوابة، والمشاركة في الموسم", section=S)
+    c.goto("/staff/employees/manage", wait=2000)
+    c.shot("emp-register", "إدارة الموظفين: ثلاثة تبويبات، وأولها سجل الموظفين", hl=[(TABS, "")], section=S)
     p.locator("input[aria-label='بحث في الموظفين']").first.fill("وسام"); c.settle(900)
     c.shot("emp-search", "البحث عن موظف", section=S)
     p.locator("main tbody tr").first.click(); c.settle(1200)
-    c.shot("emp-drawer", "ملف الموظف: البيانات والمشاركة في الموسم والصلاحيات", section=S)
+    c.shot("emp-drawer", "ملف الموظف: البيانات والمواقع والرحلتان والحساب، وسجلّه", section=S)
     lk = p.locator("[role=dialog] :text('صفحته كما يراها')").first
     if lk.count():
         lk.click(); c.settle(1500)
         c.shot("emp-asseen", "صفحة الموظف كما يراها هو", section=S)
     p.keyboard.press("Escape"); c.settle(400); p.keyboard.press("Escape"); c.settle(400)
-    c.goto("/staff/employees", wait=1800)
+    s.page_tab("الحسابات", 1800)
+    c.shot("emp-accounts", "حسابات البوابة: صلاحيات كل حساب ومواقعه الميدانية، وسجل صاحبه", section=S)
+    p.locator("main button:has-text('عمر الشامي')").first.click(); c.settle(1200)
+    c.shot("emp-account", "حساب موظف: صلاحياته ومواقعه، وربطه بسجله، وكلمة المرور المؤقتة", section=S)
+    p.keyboard.press("Escape"); c.settle(500)
+    s.page_tab("المشاركون في الموسم", 1800)
+    c.shot("emp-season", "المشاركون في الموسم: مواقع كل مشارك ورحلتاه، ومن لم يُسند بعد", section=S)
+    s.page_tab("السجل", 1800)
     s.btn("إضافة موظف", 1200)
     c.shot("emp-new", "إضافة موظف: البيانات الأساسية", section=S)
     dlg = p.locator("[role=dialog]").last
@@ -122,6 +134,9 @@ if ONLY == "k":
     c.shot("emp-new-save", "حفظ الموظف الجديد", hl=[("[role=dialog] button:has-text('إضافة الموظف')", "")], section=S)
     add.click(); c.settle(1500)
     c.shot("emp-added", "أُضيف الموظف", section=S)
+    p.keyboard.press("Escape"); c.settle(500)
+    c.scroll_to("main h2:has-text('سجل الإضافة والتعديل والإيقاف')", 120)
+    c.shot("emp-records", "سجل الإضافة والتعديل والإيقاف: كل تغيير في السجل، ومن أجراه ومتى", section=S)
     s.close()
 
 # ───────── L. ops.files ─────────

@@ -15,12 +15,15 @@ export type TeamPick = Record<string, Invite | undefined>;
 
 const DECLINE_REASONS = ["ارتبط بمجموعة أخرى هذا الموسم", "ظرف صحي في العائلة", "يفضّل مجموعة في منطقته"];
 
-export function teamComplete(team: TeamPick) {
-  return TEAM_ROLES.every((r) => team[r.key]?.status === "accepted");
+type Role = (typeof TEAM_ROLES)[number];
+
+/** The group's roles are its category's, from the top of the ladder: by default all of them */
+export function teamComplete(team: TeamPick, roles: readonly Role[] = TEAM_ROLES) {
+  return roles.every((r) => team[r.key]?.status === "accepted");
 }
 
-export function teamNames(team: TeamPick) {
-  return TEAM_ROLES.map((r) => team[r.key]?.candidate.name).filter(Boolean) as string[];
+export function teamNames(team: TeamPick, roles: readonly Role[] = TEAM_ROLES) {
+  return roles.map((r) => team[r.key]?.candidate.name).filter(Boolean) as string[];
 }
 
 /**
@@ -29,11 +32,11 @@ export function teamNames(team: TeamPick) {
  * administrator accepts or apologises from his own application, and the head may withdraw an invitation
  * or invite someone else instead.
  */
-export function TeamPicker({ team, setTeam, groupNumber }: { team: TeamPick; setTeam: (t: TeamPick) => void; groupNumber: number }) {
+export function TeamPicker({ team, setTeam, groupNumber, roles = TEAM_ROLES }: { team: TeamPick; setTeam: (t: TeamPick) => void; groupNumber: number; roles?: readonly Role[] }) {
   const timers = useRef<number[]>([]);
   return (
     <div className="mt-3 space-y-4">
-      {TEAM_ROLES.map((role) => (
+      {roles.map((role) => (
         <RoleSlot key={role.key} role={role} invite={team[role.key]} groupNumber={groupNumber} timers={timers} onChange={(inv) => setTeam({ ...team, [role.key]: inv })} />
       ))}
     </div>

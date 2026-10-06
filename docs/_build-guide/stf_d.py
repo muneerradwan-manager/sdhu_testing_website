@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Staff guide — run D: الطيران (flights.manage: haitham; flights.view: fadi). The officer does everything:
-flights one way or round trip, employees one or many, whole groups of pilgrims.
+"""Staff guide — run D: «إدارة الطيران» (haitham holds the file). The officer does everything: airports, carriers and
+their representatives, flights one way or round trip, employees one or many, whole groups of pilgrims, dispatch.
+The representative of an airport (omar, no permission) records take-off and landing on «رحلات مطاري».
 Usage: CAP_DIR=staff python stf_d.py <keep>"""
 import sys
 from cap import truncate
@@ -10,6 +11,7 @@ truncate(int(sys.argv[1]))
 s = Staff(); c, p = s.c, s.p
 S = "N"
 D = "[role=dialog]"
+TABS = "nav[aria-label='تبويبات إدارة الطيران']"
 ROW = lambda no: f"main table tbody tr:has-text('{no}')"
 
 def open_flight(no, wait=1300):
@@ -26,7 +28,20 @@ def dbtn(text, wait=1000):
 
 s.login("haitham")
 c.goto("/staff/flights", wait=2300)
-c.shot("fl-top", "الطيران: أرقام الموسم والتبويبات الثلاثة", hl=[("aside a[href*='/staff/flights'], nav a[href*='/staff/flights']", "")], section=S)
+c.shot("fl-top", "ملخص الطيران: أرقام الموسم، وما ينتظرك الآن", hl=[("aside a[href$='/staff/flights']", "1"), ("aside a[href$='/staff/flights/manage']", "2")], section=S)
+c.scroll_to("text=الرحلات القادمة", 120)
+c.shot("fl-summary", "المطارات ومندوبوها، والرحلات القادمة، والتكتلات على رحلاتها", section=S)
+
+# ── the first tab: airports, carriers, and each airport's representative
+c.goto("/staff/flights/manage", wait=2000)
+c.shot("fl-refs", "إدارة الطيران: ثلاثة تبويبات بترتيب العمل، وأولها المطارات والناقلون", hl=[(TABS, "")], section=S)
+rep = p.locator("select[aria-label='مندوب مطار الملك عبد العزيز — صالة الحجاج']").first
+c.scroll_to("text=مندوبو المطارات", 120)
+rep.select_option("omar"); c.settle(5000)  # its toast fades first
+c.shot("fl-reps", "مندوبو المطارات: مندوب لكل مطار يسجل الإقلاع منه والهبوط فيه", hl=[("select[aria-label='مندوب مطار الملك عبد العزيز — صالة الحجاج']", "")], section=S)
+
+# ── the flights
+s.page_tab("الرحلات", 1800)
 c.scroll_to("main table", 330)
 c.shot("fl-list", "قائمة الرحلات: المقاعد، والمجموعات على كل رحلة، والحالة", section=S)
 
@@ -123,14 +138,17 @@ dbtn("إلغاء الرحلة", 800)
 p.locator(f"{D} textarea").last.fill("ألغى الناقل الرحلة"); c.settle(300)
 c.shot("fl-cancel", "إلغاء رحلة: المسافرون يصيرون «بحاجة إلى رحلة»", hl=[(f"{D} button:has-text('تنفيذ')", "")], section=S)
 dbtn("تنفيذ", 1500)
+close()
+c.scroll_to("text=سجل الرحلات", 120)
+c.shot("fl-records", "سجل الرحلات: كل ما تغيّر في الرحلات، ومن غيّره ومتى", section=S)
 
-# ── board
+# ── dispatch
 c.scroll_top()
-s.tab("لوحة التفويج", 1500)
+s.page_tab("التفويج", 1800)
 c.scroll_to("text=التكتلات والمجموعات", 110)
-c.shot("fl-board", "لوحة التفويج: كل مجموعة ورحلتاها، وزر «إسناد» لمن ليس على رحلة", hl=[("main tr:has-text('المجموعة 47') button:has-text('إسناد')", "")], section=S)
+c.shot("fl-board", "التفويج: كل مجموعة ورحلتاها، وزر «إسناد» لمن ليس على رحلة", hl=[("main tr:has-text('المجموعة 47') button:has-text('إسناد')", "")], section=S)
 p.locator("main tr:has-text('المجموعة 47') button:has-text('إسناد')").first.click(); c.settle(900)
-c.shot("fl-board-assign", "إسناد مجموعة من اللوحة: رحلة الذهاب ورحلة العودة مقترحتان", hl=[(f"{D} button:has-text('إسناد المجموعة')", "")], section=S)
+c.shot("fl-board-assign", "إسناد مجموعة من التفويج: رحلة الذهاب ورحلة العودة مقترحتان", hl=[(f"{D} button:has-text('إسناد المجموعة')", "")], section=S)
 dbtn("إسناد المجموعة", 1500)
 c.scroll_to("section:has(h2:has-text('بحاجة إلى رحلة'))", 110)
 c.shot("fl-board-lists", "بحاجة إلى رحلة، وموظفون بلا رحلة، والتنبيهات", section=S)
@@ -139,28 +157,26 @@ m = p.locator(D).last
 m.locator("select").select_option(index=1); m.locator("input").last.fill("إعادة إسناد بعد إلغاء الرحلة"); c.settle(300)
 c.shot("fl-assign-one", "إسناد فردي لمن فقد مقعده", hl=[(f"{D} button:has-text('إسناد') >> nth=-1", "")], section=S)
 m.locator("button:has-text('إسناد')").last.click(); c.settle(1200)
-c.scroll_top()
-s.tab("المطارات والناقلون", 1200)
-c.scroll_to("[role=tablist]", 110)
-c.shot("fl-refs", "المطارات والناقلون الجويون", section=S)
 c.goto("/staff/my-files", wait=2000)
 c.shot("fl-my", "رحلاتي: رحلة الموظف ذهاباً وعودة في «ملفاتي التشغيلية»", hl=[("section:has(h2:has-text('رحلاتي'))", "")], section=S)
 
-# ── following the flights: view, take-off and landing
+# ── the airport's representative: take-off from Damascus, landing in Jeddah
 s.login("omar")
-c.goto("/staff/flights", wait=2300)
-c.shot("fl-view", "الاطلاع على الطيران (متابعة الرحلات): لا إنشاء ولا إسناد", section=S)
-c.scroll_to("main table", 330)
-open_flight("RB 507")
-c.shot("fl-depart-btn", "متابعة الرحلات تسجّل الإقلاع للرحلة المقفلة", hl=[(f"{D} button:has-text('تسجيل الإقلاع')", "")], section=S)
-dbtn("تسجيل الإقلاع", 900)
+c.goto("/staff/airport", wait=2300)
+dep = p.locator("main div.rounded-2xl:has(span[dir=ltr]:text-is('RB 507')) button:has-text('تسجيل الإقلاع')").first
+dep.scroll_into_view_if_needed(); c.settle(300)
+c.shot("fl-airport", "رحلات مطاري: المغادرة من مطار المندوب والوصول إليه", hl=[("aside a[href$='/staff/airport']", "1"), ("main div.rounded-2xl:has(span[dir=ltr]:text-is('RB 507')) button:has-text('تسجيل الإقلاع')", "2")], section=S)
+dep.click(); c.settle(900)
 p.locator(D).last.locator("input[type=checkbox]").nth(2).check(); c.settle(300)
-c.shot("fl-depart", "تسجيل الإقلاع: علّم من تخلّف فقط", hl=[(f"{D} button:has-text('تنفيذ')", "")], section=S)
-dbtn("تنفيذ", 1500)
-c.shot("fl-departed", "أقلعت: الصاعدون «صعد» والمتخلف «تخلّف»", hl=[(f"{D} button:has-text('تسجيل الهبوط')", "")], section=S)
-dbtn("تسجيل الهبوط", 1300)
-c.shot("fl-arrived", "وصلت الرحلة", section=S)
-close()
+c.shot("fl-depart", "تسجيل الإقلاع: علّم من تخلّف فقط", hl=[(f"{D} button:has-text('تسجيل الإقلاع')", "")], section=S)
+dbtn("تسجيل الإقلاع", 1500)
+c.shot("fl-departed", "أقلعت: صعد الجميع إلا من عُلّم متخلفاً", hl=[("main div.rounded-2xl:has(span[dir=ltr]:text-is('RB 507'))", "")], section=S)
+p.locator("[role=radiogroup][aria-label='المطار'] [role=radio]:has-text('جدة')").first.click(); c.settle(1000)
+land = p.locator("main div.rounded-2xl:has(span[dir=ltr]:text-is('RB 507')) button:has-text('تسجيل الهبوط')").first
+land.scroll_into_view_if_needed(); land.click(); c.settle(600)
+c.shot("fl-land", "تسجيل الهبوط في مطار الوصول: «تأكيد الهبوط»", hl=[("main button:has-text('تأكيد الهبوط')", "")], section=S)
+p.locator("main button:has-text('تأكيد الهبوط')").first.click(); c.settle(1300)
+c.shot("fl-arrived", "هبطت الرحلة", hl=[("main div.rounded-2xl:has(span[dir=ltr]:text-is('RB 507'))", "")], section=S)
 c.save_state("staff/state-flights.json")
 s.close()
 print("DONE stf_d")

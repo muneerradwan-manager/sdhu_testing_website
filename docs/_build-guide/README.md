@@ -8,8 +8,9 @@
 2. الالتقاط (المتغير `CAP_DIR` يحدد مجلد اللقطات، والرقم = عدد اللقطات المحفوظة قبل إعادة التشغيل):
    - الحاج: `run1.py` ثم `run2.py 42` … (انظر تاريخ الجلسة)، في المجلد الجذري.
    - الإداري: `CAP_DIR=admin python adm_a.py 0` ← `adm_b.py 35` ← `adm_c.py 75 ret|head|deputy|tech|members`.
-   - الموظف: `CAP_DIR=staff python adm_prep.py` (يجهّز مجموعة 40 بانتظار الاعتماد) ثم `stf_a.py 0 a|b|c|d` ← `stf_b.py N e|f|g|h` ← `stf_c.py N i|j|k|l|m`.
-   - يحتاج `stf_b.py g` الحالة `admin/state-head-profile.json` التي ينتجها `adm_c.py head`.
+   - الموظف: `CAP_DIR=staff python adm_prep.py` (يجهّز مجموعة 40 بانتظار الاعتماد) ثم `stf_a.py 0 a|b|c|d` ← `stf_b.py N e|f|g|h` ← `stf_c.py N i|j|k|l|m` ← `stf_d.py N`.
+   - يحتاج `stf_b.py e` الحالة `admin/state-eligible.json` (من `adm_a.py`)، و`stf_b.py g` الحالة `admin/state-head-profile.json` التي ينتجها `adm_c.py head`.
+   - ملفات الإدارة (الموظفون، الإداريون، الامتحانات، الطيران) تبويباتها روابط لا `role=tab`: تُفتح بـ`Staff.page_tab()`. والدخول يفتح لكل موظف أول أقسامه، لا «لوحتي» دائماً.
 3. تحويل اللقطات: `python -c "from cap import to_jpg; to_jpg()"` مع `CAP_DIR` المناسب.
 4. البناء: `python build_docx.py <content|admin_content|staff_content> <.|admin|staff> <المسار.docx>`
 5. تحديث الفهرس والطباعة إلى PDF: `powershell -File finalize.ps1 -Docx <docx> -Pdf <pdf>` — يحتاج Word على Windows. على الماك يُبنى ملف Word فقط، ويُحدَّث فهرسه تلقائياً عند فتحه في Word، ويبقى PDF لخطوة Windows.
@@ -22,4 +23,4 @@
 - رابط الموقع المنشور (`site_url` في META لكل دليل): الحاج ← الصفحة الرئيسية، الإداري ← `/administrator/`، الموظف ← `/staff/`. يضعه `build_docx.py` على الغلاف وفي آخر المقدمة. لإضافته إلى دليل موجود دون إعادة بنائه: `python add_site_link.py <content|admin_content|staff_content> <docx>`.
 - السكن (السكن العام أو غرف خاصة يتوزع عليها أفراد الطلب): شغّل `run1.py` ثم `run2.py 42` في نسخة من المجلد خارج المستودع (فـ`run1.py` يمسح `manifest.json` المتتبَّع)، ثم `python patch_pilgrim.py <ذلك المجلد> 4d5e007 <مفاتيح اللقطات>` يبدّل لقطات المجموعة والدفع والملف الطبي ونصوصها في دليل الحاج دون إعادة بنائه.
 - ترقيع دليل الحاج بعد أي تغيير في الموقع: `python patch_pilgrim.py <مجلد الالتقاط> <commit فيه نص الدليل القديم> <مفاتيح اللقطات>` — يبدّل اللقطات المذكورة ويستبدل كل نص تغيّر في `content.py` منذ ذلك الـcommit (العناوين والشرح والخطوات والملاحظات والتعليقات تحت الصور والأسئلة الشائعة وجدول الرسوم).
-- ملف الطيران: لقطاته في `adm_d.py 109` (بوابة الإداريين) و`stf_d.py 103 n` (بوابة الموظفين). دليل الحاج يُرقَّع في مكانه بـ`patch_pilgrim_flights.py` لأنه يحمل تعديلات الاتجاه اليدوية. عند تغيير شريط التنقل تُعاد كل اللقطات بـ`recapture_all.sh`.
+- فصلا الطيران في الدليلين: لقطاتهما في `adm_d.py` (بوابة الإداريين) و`stf_d.py` (بوابة الموظفين، ومعها «رحلات مطاري» لمندوب المطار). أما «ملف الطيران» (دراسة التصميم) فصفحة HTML بلا لقطات، تُطبع إلى PDF بمتصفح Chrome على A4 بهوامش 0.4 إنش (`page.pdf` في Playwright). دليل الحاج يُرقَّع في مكانه بـ`patch_pilgrim_flights.py` لأنه يحمل تعديلات الاتجاه اليدوية. عند تغيير شريط التنقل تُعاد كل اللقطات بـ`recapture_all.sh`.

@@ -12,7 +12,7 @@ export type Candidate = {
   roleKey: "group-deputy" | "guide-m" | "tech";
   office: string;
   area: string;
-  /** This season's qualification score (written 60% + oral 40%) */
+  /** This season's qualification score (written + oral, by the season's weights) */
   score: number;
   /** Seasons already served */
   seasons: number;

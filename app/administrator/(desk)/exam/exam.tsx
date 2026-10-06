@@ -15,6 +15,7 @@ import {
   CloudUpload,
   DoorClosed,
   DoorOpen,
+  ExternalLink,
   Flag,
   Gavel,
   GraduationCap,
@@ -150,7 +151,20 @@ function HallScreen() {
         {hall.center ? (
           <dl className="mt-6 grid gap-3 sm:grid-cols-3">
             {[
-              { icon: MapPin, k: "القاعة", v: hall.center.hall },
+              {
+                icon: MapPin,
+                k: "القاعة",
+                v: (
+                  <>
+                    {hall.center.hall}
+                    {hall.center.at && (
+                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${hall.center.at.lat},${hall.center.at.lng}`} target="_blank" rel="noreferrer" className="mt-1 flex w-fit items-center gap-1 text-xs font-bold text-green hover:underline">
+                        الاتجاهات إلى القاعة <ExternalLink className="size-3" />
+                      </a>
+                    )}
+                  </>
+                ),
+              },
               { icon: AlarmClock, k: "الموعد", v: `${hall.session?.date ?? ""} — ${hall.session?.time ?? ""}` },
               { icon: ShieldCheck, k: "مشرف القاعة", v: hall.supervisor?.name ?? "لم يُسند بعد" },
             ].map((x) => (
@@ -329,16 +343,16 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
   useScrollLock(true);
 
   const submit = useCallback(
-    (auto: boolean) => {
+    (auto: boolean, paper = exam, demo?: string) => {
       if (submitted.current) return;
       submitted.current = true;
-      const sent = sentExam(exam, bank);
+      const sent = sentExam(paper, bank);
       onSubmitted();
       actions.upsertAdmin(admin.id, { exam: sent });
       const written = sent.toGrade?.length ?? 0;
       logAdmin(
         admin.id,
-        auto ? "إرسال الامتحان الكتابي تلقائياً (انتهى الوقت)" : "إرسال الامتحان الكتابي",
+        demo ?? (auto ? "إرسال الامتحان الكتابي تلقائياً (انتهى الوقت)" : "إرسال الامتحان الكتابي"),
         `الإداري ${admin.id.slice(-3)}`,
         `${hall.center?.name ?? ""} — النتيجة ${written ? `المبدئية ${sent.provisional} من 100، و${written} إجابات تحريرية للتصحيح` : `${sent.score} من 100`}`,
       );
@@ -355,6 +369,20 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
     setSaving("saving");
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => setSaving("saved"), 650);
+  };
+
+  /**
+   * Demo: the whole paper answered at once and sent, without going through it question by question.
+   * To pass: every option right and every written answer the full one the grader expects. To fail:
+   * one option in three right and a written answer of a few words, below the written's minimum.
+   */
+  const simulate = (pass: boolean) => {
+    const filled: Record<number, number | string> = {};
+    served.forEach(({ q }, i) => {
+      if (typeOf(q) === "written") filled[q.id] = pass ? q.explanation : "لا أعرف.";
+      else filled[q.id] = pass || i % 3 === 0 ? q.answer : (q.answer + 1) % q.options.length;
+    });
+    submit(false, { ...exam, answers: filled }, pass ? "إرسال الامتحان الكتابي بإجابات ناجحة (محاكاة)" : "إرسال الامتحان الكتابي بإجابات راسبة (محاكاة)");
   };
 
   const goTo = (i: number) => {
@@ -506,6 +534,14 @@ function ExamRunner({ onSubmitted }: { onSubmitted: () => void }) {
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-24">
+          <div className="rounded-3xl border-2 border-dashed border-maroon/30 bg-white p-4">
+            <p className="text-sm font-bold text-maroon">للتجربة فقط</p>
+            <p className="mt-1 text-xs leading-5 text-ink-soft">تُجاب الأسئلة كلها دفعة واحدة ويُرسل الامتحان، دون انتظار الإجابة سؤالاً سؤالاً.</p>
+            <div className="mt-3 grid gap-2">
+              <SimButton className="justify-center" onClick={() => simulate(true)}>محاكاة: إجابات ناجحة</SimButton>
+              <SimButton className="justify-center" onClick={() => simulate(false)}>محاكاة: إجابات راسبة</SimButton>
+            </div>
+          </div>
           <div className="rounded-3xl border border-gold/30 bg-white p-5">
             <p className="text-sm font-bold text-green-dark">شبكة الأسئلة</p>
             {sections.map((s) => (
@@ -653,26 +689,30 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
     return () => clearTimeout(t);
   }, [grading, onGraded]);
 
-  const simulateOral = () => {
+  /** Demo: the committee's oral, high enough to pass, or low enough that the final falls below the pass mark */
+  const simulateOral = (pass: boolean) => {
     const at = Date.now();
     const written = exam.score ?? 0;
-    const final = finalScoreWith(written, 84, rules);
+    // Low enough to fall below the pass mark with this season's weights, where the oral can still decide it
+    const failing = rules.oralWeight ? Math.floor((rules.passMark - written * rules.writtenWeight) / rules.oralWeight) - 10 : 0;
+    const score = pass ? 84 : Math.max(0, Math.min(40, failing));
+    const final = finalScoreWith(written, score, rules);
     actions.upsertAdmin(admin.id, {
-      oral: { score: 84, by: owner, at, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
+      oral: { score, by: owner, at, note: pass ? "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" : "تردّد في المواقف الميدانية، ولم يحسن التصرف في حالة الإغماء" },
       resultPublishedAt: at,
     });
-    actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", ref: admin.id, action: "إدخال نتيجة الامتحان الشفهي (محاكاة)", target: admin.name, detail: "84 من 100 (17 من 20) — اللجنة رقم 3" });
+    actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", ref: admin.id, action: "إدخال نتيجة الامتحان الشفهي (محاكاة)", target: admin.name, detail: `${score} من 100 (${Math.round(score / 5)} من 20) — اللجنة رقم 3` });
     actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", ref: admin.id, action: "إعلان النتيجة النهائية (محاكاة)", target: admin.name, detail: `النهائية ${final} — ${final >= rules.passMark ? "ناجح" : "لم يجتز"}` });
-    logAdmin(admin.id, "الاطلاع على النتيجة النهائية", `الإداري ${admin.id.slice(-3)}`, `الكتابي ${written} × ${Math.round(rules.writtenWeight * 100)}% + الشفهي 84 × ${Math.round(rules.oralWeight * 100)}% = ${final}`);
+    logAdmin(admin.id, "الاطلاع على النتيجة النهائية", `الإداري ${admin.id.slice(-3)}`, `الكتابي ${written} × ${Math.round(rules.writtenWeight * 100)}% + الشفهي ${score} × ${Math.round(rules.oralWeight * 100)}% = ${final}`);
     toast({ title: "نُشرت نتيجتك النهائية", body: `النتيجة: ${final} من 100`, icon: "📜", tone: "gold" });
   };
 
-  /** Demo: the grader marks the written answers (one point short of full on each) */
+  /** Demo: the grader marks the written answers by what they hold: a full answer one point short of full, a few words next to nothing */
   const simulateGrading = () => {
     let e = exam;
     for (const id of pending) {
       const q = served.find((x) => x.q.id === id)?.q;
-      if (q) e = markedExam(e, id, Math.max(0, pointsOf(q) - 1), owner);
+      if (q) e = markedExam(e, id, String(exam.answers[id] ?? "").trim().length >= 40 ? Math.max(0, pointsOf(q) - 1) : Math.floor(pointsOf(q) / 5), owner);
     }
     actions.upsertAdmin(admin.id, { exam: e });
     actions.logEvent({ actor: owner, role: "موظف", system: "exams", area: "results", action: "تصحيح الإجابات التحريرية (محاكاة)", target: `ورقة ${admin.id.slice(-4)}`, detail: `الكتابي ${e.score} من 100` });
@@ -822,7 +862,10 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
               </motion.span>
               <p className="mt-4 font-display text-xl font-bold text-green-dark">بانتظار إدخال نتيجة اللجنة</p>
               <p className="mt-1 text-sm leading-7 text-ink-soft">يُدخلها {owner} (إدارة الامتحانات) من بوابة الموظفين، ولا تظهر إلا بعد إعلانها. الصفحة تتحدث تلقائياً.</p>
-              <SimButton className="mt-5" onClick={simulateOral}>محاكاة: إدخال اللجنة للنتيجة</SimButton>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <SimButton onClick={() => simulateOral(true)}>محاكاة: نتيجة شفهي ناجحة</SimButton>
+                <SimButton onClick={() => simulateOral(false)}>محاكاة: نتيجة شفهي راسبة</SimButton>
+              </div>
             </div>
           ) : (
             <p className="mt-6 rounded-2xl bg-sand p-4 text-sm text-ink-soft">غير متاح — يلزم اجتياز الكتابي أولاً.</p>

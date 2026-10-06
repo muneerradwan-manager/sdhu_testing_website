@@ -10,9 +10,9 @@ import type { StaffUser } from "@/lib/staff";
 import { useStore, type AdminProfile, type AdminRecord, type AuditEvent, type VaultDoc } from "@/lib/store";
 import { APPLIED_ROLES, candidacy, docState, lastServed, levelOf, recordOf, resultOf, seasonHistory, type DocType } from "@/app/administrator/_lib/admin";
 import { useDocTypes, useEvaluationStages, useExamRules, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
+import { DEFAULT_CAPACITY_TIERS, capacityFor, teamLabel, withTeam } from "@/app/administrator/_lib/capacity";
 import { HEADS_POOL, clusterGroupsOf, type ClusterGroup } from "@/app/administrator/_lib/cluster";
 import { roleKeyOf } from "@/app/administrator/_lib/halls";
-import { TEAM_ROLES } from "@/app/administrator/_lib/roster";
 import { useClusters } from "@/lib/cms/content";
 import { useAdminRows, type AdminRow } from "../_components/data";
 import { logAs } from "../_components/kit";
@@ -56,7 +56,8 @@ export type Funnel = { role: string; label: string; open: boolean; applied: numb
 export type FileState = { row: AdminRow; role: string; record: AdminRecord; expired: VaultDoc[]; missing: DocType[]; flagged: boolean };
 
 export type GroupState = "unpaid" | "waiting" | "returned" | "approved";
-export type GroupRow = { row: AdminRow; g: NonNullable<AdminProfile["group"]>; state: GroupState; checks: { label: string; ok: boolean }[]; complete: boolean };
+/** `tier`: before approval, the capacity category its head falls in now, which approval gives the group */
+export type GroupRow = { row: AdminRow; g: NonNullable<AdminProfile["group"]>; state: GroupState; checks: { label: string; ok: boolean }[]; complete: boolean; tier?: import("@/app/administrator/_lib/capacity").CapacityTier };
 
 export type Phase = "closed" | "open" | "announced";
 export type Candidate = { id: string; name: string; group: number; seasons: number; rating: number | null; votes: number; real: boolean };
@@ -134,14 +135,16 @@ export function useAdminsDesk() {
       .filter((r) => r.profile.group)
       .map((row) => {
         const g = row.profile.group!;
-        const team = g.team ?? [];
+        // The team is not part of the request: the head invites it once the group is approved. The capacity
+        // is given on approval, by the category the head falls in
+        const tier = g.approvedAt ? undefined : capacityFor(row.id, adminRules.capacityTiers?.map(withTeam) ?? DEFAULT_CAPACITY_TIERS).tier;
         const checks = [
           { label: "رئيسها مؤهل: نجح وأُعلنت نتيجته أو جدّد صفته", ok: isQualified(row) },
           { label: `رسم التشكيل ${season.fees.groupFormation} $`, ok: !!g.feePaidAt },
-          { label: `الفريق مكتمل بدعوات فردية (${team.length} من ${TEAM_ROLES.length})`, ok: team.length >= TEAM_ROLES.length },
+          ...(g.approvedAt ? [] : [{ label: tier ? `فئته: ${tier.label} — ${tier.capacity} حاجاً، وفريق: ${teamLabel(tier.team)}` : "لا تنطبق على رئيسها أي فئة", ok: !!tier }]),
         ];
         const state: GroupState = g.approvedAt ? "approved" : g.returned ? "returned" : g.feePaidAt ? "waiting" : "unpaid";
-        return { row, g, state, checks, complete: checks.every((c) => c.ok) };
+        return { row, g, state, checks, complete: checks.every((c) => c.ok), tier };
       })
       .sort((a, b) => a.g.number - b.g.number);
     const waiting = groups.filter((x) => x.state === "waiting");

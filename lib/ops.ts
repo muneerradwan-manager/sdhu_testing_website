@@ -65,6 +65,24 @@ export const JOB_TITLES = [
 
 export const GOVERNORATES = ["دمشق", "ريف دمشق", "حلب", "حمص", "حماة", "اللاذقية", "طرطوس", "إدلب", "درعا", "السويداء", "القنيطرة", "دير الزور", "الرقة", "الحسكة"] as const;
 
+/** Each governorate's seat on the map, where a map opens before a place in it is pinned */
+export const GOVERNORATE_SEATS: Record<(typeof GOVERNORATES)[number], { lat: number; lng: number }> = {
+  دمشق: { lat: 33.5138, lng: 36.2765 },
+  "ريف دمشق": { lat: 33.5711, lng: 36.4019 },
+  حلب: { lat: 36.2021, lng: 37.1343 },
+  حمص: { lat: 34.7324, lng: 36.7137 },
+  حماة: { lat: 35.1318, lng: 36.7578 },
+  اللاذقية: { lat: 35.5317, lng: 35.79 },
+  طرطوس: { lat: 34.889, lng: 35.8866 },
+  إدلب: { lat: 35.9306, lng: 36.6339 },
+  درعا: { lat: 32.6189, lng: 36.1021 },
+  السويداء: { lat: 32.7094, lng: 36.5695 },
+  القنيطرة: { lat: 33.1258, lng: 35.8245 },
+  "دير الزور": { lat: 35.3359, lng: 40.1408 },
+  الرقة: { lat: 35.9528, lng: 39.0079 },
+  الحسكة: { lat: 36.5024, lng: 40.7477 },
+};
+
 export type Employee = {
   id: string;
   /** The staff-portal account of this employee, when he has one (lib/staff.ts) */

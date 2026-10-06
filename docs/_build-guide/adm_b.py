@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Administrator guide — run B: the new group head forms group 40, joins a cluster, receives pilgrims, works in the field.
+"""Administrator guide — run B: the new group head forms group 28 (its number given by the platform), joins a cluster, receives pilgrims, works in the field.
 Usage: CAP_DIR=admin python adm_b.py <keep>"""
 import sys
 from cap import Cap, ROOT, truncate
@@ -14,26 +14,11 @@ def field(label):
 # ───────── group formation ─────────
 S = "F"
 c.goto("/administrator/group", wait=1800)
-c.shot("group-form", "طلب تشكيل مجموعة: الرقم والاسم والسعة", section=S)
-field("رقم المجموعة").fill("40"); c.settle(200)
+c.shot("group-form", "طلب تشكيل مجموعة: الرقم تلقائي، والسعة تحددها الإدارة عند الاعتماد", section=S)
 field("اسم تعريفي").fill("مجموعة الشام"); c.settle(300)
-c.scroll_to("text=فريق المجموعة (من الناجحين)", 120)
-c.shot("group-team", "فريق المجموعة: ثلاث صفات تدعو لكل منها شخصاً واحداً", section=S)
-slots = ["معاون رئيس المجموعة", "الموجّه الديني", "المنسق التقني"]
-for i, role in enumerate(slots):
-    br = p.locator("button:has-text('تصفّح الناجحين')").first
-    br.scroll_into_view_if_needed(); br.click(); c.settle(900)
-    if i == 0:
-        c.shot("group-browse", "قائمة الناجحين في التأهيل مع زر «دعوة فردية»", section=S)
-    p.locator("button:has-text('دعوة فردية')").first.click(); c.settle(700)
-    if i == 0:
-        c.shot("group-invited", "الدعوة بانتظار موافقة المدعو", section=S)
-    c.settle(3200)
-c.scroll_to("text=فريق المجموعة (من الناجحين)", 120)
-c.shot("group-team-ok", "وافق الثلاثة على الدعوات", section=S)
 sb = p.locator("button:has-text('إرسال طلب التشكيل')").first
 sb.scroll_into_view_if_needed(); c.settle(300)
-c.shot("group-submit", "إرسال طلب التشكيل بعد اكتمال الفريق", hl=[("button:has-text('إرسال طلب التشكيل')", "")], section=S)
+c.shot("group-submit", "إرسال طلب التشكيل: الفريق يُدعى بعد الاعتماد", hl=[("button:has-text('إرسال طلب التشكيل')", "")], section=S)
 sb.click(); c.settle(1500); c.scroll_top()
 c.shot("group-fee", "رسم تشكيل المجموعة", section=S)
 btn("شام كاش", wait=700)
@@ -43,8 +28,25 @@ pay.scroll_into_view_if_needed(); c.settle(200)
 pay.click(); c.settle(3200); c.scroll_top()
 c.shot("group-fee-receipt", "تم تسديد رسم التشكيل", hl=[("button:has-text('متابعة الاعتماد')", "")], section=S)
 btn("متابعة الاعتماد", wait=1500); c.scroll_top()
-c.shot("group-pending", "الطلب قيد اعتماد مدير المكتب", section=S)
-p.wait_for_selector("text=ميثاق الفريق", timeout=40000); c.settle(1500); c.scroll_top()
+c.shot("group-pending", "الطلب ينتظر قرار إدارة الإداريين", section=S)
+# approved: the team is invited now, one person per role
+p.wait_for_selector("text=اعتماد الفريق والانتقال إلى الميثاق", timeout=40000); c.settle(1500); c.scroll_top()
+c.shot("group-team", "اعتُمدت المجموعة: ادعُ فريقك كما حددته الإدارة، لكل صفة شخصاً واحداً", section=S)
+# as many roles as the head's category gave the group
+for i in range(p.locator("button:has-text('تصفّح الناجحين')").count()):
+    br = p.locator("button:has-text('تصفّح الناجحين')").first
+    br.scroll_into_view_if_needed(); br.click(); c.settle(900)
+    if i == 0:
+        c.shot("group-browse", "قائمة الناجحين في التأهيل مع زر «دعوة فردية»", section=S)
+    p.locator("button:has-text('دعوة فردية')").first.click(); c.settle(700)
+    if i == 0:
+        c.shot("group-invited", "الدعوة بانتظار موافقة المدعو", section=S)
+    c.settle(3200)
+ok = p.locator("button:has-text('اعتماد الفريق والانتقال إلى الميثاق')").first
+ok.scroll_into_view_if_needed(); c.settle(300)
+c.shot("group-team-ok", "وافق المدعوون: اعتماد الفريق", hl=[("button:has-text('اعتماد الفريق والانتقال إلى الميثاق')", "")], section=S)
+ok.click(); c.settle(1500)
+p.wait_for_selector("text=قرأت الميثاق وأوافق على بنوده.", timeout=20000); c.settle(800); c.scroll_top()
 c.shot("group-charter", "اعتُمدت المجموعة: توقيع ميثاق الفريق", section=S)
 p.get_by_text("قرأت الميثاق وأوافق على بنوده.").first.click(); c.settle(300)
 cv = p.locator("canvas").last

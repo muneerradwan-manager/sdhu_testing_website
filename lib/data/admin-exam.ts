@@ -750,7 +750,8 @@ export type ExamDef = ExamBlueprint & {
 export const EXAM_KINDS: Record<ExamDef["kind"], string> = { main: "أساسي", makeup: "استدراكي" };
 
 /** A centre where the written exam is sat: its hall, the governorates it serves, and its seats */
-export type ExamCenter = { id: string; name: string; hall: string; governorates: string[]; capacity?: number; off?: boolean };
+/** A centre; `at` is its hall's place on the map, pinned when the centre is created */
+export type ExamCenter = { id: string; name: string; hall: string; at?: { lat: number; lng: number }; governorates: string[]; capacity?: number; off?: boolean };
 
 /** How many questions an exam asks that its role's bank cannot serve, section by section and type by type */
 export function shortageOf(bank: ExamQuestion[], exam: Pick<ExamDef, "role" | "sections">) {

@@ -18,9 +18,9 @@ export function ExamGate({ children }: { children: ReactNode }) {
 }
 
 /**
- * The exam file's management: one page, a tab for each part in the order the work is done — the centres
- * and the question bank the exams are built on, then the exams, then who sits where, then the results —
- * each with its records.
+ * The exam file's management: one page, a tab for each part in the order the work is done — the centres,
+ * then the exams and their sections, then the question bank that fills them, then who sits where, then
+ * the results — each with its records.
  */
 export function ManageShell({ children }: { children: ReactNode }) {
   const user = useStaffUser()!;
@@ -37,7 +37,7 @@ export function ManageShell({ children }: { children: ReactNode }) {
         eyebrow={SYSTEMS.exams.label}
         title={SYSTEMS.exams.manage.label}
         icon={<GraduationCap />}
-        description="عمل الامتحان كله في صفحة واحدة، بترتيب العمل: تجهّز المراكز وبنك الأسئلة أولاً، ثم تبني الامتحانات ومواعيدها، ثم توزّع المتقدمين، ثم تصحّح وتعلن النتائج. وفي كل تبويب سجلّه: ما تغيّر فيه، ومن غيّره، ومتى."
+        description="عمل الامتحان كله في صفحة واحدة، بترتيب العمل: تجهّز المراكز أولاً، ثم تبني الامتحانات ومواعيدها وأقسامها، ثم تملأ بنك الأسئلة الذي تُسحب منه، ثم توزّع المتقدمين، ثم تصحّح وتعلن النتائج. وفي كل تبويب سجلّه: ما تغيّر فيه، ومن غيّره، ومتى."
         actions={
           edited && (
             <Button
@@ -60,8 +60,8 @@ export function ManageShell({ children }: { children: ReactNode }) {
         label="تبويبات إدارة الامتحانات"
         tabs={[
           { href: "/staff/exam/manage", label: "المراكز", icon: <Landmark />, index: true, urgent: desk.badges.centers },
-          { href: "/staff/exam/manage/bank", label: "بنك الأسئلة", icon: <FileQuestion />, count: bank.length },
           { href: "/staff/exam/manage/exams", label: "الامتحانات", icon: <CalendarClock />, urgent: desk.badges.exams },
+          { href: "/staff/exam/manage/bank", label: "بنك الأسئلة", icon: <FileQuestion />, count: bank.length },
           { href: "/staff/exam/manage/people", label: "المتقدمون", icon: <UsersRound />, urgent: desk.badges.people },
           { href: "/staff/exam/manage/results", label: "النتائج", icon: <GraduationCap />, count: desk.badges.results || undefined },
         ]}

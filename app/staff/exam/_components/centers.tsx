@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { AlertTriangle, Check, Landmark, MapPin, Pencil, Plus, ShieldCheck, UsersRound } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Landmark, MapPin, Pencil, Plus, ShieldCheck, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { MapPicker, mapsLink, type LatLng } from "@/components/ui/map-picker";
 import { useToast } from "@/components/ui/widgets";
-import { GOVERNORATES } from "@/lib/ops";
+import { GOVERNORATE_SEATS, GOVERNORATES } from "@/lib/ops";
 import { getStaff, STAFF } from "@/lib/staff";
 import { cn } from "@/lib/utils";
 import { hallActions, runKey, STAGE_LABEL, stageOf, useHalls, type ExamCenter } from "@/app/administrator/_lib/halls";
@@ -17,7 +18,8 @@ import { Chip, Field, Pick, Switch, selectClass } from "./ui";
 
 /**
  * The centres where the written is sat. Each serves governorates — an applicant sits in his registry
- * governorate's centre unless moved — and has a hall, its seats and the supervisor who runs its sittings.
+ * governorate's centre unless moved — and has a hall pinned on the map, its seats and the supervisor who
+ * runs its sittings.
  * A centre is created, edited, and switched off or on here, all from one card and one form.
  */
 export function Centers() {
@@ -82,8 +84,15 @@ export function Centers() {
                   <p className={cn("flex flex-wrap items-center gap-2 font-display text-lg font-bold", c.off ? "text-white/50" : "text-white")}>
                     {c.name} {c.off && <Chip tone="muted">معطّل</Chip>}
                   </p>
-                  <p className="flex items-center gap-1 text-xs text-white/65">
+                  <p className="flex flex-wrap items-center gap-1 text-xs text-white/65">
                     <MapPin className="size-3 shrink-0" /> {c.hall}
+                    {c.at ? (
+                      <a href={mapsLink(c.at)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-bold text-gold hover:underline">
+                        على الخريطة <ExternalLink className="size-3" />
+                      </a>
+                    ) : (
+                      <span className="font-bold text-gold">· لم يُحدَّد موقعه على الخريطة</span>
+                    )}
                   </p>
                   <p className="mt-0.5 text-xs text-white/55">يخدم: {c.governorates.length ? c.governorates.join("، ") : "لا محافظة — يُنقل إليه المتقدمون نقلاً"}</p>
                 </div>
@@ -165,7 +174,7 @@ export function Centers() {
   );
 }
 
-type Draft = { name: string; hall: string; governorates: string[]; capacity: string; supervisor: string };
+type Draft = { name: string; hall: string; at?: LatLng; governorates: string[]; capacity: string; supervisor: string };
 
 function CenterDrawer({ center, onClose }: { center: ExamCenter | "new" | null; onClose: () => void }) {
   return (
@@ -182,6 +191,7 @@ function CenterForm({ center, onClose }: { center: ExamCenter | null; onClose: (
   const [d, setD] = useState<Draft>(() => ({
     name: center?.name ?? "",
     hall: center?.hall ?? "",
+    at: center?.at,
     governorates: center?.governorates ?? [],
     capacity: center?.capacity ? String(center.capacity) : "",
     supervisor: center ? (halls.supervisors[center.id] ?? "") : "",
@@ -193,11 +203,16 @@ function CenterForm({ center, onClose }: { center: ExamCenter | null; onClose: (
       toast({ title: "أكمل اسم المركز وقاعته", tone: "warning", icon: "✍️" });
       return;
     }
+    if (!d.at) {
+      toast({ title: "حدّد موقع القاعة على الخريطة", body: "قرّب الخريطة واضغط على مكان القاعة، فيصل المتقدم إليها من بوابته.", tone: "warning", icon: "📍" });
+      return;
+    }
     const id = center?.id ?? `c-${Date.now().toString(36)}`;
     const next: ExamCenter = {
       id,
       name: d.name.trim(),
       hall: d.hall.trim(),
+      at: d.at,
       governorates: d.governorates,
       ...(Number(d.capacity) > 0 ? { capacity: Number(d.capacity) } : {}),
       // Switched off and on from its card, where the director hears of it
@@ -208,7 +223,7 @@ function CenterForm({ center, onClose }: { center: ExamCenter | null; onClose: (
     logAs(user, {
       action: center ? "تعديل مركز امتحاني" : "إضافة مركز امتحاني",
       target: next.name,
-      after: `${next.hall} — ${next.governorates.join("، ") || "بلا محافظة"}${next.capacity ? ` — ${next.capacity} مقعداً` : ""}`,
+      after: `${next.hall}${center?.at && (center.at.lat !== d.at.lat || center.at.lng !== d.at.lng) ? " (موقع جديد على الخريطة)" : ""} — ${next.governorates.join("، ") || "بلا محافظة"}${next.capacity ? ` — ${next.capacity} مقعداً` : ""}`,
       detail: taken.length ? `انتقلت إليه: ${taken.join("، ")}` : undefined,
       system: "exams",
       area: "centers",
@@ -229,7 +244,7 @@ function CenterForm({ center, onClose }: { center: ExamCenter | null; onClose: (
       <Field label="اسم المركز">
         <input value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} className={smallInputClass} placeholder="مركز طرطوس" />
       </Field>
-      <Field label="القاعة وموقعها" hint="يراه المتقدم في بوابته مع موعد امتحانه.">
+      <Field label="القاعة وعنوانها" hint="يراه المتقدم في بوابته مع موعد امتحانه.">
         <input value={d.hall} onChange={(e) => setD({ ...d, hall: e.target.value })} className={smallInputClass} placeholder="قاعة الامتحانات — مديرية أوقاف طرطوس" />
       </Field>
       <div>
@@ -247,6 +262,24 @@ function CenterForm({ center, onClose }: { center: ExamCenter | null; onClose: (
             );
           })}
         </div>
+      </div>
+      <div>
+        <p className="mb-1 text-sm font-bold text-white">موقع القاعة على الخريطة</p>
+        <p className="mb-2 text-xs leading-5 text-white/60">اسحب الخريطة وقرّبها، ثم اضغط على مكان القاعة. يفتح المتقدم الموقع من بوابته ويصل إليه بالاتجاهات.</p>
+        <MapPicker label="موقع القاعة" value={d.at} onChange={(at) => setD({ ...d, at })} focus={GOVERNORATE_SEATS[d.governorates[0] as keyof typeof GOVERNORATE_SEATS]} />
+        <p className="mt-1.5 text-xs text-white/60" dir="rtl">
+          {d.at ? (
+            <>
+              <MapPin className="-mt-0.5 inline size-3 text-gold" /> حُدّد الموقع{" "}
+              <span dir="ltr" className="tabular-nums">
+                {d.at.lat}, {d.at.lng}
+              </span>{" "}
+              · اضغط مكاناً آخر لتغييره
+            </>
+          ) : (
+            "لم يُحدَّد بعد. اختر المحافظات أولاً لتفتح الخريطة عليها."
+          )}
+        </p>
       </div>
       <Field label="عدد المقاعد" hint="لكل جلسة. ينبهك النظام إن زاد متقدمو امتحان في المركز عليها.">
         <input type="number" min={0} value={d.capacity} onChange={(e) => setD({ ...d, capacity: e.target.value })} className={cn(smallInputClass, "w-32 text-center")} dir="ltr" />

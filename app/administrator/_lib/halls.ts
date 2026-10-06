@@ -19,15 +19,15 @@ export type { ExamCenter, ExamDef } from "@/lib/data/admin-exam";
 
 /** One centre per governorate or group of governorates; an applicant sits in his registry's governorate's */
 export const EXAM_CENTERS: ExamCenter[] = [
-  { id: "damascus", name: "مركز دمشق", governorates: ["دمشق", "القنيطرة"], hall: "قاعة الامتحانات — مبنى مديرية الحج، المزة", capacity: 120 },
-  { id: "rif", name: "مركز ريف دمشق", governorates: ["ريف دمشق"], hall: "القاعة الكبرى — مجمّع دوما الإداري", capacity: 80 },
-  { id: "aleppo", name: "مركز حلب", governorates: ["حلب"], hall: "قاعة الامتحانات — مديرية أوقاف حلب", capacity: 100 },
-  { id: "homs", name: "مركز حمص", governorates: ["حمص"], hall: "قاعة الامتحانات — مديرية أوقاف حمص", capacity: 60 },
-  { id: "hama", name: "مركز حماة", governorates: ["حماة"], hall: "قاعة الامتحانات — مديرية أوقاف حماة", capacity: 60 },
-  { id: "latakia", name: "مركز اللاذقية", governorates: ["اللاذقية", "طرطوس"], hall: "قاعة الامتحانات — مديرية أوقاف اللاذقية", capacity: 60 },
-  { id: "idlib", name: "مركز إدلب", governorates: ["إدلب"], hall: "قاعة الامتحانات — مديرية أوقاف إدلب", capacity: 50 },
-  { id: "daraa", name: "مركز درعا", governorates: ["درعا", "السويداء"], hall: "قاعة الامتحانات — مديرية أوقاف درعا", capacity: 50 },
-  { id: "deir", name: "مركز دير الزور", governorates: ["دير الزور", "الرقة", "الحسكة"], hall: "قاعة الامتحانات — مديرية أوقاف دير الزور", capacity: 50 },
+  { id: "damascus", name: "مركز دمشق", governorates: ["دمشق", "القنيطرة"], hall: "قاعة الامتحانات — مبنى مديرية الحج، المزة", at: { lat: 33.5003, lng: 36.2445 }, capacity: 120 },
+  { id: "rif", name: "مركز ريف دمشق", governorates: ["ريف دمشق"], hall: "القاعة الكبرى — مجمّع دوما الإداري", at: { lat: 33.5711, lng: 36.4019 }, capacity: 80 },
+  { id: "aleppo", name: "مركز حلب", governorates: ["حلب"], hall: "قاعة الامتحانات — مديرية أوقاف حلب", at: { lat: 36.2021, lng: 37.1343 }, capacity: 100 },
+  { id: "homs", name: "مركز حمص", governorates: ["حمص"], hall: "قاعة الامتحانات — مديرية أوقاف حمص", at: { lat: 34.7324, lng: 36.7137 }, capacity: 60 },
+  { id: "hama", name: "مركز حماة", governorates: ["حماة"], hall: "قاعة الامتحانات — مديرية أوقاف حماة", at: { lat: 35.1318, lng: 36.7578 }, capacity: 60 },
+  { id: "latakia", name: "مركز اللاذقية", governorates: ["اللاذقية", "طرطوس"], hall: "قاعة الامتحانات — مديرية أوقاف اللاذقية", at: { lat: 35.5317, lng: 35.79 }, capacity: 60 },
+  { id: "idlib", name: "مركز إدلب", governorates: ["إدلب"], hall: "قاعة الامتحانات — مديرية أوقاف إدلب", at: { lat: 35.9306, lng: 36.6339 }, capacity: 50 },
+  { id: "daraa", name: "مركز درعا", governorates: ["درعا", "السويداء"], hall: "قاعة الامتحانات — مديرية أوقاف درعا", at: { lat: 32.6189, lng: 36.1021 }, capacity: 50 },
+  { id: "deir", name: "مركز دير الزور", governorates: ["دير الزور", "الرقة", "الحسكة"], hall: "قاعة الامتحانات — مديرية أوقاف دير الزور", at: { lat: 35.3359, lng: 40.1408 }, capacity: 50 },
 ];
 
 /** The supervisors the season opens with; the owner assigns the other centres */

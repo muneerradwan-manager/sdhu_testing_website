@@ -93,7 +93,7 @@ export function Results() {
         }
       >
         <p className="text-sm leading-7 text-white">
-          النجاح من <b className="text-gold">{rules.passMark}</b> · {weightsLabel(rules)} · لا يُستدعى للشفهي من نزل كتابيُّه عن <b className="text-gold">{rules.writtenMin}</b>.
+          قواعد هذا الموسم، وتضبطها من «تعديل القواعد»: النجاح من <b className="text-gold">{rules.passMark}</b> · {weightsLabel(rules)} · لا يُستدعى للشفهي من نزل كتابيُّه عن <b className="text-gold">{rules.writtenMin}</b>.
         </p>
       </Panel>
 
@@ -429,10 +429,11 @@ function Answer({ row, qid, max, text, guide, section }: { row: AdminRow; qid: n
 
 // ───────────────────────── The rules ─────────────────────────
 
-const RULE_FIELDS: { key: "passMark" | "writtenMin" | "writtenWeight"; label: string; unit: string; min: number; max: number; step?: number; hint: (v: number) => string }[] = [
+const RULE_FIELDS: { key: "passMark" | "writtenMin" | "writtenWeight" | "oralWeight"; label: string; unit: string; min: number; max: number; step?: number; hint: (v: number) => string }[] = [
   { key: "passMark", label: "علامة النجاح النهائية", unit: "من 100", min: 40, max: 100, hint: () => "الكتابي والشفهي معاً بأوزانهما" },
   { key: "writtenMin", label: "الحد الأدنى للكتابي وحده", unit: "من 100", min: 0, max: 100, hint: () => "من ينزل عنه لا يُستدعى للشفهي" },
-  { key: "writtenWeight", label: "وزن الكتابي من النتيجة", unit: "%", min: 0, max: 100, step: 5, hint: (v) => `الشفهي ${100 - v}%` },
+  { key: "writtenWeight", label: "وزن الكتابي من النتيجة", unit: "%", min: 0, max: 100, step: 5, hint: (v) => `والباقي للشفهي: ${100 - v}%` },
+  { key: "oralWeight", label: "وزن الشفهي من النتيجة", unit: "%", min: 0, max: 100, step: 5, hint: (v) => `والباقي للكتابي: ${100 - v}%` },
 ];
 
 /** One rule's value, saved once when the field is left, so the log and the director get one change, not every keystroke */
@@ -466,11 +467,13 @@ function RulesForm() {
   const stored = useStore((s) => s.adminRules.exam);
   const desk = useExamDesk();
   const announced = desk.count("published");
-  const value = (k: (typeof RULE_FIELDS)[number]["key"]) => (k === "writtenWeight" ? Math.round(exam.writtenWeight * 100) : exam[k]);
+  const value = (k: (typeof RULE_FIELDS)[number]["key"]) => (k === "writtenWeight" || k === "oralWeight" ? Math.round(exam[k] * 100) : exam[k]);
 
   const set = (k: (typeof RULE_FIELDS)[number]["key"], v: number, label: string) => {
     const before = value(k);
-    actions.setAdminRules({ exam: { ...stored, [k]: k === "writtenWeight" ? v / 100 : v } });
+    // The two weights are one setting: the oral is whatever the written leaves of 100
+    const patch = k === "writtenWeight" ? { writtenWeight: v / 100 } : k === "oralWeight" ? { writtenWeight: (100 - v) / 100 } : { [k]: v };
+    actions.setAdminRules({ exam: { ...stored, ...patch } });
     logAs(user, { action: "تعديل قواعد النجاح", target: label, before: String(before), after: String(v), detail: announced ? `بعد إعلان ${announced} نتائج: تتغير المعلنة أيضاً` : undefined, system: "exams", area: "results", important: true });
     toast({ title: `حُفظ: ${label}`, body: `من ${before} إلى ${v}`, tone: "success", icon: "💾" });
   };
@@ -478,7 +481,7 @@ function RulesForm() {
   return (
     <div className="space-y-4">
       <p className="text-sm leading-7 text-white/70">
-        كيف تُحكم النتيجة: تُطبَّق على كل متقدم لم يُعفَ من الامتحانين، في بوابة الموظفين وبوابة الإداري معاً. يُحفظ كل تعديل حين تغادر خانته، ويصل إلى مديرة الموسم.
+        كيف تُحكم النتيجة: تُطبَّق على كل متقدم لم يُعفَ من الامتحانين، في بوابة الموظفين وبوابة الإداري معاً. وزنا الكتابي والشفهي يكمّل أحدهما الآخر إلى 100، فتغيير أحدهما يغيّر الآخر. يُحفظ كل تعديل حين تغادر خانته، ويصل إلى مديرة الموسم.
       </p>
       {announced > 0 && (
         <p className="rounded-2xl bg-gold/10 p-3 text-xs font-semibold leading-6 text-gold ring-1 ring-gold/40">

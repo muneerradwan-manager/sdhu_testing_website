@@ -131,6 +131,8 @@ export type AdminRules = {
   skillsOff?: string[];
   languagesAdded?: string[];
   languagesOff?: string[];
+  /** The categories that set a group's capacity, as the holder of «إدارة الإداريين» left them (app/administrator/_lib/capacity) */
+  capacityTiers?: import("../app/administrator/_lib/capacity").CapacityTier[];
 };
 
 export type SeasonOverrides = Partial<{
@@ -323,14 +325,19 @@ export type AdminProfile = {
     number: number;
     /** Set once a cluster accepted the group (or the head was elected and created his own) */
     clusterId?: string;
+    /** Given on approval by the category the head falls in, never typed by him (0 until then) */
     capacity: number;
+    /** That category's name, as it read when the group was approved */
+    capacityTier?: string;
+    /** How many team roles the category gave the group, from the top: deputy, guide, coordinator */
+    teamSize?: number;
     requestedAt: number;
     feePaidAt?: number;
     approvedAt?: number;
     approvedBy?: string;
     /** Sent back to the head by the holder of «إدارة الإداريين», with what to fix; cleared when he sends it again */
     returned?: { at: number; by: string; note: string };
-    /** The team the head invited one by one from the administrators who qualified this season */
+    /** The team the head invited one by one, after the group was approved, from the administrators who qualified this season */
     team?: { roleKey: string; role: string; name: string; id: string }[];
     /** Team charter (deputy, guide, coordinator) */
     contractSignedAt?: number;
