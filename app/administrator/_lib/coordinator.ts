@@ -52,8 +52,8 @@ export function maskedPhone(p: Person) {
 export type FiledApplication = { number: string; receipt: string };
 
 /**
- * مكتب المنسق ومجموعته. الطلب الذي يسجّله يتبع مكتبه، لكنه تسجيل عادي لا يضع أحداً في مجموعته:
- * الانضمام إلى المجموعات يتم في مرحلة التفويج فقط، ويسجّل المنسق فيها الحجاج في مجموعته هو.
+ * مكتب المنسق. الطلب الذي يسجّله يتبع مكتبه، لكنه تسجيل عادي لا يضع أحداً في مجموعة: الانضمام إلى
+ * المجموعات يتم في مرحلة التفويج فقط، ويسجّل فيها المنسق الحجاج في المجموعات التي فرزها له رئيس تكتله.
  */
 export function coordinatorPosting() {
   const info = groupInfo(TECH_POSTING.clusterId, TECH_POSTING.groupNumber);

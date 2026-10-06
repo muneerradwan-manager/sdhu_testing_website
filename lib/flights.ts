@@ -261,7 +261,7 @@ export type GroupRef = { clusterId: string; clusterName: string; number: number;
  * head's group 31, أحمد's 27, the deputy's 5, and the three pool groups. The other clusters come from the
  * public directory.
  */
-const NOUR_GROUPS: Omit<GroupRef, "clusterId" | "clusterName">[] = [
+export const NOUR_GROUPS: Omit<GroupRef, "clusterId" | "clusterName">[] = [
   { number: 31, head: "عبد الرحمن العلي", pilgrims: 45, capacity: 50 },
   { number: 27, head: "أحمد سليمان الحمصي", pilgrims: 44, capacity: 50 },
   { number: 5, head: "بسام درويش", pilgrims: 42, capacity: 50 },

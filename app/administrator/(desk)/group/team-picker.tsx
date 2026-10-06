@@ -15,7 +15,8 @@ export type TeamPick = Record<string, Invite | undefined>;
 
 const DECLINE_REASONS = ["ارتبط بمجموعة أخرى هذا الموسم", "ظرف صحي في العائلة", "يفضّل مجموعة في منطقته"];
 
-type Role = (typeof TEAM_ROLES)[number];
+/** A role to invite one person for: a group's team role, or one of a cluster's coordinators (`roster` names whom to search) */
+export type Role = { key: string; label: string; note: string; roster?: Candidate["roleKey"] };
 
 /** The group's roles are its category's, from the top of the ladder: by default all of them */
 export function teamComplete(team: TeamPick, roles: readonly Role[] = TEAM_ROLES) {
@@ -32,12 +33,37 @@ export function teamNames(team: TeamPick, roles: readonly Role[] = TEAM_ROLES) {
  * administrator accepts or apologises from his own application, and the head may withdraw an invitation
  * or invite someone else instead.
  */
-export function TeamPicker({ team, setTeam, groupNumber, roles = TEAM_ROLES }: { team: TeamPick; setTeam: (t: TeamPick) => void; groupNumber: number; roles?: readonly Role[] }) {
+export function TeamPicker({
+  team,
+  setTeam,
+  groupNumber,
+  roles = TEAM_ROLES,
+  place,
+  exclude = [],
+}: {
+  team: TeamPick;
+  setTeam: (t: TeamPick) => void;
+  groupNumber?: number;
+  roles?: readonly Role[];
+  /** Where the invitation is to, in the log: «المجموعة 28» by default */
+  place?: string;
+  /** People already on the team, who are not invited again */
+  exclude?: string[];
+}) {
   const timers = useRef<number[]>([]);
+  const picked = Object.values(team).flatMap((inv) => (inv ? [inv.candidate.id] : []));
   return (
     <div className="mt-3 space-y-4">
       {roles.map((role) => (
-        <RoleSlot key={role.key} role={role} invite={team[role.key]} groupNumber={groupNumber} timers={timers} onChange={(inv) => setTeam({ ...team, [role.key]: inv })} />
+        <RoleSlot
+          key={role.key}
+          role={role}
+          invite={team[role.key]}
+          place={place ?? `المجموعة ${groupNumber}`}
+          exclude={[...exclude, ...picked.filter((id) => id !== team[role.key]?.candidate.id)]}
+          timers={timers}
+          onChange={(inv) => setTeam({ ...team, [role.key]: inv })}
+        />
       ))}
     </div>
   );
@@ -46,13 +72,15 @@ export function TeamPicker({ team, setTeam, groupNumber, roles = TEAM_ROLES }: {
 function RoleSlot({
   role,
   invite,
-  groupNumber,
+  place,
+  exclude,
   timers,
   onChange,
 }: {
-  role: (typeof TEAM_ROLES)[number];
+  role: Role;
   invite: Invite | undefined;
-  groupNumber: number;
+  place: string;
+  exclude: string[];
   timers: React.RefObject<number[]>;
   onChange: (inv: Invite | undefined) => void;
 }) {
@@ -61,14 +89,14 @@ function RoleSlot({
   const [query, setQuery] = useState("");
   const [freeOnly, setFreeOnly] = useState(true);
   const [open, setOpen] = useState(false);
-  const results = searchRoster(role.key, query, freeOnly);
+  const results = searchRoster(role.roster ?? role.key, query, freeOnly).filter((c) => !exclude.includes(c.id));
   const shown = query.trim() || open ? results.slice(0, 6) : [];
 
   const send = (c: Candidate) => {
     onChange({ candidate: c, at: nowMs(), status: "pending" });
     setQuery("");
     setOpen(false);
-    logAdmin(admin.id, `دعوة فردية إلى ${role.label} في المجموعة ${groupNumber}`, c.name, `الرقم الوطني ${maskNationalId(c.id)} — ${c.office} — نتيجة التأهيل ${c.score}`);
+    logAdmin(admin.id, `دعوة فردية إلى ${role.label} في ${place}`, c.name, `الرقم الوطني ${maskNationalId(c.id)} — ${c.office} — نتيجة التأهيل ${c.score}`);
     toast({ title: `أُرسلت الدعوة إلى ${c.name}`, body: "تصله وحده، ويوافق أو يعتذر من تطبيقه.", icon: "✉️", tone: "info" });
     const t = window.setTimeout(() => onChange({ candidate: c, at: nowMs(), status: "accepted" }), 2600);
     timers.current.push(t);
@@ -76,7 +104,7 @@ function RoleSlot({
 
   const withdraw = () => {
     if (!invite) return;
-    logAdmin(admin.id, `سحب دعوة ${role.label}`, invite.candidate.name, `المجموعة ${groupNumber}`);
+    logAdmin(admin.id, `سحب دعوة ${role.label}`, invite.candidate.name, place);
     onChange(undefined);
     toast({ title: "سُحبت الدعوة", body: `${invite.candidate.name} — يمكنك دعوة غيره.`, icon: "↩️", tone: "info" });
   };
@@ -182,7 +210,7 @@ function RoleSlot({
                     <p className="text-xs text-hint">{c.skills.map(skillLabel).join("، ")}</p>
                   </div>
                   {c.taken ? (
-                    <Badge tone="maroon">في المجموعة {c.taken}</Badge>
+                    <Badge tone="maroon">{c.roleKey === "tech" ? "منسق في تكتل آخر" : `في المجموعة ${c.taken}`}</Badge>
                   ) : (
                     <Button size="sm" onClick={() => send(c)}>
                       <Send className="size-4" /> دعوة فردية

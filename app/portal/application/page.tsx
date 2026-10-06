@@ -576,7 +576,7 @@ export default function ApplicationPage() {
                 {myGroup.team.map((p, i) => (
                   <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="rounded-3xl bg-white p-5 ring-1 ring-gold/30">
                     <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark font-display text-2xl font-bold text-ink">{p.name.replace("الشيخ ", "")[0]}</span>
-                    <p className="mt-3 text-xs font-bold text-gold-dark">{p.role}</p>
+                    <p className="mt-3 text-xs font-bold text-gold-dark">{p.role === "المنسق التقني" ? "منسق التكتل المفروز للمجموعة" : p.role}</p>
                     <p className="font-display text-lg font-bold text-green-dark">{p.name}</p>
                     <p className="mt-1 text-sm text-ink-soft">{p.note}</p>
                     <div className="mt-4 flex gap-2">

@@ -73,9 +73,16 @@ const NAV: NavItem[] = [
 export function AdminNav() {
   const pathname = usePathname();
   const admin = useAdmin();
-  const items = NAV.filter((n) => !n.techOnly || isTechCoordinator(admin?.profile)).map((n) =>
-    // A cluster head manages several groups, not one
-    n.href === "/administrator/group" && isClusterRole(admin?.profile) ? { ...n, label: "مجموعات تكتلي" } : n,
+  const tech = isTechCoordinator(admin?.profile);
+  const items = NAV.filter((n) => !n.techOnly || tech).map((n) =>
+    // A cluster head manages several groups, not one; a coordinator works in the cluster's groups sorted to him
+    n.href === "/administrator/group" && isClusterRole(admin?.profile)
+      ? { ...n, label: "مجموعات تكتلي" }
+      : n.href === "/administrator/group" && tech
+        ? { ...n, label: "مجموعاتي" }
+        : n.href === "/administrator/requests" && tech
+          ? { ...n, label: "حجاج مجموعاتي" }
+          : n,
   );
   return (
     <div className="mb-8 flex flex-wrap items-center justify-between gap-3">

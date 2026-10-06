@@ -33,11 +33,12 @@ import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
 import { activeCount } from "../../_lib/group";
-import { isClusterRole } from "../../_lib/admin";
+import { isClusterRole, isTechCoordinator } from "../../_lib/admin";
 import { TEAM_ROLES } from "../../_lib/roster";
 import { capacityFor, nextGroupNumber, teamLabel, teamRolesOf, useCapacityTiers } from "../../_lib/capacity";
 import { StandingCard } from "../../_components/standing";
 import { ClusterGroups } from "./cluster-groups";
+import { CoordinatorGroups } from "./coordinator-groups";
 import { TeamPicker, teamComplete, teamNames, type TeamPick } from "./team-picker";
 import { AdminShell, LockedCard, ReceiptCard, SimButton } from "../../_components/ui";
 
@@ -63,6 +64,8 @@ export function AdminGroup() {
   const [showReceipt, setShowReceipt] = useState(false);
   // Elected to a cluster role: the head and his deputy stop seeing one group and see the cluster's groups
   if (isClusterRole(p)) return <ClusterGroups />;
+  // The technical coordinator has no group: he works in the cluster's groups sorted to him
+  if (isTechCoordinator(p)) return <CoordinatorGroups />;
 
   const view = !r.published || !r.passed ? "locked" : !g?.feePaidAt ? "request" : showReceipt ? "receipt" : !g.approvedAt ? "pending" : !g.contractSignedAt ? "contracts" : "mine";
   const subtitle =
@@ -178,7 +181,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
         </div>
 
         <p className="mt-6 flex items-start gap-2 rounded-2xl bg-green-dark/6 p-4 text-sm leading-7 text-green-dark">
-          <UsersRound className="mt-1 size-5 shrink-0" /> لا يُدعى فريق المجموعة الآن. ليس لكل مجموعة موجّه ديني ومنسق تقني: تحدد الإدارة عند الاعتماد صفات فريقك، من المعاون ثم الموجّه ثم المنسق التقني، فتدعوهم واحداً واحداً، ثم توقّعون ميثاق الفريق.
+          <UsersRound className="mt-1 size-5 shrink-0" /> لا يُدعى فريق المجموعة الآن. تحدد الإدارة عند الاعتماد صفات فريقك، المعاون ثم الموجّه الديني، فتدعوهم واحداً واحداً، ثم توقّعون ميثاق الفريق. أما المنسق التقني فللتكتل لا للمجموعة: يفرزه رئيس التكتل لمجموعتك.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
@@ -526,11 +529,10 @@ function TeamStep() {
           فريق مجموعتك كما حددته الإدارة بفئتك: <b className="text-green-dark">{teamLabel(g.teamSize)}</b>. ابحث عن كل واحد من الناجحين باسمه أو منطقته أو رقمه الوطني، وأرسل له دعوة فردية. لا تُرسل دعوة جماعية: يصل الطلب إلى شخص واحد يوافق أو يعتذر من تطبيقه، ولك أن تسحب الدعوة أو تدعو غيره.
         </p>
         <TeamPicker team={team} setTeam={setTeam} groupNumber={g.number} roles={roles} />
-        {roles.length < TEAM_ROLES.length && (
-          <p className="mt-4 rounded-2xl bg-sand p-3 text-sm leading-7 text-ink-soft">
-            ليس في فريق مجموعتك {TEAM_ROLES.slice(roles.length).map((r) => r.label).join(" ولا ")}: يتولى ذلك عن مجموعتك من يقوم به على مستوى التكتل.
-          </p>
-        )}
+        <p className="mt-4 rounded-2xl bg-sand p-3 text-sm leading-7 text-ink-soft">
+          {roles.length < TEAM_ROLES.length && <>ليس في فريق مجموعتك {TEAM_ROLES.slice(roles.length).map((r) => r.label).join(" ولا ")}. </>}
+          المنسق التقني ليس من فريق أي مجموعة: لكل تكتل منسقوه، ويفرز رئيس التكتل لمجموعتك منسقاً منهم يسجّل حجاجها ويأخذ ملفاتهم الصحية.
+        </p>
         <div className="mt-8 flex justify-end border-t border-gold-light pt-6">
           <Button size="lg" onClick={save} disabled={!teamComplete(team, roles)}>
             اعتماد الفريق والانتقال إلى الميثاق <ArrowLeft className="size-5" />

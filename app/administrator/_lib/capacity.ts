@@ -11,10 +11,10 @@ import { TEAM_ROLES } from "./roster";
  * first-time head takes fewer, a head rated well before takes more, one rated poorly fewer again. The
  * head's request is given the capacity of the first category he falls in, in the order they are listed.
  *
- * The category also sets the group's team. Not every group has a religious guide and a technical
- * coordinator: the coordinator may serve the whole cluster instead. The team is taken from the top of one
- * ladder — the deputy, then the guide, then the coordinator — so no group has a coordinator without a
- * guide, nor a guide without a deputy. `team` is how many of them, from 0 (the head alone) to 3.
+ * The category also sets the group's team. Not every group has a religious guide: the team is taken from
+ * the top of one ladder — the deputy, then the guide — so no group has a guide without a deputy. `team` is
+ * how many of them, from 0 (the head alone) to 2. The technical coordinator is never a group's: he works
+ * for the cluster, which sorts its groups among its coordinators (./coordinators).
  */
 export type CapacityTier = {
   id: string;
@@ -26,14 +26,14 @@ export type CapacityTier = {
   /** Out of 5, exclusive */
   maxRating?: number;
   capacity: number;
-  /** How many of the team's roles, from the top of TEAM_ROLES (deputy, guide, coordinator) */
+  /** How many of the team's roles, from the top of TEAM_ROLES (deputy, guide) */
   team: number;
 };
 
 export const DEFAULT_CAPACITY_TIERS: CapacityTier[] = [
   { id: "first", label: "رئيس مجموعة لأول مرة", when: "first", capacity: 50, team: 2 },
-  { id: "excellent", label: "سبق له رئاسة مجموعة — تقييم ممتاز", when: "returning", minRating: 4.5, capacity: 100, team: 3 },
-  { id: "good", label: "سبق له رئاسة مجموعة — تقييم جيد", when: "returning", minRating: 3.5, maxRating: 4.5, capacity: 75, team: 3 },
+  { id: "excellent", label: "سبق له رئاسة مجموعة — تقييم ممتاز", when: "returning", minRating: 4.5, capacity: 100, team: 2 },
+  { id: "good", label: "سبق له رئاسة مجموعة — تقييم جيد", when: "returning", minRating: 3.5, maxRating: 4.5, capacity: 75, team: 2 },
   { id: "poor", label: "سبق له رئاسة مجموعة — تقييم ضعيف", when: "returning", maxRating: 3.5, capacity: 40, team: 1 },
 ];
 
@@ -46,14 +46,14 @@ export function teamRolesOf(size: number | undefined) {
 export function teamLabel(size: number | undefined) {
   const roles = teamRolesOf(size);
   if (!roles.length) return "الرئيس وحده، دون فريق";
-  const short: Record<string, string> = { "group-deputy": "معاون", "guide-m": "موجّه ديني", tech: "منسق تقني" };
+  const short: Record<string, string> = { "group-deputy": "معاون", "guide-m": "موجّه ديني" };
   const names = roles.map((r) => short[r.key]);
   return names.length === 1 ? names[0] : `${names.slice(0, -1).join("، ")} و${names.at(-1)}`;
 }
 
-/** Categories saved before the team was part of them have the whole team */
+/** Categories saved before the team was part of them have the whole team; one saved with a coordinator in it has the group's two roles */
 export function withTeam(t: CapacityTier): CapacityTier {
-  return { ...t, team: t.team ?? TEAM_ROLES.length };
+  return { ...t, team: Math.min(t.team ?? TEAM_ROLES.length, TEAM_ROLES.length) };
 }
 
 /** His record leading groups: the seasons he led one, and his rating in the last of them */

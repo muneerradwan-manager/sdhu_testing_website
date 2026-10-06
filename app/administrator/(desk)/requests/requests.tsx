@@ -19,15 +19,17 @@ import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard } from "../../_components/ui";
 import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
+import { useCoordinatorPost } from "../../_lib/coordinators";
 
 function needsLift(r: JoinRequest) {
   return r.members.some((m) => m.needs.some((n) => LIFT_NEEDS.includes(n)));
 }
 
 /**
- * حجاج المجموعة. في مرحلة التفويج يختار الحاج المجموعة من الدليل ويتواصل معها، فيسجّله منسقها هنا
- * (في مجموعته فقط) ويوقّعان العقد؛ والطلب العائلي يُسجَّل أو ينتقل كاملاً. رئيس المجموعة
- * يستلمها ويرحّب بها، والمنسق التقني يسجّل ملفها الصحي.
+ * حجاج المجموعة. في مرحلة التفويج يختار الحاج المجموعة من الدليل ويتواصل معها، فيسجّله هنا منسق
+ * التكتل المفروز لتلك المجموعة ويوقّعان العقد؛ والطلب العائلي يُسجَّل أو ينتقل كاملاً. رئيس المجموعة
+ * يستلمها ويرحّب بها، والمنسق التقني يسجّل ملفها الصحي. المنسق للتكتل لا لمجموعة: يفتح هنا مجموعاته
+ * المفروزة له وحدها.
  */
 export function AdminRequests() {
   const admin = useAdmin()!;
@@ -40,10 +42,13 @@ export function AdminRequests() {
   const [filter, setFilter] = useState<"all" | "new" | "health">("all");
   // A cluster head manages every group of his cluster alike, so the screen opens whichever one he picks
   const myCluster = clusterViewOf(p, admin.name);
-  const myGroups = useMemo(() => clusterGroupsOf(p, admin.name), [p, admin.name]);
+  // The coordinator works for the cluster, in the groups its head sorted to him
+  const coord = useCoordinatorPost(admin.id, p);
+  const clusterGroups = useMemo(() => clusterGroupsOf(p, admin.name), [p, admin.name]);
+  const myGroups = coord ? coord.groups : clusterGroups;
   const [picked, setPicked] = useState<number | null>(null);
   const home = p?.group?.number;
-  const openNumber = (myCluster ? (picked ?? myGroups[0]?.number) : home) ?? home;
+  const openNumber = (myCluster || coord ? (picked ?? myGroups[0]?.number) : home) ?? home;
   const openGroup = myGroups.find((x) => x.number === openNumber);
   const [healthFor, setHealthFor] = useState<string | null>(null);
   const tech = isTechCoordinator(p);
@@ -57,7 +62,19 @@ export function AdminRequests() {
     [p, applications, post, openNumber, home, openGroup],
   );
 
-  if (!g?.approvedAt) {
+  if (isTechCoordinator(p) && !coord?.groups.length) {
+    return (
+      <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يسجّل الحجاج في المجموعات التي يفرزها له رئيس التكتل.">
+        <LockedCard
+          title={coord ? "لم يفرز لك رئيس التكتل مجموعة بعد" : "لم تنضم إلى تكتل بعد"}
+          text={coord ? `أنت منسق تقني في ${coord.clusterName}. حين يفرز لك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فتسجّل فيها من يختارها.` : "يدعوك رئيس تكتل منسقاً تقنياً بعد انتخاب رؤساء التكتلات، ويفرز لك مجموعات من تكتله."}
+          href="/administrator/group"
+          cta="مجموعاتي"
+        />
+      </AdminShell>
+    );
+  }
+  if (!coord && !g?.approvedAt) {
     return (
       <AdminShell title="حجاج المجموعة" subtitle="في مرحلة التفويج يختار الحاج مجموعتك ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.">
         <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/group" cta="مجموعتي" />
@@ -65,10 +82,11 @@ export function AdminRequests() {
     );
   }
 
-  const info = groupInfo(g.clusterId, openNumber ?? g.number);
-  const capacity = openGroup && openNumber !== home ? openGroup.capacity : g.capacity;
+  const clusterId = coord?.clusterId ?? g?.clusterId;
+  const info = groupInfo(clusterId, openNumber ?? g?.number);
+  const capacity = (openGroup && openNumber !== home ? openGroup.capacity : g?.capacity) ?? 50;
   const headOfOpen = openGroup && openNumber !== home ? openGroup.head : admin.name;
-  const switcher = myCluster && myGroups.length > 1 && (
+  const switcher = (myCluster || coord) && myGroups.length > 1 && (
     <Card className="md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -78,9 +96,7 @@ export function AdminRequests() {
             <span className="mr-2 text-sm font-normal text-ink-soft">رئيسها المباشر {headOfOpen}</span>
           </p>
         </div>
-        <Badge tone="gold">
-          {myCluster.name} — {myGroups.length} مجموعات تديرها كلها
-        </Badge>
+        <Badge tone="gold">{coord ? `${coord.clusterName} — ${myGroups.length} مجموعات مفروزة لك` : `${myCluster!.name} — ${myGroups.length} مجموعات تديرها كلها`}</Badge>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {myGroups.map((x) => {
@@ -119,8 +135,8 @@ export function AdminRequests() {
 
   return (
     <AdminShell
-      title={myCluster ? `حجاج المجموعة ${openNumber}` : "حجاج المجموعة"}
-      subtitle={`${myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `المجموعة ${g.number} — ${info.clusterName}. `}في مرحلة التفويج يختار الحاج المقبول المجموعة من الدليل ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.`}
+      title={myCluster || coord ? `حجاج المجموعة ${openNumber}` : "حجاج المجموعة"}
+      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المفروزة لك منسقاً تقنياً، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `المجموعة ${g!.number} — ${info.clusterName}. `}في مرحلة التفويج يختار الحاج المقبول المجموعة من الدليل ويتواصل معها، فيسجّله منسق التكتل المفروز لها ويوقّعان العقد.`}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
@@ -148,7 +164,7 @@ export function AdminRequests() {
             <PeopleBoard roster={roster} active={active} capacity={capacity} />
           </Card>
 
-          {tech && <EnrollPanel group={{ clusterId: g.clusterId ?? "al-nour", number: openNumber ?? g.number }} capacity={capacity} active={active} />}
+          {tech && openNumber !== undefined && <EnrollPanel group={{ clusterId: clusterId ?? "al-nour", number: openNumber }} capacity={capacity} active={active} />}
 
           <div className="flex flex-wrap items-center gap-2">
             {(
@@ -257,7 +273,7 @@ export function AdminRequests() {
                           <Stethoscope className="size-4" /> {health ? "تعديل الملف الصحي" : "تسجيل الملف الصحي"}
                         </Button>
                       )}
-                      {isNew(r) && (
+                      {isNew(r) && !tech && (
                         <Button onClick={() => welcome(r)}>
                           <UsersRound className="size-4" /> استلام والترحيب
                         </Button>
@@ -275,8 +291,9 @@ export function AdminRequests() {
             <p className="font-bold text-gold">كيف تنضم العائلات إلى المجموعة؟</p>
             <ul className="mt-2 list-inside list-disc space-y-1">
               <li>في مرحلة التفويج يتصفّح الحاج المقبول دليل المجموعات ويتواصل مع المجموعة التي تناسبه.</li>
-              <li>منسق المجموعة وحده يسجّله فيها، في مجموعته هو فقط، ويوقّعان العقد.</li>
-              <li>تسجيل المنسق لطلب حج لا يضع صاحبه في مجموعته.</li>
+              <li>المنسق التقني للتكتل لا للمجموعة: يفرز رئيس التكتل مجموعاته على منسقيه، ولكل مجموعة منسق واحد.</li>
+              <li>منسق المجموعة المفروز لها وحده يسجّل الحاج فيها، ويوقّعان العقد.</li>
+              <li>تسجيل المنسق لطلب حج في المكتب لا يضع صاحبه في أي من مجموعاته.</li>
               <li>الطلب العائلي يُسجَّل كاملاً في مجموعة واحدة.</li>
               <li>الانتقال بين المجموعات ممكن: يسجّله منسق المجموعة الجديدة، والعائلة تنتقل كاملة أو لا تنتقل.</li>
             </ul>
@@ -288,7 +305,7 @@ export function AdminRequests() {
             <p className="mt-1 text-ink-soft">
               لا يُسأل الحاج عن صحته عند التسجيل. بعد انضمامه إلى المجموعة يسجّل المنسق التقني أمراضه المزمنة وأدويته واحتياجاته، والوثائق الطبية يرفعها الحاج بعد اكتمال دفع المبلغ كاملاً.
             </p>
-            {!tech && <p className="mt-2 font-semibold text-gold-dark">التسجيل من صلاحية المنسق التقني في مجموعتك.</p>}
+            {!tech && <p className="mt-2 font-semibold text-gold-dark">التسجيل من صلاحية منسق التكتل المفروز لمجموعتك.</p>}
           </div>
         </aside>
       </div>
@@ -468,7 +485,7 @@ function PeopleBoard({ roster, active, capacity }: { roster: { age: number; gend
 // ───────────────────────── Enrollment (coordinator) ─────────────────────────
 
 /**
- * المنسق يسجّل في مجموعته فقط: يبحث عن حاج مقبول تواصل معه (بالرقم الوطني أو رقم الطلب)، فيسجّل
+ * المنسق يسجّل في المجموعة المفتوحة من مجموعاته المفروزة له: يبحث عن حاج مقبول تواصل معه (بالرقم الوطني أو رقم الطلب)، فيسجّل
  * الطلب كاملاً ويرسل إليه العقد ليوقّعه برمز على هاتفه. إن كان الحاج في مجموعة أخرى ينتقل الطلب كله.
  */
 function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; number: number }; capacity: number; active: number }) {
@@ -518,10 +535,10 @@ function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; 
   return (
     <Card className="md:p-7">
       <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-        <UserPlus className="size-6" /> تسجيل حاج في مجموعتي
+        <UserPlus className="size-6" /> تسجيل حاج في المجموعة {group.number}
       </p>
       <p className="mt-1 text-sm leading-7 text-ink-soft">
-        تواصل معك حاج مقبول واختار مجموعتك؟ ابحث عن طلبه، ثم أرسل إليه العقد ليوقّعه برمز على هاتفه. تسجّل في المجموعة {group.number} فقط، والطلب العائلي يُسجَّل كاملاً.
+        تواصل معك حاج مقبول واختار هذه المجموعة؟ ابحث عن طلبه، ثم أرسل إليه العقد ليوقّعه برمز على هاتفه. تسجّل في المجموعات المفروزة لك وحدها، كلٌّ من صفحتها، والطلب العائلي يُسجَّل كاملاً.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <input
@@ -577,7 +594,7 @@ function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; 
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button onClick={enroll} disabled={otp !== DEMO_OTP}>
-              <FileSignature className="size-4" /> {current?.groupApprovedAt ? "نقل الطلب كاملاً إلى مجموعتي وتوقيع العقد" : "تسجيل الطلب في مجموعتي وتوقيع العقد"}
+              <FileSignature className="size-4" /> {current?.groupApprovedAt ? `نقل الطلب كاملاً إلى المجموعة ${group.number} وتوقيع العقد` : `تسجيل الطلب في المجموعة ${group.number} وتوقيع العقد`}
             </Button>
             <Button variant="ghost" onClick={() => setFound(null)}>
               إلغاء

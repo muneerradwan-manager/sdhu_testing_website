@@ -58,7 +58,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
       {app.submittedBy && (
         <p className="mb-5 flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
           <ShieldCheck className="mt-1 size-4 shrink-0 text-green-dark" />
-          سجّل طلبكم المنسق {app.submittedBy.name}، وهذا لا يضعكم في مجموعته. اختاروا المجموعة التي تناسبكم، ولو كانت مجموعته فهو من يسجّلكم فيها.
+          سجّل طلبكم المنسق {app.submittedBy.name}، وهذا لا يضعكم في أي مجموعة. اختاروا المجموعة التي تناسبكم، ويسجّلكم فيها منسق التكتل المفروز لها، ولو كان هو نفسه.
         </p>
       )}
       <Directory app={app} post={post} sessionId={sessionId} />
@@ -245,7 +245,7 @@ function GroupCard({ cluster, g, app, post, sessionId, current }: { cluster: Clu
       <div className="mt-4 flex items-center gap-3 rounded-2xl bg-sand p-3">
         <span className="grid size-11 place-items-center rounded-xl bg-green-dark font-display font-bold text-gold">{coordinator.name[0]}</span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-gold-dark">المنسق التقني — يسجّلكم في المجموعة</p>
+          <p className="text-xs text-gold-dark">منسق التكتل المفروز لها — يسجّلكم فيها</p>
           <p className="font-bold">{coordinator.name}</p>
         </div>
         <button
@@ -408,7 +408,7 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
           <ul className="mt-3 space-y-1 text-sm">
             {info.team.map((t) => (
               <li key={t.name}>
-                <span className="text-white/60">{t.role}:</span> <b>{t.name}</b>
+                <span className="text-white/60">{t.role === "المنسق التقني" ? "منسق التكتل المفروز للمجموعة" : t.role}:</span> <b>{t.name}</b>
               </li>
             ))}
           </ul>

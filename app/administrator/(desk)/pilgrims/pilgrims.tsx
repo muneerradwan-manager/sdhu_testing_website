@@ -36,6 +36,7 @@ import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { useStore } from "@/lib/store";
 import { cn, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, positionOf, useAdmin } from "../../_lib/admin";
+import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { blockFor, coordinatorPosting, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
 import { AdminShell, LockedCard, ReceiptCard, SectionTitle } from "../../_components/ui";
 import { ApplicationDetail } from "./detail";
@@ -594,14 +595,14 @@ function Stepper({ current }: { current: Step }) {
 
 function Posting() {
   const admin = useAdmin()!;
-  const g = admin.profile?.group;
+  const post = useCoordinatorPost(admin.id, admin.profile);
   return (
     <div className="relative overflow-hidden rounded-3xl bg-green-dark p-5 text-white">
       <div className="bg-pattern absolute inset-0 opacity-15" />
       <div className="relative">
         <p className="text-xs font-bold text-gold">تعييني هذا الموسم</p>
         <p className="mt-1 font-display text-xl font-bold">منسق تقني</p>
-        {g && <p className="mt-1 text-sm text-white/75">المجموعة {g.number} — تكتل النور لخدمة الحجاج</p>}
+        <p className="mt-1 text-sm text-white/75">{post ? `${post.clusterName} — ${groupsLabel(post.groups.map((x) => x.number))}` : "لم تنضم إلى تكتل بعد"}</p>
         <ul className="mt-4 space-y-2 text-sm text-white/85">
           <li className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" /> أسجّل عن المواطن بموافقته برمز تحقق
@@ -610,7 +611,7 @@ function Posting() {
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" /> اسمي يُختم على كل طلب سجّلته
           </li>
           <li className="flex gap-2">
-            <UsersRound className="mt-0.5 size-4 shrink-0 text-gold" /> التسجيل هنا لا يضع أحداً في مجموعتي؛ في مرحلة التفويج أسجّل في مجموعتي من يختارها، وأوقّع معه العقد
+            <UsersRound className="mt-0.5 size-4 shrink-0 text-gold" /> التسجيل هنا لا يضع أحداً في أي مجموعة؛ في مرحلة التفويج أسجّل في مجموعاتي المفروزة لي من يختار إحداها، وأوقّع معه العقد
           </li>
           <li className="flex gap-2">
             <CircleAlert className="mt-0.5 size-4 shrink-0 text-gold" /> لا أقبض أي مبلغ خارج الإيصال الرقمي

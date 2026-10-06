@@ -29,6 +29,7 @@ import { SKILLS, docState, effectiveRole, journeyOf, logAdmin, positionLabelOf, 
 import { useExamRules } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
 import { clusterGroupsOf } from "../../_lib/cluster";
+import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { AdminShell } from "../../_components/ui";
 
 type Written = { date: string; time: string; questions: number; minutes: number; center?: string };
@@ -53,6 +54,7 @@ const nextSteps = (rules: ExamNumbers, w: Written): Record<string, { title: stri
 export function AdminDashboard() {
   const admin = useAdmin()!;
   const profile = admin.profile;
+  const coord = useCoordinatorPost(admin.id, profile);
   const router = useRouter();
   const events = useStore((s) => s.events);
   const joinCount = Object.keys(profile?.joinDecisions ?? {}).length;
@@ -74,7 +76,9 @@ export function AdminDashboard() {
   const next = current ? nextSteps(rules, written)[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = clusterGroupsOf(profile, admin.name).length;
-  const status1448 = profile?.deputyOf
+  const status1448 = coord
+    ? `منسق تقني في ${coord.clusterName} — ${groupsLabel(coord.groups.map((g) => g.number))}`
+    : profile?.deputyOf
     ? `معاون رئيس ${profile.deputyOf.clusterName} — يتابع ${clusterGroups} مجموعات، منها مجموعته ${profile.group?.number}`
     : profile?.cluster
     ? `رئيس ${profile.cluster.name} — يدير ${clusterGroups} مجموعات، منها مجموعته ${profile.group?.number}`
@@ -91,6 +95,7 @@ export function AdminDashboard() {
           : "لم يتقدم بعد";
 
   const notes = [
+    coord && { t: `دعاك رئيس ${coord.clusterName} ${coord.headName} منسقاً تقنياً لتكتله، وفرز لك ${groupsLabel(coord.groups.map((g) => g.number))}. تسجّل فيها وحدها من يختارها، وتأخذ ملفاتهم الصحية.`, who: "شؤون التكتلات" },
     profile?.deputyOf && { t: `اختارك رئيس ${profile.deputyOf.clusterName} ${profile.deputyOf.headName} معاوناً له، فصارت صفتك لهذا الموسم معاون رئيس تكتل: ترى مجموعات التكتل كلها ومعلوماته، وتنوب عن الرئيس في متابعتها.`, who: "شؤون الإداريين" },
     profile?.cluster && { t: `انتخبك رؤساء المجموعات رئيساً لتكتل، فبقيتَ رئيس المجموعة ${profile.group?.number} وارتفعت مهامك إلى مستوى التكتل: تدير الآن ${clusterGroups} مجموعات في ${profile.cluster.name}، لكل واحدة رئيسها وفريقها. معاونك ${profile.cluster.deputyName ?? "—"}.`, who: "شؤون الإداريين" },
     !profile?.cluster && profile?.group?.clusterId && { t: `قبِل رئيس تكتل النور عبد الرحمن العلي انضمام المجموعة ${profile.group.number}، ووُقّع العقد وصودق عليه.`, who: "شؤون التكتلات" },

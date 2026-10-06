@@ -12,6 +12,8 @@ import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 import { clusterTotals } from "@/app/administrator/_lib/cluster";
+import { coordinatorTierFor, coordinatorsLabel, groupsLabel, useCoordinatorTiers } from "@/app/administrator/_lib/coordinators";
+import { CoordinatorTiersPanel } from "./coordinator-tiers";
 import { Drawer, Empty, fmtDateTime, Panel, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip, InfoGrid } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
@@ -21,8 +23,9 @@ import { logAdmins, useAdminsDesk, type AdminsDesk, type ClusterRow } from "../d
  * The clusters, from the election to their published programmes. Nobody applies to head a cluster: the
  * holder opens candidacy, the group heads who meet the season's conditions stand and every group head
  * votes, then he closes the vote and announces the heads — he opens, closes and announces, and never
- * picks the winners. Each elected head creates his cluster, picks his deputy (معاون رئيس تكتل) and takes
- * in groups by request; then he writes his cluster's programme, which reaches the pilgrims only once
+ * picks the winners. Each elected head creates his cluster, picks his deputy (معاون رئيس تكتل), invites
+ * its technical coordinators — as many as its category here allows — and sorts its groups among them, and
+ * takes in groups by request; then he writes his cluster's programme, which reaches the pilgrims only once
  * the holder approves it.
  */
 export function ClustersTab() {
@@ -33,6 +36,7 @@ export function ClustersTab() {
   return (
     <div className="space-y-6">
       <Election desk={desk} />
+      <CoordinatorTiersPanel />
       {desk.phase === "closed" ? (
         <Empty icon={<Lock />} title="لم يُفتح باب الترشح بعد" text="تُشكَّل المجموعات وتُعتمد أولاً، ثم يُفتح الترشح لرئاسة التكتلات." />
       ) : (
@@ -192,6 +196,7 @@ function Candidates({ desk }: { desk: AdminsDesk }) {
 
 function Clusters({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => void }) {
   const fee = useSeason().fees.clusterFormation;
+  const tiers = useCoordinatorTiers();
   return (
     <div id="clusters" className="scroll-mt-24">
       <Panel icon={<Building2 />} title="التكتلات بعد الانتخاب" action={<Chip tone={desk.clusters.length ? "green" : "maroon"}>{desk.phase === "announced" ? `${desk.clusters.length} من ${desk.elected.length} أنشأ تكتله` : `${desk.clusters.length} تكتلات`}</Chip>}>
@@ -201,6 +206,8 @@ function Clusters({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
           <ul className="grid gap-3 md:grid-cols-2">
             {desk.clusters.map((x) => {
               const t = clusterTotals(x.groups);
+              const allowed = coordinatorTierFor(x.row.id, x.c.capacityGroups, tiers).tier?.coordinators ?? 0;
+              const have = x.c.coordinators?.length ?? 0;
               return (
                 <li key={x.c.id}>
                   <button type="button" onClick={() => onOpen(x.c.id)} className={cn("w-full rounded-2xl p-4 text-right ring-1 transition hover:ring-gold/50", x.c.deputyId ? "bg-white/5 ring-white/10" : "bg-maroon/15 ring-maroon/40")}>
@@ -210,6 +217,9 @@ function Clusters({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
                     </p>
                     <p className="text-sm text-white/85">
                       <UserCheck className="mb-0.5 inline size-4 text-green-light" /> المعاون: {x.c.deputyName ?? <b className="text-gold">لم يُختر بعد</b>}
+                    </p>
+                    <p className="text-sm text-white/85">
+                      المنسقون التقنيون: {have ? x.c.coordinators!.map((c) => c.name).join("، ") : <b className="text-gold">لم يُدعَ أحد بعد</b>} <span className="text-xs text-white/55">({have} من {allowed})</span>
                     </p>
                     <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
                       <Chip tone="green">
@@ -244,9 +254,13 @@ function Clusters({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
   );
 }
 
-/** One cluster whole: its head and deputy, every group in it, and its history */
+/** One cluster whole: its head and deputy, its coordinators and the groups sorted to each, every group in it, and its history */
 function ClusterSheet({ x }: { x: ClusterRow }) {
   const t = clusterTotals(x.groups);
+  const tiers = useCoordinatorTiers();
+  const { tier } = coordinatorTierFor(x.row.id, x.c.capacityGroups, tiers);
+  const coordinators = x.c.coordinators ?? [];
+  const coordinatorOf = (n: number) => coordinators.find((c) => c.id === x.c.assignment?.[n])?.name;
   return (
     <div className="space-y-5">
       <InfoGrid
@@ -256,9 +270,20 @@ function ClusterSheet({ x }: { x: ClusterRow }) {
           ["أُنشئ", fmtDateTime(x.c.createdAt)],
           ["رسم الإنشاء", x.c.feePaidAt ? fmtDateTime(x.c.feePaidAt) : "لم يُسدَّد"],
           ["المجموعات", `${t.groups} من ${x.c.capacityGroups}`],
+          ["المنسقون التقنيون", `${coordinators.length} من ${tier ? coordinatorsLabel(tier.coordinators) : "—"}${tier ? ` (${tier.label})` : ""}`],
           ["الحجاج", `${formatNumber(t.pilgrims)} من ${formatNumber(t.capacity)} مقعداً`],
         ]}
       />
+      {coordinators.length > 0 && (
+        <ul className="space-y-1.5 text-sm">
+          {coordinators.map((c) => (
+            <li key={c.id} className="flex justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
+              <span className="font-bold text-white">{c.name}</span>
+              <span className="text-white/65">{groupsLabel(x.groups.filter((g) => x.c.assignment?.[g.number] === c.id).map((g) => g.number))}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <ul className="space-y-2">
         {x.groups.map((g) => (
           <li key={g.number} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
@@ -268,7 +293,7 @@ function ClusterSheet({ x }: { x: ClusterRow }) {
                 {g.head} {g.own && <Chip tone="gold">مجموعة الرئيس</Chip>}
               </span>
               <span className="block text-xs text-white/60">
-                {g.office} — {g.joined}
+                {g.office} — {g.joined} — منسقها: {coordinatorOf(g.number) ?? "لم يُفرز بعد"}
               </span>
             </span>
             <span className="text-sm tabular-nums text-white/80">

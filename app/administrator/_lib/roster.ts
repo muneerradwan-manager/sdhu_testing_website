@@ -19,15 +19,17 @@ export type Candidate = {
   /** Last season's rating, if he served before */
   rating: number | null;
   skills: string[];
-  /** The group that already took him, if any */
+  /** The group (or, for a coordinator, the group of the cluster head) that already took him, if any */
   taken?: number;
 };
 
-/** The roles a group head fills before his group can be approved */
+/**
+ * A group's team, from the top of its ladder: the deputy, then the religious guide. The technical
+ * coordinator is not one of them: he works for the cluster (./coordinators).
+ */
 export const TEAM_ROLES = [
   { key: "group-deputy", label: "معاون رئيس المجموعة", note: "الحضور والتجمّع وتوزيع الوجبات الخاصة" },
   { key: "guide-m", label: "الموجّه الديني", note: "الدروس والمناسك والأسئلة الشرعية" },
-  { key: "tech", label: "المنسق التقني", note: "التطبيق والبطاقة الرقمية والملفات الصحية" },
 ] as const;
 
 export const ROSTER: Candidate[] = [

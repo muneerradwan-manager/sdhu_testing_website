@@ -133,6 +133,8 @@ export type AdminRules = {
   languagesOff?: string[];
   /** The categories that set a group's capacity, as the holder of «إدارة الإداريين» left them (app/administrator/_lib/capacity) */
   capacityTiers?: import("../app/administrator/_lib/capacity").CapacityTier[];
+  /** The categories that set how many technical coordinators a cluster has (app/administrator/_lib/coordinators) */
+  coordinatorTiers?: import("../app/administrator/_lib/coordinators").CoordinatorTier[];
 };
 
 export type SeasonOverrides = Partial<{
@@ -362,7 +364,16 @@ export type AdminProfile = {
     feePaidAt?: number;
     /** Group heads' requests to join: admin id -> decision */
     decisions: Record<string, { status: "accepted" | "declined"; at: number; reason?: string }>;
+    /** The cluster's technical coordinators, invited by its head, as many as its category allows */
+    coordinators?: { id: string; name: string }[];
+    /** Each group of the cluster sorted to one coordinator: group number -> coordinator's id */
+    assignment?: Record<number, string>;
   };
+  /**
+   * A technical coordinator's post: the cluster whose head invited him, and the groups sorted to him.
+   * He works in those groups only.
+   */
+  coordinatorIn?: { clusterId: string; clusterName: string; headId: string; headName: string; groups: number[] };
   /** This group's request to join a cluster: never forced, the cluster head decides, then both sign */
   clusterRequest?: { clusterId: string; at: number; status: "pending" | "accepted" | "declined"; reason?: string; contractSignedAt?: number };
   /**

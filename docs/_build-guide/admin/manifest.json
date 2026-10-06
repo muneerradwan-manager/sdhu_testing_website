@@ -715,7 +715,7 @@
   "n": 90,
   "key": "head-cluster",
   "file": "090-head-cluster.png",
-  "caption": "إدارة التكتل: بطاقة التكتل وطلبات الانضمام",
+  "caption": "إدارة التكتل: بطاقة التكتل ومنسقوه وطلبات الانضمام",
   "section": "J",
   "note": null
  },
@@ -795,7 +795,7 @@
   "n": 100,
   "key": "tech-dash",
   "file": "100-tech-dash.png",
-  "caption": "المنسق التقني: ملفي",
+  "caption": "المنسق التقني: ملفي — منسق في تكتل النور لثلاث من مجموعاته",
   "section": "L",
   "note": null
  },
@@ -851,7 +851,7 @@
   "n": 107,
   "key": "tech-requests",
   "file": "107-tech-requests.png",
-  "caption": "حجاج المجموعة عند المنسق التقني",
+  "caption": "حجاج مجموعاتي: أزرار المجموعات المفروزة للمنسق",
   "section": "L",
   "note": null
  },
@@ -859,7 +859,7 @@
   "n": 108,
   "key": "tech-enroll",
   "file": "108-tech-enroll.png",
-  "caption": "تسجيل حاج في مجموعتي (بعد اتفاقه مع المنسق)",
+  "caption": "تسجيل حاج في المجموعة المفتوحة من مجموعاته (بعد اتفاقه مع المنسق)",
   "section": "L",
   "note": null
  },
@@ -957,6 +957,30 @@
   "file": "120-gfl-muster.png",
   "caption": "تجمّع «ساحة المزة ← المطار» مرتبط برحلة المجموعة: المسح يسجّل الصعود",
   "section": "N",
+  "note": null
+ },
+ {
+  "n": 121,
+  "key": "head-coordinators",
+  "file": "121-head-coordinators.png",
+  "caption": "منسقو التكتل: عددهم بفئة التكتل، ودعوة من بقي",
+  "section": "J",
+  "note": null
+ },
+ {
+  "n": 122,
+  "key": "head-coord-sort",
+  "file": "122-head-coord-sort.png",
+  "caption": "فرز مجموعات التكتل على منسقيه: لكل مجموعة منسق واحد",
+  "section": "J",
+  "note": null
+ },
+ {
+  "n": 123,
+  "key": "tech-groups",
+  "file": "123-tech-groups.png",
+  "caption": "مجموعاتي: المجموعات التي فرزها له رئيس التكتل",
+  "section": "L",
   "note": null
  }
 ]

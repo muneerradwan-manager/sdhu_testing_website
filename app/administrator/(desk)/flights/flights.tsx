@@ -31,8 +31,9 @@ import {
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { AdminShell, LockedCard } from "../../_components/ui";
-import { isClusterRole, useAdmin } from "../../_lib/admin";
+import { isClusterRole, isTechCoordinator, useAdmin } from "../../_lib/admin";
 import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
+import { useCoordinatorPost } from "../../_lib/coordinators";
 
 /**
  * الرحلات — for reading only. The flight officer (a staff member) puts whole groups on flights; the cluster
@@ -43,6 +44,17 @@ export function AdminFlights() {
   const admin = useAdmin()!;
   const p = admin.profile;
   const g = p?.group;
+  const coord = useCoordinatorPost(admin.id, p);
+  // The coordinator has no group: he sees the flights of the groups sorted to him
+  if (isTechCoordinator(p)) {
+    return coord?.groups.length ? (
+      <ClusterFlights />
+    ) : (
+      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعاتك المفروزة لك.">
+        <LockedCard title="الرحلات تظهر بعد فرز مجموعاتك" text="المنسق التقني للتكتل: حين يدعوك رئيس تكتل ويفرز لك مجموعات منه، ترى هنا رحلاتها." href="/administrator/group" cta="مجموعاتي" />
+      </AdminShell>
+    );
+  }
   if (!g?.approvedAt) {
     return (
       <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعتك أو لمجموعات تكتلك.">
@@ -87,8 +99,13 @@ function WhoAssigns() {
 function ClusterFlights() {
   const admin = useAdmin()!;
   const data = useFlightsData();
-  const view = clusterViewOf(admin.profile, admin.name)!;
-  const groups: GroupRef[] = useMemo(() => clusterGroupsOf(admin.profile, admin.name).map((x) => ({ clusterId: view.id, clusterName: view.name, number: x.number, head: x.head, pilgrims: x.pilgrims, capacity: x.capacity })), [admin.profile, admin.name, view.id, view.name]);
+  const coord = useCoordinatorPost(admin.id, admin.profile);
+  const cluster = clusterViewOf(admin.profile, admin.name);
+  const view = coord ? { id: coord.clusterId, name: coord.clusterName } : { id: cluster?.id ?? "", name: cluster?.name ?? "" };
+  const groups: GroupRef[] = useMemo(
+    () => (coord ? coord.groups : clusterGroupsOf(admin.profile, admin.name)).map((x) => ({ clusterId: view.id, clusterName: view.name, number: x.number, head: x.head, pilgrims: x.pilgrims, capacity: x.capacity })),
+    [coord, admin.profile, admin.name, view.id, view.name],
+  );
   const stats = useGroupStats(groups, data);
   const total = stats.reduce((n, s) => n + s.total, 0);
   const outN = stats.reduce((n, s) => n + s.out.n, 0);
@@ -96,7 +113,7 @@ function ClusterFlights() {
   const flights = [...new Map(stats.flatMap((s) => [s.out.flight, s.back.flight]).filter(Boolean).map((f) => [f!.id, f!])).values()].sort((a, b) => a.departAt - b.departAt);
 
   return (
-    <AdminShell image="/images/haram-2022.jpg" title={`رحلات ${view.name}`} subtitle={`${groups.length} مجموعات — ${formatNumber(total)} حاجاً وإدارياً. رحلة كل مجموعة ذهاباً وعودة كما وضعها مسؤول الطيران.`}>
+    <AdminShell image="/images/haram-2022.jpg" title={coord ? "رحلات مجموعاتي" : `رحلات ${view.name}`} subtitle={`${coord ? `${view.name} — ` : ""}${groups.length} مجموعات — ${formatNumber(total)} حاجاً وإدارياً. رحلة كل مجموعة ذهاباً وعودة كما وضعها مسؤول الطيران.`}>
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { k: "حجاج وإداريون", v: total, icon: Users },

@@ -186,7 +186,7 @@ export function SignatureChain({ app, post }: Pick<StepProps, "app" | "post">) {
   const since = signedAt ? now - signedAt : 0;
   const chain = [
     { who: fullName(applicant.person), role: "الحاج — صاحب الطلب", ok: !!signedAt },
-    { who: post.enrolledBy?.name ?? "منسق المجموعة", role: `منسق المجموعة ${post.groupNumber ?? GROUP.number}`, ok: !!signedAt },
+    { who: post.enrolledBy?.name ?? "منسق المجموعة", role: `منسق التكتل المفروز للمجموعة ${post.groupNumber ?? GROUP.number}`, ok: !!signedAt },
     { who: "رنا حداد", role: "الإدارة — المصادقة", ok: !!signedAt && since > 2500 },
   ];
   return (

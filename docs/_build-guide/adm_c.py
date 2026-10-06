@@ -64,7 +64,11 @@ if ONLY in (None, "head"):
     except Exception:
         pass
     c.goto("/administrator/cluster", wait=1800)
-    c.shot("head-cluster", "إدارة التكتل: بطاقة التكتل وطلبات الانضمام", section=S)
+    c.shot("head-cluster", "إدارة التكتل: بطاقة التكتل ومنسقوه وطلبات الانضمام", section=S)
+    c.scroll_to("text=منسقو التكتل", 120)
+    c.shot("head-coordinators", "منسقو التكتل: عددهم بفئة التكتل، ودعوة من بقي", section=S)
+    c.scroll_to("text=فرز المجموعات على المنسقين", 120)
+    c.shot("head-coord-sort", "فرز مجموعات التكتل على منسقيه: لكل مجموعة منسق واحد", hl=[("button:has-text('توزيع بالتساوي')", "")], section=S)
     c.scroll_to("text=طلبات الانضمام إلى تكتلك", 130)
     c.shot("head-requests", "طلبات انضمام المجموعات: قبول أو رفض", section=S)
     p.locator("button:text-is('قبول')").first.click(); c.settle(1200)
@@ -105,7 +109,9 @@ if ONLY in (None, "deputy"):
 if ONLY in (None, "tech"):
     c, p = session("01033300874")
     S = "L"
-    c.shot("tech-dash", "المنسق التقني: ملفي", section=S)
+    c.shot("tech-dash", "المنسق التقني: ملفي — منسق في تكتل النور لثلاث من مجموعاته", section=S)
+    c.goto("/administrator/group", wait=1800)
+    c.shot("tech-groups", "مجموعاتي: المجموعات التي فرزها له رئيس التكتل", section=S)
     c.goto("/administrator/pilgrims", wait=1800)
     c.shot("tech-reg", "تسجيل الحجاج: البحث عن المواطن في الشؤون المدنية", section=S)
     p.locator("label:has-text('الرقم الوطني') input").first.fill("01012340078"); c.settle(200)
@@ -127,11 +133,11 @@ if ONLY in (None, "tech"):
         det.click(); c.settle(1800); c.scroll_top()
         c.shot("tech-detail", "تفاصيل طلب سجّله المنسق", section=S)
     c.goto("/administrator/requests", wait=1800)
-    c.shot("tech-requests", "حجاج المجموعة عند المنسق التقني", section=S)
-    pan = p.locator("text=تسجيل حاج في مجموعتي").first
+    c.shot("tech-requests", "حجاج مجموعاتي: أزرار المجموعات المفروزة للمنسق", section=S)
+    pan = p.locator("text=تسجيل حاج في المجموعة").first
     if pan.count():
         pan.scroll_into_view_if_needed(); c.settle(400)
-        c.shot("tech-enroll", "تسجيل حاج في مجموعتي (بعد اتفاقه مع المنسق)", section=S)
+        c.shot("tech-enroll", "تسجيل حاج في المجموعة المفتوحة من مجموعاته (بعد اتفاقه مع المنسق)", section=S)
     c.close()
 
 # ───────── group deputy + religious guide ─────────

@@ -27,13 +27,20 @@ export const DEMO_ADMINS: DemoAdmin[] = [
   { id: "01033300885", phone: "0944285449", position: "group-head", mode: "start", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له: يريد رئاسة مجموعة يشكّلها بنفسه، ويخضع للامتحانين. لم يبدأ." },
   { id: "01033300872", phone: "0944272449", position: "group-deputy", mode: "done", title: "ياسر عبد الله — معاون رئيس مجموعة", note: "40 عاماً — معاون المجموعة 27 في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
   { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون المجموعة 41 في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
-  { id: "01033300874", phone: "0944274449", position: "tech", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق المجموعة 27 في 1447 (4.8)، جدّد الصفة نفسها. يسجّل طلبات الحج في مكتب دمشق، وفي مرحلة التفويج يسجّل في مجموعته من يختارها، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
+  { id: "01033300874", phone: "0944274449", position: "tech", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق تقني في 1447 (4.8)، جدّد الصفة نفسها. المنسق للتكتل لا لمجموعة: دعاه رئيس تكتل النور، وفرز له ثلاثاً من مجموعات التكتل (31 و27 و5). يسجّل طلبات الحج في مكتب دمشق، وفي مرحلة التفويج يسجّل في مجموعاته من يختارها، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
   { id: "01033300887", phone: "0944287449", position: "tech", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص، أول موسم له. لم يبدأ." },
   { id: "01033300873", phone: "0944273449", position: "guide-m", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه المجموعة 27 في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
   { id: "01033300888", phone: "0944288449", position: "guide-m", mode: "start", title: "عبد الغني الطباع — موجّه ديني", note: "43 عاماً — أول موسم له. لم يبدأ." },
 ];
-/** التكتل والمجموعة اللذان عُيّن فيهما المنسق التقني في هذا العرض */
+/** تكتل النور في هذا العرض، ومجموعة أحمد فيه (27). المنسق التقني يعمل للتكتل لا لمجموعة: انظر NOUR_ASSIGNMENT */
 export const TECH_POSTING = { clusterId: "al-nour", groupNumber: 27 };
+
+/** The demo cluster's two coordinators, and how its head sorted its six groups among them */
+export const NOUR_COORDINATORS = [
+  { id: "01033300874", name: "سامر نبيل نجار" },
+  { id: "01033300961", name: "لؤي العظمة" },
+];
+export const NOUR_ASSIGNMENT: Record<number, string> = { 31: "01033300874", 27: "01033300874", 5: "01033300874", 18: "01033300961", 33: "01033300961", 47: "01033300961" };
 
 /** الصفة التي يعمل بها الإداري: المنسق التقني أولاً إن كانت من صفاته */
 export function positionOf(p: AdminProfile | undefined) {
@@ -53,7 +60,7 @@ export const POSITIONS = [
   { key: "group-deputy", label: "معاون رئيس مجموعة", desc: "الحضور والتجمّع وتوزيع الوجبات الخاصة.", elected: false },
   { key: "guide-m", label: "موجّه ديني", desc: "الدروس والمناسك والإجابة عن الأسئلة الشرعية.", elected: false },
   { key: "guide-f", label: "موجّهة دينية", desc: "الإرشاد الديني للحاجّات ومتابعة شؤونهن.", elected: false },
-  { key: "tech", label: "منسق تقني", desc: "يسجّل طلبات الحج في مكتبه، ويسجّل في مجموعته من يختارها في مرحلة التفويج، ويأخذ ملفاتهم الصحية.", elected: false },
+  { key: "tech", label: "منسق تقني", desc: "يعمل للتكتل لا لمجموعة: يدعوه رئيس تكتل ويفرز له مجموعات منه. يسجّل طلبات الحج في مكتبه، ويسجّل في مجموعاته من يختارها في مرحلة التفويج، ويأخذ ملفاتهم الصحية.", elected: false },
 ] as const;
 
 /**
@@ -314,7 +321,7 @@ const HISTORY: Record<string, { season: string; roleKey: string | null; group?: 
   "01033300884": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-head", group: "المجموعة 44", rating: 3.2 }],
   "01033300871": [{ season: "1446", roleKey: "group-deputy", group: "المجموعة 12", rating: 4.6 }, { season: "1447", roleKey: null }],
   "01033300872": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", group: "المجموعة 27", rating: 4.1 }],
-  "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", group: "المجموعة 27", rating: 4.8 }],
+  "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", group: "تكتل النور — المجموعات 27 و31 و5", rating: 4.8 }],
   "01033300886": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", group: "المجموعة 41", rating: 4.3 }],
   "01033300873": [{ season: "1446", roleKey: "guide-m", group: "المجموعة 27", rating: 4.9 }, { season: "1447", roleKey: "guide-m", group: "المجموعة 27", rating: 4.9 }],
 };
@@ -442,28 +449,36 @@ export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinC
   const r = resultOf(p, rules);
   const g = p?.group;
   // The election and the cluster request belong to group heads (and the cluster roles they become).
-  // A team member (deputy, guide, technical coordinator) joins a group by the head's invitation and
-  // has no station there — before any role is chosen, the full journey is shown.
+  // A team member (deputy, guide) joins a group by the head's invitation and has no station there. The
+  // technical coordinator joins a cluster by its head's invitation, and works in the groups sorted to
+  // him — before any role is chosen, the full journey is shown.
   const teamMember = !!p?.positions?.length && p.positions[0] !== "group-head" && !isClusterRole(p);
-  const raw: (Omit<JourneyStep, "state"> & { done: boolean; headOnly?: boolean })[] = [
+  const tech = isTechCoordinator(p);
+  const post = p?.coordinatorIn;
+  const posted = post ? `${post.clusterName} — ${post.groups.length ? `المجموعات ${post.groups.join(" و")}` : "لم تُفرز له مجموعة بعد"}` : "";
+  const raw: (Omit<JourneyStep, "state"> & { done: boolean; headOnly?: boolean; groupOnly?: boolean })[] = [
     { key: "account", title: "إنشاء الحساب الإداري", date: "5 ربيع الأول", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
     { key: "apply", title: "طلب المشاركة والتحقق من الأهلية", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
     { key: "fee", title: "رسم التسجيل", date: "10 ربيع الأول – 1 ربيع الآخر", href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
     { key: "written", title: "الامتحان الكتابي", date: (written?.date ?? "15 ربيع الآخر 1448").replace(" 1448", ""), href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : p?.exam?.submittedAt ? "أُرسل — بانتظار تصحيح الأسئلة التحريرية" : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || !!p?.exam?.submittedAt },
     { key: "oral", title: "الامتحان الشفهي", date: "1 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
     { key: "result", title: "النتيجة النهائية", date: "10 جمادى الأولى", href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : weightsLabel(rules), done: !!r.published && r.passed },
-    teamMember
+    tech
+      ? { key: "coordinator", title: "الانضمام إلى تكتل منسقاً تقنياً", date: "بعد انتخاب رؤساء التكتلات", href: "/administrator/group", detail: post ? posted : "بدعوة من رئيس تكتل، ويفرز لك مجموعات من تكتله", done: !!post }
+      : teamMember
       ? { key: "team", title: "الانضمام إلى فريق مجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: g ? `المجموعة ${g.number}` : "بدعوة فردية من رئيس المجموعة توافق عليها", done: !!g?.feePaidAt }
       : { key: "group", title: p?.cluster ? "مجموعات تكتلي" : "طلب تشكيل المجموعة", date: "11 – 25 جمادى الأولى", href: "/administrator/group", detail: p?.cluster ? `يدير مجموعات ${p.cluster.name}، منها مجموعته ${g?.number}` : g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "الفريق ورسم 200 $", done: !!g?.feePaidAt },
-    { key: "approval", title: "اعتماد إدارة الإداريين", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "يقرر فيه صاحب صلاحية «إدارة الإداريين»", done: !!g?.approvedAt },
-    { key: "contracts", title: "ميثاق الفريق", date: "جمادى الآخرة", href: "/administrator/group", detail: g?.contractSignedAt ? "موقّع ومصادق عليه" : "المعاون والموجّه والمنسق", done: !!g?.contractSignedAt },
+    { key: "approval", title: "اعتماد إدارة الإداريين", date: "حتى 1 جمادى الآخرة", href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "يقرر فيه صاحب صلاحية «إدارة الإداريين»", done: !!g?.approvedAt, groupOnly: true },
+    { key: "contracts", title: "ميثاق الفريق", date: "جمادى الآخرة", href: "/administrator/group", detail: g?.contractSignedAt ? "موقّع ومصادق عليه" : "الرئيس وفريق مجموعته", done: !!g?.contractSignedAt, groupOnly: true },
     { key: "election", title: "انتخاب رؤساء التكتلات", date: SEASON.administrators.clusters.window, href: "/administrator/cluster", detail: p?.cluster ? `انتُخبت رئيساً — ${p.cluster.name}` : p?.vote ? "صوّتَ" : p?.candidate ? "مرشح" : `${SEASON.administrators.clusters.count} تكتلات — يصوّت رؤساء المجموعات`, done: !!p?.vote || !!p?.cluster, headOnly: true },
     { key: "cluster", title: "الانضمام إلى تكتل", date: "بعد الانتخاب", href: "/administrator/cluster", detail: g?.clusterId ? "بعقد موقّع مع التكتل" : p?.clusterRequest?.status === "pending" ? "طلبك عند رئيس التكتل" : "تطلب، ويقرر رئيس التكتل، وتوقّعان العقد", done: !!g?.clusterId, headOnly: true },
-    { key: "requests", title: "استلام حجاج المجموعة", date: "من 2 شعبان", href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "يسجّلهم منسق المجموعة + ملفات صحية", done: joinCount > 0 },
+    tech
+      ? { key: "requests", title: "تسجيل الحجاج في مجموعاتي", date: "من 2 شعبان", href: "/administrator/requests", detail: "من يختار إحدى مجموعاتك المفروزة لك، وملفاتهم الصحية", done: joinCount > 0 }
+      : { key: "requests", title: "استلام حجاج المجموعة", date: "من 2 شعبان", href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "يسجّلهم منسق التكتل المفروز للمجموعة + ملفات صحية", done: joinCount > 0 },
     { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "أول تجمّع أُغلق — انطلقنا" : "التجمّعات والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;
-  return raw.filter((s) => !(teamMember && s.headOnly)).map(({ done, headOnly: _headOnly, ...s }) => {
+  return raw.filter((s) => !(teamMember && s.headOnly) && !(tech && s.groupOnly)).map(({ done, headOnly: _headOnly, groupOnly: _groupOnly, ...s }) => {
     if (done) return { ...s, state: "done" as const };
     if (!currentGiven) {
       currentGiven = true;
@@ -553,17 +568,31 @@ export function demoAdminLogin(
           ? { score: 88, by: "منير السيد", at: now - 40 * min, note: "متمكّن من التطبيق وشرحه لكبار السن" }
           : { score: 84, by: "منير السيد", at: now - 40 * min, note: "قوي في السيناريوهات الميدانية، يحتاج إلى تحسين الإلقاء" },
       resultPublishedAt: keep ? undefined : now - 35 * min,
-      group: {
-        number: demoGroupNumber(id),
-        // The cluster comes later: after the election, by a request the cluster head accepts and a contract
-        clusterId: TECH_POSTING.clusterId,
-        capacity: 50,
-        requestedAt: now - 30 * min,
-        feePaidAt: now - 29 * min,
-        approvedAt: now - 20 * min,
-        approvedBy: "مازن الحلبي",
-        contractSignedAt: now - 10 * min,
-      },
+      // The coordinator has no group: the head of تكتل النور invited him and sorted three of its groups to him
+      group: tech
+        ? undefined
+        : {
+            number: demoGroupNumber(id),
+            // The cluster comes later: after the election, by a request the cluster head accepts and a contract
+            clusterId: TECH_POSTING.clusterId,
+            capacity: 50,
+            requestedAt: now - 30 * min,
+            feePaidAt: now - 29 * min,
+            approvedAt: now - 20 * min,
+            approvedBy: "مازن الحلبي",
+            contractSignedAt: now - 10 * min,
+          },
+      coordinatorIn: tech
+        ? {
+            clusterId: TECH_POSTING.clusterId,
+            clusterName: "تكتل النور",
+            headId: CLUSTER_DEMO.head,
+            headName: adminName(CLUSTER_DEMO.head),
+            groups: Object.entries(NOUR_ASSIGNMENT)
+              .filter(([, c]) => c === id)
+              .map(([n]) => Number(n)),
+          }
+        : undefined,
       ...clusterStateFor(id, position, now - 15 * min),
     });
     // الانتخاب أُغلق وأُعلن رؤساء التكتلات — فتظهر مرحلة التكتلات مكتملة للملفات المكتملة
@@ -607,6 +636,8 @@ function clusterStateFor(id: string, position: string, at: number): Partial<Admi
         createdAt: at,
         feePaidAt: at,
         decisions: { "01033300871": { status: "accepted", at: at + 60_000 }, [CLUSTER_DEMO.deputy]: { status: "accepted", at: at + 60_000 } },
+        coordinators: NOUR_COORDINATORS,
+        assignment: NOUR_ASSIGNMENT,
       },
     };
   }

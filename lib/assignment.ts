@@ -3,8 +3,9 @@
  *
  * - لا تفويج تلقائي، ولا تضع الإدارة الحاج في مجموعة، ولا يضعه فيها تسجيلُ المنسق لطلبه.
  * - حين تُفتح مرحلة التفويج يتصفّح الحاج دليل المجموعات المعروض على المنصة، ويتواصل مع مجموعة.
- * - منسق تلك المجموعة هو من يسجّل الحاج فيها، ويوقّعان عقد الحاج مع المجموعة. منسق النور يسجّل في
- *   مجموعة النور فقط.
+ * - المنسق التقني للتكتل لا للمجموعة: يفرز رئيس التكتل مجموعاته على منسقيه، ولكل مجموعة منسق واحد.
+ *   منسق المجموعة المفروز لها هو من يسجّل الحاج فيها، ويوقّعان عقد الحاج مع المجموعة، ولا يسجّل
+ *   أحد في مجموعة لم تُفرز له.
  * - الانتقال بين المجموعات ممكن: يسجّله منسق المجموعة الجديدة، والطلب العائلي ينتقل كاملاً أو لا ينتقل.
  */
 import { clustersNow } from "./cms/content";
@@ -27,11 +28,23 @@ export type GroupInfo = GroupRef & {
   team: { role: string; name: string; phone: string; note: string }[];
 };
 
-/** Coordinators of the directory's groups (group 27's is the demo administrator سامر نجار) */
+/** Coordinators of the directory's clusters: each cluster's head sorts its groups among them */
 const COORDINATORS = ["لؤي الكيلاني", "هيثم الأحمد", "مهند الفرات", "نور الدين حجار", "أيمن الخطيب", "قصي الزعبي", "رامز العطار", "باسل الشيخ", "مجد القباني", "أنس الحمصي", "طلال الأيوبي", "زاهر النحاس"];
 
-function coordinatorName(no: number) {
-  return COORDINATORS[no % COORDINATORS.length];
+/** تكتل النور's two coordinators in the demo, and how its head sorted its groups among them */
+const NOUR_COORDINATOR_NAMES: Record<string, { name: string; phone: string }> = {
+  "01033300874": { name: "سامر نجار", phone: "0944 274 449" },
+  "01033300961": { name: "لؤي العظمة", phone: "0944 961 449" },
+};
+const NOUR_SORTING: Record<number, string> = { 31: "01033300874", 27: "01033300874", 5: "01033300874", 18: "01033300961", 33: "01033300961", 47: "01033300961" };
+
+/** The cluster's coordinator sorted to a group: in the directory's clusters, every three groups share one */
+function clusterCoordinator(slug: string, groups: { no: number }[], no: number, phone: string) {
+  const known = slug === "al-nour" ? NOUR_COORDINATOR_NAMES[NOUR_SORTING[no] ?? ""] : undefined;
+  if (known) return known;
+  const seed = [...slug].reduce((n, ch) => n + ch.charCodeAt(0), 0);
+  const share = Math.floor(Math.max(0, groups.findIndex((g) => g.no === no)) / 3);
+  return { name: COORDINATORS[(seed + share) % COORDINATORS.length], phone };
 }
 
 /** Everything the pilgrim sees about a group: cluster, office and the team, with the coordinator to contact */
@@ -42,13 +55,13 @@ export function groupInfo(clusterId: string | undefined, number: number | undefi
   const group = cluster.groups.find((g) => g.no === no);
   const leader = group?.leader ?? GROUP.team[0].name;
   const phone = (k: number) => `0944 ${String(no).padStart(2, "0")}${k} 449`;
+  // The coordinator is the cluster's, sorted to this group by the cluster's head
+  const coordinator = clusterCoordinator(cluster.slug, cluster.groups, no, phone(4));
+  const coordinatorEntry = { role: "المنسق التقني", name: coordinator.name, phone: coordinator.phone, note: `منسق ${cluster.name} المفروز لهذه المجموعة: يسجّلك فيها ويوقّع معك العقد، ويأخذ معلوماتك الصحية` };
   const team =
     no === GROUP.number && cluster.slug === "al-nour"
-      ? GROUP.team.map((t) => (t.role === "المنسق التقني" ? { ...t, note: "يسجّلك في المجموعة ويوقّع معك العقد، ويأخذ معلوماتك الصحية" } : t))
-      : [
-          { role: "رئيس المجموعة", name: leader, phone: phone(0), note: "يتابع العقد والتجمّعات" },
-          { role: "المنسق التقني", name: coordinatorName(no), phone: phone(4), note: "يسجّلك في المجموعة ويوقّع معك العقد، ويأخذ معلوماتك الصحية" },
-        ];
+      ? [...GROUP.team.filter((t) => t.role !== "المنسق التقني"), coordinatorEntry]
+      : [{ role: "رئيس المجموعة", name: leader, phone: phone(0), note: "يتابع العقد والتجمّعات" }, coordinatorEntry];
   return {
     clusterId: cluster.slug,
     number: no,
@@ -63,7 +76,7 @@ export function groupInfo(clusterId: string | undefined, number: number | undefi
   };
 }
 
-/** The group's coordinator — the only person who enrolls pilgrims into it */
+/** The cluster's coordinator sorted to the group — the only person who enrolls pilgrims into it */
 export function coordinatorOf(info: GroupInfo) {
   return info.team.find((t) => t.role === "المنسق التقني") ?? info.team[0];
 }

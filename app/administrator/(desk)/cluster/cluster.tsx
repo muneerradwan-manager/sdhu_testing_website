@@ -16,11 +16,12 @@ import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { useHolders } from "@/lib/systems";
 import { cn, formatUSD } from "@/lib/utils";
-import { DEMO_ADMINS, adminName, candidacy, deputyEligible, lastServed, logAdmin, nowMs, seasonHistory, useAdmin, type ClusterRules } from "../../_lib/admin";
+import { DEMO_ADMINS, adminName, candidacy, deputyEligible, isTechCoordinator, lastServed, logAdmin, nowMs, seasonHistory, useAdmin, type ClusterRules } from "../../_lib/admin";
 import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
 import { HEADS_POOL as SEED_HEADS, clusterGroupsOf, clusterTotals, clusterViewOf } from "../../_lib/cluster";
 import { StandingCard } from "../../_components/standing";
 import { ClusterPublicProfile } from "./public-profile";
+import { CoordinatorsPanel } from "./coordinators-panel";
 
 
 type Candidate = { id: string; name: string; group: number; seasons: number; rating: number; votes: number; real: boolean };
@@ -51,9 +52,15 @@ export function AdminCluster() {
     );
   }
   if (!isGroupHead(p)) {
+    const tech = isTechCoordinator(p);
     return (
-      <AdminShell title="التكتلات" subtitle="رؤساء التكتلات يُنتخبون من رؤساء المجموعات، وكل رئيس يختار معاونه ويقرر في طلبات المجموعات.">
-        <LockedCard title="هذه الصفحة لرؤساء المجموعات" text="الترشح والتصويت وإنشاء التكتل وطلب الانضمام إليه من صلاحيات رئيس المجموعة. بقية الصفات تتبع مجموعتها إلى تكتلها." href="/administrator/dashboard" cta="ملفي" />
+      <AdminShell title="التكتلات" subtitle="رؤساء التكتلات يُنتخبون من رؤساء المجموعات، وكل رئيس يختار معاونه ويدعو منسقي تكتله ويقرر في طلبات المجموعات.">
+        <LockedCard
+          title="هذه الصفحة لرؤساء المجموعات"
+          text={tech ? "الترشح والتصويت وإنشاء التكتل من صلاحيات رئيس المجموعة. أنت منسق تقني للتكتل: يدعوك رئيسه ويفرز لك مجموعات منه، فتجدها في «مجموعاتي»." : "الترشح والتصويت وإنشاء التكتل وطلب الانضمام إليه من صلاحيات رئيس المجموعة. بقية الصفات تتبع مجموعتها إلى تكتلها."}
+          href={tech ? "/administrator/group" : "/administrator/dashboard"}
+          cta={tech ? "مجموعاتي" : "ملفي"}
+        />
       </AdminShell>
     );
   }
@@ -309,7 +316,7 @@ function CreateCluster({ rules, admins }: { rules: ClusterRules; admins: Record<
           <Crown className="size-4" /> انتُخبت رئيساً لتكتل
         </Badge>
         <h2 className="mt-3 font-display text-3xl font-bold text-green-dark">أنشئ تكتلك</h2>
-<p className="mt-2 leading-8 text-ink-soft">تبقى رئيساً لمجموعتك {admin.profile?.group?.number}، وترتفع مهامك إلى مستوى التكتل: تدير مجموعاته كلها، لكل واحدة رئيسها وفريقها. اختر معاونك من رؤساء المجموعات السابقين، وحدد كم مجموعة يتسع لها تكتلك.</p>
+<p className="mt-2 leading-8 text-ink-soft">تبقى رئيساً لمجموعتك {admin.profile?.group?.number}، وترتفع مهامك إلى مستوى التكتل: تدير مجموعاته كلها، لكل واحدة رئيسها وفريقها. اختر معاونك من رؤساء المجموعات السابقين، وحدد كم مجموعة يتسع لها تكتلك. بعد الإنشاء تدعو منسقي تكتلك التقنيين، بعدد تحدده إدارة الإداريين بحسب سعته وتقييمك، وتفرز عليهم مجموعاته.</p>
         <div className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-2 block font-bold">اسم التكتل</span>
@@ -417,6 +424,7 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
           </div>
         </Card>
         <StandingCard scope="cluster" name={cluster.name} />
+        <CoordinatorsPanel />
         <Card>
           <SectionTitle icon={Inbox} action={<Badge tone="gold">{pending.length} بانتظار قرارك</Badge>}>
             طلبات الانضمام إلى تكتلك
@@ -472,6 +480,7 @@ function ManageCluster({ admins }: { admins: Record<string, AdminProfile> }) {
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>الرئيس منتخب من رؤساء المجموعات، يبقى رئيساً لمجموعته وتضاف إليه إدارة مجموعات التكتل كلها.</li>
             <li>المعاون يختاره الرئيس، ويُشترط أن يكون رئيس مجموعة سابقاً.</li>
+            <li>المنسقون التقنيون للتكتل: يدعوهم الرئيس بعدد فئة تكتله، ويفرز عليهم مجموعاته.</li>
             <li>الانضمام بطلب من المجموعة وقرار من الرئيس — لا إجبار.</li>
             <li>لكل مجموعة عقد مع التكتل، وللتكتل عقد مع الإدارة.</li>
           </ul>
