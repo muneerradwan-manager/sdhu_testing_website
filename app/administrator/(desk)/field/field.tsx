@@ -59,7 +59,7 @@ export function AdminField() {
   if (!g?.approvedAt) {
     return (
       <AdminShell title="الميدان" subtitle="أدوات رئيس المجموعة في الموسم: التجمّع والحضور، الإعلانات، البلاغات، والتقرير اليومي.">
-        <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان تلقائياً بعد اعتماد مجموعتك." href="/administrator/groups" cta="إدارة المجموعات" />
+        <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان تلقائياً بعد اعتماد مجموعتك." href="/administrator/groups" cta="إدارة المجموعة" />
       </AdminShell>
     );
   }

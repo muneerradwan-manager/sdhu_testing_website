@@ -19,7 +19,7 @@ import { cn, maskNationalId } from "@/lib/utils";
 import { effectiveRole, journeyOf, positionLabelOf, resultOf, seasonHistory, useAdmin, type SeasonRecord } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
-import { clusterGroupsOf } from "../../_lib/cluster";
+import { useClusterGroupsOf } from "../../_lib/formation";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { groupName } from "@/lib/groups";
 import { AdminShell } from "../../_components/ui";
@@ -34,11 +34,11 @@ const nextSteps = (rules: ExamNumbers, w: Written): Record<string, { title: stri
   written: { title: "امتحانك الكتابي في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: امتحان جماعي لصفتك، ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر بهويتك، وافتح حسابك في القاعة بعد أن يفتحها المشرف.`, cta: "قاعتي وموعدي" },
   oral: { title: "بانتظار نتيجة الامتحان الشفهي", text: "تُدخل لجنة الامتحانات (ماهر عيسى) النتيجة على المنصة بعد مقابلتك.", cta: "متابعة النتيجة" },
   result: { title: "نتيجتك النهائية", text: `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.`, cta: "عرض النتيجة" },
-  group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة ورسم 200 $، في مدة تشكيل المجموعات. تسمّيها أنت باسم لا تحمله مجموعة أخرى، وسعتها تُعطى بفئتك عند الاعتماد. تشكّلها وحدك: فريقها يسنده رئيس التكتل.", cta: "طلب تشكيل مجموعة" },
-  team: { title: "بانتظار دعوة تكتل", text: "رؤساء التكتلات يختارون موجّهيهم ومنسقيهم ومعاونيهم للتكتل كله بدعوات فردية، ثم يسندونهم إلى المجموعات. تقبل دعوة واحدة.", cta: "دعواتي" },
+  group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة ورسم 200 $، في مدة تشكيل المجموعات. تسمّيها أنت باسم لا تحمله مجموعة أخرى، وفئتك (منها عدد حجاجها ومقاعد فريقها) تثبّتها الإدارة عند الاعتماد. تشكّلها وحدك: مقاعد فريقها يملؤها رئيس التكتل.", cta: "طلب تشكيل مجموعة" },
+  team: { title: "بانتظار دعوة تكتل", text: "رؤساء التكتلات يدعون كل واحد إلى مكانه: مقعد الموجّه أو المعاون في إحدى مجموعاتهم، أو من منسقي التكتل أو موجّهاته أو معاونيه. تقبل دعوة واحدة: لكل شخص مكان واحد في الموسم.", cta: "دعواتي" },
   approval: { title: "طلب المجموعة قيد الاعتماد", text: "يراجعه ماهر عيسى ثم يعتمده مدير المكتب مازن الحلبي.", cta: "متابعة الطلب" },
-  cluster: { title: "تشكيل التكتلات", text: "يدعو رؤساء التكتلات المجموعات بحجاجها: تقبل دعوة واحدة لمجموعتك. وإن استوفيت شروط الطلب قدّمت أنت طلب تشكيل تكتل. لا انتخاب.", cta: "تشكيل التكتلات" },
-  requests: { title: "حجاج مجموعتك", text: "أُلحقت بمجموعتك عائلات جديدة بعقودها: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي أسنده رئيس التكتل.", cta: "حجاج المجموعة" },
+  cluster: { title: "تشكيل التكتلات", text: "يدعو رؤساء التكتلات المجموعات بحجاجها: تقبل دعوة واحدة لمجموعتك. ومن منحته الإدارة صفة «رئيس تكتل» يقدّم طلب تشكيل تكتل. لا انتخاب.", cta: "تشكيل التكتلات" },
+  requests: { title: "حجاج مجموعتك", text: "أُلحقت بمجموعتك عائلات جديدة بعقودها: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي وزّع عليه رئيس التكتل مجموعتك.", cta: "حجاج المجموعة" },
   field: { title: "الميدان: افتح أول تجمّع", text: "«ساحة المزة ← المطار» — مسح البطاقات وإرسال «انطلقنا» للجميع.", cta: "وضع الميدان" },
 });
 
@@ -62,7 +62,7 @@ export function AdminDashboard() {
   const [openSeason, setOpenSeason] = useState<SeasonRecord | null>(null);
   const next = current ? nextSteps(rules, written)[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
-  const clusterGroups = clusterGroupsOf(profile, admin.name).length;
+  const clusterGroups = useClusterGroupsOf(profile).length;
   const status1448 = coord
     ? `منسق تقني في ${coord.clusterName} — ${groupsLabel(coord.groups.map((g) => g.number))}`
     : profile?.deputyOf

@@ -91,10 +91,6 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     icon: <Coins />,
     fields: [
       { key: "keepRoleMinRating", label: "الاستمرار في الصفة نفسها: أدنى تقييم للموسم السابق (ومعه إعفاء من الامتحانين)", unit: "من 5", min: 0, max: 5, step: 0.1 },
-      { key: "clusterHeadSeasons", label: "طلب تشكيل تكتل (لا انتخاب): مواسم متتالية رئيساً لمجموعة", unit: "مواسم", min: 0, max: 6 },
-      { key: "clusterHeadMinRating", label: "طلب تشكيل تكتل: أدنى تقييم في كل موسم منها", unit: "من 5", min: 0, max: 5, step: 0.1 },
-      { key: "clusterMinGroups", label: "أقل عدد مجموعات ليُعتمد التكتل عند الموعد النهائي", unit: "مجموعات", min: 1, max: 30 },
-      { key: "deputySeasons", label: "نائب رئيس التكتل (يدعوه الرئيس): مواسم سابقة رئيساً لمجموعة", unit: "مواسم", min: 0, max: 5 },
     ],
   },
 ];
@@ -132,10 +128,6 @@ const LABELS: Record<Key, string> = {
   recordValidSeasons: "صلاحية وثيقة لا حكم عليه",
   recommendationValidSeasons: "صلاحية التزكية",
   keepRoleMinRating: "أدنى تقييم للاستمرار في الصفة",
-  clusterMinGroups: "أقل عدد مجموعات للتكتل",
-  clusterHeadSeasons: "مواسم طلب تشكيل تكتل",
-  clusterHeadMinRating: "أدنى تقييم لطلب تشكيل تكتل",
-  deputySeasons: "مواسم نائب رئيس التكتل",
   promoteShare: "نسبة الترقية من كل فئة",
   demoteShare: "نسبة التخفيض من كل فئة",
   honorTop: "المكرَّمون في كل فئة",
@@ -155,10 +147,6 @@ function valuesOf(s: LiveSeason): Values {
     firstInstallment: s.fees.firstInstallment,
     installmentCount: s.fees.installmentCount,
     keepRoleMinRating: s.administrators.keepRoleMinRating,
-    clusterMinGroups: s.administrators.clusterMinGroups,
-    clusterHeadSeasons: s.administrators.clusterHeadSeasons,
-    clusterHeadMinRating: s.administrators.clusterHeadMinRating,
-    deputySeasons: s.administrators.deputySeasons,
     promoteShare: Math.round(s.grading.promoteShare * 100),
     demoteShare: Math.round(s.grading.demoteShare * 100),
     honorTop: s.grading.honorTop,
@@ -177,7 +165,7 @@ const DEFAULTS = valuesOf(mergeSeason({}));
 function show(key: Key, v: number) {
   if (key === "directShare" || key === "promoteShare" || key === "demoteShare") return `${v}%`;
   if (key === "installmentCount") return v === 1 ? "دفعة واحدة كاملة" : "دفعتان";
-  if (key === "keepRoleMinRating" || key === "clusterHeadMinRating") return `${v} من 5`;
+  if (key === "keepRoleMinRating") return `${v} من 5`;
   if (key === "registrationPerPerson" || key === "hajjCost" || key === "firstInstallment" || key === "hady") return `${formatNumber(v)} $`;
   if (key.endsWith("BirthYear")) return String(v);
   return formatNumber(v);

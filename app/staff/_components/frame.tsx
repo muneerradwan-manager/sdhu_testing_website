@@ -5,24 +5,34 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  BadgeCheck,
   BarChart3,
   BriefcaseBusiness,
+  Building2,
+  CalendarCheck,
+  CalendarClock,
   ChevronDown,
   ClipboardCheck,
-  Contact,
   Database,
   Dices,
   DoorOpen,
+  FileQuestion,
   FileStack,
   Gauge,
   GraduationCap,
+  IdCard,
+  KeyRound,
+  Landmark,
   Layers,
   LayoutDashboard,
+  ListTree,
   LogOut,
   PencilLine,
   Plane,
   RadioTower,
+  Route,
   ScrollText,
+  Star,
   TowerControl,
   Settings2,
   ShieldCheck,
@@ -34,7 +44,7 @@ import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
 import { PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
 import { actions, useHydrated, useStore } from "@/lib/store";
-import { SYSTEMS, useOwnedSystems, type SystemKey } from "@/lib/systems";
+import { SYSTEMS, SYSTEM_KEYS, useOwnedSystems, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
 import { useAirportReps, useFlightsData } from "@/lib/flights";
@@ -51,8 +61,9 @@ import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
  * («إدارة الامتحانات»، «إدارة الطيران») has its own summary instead.
  * `hall`, `airport`: shown to whoever a system's owner assigned in the field — a centre's hall, an airport —
  * whatever his permissions.
- * `system`: shown to the holders of that file's management permission: its summary (their dashboard for it,
- * `exact` so it is not lit on the management pages) and its management.
+ * `system`: shown to the holders of that file's management permission: its summary (their dashboard for it)
+ * and then every one of its operations as an entry of its own (`area`: the part of the file's desk that
+ * counts what waits there), under the file's name (`group`). `exact`: lit on its own path only.
  */
 type NavItem = {
   href: string;
@@ -64,21 +75,48 @@ type NavItem = {
   hall?: true;
   airport?: true;
   system?: SystemKey;
+  area?: string;
+  group?: string;
   exact?: true;
 };
+
+/** Each operation's icon in the menu */
+const OPERATION_ICONS: Record<string, ReactNode> = {
+  "/staff/employees/manage": <IdCard />,
+  "/staff/employees/manage/accounts": <KeyRound />,
+  "/staff/employees/manage/season": <CalendarCheck />,
+  "/staff/admins/manage": <ScrollText />,
+  "/staff/admins/manage/reference": <ListTree />,
+  "/staff/admins/manage/applicants": <UsersRound />,
+  "/staff/admins/manage/groups": <BadgeCheck />,
+  "/staff/admins/manage/clusters": <Building2 />,
+  "/staff/admins/manage/evaluation": <Star />,
+  "/staff/admins/manage/grading": <Layers />,
+  "/staff/exam/manage": <Landmark />,
+  "/staff/exam/manage/exams": <CalendarClock />,
+  "/staff/exam/manage/bank": <FileQuestion />,
+  "/staff/exam/manage/people": <UsersRound />,
+  "/staff/exam/manage/results": <GraduationCap />,
+  "/staff/flights/manage": <Building2 />,
+  "/staff/flights/manage/flights": <Plane />,
+  "/staff/flights/manage/dispatch": <Route />,
+};
+
+/** A management file in the menu: its summary, then each of its operations, under the file's name */
+function systemEntries(key: SystemKey): NavItem[] {
+  const s = SYSTEMS[key];
+  return [
+    { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [], system: key, badge: key, exact: true, group: s.label },
+    // The first operation is the file's own path, which the others continue: lit on its own path only
+    ...s.operations.map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: [], system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
+  ];
+}
 
 export const STAFF_NAV: NavItem[] = [
   { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [], work: true },
   { href: "/staff/systems", label: "صلاحيات الإدارة", icon: <Layers />, perms: ["systems.assign"], badge: "systems" },
-  // The management of whole files, in the season's order
-  { href: SYSTEMS.staff.summary.href, label: SYSTEMS.staff.summary.label, icon: <Gauge />, perms: [], system: "staff", badge: "staff", exact: true },
-  { href: SYSTEMS.staff.manage.href, label: SYSTEMS.staff.manage.label, icon: <Contact />, perms: [], system: "staff" },
-  { href: SYSTEMS.admins.summary.href, label: SYSTEMS.admins.summary.label, icon: <Gauge />, perms: [], system: "admins", badge: "admins", exact: true },
-  { href: SYSTEMS.admins.manage.href, label: SYSTEMS.admins.manage.label, icon: <UsersRound />, perms: [], system: "admins" },
-  { href: SYSTEMS.exams.summary.href, label: SYSTEMS.exams.summary.label, icon: <Gauge />, perms: [], system: "exams", badge: "exams", exact: true },
-  { href: SYSTEMS.exams.manage.href, label: SYSTEMS.exams.manage.label, icon: <GraduationCap />, perms: [], system: "exams" },
-  { href: SYSTEMS.flights.summary.href, label: SYSTEMS.flights.summary.label, icon: <Gauge />, perms: [], system: "flights", badge: "flights", exact: true },
-  { href: SYSTEMS.flights.manage.href, label: SYSTEMS.flights.manage.label, icon: <Plane />, perms: [], system: "flights" },
+  // The management of whole files, in the season's order: each file's summary and its operations
+  ...SYSTEM_KEYS.flatMap(systemEntries),
   // The employee's own place, and the field posts a file's holder gives
   { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
   { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: [], hall: true, badge: "hall" },
@@ -289,10 +327,19 @@ function Sidebar({ user }: { user: StaffUser }) {
 
         {/* Navigation — vertical on desktop, a swipeable strip on phones */}
         <nav aria-label="أقسام بوابة الموظفين" className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:block lg:space-y-1 lg:overflow-visible">
-          {items.map((n) => {
+          {items.map((n, i) => {
             const active = n.exact ? samePath(pathname, n.href) : pathname.startsWith(n.href);
             const count = n.badge ? counts[n.badge] : 0;
-            return (
+            // A file's entries sit under its name; what follows the last file is set apart from it
+            const heading = n.group ? (
+              <p key={`g-${n.group}`} className={cn("hidden px-3.5 pb-1 text-[11px] font-bold tracking-wide text-gold/70 lg:block", i > 0 && "mt-3 border-t border-white/10 pt-3")}>
+                {n.group}
+              </p>
+            ) : !n.system && items[i - 1]?.system ? (
+              <hr key={`after-${items[i - 1].system}`} className="my-3 hidden border-white/10 lg:block" />
+            ) : null;
+            return [
+              heading,
               <Link
                 key={n.href}
                 href={n.href}
@@ -319,11 +366,13 @@ function Sidebar({ user }: { user: StaffUser }) {
                   <ExamCount active={active} />
                 ) : n.badge === "flights" ? (
                   <FlightsCount active={active} />
+                ) : n.system && n.area ? (
+                  <OperationCount system={n.system} area={n.area} active={active} />
                 ) : (
                   <Count n={count} active={active} urgent={n.badge === "tickets" || n.badge === "systems"} />
                 )}
-              </Link>
-            );
+              </Link>,
+            ];
           })}
         </nav>
 
@@ -364,4 +413,32 @@ function ExamCount({ active }: { active: boolean }) {
 function FlightsCount({ active }: { active: boolean }) {
   const desk = useFlightsDesk();
   return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
+}
+
+/** What waits in one operation of a file, by its desk's part: each file's desk is read only by its own entries */
+function OperationCount({ system, area, active }: { system: SystemKey; area: string; active: boolean }) {
+  if (system === "admins") return <AdminsArea area={area} active={active} />;
+  if (system === "exams") return <ExamArea area={area} active={active} />;
+  if (system === "flights") return <FlightsArea area={area} active={active} />;
+  return <EmployeesArea area={area} active={active} />;
+}
+
+function AdminsArea({ area, active }: { area: string; active: boolean }) {
+  const desk = useAdminsDesk();
+  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+}
+
+function ExamArea({ area, active }: { area: string; active: boolean }) {
+  const desk = useExamDesk();
+  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+}
+
+function FlightsArea({ area, active }: { area: string; active: boolean }) {
+  const desk = useFlightsDesk();
+  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+}
+
+function EmployeesArea({ area, active }: { area: string; active: boolean }) {
+  const desk = useEmployeesDesk();
+  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
 }

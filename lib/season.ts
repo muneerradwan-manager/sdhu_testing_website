@@ -89,20 +89,8 @@ export const SEASON = {
       /** Seasons without participation before the exams are required again even for the same role */
       maxGapSeasons: 1,
     },
-    /**
-     * Cluster head and deputy are never applied for, and nobody is elected. Any group head who meets these
-     * conditions files a request to form a cluster, with its groups and its people, by the deadline; a
-     * complete one is approved. He keeps his own group, and invites his deputy — who must have headed a
-     * group before.
-     */
-    clusters: {
-      /** The fewest groups a cluster needs to be approved */
-      minGroups: 4,
-      /** To file a request: this many consecutive seasons as group head, each rated at least this */
-      candidacy: { consecutiveSeasons: 3, minRating: 4 },
-      /** The deputy must have headed a group for at least this many seasons */
-      deputySeasons: 1,
-    },
+    // The clusters are the administration's structure, not numbers of the season: who may file a request (a
+    // role it grants), the groups' categories, the tiers and their composition (app/administrator/_lib/structure)
   },
 
   /**

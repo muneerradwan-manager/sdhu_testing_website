@@ -9,7 +9,7 @@ import { useSeason } from "@/lib/season-live";
 import { useStore } from "@/lib/store";
 import { SYSTEMS, useHolders } from "@/lib/systems";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
-import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
+import { useStructure } from "@/app/administrator/_lib/structure";
 import { useAdminCalendar, useCommitments, useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
 import { fmtDate, fmtDateTime, Kpi, PageHeader, Panel, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
@@ -39,7 +39,9 @@ export function AdminsSummary() {
   const stages = useEvaluationStages();
   const calendar = useAdminCalendar();
   const [escalating, setEscalating] = useState(false);
-  const closed = APPLIED_ROLES.filter((r) => !desk.openRoles.includes(r));
+  const s = useStructure();
+  const closed = s.roles.filter((r) => r.applied && !r.active);
+  const appliedTotal = s.roles.filter((r) => r.applied).length;
   const atHeads = desk.groups.filter((x) => x.state === "unpaid" || x.state === "returned").length;
 
   return (
@@ -48,7 +50,7 @@ export function AdminsSummary() {
         eyebrow={`صلاحيتك: ${SYSTEMS.admins.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.admins.summary.label}
         icon={<Gauge />}
-        description="حال الإداريين الموسميين الآن، وما ينتظرك فيهم. العمل نفسه وسجلّ كل جزء في «إدارة الإداريين». ولا يصل إلى مديرة الموسم إلا ما يعطّل العمل، وفتح الصفات وإغلاقها، وحسم طلبات التكتلات عند موعدها وتوزيع المجموعات، ونشر التصنيف، وما ترفعه إليها."
+        description="حال الإداريين الموسميين الآن، وما ينتظرك فيهم. العمل نفسه وسجلّ كل جزء في «إدارة الإداريين». ولا يصل إلى مديرة الموسم إلا ما يعطّل العمل، وتعديل الصفات والفئات، واعتماد طلبات التكتلات ورفضها، ونشر التصنيف، وما ترفعه إليها."
         actions={
           <>
             <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
@@ -69,14 +71,14 @@ export function AdminsSummary() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Todo alerts={desk.alerts} empty="الصفات مفتوحة، والطلبات مبتوت فيها، ولكل تكتل منشأ معاونه، ولا برنامج أو تقييم معلّق." />
+        <Todo alerts={desk.alerts} empty="الصفات مفتوحة، وطلبات المجموعات والتكتلات مراجَعة، ولا مجموعة خارج التكتلات، ولا برنامج أو تقييم معلّق." />
         <Raised system="admins" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — طلب تكتل يحتاج استثناء، رسم يحتاج مراجعة، قرار خارج القواعد — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
       </div>
 
       {/* In the order the work is done: the rules, who applied, the groups, the clusters, the evaluation, the classification */}
       <Panel icon={<ScrollText />} title="القواعد" action={<ManageLink href={M} />}>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-          <Stat k="الصفات المفتوحة" v={`${desk.openRoles.length} من ${APPLIED_ROLES.length}`} tone={desk.openRoles.length ? undefined : "maroon"} />
+          <Stat k="الصفات المفتوحة للتقدم" v={`${desk.openRoles.length} من ${appliedTotal}`} tone={desk.openRoles.length ? undefined : "maroon"} />
           <Stat k="الالتزامات" v={commitments.length} />
           <Stat k="شروط الصفات" v={requirementsEdited ? "معدَّلة" : "الافتراضية"} />
           <Stat k="مراحل التقييم" v={stages.length} />
@@ -84,7 +86,7 @@ export function AdminsSummary() {
         </div>
         <p className="mt-3 text-xs leading-6 text-white/60">
           {desk.rulesEdited ? `عُدّل ${desk.rulesEdited} من قواعد الموسم` : "القواعد كما تطلقها المنصة"}
-          {closed.length ? ` · مغلقة: ${closed.map((r) => r.label).join("، ")}` : ""} · من «إعدادات الموسم»: رسم التسجيل {formatUSD(season.fees.administratorRegistration)}، والتشكيل {formatUSD(season.fees.groupFormation)}، وإنشاء التكتل {formatUSD(season.fees.clusterFormation)}.
+          {closed.length ? ` · معطّلة: ${closed.map((r) => r.name).join("، ")}` : ""} · من «إعدادات الموسم»: رسم التسجيل {formatUSD(season.fees.administratorRegistration)}، والتشكيل {formatUSD(season.fees.groupFormation)}، وإنشاء التكتل {formatUSD(season.fees.clusterFormation)}.
         </p>
       </Panel>
 
@@ -121,9 +123,9 @@ export function AdminsSummary() {
 
       <Panel icon={<Building2 />} title="طلبات تشكيل التكتلات" action={<ManageLink href={`${M}/clusters`} />}>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Stat k="طلبات التشكيل" v={desk.requests.length} />
-          <Stat k="مكتملة الآن" v={desk.requests.filter((r) => r.complete).length} tone="green" />
-          <Stat k={desk.deadlinePassed ? "تنتظر قرارك" : "معتمدة"} v={desk.deadlinePassed ? desk.undecided.length : desk.approvedClusters.length} tone={desk.deadlinePassed && desk.undecided.length ? "maroon" : undefined} />
+          <Stat k="قيد المراجعة" v={desk.sent.length + desk.reviewing.length} tone={desk.sent.length + desk.reviewing.length ? (desk.deadlinePassed ? "maroon" : "gold") : undefined} />
+          <Stat k="معتمدة" v={desk.approvedClusters.length} tone="green" />
+          <Stat k="أُعيدت بملاحظات" v={desk.rejected.length} />
           <Stat k="برامج تنتظر اعتمادك" v={desk.pendingProgrammes.length} tone={desk.pendingProgrammes.length ? "gold" : undefined} />
         </div>
       </Panel>
@@ -163,7 +165,7 @@ export function AdminsSummary() {
         </div>
       </Panel>
 
-      <Escalate system="admins" open={escalating} onClose={() => setEscalating(false)} example="مثال: طلب تكتل ينقصه معاون واحد عند الموعد النهائي ورئيسه يطلب مهلة يومين. نحتاج قراراً قبل توزيع المجموعات." />
+      <Escalate system="admins" open={escalating} onClose={() => setEscalating(false)} example="مثال: طلب تكتل أُعيد بملاحظات قبل الموعد النهائي بيوم، ورئيسه يطلب مهلة يومين ليستبدل منسقاً. نحتاج قراراً قبل إغلاق الطلبات." />
     </div>
   );
 }

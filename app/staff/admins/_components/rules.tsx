@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarRange, Check, ClipboardList, Landmark, Languages, ListChecks, Pencil, Plus, RotateCcw, ScrollText, Sparkles, Trash2, UsersRound, X } from "lucide-react";
 import { useState } from "react";
@@ -8,7 +9,8 @@ import { useToast } from "@/components/ui/widgets";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { APPLIED_ROLES, COMMITMENTS, FIXED_CRITERIA, POSITIONS, criteriaCatalog, criterionLabel, type RoleRequirements } from "@/app/administrator/_lib/admin";
+import { APPLIED_ROLES, COMMITMENTS, FIXED_CRITERIA, criteriaCatalog, criterionLabel, type RoleRequirements } from "@/app/administrator/_lib/admin";
+import { useStructure } from "@/app/administrator/_lib/structure";
 import { SEASON_VALIDITY, useAdminCalendar, useDocTypes, useEvaluationStages, useLanguages, useRoleRequirements, useRoles, useSkills } from "@/app/administrator/_lib/admin-rules";
 import { Panel, Tabs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip } from "../../_components/ops-ui";
@@ -48,7 +50,7 @@ export function RulesTab() {
           value={section}
           onChange={setSection}
           tabs={[
-            { value: "roles", label: "الصفات والالتزامات", count: roles.filter((r) => !r.elected).length },
+            { value: "roles", label: "الصفات والالتزامات", count: roles.length },
             { value: "catalog", label: "الشهادات والمهارات واللغات" },
             { value: "requirements", label: "شروط الصفات" },
             { value: "stages", label: "مراحل التقييم", count: stages.length },
@@ -96,9 +98,7 @@ export function SeasonNumbers() {
     ["رسم تشكيل المجموعة", formatUSD(season.fees.groupFormation)],
     ["رسم التكتل", formatUSD(season.fees.clusterFormation)],
     ["أدنى تقييم للتجديد في الصفة نفسها", String(A.keepRoleMinRating)],
-    ["طلب تشكيل تكتل", `${A.clusterHeadSeasons} مواسم متتالية رئيساً لمجموعة بتقييم ${A.clusterHeadMinRating}+`],
-    ["أقل عدد مجموعات للتكتل", String(A.clusterMinGroups)],
-    ["نائب رئيس التكتل", `رئاسة مجموعة ${A.deputySeasons} ${A.deputySeasons === 1 ? "موسماً" : "مواسم"} فأكثر`],
+    ["طلب تشكيل تكتل", "لمن تمنحه الإدارة صفة «رئيس تكتل»"],
     ["التصنيف", `ترقية ${pct(season.grading.promoteShare)} · تخفيض ${pct(season.grading.demoteShare)} · يُكرَّم ${season.grading.honorTop}`],
   ];
   return (
@@ -111,7 +111,7 @@ export function SeasonNumbers() {
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs leading-6 text-white/55">تضبطها مديرة الموسم في «إعدادات الموسم»، وتعمل بها بوابة الإداريين وتبويبات هذا الملف كما هي. ما سواها من قواعد الإداريين تعدّله هنا.</p>
+      <p className="mt-3 text-xs leading-6 text-white/55">تضبطها مديرة الموسم في «إعدادات الموسم»، وتعمل بها بوابة الإداريين وعمليات هذا الملف كما هي. ما سواها من قواعد الإداريين تعدّله هنا.</p>
     </Panel>
   );
 }
@@ -121,83 +121,28 @@ export function SeasonNumbers() {
 function RolesAndCommitments() {
   const user = useStaffUser()!;
   const toast = useToast();
-  const off = useStore((s) => s.adminRules.rolesOff) ?? [];
-  const desc = useStore((s) => s.adminRules.roleDesc) ?? {};
+  const st = useStructure();
   const cOff = useStore((s) => s.adminRules.commitmentsOff) ?? [];
   const cEdits = useStore((s) => s.adminRules.commitmentEdits) ?? {};
-  const [editing, setEditing] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
   const [cEditing, setCEditing] = useState<string | null>(null);
   const [cDraft, setCDraft] = useState({ label: "", detail: "" });
-
-  const toggleRole = (key: string, label: string) => {
-    const on = off.includes(key);
-    actions.setAdminRules({ rolesOff: on ? off.filter((x) => x !== key) : [...off, key] });
-    logAdmins(user, "rules", { action: on ? "فتح صفة للتقدم هذا الموسم" : "إغلاق صفة عن التقدم هذا الموسم", target: label, ref: key, important: true });
-    toast({ title: on ? `فُتحت صفة ${label}` : `أُغلقت صفة ${label}`, body: on ? "تظهر في طلب المشاركة." : "لا تظهر في طلب المشاركة هذا الموسم.", tone: on ? "success" : "info", icon: on ? "✅" : "🚫" });
-  };
+  const applied = st.roles.filter((r) => r.applied);
 
   return (
     <div className="space-y-4">
-      <Panel icon={<UsersRound />} title="الصفات المتاحة للتقدم" action={<Chip tone={off.length ? "maroon" : "green"}>{POSITIONS.length - off.length} من {POSITIONS.length}</Chip>}>
+      <Panel icon={<UsersRound />} title="الصفات المتاحة للتقدم" action={<Link href="/staff/admins/manage/reference" className="text-sm font-bold text-gold hover:underline">تعديلها في «القوائم المرجعية»</Link>}>
         <p className="text-sm leading-7 text-white/70">
-          رئاسة التكتل ونيابتها لا يُتقدَّم إليهما في التسجيل كإداري: الأولى بطلب تشكيل تكتل يقدّمه رئيس مجموعة مستوفٍ، والثانية بدعوة من رئيس التكتل، فتبقيان خارج قائمة التقدم مهما فُتحتا.
+          الصفات وسلوكها في التكتل (المقاعد، والمرشّحون، والشارات) قائمة مرجعية تُضاف وتُعدَّل وتُعطَّل وتُحذف من «القوائم المرجعية». «رئيس تكتل» لا يُتقدَّم إليها: تمنحها الإدارة صفةً موسمية، ونائب رئيس التكتل ومحاسبه صفتان ثانويتان يعطيهما الطلب.
         </p>
-        <ul className="mt-4 space-y-2">
-          {POSITIONS.map((p) => {
-            const disabled = off.includes(p.key);
-            return (
-              <li key={p.key} className={cn("rounded-2xl p-3 ring-1", disabled ? "bg-maroon/15 ring-maroon/30" : "bg-white/[.06] ring-white/10")}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-bold text-white">
-                      {p.label}
-                      {p.elected && <Chip tone="gold">بطلب تشكيل تكتل أو دعوة — لا يُتقدَّم إليها</Chip>}
-                      {desc[p.key] && <Chip tone="gold">وصف معدَّل</Chip>}
-                    </p>
-                    {editing === p.key ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <input value={draft} onChange={(e) => setDraft(e.target.value)} className={cn(smallInputClass, "min-w-0 flex-1")} aria-label={`وصف ${p.label}`} />
-                        <Button
-                          size="sm"
-                          variant="gold"
-                          onClick={() => {
-                            actions.setAdminRules({ roleDesc: { ...desc, [p.key]: draft.trim() || p.desc } });
-                            logAdmins(user, "rules", { action: "تعديل وصف صفة", target: p.label, after: draft.trim().slice(0, 60), ref: p.key });
-                            setEditing(null);
-                            toast({ title: "حُفظ الوصف", tone: "success", icon: "✍️" });
-                          }}
-                        >
-                          حفظ
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-white" onClick={() => setEditing(null)}>
-                          إلغاء
-                        </Button>
-                      </div>
-                    ) : (
-                      <p className="mt-0.5 text-xs leading-6 text-white/65">{desc[p.key] ?? p.desc}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-white hover:bg-white/10"
-                      onClick={() => {
-                        setEditing(p.key);
-                        setDraft(desc[p.key] ?? p.desc);
-                      }}
-                    >
-                      الوصف
-                    </Button>
-                    <Button size="sm" variant={disabled ? "primary" : "ghost"} className={disabled ? "" : "text-white hover:bg-maroon/40"} onClick={() => toggleRole(p.key, p.label)}>
-                      {disabled ? "فتح" : "إغلاق"}
-                    </Button>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {applied.map((r) => (
+            <li key={r.key}>
+              <Chip tone={r.active ? "green" : "maroon"}>
+                {r.name}
+                {!r.active ? " — معطّلة" : ""}
+              </Chip>
+            </li>
+          ))}
         </ul>
       </Panel>
 
@@ -509,7 +454,8 @@ function Requirements() {
   const { languages } = useLanguages();
   const stored = useStore((s) => s.adminRules.requirements);
   const added = useStore((s) => s.adminRules.docTypes) ?? [];
-  const off = useStore((s) => s.adminRules.rolesOff) ?? [];
+  const st = useStructure();
+  const off = st.roles.filter((r) => !r.active).map((r) => r.key);
   const [adding, setAdding] = useState("");
   const [cert, setCert] = useState<{ label: string; hint: string; valid: string } | null>(null);
   const label = (id: string) => criterionLabel(id, types);
@@ -591,7 +537,8 @@ function Requirements() {
               {APPLIED_ROLES.map((r) => (
                 <th key={r.key} className="p-3 text-center font-bold">
                   {r.label}
-                  {off.includes(r.key) && <span className="mt-1 block text-[11px] font-normal text-white/50">مغلقة هذا الموسم</span>}
+                  {off.includes(r.key) && <span className="mt-1 block text-[11px] font-normal text-white/50">معطّلة هذا الموسم</span>}
+                  {st.roles.some((x) => x.examAs === r.key && x.applied) && <span className="mt-1 block text-[11px] font-normal text-white/50">ومعها: {st.roles.filter((x) => x.examAs === r.key && x.applied).map((x) => x.name).join("، ")}</span>}
                 </th>
               ))}
               <th className="w-12 p-3" aria-label="حذف" />

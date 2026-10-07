@@ -8,10 +8,10 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { useStore, type AuditEvent } from "@/lib/store";
-import { SYSTEM_KEYS, SYSTEMS, useHolders, useOwns, type SystemKey } from "@/lib/systems";
-import { cn, samePath } from "@/lib/utils";
+import { SYSTEM_KEYS, SYSTEMS, operationAt, useHolders, useOwns, type SystemKey } from "@/lib/systems";
+import { cn } from "@/lib/utils";
 import { useAllEvents } from "./data";
-import { ago, Empty, fmtDateTime, logAs, Panel, textareaClass, useNow, useStaffUser } from "./kit";
+import { ago, Empty, fmtDateTime, logAs, PageHeader, Panel, textareaClass, useNow, useStaffUser } from "./kit";
 
 /**
  * What every system shares, whoever owns it: the gate that opens it to its owner alone, the list of what
@@ -61,33 +61,17 @@ export function SystemGate({ system, children }: { system: SystemKey; children: 
   );
 }
 
-/** The management page's tabs, as links, each with what waits in it */
-export function SectionTabs({ label, tabs }: { label: string; tabs: { href: string; label: string; icon: ReactNode; index?: true; count?: number; urgent?: number }[] }) {
+/**
+ * The head of one operation's page: its name, under the file it belongs to, and what it is for. Each operation
+ * is an entry of its own in the menu, so the page carries no tabs of the file's other operations.
+ */
+export function OperationHeader({ system, icon, actions }: { system: SystemKey; icon: ReactNode; actions?: ReactNode }) {
   const pathname = usePathname();
-  return (
-    <nav aria-label={label} className="scrollbar-none flex max-w-full gap-1 overflow-x-auto rounded-2xl bg-white/10 p-1">
-      {tabs.map((t) => {
-        const active = t.index ? samePath(pathname, t.href) : pathname.startsWith(t.href);
-        return (
-          <Link
-            key={t.href}
-            href={t.href}
-            aria-current={active ? "page" : undefined}
-            className={cn("relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition [&_svg]:size-4", active ? "text-ink" : "text-white/85 hover:text-white")}
-          >
-            {active && <motion.span layoutId={`tab-${label}`} className="absolute inset-0 rounded-xl bg-gold" transition={{ type: "spring", damping: 30, stiffness: 380 }} />}
-            <span className="relative">{t.icon}</span>
-            <span className="relative">{t.label}</span>
-            {t.count !== undefined && <span className={cn("relative rounded-full px-1.5 text-[11px] tabular-nums", active ? "bg-white/25" : "bg-white/10")}>{t.count}</span>}
-            {!!t.urgent && <span className="relative min-w-5 rounded-full bg-maroon px-1.5 text-center text-[11px] tabular-nums text-white">{t.urgent}</span>}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const op = operationAt(system, pathname);
+  return <PageHeader eyebrow={SYSTEMS[system].label} title={op.label} icon={icon} description={op.desc} actions={actions} />;
 }
 
-/** What waits for the owner now, each item one click from the tab it is done in */
+/** What waits for the owner now, each item one click from the page it is done in */
 export function Todo({ alerts, empty }: { alerts: Alert[]; empty: string }) {
   return (
     <Panel icon={<CircleDot />} title="ما ينتظرك الآن" action={alerts.length > 0 && <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold ring-1", alerts.some((a) => a.level === "high") ? "bg-maroon text-white ring-maroon-light" : "bg-gold/20 text-gold ring-gold/40")}>{alerts.length}</span>}>

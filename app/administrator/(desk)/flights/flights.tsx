@@ -33,7 +33,8 @@ import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { AdminShell, LockedCard } from "../../_components/ui";
 import { isClusterRole, isTechCoordinator, useAdmin } from "../../_lib/admin";
-import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
+import { clusterViewOf } from "../../_lib/cluster";
+import { useClusterGroupsOf } from "../../_lib/formation";
 import { useCoordinatorPost } from "../../_lib/coordinators";
 
 /**
@@ -59,7 +60,7 @@ export function AdminFlights() {
   if (!g?.approvedAt) {
     return (
       <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعتك أو لمجموعات تكتلك.">
-        <LockedCard title="الرحلات تظهر بعد اعتماد المجموعة" text="حين تُعتمد مجموعتك ويضعها مسؤول الطيران على رحلة، ترى هنا رحلة الذهاب ورحلة العودة لكل عائلة." href="/administrator/groups" cta="إدارة المجموعات" />
+        <LockedCard title="الرحلات تظهر بعد اعتماد المجموعة" text="حين تُعتمد مجموعتك ويضعها مسؤول الطيران على رحلة، ترى هنا رحلة الذهاب ورحلة العودة لكل عائلة." href="/administrator/groups" cta="إدارة المجموعة" />
       </AdminShell>
     );
   }
@@ -103,9 +104,10 @@ function ClusterFlights() {
   const coord = useCoordinatorPost(admin.id, admin.profile);
   const cluster = clusterViewOf(admin.profile, admin.name);
   const view = coord ? { id: coord.clusterId, name: coord.clusterName } : { id: cluster?.id ?? "", name: cluster?.name ?? "" };
+  const own = useClusterGroupsOf(admin.profile);
   const groups: GroupRef[] = useMemo(
-    () => (coord ? coord.groups : clusterGroupsOf(admin.profile, admin.name)).map((x) => ({ clusterId: view.id, clusterName: view.name, number: x.number, head: x.head, pilgrims: x.pilgrims, capacity: x.capacity })),
-    [coord, admin.profile, admin.name, view.id, view.name],
+    () => (coord ? coord.groups : own).map((x) => ({ clusterId: view.id, clusterName: view.name, number: x.number, head: x.head, pilgrims: x.pilgrims, capacity: x.capacity })),
+    [coord, own, view.id, view.name],
   );
   const stats = useGroupStats(groups, data);
   const total = stats.reduce((n, s) => n + s.total, 0);

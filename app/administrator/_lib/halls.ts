@@ -6,6 +6,7 @@ import { getPerson } from "@/lib/registry";
 import { getStaff } from "@/lib/staff";
 import { setState, useStore, type AdminProfile, type HallRun } from "@/lib/store";
 import { APPLIED_ROLES, POSITIONS } from "./admin";
+import { examRoleOf, structureNow } from "./structure";
 
 export type { ExamCenter, ExamDef } from "@/lib/data/admin-exam";
 
@@ -47,7 +48,9 @@ export const runKey = (exam: string, center: string) => `${exam}@${center}`;
 
 /** A role key from a stored role (the portal stores keys; the seeded files carry Arabic labels) */
 export function roleKeyOf(position: string | undefined) {
-  return POSITIONS.find((p) => p.key === position || p.label === position)?.key ?? "";
+  // A role tied to another sits that role's exam («مرشد ديني» the guide's): its sitting is the family's
+  const key = structureNow().roles.find((r) => r.key === position || r.name === position)?.key ?? POSITIONS.find((p) => p.key === position || p.label === position)?.key ?? "";
+  return key ? examRoleOf(key) : "";
 }
 
 export const roleLabelOf = (role: string) => APPLIED_ROLES.find((r) => r.key === role)?.label ?? role;

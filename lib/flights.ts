@@ -332,7 +332,7 @@ export function familiesOfGroup(g: GroupRef, post: Record<string, PostAcceptance
   return out;
 }
 
-/** The group's team travels with it: the head and three team members, counted as escorts on the flight */
+/** The group's team travels with it: its head, the people in its seats and its coordinator, counted as escorts on the flight */
 export function teamOfGroup(g: GroupRef, admins: Record<string, AdminProfile>): Traveler[] {
   const base = (id: string, name: string): Traveler => ({ id, name, kind: "administrator", gender: "M", needs: [], requestId: `team-${g.clusterId}-${g.number}`, groupNumber: g.number, clusterId: g.clusterId });
   // the demo group: the four administrators of the guide
@@ -343,11 +343,12 @@ export function teamOfGroup(g: GroupRef, admins: Record<string, AdminProfile>): 
   const head = Object.entries(admins).find(([, p]) => p.group?.number === g.number);
   const cluster = Object.values(admins).find((p) => p.cluster && Object.values(p.cluster.groups).some((x) => x.number === g.number && x.status === "accepted"))?.cluster;
   if (head || cluster) {
+    // The people in its seats, and the coordinator its cluster's head sorted to it
     const team = cluster
-      ? (["guide", "tech", "assistant"] as const).flatMap((k) => {
-          const who = cluster.team[k].find((m) => m.status === "accepted" && m.id === cluster.posts[k][g.number]);
-          return who ? [base(who.id, who.name)] : [];
-        })
+      ? [
+          ...(cluster.seats[g.number] ?? []).flatMap((x) => (x.who?.status === "accepted" ? [base(x.who.id, x.who.name)] : [])),
+          ...cluster.coordinators.filter((m) => m.status === "accepted" && m.id === cluster.sorting[g.number]).map((m) => base(m.id, m.name)),
+        ]
       : [];
     return [base(head?.[0] ?? `adm-${g.clusterId}-${g.number}-h`, g.head), ...team];
   }

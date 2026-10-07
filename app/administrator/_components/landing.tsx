@@ -37,6 +37,7 @@ import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { APPLIED_ROLES, criterionLabel } from "../_lib/admin";
+import { useStructure, type Structure } from "../_lib/structure";
 import {
   useAdminCalendar,
   useDocTypes,
@@ -44,60 +45,29 @@ import {
   useRoleRequirements,
 } from "../_lib/admin-rules";
 
-const ROLES: {
-  level: string;
-  items: { title: string; text: string; icon: LucideIcon }[];
-  tone: string;
-}[] = [
-  {
-    level: "مستوى التكتل",
-    tone: "from-maroon-dark to-maroon",
-    items: [
-      {
-        title: "رئيس تكتل",
-        text: "رئيس مجموعة يستوفي شروط الموسم يقدّم طلب تشكيل تكتل — لا انتخاب — فيدعو المجموعات وفريق التكتل ويسندهم إليها، ويديره كاملاً بعد اعتماده.",
-        icon: Crown,
-      },
-      {
-        title: "نائب رئيس تكتل",
-        text: "رئيس مجموعة سابق يدعوه رئيس التكتل نائباً له، وينوب عنه في النقل والإسكان.",
-        icon: Building2,
-      },
-      {
-        title: "منسق تقني",
-        text: "للتكتل لا للمجموعة: يدعوه رئيس التكتل ويسند إليه مجموعات منه، فيلحق بها الحجاج بعقودهم ويأخذ ملفاتهم الصحية، ويساعدهم في التطبيق والبطاقة الرقمية.",
-        icon: MonitorSmartphone,
-      },
-    ],
-  },
-  {
-    level: "مستوى المجموعة",
-    tone: "from-green-dark to-green",
-    items: [
-      {
-        title: "رئيس مجموعة",
-        text: "يقود مجموعته من الحجاج الذين يختارونها ويسجّلهم منسق التكتل المفروز لها: التجمّعات والإعلانات والتقرير اليومي.",
-        icon: UsersRound,
-      },
-      {
-        title: "معاون رئيس مجموعة",
-        text: "الحضور والتجمّع وتوزيع الوجبات الخاصة.",
-        icon: ClipboardCheck,
-      },
-    ],
-  },
-  {
-    level: "فريق المجموعة",
-    tone: "from-gold-dark to-gold",
-    items: [
-      {
-        title: "موجّه ديني / موجّهة",
-        text: "الدروس والمناسك والإجابة عن الأسئلة الشرعية. ليس لكل مجموعة موجّه: يحدده فريقها الذي تعطيه الإدارة.",
-        icon: BookOpenCheck,
-      },
-    ],
-  },
-];
+const ICONS: Record<string, LucideIcon> = { "cluster-head": Crown, "group-head": UsersRound, tech: MonitorSmartphone, "assistant-tech": MonitorSmartphone, "group-deputy": ClipboardCheck, "assistant-count": ClipboardCheck };
+
+/**
+ * The roles as the administration's reference lists hold them, by where each works: the cluster, the group, or
+ * either («مشترك») — and the two secondary roles a cluster gives. Read live, so a role the administration adds,
+ * edits or deactivates shows here as it is.
+ */
+function rolesByLevel(s: Structure) {
+  const card = (r: Structure["roles"][number]) => ({ title: r.name, text: r.desc, icon: ICONS[r.key] ?? (r.guideSeat || r.guidePool ? BookOpenCheck : Building2) });
+  const live = s.roles.filter((r) => r.active);
+  return [
+    {
+      level: "مستوى التكتل",
+      tone: "from-maroon-dark to-maroon",
+      items: [
+        ...live.filter((r) => r.level === "cluster").map(card),
+        { title: "نائب رئيس التكتل ومحاسبه", text: "صفتان ثانويتان يعطيهما طلب التكتل: النائب من رؤساء مجموعاته، والمحاسب من كادره.", icon: Building2 },
+      ],
+    },
+    { level: "مستوى المجموعة", tone: "from-green-dark to-green", items: live.filter((r) => r.level === "group").map(card) },
+    { level: "مشترك: مجموعة أو تكتل", tone: "from-gold-dark to-gold", items: live.filter((r) => r.level === "shared").map(card) },
+  ];
+}
 
 const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
   {
@@ -107,7 +77,7 @@ const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
   },
   {
     title: "التشكيل",
-    text: "الناجحون يشكّلون مجموعاتهم وحدهم ويعتمدها مدير المكتب، ثم يقدّم المستوفون طلبات تشكيل التكتلات — لا انتخاب — ويدعون المجموعات وفريقهم.",
+    text: "الناجحون يشكّلون مجموعاتهم وحدهم وتعتمدها الإدارة بفئاتهم، ثم يقدّم من منحتهم الإدارة صفة «رئيس تكتل» طلبات التكتلات — لا انتخاب — بمستواها ومجموعاتها ومقاعدها وكادرها، وتراجعها الإدارة.",
     icon: FileSignature,
   },
   {
@@ -136,6 +106,7 @@ const WEIGHTS = [
 ];
 
 export function AdministratorLanding() {
+  const structure = useStructure();
   const calendar = useAdminCalendar();
   const requirements = useRoleRequirements();
   const { types: docTypes } = useDocTypes();
@@ -328,7 +299,7 @@ export function AdministratorLanding() {
           description="التسجيل يتجدد كل موسم برسمه، وصفة واحدة في الموسم: صفتك السابقة أو صفة جديدة، بشروط تحددها الإدارة. تدير الإدارة قائمة الصفات كل موسم. تختار في طلبك صفة واحدة، وتُمنح صلاحياتك تلقائياً حين تُعتمد لها."
         />
         <div className="grid gap-6 lg:grid-cols-3">
-          {ROLES.map((r, ri) => (
+          {rolesByLevel(structure).map((r, ri) => (
             <Reveal key={r.level} delay={ri * 0.1} className="relative">
               <div
                 className={cn(
@@ -381,7 +352,7 @@ export function AdministratorLanding() {
             light
             eyebrow="الرحلة"
             title="من الامتحان إلى الميدان"
-            description="التسجيل كإداري، ثم الامتحان، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات رؤسائها دون انتخاب، ويُلحق الحجاج بالمجموعات بعقود، ثم الميدان."
+            description="التسجيل كإداري، ثم الامتحان، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات من تمنحهم الإدارة صفة «رئيس تكتل» دون انتخاب، وتراجعها، ويُلحق الحجاج بالمجموعات بعقود، ثم الميدان."
           />
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {PHASES.map((p, i) => (

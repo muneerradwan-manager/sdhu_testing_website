@@ -103,9 +103,20 @@ export type AdminRules = {
   questionEdits?: Record<number, { text?: string; options?: string[]; answer?: number; explanation?: string; points?: number }>;
   /** Questions moved to other roles' exams: question id -> the roles whose exam includes it */
   questionRoles?: Record<number, string[]>;
-  /** Roles closed this season, and edited descriptions */
-  rolesOff?: string[];
-  roleDesc?: Record<string, string>;
+  /**
+   * The season's structure as the holder of «إدارة الإداريين» left it (app/administrator/_lib/structure):
+   * the roles and their behaviors, the ready seasonal labels, the branches, the clusters' tiers, the groups'
+   * categories, each category's seats and pilgrims under each tier, each tier's cluster composition, and the
+   * early deadline of the cluster requests. A missing one is the platform's.
+   */
+  roles?: import("../app/administrator/_lib/structure").RoleDef[];
+  roleLabels?: import("../app/administrator/_lib/structure").RoleLabel[];
+  branches?: import("../app/administrator/_lib/structure").Branch[];
+  tiers?: import("../app/administrator/_lib/structure").Tier[];
+  categories?: import("../app/administrator/_lib/structure").Category[];
+  categoryRules?: Record<string, Record<string, import("../app/administrator/_lib/structure").CategoryRule>>;
+  composition?: Record<string, import("../app/administrator/_lib/structure").Composition>;
+  earlyDeadline?: string;
   /** Commitments dropped this season, and edited wording */
   commitmentsOff?: string[];
   commitmentEdits?: Record<string, { label?: string; detail?: string }>;
@@ -136,10 +147,6 @@ export type AdminRules = {
   skillsOff?: string[];
   languagesAdded?: string[];
   languagesOff?: string[];
-  /** The categories that set a group's capacity, as the holder of «إدارة الإداريين» left them (app/administrator/_lib/capacity) */
-  capacityTiers?: import("../app/administrator/_lib/capacity").CapacityTier[];
-  /** The categories that set how many technical coordinators a cluster has (app/administrator/_lib/coordinators) */
-  coordinatorTiers?: import("../app/administrator/_lib/coordinators").CoordinatorTier[];
 };
 
 export type SeasonOverrides = Partial<{
@@ -157,11 +164,8 @@ export type SeasonOverrides = Partial<{
   firstInstallment: number;
   /** Hajj cost in 1 payment or 2 installments — the administration decides for the season */
   installmentCount: number;
-  /** Administrators: rating needed to keep last season's role; seasons of seniority for a cluster head */
+  /** Administrators: rating needed to keep last season's role (the clusters' numbers are the structure's: app/administrator/_lib/structure) */
   keepRoleMinRating: number;
-  /** The fewest groups a cluster needs to be approved, and consecutive seasons as group head needed to request one */
-  clusterMinGroups: number;
-  clusterHeadSeasons: number;
   /** The administrator's own fees: the seasonal registration, forming a group, forming a cluster */
   administratorRegistration: number;
   groupFormation: number;
@@ -174,8 +178,6 @@ export type SeasonOverrides = Partial<{
   promoteShare: number;
   demoteShare: number;
   honorTop: number;
-  clusterHeadMinRating: number;
-  deputySeasons: number;
   hady: number;
 }>;
 
@@ -301,10 +303,57 @@ export type AdminRecord = {
 
 /** One person's individual invitation from a cluster head: he accepts or declines it himself */
 export type ClusterInvite = { id: string; name: string; at: number; status: "pending" | "accepted" | "declined"; reason?: string };
-/** A group invited into a cluster: its head answers for it, and it comes with the pilgrims it already has */
-export type GroupInvite = ClusterInvite & { number: number; office: string; capacity: number; pilgrims: number; /** Given to the cluster by the administration's distribution, not by invitation */ distributed?: boolean };
-/** The cluster's people, by role: religious guides, assistants (معاونو رؤساء المجموعات), technical coordinators */
-export type TeamPool = "guide" | "assistant" | "tech";
+/**
+ * A group invited into a cluster: its head answers for it, and it comes with the pilgrims it already has.
+ * Its category is its head's; its seats and its pilgrims' number follow the cluster's tier.
+ */
+export type GroupInvite = ClusterInvite & { number: number; branch: string; category: string; pilgrims: number; /** Put in the cluster by the administration's exceptional edit, not by invitation */ byAdministration?: { by: string; reason: string } };
+/** One seat of a group in its cluster: a religious guide's or an assistant's; a free seat takes either, as its head chooses */
+export type Seat = { kind: "guide" | "assistant"; free?: boolean; who?: ClusterInvite };
+/**
+ * Where someone serves in a cluster: a group's guide seat or assistant seat, among the cluster's
+ * coordinators, its female guides, or its assistants («معاون التكتل»)
+ */
+export type TeamPool = "guide" | "assistant" | "tech" | "guide-f" | "cluster-assistant";
+/** A cluster request: a draft, sent (قيد المراجعة), under review (جاري المراجعة), approved, or sent back (مرفوض) with notes */
+export type ClusterStatus = "draft" | "pending" | "reviewing" | "approved" | "rejected";
+/**
+ * The cluster its head asked to form — with the administration's structure (app/administrator/_lib/structure):
+ * its name and tier, its groups (each with its seats, filled by the category under the tier), its cluster
+ * assistants, coordinators and female guides by the sum of the groups' categories, its deputy (one of its
+ * group heads) and its accountant (one of its people). Everyone picked answers his own invitation.
+ */
+export type ClusterRecord = {
+  id: string;
+  name: string;
+  /** Filed: from then he is its head */
+  createdAt: number;
+  tier?: string;
+  status: ClusterStatus;
+  /** Sent for review (the last time), and the first time — before the early deadline it earns the timeliness badge */
+  sentAt?: number;
+  firstSentAt?: number;
+  /** «جاري المراجعة»: who opened it */
+  review?: { at: number; by: string };
+  /** The administration's decision: approved, or sent back with notes for its head to fix and send again */
+  decision?: { status: "approved" | "rejected"; at: number; by: string; note?: string };
+  /** Opened again for its head's edits after its approval, keeping everything */
+  reopened?: { at: number; by: string };
+  /** Created or edited by the administration on its head's behalf */
+  byAdministration?: { by: string; reason: string; at: number };
+  feePaidAt?: number;
+  deputy?: ClusterInvite;
+  accountant?: ClusterInvite;
+  /** Every group invited, by number */
+  groups: Record<number, GroupInvite>;
+  /** Each group's seats, by its number */
+  seats: Record<number, Seat[]>;
+  assistants: ClusterInvite[];
+  coordinators: ClusterInvite[];
+  femaleGuides: ClusterInvite[];
+  /** Which coordinator works in each group: group number -> his id. One coordinator takes several groups */
+  sorting: Record<number, string>;
+};
 
 export type AdminProfile = {
   nationalId: string;
@@ -378,35 +427,23 @@ export type AdminProfile = {
    */
   deputyOf?: { clusterId: string; clusterName: string; headId: string; headName: string; headGroup: number };
   /**
-   * The cluster this group head asked to form. Nobody is elected: any group head who meets the season's
-   * conditions files the request, and is its head from then on — the request stays preliminary until the
-   * administration's deadline, when a complete cluster is approved and an incomplete one excluded. He
-   * invites the groups (their heads answer), his deputy, and the people of the cluster — guides, assistants,
-   * coordinators — not group by group: then he assigns them to the groups as he sees fit.
+   * The cluster he asked to form. Nobody is elected: whoever holds a role that leads a cluster this season
+   * (granted by the administration) files the request, and is its head from then on. He sends it for review
+   * once it is complete; the administration approves it or sends it back with notes.
    */
-  cluster?: {
-    id: string;
-    name: string;
-    /** Filed: from then he is its head */
-    createdAt: number;
-    /** The administration's decision after the deadline, as it reached his record (also in State.formation) */
-    decision?: { status: "approved" | "excluded"; at: number; by: string; reason?: string };
-    feePaidAt?: number;
-    deputy?: ClusterInvite;
-    /** Every group invited, by number; his own group is in it from the start */
-    groups: Record<number, GroupInvite>;
-    /** The cluster's people, chosen for the cluster and not for a group */
-    team: Record<TeamPool, ClusterInvite[]>;
-    /** Who serves each group, role by role: group number -> person id. One person may serve several groups */
-    posts: Record<TeamPool, Record<number, string>>;
-  };
+  cluster?: ClusterRecord;
+  /** The cluster's accountant («محاسب التكتل»), a secondary role given to one of its people who accepted */
+  accountantOf?: { clusterId: string; clusterName: string; headId: string; headName: string };
   /**
    * A technical coordinator's post: the cluster whose head invited him, and the groups assigned to him.
    * He works in those groups only.
    */
   coordinatorIn?: { clusterId: string; clusterName: string; headId: string; headName: string; groups: number[] };
-  /** A religious guide's or an assistant's post, likewise: his cluster and the groups its head assigned to him */
-  servesIn?: { clusterId: string; clusterName: string; headId: string; headName: string; role: TeamPool; groups: number[] };
+  /**
+   * A guide's or an assistant's seat in a group of a cluster (`groups` holds it), or a female guide's or a
+   * cluster assistant's post for the whole cluster (`groups` empty)
+   */
+  servesIn?: { clusterId: string; clusterName: string; headId: string; headName: string; role: Exclude<TeamPool, "tech">; groups: number[] };
   /**
    * Families enrolled in this group that the leader has received and welcomed: pilgrim session id -> "accepted".
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
@@ -476,11 +513,19 @@ export type State = {
     cleared?: boolean;
   };
   /**
-   * The administration's decisions on the cluster requests once their deadline passed — approved when
-   * complete, excluded when not — by cluster id, and where it distributed the groups left outside an
-   * approved cluster: group number -> cluster id.
+   * The season's cluster requests filed by heads who are not on this device, as the administration's review
+   * and exceptional edits left them (by cluster id); a missing one is the season's story as seeded
    */
-  formation: { decisions: Record<string, { status: "approved" | "excluded"; at: number; by: string; reason?: string }>; moves: Record<number, string>; distributedAt?: number; distributedBy?: string };
+  formation: { overrides: Record<string, ClusterRecord> };
+  /**
+   * What the administration set on each administrator this season, whether on this device or not: a seasonal
+   * role over the one he applied for (null = taken back), a group head's category, his branch and extra branches
+   */
+  cadre: {
+    seasonal: Record<string, import("../app/administrator/_lib/structure").SeasonalRole | null>;
+    category: Record<string, string>;
+    branches: Record<string, { branch: string; extra: string[] }>;
+  };
   /**
    * The demo's "today" (YYYY-MM-DD): every operation opens and closes by it (lib/operations.ts). `allOpen`
    * tries everything together instead: every operation open whatever its dates.
@@ -562,7 +607,8 @@ const initial: State = {
   drafts: {},
   inSeason: {},
   lottery: {},
-  formation: { decisions: {}, moves: {} },
+  formation: { overrides: {} },
+  cadre: { seasonal: {}, category: {}, branches: {} },
   clock: {},
   operations: {},
   grading: {},
@@ -589,25 +635,30 @@ const listeners = new Set<() => void>();
 function normalize(s: State): State {
   const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
   const f = obj(s.formation);
-  const pools = (v: unknown) => {
-    const o = obj(v);
-    return { guide: Array.isArray(o.guide) ? o.guide : [], tech: Array.isArray(o.tech) ? o.tech : [], assistant: Array.isArray(o.assistant) ? o.assistant : [] };
-  };
-  const posts = (v: unknown) => {
-    const o = obj(v);
-    return { guide: obj(o.guide), tech: obj(o.tech), assistant: obj(o.assistant) };
-  };
-  // A cluster saved before formation requests (an elected head's) carries none of their fields
+  const c = obj(s.cadre);
+  const list = (v: unknown) => (Array.isArray(v) ? v : []);
+  // A cluster saved by an earlier build (an elected head's, or one with team pools instead of seats) is set
+  // aside with whatever pointed at it: its head files it again under the administration's structure
+  const current = (x: unknown) => !!x && typeof x === "object" && "seats" in (x as object) && "status" in (x as object);
+  const stale = new Set(Object.values(obj(s.admins)).flatMap((a) => ((a as AdminProfile).cluster && !current((a as AdminProfile).cluster) ? [(a as AdminProfile).cluster!.id] : [])));
   const admins = Object.fromEntries(
     Object.entries(obj(s.admins)).map(([id, a]) => {
       const p = a as AdminProfile;
-      return [id, p.cluster ? { ...p, cluster: { ...p.cluster, groups: obj(p.cluster.groups), team: pools(p.cluster.team), posts: posts(p.cluster.posts) } as AdminProfile["cluster"] } : p];
+      if (!p.cluster || !current(p.cluster)) {
+        const gone = (x?: { clusterId: string }) => !!x && stale.has(x.clusterId);
+        return [id, { ...p, cluster: undefined, deputyOf: gone(p.deputyOf) ? undefined : p.deputyOf, coordinatorIn: gone(p.coordinatorIn) ? undefined : p.coordinatorIn, servesIn: gone(p.servesIn) ? undefined : p.servesIn }];
+      }
+      const k = p.cluster;
+      return [id, { ...p, cluster: { ...k, groups: obj(k.groups), seats: obj(k.seats), assistants: list(k.assistants), coordinators: list(k.coordinators), femaleGuides: list(k.femaleGuides), sorting: obj(k.sorting) } as ClusterRecord }];
     }),
   ) as State["admins"];
   return {
     ...s,
     admins,
-    formation: { ...f, decisions: obj(f.decisions) as State["formation"]["decisions"], moves: obj(f.moves) as State["formation"]["moves"] },
+    formation: { overrides: obj(f.overrides) as State["formation"]["overrides"] },
+    // Rules an earlier build kept (capacity and coordinator tiers by rating, roles opened by key) are the structure's now
+    adminRules: Object.fromEntries(Object.entries(obj(s.adminRules)).filter(([k]) => !["capacityTiers", "coordinatorTiers", "rolesOff", "roleDesc"].includes(k))) as AdminRules,
+    cadre: { seasonal: obj(c.seasonal) as State["cadre"]["seasonal"], category: obj(c.category) as State["cadre"]["category"], branches: obj(c.branches) as State["cadre"]["branches"] },
     clock: obj(s.clock) as State["clock"],
     operations: obj(s.operations) as State["operations"],
   };
@@ -647,6 +698,12 @@ export function storedGroupName(number: number) {
   load();
   for (const a of Object.values(state.admins)) if (a.group?.number === number && a.group.name) return a.group.name;
   return undefined;
+}
+
+/** The state now, outside React (labels written into logs and notices) */
+export function getState(): State {
+  load();
+  return state;
 }
 
 export function setState(updater: (s: State) => State) {
@@ -845,12 +902,23 @@ export const actions = {
   setLottery(patch: State["lottery"]) {
     setState((s) => ({ ...s, lottery: { ...s.lottery, ...patch } }));
   },
-  setFormation(patch: Partial<State["formation"]>) {
-    setState((s) => ({ ...s, formation: { ...s.formation, ...patch } }));
+  /** A seeded cluster request as the administration's review or edit left it; undefined goes back to the story */
+  setClusterOverride(id: string, cluster: ClusterRecord | undefined) {
+    setState((s) => {
+      const overrides = { ...s.formation.overrides };
+      if (cluster) overrides[id] = cluster;
+      else delete overrides[id];
+      return { ...s, formation: { overrides } };
+    });
   },
-  /** A decision the demo's story already holds, unless the administration has decided otherwise on this device */
-  seedFormationDecision(id: string, d: State["formation"]["decisions"][string]) {
-    setState((s) => (s.formation.decisions[id] ? s : { ...s, formation: { ...s.formation, decisions: { ...s.formation.decisions, [id]: d } } }));
+  /** What the administration set on one person this season (seasonal role, category, branches) */
+  setCadre<K extends keyof State["cadre"]>(key: K, id: string, value: State["cadre"][K][string] | undefined) {
+    setState((s) => {
+      const next = { ...s.cadre[key] } as State["cadre"][K];
+      if (value === undefined) delete next[id];
+      else next[id] = value as State["cadre"][K][string];
+      return { ...s, cadre: { ...s.cadre, [key]: next } };
+    });
   },
   /** Moves the demo's "today"; undefined goes back to the season's first day */
   setToday(today: string | undefined) {

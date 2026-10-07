@@ -1,38 +1,19 @@
 "use client";
 
-import { BadgeCheck, Building2, Layers, ScrollText, Star, UsersRound } from "lucide-react";
+import { UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
-import { SYSTEMS } from "@/lib/systems";
-import { PageHeader } from "../_components/kit";
-import { SectionTabs } from "../_components/system";
-import { useAdminsDesk } from "./desk";
+import { OperationHeader } from "../_components/system";
 
 /**
- * The administrators' file's management: one page, a tab for each part of the work in the order it is
- * done — the rules the season runs on, then who applied, the groups, the cluster requests and their approval, then
- * the evaluation and the classification at the end — each with its records.
+ * One operation of the administrators' file: its own page, opened from its own entry in the menu (the menu
+ * lists the file's operations in the order the work is done — the rules, the reference lists, who applied,
+ * the groups, the cluster requests, the evaluation, the classification). No tabs of the other operations: each
+ * page holds its own work and its own records.
  */
 export function AdminsManageShell({ children }: { children: ReactNode }) {
-  const desk = useAdminsDesk();
   return (
     <div>
-      <PageHeader
-        eyebrow={SYSTEMS.admins.label}
-        title={SYSTEMS.admins.manage.label}
-        icon={<UsersRound />}
-        description="عمل الإداريين كله في صفحة واحدة، بترتيب الموسم: تضبط القواعد قبل أن يتقدم أحد، ثم تتابع المتقدمين وملفاتهم، وتعتمد المجموعات، وتحسم طلبات تشكيل التكتلات عند موعدها وتوزّع المجموعات وتعتمد برامجها، ثم تقيّم الإداريين وتنشر التصنيف. وفي كل تبويب سجلّه، وفي ورقة كل ملف أو مجموعة أو تكتل سجلّها."
-      />
-      <SectionTabs
-        label="تبويبات إدارة الإداريين"
-        tabs={[
-          { href: "/staff/admins/manage", label: "القواعد", icon: <ScrollText />, index: true, urgent: desk.badges.rules },
-          { href: "/staff/admins/manage/applicants", label: "المتقدمون", icon: <UsersRound />, count: desk.totals.applied, urgent: desk.badges.applicants },
-          { href: "/staff/admins/manage/groups", label: "المجموعات", icon: <BadgeCheck />, count: desk.groups.length, urgent: desk.badges.groups },
-          { href: "/staff/admins/manage/clusters", label: "التكتلات", icon: <Building2 />, urgent: desk.badges.clusters },
-          { href: "/staff/admins/manage/evaluation", label: "التقييم", icon: <Star />, urgent: desk.badges.evaluation },
-          { href: "/staff/admins/manage/grading", label: "التصنيف", icon: <Layers />, urgent: desk.badges.grading },
-        ]}
-      />
+      <OperationHeader system="admins" icon={<UsersRound />} />
       <div className="mt-5">{children}</div>
     </div>
   );

@@ -14,7 +14,7 @@ export type LiveSeason = {
   lotterySeats: number;
   acceptedDirectAge: number;
   fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; roomExample: RoomPrices; administratorRegistration: number; groupFormation: number; clusterFormation: number };
-  administrators: { keepRoleMinRating: number; clusterMinGroups: number; clusterHeadSeasons: number; clusterHeadMinRating: number; deputySeasons: number };
+  administrators: { keepRoleMinRating: number };
   documents: Record<string, number>;
   /** End-of-season classification: the shares that move between tiers, and how many are honoured */
   grading: { tiers: typeof SEASON.grading.tiers; promoteShare: number; demoteShare: number; honorTop: number; entryTier: number };
@@ -53,10 +53,6 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
     },
     administrators: {
       keepRoleMinRating: o.keepRoleMinRating ?? SEASON.administrators.keepRole.minRating,
-      clusterMinGroups: o.clusterMinGroups ?? SEASON.administrators.clusters.minGroups,
-      clusterHeadSeasons: o.clusterHeadSeasons ?? SEASON.administrators.clusters.candidacy.consecutiveSeasons,
-      clusterHeadMinRating: o.clusterHeadMinRating ?? SEASON.administrators.clusters.candidacy.minRating,
-      deputySeasons: o.deputySeasons ?? SEASON.administrators.clusters.deputySeasons,
     },
     /** How long each administrator document stays valid, in seasons (0 = never expires) */
     documents: {

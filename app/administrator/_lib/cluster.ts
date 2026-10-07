@@ -1,18 +1,25 @@
-import type { AdminProfile, ClusterInvite, GroupInvite, TeamPool } from "@/lib/store";
+import type { AdminProfile, ClusterInvite, ClusterRecord, GroupInvite, Seat } from "@/lib/store";
+import { HEADS_POOL } from "./people";
+import { categoryOfId, seatsOf, type Structure } from "./structure";
+
+export { HEADS_POOL };
 
 /**
- * A cluster head is not elected. Any group head who meets the season's conditions files a request to form
- * a cluster, and is its head from then on: he invites the groups he wants — each comes with the pilgrims it
- * already has, and keeps its own head — his deputy, and the cluster's people (religious guides, assistants,
- * technical coordinators), then assigns those people to the groups himself. The request is preliminary
- * until the administration's deadline: a complete cluster is approved, an incomplete one excluded and its
- * groups distributed among the approved.
+ * A cluster is formed by whoever holds a role that leads one this season (the administration grants it):
+ * he files the request, picks its tier, invites its groups — each keeps its head and comes with the pilgrims
+ * it has — and fills every group's seats by its category under the tier, then the cluster's assistants,
+ * coordinators and female guides by the sum of the categories, his deputy and the accountant. Everyone
+ * answers his own invitation. Once complete he sends it, and the administration reviews it.
  */
 export type ClusterGroup = {
   id: string;
   number: number;
   head: string;
-  office: string;
+  headId: string;
+  branch: string;
+  category: string;
+  categoryName: string;
+  /** The pilgrims its category takes under the cluster's tier */
   capacity: number;
   pilgrims: number;
   /** How this group came into the cluster */
@@ -21,46 +28,31 @@ export type ClusterGroup = {
   own?: boolean;
 };
 
-/** The season's other group heads — their groups approved, each with the pilgrims who joined it */
-export const HEADS_POOL: { id: string; name: string; group: number; seasons: number; rating: number; office: string; capacity: number; pilgrims: number }[] = [
-  { id: "seed-01", name: "عبد الرحمن القباني", group: 61, seasons: 4, rating: 4.7, office: "مكتب ريف دمشق", capacity: 50, pilgrims: 47 },
-  { id: "seed-02", name: "فراس البيطار", group: 9, seasons: 3, rating: 4.2, office: "مكتب دمشق", capacity: 50, pilgrims: 44 },
-  { id: "seed-03", name: "رضوان الزعبي", group: 41, seasons: 3, rating: 4.4, office: "مكتب درعا", capacity: 45, pilgrims: 43 },
-  { id: "seed-04", name: "حسام الساعاتي", group: 52, seasons: 5, rating: 4.6, office: "مكتب حمص", capacity: 50, pilgrims: 49 },
-  { id: "seed-05", name: "صالح العلي", group: 47, seasons: 3, rating: 4.1, office: "مكتب حماة", capacity: 50, pilgrims: 45 },
-  { id: "seed-06", name: "نزار الشيخ", group: 33, seasons: 3, rating: 4.3, office: "مكتب اللاذقية", capacity: 45, pilgrims: 40 },
-  { id: "seed-07", name: "طارق الحوراني", group: 18, seasons: 4, rating: 4.5, office: "مكتب دمشق", capacity: 50, pilgrims: 48 },
-  { id: "seed-08", name: "ماهر الجابي", group: 55, seasons: 2, rating: 4.0, office: "مكتب حلب", capacity: 45, pilgrims: 38 },
-  { id: "seed-09", name: "غسان النحاس", group: 44, seasons: 1, rating: 3.9, office: "مكتب دير الزور", capacity: 50, pilgrims: 36 },
-  { id: "seed-10", name: "لؤي حمدان", group: 8, seasons: 2, rating: 4.2, office: "مكتب دمشق", capacity: 45, pilgrims: 41 },
-  { id: "seed-11", name: "يحيى المصري", group: 12, seasons: 2, rating: 4.4, office: "مكتب دمشق", capacity: 50, pilgrims: 39 },
-  { id: "seed-12", name: "عمر الدباغ", group: 14, seasons: 1, rating: 4.1, office: "مكتب ريف دمشق", capacity: 50, pilgrims: 33 },
-  { id: "seed-13", name: "كمال الصباغ", group: 22, seasons: 3, rating: 4.6, office: "مكتب دمشق", capacity: 75, pilgrims: 61 },
-  { id: "seed-14", name: "هشام العطار", group: 36, seasons: 0, rating: 0, office: "مكتب حمص", capacity: 50, pilgrims: 28 },
-  { id: "seed-15", name: "أيمن السمان", group: 58, seasons: 2, rating: 3.8, office: "مكتب حماة", capacity: 40, pilgrims: 30 },
-];
-
-const acc = (id: string, name: string): ClusterInvite => ({ id, name, at: 0, status: "accepted" });
+const at = (d: number, h = 9) => Date.UTC(2026, 10, d, h);
+const acc = (id: string, name: string, when = at(14)): ClusterInvite => ({ id, name, at: when, status: "accepted" });
 
 function poolGroup(id: string): GroupInvite {
   const h = HEADS_POOL.find((x) => x.id === id)!;
-  return { ...acc(h.id, h.name), number: h.group, office: h.office, capacity: h.capacity, pilgrims: h.pilgrims };
+  return { ...acc(h.id, h.name), number: h.group, branch: h.branch, category: h.category, pilgrims: h.pilgrims };
 }
 
 /** The demo administrators' groups in the story (./admin demoGroupNumber): the cluster's head 31, أحمد 27, بسام 5 */
-function demoGroup(id: string, name: string, number: number, pilgrims: number): GroupInvite {
-  return { ...acc(id, name), number, office: "مكتب دمشق", capacity: 50, pilgrims };
+function demoGroup(id: string, name: string, number: number, category: string, pilgrims: number): GroupInvite {
+  return { ...acc(id, name), number, branch: "دمشق", category, pilgrims };
 }
 
-export type SeedCluster = { headId: string; headName: string; headGroup: number; cluster: NonNullable<AdminProfile["cluster"]> };
+const guide = (id: string, name: string, free = false): Seat => ({ kind: "guide", free: free || undefined, who: acc(id, name) });
+const assistant = (id: string, name: string, free = false): Seat => ({ kind: "assistant", free: free || undefined, who: acc(id, name) });
+
+export type SeedCluster = { headId: string; headName: string; headGroup?: number; cluster: ClusterRecord };
 
 const byNumber = (gs: GroupInvite[]) => Object.fromEntries(gs.map((g) => [g.number, g]));
-const posts = (map: Record<string, number[]>) => Object.fromEntries(Object.entries(map).flatMap(([id, ns]) => ns.map((n) => [n, id])));
+const sorting = (map: Record<string, number[]>) => Object.fromEntries(Object.entries(map).flatMap(([id, ns]) => ns.map((n) => [n, id])));
 
 /**
- * The requests the season already has, filed by group heads who are not on this device. تكتل النور is
- * the demo's own (its head عبد الرحمن العلي signs in with it); تكتل الشهباء is complete; تكتل الياسمين has
- * too few groups and no deputy, so the deadline excludes it and its groups are distributed.
+ * The requests the season already has, filed by heads who are not on this device (and تكتل النور, whose head
+ * عبد الرحمن العلي signs in with it). تكتل النور is approved; تكتل الشهباء was sent and waits for its
+ * review; تكتل الياسمين was sent back with notes to fix.
  */
 export const SEED_CLUSTERS: SeedCluster[] = [
   {
@@ -70,19 +62,35 @@ export const SEED_CLUSTERS: SeedCluster[] = [
     cluster: {
       id: "al-nour",
       name: "تكتل النور",
-      createdAt: 0,
+      createdAt: at(12),
+      tier: "eco",
+      status: "approved",
+      firstSentAt: at(16),
+      sentAt: at(16),
+      review: { at: at(17), by: "مازن الحلبي" },
+      decision: { status: "approved", at: at(18, 11), by: "مازن الحلبي" },
       deputy: acc("01033300883", "بسام درويش"),
-      groups: byNumber([demoGroup("01033300881", "عبد الرحمن العلي", 31, 45), demoGroup("01033300871", "أحمد سليمان الحمصي", 27, 44), demoGroup("01033300883", "بسام درويش", 5, 42), poolGroup("seed-07"), poolGroup("seed-06"), poolGroup("seed-05")]),
-      team: {
-        guide: [acc("01033300873", "الشيخ خالد الرفاعي"), acc("01033300951", "الشيخ معتز البارودي")],
-        tech: [acc("01033300874", "سامر نبيل نجار"), acc("01033300961", "لؤي العظمة")],
-        assistant: [acc("01033300872", "ياسر عبد الله"), acc("01033300941", "عماد الشامي")],
+      accountant: acc("seed-07", "طارق الحوراني"),
+      groups: byNumber([
+        demoGroup("01033300881", "عبد الرحمن العلي", 31, "c3", 112),
+        demoGroup("01033300871", "أحمد سليمان الحمصي", 27, "c2", 44),
+        demoGroup("01033300883", "بسام درويش", 5, "c2", 71),
+        poolGroup("seed-07"),
+        poolGroup("seed-06"),
+        poolGroup("seed-05"),
+      ]),
+      seats: {
+        31: [guide("01033300951", "الشيخ معتز البارودي"), assistant("01033300941", "عماد الشامي"), guide("01033300955", "الشيخ مأمون الحلواني", true)],
+        27: [guide("01033300873", "الشيخ خالد الرفاعي"), assistant("01033300872", "ياسر عبد الله")],
+        5: [guide("01033300957", "الشيخ عمار الكردي"), assistant("01033300944", "مهند السيد")],
+        18: [guide("01033300953", "الشيخ وائل الحافظ")],
+        33: [guide("01033300958", "الشيخ يوسف المحمد")],
+        47: [guide("01033300959", "الشيخ حسن القادري"), assistant("01033300948", "فراس الأحمد")],
       },
-      posts: {
-        guide: posts({ "01033300873": [31, 27, 5], "01033300951": [18, 33, 47] }),
-        tech: posts({ "01033300874": [31, 27, 5], "01033300961": [18, 33, 47] }),
-        assistant: posts({ "01033300872": [31, 27, 5], "01033300941": [18, 33, 47] }),
-      },
+      assistants: [acc("01033300947", "عمر الحايك"), acc("01033300975", "عبد الكريم الشلاح")],
+      coordinators: [acc("01033300874", "سامر نبيل نجار"), acc("01033300961", "لؤي العظمة")],
+      femaleGuides: [acc("01033300981", "هالة الدقر"), acc("01033300985", "نهى الطباع")],
+      sorting: sorting({ "01033300874": [31, 27, 5], "01033300961": [18, 33, 47] }),
     },
   },
   {
@@ -92,19 +100,24 @@ export const SEED_CLUSTERS: SeedCluster[] = [
     cluster: {
       id: "al-shahba",
       name: "تكتل الشهباء",
-      createdAt: 0,
+      createdAt: at(12),
+      tier: "eco-plus",
+      status: "pending",
+      firstSentAt: at(17),
+      sentAt: at(17),
       deputy: acc("seed-03", "رضوان الزعبي"),
+      accountant: acc("seed-02", "فراس البيطار"),
       groups: byNumber([poolGroup("seed-04"), poolGroup("seed-03"), poolGroup("seed-02"), poolGroup("seed-10")]),
-      team: {
-        guide: [acc("01033300952", "الشيخ أيمن قصاب باشي")],
-        tech: [acc("01033300962", "كرم الدباس")],
-        assistant: [acc("01033300945", "تمّام الخطيب"), acc("01033300946", "أنس الدقاق")],
+      seats: {
+        52: [guide("01033300954", "الشيخ رياض الأتاسي"), assistant("01033300945", "تمّام الخطيب")],
+        41: [guide("01033300956", "الشيخ بلال العبسي"), assistant("01033300943", "زياد العطار")],
+        9: [guide("01033300952", "الشيخ أيمن قصاب باشي")],
+        8: [guide("01033300960", "الشيخ زهير الملا")],
       },
-      posts: {
-        guide: posts({ "01033300952": [52, 41, 9, 8] }),
-        tech: posts({ "01033300962": [52, 41, 9, 8] }),
-        assistant: posts({ "01033300945": [52, 41], "01033300946": [9, 8] }),
-      },
+      assistants: [acc("01033300946", "أنس الدقاق")],
+      coordinators: [acc("01033300972", "حسان المارديني")],
+      femaleGuides: [acc("01033300982", "سمر الخطيب")],
+      sorting: sorting({ "01033300972": [52, 41, 9, 8] }),
     },
   },
   {
@@ -114,28 +127,43 @@ export const SEED_CLUSTERS: SeedCluster[] = [
     cluster: {
       id: "al-yasmin",
       name: "تكتل الياسمين",
-      createdAt: 0,
+      createdAt: at(13),
+      tier: "five",
+      status: "rejected",
+      firstSentAt: at(15),
+      sentAt: at(15),
+      review: { at: at(16), by: "مازن الحلبي" },
+      decision: { status: "rejected", at: at(16, 12), by: "مازن الحلبي", note: "تسمية التكتلات (النظام الإداري): «تكتل الياسمين» يشبه تسمية تكتل قائم، ويُشترط ألا يتشابه الاسم كلياً أو جزئياً مع أسماء التكتلات الأخرى. غيّر الاسم ثم أعد الإرسال." },
+      deputy: acc("seed-08", "ماهر الجابي"),
+      accountant: acc("seed-09", "غسان النحاس"),
       groups: byNumber([poolGroup("seed-01"), poolGroup("seed-08"), poolGroup("seed-09")]),
-      team: { guide: [acc("01033300954", "الشيخ رياض الأتاسي")], tech: [acc("01033300964", "سيف الدين حلاق")], assistant: [] },
-      posts: { guide: posts({ "01033300954": [61] }), tech: posts({ "01033300964": [61, 55] }), assistant: {} },
+      seats: { 61: [], 55: [], 44: [] },
+      assistants: [],
+      coordinators: [],
+      femaleGuides: [],
+      sorting: {},
     },
   },
 ];
 
 /** A cluster's groups whose heads accepted, in the order they were invited */
-export function acceptedGroups(c: NonNullable<AdminProfile["cluster"]> | undefined): GroupInvite[] {
+export function acceptedGroups(c: ClusterRecord | undefined): GroupInvite[] {
   return Object.values(c?.groups ?? {}).filter((g) => g.status === "accepted");
 }
 
-function asGroup(g: GroupInvite, own: boolean): ClusterGroup {
+/** A group as a cluster's screens show it: its category's pilgrims under the cluster's tier */
+export function asGroup(s: Structure, c: ClusterRecord, g: GroupInvite, own: boolean): ClusterGroup {
   return {
     id: `g-${g.number}`,
     number: g.number,
     head: g.name,
-    office: g.office,
-    capacity: g.capacity,
+    headId: g.id,
+    branch: g.branch,
+    category: g.category,
+    categoryName: categoryOfId(s, g.category)?.name ?? "—",
+    capacity: seatsOf(s, c.tier, g.category).pilgrims,
     pilgrims: g.pilgrims,
-    joined: own ? "مجموعة رئيس التكتل" : g.distributed ? "وزّعتها الإدارة على التكتل" : "قبِل رئيسها دعوة التكتل",
+    joined: own ? "مجموعة رئيس التكتل" : g.byAdministration ? `أضافتها الإدارة — ${g.byAdministration.reason}` : "قبِل رئيسها دعوة التكتل",
     own,
   };
 }
@@ -152,17 +180,6 @@ export type ClusterView = {
   isHead: boolean;
 };
 
-/** The head's record: his own when he is the head, else the head's on this device, else the season's seeded request */
-export function headRecordOf(p: AdminProfile | undefined, admins: Record<string, AdminProfile> = {}) {
-  if (p?.cluster) return { headId: p.nationalId, cluster: p.cluster };
-  const d = p?.deputyOf;
-  if (!d) return null;
-  const live = admins[d.headId]?.cluster;
-  if (live?.id === d.clusterId) return { headId: d.headId, cluster: live };
-  const seed = SEED_CLUSTERS.find((s) => s.cluster.id === d.clusterId);
-  return seed ? { headId: seed.headId, cluster: seed.cluster } : null;
-}
-
 export function clusterViewOf(p: AdminProfile | undefined, myName: string): ClusterView | null {
   if (p?.cluster) {
     return { id: p.cluster.id, name: p.cluster.name, headId: p.nationalId, headName: myName, headGroup: p.group?.number, deputyName: p.cluster.deputy?.status === "accepted" ? p.cluster.deputy.name : undefined, isHead: true };
@@ -174,24 +191,10 @@ export function clusterViewOf(p: AdminProfile | undefined, myName: string): Clus
   return null;
 }
 
-/**
- * Every group of the cluster, for the head or for the deputy: the groups whose heads accepted its
- * invitation, the head's own first. Whichever of them belongs to the viewer is marked as his own.
- */
-export function clusterGroupsOf(p: AdminProfile | undefined, _myName: string, admins: Record<string, AdminProfile> = {}): ClusterGroup[] {
-  const rec = headRecordOf(p, admins);
-  if (!rec) return [];
-  const mine = p?.group?.number;
-  const headGroup = rec.headId === p?.nationalId ? mine : admins[rec.headId]?.group?.number ?? SEED_CLUSTERS.find((s) => s.headId === rec.headId)?.headGroup;
-  return acceptedGroups(rec.cluster)
-    .map((g) => ({ ...asGroup(g, g.number === headGroup), own: g.number === mine }))
-    .sort((a, b) => Number(b.number === headGroup) - Number(a.number === headGroup));
-}
-
-/** A cluster's groups from its record alone, the head's group first */
-export function groupsFromCluster(c: NonNullable<AdminProfile["cluster"]>, headGroup?: number): ClusterGroup[] {
+/** A cluster's groups from its record, the head's group first */
+export function groupsFromCluster(s: Structure, c: ClusterRecord, headGroup?: number): ClusterGroup[] {
   return acceptedGroups(c)
-    .map((g) => asGroup(g, g.number === headGroup))
+    .map((g) => asGroup(s, c, g, g.number === headGroup))
     .sort((a, b) => Number(b.own) - Number(a.own));
 }
 
@@ -203,8 +206,37 @@ export function clusterTotals(groups: ClusterGroup[]) {
   };
 }
 
-/** Who serves a group, role by role, among the people who accepted */
-export function postsOf(c: NonNullable<AdminProfile["cluster"]>, number: number): Record<TeamPool, ClusterInvite | undefined> {
-  const find = (pool: TeamPool) => c.team[pool].find((x) => x.status === "accepted" && x.id === c.posts[pool][number]);
-  return { guide: find("guide"), tech: find("tech"), assistant: find("assistant") };
+/** Who sits in a group's seats, among those who accepted: its guides and its assistants, and its coordinator */
+export function teamOf(c: ClusterRecord, number: number) {
+  const seats = c.seats[number] ?? [];
+  const sat = (k: Seat["kind"]) => seats.filter((x) => x.kind === k && x.who?.status === "accepted").map((x) => x.who!);
+  return { guides: sat("guide"), assistants: sat("assistant"), coordinator: c.coordinators.find((x) => x.status === "accepted" && x.id === c.sorting[number]) };
+}
+
+/**
+ * The head's record: his own when he is the head, else the head's on this device, else the season's seeded
+ * request as the administration left it
+ */
+export function headRecordOf(p: AdminProfile | undefined, admins: Record<string, AdminProfile> = {}, overrides: Record<string, ClusterRecord> = {}) {
+  if (p?.cluster) return { headId: p.nationalId, headGroup: p.group?.number, cluster: p.cluster };
+  const ref = p?.deputyOf ?? p?.accountantOf ?? p?.coordinatorIn ?? p?.servesIn;
+  if (!ref) return null;
+  const live = admins[ref.headId]?.cluster;
+  if (live?.id === ref.clusterId) return { headId: ref.headId, headGroup: admins[ref.headId]?.group?.number, cluster: live };
+  const seed = SEED_CLUSTERS.find((x) => x.cluster.id === ref.clusterId);
+  return seed ? { headId: seed.headId, headGroup: seed.headGroup, cluster: overrides[seed.cluster.id] ?? seed.cluster } : null;
+}
+
+/**
+ * Every group of the cluster, for the head or for the deputy: the groups whose heads accepted its
+ * invitation, the head's own first. Whichever of them belongs to the viewer is marked as his own.
+ */
+export function clusterGroupsOf(s: Structure, p: AdminProfile | undefined, admins: Record<string, AdminProfile> = {}, overrides: Record<string, ClusterRecord> = {}): ClusterGroup[] {
+  if (!p?.cluster && !p?.deputyOf) return [];
+  const rec = headRecordOf(p, admins, overrides);
+  if (!rec) return [];
+  const mine = p?.group?.number;
+  return acceptedGroups(rec.cluster)
+    .map((g) => ({ ...asGroup(s, rec.cluster, g, g.number === rec.headGroup), own: g.number === mine }))
+    .sort((a, b) => Number(b.number === rec.headGroup) - Number(a.number === rec.headGroup));
 }

@@ -9,12 +9,12 @@ import { matches } from "@/lib/ops";
 import { cn, formatNumber, maskNationalId } from "@/lib/utils";
 import { docState, resultOf } from "@/app/administrator/_lib/admin";
 import { useDocTypes, useExamRules, useSkills } from "@/app/administrator/_lib/admin-rules";
-import { clusterGroupsOf } from "@/app/administrator/_lib/cluster";
 import { roleLabel } from "../../_components/data";
 import { Drawer, Empty, fmtDateTime, Panel } from "../../_components/kit";
 import { Chip, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
 import { useAdminsDesk, type AdminsDesk, type FileState, type Funnel } from "../desk";
+import { PersonCadre } from "./reference";
 
 /**
  * Who applied this season and how far each got, role by role — from the choice of a role to the
@@ -253,10 +253,17 @@ function FileSheet({ f }: { f: FileState }) {
         <p className="flex gap-2 rounded-2xl bg-white/[.06] p-3 text-sm leading-7 text-white/80 ring-1 ring-white/10">
           <Building2 className="mt-1 size-4 shrink-0 text-gold" />
           {p.cluster
-            ? `قدّم طلب تشكيل ${p.cluster.name}، فصارت صفته على مستوى التكتل ويدير ${clusterGroupsOf(p, f.row.name).length} مجموعات، ونائبه ${p.cluster.deputy?.status === "accepted" ? p.cluster.deputy.name : "لم يقبل أحد بعد"}.`
+            ? `قدّم طلب تشكيل ${p.cluster.name}، فصارت صفته على مستوى التكتل ويدير ${Object.values(p.cluster.groups).filter((g) => g.status === "accepted").length} مجموعات، ونائبه ${p.cluster.deputy?.status === "accepted" ? p.cluster.deputy.name : "لم يقبل أحد بعد"}.`
             : `دعاه رئيس ${p.deputyOf!.clusterName} ${p.deputyOf!.headName} نائباً له فقبل، فصارت صفته على مستوى التكتل.`}
         </p>
       )}
+
+      <details className="rounded-2xl bg-white/[.04] p-3 ring-1 ring-gold/25">
+        <summary className="cursor-pointer text-sm font-bold text-gold">صفته الموسمية وفئته وفروعه</summary>
+        <div className="mt-3">
+          <PersonCadre id={f.row.id} name={f.row.name} applied={f.row.profile.positions[0]} history={false} />
+        </div>
+      </details>
 
       <RecordHistory system="admins" refId={f.row.id} />
     </div>

@@ -81,6 +81,8 @@ type NavItem = {
 };
 
 const serving = (c: NavCtx) => c.inGroup || c.cluster;
+/** A group head has one group, and so has a guide or an assistant in its seat: the plural is only for whoever serves several */
+const groupsTab = (c: NavCtx) => ((c.p?.coordinatorIn?.groups.length ?? c.p?.servesIn?.groups.length ?? 1) > 1 ? "إدارة المجموعات" : "إدارة المجموعة");
 /** A cluster's head and deputy open its groups — each with its team and pilgrims — inside «إدارة التكتل» */
 const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster;
 
@@ -98,7 +100,7 @@ const NAV: NavItem[] = [
   { href: "/administrator/group", label: "تشكيل المجموعات", icon: FileSignature, ops: ["group-formation"], show: (c) => c.head },
   // A group head files a request or answers the invitations to his group; the others answer theirs
   { href: "/administrator/cluster", label: "تشكيل التكتلات", icon: Building2, ops: ["cluster-formation"], show: (c) => c.role },
-  { href: "/administrator/groups", label: "إدارة المجموعات", icon: UsersRound, ops: ["group-management"], show: ownGroups },
+  { href: "/administrator/groups", label: groupsTab, icon: UsersRound, ops: ["group-management"], show: ownGroups },
   { href: "/administrator/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },

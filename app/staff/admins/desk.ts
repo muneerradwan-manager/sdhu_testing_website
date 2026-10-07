@@ -10,10 +10,9 @@ import type { StaffUser } from "@/lib/staff";
 import { useStore, type AdminProfile, type AdminRecord, type AuditEvent, type VaultDoc } from "@/lib/store";
 import { APPLIED_ROLES, docState, levelOf, recordOf, resultOf, type DocType } from "@/app/administrator/_lib/admin";
 import { useDocTypes, useEvaluationStages, useExamRules, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
-import { DEFAULT_CAPACITY_TIERS, capacityFor } from "@/app/administrator/_lib/capacity";
 import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
-import { outsideGroups, useClusterRequests, type ClusterRequest } from "@/app/administrator/_lib/formation";
-import { useOperation } from "@/lib/operations";
+import { useClusterRequests, useFormationWindow, type ClusterRequest } from "@/app/administrator/_lib/formation";
+import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { roleKeyOf } from "@/app/administrator/_lib/halls";
 import { useClusters } from "@/lib/cms/content";
 import { useAdminRows, type AdminRow } from "../_components/data";
@@ -28,7 +27,7 @@ import type { Alert, SystemStatus } from "../_components/system";
  */
 
 /** The parts of the file, each a tab of its management page, in the order the work is done */
-export const AREAS = ["rules", "applicants", "groups", "clusters", "evaluation", "grading"] as const;
+export const AREAS = ["rules", "reference", "applicants", "groups", "clusters", "evaluation", "grading"] as const;
 export type Area = (typeof AREAS)[number];
 
 /** Every action of the file is recorded under the tab it is done in, and in its record's own history (`ref`) */
@@ -39,7 +38,10 @@ export function logAdmins(user: StaffUser, area: Area, e: Omit<AuditEvent, "id" 
 /** The rules that belong to «إدارة الامتحانات»: this file neither counts nor resets them */
 export const EXAM_KEYS = ["exam", "blueprints", "questionsAdded", "questionsOff", "questionEdits", "questionRoles"] as const;
 
-/** The role he applied for this season. The cluster roles are not applied for: their holders applied as group heads */
+/**
+ * The role he applied for this season, as its exam and requirements count it («مرشد ديني» under the guide's).
+ * «رئيس تكتل» is not applied for: the administration grants it over the role he applied with.
+ */
 export function appliedRole(r: AdminRow) {
   const key = roleKeyOf(r.profile.positions[0] ?? r.position);
   return key === "cluster-head" || key === "cluster-deputy" ? "group-head" : key;
@@ -58,8 +60,11 @@ export type Funnel = { role: string; label: string; open: boolean; applied: numb
 export type FileState = { row: AdminRow; role: string; record: AdminRecord; expired: VaultDoc[]; missing: DocType[]; flagged: boolean };
 
 export type GroupState = "unpaid" | "waiting" | "returned" | "approved";
-/** `tier`: before approval, the capacity category its head falls in now, which approval gives the group */
-export type GroupRow = { row: AdminRow; g: NonNullable<AdminProfile["group"]>; state: GroupState; checks: { label: string; ok: boolean }[]; complete: boolean; tier?: import("@/app/administrator/_lib/capacity").CapacityTier };
+/** `category`: its head's category as the administration set it (the group's), which approval confirms */
+export type GroupRow = { row: AdminRow; g: NonNullable<AdminProfile["group"]>; state: GroupState; checks: { label: string; ok: boolean }[]; complete: boolean; category?: string };
+
+/** A group approved this season that no cluster holds: a request it is in was refused after the final deadline, or none took it */
+export type OutsideGroup = { number: number; headId: string; headName: string; branch: string; category?: string; pilgrims: number; from?: string };
 
 export type { ClusterRequest };
 
@@ -80,7 +85,9 @@ export function useAdminsDesk() {
   const { types, validity } = useDocTypes();
   const adminRules = useStore((s) => s.adminRules);
   const requests = useClusterRequests();
-  const formationOp = useOperation("cluster-formation");
+  const formationWindow = useFormationWindow();
+  const s = useStructure();
+  const cadre = useCadre();
   const evaluations = useStore((s) => s.evaluations);
   const grading = useStore((s) => s.grading);
   const profiles = useStore((s) => s.clusterProfiles);
@@ -91,7 +98,8 @@ export function useAdminsDesk() {
   return useMemo(() => {
 
     // ── Rules ── (the exam's keys belong to «إدارة الامتحانات», which resets them on its own)
-    const openRoles = APPLIED_ROLES.filter((r) => roles.some((x) => x.key === r.key));
+    // The roles open for application (the structure's active, applied-for ones); an exam family is open while one of its roles is
+    const openRoles = roles;
     const rulesEdited = Object.entries(adminRules).filter(([k, v]) => v !== undefined && !EXAM_KEYS.includes(k as (typeof EXAM_KEYS)[number])).length;
 
     // ── Applicants ──
@@ -104,7 +112,7 @@ export function useAdminsDesk() {
       return {
         role: role.key,
         label: role.label,
-        open: openRoles.includes(role),
+        open: openRoles.some((x) => x.key === role.key || x.examAs === role.key),
         applied: mine.length,
         // The fee is paid only once eligibility is proven, so a paid file was found eligible
         eligible: mine.filter((r) => r.profile.eligibleAt || r.profile.feePaidAt).length,
@@ -134,32 +142,39 @@ export function useAdminsDesk() {
       .filter((r) => r.profile.group)
       .map((row) => {
         const g = row.profile.group!;
-        // The team is not part of the request: the head invites it once the group is approved. The capacity
-        // is given on approval, by the category the head falls in
-        const tier = g.approvedAt ? undefined : capacityFor(row.id, adminRules.capacityTiers ?? DEFAULT_CAPACITY_TIERS).tier;
+        // The team is not part of the request: its seats are filled by the head of the cluster it enters. Its
+        // category is its head's, which the holder sets (or confirms) on approval
+        const category = categoryOf(row.id, cadre);
+        const n = seatsOf(s, DEFAULT_TIER, category);
         const checks = [
           { label: "رئيسها مؤهل: نجح وأُعلنت نتيجته أو جدّد صفته", ok: isQualified(row) },
           { label: `رسم التشكيل ${season.fees.groupFormation} $`, ok: !!g.feePaidAt },
-          ...(g.approvedAt ? [] : [{ label: tier ? `فئته: ${tier.label} — ${tier.capacity} حاجاً` : "لا تنطبق على رئيسها أي فئة", ok: !!tier }]),
+          ...(g.approvedAt ? [] : [{ label: category ? `فئته: ${categoryOfId(s, category)?.name} — ${n.pilgrims} حاجاً في الاقتصادي، ${seatsLabel(n)}` : "لا فئة له بعد: تحددها عند الاعتماد", ok: true }]),
         ];
         const state: GroupState = g.approvedAt ? "approved" : g.returned ? "returned" : g.feePaidAt ? "waiting" : "unpaid";
-        return { row, g, state, checks, complete: checks.every((c) => c.ok), tier };
+        return { row, g, state, checks, complete: checks.every((c) => c.ok), category };
       })
       .sort((a, b) => a.g.number - b.g.number);
     const waiting = groups.filter((x) => x.state === "waiting");
     const approved = groups.filter((x) => x.state === "approved");
 
-    // ── The cluster requests ── filed by the group heads who meet the conditions, decided at the deadline
-    // Trying everything together, the staff decide while requests are still open
-    const deadlinePassed = formationOp.status === "closed" || formationOp.status === "all";
-    const undecided = requests.filter((r) => !r.decision);
-    const approvedClusters = requests.filter((r) => r.decision?.status === "approved");
-    const excluded = requests.filter((r) => r.decision?.status === "excluded");
-    const pool = [
-      ...approved.map((x) => ({ headId: x.row.id, headName: x.row.name, number: x.g.number, office: "مكتب دمشق", capacity: x.g.capacity, pilgrims: 0 })),
-      ...HEADS_POOL.filter((h) => !approved.some((x) => x.g.number === h.group)).map((h) => ({ headId: h.id, headName: h.name, number: h.group, office: h.office, capacity: h.capacity, pilgrims: h.pilgrims })),
-    ];
-    const outside = outsideGroups(requests, pool);
+    // ── The cluster requests ── filed by whoever holds a cluster-leading role, reviewed one by one once sent
+    const deadlinePassed = formationWindow.state === "closed";
+    const sent = requests.filter((r) => r.status === "pending");
+    const reviewing = requests.filter((r) => r.status === "reviewing");
+    const approvedClusters = requests.filter((r) => r.status === "approved");
+    const rejected = requests.filter((r) => r.status === "rejected");
+    const drafts = requests.filter((r) => r.status === "draft");
+    // A request holds its groups until it is refused for good: sent back after the final deadline, nobody fixes it
+    const holding = requests.filter((r) => !(r.status === "rejected" && deadlinePassed) && !(r.status === "draft" && deadlinePassed));
+    const held = new Set(holding.flatMap((r) => r.groups.map((g) => g.number)));
+    const outside: OutsideGroup[] = [
+      ...approved.map((x) => ({ headId: x.row.id, headName: x.row.name, number: x.g.number, branch: branchOf(x.row.id, cadre), category: categoryOf(x.row.id, cadre), pilgrims: 0 })),
+      ...HEADS_POOL.filter((h) => !approved.some((x) => x.g.number === h.group)).map((h) => ({ headId: h.id, headName: h.name, number: h.group, branch: branchOf(h.id, cadre), category: categoryOf(h.id, cadre), pilgrims: h.pilgrims })),
+    ]
+      .filter((g) => !held.has(g.number))
+      .map((g) => ({ ...g, from: requests.find((r) => r.groups.some((x) => x.number === g.number))?.cluster.name }))
+      .sort((a, b) => a.number - b.number);
     const programmes = directory.map((c) => ({ cluster: c, state: profiles[c.slug] })).filter((x) => x.state?.pending || x.state?.approved || x.state?.rejected);
     const pendingProgrammes = programmes.filter((x) => x.state?.pending);
 
@@ -183,9 +198,10 @@ export function useAdminsDesk() {
     // Each part's alerts, in the order the work is done; on the page, the blockers of every part come first
     const M = "/staff/admins/manage";
     const byArea: Record<Area, Alert[]> = {
-      rules: openRoles.length
+      rules: [],
+      reference: openRoles.length
         ? []
-        : [{ id: "no-role", level: "high", title: "لا صفة مفتوحة للتقدم هذا الموسم", hint: "أُغلقت الصفات كلها، فلا يستطيع أحد تقديم طلب المشاركة.", href: M, action: "افتح صفة" }],
+        : [{ id: "no-role", level: "high", title: "لا صفة مفتوحة للتقدم هذا الموسم", hint: "عُطّلت الصفات كلها، فلا يستطيع أحد تقديم طلب المشاركة.", href: `${M}/reference`, action: "فعّل صفة" }],
       applicants: flaggedFiles.length
         ? [{ id: "files", level: "work", title: `${flaggedFiles.length} إداريين في ملفاتهم وثائق مطلوبة ناقصة أو منتهية`, hint: "سددوا رسم التسجيل، وما تطلبه صفاتهم ليس كله سارياً في ملفاتهم.", href: `${M}/applicants?f=docs`, action: "راجع ملفاتهم" }]
         : [],
@@ -193,14 +209,14 @@ export function useAdminsDesk() {
         ? [{ id: "requests", level: "work", title: `${waiting.length} طلبات تشكيل تنتظر قرارك`, hint: `${waiting.filter((x) => x.complete).length} منها مكتملة الشروط: اعتمدها، أو أعد الناقص إلى رئيسه مع ما يصلحه.`, href: `${M}/groups`, action: "قرّر" }]
         : [],
       clusters: [
-        ...(deadlinePassed && undecided.length
-          ? [{ id: "decide", level: "high" as const, title: `${undecided.length} طلبات تكتل تنتظر قرارك بعد الموعد النهائي`, hint: `${undecided.filter((r) => r.complete).length} منها مكتملة تُعتمد، والناقص يُقصى وتوزَّع مجموعاته.`, href: `${M}/clusters#requests`, action: "قرّر" }]
+        ...(sent.length
+          ? [{ id: "sent", level: (deadlinePassed ? "high" : "work") as Alert["level"], title: `${sent.length} طلبات تكتل أُرسلت للمراجعة`, hint: `ابدأ مراجعة كل طلب، ثم اعتمده أو أعده إلى رئيسه بملاحظات${deadlinePassed ? " — انتهى الموعد النهائي، فلا تعديل بعد إعادته" : ""}.`, href: `${M}/clusters#requests`, action: "راجعها" }]
           : []),
-        ...(!deadlinePassed && formationOp.open && requests.length
-          ? [{ id: "forming", level: "work" as const, title: `${requests.length} طلبات تكتل قيد التشكيل`, hint: `${requests.filter((r) => r.complete).length} مكتملة حتى الآن. تُحسم كلها بعد الموعد النهائي.`, href: `${M}/clusters#requests`, action: "تابعها" }]
+        ...(reviewing.length
+          ? [{ id: "reviewing", level: "work" as const, title: `${reviewing.length} طلبات قيد مراجعتك`, hint: "اعتمد الطلب أو أعده بملاحظات يصلحها رئيسه ويعيد إرساله.", href: `${M}/clusters#requests`, action: "أكمل المراجعة" }]
           : []),
-        ...(approvedClusters.length && outside.length && !undecided.length
-          ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات خارج التكتلات المعتمدة`, hint: "من طلبات أُقصيت أو لم يأخذها طلب: وزّعها على التكتلات المعتمدة.", href: `${M}/clusters#distribution`, action: "وزّعها" }]
+        ...(deadlinePassed && outside.length
+          ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات معتمدة خارج كل تكتل`, hint: "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضفها إلى تكتل بتعديل استثنائي بسببه.", href: `${M}/clusters#outside`, action: "أضفها" }]
           : []),
         ...(pendingProgrammes.length
           ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في دليل الخدمات قبل أن يُعتمد.", href: `${M}/clusters#programmes`, action: "راجعها" }]
@@ -232,10 +248,13 @@ export function useAdminsDesk() {
       approved,
       outside,
       requests,
-      undecided,
+      sent,
+      reviewing,
       approvedClusters,
-      excluded,
+      rejected,
+      drafts,
       deadlinePassed,
+      formationWindow,
       programmes,
       pendingProgrammes,
       toEvaluate,
@@ -247,7 +266,7 @@ export function useAdminsDesk() {
       high: alerts.filter((a) => a.level === "high"),
       badges: Object.fromEntries(AREAS.map((a) => [a, byArea[a].length])) as Record<Area, number>,
     };
-  }, [rows, examRules, season, roles, stages, table, types, validity, adminRules, requests, formationOp, evaluations, grading, profiles, directory, gradedGroups, gradedClusters]);
+  }, [rows, examRules, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, evaluations, grading, profiles, directory, gradedGroups, gradedClusters]);
 }
 
 export type AdminsDesk = ReturnType<typeof useAdminsDesk>;
@@ -257,8 +276,8 @@ export function useAdminsStatus(): SystemStatus {
   const desk = useAdminsDesk();
   return {
     state:
-      desk.deadlinePassed && desk.undecided.length
-        ? { label: `طلبات تكتل تنتظر القرار: ${desk.undecided.length}`, tone: "maroon", icon: createElement(Timer, { className: "size-4" }) }
+      desk.sent.length + desk.reviewing.length
+        ? { label: `طلبات تكتل تنتظر المراجعة: ${desk.sent.length + desk.reviewing.length}`, tone: "maroon", icon: createElement(Timer, { className: "size-4" }) }
         : desk.high.length
           ? { label: `تحتاج متابعة (${desk.high.length})`, tone: "maroon", icon: createElement(AlertTriangle, { className: "size-4" }) }
           : { label: "تسير بانتظام", tone: "green", icon: createElement(CheckCircle2, { className: "size-4" }) },
@@ -266,7 +285,7 @@ export function useAdminsStatus(): SystemStatus {
       { k: "المتقدمون", v: desk.totals.applied, hint: `${desk.totals.paid} سددوا الرسم` },
       { k: "مؤهَّلون للعمل", v: desk.totals.qualified, hint: `${desk.totals.exempt} بالتجديد دون امتحان` },
       { k: "مجموعات معتمدة", v: desk.approved.length, hint: desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر` : undefined },
-      { k: "تكتلات معتمدة", v: desk.approvedClusters.length, hint: desk.requests.length ? `من ${desk.requests.length} طلبات` : undefined },
+      { k: "تكتلات معتمدة", v: desk.approvedClusters.length, hint: desk.requests.length ? `من ${desk.requests.length} طلبات — ${desk.sent.length + desk.reviewing.length} قيد المراجعة` : undefined },
     ],
     high: desk.high,
   };

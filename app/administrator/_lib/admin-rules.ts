@@ -5,7 +5,8 @@ import { EXAM_QUESTIONS, EXAM_RULES, type ExamNumbers, type ExamQuestion } from 
 import { useStore } from "@/lib/store";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
 import { useSeason } from "@/lib/season-live";
-import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, LANGUAGES, POSITIONS, ROLE_REQUIREMENTS, SKILLS, type DocType, type RoleRequirements } from "./admin";
+import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, LANGUAGES, ROLE_REQUIREMENTS, SKILLS, type DocType, type RoleRequirements } from "./admin";
+import { useStructure } from "./structure";
 
 /**
  * The administrators' rules as the administration left them this season. The platform ships defaults;
@@ -60,18 +61,13 @@ export function useExamBank(): ExamQuestion[] {
   return useMemo(() => all.filter((q) => !off?.includes(q.id)), [all, off]);
 }
 
-/** The roles open for application this season, with the administration's description */
+/**
+ * The roles open for application this season (applied for and active in the administration's structure),
+ * with its wording. `elected` stays false: a role that is not applied for is granted, not listed here.
+ */
 export function useRoles() {
-  const off = useStore((s) => s.adminRules.rolesOff);
-  const desc = useStore((s) => s.adminRules.roleDesc);
-  return useMemo(
-    () =>
-      POSITIONS.filter((p) => !off?.includes(p.key)).map((p) => ({
-        ...p,
-        desc: desc?.[p.key] ?? p.desc,
-      })),
-    [off, desc],
-  );
+  const roles = useStructure().roles;
+  return useMemo(() => roles.filter((r) => r.applied && r.active).map((r) => ({ key: r.key, label: r.name, desc: r.desc, elected: false, examAs: r.examAs })), [roles]);
 }
 
 /** The commitments an applicant must accept this season */

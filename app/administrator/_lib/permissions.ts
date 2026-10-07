@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useStore, type AdminProfile } from "@/lib/store";
 import { useAdmin } from "./admin";
+import { examRoleOf } from "./structure";
 
 /**
  * What an administrator may do does not follow from his category: each permission is given to roles by the
@@ -28,9 +29,12 @@ export function useRolePermissions(): Record<AdminPermission, string[]> {
   return useMemo(() => ({ ...DEFAULT_ROLE_PERMISSIONS, ...(saved as Partial<Record<AdminPermission, string[]>> | undefined) }), [saved]);
 }
 
-/** His role for the permissions: the one he applied with (a cluster's head or deputy applied as a group head) */
+/**
+ * His role for the permissions: the one he applied with (a cluster's head or deputy applied as a group head),
+ * or the role it is tied to («معاون ومنسق تقني» holds the technical coordinator's)
+ */
 export function permissionRole(p: AdminProfile | undefined) {
-  return p?.positions[0] ?? "";
+  return p?.positions[0] ? examRoleOf(p.positions[0]) : "";
 }
 
 export function useAdminCan() {

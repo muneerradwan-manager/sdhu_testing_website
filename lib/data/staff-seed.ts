@@ -327,10 +327,10 @@ export const SEED_ADMINS: SeedAdmin[] = [
   },
   {
     name: "ياسر عبد الله العبد الله",
-    position: "معاون رئيس مجموعة",
+    position: "معاون",
     previous: "1447 — معاون — تقييم 4.6",
     profile: admin("01033300872", {
-      positions: ["معاون رئيس مجموعة"],
+      positions: ["معاون"],
       feePaidAt: at(2026, 9, 22),
       exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10, 5), answers: {}, score: 78 },
       oral: { score: 80, by: "منير السيد", at: at(2026, 10, 23, 18), note: "هادئ ومنظم" },

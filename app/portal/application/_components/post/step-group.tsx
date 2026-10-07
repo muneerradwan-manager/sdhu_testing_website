@@ -32,7 +32,7 @@ const DEMO_GROUP = { clusterId: "al-nour", number: 27 };
 /**
  * الخطوة 3: الإلحاق بمجموعة — عملية مستقلة عن التسجيل على الحج. لا يختار الحاج مجموعته على المنصة: يتفق مع
  * مجموعة خارجها، فيرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها (رئيسها، أو المنسق أو المعاون
- * الذي أسنده إليها رئيس التكتل)، ثم يعتمده موظف المكتب. بعدها فقط يظهر للحاج أنه في المجموعة، ومعه عقده.
+ * الموزَّعة عليه من رئيس التكتل)، ثم يعتمده موظف المكتب. بعدها فقط يظهر للحاج أنه في المجموعة، ومعه عقده.
  */
 export function StepGroup({ app, post, sessionId }: StepProps) {
   const toast = useToast();
@@ -64,7 +64,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
       <ol className="grid gap-3 md:grid-cols-3">
         {[
           { t: "تتفقون مع مجموعة", d: "خارج المنصة: مع رئيسها أو منسقها", done: !!c },
-          { t: "يرفع العقد على المنصة", d: c ? `${c.uploadedBy.name} — ${c.uploadedBy.role}` : "رئيس المجموعة أو من أسنده إليها رئيس التكتل", done: !!c && c.status !== "returned" },
+          { t: "يرفع العقد على المنصة", d: c ? `${c.uploadedBy.name} — ${c.uploadedBy.role}` : "رئيس المجموعة أو منسق التكتل الموزَّعة عليه", done: !!c && c.status !== "returned" },
           { t: "يعتمده المكتب", d: c?.status === "returned" ? `أُعيد: ${c.reason}` : "موظف إدارة التسجيل", done: c?.status === "approved" },
         ].map((x, i) => (
           <li key={x.t} className={cn("rounded-2xl border-2 p-4", x.done ? "border-green-light/50 bg-green-light/5" : "border-gold/30 bg-white")}>

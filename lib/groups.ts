@@ -33,6 +33,7 @@ const NAMED: Record<number, string> = {
   55: "أم القرى",
   58: "عرفات",
   61: "ركب الفاروق",
+  63: "الميزان",
 };
 
 /** The names a head may pick from: the Beautiful Names, the virtues, the holy places, the caravans */

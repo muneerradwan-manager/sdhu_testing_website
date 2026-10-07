@@ -21,7 +21,8 @@ import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, composition
 import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { useOperation } from "@/lib/operations";
-import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
+import { clusterViewOf } from "../../_lib/cluster";
+import { useClusterGroupsOf } from "../../_lib/formation";
 import { useCoordinatorPost } from "../../_lib/coordinators";
 
 function needsLift(r: JoinRequest) {
@@ -30,7 +31,7 @@ function needsLift(r: JoinRequest) {
 
 /**
  * حجاج المجموعة. إلحاق الحاج بالمجموعة عملية مستقلة عن تسجيله على الحج، تبدأ مع تشكيل التكتلات
- * وتستمر بعده: يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق الذي أسنده رئيس التكتل إليها،
+ * وتستمر بعده: يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق الذي وزّعها عليه رئيس التكتل،
  * والطلب العائلي يُلحق أو ينتقل كاملاً. رئيس المجموعة يرحّب بالعائلة، والمنسق يسجّل ملفها الصحي.
  * المنسق للتكتل لا لمجموعة: يفتح هنا مجموعاته المسندة إليه وحدها.
  */
@@ -54,8 +55,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   const myCluster = clusterViewOf(p, admin.name);
   // The coordinator works for the cluster, in the groups its head sorted to him
   const coord = useCoordinatorPost(admin.id, p);
-  const admins = useStore((s) => s.admins);
-  const clusterGroups = useMemo(() => clusterGroupsOf(p, admin.name, admins), [p, admin.name, admins]);
+  const clusterGroups = useClusterGroupsOf(p);
   const myGroups = coord ? coord.groups : clusterGroups;
   const [picked, setPicked] = useState<number | null>(null);
   const home = p?.group?.number;
@@ -81,7 +81,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
       <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يسجّل الحجاج في المجموعات التي يفرزها له رئيس التكتل.">
         <LockedCard
           title={coord ? "لم يفرز لك رئيس التكتل مجموعة بعد" : "لم تنضم إلى تكتل بعد"}
-          text={coord ? `أنت في ${coord.clusterName}. حين يسند إليك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فتلحق بها الحجاج بعقودهم.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويسند إليك مجموعات من تكتله."}
+          text={coord ? `أنت في ${coord.clusterName}. حين يوزّع عليك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فتلحق بها الحجاج بعقودهم.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويسند إليك مجموعات من تكتله."}
           href="/administrator/groups"
           cta="إدارة المجموعات"
         />
@@ -91,7 +91,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   if (!embedded && !coord && !g?.approvedAt) {
     return (
       <AdminShell title="حجاج المجموعة" subtitle="يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.">
-        <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/groups" cta="إدارة المجموعات" />
+        <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/groups" cta="إدارة المجموعة" />
       </AdminShell>
     );
   }
@@ -302,7 +302,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
             <p className="font-bold text-gold">كيف تُلحق العائلات بالمجموعة؟</p>
             <ul className="mt-2 list-inside list-disc space-y-1">
               <li>لا يختار الحاج المجموعة من المنصة: يتفق معها خارجها.</li>
-              <li>يرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها: رئيسها، أو المنسق أو المعاون الذي أسنده إليها رئيس التكتل.</li>
+              <li>يرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها: رئيسها، أو المنسق الموزَّعة عليه، أو المعاون في مقعدها.</li>
               <li>يعتمده موظف المكتب، فيصير الطلب كله في المجموعة ويرى الحاج مجموعته وعقده.</li>
               <li>تسجيل حاج على الحج لا يضعه في مجموعة من سجّله.</li>
               <li>الطلب العائلي يُلحق كاملاً بمجموعة واحدة، وينتقل بعقد جديد ترفعه المجموعة الجديدة.</li>
