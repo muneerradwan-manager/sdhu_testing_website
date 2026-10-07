@@ -172,9 +172,22 @@ export function UsernameField({ value, onChange, error, placeholder }: { value: 
   );
 }
 
-export function PhoneField({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string | false }) {
+/** `label` and `hint` change when the number typed is someone else's (a citizen at a registration desk) */
+export function PhoneField({
+  value,
+  onChange,
+  error,
+  label = "رقم الهاتف",
+  hint = "سيصلك عليه رمز تحقق برسالة نصية",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  error?: string | false;
+  label?: string;
+  hint?: string;
+}) {
   return (
-    <Field label="رقم الهاتف" hint="سيصلك عليه رمز تحقق برسالة نصية" error={error}>
+    <Field label={label} hint={hint} error={error}>
       <div className="relative">
         <Phone className={icon} />
         <input inputMode="tel" dir="ltr" maxLength={10} placeholder="09xxxxxxxx" autoComplete="tel" value={value} onChange={(e) => onChange(digitsOnly(e.target.value))} className={cn(inputClass, "pr-12 text-left font-mono tracking-widest")} />

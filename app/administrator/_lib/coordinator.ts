@@ -45,10 +45,13 @@ export function positionLabel(key: string) {
   return POSITIONS.find((p) => p.key === key)?.label ?? key;
 }
 
-/** رقم هاتف المواطن كما يظهر للمنسق — مقنّع إلا آخر ثلاثة أرقام */
-export function maskedPhone(p: Person) {
-  return `09•• ••• ${p.phoneTail}`;
+/** A phone as the desk shows it when it is the citizen's own account's: masked but for its last three digits */
+export function maskedPhone(phone: string) {
+  return `${phone.slice(0, 2)}•• ••• ${phone.slice(-3)}`;
 }
+
+/** A Syrian mobile number: 09 and eight digits, as the pilgrim's own sign-up asks */
+export const isMobile = (phone: string) => /^09\d{8}$/.test(phone);
 
 export type FiledApplication = { number: string; receipt: string };
 
@@ -69,6 +72,11 @@ export function coordinatorPosting() {
 export function fileApplication(opts: {
   /** المواطن الذي راجع المكتب ووافق برمز التحقق — يُحفظ الطلب في حسابه */
   citizen: Person;
+  /**
+   * The phone the code reached: the one he gave at the desk (the civil registry holds no phone), saved in
+   * the account opened for him — or the one his own account already has, which stays as it is
+   */
+  phone: string;
   members: Member[];
   payMethod: "shamcash" | "bank";
   feePerPerson: number;
@@ -81,7 +89,7 @@ export function fileApplication(opts: {
   /** لحظة التقديم — تُمرَّر من معالج الحدث */
   at: number;
 }): FiledApplication {
-  const { citizen, members, payMethod, feePerPerson, track, plan, coordinator, at } = opts;
+  const { citizen, phone, members, payMethod, feePerPerson, track, plan, coordinator, at } = opts;
   const first = track === "direct" && plan ? firstPayment(plan, members.length) : 0;
   const posting = coordinatorPosting();
   const applicant = members.find((m) => m.relation === "self")?.person ?? citizen;
@@ -90,7 +98,7 @@ export function fileApplication(opts: {
 
   actions.createAccountFor({
     nationalId: citizen.id,
-    phone: `09${citizen.id.slice(2, 9)}`,
+    phone,
     password: "",
     createdAt: at,
   });
@@ -166,6 +174,8 @@ export function seedCoordinatorWork(coordinator: { id: string; name: string; pos
     if (!applicant || members.length !== c.members.length) continue;
     fileApplication({
       citizen: applicant,
+      // The phone each gave at the desk (made up for the demo)
+      phone: `0944${applicant.id.slice(-6)}`,
       members,
       payMethod: "shamcash",
       feePerPerson,

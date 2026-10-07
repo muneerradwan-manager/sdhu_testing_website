@@ -119,6 +119,10 @@ const DEMO_PEOPLE: Record<string, { category?: string; branch: string; extra?: s
   "01033300882": { category: "c3", branch: "دمشق", seasonal: granted("cluster-head", "للزيادة العددية: تكتل إضافي لحجاج مكتب دمشق") },
   "01033300883": { category: "c2", branch: "دمشق" },
   "01033300884": { category: "c1", branch: "دمشق" },
+  // Today's group heads: a first-timer (his category comes with his group's approval), last season's head, a head of four seasons
+  "01033300898": { branch: "دمشق" },
+  "01033300899": { category: "c2", branch: "دمشق" },
+  "01033300880": { category: "c3", branch: "دمشق", seasonal: granted("cluster-head", "رئيس مجموعة الصفا أربعة مواسم متتالية بتقييم 4.5 – 4.8: تكتل جديد لحجاج دمشق") },
   "01033300871": { category: "c2", branch: "دمشق" },
   "01033300885": { category: "c1", branch: "حلب" },
   "01033300886": { branch: "دمشق" },

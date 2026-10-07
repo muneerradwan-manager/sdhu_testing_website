@@ -10,13 +10,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
-import { DEMO_ADMINS, DEMO_GROUPS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
+import { DEMO_ADMINS, DEMO_GROUPS, DEMO_LISTED, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
+
+/** The accounts the list shows now (DEMO_LISTED); the others keep working, unlisted */
+const LISTED = ((ids) => (ids ? DEMO_ADMINS.filter((d) => ids.includes(d.id)) : DEMO_ADMINS))(DEMO_LISTED);
 
 export function AdminLoginFlow() {
   const router = useRouter();
   const params = useSearchParams();
   const raw = params.get("next");
   const next = raw && raw.startsWith("/administrator/") ? raw : "/administrator/dashboard";
+  // «?demo=all» lists every demo account, beyond today's test (the guides' captures open it so)
+  const all = params.get("demo") === "all";
+  const shown = all ? DEMO_ADMINS : LISTED;
   const toast = useToast();
   const accounts = useStore((s) => s.accounts);
   const admins = useStore((s) => s.admins);
@@ -68,10 +74,14 @@ export function AdminLoginFlow() {
       note="لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف."
       below={
         <DemoAccounts
-          hint="لكل صفة ولكل مكان في التكتل حسابان: من أنهى رحلته فترى كل ما يظهر له (أغلبهم في تكتل النور)، ومن لم يبدأ بعد — مؤهَّل في أول عمله: تكتل يقدّم طلبه، أو مجموعة يشكّلها، أو دعوة تنتظر رده في تكتل البيان. ومن لم يسجّل للموسم بعد يجرّب التسجيل والامتحان. اضغط على بطاقة للدخول مباشرة، دون كلمة مرور ولا رمز تحقق."
-          groups={DEMO_GROUPS.filter((g) => DEMO_ADMINS.some((d) => d.section === g)).map((g) => ({
+          hint={
+            DEMO_LISTED && !all
+              ? "تجربة اليوم: تسجيل رئيس المجموعة لموسم 1448 في ثلاث حالات — من يتقدم أول مرة، ورئيس مجموعة الموسم الماضي يجدّد صفته، ورئيس مجموعة أربعة مواسم منحته الإدارة صفة «رئيس تكتل» فيُتاح له تشكيل تكتل. اضغط على بطاقة للدخول مباشرة، دون كلمة مرور ولا رمز تحقق."
+              : "لكل صفة ولكل مكان في التكتل حسابان: من أنهى رحلته فترى كل ما يظهر له (أغلبهم في تكتل النور)، ومن لم يبدأ بعد — مؤهَّل في أول عمله: تكتل يقدّم طلبه، أو مجموعة يشكّلها، أو دعوة تنتظر رده في تكتل البيان. ومن لم يسجّل للموسم بعد يجرّب التسجيل والامتحان. اضغط على بطاقة للدخول مباشرة، دون كلمة مرور ولا رمز تحقق."
+          }
+          groups={DEMO_GROUPS.filter((g) => shown.some((d) => d.section === g)).map((g) => ({
             label: g,
-            items: DEMO_ADMINS.filter((d) => d.section === g).map((d) => ({
+            items: shown.filter((d) => d.section === g).map((d) => ({
               key: d.id,
               title: d.title,
               note: d.note,

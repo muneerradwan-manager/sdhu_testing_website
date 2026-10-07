@@ -10,7 +10,7 @@ c = Cap(); p = c.page
 S = "N"
 
 def admin(name, path="/administrator/flights"):
-    c.goto("/administrator/login", wait=1500)
+    c.goto("/administrator/login?demo=all", wait=1500)
     card = p.locator(f"main button:has-text('{name} —')").first
     card.scroll_into_view_if_needed(); card.click(); c.settle(2500)
     c.goto(path, wait=2200)

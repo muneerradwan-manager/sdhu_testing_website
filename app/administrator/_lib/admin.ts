@@ -31,8 +31,19 @@ export type DemoAdmin = { id: string; phone: string; position: string; section: 
 /** The demo's list, in the order of the cluster's structure: its head, his deputy and accountant, then the groups and the cluster's people */
 export const DEMO_GROUPS = ["رئيس تكتل", "نائب رئيس التكتل", "محاسب التكتل", "رئيس مجموعة", "معاون", "معاون التكتل", "معاون بعدد", "معاون ومنسق تقني", "منسق تقني", "موجّه ديني", "مرشد ديني", "موجّهة دينية", "مرشدة دينية"];
 
+/**
+ * The demo accounts the login page lists now. Today's test is the group head's registration: a first-timer,
+ * last season's head renewing, and a head of four seasons the administration granted «رئيس تكتل». Every other
+ * account stays in DEMO_ADMINS and still works: «/administrator/login?demo=all» lists them all, and adding an
+ * id here lists it again for everyone (null lists them all).
+ */
+export const DEMO_LISTED: string[] | null = ["01033300898", "01033300899", "01033300880"];
+
 /** The demo administrators: every role and every place a cluster gives, most of them finished in تكتل النور, some not started */
 export const DEMO_ADMINS: DemoAdmin[] = [
+  { id: "01033300898", phone: "0944898449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "أيهم الموصلي — يتقدم لرئاسة مجموعة أول مرة", note: "37 عاماً — لا مواسم سابقة له ولا ملف. يسجّل للموسم ويختار «رئيس مجموعة»، فيرفع وثائقه ويقرّ بالالتزامات، ويدفع الرسم بعد ثبوت أهليته، ثم يمتحن الكتابي والشفهي، وبعد النجاح يطلب تشكيل مجموعته." },
+  { id: "01033300899", phone: "0944899449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "معتصم العرقسوسي — رئيس مجموعة الموسم الماضي يجدّد", note: "45 عاماً — رئيس مجموعة الهدى في 1447 بتقييم 4.4، فئتها الثانية. يسجّل لموسم 1448 فيجد ملفه الدائم بوثائقه ومهاراته، ويجدّد «رئيس مجموعة» معفى من الامتحانين لأن تقييمه فوق الحد، ثم يطلب تشكيل مجموعته." },
+  { id: "01033300880", phone: "0944880449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "نزيه المحايري — رئيس مجموعة أربعة مواسم يُتاح له إنشاء تكتل", note: "54 عاماً — رئيس مجموعة الصفا أربعة مواسم متتالية (1444 – 1447) بتقييم 4.5 – 4.8، فئتها الثالثة. منحته الإدارة صفة «رئيس تكتل» لهذا الموسم: يجدّد رئاسة مجموعته معفى من الامتحانين، ويظهر له «تشكيل التكتلات» ليقدّم طلب تكتل." },
   { id: "01033300881", phone: "0944281449", position: "group-head", section: "رئيس تكتل", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس مجموعة الخبير ثلاثة مواسم متتالية (4.6 – 4.8)، فئتها الثالثة. جدّد صفته معفى من الامتحانين، ومنحته الإدارة صفة «رئيس تكتل» موسمية، فقدّم طلب تكتل النور (اقتصادي): ست مجموعات مجموع فئاتها 11 ومقاعدها، ومعاون التكتل، ومنسقان وموجّهتان، ونائبه ومحاسبه. أرسله فاعتمدته الإدارة بعد مراجعته. يبقى رئيس مجموعته ويدير التكتل كله." },
   { id: "01033300882", phone: "0944282449", position: "group-head", section: "رئيس تكتل", mode: "ready", title: "نبيل الساعاتي — رئيس مجموعة منحته الإدارة صفة رئيس تكتل", note: "54 عاماً — رئيس مجموعة الميزان ثلاثة مواسم متتالية بتقييم 4.3 – 4.6، فئتها الثالثة. جدّد صفته، واعتُمدت مجموعته ولم تدخل تكتلاً. منحته الإدارة صفة «رئيس تكتل» موسمية للزيادة العددية: يقدّم طلب تشكيل تكتل من أوله في مدته — المستوى، فالمجموعات ومقاعدها، فمعاون التكتل والمنسق والموجّهة، فالنائب والمحاسب — ويرسله للمراجعة." },
   { id: "01033300883", phone: "0944283449", position: "group-head", section: "نائب رئيس التكتل", mode: "done", title: "بسام درويش — نائب رئيس تكتل النور", note: "51 عاماً — رئيس مجموعة أحفاد بني هاشم (الفئة الثانية) في 1446 و1447 (4.4). مجموعته في تكتل النور، ودعاه رئيسه نائباً له فقبل: صفة ثانوية فوق رئاسة مجموعته، يرى بها مجموعات التكتل ومعلوماته." },
@@ -347,6 +358,8 @@ const HISTORY: Record<string, { season: string; roleKey: string | null; cluster?
   "01033300882": [{ season: "1445", roleKey: "group-head", groups: [63], rating: 4.3 }, { season: "1446", roleKey: "group-head", groups: [63], rating: 4.5 }, { season: "1447", roleKey: "group-head", groups: [63], rating: 4.6 }],
   "01033300883": [{ season: "1446", roleKey: "group-head", groups: [5], rating: 4.2 }, { season: "1447", roleKey: "group-head", groups: [5], rating: 4.4 }],
   "01033300884": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-head", groups: [44], rating: 3.2 }],
+  "01033300899": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-head", groups: [67], rating: 4.4 }],
+  "01033300880": [{ season: "1444", roleKey: "group-head", groups: [68], rating: 4.5 }, { season: "1445", roleKey: "group-head", groups: [68], rating: 4.6 }, { season: "1446", roleKey: "group-head", groups: [68], rating: 4.8 }, { season: "1447", roleKey: "group-head", groups: [68], rating: 4.7 }],
   "01033300871": [{ season: "1446", roleKey: "group-deputy", groups: [12], rating: 4.6 }, { season: "1447", roleKey: null }],
   "01033300872": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", groups: [27], rating: 4.1 }],
   "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", cluster: "تكتل النور", groups: [27, 31, 5], rating: 4.8 }],

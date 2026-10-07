@@ -11,7 +11,7 @@ NAMES = {"01033300881": "عبد الرحمن العلي", "01033300882": "نبي
          "01033300871": "أحمد سليمان الحمصي", "01033300872": "ياسر عبد الله", "01033300873": "الشيخ خالد الرفاعي", "01033300874": "سامر نبيل نجار"}
 def session(demo_id, path="/administrator/dashboard"):
     c = Cap(); p = c.page
-    c.goto("/administrator/login", wait=1500)
+    c.goto("/administrator/login?demo=all", wait=1500)
     card = p.locator(f"main button:has-text('{NAMES[demo_id]} —')").first
     card.scroll_into_view_if_needed(); card.click(); c.settle(2500)
     if path: c.goto(path, wait=1800)
@@ -24,7 +24,7 @@ def btn(p, c, text, wait=900):
 # ───────── returning administrator: keep the role ─────────
 if ONLY in (None, "ret"):
     c = Cap(); p = c.page
-    c.goto("/administrator/login", wait=1500)
+    c.goto("/administrator/login?demo=all", wait=1500)
     p.locator("main button:has-text('نبيل الساعاتي —')").first.scroll_into_view_if_needed(); c.settle(400)
     c.shot("quick-login", "الدخول الفوري بحساب تجريبي من صفحة الدخول", hl=[("main button:has-text('نبيل الساعاتي —')", "")], section="B")
     p.locator("main button:has-text('نبيل الساعاتي —')").first.click(); c.settle(2500)
@@ -116,7 +116,9 @@ if ONLY in (None, "tech"):
     c.shot("tech-reg", "تسجيل الحجاج: البحث عن المواطن في الشؤون المدنية", section=S)
     p.locator("label:has-text('الرقم الوطني') input").first.fill("01012340078"); c.settle(200)
     btn(p, c, "بحث", 2500)
-    c.shot("tech-reg-found", "بيانات المواطن وطلب موافقته", section=S)
+    c.shot("tech-reg-found", "بيانات المواطن ورقم هاتفه الذي يمليه", section=S)
+    p.get_by_label("رقم هاتف المواطن").fill("0933123456"); c.settle(200)
+    btn(p, c, "إرسال رمز التحقق", 1200)
     c.otp("1448")
     c.scroll_to("text=رمز الموافقة", 250)
     c.shot("tech-reg-otp", "إدخال رمز موافقة المواطن", hl=[("button:has-text('تأكيد الموافقة ومتابعة')", "")], section=S)

@@ -3,7 +3,26 @@
 import { motion } from "motion/react";
 import { CalendarClock, CalendarX2, PauseCircle } from "lucide-react";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { dayLabel, rangeLabel, type OperationState } from "@/lib/operations";
+import { actions } from "@/lib/store";
+import { cn } from "@/lib/utils";
+
+/** Can the demo move its date into this operation? Not into one the staff stopped by hand */
+const jumpable = (state: OperationState) => !!state.start && (state.status === "upcoming" || state.status === "closed");
+
+/**
+ * The demo's way past an operation's dates: it moves the demo's «today» to the operation's first day, as the
+ * date bar at the foot of the page does, so a tester reaches a closed step without hunting for its date.
+ */
+export function DemoJump({ state, className }: { state: OperationState; className?: string }) {
+  if (!jumpable(state)) return null;
+  return (
+    <Button size="sm" variant="outline" className={cn("bg-white", className)} onClick={() => actions.setToday(state.start)}>
+      <CalendarClock className="size-4" /> جرّبها الآن: انقل تاريخ التجربة إلى {dayLabel(state.start)}
+    </Button>
+  );
+}
 
 /**
  * An operation outside its time: before its start, after its end, or stopped by the staff who control it.
@@ -33,7 +52,12 @@ export function OperationClosed({ state, text, children }: { state: OperationSta
         <h2 className="mt-5 font-display text-2xl font-bold text-green-dark md:text-3xl">{title}</h2>
         <p className="mx-auto mt-3 max-w-xl leading-8 text-ink-soft">{why}</p>
         {text && <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-ink-soft">{text}</p>}
-        {children && <div className="mt-6 flex flex-wrap justify-center gap-3">{children}</div>}
+        {(children || jumpable(state)) && (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {children}
+            <DemoJump state={state} />
+          </div>
+        )}
       </div>
     </motion.div>
   );

@@ -2,10 +2,10 @@
 
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, BadgeCheck, Building2, CalendarClock, Calculator, Check, CircleDashed, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, Check, CircleDashed, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
-import { OperationClosed } from "@/components/app/operation-closed";
+import { DemoJump, OperationClosed } from "@/components/app/operation-closed";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Badge, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
 import { dayLabel, rangeLabel } from "@/lib/operations";
 import { useSeason } from "@/lib/season-live";
-import { actions, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
+import { useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 import { adminName, logAdmin, nowMs, resultOf, useAdmin } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
@@ -121,21 +121,8 @@ function WindowNote({ w }: { w: Window }) {
   return (
     <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3 text-sm font-semibold", w.state === "closed" || w.state === "before" ? "bg-gold/20 text-maroon" : "bg-green-light/10 text-green")}>
       <span>{text}</span>
-      <TryNow w={w} />
+      <DemoJump state={w.op} />
     </div>
-  );
-}
-
-/**
- * The demo's way past the dates, beside a closed window: it moves the demo's «today» to the window's first
- * day, as the date bar at the foot of the page does. Not for a window the staff stopped by hand.
- */
-function TryNow({ w }: { w: Window }) {
-  if (!w.op.start || (w.op.status !== "upcoming" && w.op.status !== "closed")) return null;
-  return (
-    <Button size="sm" variant="outline" className="bg-white" onClick={() => actions.setToday(w.op.start)}>
-      <CalendarClock className="size-4" /> جرّبها الآن: انقل تاريخ التجربة إلى {dayLabel(w.op.start)}
-    </Button>
   );
 }
 
@@ -242,7 +229,7 @@ function Invitations({ compact = false }: { compact?: boolean }) {
       {!open && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sand p-3 text-sm text-ink-soft">
           <span>مدة تشكيل التكتلات {rangeLabel(w.op.start, w.op.end)}. الرد على الدعوات في مدتها.</span>
-          <TryNow w={w} />
+          <DemoJump state={w.op} />
         </div>
       )}
       <ul className="mt-4 space-y-2">

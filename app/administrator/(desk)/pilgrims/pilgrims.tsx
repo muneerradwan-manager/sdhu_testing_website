@@ -14,10 +14,12 @@ import {
   RotateCcw,
   SearchCheck,
   ShieldCheck,
+  Smartphone,
   UserPlus,
   UsersRound,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PhoneField } from "@/components/portal/auth";
 import { Card } from "@/components/portal/shell";
 import { DEMO_OTP, Field, OtpInput, inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
@@ -39,7 +41,7 @@ import { cn, countOf, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils"
 import { effectiveRole, logAdmin, nowMs, positionLabelOf, positionOf, useAdmin } from "../../_lib/admin";
 import { useAdminCan } from "../../_lib/permissions";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
-import { blockFor, coordinatorPosting, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
+import { blockFor, coordinatorPosting, fileApplication, filedBy, isMobile, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
 import { AdminShell, LockedCard, ReceiptCard, SectionTitle } from "../../_components/ui";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { statusLabel, useAnyOperation } from "@/lib/operations";
@@ -102,6 +104,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
   const toast = useToast();
   const applications = useStore((s) => s.applications);
   const admins = useStore((s) => s.admins);
+  const accounts = useStore((s) => s.accounts);
 
   const [step, setStep] = useState<Step>("citizen");
   const [id, setId] = useState("");
@@ -110,6 +113,12 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
   const [citizen, setCitizen] = useState<Person | null>(null);
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState(false);
+  // The civil registry holds no phone: the citizen gives his, and the code goes to it. One who already has an
+  // account on the platform gets it on the phone of his account, which the desk does not change.
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const registered = citizen ? accounts[citizen.id]?.phone : undefined;
   const [members, setMembers] = useState<Member[]>([]);
   const [book, setBook] = useState<Book | null>(null);
   const [filed, setFiled] = useState<FiledApplication | null>(null);
@@ -140,6 +149,9 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
     setError("");
     setCitizen(null);
     setOtp("");
+    setPhone("");
+    setPhoneError("");
+    setSentTo(null);
     setMembers([]);
     setBook(null);
     setFiled(null);
@@ -158,7 +170,18 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
     if (!person) return setError("لم تعثر الشؤون المدنية على هذا الرقم.");
     setCitizen(person);
     setStep("consent");
-    setTimeout(() => toast({ title: "رمز موافقة المواطن", body: `وصل إلى هاتفه رمز: ${DEMO_OTP}`, icon: "💬", tone: "gold" }), 600);
+    // A citizen with an account of his own: the code goes at once to the phone he registered
+    const own = accounts[person.id]?.phone;
+    if (own) sendCode(own);
+  };
+
+  /** The code to the phone: the one the citizen gave at the desk, or his account's */
+  const sendCode = (to: string) => {
+    if (!isMobile(to)) return setPhoneError("رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام");
+    setPhoneError("");
+    setOtp("");
+    setSentTo(to);
+    setTimeout(() => toast({ title: "رمز موافقة المواطن", body: `وصل إلى الهاتف ${to}: ${DEMO_OTP}`, icon: "💬", tone: "gold" }), 600);
   };
 
   const confirmConsent = () => {
@@ -169,7 +192,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
     }
     const p = citizen!;
     setMembers([{ person: p, relation: "self", relationVerified: true, needs: [] }]);
-    registrar.log("بدء تسجيل طلب عن مواطن", fullName(p), "بعد تأكيد موافقته برمز تحقق");
+    registrar.log("بدء تسجيل طلب عن مواطن", fullName(p), `بعد تأكيد موافقته برمز تحقق إلى هاتفه ${maskedPhone(sentTo!)}${registered ? " المسجّل في حسابه" : " الذي أعطاه في المكتب"}`);
     setStep("members");
   };
 
@@ -189,6 +212,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
   const submit = (payMethod: "shamcash" | "bank") => {
     const receipt = fileApplication({
       citizen: citizen!,
+      phone: sentTo!,
       members,
       payMethod,
       feePerPerson: season.fees.registrationPerPerson,
@@ -304,31 +328,88 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                     </dl>
                   </div>
 
-                  <p className="mt-5 flex items-start gap-2 rounded-2xl bg-maroon/8 p-4 text-sm leading-7 text-maroon">
-                    <MessageSquare className="mt-0.5 size-5 shrink-0" />
-                    أُرسل رمز تحقق إلى هاتف المواطن <b dir="ltr">{maskedPhone(citizen)}</b>. اطلب منه الرمز وأدخله أمامه — بلا الرمز لا يُفتح الطلب.
-                  </p>
+                  {!sentTo ? (
+                    <div className="mt-5 space-y-4">
+                      <p className="flex items-start gap-2 rounded-2xl bg-gold/15 p-4 text-sm leading-7 text-ink-soft">
+                        <Smartphone className="mt-0.5 size-5 shrink-0 text-gold-dark" />
+                        رقم الهاتف ليس في السجل المدني. اطلبه من المواطن واكتبه: يصله عليه رمز الموافقة، ويُحفظ في حسابه على المنصة، فتصله عليه رسائل طلبه وبه يدخل حسابه.
+                      </p>
+                      <PhoneField
+                        value={phone}
+                        onChange={(v) => {
+                          setPhone(v);
+                          setPhoneError("");
+                        }}
+                        error={phoneError}
+                        label="رقم هاتف المواطن"
+                        hint="هاتفه هو، لا هاتف المكتب: عليه يصل الرمز"
+                      />
+                      <div className="flex flex-wrap gap-3">
+                        <Button size="lg" onClick={() => sendCode(phone)} disabled={phone.length !== 10}>
+                          <MessageSquare className="size-5" /> إرسال رمز التحقق
+                        </Button>
+                        <Button size="lg" variant="outline" onClick={reset}>
+                          <ArrowRight className="size-5" /> مواطن آخر
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mt-5 flex flex-wrap items-start gap-2 rounded-2xl bg-maroon/8 p-4 text-sm leading-7 text-maroon">
+                        <MessageSquare className="mt-0.5 size-5 shrink-0" />
+                        <span className="min-w-0 flex-1">
+                          {registered ? (
+                            <>
+                              لهذا المواطن حساب في المنصة، فأُرسل رمز التحقق إلى هاتفه المسجّل فيه <b dir="ltr">{maskedPhone(sentTo)}</b>.
+                            </>
+                          ) : (
+                            <>
+                              أُرسل رمز تحقق إلى الهاتف <b dir="ltr">{sentTo}</b>، ويُحفظ في حسابه عند تقديم الطلب.
+                            </>
+                          )}{" "}
+                          اطلب منه الرمز وأدخله أمامه — بلا الرمز لا يُفتح الطلب.
+                        </span>
+                        <span className="flex gap-3">
+                          <button type="button" onClick={() => sendCode(sentTo)} className="font-bold underline">
+                            إعادة الإرسال
+                          </button>
+                          {!registered && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSentTo(null);
+                                setOtp("");
+                              }}
+                              className="font-bold underline"
+                            >
+                              تغيير الرقم
+                            </button>
+                          )}
+                        </span>
+                      </p>
 
-                  <div className="mt-5">
-                    <Field label="رمز الموافقة">
-                      <OtpInput value={otp} onChange={setOtp} invalid={otpError} />
-                    </Field>
-                    <p className="mt-3 text-center text-sm text-hint">
-                      رمز تجريبي (وصل إلى هاتف المواطن):{" "}
-                      <button type="button" onClick={() => setOtp(DEMO_OTP)} className="font-mono font-bold text-green-dark underline">
-                        {DEMO_OTP}
-                      </button>
-                    </p>
-                  </div>
+                      <div className="mt-5">
+                        <Field label="رمز الموافقة">
+                          <OtpInput value={otp} onChange={setOtp} invalid={otpError} />
+                        </Field>
+                        <p className="mt-3 text-center text-sm text-hint">
+                          رمز تجريبي (وصل إلى هاتف المواطن):{" "}
+                          <button type="button" onClick={() => setOtp(DEMO_OTP)} className="font-mono font-bold text-green-dark underline">
+                            {DEMO_OTP}
+                          </button>
+                        </p>
+                      </div>
 
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Button size="lg" onClick={confirmConsent} disabled={otp.length < 4}>
-                      <BadgeCheck className="size-5" /> تأكيد الموافقة ومتابعة
-                    </Button>
-                    <Button size="lg" variant="outline" onClick={reset}>
-                      <ArrowRight className="size-5" /> مواطن آخر
-                    </Button>
-                  </div>
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        <Button size="lg" onClick={confirmConsent} disabled={otp.length < 4}>
+                          <BadgeCheck className="size-5" /> تأكيد الموافقة ومتابعة
+                        </Button>
+                        <Button size="lg" variant="outline" onClick={reset}>
+                          <ArrowRight className="size-5" /> مواطن آخر
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </Card>
               </Pane>
             )}
