@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { groupName } from "@/lib/groups";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type AdminProfile, type ClusterInvite, type GroupInvite, type State, type TeamPool } from "@/lib/store";
 import { adminName, logAdmin } from "./admin";
@@ -213,7 +214,7 @@ export function answerInvitation(me: { id: string; name: string }, inbound: Inbo
     if (req.seed) continue;
     saveCluster({ id: headId, name: req.headName, group: req.headGroup }, c, admins);
   }
-  const what = inbound.kind === "group" ? `انضمام المجموعة ${inbound.number} إلى ${inbound.req.cluster.name}` : `${inbound.kind === "deputy" ? DEPUTY_TITLE : POOLS[inbound.kind].one} في ${inbound.req.cluster.name}`;
+  const what = inbound.kind === "group" ? `انضمام ${groupName(inbound.number!)} إلى ${inbound.req.cluster.name}` : `${inbound.kind === "deputy" ? DEPUTY_TITLE : POOLS[inbound.kind].one} في ${inbound.req.cluster.name}`;
   logAdmin(me.id, status === "accepted" ? `قبول دعوة: ${what}` : `اعتذار عن دعوة: ${what}`, inbound.req.headName, reason, { area: "clusters", ref: inbound.req.cluster.id });
 }
 

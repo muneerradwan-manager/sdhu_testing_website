@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
 import { DOCS, costLines, docStatus, medicalDocsFor, medicalKey, paidAt , useRoomCost } from "@/app/portal/application/_components/post/model";
 import { groupInfo } from "@/lib/assignment";
+import { groupName } from "@/lib/groups";
 import { planLabel, seasonPlan } from "@/lib/installments";
 import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
@@ -92,7 +93,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
               <Badge tone={track === "lottery" ? "gold" : "green"}>{track === "lottery" ? "التسجيل الأولي على القرعة" : "التسجيل على القبول المباشر"}</Badge>
               <Badge tone={accepted ? "green" : "ink"}>الحالة: {stage.title}</Badge>
               <Badge tone="ink">{app.office}</Badge>
-              <Badge tone={group ? "green" : "gold"}>{group ? `المجموعة ${group.number}` : "لم ينضم إلى مجموعة بعد"}</Badge>
+              <Badge tone={group ? "green" : "gold"}>{group ? groupName(group.number) : "لم ينضم إلى مجموعة بعد"}</Badge>
             </div>
           </div>
           <div className="rounded-2xl bg-sand px-4 py-3 text-sm leading-7">
@@ -203,7 +204,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
               { t: `النتيجة: ${stage.title}`, ok: accepted },
               { t: "تأكيد القبول", ok: !!post?.confirmedAt, at: post?.confirmedAt },
               { t: "الصورة الشخصية والجواز", ok: !!post?.confirmedAt && app.members.every((m) => DOCS.every((d) => docStatus(p, m, d.key) === "approved")) },
-              { t: group ? `الإلحاق بالمجموعة ${group.number}${post?.enrolledBy ? ` — رفع عقده ${post.enrolledBy.name} واعتمده المكتب` : ""}` : post?.contract?.status === "pending" ? `عقد مع المجموعة ${post.contract.groupNumber} بانتظار المكتب` : "الإلحاق بمجموعة — بعقد مستقل عن التسجيل", ok: !!group, at: post?.groupApprovedAt },
+              { t: group ? `الإلحاق ب${groupName(group.number)}${post?.enrolledBy ? ` — رفع عقده ${post.enrolledBy.name} واعتمده المكتب` : ""}` : post?.contract?.status === "pending" ? `عقد مع ${groupName(post.contract.groupNumber)} بانتظار المكتب` : "الإلحاق بمجموعة — بعقد مستقل عن التسجيل", ok: !!group, at: post?.groupApprovedAt },
               { t: "المعلومات الصحية والوثائق الطبية", ok: !!post?.health?.confirmedAt && app.members.every((m) => medicalDocsFor(m, post.health).every((d) => post.medical?.[medicalKey(m, d)] === "approved")) },
               { t: "التأشيرة", ok: !!post?.visaAt, at: post?.visaAt },
             ].map((s) => (

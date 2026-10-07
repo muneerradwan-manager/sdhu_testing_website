@@ -6,6 +6,7 @@ import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { coordinatorOf, groupInfo } from "@/lib/assignment";
+import { groupName } from "@/lib/groups";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
 import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -65,7 +66,7 @@ export function StepMedical({ app, post, sessionId }: StepProps) {
           <div className="mt-4 flex flex-wrap items-center gap-4 rounded-2xl bg-sand p-4">
             <span className="grid size-12 place-items-center rounded-2xl bg-green-dark font-display text-xl font-bold text-gold">{coordinator.name[0]}</span>
             <div className="min-w-0 flex-1">
-              <p className="font-bold">بانتظار {coordinator.name} — منسق {info.clusterName} المفروز للمجموعة {info.number}</p>
+              <p className="font-bold">بانتظار {coordinator.name} — منسق {info.clusterName} المفروز ل{groupName(info.number)}</p>
               <p className="text-sm text-ink-soft">يتصل بك ليسجّل الأمراض المزمنة والأدوية والاحتياجات الخاصة لكل فرد.</p>
             </div>
             <a href="#" onClick={(e) => { e.preventDefault(); toast({ title: `اتصال بـ ${coordinator.name}`, body: coordinator.phone, icon: "📞" }); }} className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-bold text-green-dark ring-1 ring-gold/40">

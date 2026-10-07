@@ -1,8 +1,9 @@
 /**
  * Everything a pilgrim sees after acceptance — taken from the operating document's worked example
- * (Cluster Al-Nour, Group 27, Abraj Al-Nour hotel, flight RB 507, Mina camp 42...).
+ * (Cluster Al-Nour, مجموعة اللطيف (key 27), Abraj Al-Nour hotel, flight RB 507, Mina camp 42...).
  * Assignments (rooms, seats, cards) are derived deterministically from the application members.
  */
+import { groupName } from "./groups";
 import { MONTHS, birthOf, mainApplicant, matchingPick, type PublishedDraw } from "./lottery";
 import { SEASON } from "./season";
 import { ageOf, birthYear, type Person } from "./registry";
@@ -87,7 +88,7 @@ export const PLACES = {
     notes: ["الانطلاق من منى 06:30 — الحافلتان 7 و8", "الماء البارد عند مدخل الخيمة", "الدعاء حتى الغروب ثم التجمّع إلى مزدلفة"],
   },
   muzdalifah: {
-    name: "نقطة مبيت المجموعة 27",
+    name: `نقطة مبيت ${groupName(GROUP.number)}`,
     area: "مزدلفة — قرب مسجد المشعر الحرام",
     lat: 21.3838,
     lng: 39.9362,

@@ -21,14 +21,14 @@ p.locator("label:has-text('اسم المستخدم') input").first.fill("haitham
 p.locator("label:has-text('كلمة المرور') input").first.fill("1448")
 p.locator("button[type=submit]").first.click(); c.settle(2000)
 c.goto("/staff/flights/manage/dispatch", wait=2500)
-p.locator("main tr:has-text('المجموعة 27') button:has-text('إسناد')").first.click(); c.settle(900)
+p.locator("main tr:has-text('مجموعة اللطيف') button:has-text('إسناد')").first.click(); c.settle(900)
 p.locator("[role=dialog] button:has-text('إسناد المجموعة')").click(); c.settle(1500)
 
 # ───────── cluster head ─────────
 admin("عبد الرحمن العلي")
 c.shot("cfl-top", "رحلات التكتل: الأعداد، ومن يضع المجموعات على الرحلات", hl=[("nav a[href*='/administrator/flights']", "1"), ("main p:has-text('تنسّق معه مباشرة')", "2")], section=S)
 c.scroll_to("text=مجموعات تكتلي ورحلاتها", 110)
-c.shot("cfl-table", "مجموعات تكتلي ورحلاتها ذهاباً وعودة", hl=[("main tr:has-text('المجموعة 47')", "")], section=S)
+c.shot("cfl-table", "مجموعات تكتلي ورحلاتها ذهاباً وعودة", hl=[("main tr:has-text('مجموعة الإيمان')", "")], section=S)
 c.scroll_to("main div.rounded-3xl:has-text('رحلة الذهاب')", 130)
 c.shot("cfl-cards", "بطاقات رحلات التكتل: الموعد والتجمّع ومجموعاتك عليها", section=S)
 

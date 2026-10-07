@@ -2,9 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarClock, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, LockOpen, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
-import { DEMO_START, dayHijri, dayLabel, shiftDay, statusLabel, useOperations, useToday, type OperationState } from "@/lib/operations";
+import { DEMO_START, dayHijri, dayLabel, shiftDay, statusLabel, useAllOpen, useOperations, useToday, type OperationState } from "@/lib/operations";
 import { actions, useHydrated } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -18,17 +18,25 @@ const TONE: Record<OperationState["status"], string> = {
   upcoming: "bg-gold/30 text-maroon",
   closed: "bg-ink/5 text-hint",
   off: "bg-maroon/10 text-maroon",
+  all: "bg-gold/40 text-maroon",
 };
+
+const MODES = [
+  { all: false, label: "حسب التاريخ", hint: "كل عملية تُفتح وتُغلق بتواريخها" },
+  { all: true, label: "كل شيء مفتوح", hint: "كل العمليات مفتوحة معاً، أياً كان التاريخ" },
+];
 
 /**
  * The demo's date. The season runs on dated operations, so the tester moves "today" to try each one as it
- * opens and closes; nothing here is part of the real platform, which runs on the real date.
+ * opens and closes — or opens everything at once to try it all together. Nothing here is part of the real
+ * platform, which runs on the real date.
  */
 export function DemoClock() {
   const hydrated = useHydrated();
   const pathname = usePathname();
   const today = useToday();
   const ops = useOperations();
+  const allOpen = useAllOpen();
   const [open, setOpen] = useState(false);
   if (!hydrated || !PORTALS.some((p) => pathname.startsWith(p))) return null;
   const live = ops.filter((o) => o.open && o.status !== "always");
@@ -47,13 +55,31 @@ export function DemoClock() {
               <div className="flex items-start justify-between gap-3 bg-maroon-dark p-4 text-white">
                 <div>
                   <p className="font-display text-lg font-bold">تاريخ المحاكاة</p>
-                  <p className="text-xs leading-5 text-white/70">يبدأ باليوم الفعلي. غيّره لتجرب كل عملية في وقتها: تُفتح وتُغلق وحدها بتواريخها، ما لم يفتحها الموظف المخوّل أو يوقفها بيده.</p>
+                  <p className="text-xs leading-5 text-white/70">جرّب حسب الوقت: يبدأ باليوم الفعلي، وكل عملية تُفتح وتُغلق وحدها بتواريخها. أو افتح كل شيء لتجرب العمليات كلها معاً.</p>
                 </div>
                 <button type="button" onClick={() => setOpen(false)} aria-label="إغلاق" className="grid size-9 shrink-0 place-items-center rounded-xl hover:bg-white/10">
                   <X className="size-5" />
                 </button>
               </div>
-              <div className="flex items-center gap-2 border-b border-gold/30 p-4">
+              <div role="radiogroup" aria-label="طريقة التجربة" className="grid grid-cols-2 gap-1 border-b border-gold/30 bg-sand/60 p-2">
+                {MODES.map((m) => (
+                  <button
+                    key={m.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={allOpen === m.all}
+                    onClick={() => actions.setAllOpen(m.all)}
+                    className={cn("rounded-2xl px-3 py-2 text-right transition", allOpen === m.all ? "bg-white shadow ring-2 ring-gold-dark" : "hover:bg-white/60")}
+                  >
+                    <span className="flex items-center gap-1.5 text-sm font-bold">
+                      {m.all ? <LockOpen className="size-4 text-gold-dark" /> : <CalendarClock className="size-4 text-green-dark" />} {m.label}
+                    </span>
+                    <span className="block text-[11px] leading-4 text-hint">{m.hint}</span>
+                  </button>
+                ))}
+              </div>
+              {allOpen && <p className="bg-gold/20 px-4 py-2 text-xs leading-5 text-maroon">كل العمليات مفتوحة الآن مهما كان التاريخ. ما أوقفته الإدارة بيدها يبقى موقوفاً، وما بعد الموعد النهائي (اعتماد التكتلات) متاح معاً.</p>}
+              <div className={cn("flex items-center gap-2 border-b border-gold/30 p-4", allOpen && "opacity-50")}>
                 <button type="button" onClick={() => actions.setToday(shiftDay(today, -1))} aria-label="اليوم السابق" className="grid size-11 shrink-0 place-items-center rounded-xl bg-sand hover:bg-gold/30">
                   <ChevronRight className="size-5" />
                 </button>
@@ -104,11 +130,9 @@ export function DemoClock() {
           aria-expanded={open}
           className="flex items-center gap-2 rounded-full border border-gold/50 bg-maroon-dark/95 py-2 pe-4 ps-2 text-sm font-bold text-white shadow-2xl backdrop-blur"
         >
-          <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">
-            <CalendarClock className="size-4" />
-          </span>
-          <span>{dayLabel(today, true)}</span>
-          <span className="hidden max-w-[26rem] truncate text-xs font-normal text-white/70 sm:inline">— {live.length ? `مفتوح الآن: ${live.map((o) => o.label.replace("التسجيل على الحج — ", "")).join("، ")}` : "لا عملية موسمية مفتوحة اليوم"}</span>
+          <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">{allOpen ? <LockOpen className="size-4" /> : <CalendarClock className="size-4" />}</span>
+          <span>{allOpen ? "كل شيء مفتوح" : dayLabel(today, true)}</span>
+          <span className="hidden max-w-[26rem] truncate text-xs font-normal text-white/70 sm:inline">— {allOpen ? "تجربة العمليات كلها معاً، أياً كان التاريخ" : live.length ? `مفتوح الآن: ${live.map((o) => o.label.replace("التسجيل على الحج — ", "")).join("، ")}` : "لا عملية موسمية مفتوحة اليوم"}</span>
         </button>
       </div>
     </div>

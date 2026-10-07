@@ -355,7 +355,10 @@ export type AdminProfile = {
   resultPublishedAt?: number;
   /** Formed alone, without a team and without a cluster: a cluster takes it later, and its head assigns its team */
   group?: {
+    /** The platform's internal key — never shown: a group is known by its name */
     number: number;
+    /** The name its head gave it in the formation request («اللطيف»), shown as «مجموعة اللطيف» */
+    name?: string;
     /** The cluster whose invitation its head accepted (or whose head he is), or that the distribution gave it */
     clusterId?: string;
     /** Given on approval by the category the head falls in, never typed by him (0 until then) */
@@ -478,8 +481,11 @@ export type State = {
    * approved cluster: group number -> cluster id.
    */
   formation: { decisions: Record<string, { status: "approved" | "excluded"; at: number; by: string; reason?: string }>; moves: Record<number, string>; distributedAt?: number; distributedBy?: string };
-  /** The demo's "today" (YYYY-MM-DD): every operation opens and closes by it (lib/operations.ts) */
-  clock: { today?: string };
+  /**
+   * The demo's "today" (YYYY-MM-DD): every operation opens and closes by it (lib/operations.ts). `allOpen`
+   * tries everything together instead: every operation open whatever its dates.
+   */
+  clock: { today?: string; allOpen?: boolean };
   /** Each operation's state and dates as the staff who control it left them; a missing one follows its defaults */
   operations: Partial<Record<import("./operations").OperationKey, import("./operations").OperationOverride>>;
   /** End-of-season classification of the groups and the clusters, once the administration publishes it */
@@ -634,6 +640,13 @@ function persist() {
   } catch {
     /* ignore */
   }
+}
+
+/** The name a head gave his group in this browser's demo, for lib/groups (which names every group) */
+export function storedGroupName(number: number) {
+  load();
+  for (const a of Object.values(state.admins)) if (a.group?.number === number && a.group.name) return a.group.name;
+  return undefined;
 }
 
 export function setState(updater: (s: State) => State) {
@@ -841,7 +854,11 @@ export const actions = {
   },
   /** Moves the demo's "today"; undefined goes back to the season's first day */
   setToday(today: string | undefined) {
-    setState((s) => ({ ...s, clock: { today } }));
+    setState((s) => ({ ...s, clock: { ...s.clock, today } }));
+  },
+  /** Everything open at once, or back to the dates */
+  setAllOpen(allOpen: boolean) {
+    setState((s) => ({ ...s, clock: { ...s.clock, allOpen: allOpen || undefined } }));
   },
   setOperation(key: import("./operations").OperationKey, patch: import("./operations").OperationOverride | undefined) {
     setState((s) => ({ ...s, operations: { ...s.operations, [key]: patch && { ...s.operations[key], ...patch } } }));

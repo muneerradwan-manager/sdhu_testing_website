@@ -16,6 +16,7 @@ import { Card } from "@/components/portal/shell";
 import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, StarRating, useToast } from "@/components/ui/widgets";
+import { groupName, groupNameTaken, suggestedGroupName } from "@/lib/groups";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
@@ -27,9 +28,8 @@ import { capacityFor, nextGroupNumber, useCapacityTiers } from "../../_lib/capac
 import { postsOf } from "../../_lib/cluster";
 import { POOLS, POOL_ORDER, useClusterRequests } from "../../_lib/formation";
 import { StandingCard } from "../../_components/standing";
-import { ClusterGroups } from "./cluster-groups";
 import { CoordinatorGroups } from "./coordinator-groups";
-import { AdminShell, LockedCard, ReceiptCard } from "../../_components/ui";
+import { AdminShell, LockedCard, MovedTo, ReceiptCard } from "../../_components/ui";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { rangeLabel, useOperation } from "@/lib/operations";
 
@@ -64,8 +64,8 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
   const tech = isTechCoordinator(p);
 
   if (part === "manage") {
-    // A cluster role sees the cluster's groups, not one; the coordinator works in the groups sorted to him
-    if (cluster) return <ClusterGroups />;
+    // A cluster role opens the cluster's groups in «إدارة التكتل»; the coordinator works in the groups sorted to him
+    if (cluster) return <MovedTo href="/administrator/clusters" title="إدارة التكتل" />;
     if (tech || p?.servesIn || (p?.positions.length && p.positions[0] !== "group-head")) return <CoordinatorGroups />;
     if (!g?.approvedAt) {
       return (
@@ -75,7 +75,7 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
       );
     }
     return (
-      <AdminShell image="/images/clock-tower.jpg" title={`مجموعتي — المجموعة ${g.number}`} subtitle="صلاحياتك تغيّرت تلقائياً: ترى مجموعتك، وتلحق بها حجاجها بعقودهم، وتنشر الإعلانات، وتفتح التجمّعات. فريقها يسنده رئيس تكتلها.">
+      <AdminShell image="/images/clock-tower.jpg" title={`مجموعتي — ${groupName(g.number)}`} subtitle="صلاحياتك تغيّرت تلقائياً: ترى مجموعتك، وتلحق بها حجاجها بعقودهم، وتنشر الإعلانات، وتفتح التجمّعات. فريقها يسنده رئيس تكتلها.">
         <MyGroup />
       </AdminShell>
     );
@@ -103,7 +103,7 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
           {view === "receipt" && <FeeReceipt onContinue={() => setShowReceipt(false)} />}
           {view === "pending" && <Pending />}
           {view === "approved" && (
-            <LockedCard title={`اعتُمدت المجموعة ${g!.number}`} text={`بسعة ${g!.capacity} حاجاً (${g!.capacityTier ?? "فئتك"}). انتهى تشكيلها، وتُدار من الآن في «إدارة المجموعات».`} href="/administrator/groups" cta="إدارة المجموعات" />
+            <LockedCard title={`اعتُمدت ${groupName(g!.number)}`} text={`بسعة ${g!.capacity} حاجاً (${g!.capacityTier ?? "فئتك"}). انتهى تشكيلها، وتُدار من الآن في «إدارة المجموعات».`} href="/administrator/groups" cta="إدارة المجموعات" />
           )}
         </motion.div>
       </AnimatePresence>
@@ -113,6 +113,35 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
 
 // ───────────────────────── Request ─────────────────────────
 
+/** The name alone, as it is kept: «مجموعة اللطيف» typed in full is kept as «اللطيف» */
+function bareGroupName(name: string) {
+  return name.trim().replace(/^مجموعة\s+/, "").trim();
+}
+
+/** What stops a name: none given, or another group of the season carries it */
+function groupNameProblem(name: string, own: number) {
+  const bare = bareGroupName(name);
+  if (!bare) return "اكتب اسماً لمجموعتك";
+  if (groupNameTaken(bare, own)) return "هذا الاسم لمجموعة أخرى هذا الموسم";
+  return null;
+}
+
+/** The head names his group: it is known by this name on every screen, and the administration approves it with the request */
+function GroupNameField({ value, onChange, problem }: { value: string; onChange: (v: string) => void; problem: string | null }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-bold text-ink-soft">اسم المجموعة</span>
+      <span className={cn("mt-2 flex h-14 items-center gap-2 rounded-2xl border-2 bg-white px-4 focus-within:border-green-light", problem ? "border-maroon" : "border-gold/50")}>
+        <span className="shrink-0 font-bold text-hint">مجموعة</span>
+        <input value={value} onChange={(e) => onChange(e.target.value)} required aria-invalid={!!problem} className="h-full min-w-0 flex-1 bg-transparent font-bold text-green-dark outline-none" />
+      </span>
+      <span className={cn("mt-1 block text-xs leading-5", problem ? "font-bold text-maroon" : "text-hint")}>
+        {problem ?? "تسمّيها أنت فتُعرف به في كل الشاشات. الاسم لا يتكرر في الموسم، وتعتمده الإدارة مع طلبك."}
+      </span>
+    </label>
+  );
+}
+
 function RequestForm({ onPaid }: { onPaid: () => void }) {
   const admin = useAdmin()!;
   const toast = useToast();
@@ -120,18 +149,22 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
   const fee = season.fees.groupFormation;
   const existing = admin.profile?.group;
   const admins = useStore((s) => s.admins);
-  const [name, setName] = useState("مجموعة المزة للعائلات وكبار السن");
   const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
   const [paying, setPaying] = useState(false);
   const stage = existing?.requestedAt ? "pay" : "form";
-  // Not the head's to type: the number is the next one this season. The capacity is the administration's,
-  // given when it approves the group, by the season's categories (0 until then)
+  // The number is only the platform's key, the next one this season, and is never shown: the head names his
+  // group. The capacity is the administration's, given when it approves the group, by the season's
+  // categories (0 until then)
   const number = nextGroupNumber(admins, admin.id);
+  const [name, setName] = useState(() => suggestedGroupName(number));
+  const problem = groupNameProblem(name, number);
 
   const submit = () => {
-    actions.upsertAdmin(admin.id, { group: { number, capacity: 0, requestedAt: Date.now() } });
-    logAdmin(admin.id, `تقديم طلب تشكيل المجموعة ${number}`, `«${name}»`, "السعة تحددها الإدارة عند الاعتماد — دون فريق ودون تكتل: يسند الفريقَ رئيسُ التكتل", { area: "groups", ref: String(number) });
-    toast({ title: `أُرسل طلب تشكيل المجموعة ${number}`, body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
+    if (problem) return;
+    const bare = bareGroupName(name);
+    actions.upsertAdmin(admin.id, { group: { number, name: bare, capacity: 0, requestedAt: Date.now() } });
+    logAdmin(admin.id, `تقديم طلب تشكيل مجموعة ${bare}`, undefined, "السعة تحددها الإدارة عند الاعتماد — دون فريق ودون تكتل: يسند الفريقَ رئيسُ التكتل", { area: "groups", ref: String(number) });
+    toast({ title: `أُرسل طلب تشكيل مجموعة ${bare}`, body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
   };
 
   const pay = (m: PayMethod) => {
@@ -142,7 +175,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
       const g = admin.profile!.group!;
       const receipt = adminReceipt(admin.id, "G", g.number);
       actions.upsertAdmin(admin.id, { group: { ...g, feePaidAt: Date.now() } });
-      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — المجموعة ${g.number} — ${payMethodLabel(m)}`, { area: "groups", ref: String(g.number) });
+      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — ${groupName(g.number)} — ${payMethodLabel(m)}`, { area: "groups", ref: String(g.number) });
       setPaying(false);
     }, 2200);
   };
@@ -164,7 +197,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
         ) : (
           <>
             <Badge tone="gold" className="text-sm">الطلب مستلم — الخطوة 2 من 2</Badge>
-            <h2 className="mt-4 font-display text-3xl font-bold text-green-dark">رسم تشكيل المجموعة {g.number}</h2>
+            <h2 className="mt-4 font-display text-3xl font-bold text-green-dark">رسم تشكيل {groupName(g.number)}</h2>
             <p className="mt-2 text-ink-soft">بعد التسديد يصدر إيصال رقمي، وتظهر «استمارة المجموعة» في خزنة الوثائق.</p>
             <p className="mt-6 font-display text-6xl font-bold text-maroon" dir="ltr">{formatUSD(fee)}</p>
             <p className="mt-1 text-sm text-hint">السعة تحددها الإدارة عند الاعتماد — التكتل يُحدَّد لاحقاً</p>
@@ -183,19 +216,13 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
         <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><ClipboardList className="size-7 text-gold-dark" /> طلب تشكيل مجموعة</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl bg-sand p-4">
-            <p className="text-sm font-bold text-ink-soft">رقم المجموعة</p>
-            <p className="mt-1 font-display text-4xl font-bold text-maroon tabular-nums">{number}</p>
-            <p className="mt-1 text-xs leading-5 text-hint">يُعطى تلقائياً: التالي في أرقام مجموعات هذا الموسم.</p>
+            <GroupNameField value={name} onChange={setName} problem={problem} />
           </div>
           <div className="rounded-2xl bg-sand p-4">
             <p className="text-sm font-bold text-ink-soft">سعة المجموعة</p>
             <p className="mt-2 font-bold leading-7 text-green-dark">تحددها إدارة الإداريين عند اعتماد طلبك بفئتك</p>
             <p className="mt-1 text-xs leading-5 text-hint">بفئات الموسم: بحسب خبرتك في رئاسة المجموعات وتقييمك فيها. لا تُختار.</p>
           </div>
-          <label className="block sm:col-span-2">
-            <span className="mb-2 block font-bold">اسم تعريفي</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-          </label>
         </div>
 
         <p className="mt-6 flex items-start gap-2 rounded-2xl bg-green-dark/6 p-4 text-sm leading-7 text-green-dark">
@@ -204,7 +231,7 @@ function RequestForm({ onPaid }: { onPaid: () => void }) {
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
           <p className="text-sm text-ink-soft">رسم التشكيل بعد الإرسال: <b className="text-maroon">{formatUSD(fee)}</b></p>
-          <Button size="lg" onClick={submit}>
+          <Button size="lg" disabled={!!problem} onClick={submit}>
             إرسال طلب التشكيل <ArrowLeft className="size-5" />
           </Button>
         </div>
@@ -238,7 +265,7 @@ function FeeReceipt({ onContinue }: { onContinue: () => void }) {
       <h2 className="font-display text-3xl font-bold text-green-dark">تم تسديد رسم التشكيل</h2>
       <p className="mt-2 text-ink-soft">«استمارة المجموعة» محفوظة في خزنة وثائقك.</p>
       <div className="mt-8">
-        <ReceiptCard receipt={adminReceipt(admin.id, "G", g.number)} item={`رسم تشكيل المجموعة ${g.number}`} amount={season.fees.groupFormation} lines={[["رئيس المجموعة", admin.name], ["التكتل", "يُحدَّد في تشكيل التكتلات"]]} />
+        <ReceiptCard receipt={adminReceipt(admin.id, "G", g.number)} item={`رسم تشكيل ${groupName(g.number)}`} amount={season.fees.groupFormation} lines={[["رئيس المجموعة", admin.name], ["التكتل", "يُحدَّد في تشكيل التكتلات"]]} />
       </div>
       <Button size="xl" variant="gold" className="mt-8" onClick={onContinue}>
         متابعة الاعتماد <ArrowLeft className="size-6" />
@@ -273,31 +300,37 @@ function Pending() {
       const tier = capacityFor(admin.id, tiers).tier;
       if (!tier) return;
       actions.upsertAdmin(admin.id, { group: { ...g, capacity: tier.capacity, capacityTier: tier.label, approvedAt: at, approvedBy: "مازن الحلبي (محاكاة)" } });
-      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: "اعتماد مجموعة", target: `المجموعة ${g.number}`, after: `رئيسها ${admin.name}`, detail: `السعة ${tier.capacity} حاجاً (${tier.label})`, system: "admins", area: "groups", ref: String(g.number) });
-      logAdmin(admin.id, `استلام اعتماد المجموعة ${g.number}`, undefined, `السعة ${tier.capacity} حاجاً (${tier.label})`);
-      toast({ title: `اعتُمدت المجموعة ${g.number}`, body: `بسعة ${tier.capacity} حاجاً.`, icon: "🏛️", tone: "success" });
+      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: "اعتماد مجموعة", target: groupName(g.number), after: `رئيسها ${admin.name}`, detail: `السعة ${tier.capacity} حاجاً (${tier.label})`, system: "admins", area: "groups", ref: String(g.number) });
+      logAdmin(admin.id, `استلام اعتماد ${groupName(g.number)}`, undefined, `السعة ${tier.capacity} حاجاً (${tier.label})`);
+      toast({ title: `اعتُمدت ${groupName(g.number)}`, body: `بسعة ${tier.capacity} حاجاً.`, icon: "🏛️", tone: "success" });
     }, wait);
     return () => clearTimeout(t);
   }, [g, admin.id, admin.name, toast, tiers]);
 
+  // The name is part of the request: sent back over it, he gives another
+  const [name, setName] = useState(() => g.name ?? suggestedGroupName(g.number));
+  const problem = groupNameProblem(name, g.number);
+
   /** Sent back by the administration: he sends it again, and it waits for its decision once more */
   const resend = () => {
-    actions.upsertAdmin(admin.id, { group: { ...g, returned: undefined, requestedAt: Date.now() } });
-    logAdmin(admin.id, `إعادة إرسال طلب تشكيل المجموعة ${g.number}`, undefined, `بعد ملاحظة ${g.returned?.by}: ${g.returned?.note}`, { area: "groups", ref: String(g.number) });
+    if (problem) return;
+    const bare = bareGroupName(name);
+    actions.upsertAdmin(admin.id, { group: { ...g, name: bare, returned: undefined, requestedAt: Date.now() } });
+    logAdmin(admin.id, `إعادة إرسال طلب تشكيل مجموعة ${bare}`, undefined, `بعد ملاحظة ${g.returned?.by}: ${g.returned?.note}`, { area: "groups", ref: String(g.number) });
     toast({ title: "أُعيد إرسال طلبك", body: "يعود إلى شؤون الإداريين لتقرر فيه.", icon: "📨", tone: "info" });
   };
 
   const steps = [
     { t: "استلام طلب التشكيل والرسم", d: adminReceipt(admin.id, "G", g.number), at: 0 },
-    { t: "تحقق المنصة من شروط الطلب", d: "تأهّل الرئيس، والرسم", at: 6000 },
-    { t: "قرار إدارة الإداريين", d: "يعتمد صاحب صلاحية «إدارة الإداريين» الطلب ويحدد بفئتك سعة المجموعة، أو يعيده إليك مع ملاحظة", at: AUTO_APPROVE_MS },
+    { t: "تحقق المنصة من شروط الطلب", d: "تأهّل الرئيس، والرسم، وأن اسم المجموعة لم تأخذه مجموعة أخرى", at: 6000 },
+    { t: "قرار إدارة الإداريين", d: "يعتمد صاحب صلاحية «إدارة الإداريين» الطلب باسم المجموعة ويحدد بفئتك سعتها، أو يعيده إليك مع ملاحظة", at: AUTO_APPROVE_MS },
   ];
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">طلب المجموعة {g.number} قيد الاعتماد</h2>
+          <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">طلب {groupName(g.number)} قيد الاعتماد</h2>
           <Badge tone="gold"><Loader2 className="size-3.5 animate-spin" /> قيد المعالجة</Badge>
         </div>
         <ol className="mt-8">
@@ -325,7 +358,10 @@ function Pending() {
             <p className="font-display text-xl font-bold text-maroon">أُعيد طلبك إليك</p>
             <p className="mt-1 text-xs text-hint">{g.returned.by} — شؤون الإداريين</p>
             <p className="mt-3 rounded-2xl bg-maroon/8 p-3 text-sm leading-7 text-ink">{g.returned.note}</p>
-            <Button variant="maroon" className="mt-4 w-full" onClick={resend}>
+            <div className="mt-4">
+              <GroupNameField value={name} onChange={setName} problem={problem} />
+            </div>
+            <Button variant="maroon" className="mt-4 w-full" disabled={!!problem} onClick={resend}>
               أصلحتُ ما طُلب — أعد إرسال الطلب
             </Button>
           </div>
@@ -379,7 +415,7 @@ function MyGroup() {
           <div className="relative flex flex-wrap items-start justify-between gap-6">
             <div>
               <p className="text-sm text-gold">الموسم 1448 — {cluster ? `${cluster.cluster.name}${cluster.decision?.status === "approved" ? "" : " (طلب أولي)"}` : "لم تدخل تكتلاً بعد"}</p>
-              <p className="mt-2 font-display text-5xl font-bold">المجموعة {g.number}</p>
+              <p className="mt-2 font-display text-4xl font-bold md:text-5xl">{groupName(g.number)}</p>
               <p className="mt-2 text-white/80">رئيس المجموعة: <b className="text-gold">أنت</b></p>
             </div>
             <div className="text-center">
@@ -446,7 +482,7 @@ function MyGroup() {
                     onClick={() => {
                       setDone(on ? done.filter((x) => x !== t.key) : [...done, t.key]);
                       if (!on) {
-                        logAdmin(admin.id, `إنجاز مهمة: ${t.t}`, `المجموعة ${g.number}`);
+                        logAdmin(admin.id, `إنجاز مهمة: ${t.t}`, groupName(g.number));
                         toast({ title: "أحسنت", body: t.t, icon: "✅", tone: "success" });
                       }
                     }}

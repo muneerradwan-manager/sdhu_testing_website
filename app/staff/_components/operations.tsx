@@ -21,6 +21,7 @@ const TONE: Record<OperationState["status"], string> = {
   upcoming: "bg-gold/25 text-gold",
   closed: "bg-white/10 text-white/55",
   off: "bg-maroon/50 text-white",
+  all: "bg-gold/25 text-gold",
 };
 
 /**

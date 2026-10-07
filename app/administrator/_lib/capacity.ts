@@ -65,7 +65,8 @@ export function useCapacityTiers(): CapacityTier[] {
 }
 
 /**
- * This season's group numbers: given in order as the requests arrive, the next one free. Before this demo
+ * This season's group numbers — the platform's key only, never shown: a group is known by the name its head
+ * gives it (@/lib/groups). Given in order as the requests arrive, the next one free. Before this demo
  * 1 to 26 were given, and the season's story holds others already (27 is أحمد's, 31 the elected head's).
  */
 const ISSUED_BEFORE = 26;

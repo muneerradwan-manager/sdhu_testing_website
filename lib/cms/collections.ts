@@ -14,9 +14,13 @@ import { CLUSTERS } from "@/lib/data/clusters";
 import { DAYS, GUIDE_DUAS } from "@/lib/data/guide";
 import { FAQS, FAQ_CATEGORIES } from "@/lib/data/faq";
 import { ARTICLES, CATEGORIES } from "@/lib/data/news";
+import { groupName } from "@/lib/groups";
 import type { CollectionDef, Field, SelectOption } from "./types";
 
 const opts = (values: readonly string[]): SelectOption[] => values.map((v) => ({ value: v, label: v }));
+
+/** The groups a cluster may list, by name: the number is only the stored key, never shown to the staff */
+const GROUP_OPTIONS: SelectOption[] = Array.from({ length: 120 }, (_, i) => ({ value: String(i + 1), label: groupName(i + 1) }));
 
 /** حقل قائمة نصوص بسيطة (وسوم، نقاط، مهام...) */
 const textList = (key: string, label: string, itemName: string, def: readonly string[] = [], rows?: number): Field => ({
@@ -247,7 +251,7 @@ const CLUSTER_COLLECTION: CollectionDef = {
       itemTitleKey: "leader",
       wide: true,
       item: [
-        { key: "no", label: "رقم المجموعة", kind: "number", def: 1, min: 1 },
+        { key: "no", label: "المجموعة", kind: "select", options: GROUP_OPTIONS, def: "1", hint: "تُعرف المجموعة باسمها في كل صفحات الموقع" },
         { key: "leader", label: "رئيس المجموعة", kind: "text", def: "", wide: true },
         { key: "capacity", label: "السعة", kind: "number", def: 50, min: 1 },
         { key: "remaining", label: "المتبقي", kind: "number", def: 0, min: 0 },

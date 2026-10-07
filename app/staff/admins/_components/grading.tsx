@@ -27,9 +27,9 @@ const FILTERS: Record<Filter, (o: Outcome) => boolean> = {
   down: (o) => o === "demote" || o === "warned",
 };
 
-const SCOPES: { key: Scope; label: string; unit: string; one: string }[] = [
-  { key: "groups", label: "المجموعات", unit: "مجموعة", one: "المجموعة" },
-  { key: "clusters", label: "التكتلات", unit: "تكتل", one: "التكتل" },
+const SCOPES: { key: Scope; label: string; unit: string }[] = [
+  { key: "groups", label: "المجموعات", unit: "مجموعة" },
+  { key: "clusters", label: "التكتلات", unit: "تكتل" },
 ];
 
 const OUTCOME_ICON: Record<Outcome, typeof ArrowUpRight> = {
@@ -121,7 +121,7 @@ export function GradingTab() {
       </div>
 
       {tiers.map((tier, i) => (
-        <TierPanel key={tier.tier} tier={tier} unit={meta.unit} one={meta.one} honorTop={rules.honorTop} shares={rules} evaluated={evaluated} delay={i * 0.05} />
+        <TierPanel key={tier.tier} tier={tier} unit={meta.unit} honorTop={rules.honorTop} shares={rules} evaluated={evaluated} delay={i * 0.05} />
       ))}
 
       <SystemRecords system="admins" area="grading" title="سجل التصنيف" />
@@ -132,7 +132,6 @@ export function GradingTab() {
 function TierPanel({
   tier,
   unit,
-  one,
   honorTop,
   shares,
   evaluated,
@@ -140,7 +139,6 @@ function TierPanel({
 }: {
   tier: TierResult;
   unit: string;
-  one: string;
   honorTop: number;
   shares: { promoteShare: number; demoteShare: number };
   evaluated: Set<string>;
@@ -238,7 +236,7 @@ function TierPanel({
       <ul className="mt-3 space-y-1.5">
         {rows.length === 0 && <li className="rounded-xl bg-white/5 px-3 py-3 text-sm text-white/50">لا نتائج مطابقة.</li>}
         {rows.map((r) => (
-          <Row key={r.entry.id} r={r} one={one} evaluated={evaluated.has(r.entry.id)} />
+          <Row key={r.entry.id} r={r} evaluated={evaluated.has(r.entry.id)} />
         ))}
       </ul>
       {!q && only === "all" && tier.rows.length > 12 && (
@@ -257,7 +255,7 @@ function TierPanel({
   );
 }
 
-function Row({ r, one, evaluated }: { r: Ranked; one: string; evaluated?: boolean }) {
+function Row({ r, evaluated }: { r: Ranked; evaluated?: boolean }) {
   const [open, setOpen] = useState(false);
   const info = OUTCOME_TEXT[r.outcome];
   const Icon = OUTCOME_ICON[r.outcome];
@@ -283,7 +281,7 @@ function Row({ r, one, evaluated }: { r: Ranked; one: string; evaluated?: boolea
       {open && (
         <div className="border-t border-white/10 p-3 text-sm">
           <p className="text-white/70">
-            {one} {r.entry.name} — المرتبة {r.rank} على مستوى كل المكاتب في فئته. {info.note}.
+            {r.entry.name} — المرتبة {r.rank} على مستوى كل المكاتب في فئته. {info.note}.
           </p>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {r.entry.parts.map((p) => (

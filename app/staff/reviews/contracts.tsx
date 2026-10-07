@@ -5,13 +5,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { decideContract, groupInfo } from "@/lib/assignment";
+import { groupName } from "@/lib/groups";
 import { fullName } from "@/lib/registry";
 import { useStore } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
 import { Empty, fmtDateTime, Panel, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
 
-const REASONS = ["توقيع الحاج غير ظاهر في العقد", "اسم المجموعة أو رقمها غير مطابق", "العقد لا يشمل كل أفراد الطلب", "الملف غير مقروء"];
+const REASONS = ["توقيع الحاج غير ظاهر في العقد", "اسم المجموعة غير مطابق", "العقد لا يشمل كل أفراد الطلب", "الملف غير مقروء"];
 
 /**
  * The pilgrim–group contracts the groups uploaded: a pilgrim is in a group only once the office approves
@@ -59,8 +60,8 @@ export function ContractsPanel() {
                       الطلب {app.number} — {applicant ? fullName(applicant) : sid} — {app.members.length} أفراد
                     </p>
                     <p className="text-xs leading-5 text-white/65">
-                      إلى المجموعة {c.groupNumber} في {info.clusterName}
-                      {c.transferFrom ? ` — انتقال من المجموعة ${c.transferFrom}` : ""} — رفعه {c.uploadedBy.name} ({c.uploadedBy.role}) {fmtDateTime(c.uploadedAt)} — «{c.file.name}»
+                      إلى {groupName(c.groupNumber)} في {info.clusterName}
+                      {c.transferFrom ? ` — انتقال من ${groupName(c.transferFrom)}` : ""} — رفعه {c.uploadedBy.name} ({c.uploadedBy.role}) {fmtDateTime(c.uploadedAt)} — «{c.file.name}»
                     </p>
                     {c.status === "returned" && <p className="text-xs font-bold text-gold">أُعيد: {c.reason}</p>}
                   </div>

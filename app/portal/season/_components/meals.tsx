@@ -5,7 +5,8 @@ import { Camera, CheckCircle2, Clock, HeartPulse, MapPin, MessageSquareWarning, 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
-import { PLACES } from "@/lib/journey";
+import { groupName } from "@/lib/groups";
+import { GROUP, PLACES } from "@/lib/journey";
 import { ageOf, fullName } from "@/lib/registry";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ export function mealLocation(ctx: SeasonCtx, meal?: Meal) {
     case "arafat":
       return `عرفات — مخيم التكتل — الخيمة ${ctx.self.tent}`;
     case "muzdalifah":
-      return "مزدلفة — نقطة المجموعة 27";
+      return `مزدلفة — نقطة ${groupName(GROUP.number)}`;
     default:
       return WHERE[ctx.where].label;
   }

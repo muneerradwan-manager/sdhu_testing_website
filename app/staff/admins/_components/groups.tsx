@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { useClusters } from "@/lib/cms/content";
+import { groupName, groupShort } from "@/lib/groups";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { adminReceipt } from "@/app/administrator/_lib/admin";
@@ -15,10 +16,10 @@ import { patchAdmin } from "../../_components/data";
 import { Drawer, Empty, fmtDateTime, Panel, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip, InfoGrid } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
-import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow } from "../desk";
+import { GROUP_STATE, logAdmins, useAdminsDesk, type GroupRow } from "../desk";
 
 /** The cluster a group is in: a request filed this season, or one of the season's directory */
-function useClusterName(_desk: AdminsDesk) {
+function useClusterName() {
   const directory = useClusters();
   const requests = useClusterRequests();
   return (id?: string) => (id ? (requests.find((r) => r.cluster.id === id)?.cluster.name ?? directory.find((c) => c.slug === id)?.name ?? id) : undefined);
@@ -32,7 +33,7 @@ function useClusterName(_desk: AdminsDesk) {
  */
 export function GroupsTab() {
   const desk = useAdminsDesk();
-  const clusterName = useClusterName(desk);
+  const clusterName = useClusterName();
   const [open, setOpen] = useState<number | null>(null);
   const [returning, setReturning] = useState<GroupRow | null>(null);
   const decide = useDecision();
@@ -63,7 +64,7 @@ export function GroupsTab() {
                 <button type="button" onClick={() => setOpen(x.g.number)} className="flex w-full flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 text-right ring-1 ring-white/10 transition hover:ring-gold/50">
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold text-white">
-                      المجموعة {x.g.number} — {x.row.name}
+                      {groupName(x.g.number)} — {x.row.name}
                     </span>
                     <span className="block text-xs leading-5 text-white/65">{x.g.returned ? `أعادها ${x.g.returned.by}: ${x.g.returned.note}` : `قُدّم ${fmtDateTime(x.g.requestedAt)} — لم يُسدَّد رسم التشكيل بعد`}</span>
                   </span>
@@ -108,7 +109,7 @@ export function GroupsTab() {
                     <tr key={x.g.number} className="text-white">
                       <td className="py-2.5">
                         <button type="button" onClick={() => setOpen(x.g.number)} className="font-bold text-gold hover:underline">
-                          المجموعة {x.g.number}
+                          {groupShort(x.g.number)}
                         </button>
                       </td>
                       <td className="py-2.5">{x.row.name}</td>
@@ -129,7 +130,7 @@ export function GroupsTab() {
 
       <SystemRecords system="admins" area="groups" title="سجل المجموعات" />
 
-      <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet ? `المجموعة ${sheet.g.number}` : ""}>
+      <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet ? groupName(sheet.g.number) : ""}>
         {sheet && <GroupSheet x={sheet} clusterName={clusterName(sheet.g.clusterId)} onApprove={() => decide.approve(sheet)} onReturn={() => setReturning(sheet)} />}
       </Drawer>
       <Modal open={!!returning} onClose={() => setReturning(null)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
@@ -299,13 +300,13 @@ function useDecision() {
       // Approval gives the group its capacity: its head's category's, as the categories stand now
       if (!x.tier) return;
       patchAdmin(x.row, { group: { ...x.g, capacity: x.tier.capacity, capacityTier: x.tier.label, approvedAt: Date.now(), approvedBy: user.name, returned: undefined } }, actions.upsertAdmin);
-      logAdmins(user, "groups", { action: "اعتماد مجموعة", target: `المجموعة ${x.g.number}`, after: `رئيسها ${x.row.name}`, detail: `السعة ${x.tier.capacity} حاجاً (${x.tier.label})`, ref: String(x.g.number) });
-      toast({ title: `اعتُمدت المجموعة ${x.g.number} بسعة ${x.tier.capacity} حاجاً`, body: "تُلحق بها الحجاج بعقودهم، وتدخل تكتلاً بدعوة يقبلها رئيسها، وفريقها يسنده رئيس التكتل.", tone: "success", icon: "🏅" });
+      logAdmins(user, "groups", { action: "اعتماد مجموعة", target: groupName(x.g.number), after: `رئيسها ${x.row.name}`, detail: `السعة ${x.tier.capacity} حاجاً (${x.tier.label})`, ref: String(x.g.number) });
+      toast({ title: `اعتُمدت ${groupName(x.g.number)} بسعة ${x.tier.capacity} حاجاً`, body: "تُلحق بها الحجاج بعقودهم، وتدخل تكتلاً بدعوة يقبلها رئيسها، وفريقها يسنده رئيس التكتل.", tone: "success", icon: "🏅" });
     },
     send(x: GroupRow, note: string) {
       patchAdmin(x.row, { group: { ...x.g, returned: { at: Date.now(), by: user.name, note } } }, actions.upsertAdmin);
-      logAdmins(user, "groups", { action: "إعادة طلب تشكيل مجموعة إلى رئيسه", target: `المجموعة ${x.g.number} — ${x.row.name}`, detail: note, ref: String(x.g.number) });
-      toast({ title: `أُعيد طلب المجموعة ${x.g.number}`, body: "تصل الملاحظة إلى رئيسها في بوابته، فيصلح ويعيد الإرسال.", tone: "info", icon: "↩️" });
+      logAdmins(user, "groups", { action: "إعادة طلب تشكيل مجموعة إلى رئيسه", target: `${groupName(x.g.number)} — ${x.row.name}`, detail: note, ref: String(x.g.number) });
+      toast({ title: `أُعيد طلب ${groupName(x.g.number)}`, body: "تصل الملاحظة إلى رئيسها في بوابته، فيصلح ويعيد الإرسال.", tone: "info", icon: "↩️" });
     },
   };
 }
@@ -342,7 +343,7 @@ function RequestCard({ x, delay, onApprove, onReturn, onOpen }: { x: GroupRow; d
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="space-y-4 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-display text-2xl font-bold text-white">المجموعة {x.g.number}</h3>
+          <h3 className="font-display text-2xl font-bold text-white">{groupName(x.g.number)}</h3>
           <p className="text-sm text-white/85">
             رئيسها: {x.row.name}
             {x.tier && <> · تُعتمد بسعة {x.tier.capacity} حاجاً</>}
@@ -405,7 +406,7 @@ function ReturnForm({ x, onClose, onSend }: { x: GroupRow; onClose: () => void; 
     <div>
       <p className="text-xs font-bold text-gold">إعادة الطلب إلى رئيسه</p>
       <h3 className="mt-1 font-display text-xl font-bold">
-        المجموعة {x.g.number} — {x.row.name}
+        {groupName(x.g.number)} — {x.row.name}
       </h3>
       <p className="mt-1 text-sm leading-7 text-white/70">يرى ملاحظتك في بوابته، فيصلح الطلب ويعيد إرساله، ويعود إليك. لا يُعاد إليه الرسم المسدَّد.</p>
       <textarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} className={cn(textareaClass, "mt-4")} placeholder="ما الذي يصلحه؟" aria-label="ملاحظة الإعادة" />

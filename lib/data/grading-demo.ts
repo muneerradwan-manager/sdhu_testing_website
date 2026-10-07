@@ -1,3 +1,4 @@
+import { groupName } from "@/lib/groups";
 import type { Graded } from "../grading";
 
 /**
@@ -61,7 +62,7 @@ function buildGroups(): Graded[] {
   for (const tier of [1, 2, 3]) {
     const fixed = FIXED_GROUPS.filter((g) => g.tier === tier);
     for (const g of fixed) {
-      out.push({ id: `g-${g.number}`, name: `المجموعة ${g.number}`, head: g.head, office: g.office, tier, score: g.score, parts: parts(next, g.score) });
+      out.push({ id: `g-${g.number}`, name: groupName(g.number), head: g.head, office: g.office, tier, score: g.score, parts: parts(next, g.score) });
     }
     for (let i = fixed.length; i < TIER_SIZES[tier]; i++) {
       while (used.has(number)) number++;
@@ -70,7 +71,7 @@ function buildGroups(): Graded[] {
       const score = Math.round((50 + tier * 3 + next() * 40) * 10) / 10;
       out.push({
         id: `g-${number}`,
-        name: `المجموعة ${number}`,
+        name: groupName(number),
         head: `${FIRST[Math.floor(next() * FIRST.length)]} ${LAST[Math.floor(next() * LAST.length)]}`,
         office: OFFICES[Math.floor(next() * OFFICES.length)],
         tier,

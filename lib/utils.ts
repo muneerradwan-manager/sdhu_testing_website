@@ -41,6 +41,17 @@ export function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+/** The forms of a counted noun in Arabic: «حاج واحد»، «حاجّان»، «5 حجاج»، «38 حاجاً» */
+export type Noun = { zero: string; one: string; two: string; few: string; many: string };
+
+/** A number with its noun in the right form: 1 and 2 by the noun alone, 3–10 plural, 11 and up singular */
+export function countOf(n: number, w: Noun) {
+  if (n === 0) return w.zero;
+  if (n === 1) return w.one;
+  if (n === 2) return w.two;
+  return `${n} ${n % 100 >= 3 && n % 100 <= 10 ? w.few : w.many}`;
+}
+
 export function formatUSD(value: number) {
   return `${formatNumber(value)} $`;
 }

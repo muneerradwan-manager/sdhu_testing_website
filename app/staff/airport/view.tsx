@@ -21,6 +21,7 @@ import {
   type Actor,
   type Flight,
 } from "@/lib/flights";
+import { groupName } from "@/lib/groups";
 import { cn, formatNumber } from "@/lib/utils";
 import { Empty, fmtDateTime, Kpi, PageHeader, Panel, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
@@ -174,7 +175,7 @@ function DepartDialog({ f, actor, onClose }: { f: Flight; actor: Actor; onClose:
   const [missing, setMissing] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const active = useMemo(() => data.assignments.filter((a) => a.flightId === f.id && isActive(a)), [data.assignments, f.id]);
-  const shown = active.filter((a) => !q.trim() || a.name.includes(q.trim()) || String(a.groupNumber ?? "").includes(q.trim()));
+  const shown = active.filter((a) => !q.trim() || a.name.includes(q.trim()) || (a.groupNumber !== undefined && groupName(a.groupNumber).includes(q.trim())));
 
   const record = () => {
     const r = flightsActions.depart(
@@ -198,7 +199,7 @@ function DepartDialog({ f, actor, onClose }: { f: Flight; actor: Actor; onClose:
       <p className="mt-1 text-sm leading-7 text-white/70">الجميع صعدوا ما لم تعلّم أحداً. علّم من لم يصعد: يُسجَّل «تخلّف» وتُفتح له تذكرة نقل.</p>
       <label className="relative mt-3 block">
         <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gold" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="اسم أو رقم مجموعة..." className="h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 pr-9 pl-3 text-white outline-none placeholder:text-white/40 focus:border-gold" aria-label="بحث في المسافرين" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="اسم المسافر أو مجموعته..." className="h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 pr-9 pl-3 text-white outline-none placeholder:text-white/40 focus:border-gold" aria-label="بحث في المسافرين" />
       </label>
       <ul className="mt-3 max-h-72 space-y-1 overflow-auto rounded-2xl bg-black/20 p-2">
         {shown.map((a) => {
@@ -208,7 +209,7 @@ function DepartDialog({ f, actor, onClose }: { f: Flight; actor: Actor; onClose:
               <label className={cn("flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-sm", off ? "bg-maroon/30" : "hover:bg-white/5")}>
                 <input type="checkbox" className="size-4 accent-[#672146]" checked={off} onChange={() => setMissing((p) => (off ? p.filter((x) => x !== a.travelerId) : [...p, a.travelerId]))} aria-label={`${a.name} لم يصعد`} />
                 <span className={cn("flex-1 font-bold", off && "line-through")}>{a.name}</span>
-                <span className="text-xs text-white/55">{a.groupNumber ? `المجموعة ${a.groupNumber} — ${clusterName(a.clusterId ?? "")}` : KIND_LABEL[a.travelerKind]}</span>
+                <span className="text-xs text-white/55">{a.groupNumber ? `${groupName(a.groupNumber)} — ${clusterName(a.clusterId ?? "")}` : KIND_LABEL[a.travelerKind]}</span>
               </label>
             </li>
           );

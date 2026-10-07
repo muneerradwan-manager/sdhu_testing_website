@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Plane, RotateCw } from "lucide-react";
 import { useState } from "react";
 import { Emblem } from "@/components/brand/logo";
+import { groupName } from "@/lib/groups";
 import { CLUSTER, FLIGHTS, GROUP, PLACES, type Assignment } from "@/lib/journey";
 import { ageOf, fullName } from "@/lib/registry";
 import { cn, maskNationalId } from "@/lib/utils";
@@ -38,7 +39,7 @@ export function HajjCard({ a, emergency, index }: { a: Assignment; emergency: st
                   <span className="text-gold">موسم 1448هـ</span>
                 </span>
               </span>
-              <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-ink">المجموعة {GROUP.number}</span>
+              <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-ink">{groupName(GROUP.number)}</span>
             </div>
             <div className="mt-auto flex items-end gap-3">
               <span className="grid size-16 shrink-0 place-items-center rounded-2xl border-2 border-gold/60 bg-white/10 font-display text-3xl font-bold text-gold">{a.person.firstName[0]}</span>

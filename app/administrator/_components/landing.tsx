@@ -32,6 +32,7 @@ import {
   Stagger,
   StaggerItem,
 } from "@/components/ui/motion";
+import { groupName } from "@/lib/groups";
 import { useSeason } from "@/lib/season-live";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
@@ -270,7 +271,7 @@ export function AdministratorLanding() {
                     أحمد سليمان الحمصي
                   </p>
                   <p className="text-sm text-white/75">
-                    رئيس المجموعة 27 — تكتل النور
+                    رئيس {groupName(27)} — تكتل النور
                   </p>
                 </div>
                 <span className="grid size-14 place-items-center rounded-2xl bg-gold font-display text-2xl font-bold text-ink">
@@ -380,7 +381,7 @@ export function AdministratorLanding() {
             light
             eyebrow="الرحلة"
             title="من الامتحان إلى الميدان"
-            description="مسار الإداري كله يسبق تسجيل الحجاج: تُشكَّل المجموعات وتُعتمد، ثم يُنتخب رؤساء التكتلات وتنضم إليهم المجموعات بعقود، قبل فتح التسجيل."
+            description="التسجيل كإداري، ثم الامتحان، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات رؤسائها دون انتخاب، ويُلحق الحجاج بالمجموعات بعقود، ثم الميدان."
           />
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {PHASES.map((p, i) => (

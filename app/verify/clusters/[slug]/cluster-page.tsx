@@ -8,6 +8,7 @@ import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
 import { useClusterDirectory } from "@/lib/cluster-profile";
+import { groupName } from "@/lib/groups";
 import { ROOM_BEDS, ROOM_LABEL, priceRange } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
 import type { ServiceLevel } from "@/lib/data/clusters";
@@ -204,7 +205,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                     <motion.li key={g.no} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-2xl border-2 border-gold/30 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-bold text-ink">المجموعة {g.no}</p>
+                          <p className="font-bold text-ink">{groupName(g.no)}</p>
                           <p className="text-xs text-ink-soft">رئيسها: {g.leader}</p>
                         </div>
                         <Badge tone={full ? "maroon" : g.remaining <= 5 ? "gold" : "green"}>

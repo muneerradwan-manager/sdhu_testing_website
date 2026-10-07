@@ -5,6 +5,7 @@ import { ArrowLeft, Building2, Cpu, LayoutList, UserRoundPlus, Users } from "luc
 import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
+import { groupName } from "@/lib/groups";
 import { useStore } from "@/lib/store";
 import { formatNumber } from "@/lib/utils";
 import { useAdmin } from "../../_lib/admin";
@@ -75,9 +76,11 @@ export function CoordinatorGroups() {
               <ul className="mt-4 space-y-2">
                 {post.groups.map((g, i) => (
                   <motion.li key={g.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="flex flex-wrap items-center gap-3 rounded-2xl border-2 border-gold/30 bg-white p-3">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand font-display text-lg font-bold text-green-dark">{g.number}</span>
+                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand text-green-dark">
+                      <Users className="size-6" />
+                    </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-bold text-ink">المجموعة {g.number}</span>
+                      <span className="block font-bold text-ink">{groupName(g.number)}</span>
                       <span className="block text-xs text-ink-soft">رئيسها: {g.head} — {g.office}</span>
                     </span>
                     <span className="text-left">

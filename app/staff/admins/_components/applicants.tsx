@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Building2, FileCheck2, FolderLock, Funnel as FunnelIcon, Languages, Sparkles, UsersRound } from "lucide-react";
 import { useState } from "react";
+import { groupName } from "@/lib/groups";
 import { matches } from "@/lib/ops";
 import { cn, formatNumber, maskNationalId } from "@/lib/utils";
 import { docState, resultOf } from "@/app/administrator/_lib/admin";
@@ -180,7 +181,7 @@ function FileSheet({ f }: { f: FileState }) {
           ["الأهلية", p.eligibleAt ? fmtDateTime(p.eligibleAt) : p.feePaidAt ? "ثبتت قبل الدفع" : "لم تثبت بعد"],
           ["رسم التسجيل", p.feePaidAt ? `${fmtDateTime(p.feePaidAt)}${p.receipt ? ` — ${p.receipt}` : ""}` : "لم يُسدَّد"],
           ["نتيجة التأهيل (من «إدارة الامتحانات»)", result],
-          ["المجموعة", p.group ? `المجموعة ${p.group.number}` : ""],
+          ["المجموعة", p.group ? groupName(p.group.number) : ""],
         ]}
       />
 

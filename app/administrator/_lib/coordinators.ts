@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { groupsName } from "@/lib/groups";
 import { useStore, type AdminProfile, type TeamPool } from "@/lib/store";
 import { lastServed } from "./admin";
 import { SEED_CLUSTERS, groupsFromCluster, type ClusterGroup } from "./cluster";
@@ -92,9 +93,7 @@ export function useCoordinatorPost(id: string, p: AdminProfile | undefined) {
   return useMemo(() => coordinatorPostOf(id, p, admins), [id, p, admins]);
 }
 
-/** «المجموعات 27 و31 و5» */
+/** «مجموعات اللطيف والخبير وأحفاد بني هاشم» — by their names, never their numbers */
 export function groupsLabel(numbers: number[]) {
-  if (!numbers.length) return "لا مجموعة بعد";
-  if (numbers.length === 1) return `المجموعة ${numbers[0]}`;
-  return `المجموعات ${numbers.slice(0, -1).join(" و")} و${numbers.at(-1)}`;
+  return numbers.length ? groupsName(numbers) : "لا مجموعة بعد";
 }

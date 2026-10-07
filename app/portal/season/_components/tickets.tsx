@@ -43,7 +43,7 @@ const SCRIPTS: Partial<Record<TicketKind, { after: number; by?: string; text: st
   ],
   lost: [
     { after: 15_000, text: "تم العثور على الحقيبة — سلّمها السائق إلى مكتب المواصلات.", status: "in_progress" },
-    { after: 30_000, text: "تم التسليم في مكتب المجموعة 1230. تأكد من محتوياتها.", status: "resolved" },
+    { after: 30_000, text: "تم التسليم في مكتب المجموعة في الغرفة 1230. تأكد من محتوياتها.", status: "resolved" },
   ],
   complaint: [
     { after: 15_000, text: "استلمنا اعتراضك، ونراجع الوثائق من جديد.", status: "in_progress" },

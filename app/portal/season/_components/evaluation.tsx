@@ -8,6 +8,8 @@ import { useState } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
+import { groupName } from "@/lib/groups";
+import { GROUP } from "@/lib/journey";
 import { fullName, relationLabel } from "@/lib/registry";
 import { actions, useStore, type PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -58,7 +60,7 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
           <p className="mt-5 font-display text-4xl font-bold md:text-6xl">حمداً لله على السلامة</p>
           <p className="mt-3 text-xl text-gold md:text-2xl">حجٌّ مبرور، وسعيٌ مشكور، وذنبٌ مغفور</p>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-white/80">
-            وصلتم إلى دمشق الساعة 17:10 — {ctx.app.members.map((m) => m.person.firstName).join("، ")}. أُغلق آخر تجمّع للمجموعة 27: «وصل الجميع».
+            وصلتم إلى دمشق الساعة 17:10 — {ctx.app.members.map((m) => m.person.firstName).join("، ")}. أُغلق آخر تجمّع ل{groupName(GROUP.number)}: «وصل الجميع».
           </p>
           <SpeakButton text="حمداً لله على السلامة. حج مبرور وسعي مشكور. نرجو تقييم رحلتك كاملة." className="mt-5 border-white/20 bg-white/10 text-white" />
         </motion.div>
@@ -175,7 +177,7 @@ function Certificates({ ctx }: { ctx: SeasonCtx }) {
               <p className="mt-4 text-sm text-white/70">تشهد الإدارة بأن الحاج{m.person.gender === "F" ? "ة" : ""}</p>
               <p className="font-display text-2xl font-bold">{fullName(m.person)}</p>
               <p className="text-sm text-white/70">{m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender)}</p>
-              <p className="mt-3 leading-7 text-white/85">أدّى فريضة الحج مع تكتل النور لخدمة الحجاج — المجموعة 27 — وعاد في 23 ذو الحجة 1448</p>
+              <p className="mt-3 leading-7 text-white/85">أدّى فريضة الحج مع تكتل النور لخدمة الحجاج — {groupName(GROUP.number)} — وعاد في 23 ذو الحجة 1448</p>
               <div className="mt-4 flex items-center justify-center gap-4">
                 <span className="rounded-xl bg-white p-2">
                   <QRCodeSVG value={`https://hajj-demo.sy/verify/${number}${i ? `-${i + 1}` : ""}`} size={84} fgColor="#00594F" />
@@ -204,7 +206,7 @@ function Certificates({ ctx }: { ctx: SeasonCtx }) {
           <motion.li initial={{ opacity: 0, x: 40, backgroundColor: "rgba(217,200,158,.9)" }} animate={{ opacity: 1, x: 0, backgroundColor: "rgba(40,158,146,.10)" }} transition={{ delay: 0.6, duration: 1.2 }} className="flex flex-wrap items-center gap-3 rounded-2xl p-3.5 text-lg ring-2 ring-green-light/40">
             <span className="font-mono font-bold text-green-dark">1448</span>
             <span className="font-bold text-green-dark">
-              — قُبل — طلب عائلي {ctx.app.number} — تكتل النور — المجموعة 27 — أدى الحج — عاد في 23 ذو الحجة — شهادة الحج محفوظة
+              — قُبل — طلب عائلي {ctx.app.number} — تكتل النور — {groupName(GROUP.number)} — أدى الحج — عاد في 23 ذو الحجة — شهادة الحج محفوظة
             </span>
             <span className="rounded-full bg-green-light px-2.5 py-0.5 text-sm font-bold text-white">جديد</span>
           </motion.li>

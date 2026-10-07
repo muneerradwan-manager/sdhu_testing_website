@@ -62,11 +62,11 @@ const PEOPLE: Person[] = [
   P({ id: "02033300552", firstName: "ريم", fatherName: "سامر", motherName: "منى", lastName: "النجار", gender: "F", birthDate: "1990-10-10", birthPlace: "حلب", governorate: "حلب", registry: "الجميلية 0550", maritalStatus: "عزباء", familyBookNo: "33300550", fatherId: "02033300550", motherId: "02033300551", phoneTail: "552" }),
   P({ id: "02033300553", firstName: "مازن", fatherName: "سامر", motherName: "منى", lastName: "النجار", gender: "M", birthDate: "1994-04-04", birthPlace: "حلب", governorate: "حلب", registry: "الجميلية 0550", maritalStatus: "عازب", familyBookNo: "33300550", fatherId: "02033300550", motherId: "02033300551", phoneTail: "553" }),
 
-  // ── الإداريون (الجزء الثاني) — أحمد رئيس المجموعة 27 ──
+  // ── الإداريون (الجزء الثاني) — أحمد رئيس مجموعة اللطيف ──
   P({ id: "01033300871", firstName: "أحمد", fatherName: "سليمان", motherName: "رجاء", lastName: "الحمصي", gender: "M", birthDate: "1990-02-14", birthPlace: "دمشق", governorate: "دمشق", registry: "كفرسوسة 0871", maritalStatus: "متزوج", familyBookNo: "56000871", phoneTail: "871" }),
   P({ id: "01033300872", firstName: "ياسر", fatherName: "عبد الله", motherName: "هدى", lastName: "العبد الله", gender: "M", birthDate: "1986-09-03", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0872", maritalStatus: "متزوج", familyBookNo: "56000872", phoneTail: "872" }),
 
-  // ── سامر نجار — منسق تقني في تكتل النور (المجموعات 31 و27 و5) ──
+  // ── سامر نجار — منسق تقني في تكتل النور (مجموعات الخبير واللطيف وأحفاد بني هاشم) ──
   P({ id: "01033300874", firstName: "سامر", fatherName: "نبيل", motherName: "وداد", lastName: "نجار", gender: "M", birthDate: "1995-11-08", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 0874", maritalStatus: "عازب", familyBookNo: "56000874", phoneTail: "874" }),
 
   // ── بقية الإداريين التجريبيين: اثنان لكل صفة، أحدهما أنهى رحلته والآخر لم يبدأ ──
@@ -209,12 +209,28 @@ export async function lookupPerson(id: string) {
   return getPerson(id);
 }
 
+/** A person as a family book lists him: `movedTo` = the book he moved to when he married, still recorded in this one */
+export type BookMember = Person & { movedTo?: string };
+
 export async function lookupFamilyBook(no: string) {
   await sleep(1800);
-  const book = FAMILY_BOOKS[no];
-  if (!book) return null;
-  const members = PEOPLE.filter((p) => p.familyBookNo === no);
-  return { ...book, head: BY_ID.get(book.headId)!, members };
+  return familyBook(no);
+}
+
+/**
+ * A family book as the civil registry holds it: whoever is listed in it, and the children who left it for
+ * a book of their own when they married — they stay recorded in their parents' book, with the book they
+ * moved to. So a widow's book lists her married son, who can travel as her companion. Any book of a
+ * person on record opens, not only the ones described in FAMILY_BOOKS.
+ */
+export function familyBook(no: string) {
+  const listed = PEOPLE.filter((p) => p.familyBookNo === no);
+  const known = FAMILY_BOOKS[no];
+  if (!known && !listed.length) return null;
+  const moved: BookMember[] = PEOPLE.filter((p) => p.familyBookNo !== no && listed.some((m) => p.fatherId === m.id || p.motherId === m.id)).map((p) => ({ ...p, movedTo: p.familyBookNo }));
+  const head = known ? BY_ID.get(known.headId)! : (listed.find((p) => p.gender === "M" && p.spouseIds?.length) ?? [...listed].sort((a, b) => a.birthDate.localeCompare(b.birthDate))[0]);
+  const book = known ?? { no, headId: head.id, governorate: head.governorate, registry: head.registry, issued: "" };
+  return { ...book, head, members: [...listed, ...moved] as BookMember[] };
 }
 
 // ───────────────────────── Kinship ─────────────────────────

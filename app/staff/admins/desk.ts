@@ -89,7 +89,6 @@ export function useAdminsDesk() {
   const gradedClusters = useGraded("clusters");
 
   return useMemo(() => {
-    const A = season.administrators;
 
     // ── Rules ── (the exam's keys belong to «إدارة الامتحانات», which resets them on its own)
     const openRoles = APPLIED_ROLES.filter((r) => roles.some((x) => x.key === r.key));
@@ -151,7 +150,8 @@ export function useAdminsDesk() {
     const approved = groups.filter((x) => x.state === "approved");
 
     // ── The cluster requests ── filed by the group heads who meet the conditions, decided at the deadline
-    const deadlinePassed = formationOp.status === "closed";
+    // Trying everything together, the staff decide while requests are still open
+    const deadlinePassed = formationOp.status === "closed" || formationOp.status === "all";
     const undecided = requests.filter((r) => !r.decision);
     const approvedClusters = requests.filter((r) => r.decision?.status === "approved");
     const excluded = requests.filter((r) => r.decision?.status === "excluded");

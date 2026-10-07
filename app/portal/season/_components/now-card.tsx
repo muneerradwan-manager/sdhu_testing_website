@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { BedDouble, Bus, CalendarHeart, MapPin, Tent, UsersRound, UtensilsCrossed } from "lucide-react";
 import type { ReactNode } from "react";
 import { MapEmbed, SpeakButton } from "@/components/ui/widgets";
+import { groupName } from "@/lib/groups";
 import { GROUP, PLACES } from "@/lib/journey";
 import { cn } from "@/lib/utils";
 import { WHERE, mealsFor, nextBus, nextMeal } from "../_data";
@@ -39,7 +40,7 @@ export function stayText(ctx: SeasonCtx) {
       return { icon: <Tent className="size-6" />, main: `${camp} — الخيمة ${self.tent}`, family: r.elsewhere ? `${r.elsewhere} (بجانبك)` : "" };
     }
     case "muzdalifah":
-      return { icon: <Tent className="size-6" />, main: "المبيت في العراء — نقطة المجموعة 27 قرب المشعر الحرام", family: "العائلة معاً مع المجموعة" };
+      return { icon: <Tent className="size-6" />, main: `المبيت في العراء — نقطة ${groupName(GROUP.number)} قرب المشعر الحرام`, family: "العائلة معاً مع المجموعة" };
     case "damascus":
       return { icon: <MapPin className="size-6" />, main: "ساحة المزة ← مطار دمشق — الرحلة RB 507 — البوابة 3", family: `المقاعد: ${assignments.map((a) => `${a.person.firstName} ${a.seat}`).join(" | ")}` };
     case "jeddah":
@@ -96,7 +97,7 @@ export function NowCard({ ctx }: { ctx: SeasonCtx }) {
           <Fact icon={<Bus className="size-6" />} label="التنقل التالي" value={bus} />
           <Fact icon={<UtensilsCrossed className="size-6" />} label="الوجبة التالية" value={meal ? `${meal.name} ${meal.time} — ${meal.place}` : "انتهت وجبات اليوم — الفطور غداً"} />
           <div className="grid gap-3 sm:grid-cols-2">
-            <Fact icon={<UsersRound className="size-6" />} label="المجموعة" value={`27 — ${GROUP.team[0].name.split(" ").slice(0, 2).join(" ")}`} sub={`الموجّه: ${GROUP.team[2].name}`} />
+            <Fact icon={<UsersRound className="size-6" />} label="المجموعة" value={`${groupName(GROUP.number)} — ${GROUP.team[0].name.split(" ").slice(0, 2).join(" ")}`} sub={`الموجّه: ${GROUP.team[2].name}`} />
             <Fact icon={<CalendarHeart className="size-6" />} label="العودة إلى الوطن" value={daysLeft ? `بعد ${daysLeft} يوماً — 23 ذو الحجة` : "اليوم — الرحلة RB 508"} />
           </div>
         </div>

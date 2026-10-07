@@ -6,7 +6,8 @@ import { ArrowRight, BookOpen, Bus, Luggage, Map as MapIcon, MessageSquareWarnin
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Card, PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
-import { assign } from "@/lib/journey";
+import { groupName } from "@/lib/groups";
+import { GROUP, assign } from "@/lib/journey";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { actions, useStore, type InSeason } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -91,7 +92,7 @@ export default function SeasonPage() {
       title={
         <span className="flex flex-wrap items-center gap-3">
           حالتي الآن
-          <span className="rounded-full bg-white/15 px-3 py-1 text-base font-normal backdrop-blur">طلب {app.number} — المجموعة 27</span>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-base font-normal backdrop-blur">طلب {app.number} — {groupName(GROUP.number)}</span>
         </span>
       }
       subtitle={

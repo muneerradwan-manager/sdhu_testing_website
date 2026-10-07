@@ -2,7 +2,8 @@
  * «حالتي الآن» — the in-season timeline (spec phases 10 – 21), from 24 ذو القعدة to 23 ذو الحجة 1448.
  * Day index 0 = 24 ذو القعدة = Saturday 1 May 2027 (ذو القعدة has 29 days this season), index 28 = 23 ذو الحجة.
  */
-import { PLACES } from "@/lib/journey";
+import { groupName } from "@/lib/groups";
+import { GROUP, PLACES } from "@/lib/journey";
 
 export type Where = "damascus" | "jeddah" | "makkah" | "mina" | "arafat" | "muzdalifah" | "madinah" | "home";
 
@@ -177,7 +178,7 @@ export const TRIPS: Trip[] = [
   { id: "umrah", title: "العمرة الأولى (تمتّع)", when: "الليلة 21:30", gather: "بهو الفندق 21:00", back: "02:00", seats: 50, booked: 47, lead: "أحمد سليمان + الشيخ خالد", days: [0], mandatory: true, note: "كبار السن بالكرسي مع مرافقيهم" },
   { id: "haram", title: "رحلة إلى المسجد الحرام", when: "12:00", gather: "البوابة الجنوبية", back: "حافلات كل ساعة من موقف (ب) — آخر حافلة 24:00", seats: 50, booked: 37, lead: "ياسر عبد الله", days: [1, 2, 3, 5, 6, 8, 9, 11, 12, 19, 20] },
   { id: "taneem", title: "التنعيم — عمرة عن الغير", when: "28 ذو القعدة 16:00", gather: "البوابة الجنوبية 15:45", back: "21:00", seats: 50, booked: 30, lead: "ياسر عبد الله", days: [3, 4], note: "«من أراد العمرة عن غيره فليتحلل من عمرته السابقة أولاً» — الشيخ خالد" },
-  { id: "landmarks", title: "زيارة معالم مكة (جبل النور، غار ثور من بعيد، المتحف)", when: "2 ذو الحجة 08:00", gather: "البوابة الجنوبية", back: "13:00", seats: 90, booked: 81, lead: "ياسر + معاون المجموعة 31", days: [6, 7] },
+  { id: "landmarks", title: "زيارة معالم مكة (جبل النور، غار ثور من بعيد، المتحف)", when: "2 ذو الحجة 08:00", gather: "البوابة الجنوبية", back: "13:00", seats: 90, booked: 81, lead: `ياسر + معاون ${groupName(31)}`, days: [6, 7] },
   { id: "mashaer-visit", title: "زيارة المشاعر قبل الحج (تعرّف على المخيم)", when: "5 ذو الحجة 15:00", gather: "البوابة الجنوبية", back: "18:00", seats: 50, booked: 47, lead: "أحمد سليمان", days: [9, 10], mandatory: true },
   { id: "ifadah", title: "طواف الإفاضة والسعي", when: "13 ذو الحجة 03:30", gather: "بهو الفندق 03:15", back: "08:00", seats: 50, booked: 47, lead: "الشيخ خالد الرفاعي", days: [17, 18], mandatory: true, note: "كبار السن بالكرسي في الدور المخصص" },
   { id: "rawdah", title: "زيارة الروضة الشريفة", when: "18 ذو الحجة — 02:00 رجال / 10:00 سيدات", gather: "بهو الفندق قبل الموعد بنصف ساعة", back: "بعد الزيارة", seats: 50, booked: 46, lead: "أحمد سليمان", days: [21, 22, 23], note: "اطلب الكرسي المتحرك مسبقاً من هنا" },
@@ -213,7 +214,7 @@ export function noticesFor(i: number, n: number, companion?: { name: string; eld
   const add = (time: string, scope: Notice["scope"], text: string, tone: Notice["tone"] = "info") => out.push({ time, scope, text, tone });
   switch (i) {
     case 0:
-      add("01:32", "حسب المجموعة", "انطلقت حافلة المجموعة 27 إلى المطار.", "good");
+      add("01:32", "حسب المجموعة", `انطلقت حافلة ${groupName(GROUP.number)} إلى المطار.`, "good");
       add("07:50", "حسب الفرد", "تذكير: تقتربون من ميقات أهل الشام. انووا العمرة إن كنتم متمتعين.", "personal");
       add("08:44", "رسمي", "أهلاً بكم في المملكة العربية السعودية. حافلتكم رقم 32 في الساحة (ج). رئيس مجموعتكم بانتظاركم عند اللافتة.");
       add("12:10", "حسب المجموعة", "مرحباً بكم. العمرة الليلة: تجمّع في بهو الفندق 21:00. الحافلة 21:30.");

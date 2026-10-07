@@ -19,9 +19,9 @@ import { accommodationCost, costBreakdown, describeRooms } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
 import { actions, type AdminProfile, type Application, type DocStatus, type HealthFile, type PostAcceptance } from "@/lib/store";
 
-/** Group 27's leader in the administrator portal (lib/registry: أحمد سليمان الحمصي) */
+/** The leader of مجموعة اللطيف (key 27) in the administrator portal (lib/registry: أحمد سليمان الحمصي) */
 export const LEADER_ID = "01033300871";
-/** Group 27's technical coordinator — he enrolls pilgrims into the group and takes their health files (lib/registry: سامر نبيل نجار) */
+/** The technical coordinator of مجموعة اللطيف (key 27) — he enrolls pilgrims into the group and takes their health files (lib/registry: سامر نبيل نجار) */
 export const COORDINATOR_ID = "01033300874";
 
 /** Restarting the demo: drop the group leader's "received" mark and the needs the health file wrote into the application */

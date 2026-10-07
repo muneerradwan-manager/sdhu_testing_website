@@ -20,6 +20,7 @@ import {
   useFlightsData,
   type FlightStatus,
 } from "@/lib/flights";
+import { groupsName } from "@/lib/groups";
 import { cn } from "@/lib/utils";
 import { Panel } from "../_components/kit";
 import { Chip, FilterSelect, SearchBox } from "../_components/ops-ui";
@@ -111,7 +112,7 @@ export function FlightsList() {
                     <td className="p-2"><SeatBar f={f} assignments={data.assignments} compact /><span className="mt-1 block text-[11px] text-white/60">{f.audience === "staff" ? `${seatStats(f, data.assignments).assignedStaff}/${f.capacity} موظفاً` : `${seatStats(f, data.assignments).assignedPilgrims}/${f.capacity - f.staffReserve} — متبقٍّ ${seatStats(f, data.assignments).remaining}`}</span></td>
                     <td className="p-2">
                       <span className="flex flex-wrap gap-1">
-                        {f.audience === "staff" ? <Chip tone="gold">موظفون</Chip> : (() => { const gs = groupsOnFlight(f.id, data.groups); if (!gs.length) return <Chip tone="muted">لا مجموعات بعد</Chip>; const by = [...new Set(gs.map((g) => g.clusterId))]; return by.map((c) => <Chip key={c} tone="green">{clusterName(c)} — {gs.filter((g) => g.clusterId === c).map((g) => g.groupNumber).join("، ")}</Chip>); })()}
+                        {f.audience === "staff" ? <Chip tone="gold">موظفون</Chip> : (() => { const gs = groupsOnFlight(f.id, data.groups); if (!gs.length) return <Chip tone="muted">لا مجموعات بعد</Chip>; const by = [...new Set(gs.map((g) => g.clusterId))]; return by.map((c) => <Chip key={c} tone="green">{clusterName(c)} — {groupsName(gs.filter((g) => g.clusterId === c).map((g) => g.groupNumber))}</Chip>); })()}
                       </span>
                     </td>
                     <td className="p-2"><span className="flex items-center gap-1"><StatusChip f={f} />{w > 0 && <Chip tone="maroon"><AlertTriangle className="size-3" /> {w}</Chip>}</span></td>

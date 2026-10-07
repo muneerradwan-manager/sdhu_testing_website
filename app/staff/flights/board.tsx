@@ -22,6 +22,7 @@ import {
   type GroupRef,
   type Traveler,
 } from "@/lib/flights";
+import { groupName } from "@/lib/groups";
 import { fullName } from "@/lib/ops";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
@@ -94,7 +95,7 @@ export function DispatchBoard({ desk, officer, actor, onOpenFlight }: { desk: Fl
       if (!r.ok) return toast({ title: `لم تُسند رحلة ${DIRECTION_LABEL[dir]}`, body: r.error, tone: "warning", icon: "⚠️" });
       done.push(`${DIRECTION_LABEL[dir]}: ${flightOf(id)?.flightNo}`);
     }
-    toast({ title: `أُسندت المجموعة ${assignGroup.number}`, body: `${groupMembers.length} مسافراً — ${done.join("، ")}`, tone: "success", icon: "✈️" });
+    toast({ title: `أُسندت ${groupName(assignGroup.number)}`, body: `${groupMembers.length} مسافراً — ${done.join("، ")}`, tone: "success", icon: "✈️" });
     setAssignGroup(null);
   };
 
@@ -145,7 +146,7 @@ export function DispatchBoard({ desk, officer, actor, onOpenFlight }: { desk: Fl
               {needsFlight.map(({ t, dir, why }) => (
                 <li key={`${t.id}-${dir}`} className="flex flex-wrap items-center gap-2 py-2">
                   <span className="min-w-0 flex-1">
-                    <span className="block font-bold text-white">{t.name} <span className="font-normal text-white/60">— {DIRECTION_LABEL[dir]}{t.groupNumber ? ` — المجموعة ${t.groupNumber}` : ""}</span></span>
+                    <span className="block font-bold text-white">{t.name} <span className="font-normal text-white/60">— {DIRECTION_LABEL[dir]}{t.groupNumber ? ` — ${groupName(t.groupNumber)}` : ""}</span></span>
                     <span className="block text-xs text-white/60">{why}</span>
                   </span>
                   {officer && (
@@ -215,7 +216,7 @@ export function DispatchBoard({ desk, officer, actor, onOpenFlight }: { desk: Fl
       <Modal open={!!assignGroup} onClose={() => setAssignGroup(null)} className="max-w-xl">
         {assignGroup && (
           <div>
-            <h2 className="font-display text-xl font-bold text-green-dark">إسناد المجموعة {assignGroup.number} — {clusterName(assignGroup.clusterId)}</h2>
+            <h2 className="font-display text-xl font-bold text-green-dark">إسناد {groupName(assignGroup.number)} — {clusterName(assignGroup.clusterId)}</h2>
             <p className="mt-1 text-sm text-ink-soft">{groupMembers.length} مسافراً: {familiesOfGroup(assignGroup, post, applications).length} عائلة وفريق المجموعة. تُسند كاملة، ومن ينضم إليها لاحقاً يلحق بها.</p>
             {(["out", "back"] as const).map((k) => {
               const dir: Direction = k === "out" ? "outbound" : "return";
@@ -262,12 +263,12 @@ function RowsOfCluster({ cluster, rows, officer, onOpenFlight, onAssign }: { clu
       </tr>
       {rows.map((r) => (
         <tr key={r.g.number} className="border-t border-white/5">
-          <td className="p-2 text-white">المجموعة {r.g.number} <span className="text-xs text-white/60">— {r.g.head}</span></td>
+          <td className="p-2 text-white">{groupName(r.g.number)} <span className="text-xs text-white/60">— {r.g.head}</span></td>
           <td className="p-2 tabular-nums text-white/85">{r.total}</td>
           <td className="p-2"><span className="flex flex-wrap items-center gap-2"><span className={cn("tabular-nums", r.out === 0 ? "text-maroon-light" : r.out < r.total ? "text-gold" : "text-green-light")}>{r.out}/{r.total}</span><FlightChip f={r.flightOut} /></span></td>
           <td className="p-2"><span className="flex flex-wrap items-center gap-2"><span className={cn("tabular-nums", r.back === 0 ? "text-maroon-light" : r.back < r.total ? "text-gold" : "text-green-light")}>{r.back}/{r.total}</span><FlightChip f={r.flightBack} /></span></td>
           <td className="p-2 text-xs text-maroon-light">{r.warnings.join(" · ")}</td>
-          <td className="p-2 text-left">{officer && (!r.flightOut || !r.flightBack) && <Button size="sm" variant="gold" onClick={() => onAssign(r.g)} aria-label={`إسناد المجموعة ${r.g.number} من ${clusterName(cluster)}`}>إسناد</Button>}</td>
+          <td className="p-2 text-left">{officer && (!r.flightOut || !r.flightBack) && <Button size="sm" variant="gold" onClick={() => onAssign(r.g)} aria-label={`إسناد ${groupName(r.g.number)} من ${clusterName(cluster)}`}>إسناد</Button>}</td>
         </tr>
       ))}
     </>

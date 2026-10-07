@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { CONDITIONS, NEEDS, recordHealth } from "@/app/portal/application/_components/post/model";
 import { submitContract, groupInfo } from "@/lib/assignment";
+import { groupName } from "@/lib/groups";
 import { ageOf, fullName } from "@/lib/registry";
 import { outcomeOf } from "@/lib/journey";
 import { usePublishedDraw, type PublishedDraw } from "@/lib/lottery";
@@ -17,7 +18,7 @@ import { cn, digitsOnly } from "@/lib/utils";
 import { effectiveRole, isTechCoordinator, logAdmin, nowMs, positionLabelOf, useAdmin } from "../../_lib/admin";
 import { useAdminCan } from "../../_lib/permissions";
 import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
-import { AdminShell, LockedCard } from "../../_components/ui";
+import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { useOperation } from "@/lib/operations";
 import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
@@ -33,7 +34,12 @@ function needsLift(r: JoinRequest) {
  * والطلب العائلي يُلحق أو ينتقل كاملاً. رئيس المجموعة يرحّب بالعائلة، والمنسق يسجّل ملفها الصحي.
  * المنسق للتكتل لا لمجموعة: يفتح هنا مجموعاته المسندة إليه وحدها.
  */
-export function AdminRequests() {
+/**
+ * A group's pilgrims: the families attached to it by their contracts, their welcome and their health files.
+ * Its own page for a group head and for whoever serves in groups; inside «إدارة التكتل» the cluster's head
+ * and deputy open it for one group of the cluster (`fixed`, `embedded`), with no page or switcher around it.
+ */
+export function AdminRequests({ fixed, embedded = false }: { fixed?: number; embedded?: boolean } = {}) {
   const joining = useOperation("group-joining");
   const can = useAdminCan();
   const admin = useAdmin()!;
@@ -53,8 +59,9 @@ export function AdminRequests() {
   const myGroups = coord ? coord.groups : clusterGroups;
   const [picked, setPicked] = useState<number | null>(null);
   const home = p?.group?.number;
-  const openNumber = (myCluster || coord ? (picked ?? myGroups[0]?.number) : home) ?? home;
+  const openNumber = fixed ?? (myCluster || coord ? (picked ?? myGroups[0]?.number) : home) ?? home;
   const openGroup = myGroups.find((x) => x.number === openNumber);
+  const openName = openNumber === undefined ? "المجموعة" : groupName(openNumber);
   const [healthFor, setHealthFor] = useState<string | null>(null);
   const tech = isTechCoordinator(p);
 
@@ -67,7 +74,9 @@ export function AdminRequests() {
     [p, applications, post, openNumber, home, openGroup],
   );
 
-  if (isTechCoordinator(p) && !coord?.groups.length) {
+  // A cluster's head and deputy open each group's pilgrims from the cluster's groups
+  if (!embedded && myCluster) return <MovedTo href="/administrator/clusters" title="إدارة التكتل" />;
+  if (!embedded && isTechCoordinator(p) && !coord?.groups.length) {
     return (
       <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يسجّل الحجاج في المجموعات التي يفرزها له رئيس التكتل.">
         <LockedCard
@@ -79,7 +88,7 @@ export function AdminRequests() {
       </AdminShell>
     );
   }
-  if (!coord && !g?.approvedAt) {
+  if (!embedded && !coord && !g?.approvedAt) {
     return (
       <AdminShell title="حجاج المجموعة" subtitle="يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.">
         <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/groups" cta="إدارة المجموعات" />
@@ -91,13 +100,13 @@ export function AdminRequests() {
   const info = groupInfo(clusterId, openNumber ?? g?.number);
   const capacity = (openGroup && openNumber !== home ? openGroup.capacity : g?.capacity) ?? 50;
   const headOfOpen = openGroup && openNumber !== home ? openGroup.head : admin.name;
-  const switcher = (myCluster || coord) && myGroups.length > 1 && (
+  const switcher = !fixed && (myCluster || coord) && myGroups.length > 1 && (
     <Card className="md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs text-hint">المجموعة المفتوحة الآن</p>
           <p className="font-display text-2xl font-bold text-green-dark">
-            المجموعة {openNumber}
+            {openName}
             <span className="mr-2 text-sm font-normal text-ink-soft">رئيسها المباشر {headOfOpen}</span>
           </p>
         </div>
@@ -114,7 +123,7 @@ export function AdminRequests() {
               onClick={() => setPicked(x.number)}
               className={cn("rounded-2xl border-2 px-4 py-2 text-sm font-bold transition", on ? "border-maroon bg-maroon text-white" : "border-gold/40 bg-white text-ink-soft hover:border-gold-dark")}
             >
-              المجموعة {x.number}
+              {groupName(x.number)}
             </button>
           );
         })}
@@ -131,19 +140,16 @@ export function AdminRequests() {
 
   const welcome = (r: JoinRequest) => {
     actions.upsertAdmin(admin.id, { joinDecisions: { ...decisions, [r.id]: "accepted" } });
-    logAdmin(admin.id, `استلام عائلة في المجموعة ${openNumber} والترحيب بها`, `${r.applicant} — الطلب ${r.number}`, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
+    logAdmin(admin.id, `استلام عائلة في ${openName} والترحيب بها`, `${r.applicant} — الطلب ${r.number}`, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
     if (needsLift(r)) logAdmin(admin.id, "إحالة احتياج خاص إلى مشرف البرج", "وسام خوري — البرج (ب)", `${r.applicant}: غرفة قريبة من المصعد`);
     toast({ title: `رحّبت بعائلة ${r.applicant.split(" ")[0]}`, body: "يصلهم إشعار الترحيب وموعد اللقاء التعريفي.", icon: "🤝", tone: "success" });
   };
 
   const healthTarget = families.find((r) => r.id === healthFor);
 
-  return (
-    <AdminShell
-      title={myCluster || coord ? `حجاج المجموعة ${openNumber}` : "حجاج المجموعة"}
-      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المسندة إليك، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `المجموعة ${g!.number} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.`}
-    >
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
+  const content = (
+    <>
+      <div className={cn("grid items-start gap-6", !embedded && "lg:grid-cols-[1fr_20rem]")}>
         <div className="space-y-5">
           {switcher}
           <Card className="md:p-7">
@@ -169,7 +175,7 @@ export function AdminRequests() {
             <PeopleBoard roster={roster} active={active} capacity={capacity} />
           </Card>
 
-          {can("pilgrims.attach") && openNumber !== undefined && (openNumber === home || coord?.groups.some((x) => x.number === openNumber)) && (joining.open ? <ContractPanel group={{ clusterId: clusterId ?? "al-nour", number: openNumber }} capacity={capacity} active={active} /> : <OperationClosed state={joining} text="من في المجموعة باقٍ فيها؛ ما ينتظر فتحها هو رفع عقود الجدد." />)}
+          {can("pilgrims.attach") && openNumber !== undefined && (openNumber === home || coord?.groups.some((x) => x.number === openNumber) || (embedded && myCluster?.isHead)) && (joining.open ? <ContractPanel group={{ clusterId: clusterId ?? "al-nour", number: openNumber }} capacity={capacity} active={active} /> : <OperationClosed state={joining} text="من في المجموعة باقٍ فيها؛ ما ينتظر فتحها هو رفع عقود الجدد." />)}
 
           <div className="flex flex-wrap items-center gap-2">
             {(
@@ -195,7 +201,7 @@ export function AdminRequests() {
                 <Card className="text-center">
                   <Inbox className="mx-auto size-12 text-gold-dark" />
                   <p className="mt-3 font-display text-xl font-bold text-green-dark">لا عائلات في هذا التصنيف</p>
-                  <p className="mt-1 text-sm leading-7 text-ink-soft">حين يسجّل منسق المجموعة حاجاً اختار المجموعة {openNumber} يظهر هنا مباشرة.</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">حين يسجّل منسق المجموعة حاجاً اختار {openName} يظهر هنا مباشرة.</p>
                 </Card>
               </motion.div>
             )}
@@ -291,7 +297,7 @@ export function AdminRequests() {
           </AnimatePresence>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-28">
+        {!embedded && <aside className="space-y-4 lg:sticky lg:top-28">
           <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
             <p className="font-bold text-gold">كيف تُلحق العائلات بالمجموعة؟</p>
             <ul className="mt-2 list-inside list-disc space-y-1">
@@ -311,12 +317,21 @@ export function AdminRequests() {
             </p>
             {!tech && <p className="mt-2 font-semibold text-gold-dark">الملف الصحي يأخذه منسق التكتل المسند إلى مجموعتك.</p>}
           </div>
-        </aside>
+        </aside>}
       </div>
 
       <Modal open={!!healthTarget} onClose={() => setHealthFor(null)}>
         {healthTarget && <HealthForm family={healthTarget} onDone={() => setHealthFor(null)} />}
       </Modal>
+    </>
+  );
+  if (embedded) return content;
+  return (
+    <AdminShell
+      title={myCluster || coord ? `حجاج ${openName}` : "حجاج المجموعة"}
+      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المسندة إليك، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `${groupName(g!.number)} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.`}
+    >
+      {content}
     </AdminShell>
   );
 }
@@ -522,14 +537,14 @@ function ContractPanel({ group, capacity, active }: { group: { clusterId: string
     if (!hit) return setError("لا يوجد طلب بهذا الرقم.");
     if (!isAccepted(hit[1])) return setError("الطلب لم يُقبل بعد — الإلحاق بالمجموعات للحجاج المقبولين فقط.");
     if (post[hit[0]]?.groupNumber === group.number && post[hit[0]]?.groupApprovedAt) return setError("هذا الطلب في مجموعتك بالفعل.");
-    if (post[hit[0]]?.contract?.status === "pending") return setError(`لهذا الطلب عقد بانتظار اعتماد المكتب (المجموعة ${post[hit[0]]!.contract!.groupNumber}).`);
+    if (post[hit[0]]?.contract?.status === "pending") return setError(`لهذا الطلب عقد بانتظار اعتماد المكتب (${groupName(post[hit[0]]!.contract!.groupNumber)}).`);
     setFound(hit[0]);
   };
 
   const upload = () => {
     if (!app || !found || !file) return;
     if (active + app.members.length > capacity) return setError(`لا تتسع المجموعة: ${active} + ${app.members.length} > ${capacity}. الطلب العائلي يُلحق كاملاً أو لا يُلحق.`);
-    const role = `${positionLabelOf(effectiveRole(admin.profile) || admin.profile?.positions[0] || "")} — المجموعة ${group.number}`;
+    const role = `${positionLabelOf(effectiveRole(admin.profile) || admin.profile?.positions[0] || "")} — ${groupName(group.number)}`;
     submitContract({ sessionId: found, app, post: current, group, uploader: { id: admin.id, name: admin.name, role }, file, at: nowMs() });
     toast({ title: `رُفع عقد الطلب ${app.number}`, body: "ينتظر اعتماد المكتب، ثم يصير الطلب كله في المجموعة.", icon: "📄", tone: "info" });
     setFound(null);
@@ -540,7 +555,7 @@ function ContractPanel({ group, capacity, active }: { group: { clusterId: string
   return (
     <Card className="md:p-7">
       <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-        <UserPlus className="size-6" /> إلحاق حاج بالمجموعة {group.number}
+        <UserPlus className="size-6" /> إلحاق حاج ب{groupName(group.number)}
       </p>
       <p className="mt-1 text-sm leading-7 text-ink-soft">
         اتفق معك حاج مقبول على الالتحاق بالمجموعة؟ ابحث عن طلبه وارفع العقد الموقّع بينه وبين المجموعة، فيعتمده المكتب. لا يختار الحاج المجموعة من المنصة، ولا يصير فيها قبل الاعتماد. والطلب العائلي يُلحق كاملاً.
@@ -585,7 +600,7 @@ function ContractPanel({ group, capacity, active }: { group: { clusterId: string
           </ul>
           {current?.groupApprovedAt && (
             <p className="mt-3 flex items-start gap-2 rounded-xl bg-gold/20 p-3 text-sm font-semibold text-maroon">
-              <ArrowLeftRight className="mt-0.5 size-4 shrink-0" /> الطلب الآن في المجموعة {current.groupNumber}. باعتماد هذا العقد ينتقل جميع أفراده ({app.members.length}) معاً، ولا ينتقل أحد وحده.
+              <ArrowLeftRight className="mt-0.5 size-4 shrink-0" /> الطلب الآن في {groupName(current.groupNumber!)}. باعتماد هذا العقد ينتقل جميع أفراده ({app.members.length}) معاً، ولا ينتقل أحد وحده.
             </p>
           )}
           <p className="mt-4 text-sm font-bold">العقد الموقّع بين الحاج والمجموعة</p>
@@ -595,14 +610,14 @@ function ContractPanel({ group, capacity, active }: { group: { clusterId: string
               <input type="file" accept=".pdf,image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && setFile({ name: e.target.files[0].name, size: e.target.files[0].size })} />
             </label>
             {!file && (
-              <button type="button" onClick={() => setFile({ name: `عقد-${app.number}-المجموعة-${group.number}.pdf`, size: 248_000 })} className="text-sm text-hint underline">
+              <button type="button" onClick={() => setFile({ name: `عقد-${app.number}-${groupName(group.number).replaceAll(" ", "-")}.pdf`, size: 248_000 })} className="text-sm text-hint underline">
                 ملف تجريبي
               </button>
             )}
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button onClick={upload} disabled={!file}>
-              <FileSignature className="size-4" /> {current?.groupApprovedAt ? `رفع عقد نقل الطلب إلى المجموعة ${group.number}` : "رفع العقد إلى المكتب"}
+              <FileSignature className="size-4" /> {current?.groupApprovedAt ? `رفع عقد نقل الطلب إلى ${groupName(group.number)}` : "رفع العقد إلى المكتب"}
             </Button>
             <Button variant="ghost" onClick={() => setFound(null)}>
               إلغاء
@@ -613,7 +628,7 @@ function ContractPanel({ group, capacity, active }: { group: { clusterId: string
 
       {mine.length > 0 && (
         <div className="mt-6">
-          <p className="font-bold text-ink">عقود المجموعة {group.number}</p>
+          <p className="font-bold text-ink">عقود {groupName(group.number)}</p>
           <ul className="mt-2 space-y-2">
             {mine.map(([sid, x]) => {
               const c = x.contract!;

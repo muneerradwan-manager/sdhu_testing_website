@@ -8,7 +8,7 @@ import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
 import { actions, type AdminRecord, type VaultDoc } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { docState, documentType, levelOf, logAdmin, nowMs, recordOf, seasonHistory, useAdmin, type DocType } from "../../_lib/admin";
+import { docState, documentType, levelOf, logAdmin, nowMs, recordOf, seasonHistory, servedBefore, useAdmin, type DocType } from "../../_lib/admin";
 import { useDocTypes, useLanguages, useRoleRequirements, useRoles, useSkills } from "../../_lib/admin-rules";
 
 /**
@@ -57,7 +57,7 @@ export function useRecord() {
     actions.upsertAdmin(admin.id, { record: { ...rec, ...patch, updatedAt: nowMs() } });
     logAdmin(admin.id, action, undefined, detail, { area: "applicants" });
   };
-  const returning = seasonHistory(admin.id).some((h) => h.roleKey);
+  const returning = servedBefore(admin.id);
   return { rec, save, admin, returning };
 }
 
@@ -329,7 +329,8 @@ export function DocumentsStep() {
   );
 }
 
-export function SkillsStep() {
+/** `experience`: the seasons served, from the platform's record — «وثائقي ومهاراتي» leaves them to «ملفي» */
+export function SkillsStep({ experience = true }: { experience?: boolean } = {}) {
   const { rec, save, admin, returning } = useRecord();
   const { of } = useDemand();
   // The lists the holder of «إدارة الإداريين» keeps for the season
@@ -362,7 +363,7 @@ export function SkillsStep() {
             : "ما تختاره هنا يُحفظ في ملفك الدائم، ويظهر لك في المواسم القادمة."}
         </p>
       </div>
-      <div className="rounded-2xl bg-sand p-5">
+      {experience && <div className="rounded-2xl bg-sand p-5">
         <p className="flex items-center gap-2 text-sm font-bold text-green-dark">
           <ShieldCheck className="size-4" /> الخبرة السابقة (من سجل المنصة — لا تُعدَّل)
         </p>
@@ -377,7 +378,7 @@ export function SkillsStep() {
             </li>
           ))}
         </ul>
-      </div>
+      </div>}
       <fieldset>
         <legend className="font-bold text-ink">اللغات التي تتحدثها</legend>
         {asked.length > 0 && (

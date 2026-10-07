@@ -3,10 +3,14 @@
 import { useMemo } from "react";
 import { DEMO_CLUSTERS, DEMO_GROUPS } from "./data/grading-demo";
 import type { Graded } from "./grading";
+import { groupName } from "./groups";
 import { useStore } from "./store";
 
 /** The part of the season score that the staff evaluation feeds */
 const STAFF_PART = "تقييم الموظفين ورئيس التكتل";
+
+/** A group's entry under the name its group carries now: its head may have named it since the data was built */
+const named = (e: Graded): Graded => ({ ...e, name: groupName(Number(e.id.slice(2))) });
 
 function recompute(entry: Graded, avgOutOfFive: number): Graded {
   const parts = entry.parts.map((p) => (p.label === STAFF_PART ? { ...p, value: Math.round((avgOutOfFive / 5) * 1000) / 10 } : p));
@@ -24,7 +28,7 @@ export function useGraded(scope: "groups" | "clusters"): Graded[] {
   const admins = useStore((s) => s.admins);
   const evaluations = useStore((s) => s.evaluations);
   return useMemo(() => {
-    const base = scope === "groups" ? DEMO_GROUPS : DEMO_CLUSTERS;
+    const base = scope === "groups" ? DEMO_GROUPS.map(named) : DEMO_CLUSTERS;
     if (!Object.keys(evaluations).length) return base;
     // An administrator's evaluation lands on the group he heads, or on the cluster he was elected to run
     const byEntry = new Map<string, number>();

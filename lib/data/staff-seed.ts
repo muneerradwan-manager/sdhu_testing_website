@@ -4,6 +4,7 @@
  * Real data created during the demo (applications, tickets, administrators, events) is merged
  * on top of these seeds by the staff pages.
  */
+import { groupName } from "@/lib/groups";
 import type { Person, Relation } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import type { AdminProfile, AuditEvent, Ticket } from "@/lib/store";
@@ -420,7 +421,7 @@ export const SEED_INCIDENTS: SeedIncident[] = [
     id: "OR-1207",
     minutesAgo: 3,
     zone: "mina",
-    name: "سليم حسن (66) — المجموعة 27",
+    name: `سليم حسن (66) — ${groupName(27)}`,
     kind: "missing",
     severity: "critical",
     location: "منى — بوابة الجمرات الشرقية",
@@ -433,7 +434,7 @@ export const SEED_INCIDENTS: SeedIncident[] = [
     id: "OR-1204",
     minutesAgo: 6,
     zone: "arafat",
-    name: "حاجة من المجموعة 14 — تكتل النور",
+    name: `حاجة من ${groupName(14)} — تكتل النور`,
     kind: "health",
     severity: "critical",
     location: "عرفة — مخيم تكتل النور، خيمة 12",
@@ -446,7 +447,7 @@ export const SEED_INCIDENTS: SeedIncident[] = [
     id: "OR-1201",
     minutesAgo: 12,
     zone: "arafat",
-    name: "حاج من المجموعة 31",
+    name: `حاج من ${groupName(31)}`,
     kind: "health",
     severity: "high",
     location: "عرفة — قرب مسجد نمرة، الجهة الشرقية",
@@ -459,7 +460,7 @@ export const SEED_INCIDENTS: SeedIncident[] = [
     id: "OR-1199",
     minutesAgo: 17,
     zone: "arafat",
-    name: "حاج من المجموعة 8 — تكتل الشهباء",
+    name: `حاج من ${groupName(8)} — تكتل الشهباء`,
     kind: "health",
     severity: "critical",
     location: "عرفة — مخيم تكتل الشهباء",
@@ -485,7 +486,7 @@ export const SEED_INCIDENTS: SeedIncident[] = [
     id: "OR-1190",
     minutesAgo: 41,
     zone: "arafat",
-    name: "المجموعة 19 — تكتل اليقين",
+    name: `${groupName(19)} — تكتل اليقين`,
     kind: "meal",
     severity: "low",
     location: "عرفة — مخيم تكتل اليقين",
@@ -498,7 +499,7 @@ export const SEED_INCIDENTS: SeedIncident[] = [
     id: "OR-1184",
     minutesAgo: 58,
     zone: "arafat",
-    name: "المجموعة 27 — تكتل النور",
+    name: `${groupName(27)} — تكتل النور`,
     kind: "room",
     severity: "medium",
     location: "عرفة — مخيم تكتل النور، خيمة 7",
@@ -559,7 +560,7 @@ export const SEED_EVENTS: AuditEvent[] = [
   { id: "h-05c", at: at(2026, 9, 8, 12, 45), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إسناد مشرف قاعة امتحانية", target: "مركز دمشق", after: "نسرين الحكيم", system: "exams", area: "centers", ref: "damascus" },
   { id: "h-06", at: at(2026, 10, 23, 18, 40), actor: "منير السيد", role: "مسؤول الامتحانات", system: "exams", area: "results", ref: "01033301422", action: "تعديل نتيجة الشفهي", target: "متقدم 01033301422", before: "12 من 20", after: "14 من 20", detail: "خطأ في الجمع — تصويب اللجنة رقم 5" },
   { id: "h-06b", at: at(2026, 11, 1, 10, 0), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إعلان النتائج", target: "1,094 ناجحاً من 1,380 متقدماً", system: "exams", area: "results", important: true },
-  { id: "h-07", at: at(2026, 11, 9, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", system: "admins", area: "groups", ref: "31", action: "اعتماد مجموعة", target: "المجموعة 31 — تكتل النور" },
+  { id: "h-07", at: at(2026, 11, 9, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", system: "admins", area: "groups", ref: "31", action: "اعتماد مجموعة", target: `${groupName(31)} — تكتل النور` },
   { id: "h-08", at: at(2026, 8, 27, 14, 30), actor: "رنا حداد", role: "إدارة التسجيل", action: "اعتماد طلب بعد المراجعة", target: "الطلب 49120", detail: "اسم الأم: خطأ كتابي مؤكد من بيان القيد" },
   { id: "h-09", at: at(2026, 8, 26, 9, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "68 عاماً فأكثر (مواليد 1958 فما قبل) — 14,625 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },
   { id: "h-10", at: at(2026, 8, 26, 10, 0), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد الأعمار المقبولة", target: "القبول المباشر", after: "68 عاماً فأكثر (مواليد 1958 فما قبل)" },

@@ -46,6 +46,7 @@ import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { BoardingPass, HajjCard } from "./_components/cards";
 import { groupInfo } from "@/lib/assignment";
+import { groupName } from "@/lib/groups";
 import { PostChecklist } from "./_components/post/checklist";
 import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, paidAt , useRoomCost } from "./_components/post/model";
 import { ReviewBanner } from "./_components/review-banner";
@@ -571,7 +572,7 @@ export default function ApplicationPage() {
               </ol>
             </Section>
 
-            <Section id="group" title={`المجموعة ${myGroup.number} — ${myGroup.clusterName}`} icon={<UsersRound className="size-6" />} ready={unlocked.group} lockedHint={LOCK_HINT.group} eyebrow={`${myGroup.office} — مستوى الخدمة: ${myGroup.level}`}>
+            <Section id="group" title={`${groupName(myGroup.number)} — ${myGroup.clusterName}`} icon={<UsersRound className="size-6" />} ready={unlocked.group} lockedHint={LOCK_HINT.group} eyebrow={`${myGroup.office} — مستوى الخدمة: ${myGroup.level}`}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {myGroup.team.map((p, i) => (
                   <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="rounded-3xl bg-white p-5 ring-1 ring-gold/30">
@@ -594,7 +595,7 @@ export default function ApplicationPage() {
                 <p className="font-display text-lg font-bold text-green-dark">قناة المجموعة</p>
                 <div className="mt-4 space-y-3">
                   {[
-                    { who: myGroup.team[0].name, t: `أهلاً بكم في المجموعة ${myGroup.number}. اللقاء التعريفي يوم 10 ذو القعدة الساعة 17:00 في قاعة المزة. يرجى تأكيد الحضور.`, when: "10 ذو القعدة" },
+                    { who: myGroup.team[0].name, t: `أهلاً بكم في ${groupName(myGroup.number)}. اللقاء التعريفي يوم 10 ذو القعدة الساعة 17:00 في قاعة المزة. يرجى تأكيد الحضور.`, when: "10 ذو القعدة" },
                     { who: (myGroup.team[2] ?? myGroup.team[0]).name, t: "الدرس الثالث قبل السفر: أحكام الإحرام ومحظوراته. راجعوا مسار «فقه الحج» في الأكاديمية قبل الدرس.", when: "20 شوال" },
                     { who: myGroup.team[1].name, t: "حافلة التجمّع من ساحة المزة إلى المطار تنطلق 01:30. لا تنسوا الجواز والأدوية والسوار.", when: "23 ذو القعدة" },
                   ].map((m, i) => (
@@ -636,7 +637,7 @@ export default function ApplicationPage() {
                 <div className="flex items-center gap-3">
                   <FileSignature className="size-10 text-gold-dark" />
                   <div>
-                    <p className="font-bold">عقد الحاج مع المجموعة {myGroup.number}</p>
+                    <p className="font-bold">عقد الحاج مع {groupName(myGroup.number)}</p>
                     <p className="text-sm text-ink-soft">وقّعه الحاج مع منسق المجموعة {post.enrolledBy?.name ?? ""} عند التسجيل فيها، وصادقت عليه الإدارة — تكلفة الحج والهدي{room ? " والسكن الخاص" : ""} {formatUSD(total)}</p>
                   </div>
                 </div>

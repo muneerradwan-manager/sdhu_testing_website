@@ -29,6 +29,7 @@ import {
   type FlightsData,
   type Traveler,
 } from "@/lib/flights";
+import { groupName, groupShort, groupsName } from "@/lib/groups";
 import { fullName, useEmployees } from "@/lib/ops";
 import { useOwns } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
@@ -145,7 +146,7 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
   };
 
   const assignGroups = (groups: GroupPick[], also?: string, why?: string) => {
-    const label = groups.length === 1 ? `المجموعة ${groups[0].ref.number}` : `${groups.length} مجموعات`;
+    const label = groups.length <= 3 ? groupsName(groups.map((g) => g.ref.number)) : `${groups.length} مجموعات`;
     const n = groups.reduce((x, g) => x + g.members.length, 0);
     if (!simple(() => flightsActions.assignGroups(f.id, groups, actor, why), `أُسندت ${label}`, `${n} مسافراً على ${f.flightNo}`)) return;
     if (also) simple(() => flightsActions.assignGroups(also, groups, actor), `وأُسندت أيضاً إلى ${data.flights.find((x) => x.id === also)?.flightNo}`);
@@ -256,10 +257,10 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
               <ul className="mt-2 flex flex-wrap gap-2">
                 {legs.map((g) => (
                   <li key={g.id} className="flex items-center gap-2 rounded-xl bg-white/10 py-1 pl-1 pr-3 text-sm">
-                    <span className="font-bold text-white">المجموعة {g.groupNumber}</span>
+                    <span className="font-bold text-white">{groupName(g.groupNumber)}</span>
                     <span className="text-xs text-white/60">{clusterName(g.clusterId)} — {active.filter((a) => a.clusterId === g.clusterId && a.groupNumber === g.groupNumber).length}</span>
                     {officer && acceptsAssignment(f) && (
-                      <button type="button" className="rounded-lg px-2 py-0.5 text-xs font-bold text-maroon-light hover:bg-white/10" onClick={() => { setReason(""); setDialog({ kind: "removeGroup", legId: g.id, label: `المجموعة ${g.groupNumber} (${clusterName(g.clusterId)})` }); }}>
+                      <button type="button" className="rounded-lg px-2 py-0.5 text-xs font-bold text-maroon-light hover:bg-white/10" onClick={() => { setReason(""); setDialog({ kind: "removeGroup", legId: g.id, label: `${groupName(g.groupNumber)} (${clusterName(g.clusterId)})` }); }}>
                         إزالة
                       </button>
                     )}
@@ -288,7 +289,7 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
                 <div key={fam.id}>
                   {showHead && (
                     <p className="mb-1 mt-4 flex items-center gap-2 text-sm font-bold text-gold first:mt-0">
-                      <Users className="size-4" /> {clusterName(head.clusterId ?? "")} — المجموعة {head.groupNumber}
+                      <Users className="size-4" /> {clusterName(head.clusterId ?? "")}{head.groupNumber !== undefined ? ` — ${groupName(head.groupNumber)}` : ""}
                       <span className="font-normal text-white/60">{active.filter((a) => a.clusterId === head.clusterId && a.groupNumber === head.groupNumber).length} مسافراً</span>
                     </p>
                   )}
@@ -367,7 +368,7 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
                 <div className="mt-2 max-h-72 overflow-auto rounded-xl bg-black/20 p-2">
                   <table className="w-full text-xs">
                     <thead><tr className="text-white/60"><th className="p-1 text-right">الاسم</th><th className="p-1 text-right">الصفة</th><th className="p-1 text-right">المجموعة</th><th className="p-1 text-right">الاحتياجات</th></tr></thead>
-                    <tbody>{m.rows.map((r) => <tr key={r.travelerId} className="border-t border-white/5"><td className="p-1">{r.name}</td><td className="p-1">{KIND_LABEL[r.kind]}</td><td className="p-1">{r.groupNumber ?? "—"}</td><td className="p-1">{r.needs.join("، ")}</td></tr>)}</tbody>
+                    <tbody>{m.rows.map((r) => <tr key={r.travelerId} className="border-t border-white/5"><td className="p-1">{r.name}</td><td className="p-1">{KIND_LABEL[r.kind]}</td><td className="p-1">{r.groupNumber !== undefined ? groupShort(r.groupNumber) : "—"}</td><td className="p-1">{r.needs.join("، ")}</td></tr>)}</tbody>
                   </table>
                 </div>
               </details>
@@ -429,7 +430,7 @@ export function FlightDrawer({ flight: f, data, onClose, onEdit }: { flight: Fli
                   <label key={a.id} className="flex items-center gap-2 px-2 py-1 text-sm">
                     <input type="checkbox" className="accent-maroon" checked={noShow.includes(a.travelerId)} onChange={() => setNoShow((p) => (p.includes(a.travelerId) ? p.filter((x) => x !== a.travelerId) : [...p, a.travelerId]))} />
                     <span className={cn(noShow.includes(a.travelerId) && "text-maroon line-through")}>{nameOf(a)}</span>
-                    <span className="text-xs text-hint">{a.groupNumber ? `المجموعة ${a.groupNumber}` : KIND_LABEL[a.travelerKind]}</span>
+                    <span className="text-xs text-hint">{a.groupNumber ? groupName(a.groupNumber) : KIND_LABEL[a.travelerKind]}</span>
                   </label>
                 ))}
               </div>

@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, BookUser, Camera, Check, Loader2,
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal } from "@/components/ui/widgets";
-import { ageOf, birthYear, fullName, lookupFamilyBook, registryRelation, relationLabel, type Person } from "@/lib/registry";
+import { ageOf, birthYear, fullName, lookupFamilyBook, registryRelation, relationLabel, type BookMember, type Person } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { SEASON } from "@/lib/season";
 import { cn, digitsOnly } from "@/lib/utils";
@@ -94,6 +94,13 @@ function ScanModal({ open, onClose, onResult, sample }: { open: boolean; onClose
       </p>
     </Modal>
   );
+}
+
+/** The person, without what only the book says about him */
+function personOf(m: BookMember): Person {
+  const p = { ...m };
+  delete p.movedTo;
+  return p;
 }
 
 export function BookletPicker({
@@ -223,6 +230,12 @@ export function BookletPicker({
           <AlertTriangle className="mt-0.5 size-4 shrink-0" /> صاحب الطلب غير مدرج في هذا الدفتر. سنعتمد صلات القرابة المسجّلة في السجلات حيثما وُجدت.
         </p>
       )}
+      {others.length === 0 && (
+        <p className="mb-4 flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm font-semibold leading-6 text-ink-soft">
+          <BookUser className="mt-0.5 size-4 shrink-0 text-gold-dark" />
+          لا أحد غير {applicant.firstName} في هذا الدفتر. من يرافقه من خارجه (ابن متزوج له دفتره، أخ، قريب) يُضاف برقمه الوطني من الزر أدناه.
+        </p>
+      )}
       <div className="grid gap-3 md:grid-cols-2">
         {others.map((p, i) => {
           const selected = selectedIds.includes(p.id);
@@ -239,7 +252,7 @@ export function BookletPicker({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => onToggle({ person: p, relation: rel, relationVerified: rel !== "other", needs: [] }, !selected)}
+              onClick={() => onToggle({ person: personOf(p), relation: rel, relationVerified: rel !== "other", needs: [] }, !selected)}
               className={cn(
                 "relative rounded-3xl border-2 p-5 text-right transition",
                 selected ? "border-green-dark bg-green-dark/5 shadow-lg" : "border-gold/50 bg-white hover:border-gold-dark",
@@ -259,6 +272,11 @@ export function BookletPicker({
                 </span>
               </PersonChip>
               <div className="mt-3 flex flex-wrap gap-1.5">
+                {p.movedTo && (
+                  <Badge tone="ink">
+                    {p.maritalStatus.startsWith("متزوج") ? (p.gender === "F" ? "انتقلت بزواجها" : "انتقل بزواجه") : p.gender === "F" ? "انتقلت" : "انتقل"} إلى دفتر {p.movedTo}
+                  </Badge>
+                )}
                 {tooYoung && <Badge tone="maroon">دون 17 عاماً — لا يمكن أن يكون مرافقاً</Badge>}
                 {needsMahram && <Badge tone="gold">تحتاج محرماً في الطلب</Badge>}
                 {elderly && <Badge tone="gold">يحتاج مرافقاً</Badge>}

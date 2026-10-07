@@ -7,6 +7,7 @@ import { ArrowLeft, BadgeCheck, EyeOff, Hotel, MapPin, Search, Sparkles, Star } 
 import { useState } from "react";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { normalizeArabic, type Cluster, type ServiceLevel } from "@/lib/data/clusters";
+import { groupName } from "@/lib/groups";
 import { cn, formatNumber } from "@/lib/utils";
 
 const LEVELS: ("الكل" | ServiceLevel)[] = ["الكل", "عادي", "محسّن", "خمس نجوم"];
@@ -178,7 +179,7 @@ function SeatBar({ group }: { group: Cluster["groups"][number] }) {
   return (
     <div>
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-ink">المجموعة {group.no}</span>
+        <span className="font-semibold text-ink">{groupName(group.no)}</span>
         <span className={cn("font-bold", full ? "text-maroon" : group.remaining <= 6 ? "text-amber-700" : "text-green")}>
           {full ? "مكتملة" : seatsLeft(group.remaining)}
         </span>

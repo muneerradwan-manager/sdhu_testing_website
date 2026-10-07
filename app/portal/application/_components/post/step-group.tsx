@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/ui/widgets";
-import { decideContract, groupInfo, submitContract } from "@/lib/assignment";
+import { decideContract, demoContractFile, groupInfo, submitContract } from "@/lib/assignment";
+import { groupName } from "@/lib/groups";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import Link from "next/link";
 import { useClusterDirectory } from "@/lib/cluster-profile";
@@ -25,6 +26,9 @@ import { ROOM_NEEDS } from "./model";
 import type { StepProps } from "./shared";
 
 
+/** The demo's group: مجموعة اللطيف of تكتل النور (27 is only its key) */
+const DEMO_GROUP = { clusterId: "al-nour", number: 27 };
+
 /**
  * الخطوة 3: الإلحاق بمجموعة — عملية مستقلة عن التسجيل على الحج. لا يختار الحاج مجموعته على المنصة: يتفق مع
  * مجموعة خارجها، فيرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها (رئيسها، أو المنسق أو المعاون
@@ -35,10 +39,10 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
   const joining = useOperation("group-joining");
   if (post.groupApprovedAt && post.contract?.status !== "pending") return null;
   const c = post.contract;
-  const demoUploader = { id: "01033300871", name: "أحمد سليمان الحمصي", role: "رئيس المجموعة 27" };
   const upload = () => {
-    submitContract({ sessionId, app, post, group: { clusterId: "al-nour", number: 27 }, uploader: demoUploader, file: { name: `عقد-${app.number}-المجموعة-27.pdf`, size: 248_000 }, at: Date.now() });
-    toast({ title: "رُفع عقدكم مع المجموعة 27", body: "رفعه رئيسها، وينتظر اعتماد المكتب.", icon: "📄", tone: "info" });
+    const uploader = { id: "01033300871", name: "أحمد سليمان الحمصي", role: `رئيس ${groupName(DEMO_GROUP.number)}` };
+    submitContract({ sessionId, app, post, group: DEMO_GROUP, uploader, file: demoContractFile(app, DEMO_GROUP.number), at: Date.now() });
+    toast({ title: `رُفع عقدكم مع ${groupName(DEMO_GROUP.number)}`, body: "رفعه رئيسها، وينتظر اعتماد المكتب.", icon: "📄", tone: "info" });
   };
   const approve = () => {
     decideContract({ sessionId, app, post, status: "approved", by: { name: "رنا حداد (محاكاة)", role: "إدارة التسجيل" }, at: Date.now() });
@@ -73,7 +77,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
       {c?.status === "pending" ? (
         <div className="mt-5 rounded-3xl border-2 border-gold-dark/40 bg-white p-5">
           <p className="flex items-center gap-2 font-bold text-green-dark">
-            <FileSignature className="size-5" /> عقدكم مع المجموعة {c.groupNumber}{c.transferFrom ? ` (انتقال من المجموعة ${c.transferFrom})` : ""} عند المكتب
+            <FileSignature className="size-5" /> عقدكم مع {groupName(c.groupNumber)}{c.transferFrom ? ` (انتقال من ${groupName(c.transferFrom)})` : ""} عند المكتب
           </p>
           <p className="mt-1 text-sm text-ink-soft">
             رفعه {c.uploadedBy.name} ({c.uploadedBy.role}) — الملف «{c.file.name}». يصلكم إشعار حين يُعتمد.
@@ -84,7 +88,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
         </div>
       ) : c?.status === "returned" ? (
         <div className="mt-5 rounded-3xl border-2 border-maroon/30 bg-maroon/5 p-5">
-          <p className="font-bold text-maroon">أعاد المكتب عقدكم مع المجموعة {c.groupNumber}: {c.reason}</p>
+          <p className="font-bold text-maroon">أعاد المكتب عقدكم مع {groupName(c.groupNumber)}: {c.reason}</p>
           <p className="mt-1 text-sm text-ink-soft">يرفعه {c.uploadedBy.name} من جديد بعد إصلاحه.</p>
         </div>
       ) : (
@@ -95,7 +99,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
           </p>
           {joining.open && (
             <button type="button" onClick={upload} className="mt-3 rounded-full border border-dashed border-gold-dark px-3 py-1 text-sm font-semibold text-maroon">
-              محاكاة: اتفقنا مع المجموعة 27 ورفع رئيسها العقد
+              محاكاة: اتفقنا مع {groupName(DEMO_GROUP.number)} ورفع رئيسها العقد
             </button>
           )}
         </div>
@@ -114,7 +118,7 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
         <div className="rounded-3xl bg-green-dark p-5 text-white">
           <p className="text-sm text-gold">مجموعتي</p>
           <p className="font-display text-2xl font-bold">
-            المجموعة {info.number} — {info.clusterName.replace("تكتل ", "")}
+            {groupName(info.number)} — {info.clusterName.replace("تكتل ", "")}
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-white/75">
             <Building2 className="size-4" /> {info.office} — مستوى الخدمة: {info.level}
@@ -143,7 +147,7 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
           </ul>
           {post.transfers?.length ? (
             <p className="mt-3 text-sm text-hint">
-              انتقلتم سابقاً: {post.transfers.map((t) => `${t.from} ← ${t.to}`).join("، ")}
+              انتقلتم سابقاً: {post.transfers.map((t) => `${groupName(t.from)} ← ${groupName(t.to)}`).join("، ")}
             </p>
           ) : null}
         </div>
@@ -154,7 +158,7 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
       {post.contract && (
         <div className="rounded-3xl border border-gold/40 bg-white p-5">
           <p className="flex items-center gap-2 font-bold text-green-dark">
-            <FileSignature className="size-5" /> عقدكم مع المجموعة {post.contract.groupNumber}
+            <FileSignature className="size-5" /> عقدكم مع {groupName(post.contract.groupNumber)}
           </p>
           <ul className="mt-2 grid gap-1 text-sm text-ink-soft sm:grid-cols-3">
             <li>الملف: «{post.contract.file.name}»</li>

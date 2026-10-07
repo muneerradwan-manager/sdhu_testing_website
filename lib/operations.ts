@@ -57,7 +57,7 @@ export const OPERATIONS: OperationDef[] = [
   { key: "cluster-formation", label: "تشكيل التكتلات", desc: "طلبات تشكيل التكتلات بالتوازي مع إلحاق الحجاج: يضم رئيس التكتل المجموعات ويختار فريقه ويسنده، حتى الموعد النهائي.", start: "2026-11-12", end: "2026-11-30", control: "admins.manage", estimate: true },
   { key: "cluster-approval", label: "اعتماد التكتلات وتوزيع المجموعات", desc: "بعد الموعد النهائي: يُعتمد التكتل المكتمل، ويُقصى الناقص وتوزَّع مجموعاته على المعتمدة.", start: "2026-12-01", end: "2026-12-05", control: "admins.manage", estimate: true },
   { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها وفريقها الذي أسنده رئيس التكتل. دائمة ما دامت المجموعة قائمة.", control: "admins.manage" },
-  { key: "cluster-management", label: "إدارة التكتلات", desc: "التكتل المعتمد: مجموعاته وحجاجها وفريقه وإسناده وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
+  { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وفريقه وإسناده وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
 ];
 
 export const OPERATION_KEYS = OPERATIONS.map((o) => o.key);
@@ -67,7 +67,8 @@ export type OperationMode = "auto" | "on" | "off";
 /** What the controlling staff changed: the mode, the dates, and who did it */
 export type OperationOverride = { mode?: OperationMode; start?: string; end?: string; by?: string; at?: number };
 
-export type OperationStatus = "open" | "upcoming" | "closed" | "on" | "off" | "always";
+/** `all`: open because the tester opened everything at once («كل شيء مفتوح»), whatever its dates */
+export type OperationStatus = "open" | "upcoming" | "closed" | "on" | "off" | "always" | "all";
 
 export type OperationState = OperationDef & {
   mode: OperationMode;
@@ -115,13 +116,17 @@ export function rangeLabel(start?: string, end?: string) {
   return `${dayLabel(start)} – ${dayLabel(end)}`;
 }
 
-export function stateOf(def: OperationDef, o: OperationOverride | undefined, today: string): OperationState {
+/**
+ * An operation's state on a day. With `allOpen` every dated operation is open whatever its dates; what the
+ * staff stopped by hand stays stopped, since stopping it is itself something to try.
+ */
+export function stateOf(def: OperationDef, o: OperationOverride | undefined, today: string, allOpen = false): OperationState {
   const mode = o?.mode ?? "auto";
   const start = o?.start ?? def.start;
   const end = o?.end ?? def.end;
-  const status: OperationStatus =
-    mode === "on" ? "on" : mode === "off" ? "off" : !start && !end ? "always" : start && today < start ? "upcoming" : end && today > end ? "closed" : "open";
-  return { ...def, start, end, mode, status, open: status === "open" || status === "on" || status === "always", by: o?.by, at: o?.at };
+  const byDate: OperationStatus = !start && !end ? "always" : start && today < start ? "upcoming" : end && today > end ? "closed" : "open";
+  const status: OperationStatus = mode === "on" ? "on" : mode === "off" ? "off" : allOpen && byDate !== "always" ? "all" : byDate;
+  return { ...def, start, end, mode, status, open: status === "open" || status === "on" || status === "always" || status === "all", by: o?.by, at: o?.at };
 }
 
 /** «مفتوحة حتى 25 كانون الثاني»، «تفتح 20 كانون الثاني»، «أوقفتها الإدارة» */
@@ -137,6 +142,8 @@ export function statusLabel(s: OperationState) {
       return "فتحتها الإدارة";
     case "off":
       return "أوقفتها الإدارة";
+    case "all":
+      return "مفتوحة — تجربة الكل معاً";
     default:
       return "دائمة";
   }
@@ -149,8 +156,14 @@ export function useToday() {
 
 export function useOperations(): OperationState[] {
   const today = useToday();
+  const allOpen = useAllOpen();
   const overrides = useStore((s) => s.operations);
-  return useMemo(() => OPERATIONS.map((d) => stateOf(d, overrides[d.key], today)), [overrides, today]);
+  return useMemo(() => OPERATIONS.map((d) => stateOf(d, overrides[d.key], today, allOpen)), [overrides, today, allOpen]);
+}
+
+/** Is the demo trying everything together, every operation open whatever its dates? */
+export function useAllOpen() {
+  return useStore((s) => !!s.clock.allOpen);
 }
 
 export function useOperation(key: OperationKey): OperationState {

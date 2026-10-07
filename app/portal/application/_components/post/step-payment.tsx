@@ -8,6 +8,7 @@ import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment
 import { planLabel, seasonPlan } from "@/lib/installments";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
+import { groupName } from "@/lib/groups";
 import { GROUP } from "@/lib/journey";
 import { fullName } from "@/lib/registry";
 import { actions } from "@/lib/store";
@@ -185,7 +186,7 @@ export function SignatureChain({ app, post }: Pick<StepProps, "app" | "post">) {
   const approved = c?.status === "approved" || (!c && !!post.groupApprovedAt);
   const chain = [
     { who: fullName(applicant.person), role: "الحاج — صاحب الطلب", ok: !!c || approved, done: "اتفق ووقّع ✓" },
-    { who: c?.uploadedBy.name ?? post.enrolledBy?.name ?? "المجموعة", role: c ? `رفع العقد — ${c.uploadedBy.role}` : `المجموعة ${post.groupNumber ?? GROUP.number}`, ok: !!c || approved, done: "رفع العقد ✓" },
+    { who: c?.uploadedBy.name ?? post.enrolledBy?.name ?? "المجموعة", role: c ? `رفع العقد — ${c.uploadedBy.role}` : groupName(post.groupNumber ?? GROUP.number), ok: !!c || approved, done: "رفع العقد ✓" },
     { who: c?.decidedBy ?? "إدارة التسجيل", role: "المكتب — الاعتماد", ok: approved, done: "اعتمد العقد ✓" },
   ];
   return (

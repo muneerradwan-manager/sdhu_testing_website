@@ -5,6 +5,8 @@ import { AlertOctagon, ArrowRight, Ambulance, CheckCircle2, HeartPulse, Loader2,
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, SpeakButton, useToast } from "@/components/ui/widgets";
+import { groupName } from "@/lib/groups";
+import { GROUP } from "@/lib/journey";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
@@ -159,7 +161,7 @@ function LiveEmergency({ ctx, ticket, onClose }: { ctx: SeasonCtx; ticket: Ticke
   const parties = health
     ? [
         { who: "د. ليلى شمس", role: "عيادة الفندق — الفريق الطبي", icon: <Stethoscope className="size-5" /> },
-        { who: "أحمد سليمان", role: "رئيس المجموعة 27", icon: <UserRound className="size-5" /> },
+        { who: "أحمد سليمان", role: `رئيس ${groupName(GROUP.number)}`, icon: <UserRound className="size-5" /> },
         { who: "فادي سلوم", role: "غرفة العمليات", icon: <Radio className="size-5" /> },
       ]
     : [{ who: ticket.assignee, role: "المستلم", icon: <Radio className="size-5" /> }];

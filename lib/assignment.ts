@@ -10,6 +10,7 @@
  */
 import { clustersNow } from "./cms/content";
 import { syncFamily } from "./flights";
+import { groupName } from "./groups";
 import { GROUP } from "./journey";
 import { fullName } from "./registry";
 import { officeFor } from "./season";
@@ -113,7 +114,7 @@ export function enrollFamily(opts: {
   actions.logEvent({
     actor: approvedBy?.name ?? coordinator.name,
     role: approvedBy?.role ?? "إداري",
-    action: from ? `اعتماد عقد نقل طلب عائلي من المجموعة ${from} إلى المجموعة ${group.number}` : `اعتماد عقد حاج مع المجموعة ${group.number}`,
+    action: from ? `اعتماد عقد نقل طلب عائلي من ${groupName(from)} إلى ${groupName(group.number)}` : `اعتماد عقد حاج مع ${groupName(group.number)}`,
     target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`,
     detail: `${app.members.length} أفراد معاً — ${info.clusterName} — رفع العقد ${coordinator.name}`,
   });
@@ -133,7 +134,7 @@ export function submitContract(opts: { sessionId: string; app: Application; post
   actions.logEvent({
     actor: uploader.name,
     role: uploader.role,
-    action: transferFrom ? `رفع عقد نقل طلب عائلي من المجموعة ${transferFrom} إلى المجموعة ${group.number}` : `رفع عقد حاج مع المجموعة ${group.number}`,
+    action: transferFrom ? `رفع عقد نقل طلب عائلي من ${groupName(transferFrom)} إلى ${groupName(group.number)}` : `رفع عقد حاج مع ${groupName(group.number)}`,
     target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`,
     detail: `${app.members.length} أفراد — ${file.name} — بانتظار اعتماد المكتب`,
   });
@@ -150,13 +151,18 @@ export function decideContract(opts: { sessionId: string; app: Application; post
     return;
   }
   const applicant = app.members.find((m) => m.relation === "self")?.person;
-  actions.logEvent({ actor: by.name, role: by.role, action: `إعادة عقد حاج مع المجموعة ${c.groupNumber} إلى رافعه`, target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`, detail: reason });
+  actions.logEvent({ actor: by.name, role: by.role, action: `إعادة عقد حاج مع ${groupName(c.groupNumber)} إلى رافعه`, target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`, detail: reason });
+}
+
+/** The demo's signed contract file, named after the group, never its number: «عقد-<application>-مجموعة-اللطيف.pdf» */
+export function demoContractFile(app: Application, group: number): PilgrimContract["file"] {
+  return { name: `عقد-${app.number}-${groupName(group).replaceAll(" ", "-")}.pdf`, size: 248_000 };
 }
 
 /** The demo's shortcut on the pilgrim's side: the group uploads the contract and the office approves it at once */
 export function attachByContract(opts: { sessionId: string; app: Application; post: PostAcceptance | undefined; group: GroupRef; uploader: PilgrimContract["uploadedBy"]; at: number }) {
   const { sessionId, app, post, group, uploader, at } = opts;
-  submitContract({ sessionId, app, post, group, uploader, file: { name: `عقد-${app.number}-المجموعة-${group.number}.pdf`, size: 248_000 }, at });
-  const contract: PilgrimContract = { groupNumber: group.number, clusterId: group.clusterId, status: "pending", uploadedBy: uploader, uploadedAt: at, file: { name: `عقد-${app.number}-المجموعة-${group.number}.pdf`, size: 248_000 } };
+  submitContract({ sessionId, app, post, group, uploader, file: demoContractFile(app, group.number), at });
+  const contract: PilgrimContract = { groupNumber: group.number, clusterId: group.clusterId, status: "pending", uploadedBy: uploader, uploadedAt: at, file: demoContractFile(app, group.number) };
   decideContract({ sessionId, app, post: { ...(post ?? { documents: {}, payments: {}, ratings: {} }), contract } as PostAcceptance, status: "approved", by: { name: "رنا حداد", role: "إدارة التسجيل" }, at: at + 1 });
 }

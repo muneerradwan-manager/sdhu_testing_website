@@ -14,7 +14,7 @@ export type GradingRules = { promoteShare: number; demoteShare: number; honorTop
 /** One ranked entity: a group or a cluster, with the season score the evaluation produced */
 export type Graded = {
   id: string;
-  /** Group number, or the cluster's name */
+  /** The group's name («مجموعة اللطيف») — its number is only in `id` — or the cluster's name */
   name: string;
   /** Head and office, shown under the name */
   head: string;

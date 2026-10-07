@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { DEFAULT_BLUEPRINTS, EXAM_QUESTIONS, drawPaper, finalScoreWith, markPaper, pointsOf, typeOf, weightsLabel, withMarks, type ExamNumbers } from "@/lib/data/admin-exam";
 import { ageOf, fullName, getPerson, type Person } from "@/lib/registry";
+import { groupName, groupsName } from "@/lib/groups";
 import { OPERATIONS, rangeLabel } from "@/lib/operations";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
@@ -21,17 +22,17 @@ export type DemoAdmin = { id: string; phone: string; position: string; title: st
 
 /** Twelve demo administrators: two for each role — one finished, one not started */
 export const DEMO_ADMINS: DemoAdmin[] = [
-  { id: "01033300881", phone: "0944281449", position: "group-head", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس المجموعة 31 ثلاثة مواسم متتالية (4.6 – 4.8). جدّد صفته معفى من الامتحانين، ثم قدّم طلب تشكيل تكتل النور لأنه يستوفي شروطه: دعا المجموعات بحجاجها ونائبه وفريق التكتل، وأسندهم إلى المجموعات، فاعتُمد عند الموعد النهائي. يبقى رئيس مجموعته ويدير التكتل كله." },
-  { id: "01033300882", phone: "0944282449", position: "group-head", mode: "start", title: "نبيل الساعاتي — رئيس مجموعة يستوفي شروط تشكيل تكتل", note: "54 عاماً — رئيس المجموعة 9 ثلاثة مواسم متتالية بتقييم 4.3 – 4.6: يستطيع أن يقدّم طلب تشكيل تكتل في مدته، بعد أن يشكّل مجموعته. لم يبدأ موسم 1448." },
-  { id: "01033300883", phone: "0944283449", position: "group-head", mode: "done", title: "بسام درويش — نائب رئيس تكتل النور", note: "51 عاماً — رئيس المجموعة 5 في 1446 و1447 (4.4). دعاه رئيس تكتل النور نائباً له لأنه رئيس مجموعة سابق فقبل، فصارت صفته نائب رئيس تكتل: يرى مجموعات التكتل ومعلوماته، لا مجموعة واحدة." },
+  { id: "01033300881", phone: "0944281449", position: "group-head", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس مجموعة الخبير ثلاثة مواسم متتالية (4.6 – 4.8). جدّد صفته معفى من الامتحانين، ثم قدّم طلب تشكيل تكتل النور لأنه يستوفي شروطه: دعا المجموعات بحجاجها ونائبه وفريق التكتل، وأسندهم إلى المجموعات، فاعتُمد عند الموعد النهائي. يبقى رئيس مجموعته ويدير التكتل كله." },
+  { id: "01033300882", phone: "0944282449", position: "group-head", mode: "start", title: "نبيل الساعاتي — رئيس مجموعة يستوفي شروط تشكيل تكتل", note: "54 عاماً — رئيس مجموعة الرضوان ثلاثة مواسم متتالية بتقييم 4.3 – 4.6: يستطيع أن يقدّم طلب تشكيل تكتل في مدته، بعد أن يشكّل مجموعته. لم يبدأ موسم 1448." },
+  { id: "01033300883", phone: "0944283449", position: "group-head", mode: "done", title: "بسام درويش — نائب رئيس تكتل النور", note: "51 عاماً — رئيس مجموعة أحفاد بني هاشم في 1446 و1447 (4.4). دعاه رئيس تكتل النور نائباً له لأنه رئيس مجموعة سابق فقبل، فصارت صفته نائب رئيس تكتل: يرى مجموعات التكتل ومعلوماته، لا مجموعة واحدة." },
   { id: "01033300884", phone: "0944284449", position: "group-head", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "45 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالامتحانين. لم يبدأ." },
-  { id: "01033300871", phone: "0944271449", position: "group-head", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وشكّل مجموعته 27 وحده، ثم قبل دعوة تكتل النور لها. يلحق بها الحجاج ويرحّب بالعائلات ويفتح التجمّعات." },
+  { id: "01033300871", phone: "0944271449", position: "group-head", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وشكّل مجموعته «مجموعة اللطيف» وحده، ثم قبل دعوة تكتل النور لها. يلحق بها الحجاج ويرحّب بالعائلات ويفتح التجمّعات." },
   { id: "01033300885", phone: "0944285449", position: "group-head", mode: "start", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له: يريد رئاسة مجموعة يشكّلها بنفسه، ويخضع للامتحانين. لم يبدأ." },
-  { id: "01033300872", phone: "0944272449", position: "group-deputy", mode: "done", title: "ياسر عبد الله — معاون رئيس مجموعة", note: "40 عاماً — معاون المجموعة 27 في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
-  { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون المجموعة 41 في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
+  { id: "01033300872", phone: "0944272449", position: "group-deputy", mode: "done", title: "ياسر عبد الله — معاون رئيس مجموعة", note: "40 عاماً — معاون مجموعة اللطيف في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
+  { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون مجموعة الإحسان في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
   { id: "01033300874", phone: "0944274449", position: "tech", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق تقني في 1447 (4.8)، جدّد الصفة نفسها. المنسق للتكتل لا لمجموعة: دعاه رئيس تكتل النور، وأسند إليه ثلاثاً من مجموعات التكتل (31 و27 و5). يسجّل الحجاج على الحج في مكتب دمشق دون أن يضعهم في مجموعة، ويرفع عقود من يتفق مع مجموعاته، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
   { id: "01033300887", phone: "0944287449", position: "tech", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص، أول موسم له. لم يبدأ." },
-  { id: "01033300873", phone: "0944273449", position: "guide-m", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه المجموعة 27 في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
+  { id: "01033300873", phone: "0944273449", position: "guide-m", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه مجموعة اللطيف في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين. أنهى رحلته." },
   { id: "01033300888", phone: "0944288449", position: "guide-m", mode: "start", title: "عبد الغني الطباع — موجّه ديني", note: "43 عاماً — أول موسم له. لم يبدأ." },
 ];
 /** تكتل النور في هذا العرض، ومجموعة أحمد فيه (27). فريقه وإسناده في طلبه (SEED_CLUSTERS) */
@@ -307,24 +308,37 @@ export const ADMIN_CALENDAR = [
   { hijri: "24 ذو القعدة (1 أيار 2027)", title: "السفر مع الحجاج", detail: "الميدان: التجمّعات والإعلانات والتقارير" },
 ] as const;
 
-export type SeasonRecord = { season: string; roleKey: string | null; role: string; group: string; rating: number | null };
+/** `groups`: the groups he served in, by their keys; `group`: the same, named for the screen */
+export type SeasonRecord = { season: string; roleKey: string | null; role: string; groups: number[]; group: string; rating: number | null };
 
 /** Seasons served, from the platform's own records (roleKey null = did not take part that season) */
-const HISTORY: Record<string, { season: string; roleKey: string | null; group?: string; rating?: number }[]> = {
-  "01033300881": [{ season: "1445", roleKey: "group-head", group: "المجموعة 31", rating: 4.6 }, { season: "1446", roleKey: "group-head", group: "المجموعة 31", rating: 4.7 }, { season: "1447", roleKey: "group-head", group: "المجموعة 31", rating: 4.8 }],
-  "01033300882": [{ season: "1445", roleKey: "group-head", group: "المجموعة 9", rating: 4.3 }, { season: "1446", roleKey: "group-head", group: "المجموعة 9", rating: 4.5 }, { season: "1447", roleKey: "group-head", group: "المجموعة 9", rating: 4.6 }],
-  "01033300883": [{ season: "1446", roleKey: "group-head", group: "المجموعة 5", rating: 4.2 }, { season: "1447", roleKey: "group-head", group: "المجموعة 5", rating: 4.4 }],
-  "01033300884": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-head", group: "المجموعة 44", rating: 3.2 }],
-  "01033300871": [{ season: "1446", roleKey: "group-deputy", group: "المجموعة 12", rating: 4.6 }, { season: "1447", roleKey: null }],
-  "01033300872": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", group: "المجموعة 27", rating: 4.1 }],
-  "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", group: "تكتل النور — المجموعات 27 و31 و5", rating: 4.8 }],
-  "01033300886": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", group: "المجموعة 41", rating: 4.3 }],
-  "01033300873": [{ season: "1446", roleKey: "guide-m", group: "المجموعة 27", rating: 4.9 }, { season: "1447", roleKey: "guide-m", group: "المجموعة 27", rating: 4.9 }],
+const HISTORY: Record<string, { season: string; roleKey: string | null; cluster?: string; groups?: number[]; rating?: number }[]> = {
+  "01033300881": [{ season: "1445", roleKey: "group-head", groups: [31], rating: 4.6 }, { season: "1446", roleKey: "group-head", groups: [31], rating: 4.7 }, { season: "1447", roleKey: "group-head", groups: [31], rating: 4.8 }],
+  "01033300882": [{ season: "1445", roleKey: "group-head", groups: [9], rating: 4.3 }, { season: "1446", roleKey: "group-head", groups: [9], rating: 4.5 }, { season: "1447", roleKey: "group-head", groups: [9], rating: 4.6 }],
+  "01033300883": [{ season: "1446", roleKey: "group-head", groups: [5], rating: 4.2 }, { season: "1447", roleKey: "group-head", groups: [5], rating: 4.4 }],
+  "01033300884": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-head", groups: [44], rating: 3.2 }],
+  "01033300871": [{ season: "1446", roleKey: "group-deputy", groups: [12], rating: 4.6 }, { season: "1447", roleKey: null }],
+  "01033300872": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", groups: [27], rating: 4.1 }],
+  "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", cluster: "تكتل النور", groups: [27, 31, 5], rating: 4.8 }],
+  "01033300886": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", groups: [41], rating: 4.3 }],
+  "01033300873": [{ season: "1446", roleKey: "guide-m", groups: [27], rating: 4.9 }, { season: "1447", roleKey: "guide-m", groups: [27], rating: 4.9 }],
 };
 
 export function seasonHistory(id: string): SeasonRecord[] {
   const rows = HISTORY[id] ?? [{ season: "1446", roleKey: null }, { season: "1447", roleKey: null }];
-  return rows.map((r) => ({ season: r.season, roleKey: r.roleKey, role: r.roleKey ? positionLabelOf(r.roleKey) : "لم يشارك", group: r.group ?? "", rating: r.rating ?? null }));
+  return rows.map((r) => ({
+    season: r.season,
+    roleKey: r.roleKey,
+    role: r.roleKey ? positionLabelOf(r.roleKey) : "لم يشارك",
+    groups: r.groups ?? [],
+    group: [r.cluster, r.groups?.length ? groupsName(r.groups) : ""].filter(Boolean).join(" — "),
+    rating: r.rating ?? null,
+  }));
+}
+
+/** Served in at least one earlier season: his permanent file («وثائقي ومهاراتي») is already on the platform */
+export function servedBefore(id: string) {
+  return seasonHistory(id).some((h) => h.roleKey);
 }
 
 /** The last season actually served, if any */
@@ -464,12 +478,12 @@ export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinC
     { key: "result", title: "النتيجة النهائية", date: when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : weightsLabel(rules), done: !!r.published && r.passed },
     teamMember
       ? { key: "team", title: tech ? "الانضمام إلى تكتل منسقاً تقنياً" : "الانضمام إلى تكتل", date: when("cluster-formation"), href: "/administrator/cluster", detail: post ? posted : "بدعوة فردية من رئيس تكتل، يسند إليك بعدها مجموعات من تكتله", done: !!post }
-      : { key: "group", title: "طلب تشكيل المجموعة", date: when("group-formation"), href: "/administrator/group", detail: g ? `المجموعة ${g.number} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "وحدك دون فريق — رسم 200 $", done: !!g?.feePaidAt },
+      : { key: "group", title: "طلب تشكيل المجموعة", date: when("group-formation"), href: "/administrator/group", detail: g ? `${groupName(g.number)} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "وحدك دون فريق — رسم 200 $", done: !!g?.feePaidAt },
     { key: "approval", title: "اعتماد إدارة الإداريين", date: when("group-formation"), href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "يقرر فيه صاحب صلاحية «إدارة الإداريين»", done: !!g?.approvedAt, groupOnly: true },
     { key: "cluster", title: "تشكيل التكتلات", date: when("cluster-formation"), href: "/administrator/cluster", detail: p?.cluster ? `قدّمت طلب ${p.cluster.name}` : p?.deputyOf ? `${p.deputyOf.clusterName} — نائب رئيسه` : g?.clusterId ? "مجموعتك في تكتل" : "تدعوك تكتلات إليها، أو تقدّم طلب تشكيل تكتل إن استوفيت شروطه", done: !!p?.cluster || !!p?.deputyOf || !!g?.clusterId, headOnly: true },
     teamMember
       ? { key: "requests", title: tech ? "إلحاق الحجاج بمجموعاتي" : "حجاج مجموعاتي", date: when("group-joining"), href: "/administrator/requests", detail: tech ? "عقود الحجاج في المجموعات المسندة إليك، وملفاتهم الصحية" : "حجاج المجموعات المسندة إليك", done: joinCount > 0 }
-      : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "عقود حجاج مجموعتك وملفاتهم الصحية", done: joinCount > 0 },
+      : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: isClusterRole(p) ? "/administrator/clusters" : "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "عقود حجاج مجموعتك وملفاتهم الصحية", done: joinCount > 0 },
     { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "أول تجمّع أُغلق — انطلقنا" : "التجمّعات والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;

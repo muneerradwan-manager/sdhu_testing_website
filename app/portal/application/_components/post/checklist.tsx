@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle2, FastForward, Lock, MapPinned, Plane } from "lu
 import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
+import { groupName } from "@/lib/groups";
 import { FLIGHTS, GROUP } from "@/lib/journey";
 import { actions, type Application, type PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
     if (post.groupApprovedAt && (!approvedRef.current || groupRef.current !== post.groupNumber)) {
       const info = groupInfo(post.clusterId, post.groupNumber);
       toast({
-        title: `أنتم الآن في المجموعة ${info.number}`,
+        title: `أنتم الآن في ${groupName(info.number)}`,
         body: `${info.clusterName}. رفع عقدكم ${post.enrolledBy?.name ?? coordinatorOf(info).name} واعتمده المكتب. التالي: الدفعة الثانية.`,
         icon: "🤝",
         tone: "success",
@@ -63,7 +64,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
     setDismissed(STEPS.slice(0, -1).map((s) => s.key));
     const base = Date.now();
     const documents = Object.fromEntries(app.members.flatMap((m) => DOCS.map((d) => [docKey(m, d.key), "approved" as const])));
-    // Demo: the family joins group 27 of Al-Nour through its coordinator سامر نجار
+    // Demo: the family joins مجموعة اللطيف (key 27) of Al-Nour through its coordinator سامر نجار
     const info = groupInfo("al-nour", GROUP.number);
     const coordinator = { id: COORDINATOR_ID, name: coordinatorOf(info).name };
     const health = demoHealth(app.members, { id: COORDINATOR_ID, name: `${coordinator.name} (محاكاة)` }, base);
@@ -75,7 +76,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
       [0, () => paidApp !== app && actions.saveApplication(paidApp)],
       [700, () => actions.setPost(sessionId, { documents })],
       // The group's head uploads the contract and the office approves it
-      [1400, () => attachByContract({ sessionId, app: paidApp, post, group: { clusterId: info.clusterId, number: info.number }, uploader: { id: "01033300871", name: "أحمد سليمان الحمصي", role: `رئيس المجموعة ${info.number}` }, at: base + 1400 })],
+      [1400, () => attachByContract({ sessionId, app: paidApp, post, group: { clusterId: info.clusterId, number: info.number }, uploader: { id: "01033300871", name: "أحمد سليمان الحمصي", role: `رئيس ${groupName(info.number)}` }, at: base + 1400 })],
       [2100, () => actions.setPost(sessionId, { payments: Object.fromEntries(payable.map((l) => [l.key, base + 2100])) })],
       [2800, () => recordHealth(sessionId, paidApp, { ...health, confirmedAt: base + 2800 })],
       [3200, () => actions.setPost(sessionId, { medical: Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const]))) })],
@@ -197,7 +198,7 @@ function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey:
     case "group":
       return (
         <StepDone
-          title={`أنتم الآن في المجموعة ${post.groupNumber ?? GROUP.number}`}
+          title={`أنتم الآن في ${groupName(post.groupNumber ?? GROUP.number)}`}
           body={`رفع ${post.enrolledBy?.name ?? "المجموعة"} عقدكم مع المجموعة واعتمده المكتب. التالي: الدفعة الثانية.`}
           rating={rating}
           next={nextStep?.title}

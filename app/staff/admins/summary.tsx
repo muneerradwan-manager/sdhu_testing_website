@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, Building2, Funnel, Gauge, GraduationCap, Layers, ListChecks, Megaphone, ScrollText, UsersRound, Vote } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Building2, Funnel, Gauge, GraduationCap, Layers, ListChecks, Megaphone, ScrollText, UsersRound } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { groupName } from "@/lib/groups";
 import { useSeason } from "@/lib/season-live";
 import { useStore } from "@/lib/store";
 import { SYSTEMS, useHolders } from "@/lib/systems";
@@ -108,7 +109,7 @@ export function AdminsSummary() {
             {desk.waiting.slice(0, 4).map((x) => (
               <li key={x.g.number} className="flex flex-wrap items-center gap-2 rounded-2xl bg-white/[.06] px-3 py-2 text-sm ring-1 ring-white/10">
                 <span className="min-w-0 flex-1 font-bold text-white">
-                  المجموعة {x.g.number} — {x.row.name}
+                  {groupName(x.g.number)} — {x.row.name}
                 </span>
                 <Chip tone={x.complete ? "green" : "gold"}>{x.complete ? "مكتملة الشروط" : "ناقصة"}</Chip>
                 <span className="text-xs text-white/60">قُدّمت {fmtDateTime(x.g.requestedAt)}</span>

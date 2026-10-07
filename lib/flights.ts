@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CLUSTERS } from "./data/clusters";
+import { groupName, groupShort } from "./groups";
 import { SEASON } from "./season";
 import { actions, setState, useStore, type AdminProfile, type Application, type PostAcceptance } from "./store";
 import { fullName, ageOf } from "./registry";
@@ -599,7 +600,7 @@ export function flightWarnings(f: Flight, d: Pick<FlightsData, "assignments" | "
     const [cid, num] = key.split(":");
     const ofGroup = mine.filter((a) => a.clusterId === cid && a.groupNumber === Number(num));
     if (!ofGroup.some((a) => a.travelerKind === "administrator") && !mine.some((a) => a.travelerKind === "employee"))
-      out.push(`${ofGroup.length} حاجاً من المجموعة ${num} (${clusterName(cid)}) دون مرافق من فريقها ولا موظف`);
+      out.push(`${ofGroup.length} حاجاً من ${groupName(Number(num))} (${clusterName(cid)}) دون مرافق من فريقها ولا موظف`);
   }
   if (f.direction === "return") {
     const noOut = mine.filter((a) => a.travelerKind !== "employee" && !d.assignments.some((b) => b.travelerId === a.travelerId && isActive(b) && d.flights.find((x) => x.id === b.flightId)?.direction === "outbound") && !d.otherMeans[a.travelerId]);
@@ -622,7 +623,7 @@ function log(actor: Actor, action: string, target: string | undefined, detail: s
   later(() => actions.logEvent({ actor: actor.name, role: actor.role, action, target, detail, ...extra, system: "flights", ...meta }));
 }
 
-const groupLabel = (g: { clusterId: string; groupNumber: number }) => `المجموعة ${g.groupNumber} (${clusterName(g.clusterId)})`;
+const groupLabel = (g: { clusterId: string; groupNumber: number }) => `${groupName(g.groupNumber)} (${clusterName(g.clusterId)})`;
 
 /** One set of travellers on one flight, checked and written together. Used by every assign path. */
 function seatTravelers(d: Full, flightId: string, travelers: Traveler[], actor: Actor, reason?: string): { error: string } | { flights: Flight[]; assignments: FlightAssignment[]; flight: Flight; added: FlightAssignment[] } {
@@ -998,7 +999,7 @@ export function manifestRows(f: Flight, assignments: FlightAssignment[]): Manife
 /** CSV of a manifest, in the columns نسك مسار asks for (a demo approximation) */
 export function manifestCsv(m: Manifest, f: Flight, d: Pick<FlightsData, "airports" | "carriers">) {
   const head = ["الاسم", "الرقم الوطني", "الصفة", "الجنس", "العمر", "التكتل", "المجموعة", "الاحتياجات", "رقم الرحلة", "الناقل", "من", "إلى", "المغادرة", "الوصول"];
-  const rows = m.rows.map((r) => [r.name, r.travelerId, KIND_LABEL[r.kind], r.gender === "F" ? "أنثى" : "ذكر", r.age ?? "", r.clusterId ? clusterName(r.clusterId) : "", r.groupNumber ?? "", r.needs.join(" / "), f.flightNo, carrierOf(d, f.carrierId)?.name ?? "", airportOf(d, f.fromId)?.code ?? "", airportOf(d, f.divertedToId ?? f.toId)?.code ?? "", `${isoDate(f.departAt)} ${isoTime(f.departAt)}`, `${isoDate(f.arriveAt)} ${isoTime(f.arriveAt)}`]);
+  const rows = m.rows.map((r) => [r.name, r.travelerId, KIND_LABEL[r.kind], r.gender === "F" ? "أنثى" : "ذكر", r.age ?? "", r.clusterId ? clusterName(r.clusterId) : "", r.groupNumber !== undefined ? groupShort(r.groupNumber) : "", r.needs.join(" / "), f.flightNo, carrierOf(d, f.carrierId)?.name ?? "", airportOf(d, f.fromId)?.code ?? "", airportOf(d, f.divertedToId ?? f.toId)?.code ?? "", `${isoDate(f.departAt)} ${isoTime(f.departAt)}`, `${isoDate(f.arriveAt)} ${isoTime(f.arriveAt)}`]);
   return "﻿" + [head, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
 }
 

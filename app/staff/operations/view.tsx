@@ -29,6 +29,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { KIND_LABELS, SEED_TASKS, SLA_MINUTES, type TaskColumn, type Zone } from "@/lib/data/staff-seed";
+import { groupName } from "@/lib/groups";
 import { actions, useStore, type Ticket } from "@/lib/store";
 import { asset, cn } from "@/lib/utils";
 import { ensureTicket, toTicket, useAllEvents, useTicketQueue, type QueueTicket } from "../_components/data";
@@ -60,7 +61,7 @@ function Chip({ className, children }: { className: string; children: ReactNode 
 
 const STATUS_LABEL: Record<Ticket["status"], string> = { open: "مفتوح", in_progress: "قيد المعالجة", resolved: "مغلق" };
 
-const ASSIGNEES = ["د. ليلى شمس — الفريق الطبي", "هيثم زيدان — المواصلات", "فادي سلوم — غرفة العمليات", "الفريق الميداني للتكتل", "مشرف الإعاشة", "أحمد الحمصي — رئيس المجموعة 27"];
+const ASSIGNEES = ["د. ليلى شمس — الفريق الطبي", "هيثم زيدان — المواصلات", "فادي سلوم — غرفة العمليات", "الفريق الميداني للتكتل", "مشرف الإعاشة", `أحمد الحمصي — رئيس ${groupName(27)}`];
 
 function sla(t: QueueTicket, now: number) {
   const target = SLA_MINUTES[t.kind];
@@ -300,8 +301,8 @@ function MashaerMap({ tickets, zone, onZone, onOpen, now }: { tickets: QueueTick
         })}
         {/* group 27 marker, just above Arafat where the group is */}
         <g>
-          <rect x={arafat.x - 56} y={arafat.y - arafat.r - 34} width="112" height="24" rx="12" fill="rgba(0,0,0,.45)" stroke="rgba(217,200,158,.4)" />
-          <text x={arafat.x} y={arafat.y - arafat.r - 18} textAnchor="middle" fill="#D9C89E" fontSize="11">المجموعة 27 — 48 حاجاً</text>
+          <rect x={arafat.x - 68} y={arafat.y - arafat.r - 34} width="136" height="24" rx="12" fill="rgba(0,0,0,.45)" stroke="rgba(217,200,158,.4)" />
+          <text x={arafat.x} y={arafat.y - arafat.r - 18} textAnchor="middle" fill="#D9C89E" fontSize="11">{groupName(27)} — 48 حاجاً</text>
         </g>
         {/* the map data's licence asks for this credit */}
         <text x="8" y="393" fill="rgba(255,255,255,.55)" fontSize="9">© OpenStreetMap contributors</text>
@@ -618,7 +619,7 @@ function GroupsBreakdown({ tickets }: { tickets: QueueTicket[] }) {
     { group: 19, cluster: "اليقين", inArafat: 44, of: 45, report: "13:20", leader: "عمر الزين" },
     { group: 8, cluster: "الشهباء", inArafat: 44, of: 45, report: "14:05", leader: "لؤي حمدان" },
   ];
-  const count = (g: number) => tickets.filter((t) => t.status !== "resolved" && t.name.includes(`المجموعة ${g}`)).length;
+  const count = (g: number) => tickets.filter((t) => t.status !== "resolved" && t.name.includes(groupName(g))).length;
   return (
     <Panel title="تفصيل حسب المجموعة" icon={<Users />} delay={0.15}>
       <div className="overflow-x-auto">
@@ -637,7 +638,7 @@ function GroupsBreakdown({ tickets }: { tickets: QueueTicket[] }) {
               return (
                 <motion.tr key={r.group} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}>
                   <td className="py-2.5">
-                    <p className="font-bold text-white">{r.group} — {r.cluster}</p>
+                    <p className="font-bold text-white">{groupName(r.group)} — تكتل {r.cluster}</p>
                     <p className="text-xs text-white/75">{r.leader}</p>
                   </td>
                   <td className="py-2.5">

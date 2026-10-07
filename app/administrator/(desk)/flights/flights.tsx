@@ -28,6 +28,7 @@ import {
   type GroupRef,
   type Traveler,
 } from "@/lib/flights";
+import { groupName } from "@/lib/groups";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { AdminShell, LockedCard } from "../../_components/ui";
@@ -141,7 +142,7 @@ function ClusterFlights() {
             <tbody>
               {stats.map((s) => (
                 <tr key={s.g.number} className="border-t border-gold/20">
-                  <td className="p-2 font-bold text-ink">المجموعة {s.g.number} <span className="block text-xs font-normal text-hint">{s.g.head}</span></td>
+                  <td className="p-2 font-bold text-ink">{groupName(s.g.number)} <span className="block text-xs font-normal text-hint">{s.g.head}</span></td>
                   <td className="p-2 tabular-nums">{s.total} <span className="text-xs text-hint">({s.families.length} عائلة + فريق {s.team.length})</span></td>
                   {(["out", "back"] as const).map((k) => {
                     const x = s[k];
@@ -191,7 +192,7 @@ function FlightCard({ f, data, groups }: { f: Flight; data: FlightsData; groups?
         </div>
         <Badge tone={f.status === "published" ? "green" : f.status === "locked" ? "gold" : f.status === "postponed" || f.status === "cancelled" ? "maroon" : "ink"}>{STATUS_LABEL[f.status]}</Badge>
       </div>
-      {groups && groups.length > 0 && <p className="mt-3 text-sm text-ink-soft">مجموعاتك عليها: {groups.join("، ")}</p>}
+      {groups && groups.length > 0 && <p className="mt-3 text-sm text-ink-soft">مجموعاتك عليها: {groups.map(groupName).join("، ")}</p>}
       {f.status === "postponed" && <p className="mt-3 text-sm text-maroon">مؤجلة: {f.postponeReason}. تبقى المجموعات عليها حتى الموعد الجديد.</p>}
       {f.groundLegs.map((l, i) => <p key={i} className="mt-2 text-sm text-maroon">بعد الهبوط: {l.buses} حافلات من {l.from} إلى {l.to}</p>)}
     </div>
@@ -211,7 +212,7 @@ function GroupFlights() {
   const rows = [...s.families.map((fam) => ({ id: fam.id, title: fam.applicant, members: fam.members })), { id: "team", title: "فريق المجموعة", members: s.team }];
 
   return (
-    <AdminShell image="/images/haram-2022.jpg" title={`رحلات المجموعة ${g.number}`} subtitle="رحلة الذهاب ورحلة العودة للمجموعة كلها، كما وضعها مسؤول الطيران. اطبع الكشف ليوم المطار.">
+    <AdminShell image="/images/haram-2022.jpg" title={`رحلات ${groupName(g.number)}`} subtitle="رحلة الذهاب ورحلة العودة للمجموعة كلها، كما وضعها مسؤول الطيران. اطبع الكشف ليوم المطار.">
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         {legs.map((f) => <FlightCard key={f.id} f={f} data={data} />)}
         {legs.length === 0 && <p className="rounded-3xl border border-gold/30 bg-white p-8 text-center text-ink-soft md:col-span-2">لم توضع مجموعتك على رحلة بعد. يضعها مسؤول الطيران بالتنسيق مع رئيس التكتل، ويصلك إشعار حين تُحدد.</p>}

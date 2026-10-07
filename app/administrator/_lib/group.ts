@@ -1,3 +1,4 @@
+import { groupName } from "@/lib/groups";
 import { ageOf, fullName } from "@/lib/registry";
 import type { AdminProfile, Application, PostAcceptance } from "@/lib/store";
 import { seeded } from "@/lib/utils";
@@ -54,8 +55,8 @@ export const SEED_REQUESTS: JoinRequest[] = [
     applicant: "طارق محمود الحوراني",
     number: "6215",
     kind: "transfer",
-    receivedLabel: "انتقل من المجموعة 31 بعقد جديد — رفعه المنسق سامر نجار واعتمده المكتب — قبل يوم",
-    note: "انتقلت العائلة كاملة (3 أفراد) من المجموعة 31 لتكون مع أقاربها.",
+    receivedLabel: `انتقل من ${groupName(31)} بعقد جديد — رفعه المنسق سامر نجار واعتمده المكتب — قبل يوم`,
+    note: `انتقلت العائلة كاملة (3 أفراد) من ${groupName(31)} لتكون مع أقاربها.`,
     members: [
       { id: "01055506215", name: "طارق محمود الحوراني", age: 52, gender: "M", relation: "صاحب الطلب", needs: [] },
       { id: "01055506216", name: "هالة جميل الشيخ", age: 47, gender: "F", relation: "زوجة", needs: [] },
@@ -86,7 +87,7 @@ export function requestFromApplication(sid: string, app: Application, post: Post
     applicant: applicant ? fullName(applicant) : sid,
     number: app.number,
     kind: moved ? "transfer" : "enrolled",
-    receivedLabel: `${moved ? `انتقل من المجموعة ${moved.from} — ` : ""}رفع عقده ${post.enrolledBy?.name ?? "المنسق التقني"} واعتمده المكتب — ${when}`,
+    receivedLabel: `${moved ? `انتقل من ${groupName(moved.from)} — ` : ""}رفع عقده ${post.enrolledBy?.name ?? "المنسق التقني"} واعتمده المكتب — ${when}`,
     members: app.members.map((m) => ({
       id: m.person.id,
       name: fullName(m.person),
@@ -126,7 +127,7 @@ export function seedRequestsFor(groupNumber: number | undefined, homeNumber: num
       applicant: `${first} ${last}`,
       number: String(4000 + groupNumber * 13 + i),
       kind: rnd() < 0.25 ? "transfer" : "enrolled",
-      receivedLabel: `رفع عقده منسق المجموعة ${groupNumber} واعتمده المكتب — قبل ${1 + Math.floor(rnd() * 4)} أيام`,
+      receivedLabel: `رفع عقده منسق ${groupName(groupNumber)} واعتمده المكتب — قبل ${1 + Math.floor(rnd() * 4)} أيام`,
       note: withCompanion ? "طلب عائلي — يُنقل كاملاً أو لا يُنقل." : "اتفق مع المجموعة ليكون مع أهل منطقته.",
       members,
     });

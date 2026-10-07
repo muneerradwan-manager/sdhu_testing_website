@@ -166,17 +166,17 @@ if ONLY in (None, "g"):
     s.btn("تعديل الفئات", 1000)
     c.shot("grp-capacity-edit", "تعديل الفئات: من تنطبق عليه كل فئة، وسعتها، وفريقها، وترتيبها", section=S)
     esc(c, p)
-    # the request of the guide's new head, group 28: its card, by its heading
-    card = p.locator("main div.space-y-4:has(h3:text-is('المجموعة 28'))").first
+    # the request of the guide's new head, named «الشام» by its head: its card, by its heading
+    card = p.locator("main div.space-y-4:has(h3:text-matches('^مجموعة (الشام|الملتزم)$'))").first
     card.scroll_into_view_if_needed(); c.settle(500)
-    c.shot("grp-card", "طلب تشكيل المجموعة 28: الشروط مكتملة، وسعتها وفريقها بفئة رئيسها", section=S)
+    c.shot("grp-card", "طلب تشكيل مجموعة الشام: الشروط مكتملة، وسعتها وفريقها بفئة رئيسها", section=S)
     ap = card.locator("button:has-text('اعتماد المجموعة')").first
     ap.scroll_into_view_if_needed(); c.settle(300)
-    c.shot("grp-approve", "اعتماد المجموعة", hl=[("main div.space-y-4:has(h3:text-is('المجموعة 28')) button:has-text('اعتماد المجموعة')", "")], section=S)
+    c.shot("grp-approve", "اعتماد المجموعة", hl=[("main div.space-y-4:has(h3:text-matches('^مجموعة (الشام|الملتزم)$')) button:has-text('اعتماد المجموعة')", "")], section=S)
     ap.click(); c.settle(1500)
     c.shot("grp-approved", "اعتُمدت المجموعة", section=S)
     # a request whose head is not qualified yet (group 27): sent back with what it lacks
-    ret = p.locator("main div.space-y-4:has(h3:text-is('المجموعة 27')) button:has-text('إعادة إلى رئيسها')").first
+    ret = p.locator("main div.space-y-4:has(h3:text-is('مجموعة اللطيف')) button:has-text('إعادة إلى رئيسها')").first
     ret.scroll_into_view_if_needed(); ret.click(); c.settle(900)
     c.shot("grp-return", "طلب ناقص: يُعاد إلى رئيسه بملاحظة بما ينقصه", hl=[(f"{D} button:has-text('إعادة مع الملاحظة')", "")], section=S)
     p.locator(f"{D} button:has-text('إعادة مع الملاحظة')").first.click(); c.settle(1200)

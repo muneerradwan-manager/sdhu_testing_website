@@ -28,13 +28,14 @@ import { PersonAdder } from "@/app/portal/apply/_components/person-adder";
 import { PersonChip } from "@/app/portal/apply/_components/ui";
 import { PayMethods } from "@/components/payment/methods";
 import { SeasonPlanNote } from "@/components/payment/plan-picker";
+import { groupName } from "@/lib/groups";
 import { firstPayment, seasonPlan } from "@/lib/installments";
 import { applicationNumberFor } from "@/lib/journey";
 import { useSeason } from "@/lib/season-live";
 import { ageOf, fullName, isValidNationalId, lookupPerson, type Person } from "@/lib/registry";
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { useStore } from "@/lib/store";
-import { cn, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
+import { cn, countOf, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
 import { effectiveRole, logAdmin, nowMs, positionLabelOf, positionOf, useAdmin } from "../../_lib/admin";
 import { useAdminCan } from "../../_lib/permissions";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
@@ -632,7 +633,7 @@ function Posting() {
       <div className="relative">
         <p className="text-xs font-bold text-gold">تعييني هذا الموسم</p>
         <p className="mt-1 font-display text-xl font-bold">{role}</p>
-        <p className="mt-1 text-sm text-white/75">{post ? `${post.clusterName} — ${groupsLabel(post.groups.map((x) => x.number))}` : admin.profile?.group ? `المجموعة ${admin.profile.group.number}` : "تملك صفتك صلاحية التسجيل على الحج"}</p>
+        <p className="mt-1 text-sm text-white/75">{post ? `${post.clusterName} — ${groupsLabel(post.groups.map((x) => x.number))}` : admin.profile?.group ? groupName(admin.profile.group.number) : "تملك صفتك صلاحية التسجيل على الحج"}</p>
         <ul className="mt-4 space-y-2 text-sm text-white/85">
           <li className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" /> أسجّل عن المواطن بموافقته برمز تحقق
@@ -652,12 +653,14 @@ function Posting() {
   );
 }
 
+const FILED = { zero: "", one: "طلباً واحداً", two: "طلبين", few: "طلبات", many: "طلباً" };
+
 function FiledList({ mine, onReset, onOpen, viewing }: { mine: ReturnType<typeof filedBy>; onReset: () => void; onOpen: (applicantId: string) => void; viewing: string | null }) {
   return (
     <div className="rounded-3xl border border-gold/35 bg-white p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-2 font-display font-bold text-green-dark">
-          <Receipt className="size-5 text-gold-dark" /> سجّلتُ {mine.length} طلبات
+          <Receipt className="size-5 text-gold-dark" /> {mine.length ? `سجّلتُ ${countOf(mine.length, FILED)}` : "لم أسجّل طلباً بعد"}
         </p>
         <button onClick={onReset} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-hint transition hover:bg-sand hover:text-green-dark">
           <RotateCcw className="size-3.5" /> بدء طلب جديد

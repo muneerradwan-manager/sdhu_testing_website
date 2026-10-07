@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { BadgeCheck, Building2, Check, CircleDashed, ExternalLink, Gavel, Inbox, Lock, ShieldCheck, Shuffle, Timer, UserCheck, X } from "lucide-react";
+import { BadgeCheck, Building2, Check, CircleDashed, ExternalLink, Gavel, Inbox, Lock, ShieldCheck, Shuffle, Timer, UserCheck, UsersRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf } from "@/lib/cluster-profile";
+import { groupName } from "@/lib/groups";
 import { dayLabel, useOperation } from "@/lib/operations";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
@@ -123,7 +124,7 @@ function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
                       <p className="font-display text-xl font-bold text-gold">{r.cluster.name}</p>
                       <DecisionChip r={r} />
                     </div>
-                    <p className="mt-1 text-sm text-white/85">الرئيس: {r.headName}{r.headGroup ? ` — المجموعة ${r.headGroup}` : ""}</p>
+                    <p className="mt-1 text-sm text-white/85">الرئيس: {r.headName}{r.headGroup ? ` — ${groupName(r.headGroup)}` : ""}</p>
                     <p className="text-sm text-white/85">
                       <UserCheck className="mb-0.5 inline size-4 text-green-light" /> {DEPUTY_TITLE}: {r.cluster.deputy?.status === "accepted" ? r.cluster.deputy.name : <b className="text-gold">لم يقبل أحد بعد</b>}
                     </p>
@@ -163,7 +164,7 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
     <div className="space-y-5">
       <InfoGrid
         rows={[
-          ["رئيس التكتل", `${x.headName}${x.headGroup ? ` — المجموعة ${x.headGroup}` : ""}`],
+          ["رئيس التكتل", `${x.headName}${x.headGroup ? ` — ${groupName(x.headGroup)}` : ""}`],
           [DEPUTY_TITLE, c.deputy ? `${c.deputy.name} — ${c.deputy.status === "accepted" ? "قبِل" : c.deputy.status === "declined" ? "اعتذر" : "لم يرد"}` : "لم يُدعَ"],
           ["المجموعات", `${x.groups.length} — ${formatNumber(x.groups.reduce((n, g) => n + g.pilgrims, 0))} حاجاً`],
           ["القرار", x.decision ? `${x.decision.status === "approved" ? "معتمد" : "مُقصى"} — ${x.decision.by}` : "أولي حتى الموعد النهائي"],
@@ -191,7 +192,12 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
         {x.groups.map((g) => (
           <li key={g.number} className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
             <p className="flex flex-wrap items-center gap-2 font-bold text-white">
-              <span className="grid size-9 place-items-center rounded-xl bg-gold/20 font-display text-gold">{g.number}</span> {g.name}
+              <span className="grid size-9 place-items-center rounded-xl bg-gold/20 text-gold">
+                <UsersRound className="size-4" />
+              </span>
+              <span>
+                {groupName(g.number)} <span className="font-normal text-white/70">— {g.name}</span>
+              </span>
               {g.distributed && <Chip tone="gold">وزّعتها الإدارة</Chip>}
               <span className="mr-auto text-sm tabular-nums text-white/75">
                 {g.pilgrims} / {g.capacity}
@@ -235,7 +241,7 @@ function Distribution({ desk }: { desk: AdminsDesk }) {
   const approve = () => {
     const moves = Object.fromEntries(desk.outside.map((g) => [g.number, plan[g.number]]));
     distributeGroups(moves, desk.outside, user.name, admins, formation);
-    logAdmins(user, "clusters", { action: "توزيع المجموعات على التكتلات المعتمدة", target: `${desk.outside.length} مجموعات`, detail: desk.outside.map((g) => `${g.number} ← ${desk.approvedClusters.find((r) => r.cluster.id === plan[g.number])?.cluster.name}`).join("، "), important: true });
+    logAdmins(user, "clusters", { action: "توزيع المجموعات على التكتلات المعتمدة", target: `${desk.outside.length} مجموعات`, detail: desk.outside.map((g) => `${groupName(g.number)} ← ${desk.approvedClusters.find((r) => r.cluster.id === plan[g.number])?.cluster.name}`).join("، "), important: true });
     toast({ title: "وُزّعت المجموعات", body: "يسند رئيس كل تكتل فريقه إلى مجموعاته الجديدة.", icon: "🔀", tone: "success" });
     setPicked({});
   };
@@ -254,9 +260,13 @@ function Distribution({ desk }: { desk: AdminsDesk }) {
             <ul className="space-y-2">
               {desk.outside.map((g) => (
                 <li key={g.number} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 font-display font-bold text-gold">{g.number}</span>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 text-gold">
+                    <UsersRound className="size-5" />
+                  </span>
                   <span className="min-w-0 flex-1 text-sm">
-                    <span className="block font-bold text-white">{g.headName}</span>
+                    <span className="block font-bold text-white">
+                      {groupName(g.number)} <span className="font-normal text-white/70">— {g.headName}</span>
+                    </span>
                     <span className="block text-xs text-white/60">
                       {g.office} — {g.pilgrims}/{g.capacity} {g.from ? `— من ${g.from} المُقصى` : "— لم يأخذها طلب"}
                     </span>
@@ -264,7 +274,7 @@ function Distribution({ desk }: { desk: AdminsDesk }) {
                   <select
                     value={plan[g.number] ?? ""}
                     onChange={(e) => setPicked({ ...picked, [g.number]: e.target.value })}
-                    aria-label={`تكتل المجموعة ${g.number}`}
+                    aria-label={`تكتل ${groupName(g.number)}`}
                     className="h-10 min-w-44 rounded-xl border border-white/20 bg-green-dark px-2 text-sm text-white"
                   >
                     <option value="">— اختر تكتلاً —</option>

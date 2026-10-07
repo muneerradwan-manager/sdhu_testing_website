@@ -5,17 +5,21 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import {
+  BellRing,
   Building2,
   ClipboardList,
   FileSignature,
   FlaskConical,
+  FolderOpen,
   GraduationCap,
   HeartHandshake,
   Landmark,
   LayoutDashboard,
   Lock,
+  LogOut,
   MapPinned,
   Plane,
+  ScrollText,
   UserRoundPlus,
   UsersRound,
   type LucideIcon,
@@ -25,9 +29,9 @@ import { Emblem } from "@/components/brand/logo";
 import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { statusLabel, useOperations, type OperationKey, type OperationState } from "@/lib/operations";
-import { useHydrated, useStore, type AdminProfile } from "@/lib/store";
+import { actions, useHydrated, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { effectiveRole, isClusterRole, isTechCoordinator, positionLabelOf, useAdmin } from "../_lib/admin";
+import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -66,7 +70,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
  * dates, or by the staff who control it (lib/operations.ts), and a closed one stays in the menu with when it
  * opens. Stages exist only inside an operation that has several steps.
  */
-type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean };
+type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean };
 
 type NavItem = {
   href: string;
@@ -77,9 +81,16 @@ type NavItem = {
 };
 
 const serving = (c: NavCtx) => c.inGroup || c.cluster;
+/** A cluster's head and deputy open its groups — each with its team and pilgrims — inside «إدارة التكتل» */
+const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster;
 
 const NAV: NavItem[] = [
   { href: "/administrator/dashboard", label: "ملفي", icon: LayoutDashboard },
+  // The permanent file of whoever served before: his documents, languages and skills between seasons
+  { href: "/administrator/files", label: "وثائقي ومهاراتي", icon: FolderOpen, show: (c) => c.served },
+  // His own: what reached him, and what he did — each a tab, not a card inside «ملفي»
+  { href: "/administrator/notifications", label: "الإشعارات", icon: BellRing },
+  { href: "/administrator/activity", label: "سجل نشاطي", icon: ScrollText },
   // Registering a pilgrim on the Hajj never puts him in a group
   { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
   { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
@@ -87,21 +98,21 @@ const NAV: NavItem[] = [
   { href: "/administrator/group", label: "تشكيل المجموعات", icon: FileSignature, ops: ["group-formation"], show: (c) => c.head },
   // A group head files a request or answers the invitations to his group; the others answer theirs
   { href: "/administrator/cluster", label: "تشكيل التكتلات", icon: Building2, ops: ["cluster-formation"], show: (c) => c.role },
-  { href: "/administrator/groups", label: "إدارة المجموعات", icon: UsersRound, ops: ["group-management"], show: serving },
-  { href: "/administrator/clusters", label: "إدارة التكتلات", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
-  { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: serving },
+  { href: "/administrator/groups", label: "إدارة المجموعات", icon: UsersRound, ops: ["group-management"], show: ownGroups },
+  { href: "/administrator/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
+  { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
 ];
 
-function navCtx(p: AdminProfile | undefined, table: Record<AdminPermission, string[]>): NavCtx {
+function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Record<AdminPermission, string[]>): NavCtx {
   const role = p?.positions[0];
   const cluster = isClusterRole(p);
   const head = role === "group-head";
   const tech = isTechCoordinator(p);
   // A head's group counts once it is approved; a guide, an assistant or a coordinator works in the groups assigned to him
   const inGroup = head ? !!p?.group?.approvedAt : !!p?.servesIn || !!p?.coordinatorIn;
-  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)) };
+  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id) };
 }
 
 export type AdminNavEntry = { href: string; label: string; icon: LucideIcon; open: boolean; shown?: OperationState };
@@ -111,7 +122,7 @@ export function useAdminNav(): AdminNavEntry[] {
   const admin = useAdmin();
   const ops = useOperations();
   const table = useRolePermissions();
-  const ctx = navCtx(admin?.profile, table);
+  const ctx = navCtx(admin?.id, admin?.profile, table);
   return NAV.filter((n) => !n.show || n.show(ctx)).map((n) => {
     const states = n.ops ? ops.filter((o) => n.ops!.includes(o.key)) : [];
     return {
@@ -126,9 +137,16 @@ export function useAdminNav(): AdminNavEntry[] {
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const admin = useAdmin();
   const role = effectiveRole(admin?.profile);
   const items = useAdminNav();
+  // As in the staff portal: at the foot of the menu, and on phones (where the menu is a strip) on his card
+  const logout = () => {
+    if (admin) logAdmin(admin.id, "تسجيل خروج الإداري");
+    actions.adminLogout();
+    router.push("/administrator");
+  };
   return (
     <aside className="min-w-0 self-start lg:sticky lg:top-28">
       <div className="overflow-hidden rounded-3xl border border-gold/30 bg-white shadow-[0_30px_80px_-40px_rgba(2,21,38,.45)]">
@@ -138,6 +156,9 @@ export function AdminSidebar() {
             <p className="truncate font-bold">{admin?.name}</p>
             <p className="truncate text-xs text-white/65">{role ? `${positionLabelOf(role)} — موسم 1448` : "لم يتقدم لصفة هذا الموسم بعد"}</p>
           </div>
+          <button type="button" onClick={logout} aria-label="تسجيل الخروج" title="تسجيل الخروج" className="mr-auto grid size-10 shrink-0 place-items-center rounded-xl text-white/70 transition hover:bg-maroon/40 hover:text-white lg:hidden">
+            <LogOut className="size-5" />
+          </button>
         </div>
         <nav aria-label="أقسام حساب الإداري" className="scrollbar-none flex gap-1 overflow-x-auto p-2 lg:block lg:space-y-1 lg:overflow-visible">
           {items.map((n) => {
@@ -163,6 +184,11 @@ export function AdminSidebar() {
             );
           })}
         </nav>
+        <div className="hidden border-t border-gold/30 p-2 lg:block">
+          <button type="button" onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-ink-soft transition hover:bg-maroon/10 hover:text-maroon">
+            <LogOut className="size-4" /> تسجيل الخروج
+          </button>
+        </div>
       </div>
     </aside>
   );
@@ -199,6 +225,19 @@ export function AdminShell({
 }
 
 // ───────────────────────── Bits ─────────────────────────
+
+/** A screen this administrator now finds elsewhere (an old link, a notification): he is taken there */
+export function MovedTo({ href, title }: { href: string; title: string }) {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(href);
+  }, [router, href]);
+  return (
+    <AdminShell title={title}>
+      <p className="rounded-2xl bg-sand p-5 text-center text-ink-soft">ننقلك إلى «{title}»…</p>
+    </AdminShell>
+  );
+}
 
 export function LockedCard({ title, text, href, cta }: { title: string; text: string; href: string; cta: string }) {
   return (

@@ -25,10 +25,12 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { Badge, useToast } from "@/components/ui/widgets";
+import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { flightsActions, isActive, useFlightsData } from "@/lib/flights";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { groupName } from "@/lib/groups";
+import { ageOf, fullName, relationLabel } from "@/lib/registry";
+import { cn, seeded } from "@/lib/utils";
 import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
 import { MISSING_ID, buildRoster, type RosterEntry } from "../../_lib/group";
@@ -51,6 +53,8 @@ export function AdminField() {
   const post = useStore((s) => s.post);
   const roster = useMemo(() => buildRoster(admin.profile, applications, post), [admin.profile, applications, post]);
   const [tab, setTab] = useState<TabKey>("muster");
+  // A report opened from a pilgrim's details starts on him
+  const [reportOn, setReportOn] = useState<string>();
 
   if (!g?.approvedAt) {
     return (
@@ -65,7 +69,7 @@ export function AdminField() {
       image="/images/tawaf-night.jpg"
       title={
         <span className="flex flex-wrap items-center gap-3">
-          الميدان — المجموعة {g.number}
+          الميدان — {groupName(g.number)}
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-normal text-gold">
             <span className="relative flex size-2"><span className="absolute inset-0 animate-ping rounded-full bg-green-light" /><span className="relative size-2 rounded-full bg-green-light" /></span>
             موسم 1448 مباشر
@@ -94,7 +98,7 @@ export function AdminField() {
       <div className="scrollbar-none -mx-4 mb-6 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="flex w-max gap-1 rounded-2xl border border-gold/30 bg-white p-1" role="tablist">
           {TABS.map((t) => (
-            <button key={t.key} role="tab" aria-selected={tab === t.key} type="button" onClick={() => setTab(t.key)} className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition", tab === t.key ? "text-white" : "text-ink-soft hover:text-ink")}>
+            <button key={t.key} role="tab" aria-selected={tab === t.key} type="button" onClick={() => { setReportOn(undefined); setTab(t.key); }} className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition", tab === t.key ? "text-white" : "text-ink-soft hover:text-ink")}>
               {tab === t.key && <motion.span layoutId="field-tab" className="absolute inset-0 rounded-xl bg-green-dark" transition={{ type: "spring", damping: 28, stiffness: 320 }} />}
               <t.icon className="relative size-4" />
               <span className="relative">{t.label}</span>
@@ -107,8 +111,8 @@ export function AdminField() {
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
           {tab === "muster" && <MusterTool roster={roster} onReport={() => setTab("ticket")} />}
           {tab === "channel" && <Channel count={roster.length} />}
-          {tab === "roster" && <Roster roster={roster} />}
-          {tab === "ticket" && <TicketDesk roster={roster} />}
+          {tab === "roster" && <Roster roster={roster} onReport={(name) => { setReportOn(name); setTab("ticket"); }} />}
+          {tab === "ticket" && <TicketDesk roster={roster} about={reportOn} />}
           {tab === "day" && <DayPlan />}
           {tab === "evaluation" && <Evaluations />}
         </motion.div>
@@ -178,7 +182,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
         setScanning(false);
         persist(list);
         const miss = roster.filter((r) => !list.includes(r.id));
-        logAdmin(admin.id, `مسح البطاقات في تجمّع «${open.title}»`, `المجموعة ${g.number}`, `الحاضرون ${list.length} من ${expected}${miss.length ? ` — الغائب: ${miss.map((m) => m.name).join("، ")}` : ""}`);
+        logAdmin(admin.id, `مسح البطاقات في تجمّع «${open.title}»`, groupName(g.number), `الحاضرون ${list.length} من ${expected}${miss.length ? ` — الغائب: ${miss.map((m) => m.name).join("، ")}` : ""}`);
         if (miss.length) toast({ title: `الحاضرون ${list.length} من ${expected}`, body: `الغائب: ${miss.map((m) => m.name).join("، ")}`, icon: "⚠️", tone: "warning" });
       }
     }, 55 + (scanned.length % 4) * 30);
@@ -191,7 +195,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
     const toAirport = (title.trim() || MUSTER_PRESETS[0]) === MUSTER_PRESETS[0] ? outFlight : undefined;
     const m = { id: `m-${Date.now().toString(36)}`, title: title.trim() || MUSTER_PRESETS[0], at: Date.now(), present: [] as string[], ...(toAirport ? { flightId: toAirport.id } : {}) };
     actions.upsertAdmin(admin.id, { musters: [...musters, m] });
-    logAdmin(admin.id, `فتح تجمّع «${m.title}»`, `المجموعة ${g.number}`, `المتوقع: ${expected}${toAirport ? ` — الرحلة ${toAirport.flightNo}` : ""}`);
+    logAdmin(admin.id, `فتح تجمّع «${m.title}»`, groupName(g.number), `المتوقع: ${expected}${toAirport ? ` — الرحلة ${toAirport.flightNo}` : ""}`);
     toast({ title: "فُتح التجمّع", body: `«${m.title}» — المتوقع ${expected} حاجاً.${toAirport ? ` مسح البطاقة يسجّل الصعود على الرحلة ${toAirport.flightNo}.` : " ابدأ مسح البطاقات."}`, icon: "📍", tone: "info" });
   };
 
@@ -206,9 +210,9 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
   const close = () => {
     if (!open) return;
     actions.upsertAdmin(admin.id, { musters: musters.map((m) => (m.id === open.id ? { ...m, present: scanned, closedAt: Date.now() } : m)) });
-    logAdmin(admin.id, `إغلاق تجمّع «${open.title}» وإرسال «انطلقنا» للجميع`, `المجموعة ${g.number}`, `الحاضرون ${scanned.length} من ${expected}`);
+    logAdmin(admin.id, `إغلاق تجمّع «${open.title}» وإرسال «انطلقنا» للجميع`, groupName(g.number), `الحاضرون ${scanned.length} من ${expected}`);
     if (open.flightId) flightsActions.markBoarded(open.flightId, scanned, { name: admin.name, role: "رئيس مجموعة" });
-    toast({ title: "انطلقنا 🚌", body: `وصل إلى ${expected} حاجاً: «انطلقت حافلة المجموعة ${g.number}.»`, icon: "📣", tone: "success" });
+    toast({ title: "انطلقنا 🚌", body: `وصل إلى ${expected} حاجاً: «انطلقت حافلة ${groupName(g.number)}.»`, icon: "📣", tone: "success" });
     confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 }, colors: ["#D9C89E", "#00594F", "#289E92"] });
   };
 
@@ -217,7 +221,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
       name: r.name,
       kind: "missing",
       severity: "high",
-      location: `المجموعة ${g.number} — تجمّع «${open?.title ?? ""}»`,
+      location: `${groupName(g.number)} — تجمّع «${open?.title ?? ""}»`,
       text: `تأخر ${r.name} (${r.age} عاماً، الغرفة ${r.room}) عن التجمّع، والهاتف لا يرد. أبلغ عنه رئيس المجموعة خلال 5 دقائق من اكتشاف الغياب.`,
       assignee: "غرفة العمليات — فادي سلوم",
     });
@@ -411,7 +415,7 @@ function Channel({ count }: { count: number }) {
     const p: Post = { id: Date.now().toString(36), text: text.trim(), audience, at: Date.now(), reach };
     setPosts([p, ...posts]);
     setText("");
-    logAdmin(admin.id, "نشر إعلان في قناة المجموعة", `المجموعة ${g.number} — ${audience}`, p.text);
+    logAdmin(admin.id, "نشر إعلان في قناة المجموعة", `${groupName(g.number)} — ${audience}`, p.text);
     toast({ title: `وصل إشعار إلى ${reach} حاجاً`, body: p.text, icon: "📣", tone: "success" });
   };
 
@@ -445,7 +449,7 @@ function Channel({ count }: { count: number }) {
         <div className="mb-4 flex items-center gap-3 rounded-2xl bg-green-dark px-4 py-3 text-white">
           <span className="grid size-10 place-items-center rounded-xl bg-gold font-display font-bold text-ink">{g.number}</span>
           <div>
-            <p className="font-bold">قناة المجموعة {g.number}</p>
+            <p className="font-bold">قناة {groupName(g.number)}</p>
             <p className="text-xs text-white/70">{count} عضواً — المشرف: {admin.name}</p>
           </div>
         </div>
@@ -472,10 +476,11 @@ function Channel({ count }: { count: number }) {
 
 // ───────────────────────── Roster ─────────────────────────
 
-function Roster({ roster }: { roster: RosterEntry[] }) {
+function Roster({ roster, onReport }: { roster: RosterEntry[]; onReport: (name: string) => void }) {
   const admin = useAdmin()!;
   const toast = useToast();
   const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
   const [needsOnly, setNeedsOnly] = useState(false);
   const last = [...admin.profile!.musters].reverse().find((m) => m.present.length > 0);
   const shown = roster.filter((r) => (!q || r.name.includes(q) || r.room.includes(q)) && (!needsOnly || r.needs.length > 0));
@@ -491,17 +496,19 @@ function Roster({ roster }: { roster: RosterEntry[] }) {
         </label>
         <Badge tone="ink">{shown.length} من {roster.length}</Badge>
       </div>
-      <p className="mt-3 text-xs text-hint">صلاحية رئيس المجموعة: الاسم والغرفة والاحتياجات — لا يظهر الملف الطبي التفصيلي.</p>
+      <p className="mt-3 text-xs text-hint">اضغط على الحاج لترى تفاصيله. صلاحية رئيس المجموعة: الاسم والغرفة والاحتياجات والعائلة والحضور — لا يظهر الملف الطبي التفصيلي.</p>
       <ul className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {shown.map((r, i) => {
           const here = last?.present.includes(r.id);
           return (
-            <motion.li key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className={cn("flex items-center gap-3 rounded-2xl border p-3", r.real ? "border-gold-dark/60 bg-gold/10" : "border-gold/25", r.id === MISSING_ID && !here && last && "border-maroon/40 bg-maroon/5")}>
+            <motion.li key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className={cn("relative flex items-center gap-3 rounded-2xl border p-3 transition hover:border-gold-dark hover:shadow-md", r.real ? "border-gold-dark/60 bg-gold/10" : "border-gold/25", r.id === MISSING_ID && !here && last && "border-maroon/40 bg-maroon/5")}>
+              {/* The whole card opens the details; the phone button sits above it */}
+              <button type="button" onClick={() => setOpenId(r.id)} className="absolute inset-0 rounded-2xl" aria-label={`تفاصيل ${r.name}`} />
               <span className={cn("relative grid size-10 shrink-0 place-items-center rounded-xl font-display font-bold", r.gender === "F" ? "bg-maroon/10 text-maroon" : "bg-green-dark/10 text-green-dark")}>
                 {r.name[0]}
                 {last && <span className={cn("absolute -bottom-0.5 -left-0.5 size-3 rounded-full ring-2 ring-white", here ? "bg-green-light" : "bg-maroon")} />}
               </span>
-              <div className="min-w-0 flex-1">
+              <div className="pointer-events-none relative min-w-0 flex-1">
                 <p className="truncate font-bold">{r.name} <span className="font-normal text-hint">{r.age}</span></p>
                 <p className="flex flex-wrap items-center gap-1 text-xs text-ink-soft">
                   الغرفة {r.room}
@@ -509,14 +516,176 @@ function Roster({ roster }: { roster: RosterEntry[] }) {
                   {r.needs.map((n) => <span key={n} className="rounded-full bg-maroon/10 px-1.5 font-bold text-maroon">{n}</span>)}
                 </p>
               </div>
-              <button type="button" onClick={() => toast({ title: `اتصال بـ ${r.name}`, body: r.phone, icon: "📞", tone: "info" })} className="grid size-9 shrink-0 place-items-center rounded-xl text-green-dark hover:bg-sand" aria-label={`اتصال بـ ${r.name}`}>
+              <button type="button" onClick={() => toast({ title: `اتصال بـ ${r.name}`, body: r.phone, icon: "📞", tone: "info" })} className="relative grid size-9 shrink-0 place-items-center rounded-xl text-green-dark hover:bg-sand" aria-label={`اتصال بـ ${r.name}`}>
                 <Phone className="size-4" />
               </button>
             </motion.li>
           );
         })}
       </ul>
+      <PilgrimSheet entry={roster.find((r) => r.id === openId) ?? null} onClose={() => setOpenId(null)} onReport={(name) => { setOpenId(null); onReport(name); }} />
     </Card>
+  );
+}
+
+const HOTEL = "فندق أبراج النور — البرج (ب)";
+const KIN = ["ابنه", "ابنته", "زوجته", "أخوه", "ابن أخيه"];
+
+/**
+ * One pilgrim of the group, opened from the roster: who he is, where he sleeps, what he needs, who travels
+ * with him, whom to call if he goes missing, whether he came to each muster, his flights, and the reports
+ * about him — what the head needs in the field. The detailed medical file is not his to see.
+ */
+function PilgrimSheet({ entry, onClose, onReport }: { entry: RosterEntry | null; onClose: () => void; onReport: (name: string) => void }) {
+  const admin = useAdmin()!;
+  const toast = useToast();
+  const g = admin.profile!.group!;
+  const applications = useStore((s) => s.applications);
+  const tickets = useStore((s) => s.tickets);
+  const fd = useFlightsData();
+  const d = useMemo(() => {
+    if (!entry) return null;
+    // A pilgrim who came through the pilgrims' portal: his family is his application
+    const app = entry.real ? Object.values(applications).find((a) => a.members.some((m) => m.person.id === entry.id)) : undefined;
+    const me = app?.members.find((m) => m.person.id === entry.id);
+    const family = app?.members.filter((m) => m.person.id !== entry.id) ?? [];
+    const companion = me?.companionId ? app?.members.find((m) => m.person.id === me.companionId) : undefined;
+    // Whom to call: his companion or the application's holder; for the others, the contact in his file
+    const rnd = seeded(`${entry.id}-contact`);
+    const contact = companion
+      ? { who: `${fullName(companion.person)} (مرافقه في الطلب)`, phone: `09${companion.person.id.slice(-8)}` }
+      : app && app.members[0].person.id !== entry.id
+        ? { who: `${fullName(app.members[0].person)} (صاحب الطلب)`, phone: `09${app.members[0].person.id.slice(-8)}` }
+        : { who: KIN[Math.floor(rnd() * KIN.length)], phone: `09${String(Math.floor(rnd() * 1e8)).padStart(8, "0")}` };
+    // His seat if he has one; otherwise the flight the whole group is on
+    const flightOf = (direction: "outbound" | "return") => {
+      const mine = fd.assignments.find((a) => a.travelerId === entry.id && isActive(a) && fd.flights.find((f) => f.id === a.flightId)?.direction === direction);
+      const any = mine ?? fd.assignments.find((a) => a.groupNumber === g.number && isActive(a) && fd.flights.find((f) => f.id === a.flightId)?.direction === direction);
+      const flight = any ? fd.flights.find((f) => f.id === any.flightId) : undefined;
+      return flight ? { flight, seat: mine?.seat } : undefined;
+    };
+    return {
+      app,
+      family,
+      contact,
+      flights: [flightOf("outbound"), flightOf("return")].filter((x): x is NonNullable<typeof x> => !!x),
+      reports: tickets.filter((t) => t.name === entry.name),
+      musters: admin.profile!.musters.filter((m) => m.present.length > 0 || !m.closedAt),
+    };
+  }, [entry, applications, tickets, fd, g.number, admin.profile]);
+
+  return (
+    <Modal open={!!entry} onClose={onClose} className="max-w-2xl! md:p-8">
+      {entry && d && (
+        <div className="space-y-6">
+          <header className="flex items-center gap-4 pl-8">
+            <span className={cn("grid size-14 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold", entry.gender === "F" ? "bg-maroon/10 text-maroon" : "bg-green-dark/10 text-green-dark")}>{entry.name[0]}</span>
+            <div className="min-w-0">
+              <h3 className="font-display text-2xl font-bold text-green-dark">{entry.name}</h3>
+              <p className="text-sm text-ink-soft">
+                {entry.gender === "F" ? "حاجّة" : "حاج"} — {entry.age} عاماً — {groupName(g.number)}
+                {entry.real && <span className="mr-2 rounded-full bg-gold/50 px-2 py-0.5 text-xs font-bold text-maroon">من بوابة الحاج</span>}
+              </p>
+            </div>
+          </header>
+
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["السكن", `${HOTEL} — الغرفة ${entry.room}`],
+              ["هاتفه", entry.phone],
+              ["للطوارئ", `${d.contact.who} — ${d.contact.phone}`],
+              ["الاحتياجات", entry.needs.length ? entry.needs.join("، ") : "لا احتياجات مسجّلة"],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-2xl bg-sand p-3">
+                <dt className="text-xs text-hint">{k}</dt>
+                <dd className="mt-0.5 text-sm font-bold leading-6" dir={k === "هاتفه" ? "ltr" : undefined}>{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {d.app && (
+            <section>
+              <h4 className="font-bold text-ink">من معه في الطلب</h4>
+              {d.family.length ? (
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {d.family.map((m) => (
+                    <li key={m.person.id} className="flex items-center justify-between gap-2 rounded-xl border border-gold/30 px-3 py-2">
+                      <span className="font-semibold">{fullName(m.person)}</span>
+                      <span className="text-xs text-ink-soft">{m.relation === "self" ? "صاحب الطلب" : relationLabel(m.relation, m.person.gender)} — {ageOf(m.person)} عاماً</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-ink-soft">يحج وحده في طلبه.</p>
+              )}
+            </section>
+          )}
+
+          <section>
+            <h4 className="font-bold text-ink">الحضور في التجمّعات</h4>
+            {d.musters.length ? (
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {d.musters.map((m) => {
+                  const here = m.present.includes(entry.id);
+                  return (
+                    <li key={m.id} className="flex items-center justify-between gap-2 rounded-xl bg-sand/70 px-3 py-2">
+                      <span>{m.title}</span>
+                      <Badge tone={here ? "green" : m.closedAt ? "maroon" : "gold"}>{here ? "حضر" : m.closedAt ? "غاب" : "لم يُمسح بعد"}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-ink-soft">لم يُفتح تجمّع بعد.</p>
+            )}
+          </section>
+
+          {d.flights.length > 0 && (
+            <section>
+              <h4 className="font-bold text-ink">رحلاته</h4>
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {d.flights.map(({ flight, seat }) => (
+                  <li key={flight.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gold/30 px-3 py-2">
+                    <span>
+                      {flight.direction === "outbound" ? "الذهاب" : "العودة"} — <span dir="ltr" className="font-mono font-bold">{flight.flightNo}</span>
+                    </span>
+                    <span className="text-xs text-ink-soft">{new Intl.DateTimeFormat("ar-SY-u-nu-latn", { weekday: "long", day: "numeric", month: "long" }).format(flight.departAt)}{seat ? ` — المقعد ${seat}` : " — مع المجموعة"}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section>
+            <h4 className="font-bold text-ink">البلاغات عنه</h4>
+            {d.reports.length ? (
+              <ul className="mt-2 space-y-1.5 text-sm">
+                {d.reports.map((t) => (
+                  <li key={t.id} className="rounded-xl bg-sand/70 px-3 py-2">
+                    <span className="font-semibold">{KINDS.find((k) => k.k === t.kind)?.label}</span> — {STATUS[t.status]}
+                    <span className="block text-xs leading-5 text-ink-soft">{t.text}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-ink-soft">لا بلاغ عنه.</p>
+            )}
+          </section>
+
+          <div className="flex flex-wrap gap-2 border-t border-gold/30 pt-5">
+            <Button onClick={() => { logAdmin(admin.id, `اتصال بالحاج ${entry.name}`, groupName(g.number)); toast({ title: `جارٍ الاتصال بـ ${entry.name}`, body: entry.phone, icon: "📞", tone: "info" }); }}>
+              <Phone className="size-4" /> اتصال
+            </Button>
+            <Button variant="outline" onClick={() => { logAdmin(admin.id, `إرسال تنبيه إلى ${entry.name}`, groupName(g.number)); toast({ title: "أُرسل تنبيه", body: `إلى ${entry.name} وجهة اتصاله للطوارئ.`, icon: "🔔", tone: "gold" }); }}>
+              <BellRing className="size-4" /> تنبيه
+            </Button>
+            <Button variant="outline" onClick={() => onReport(entry.name)}>
+              <Siren className="size-4" /> بلاغ عنه لغرفة العمليات
+            </Button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -539,13 +708,13 @@ const SEVERITY: { k: Ticket["severity"]; label: string; c: string }[] = [
 ];
 const STATUS: Record<Ticket["status"], string> = { open: "مفتوح", in_progress: "قيد المعالجة", resolved: "مغلق" };
 
-function TicketDesk({ roster }: { roster: RosterEntry[] }) {
+function TicketDesk({ roster, about }: { roster: RosterEntry[]; about?: string }) {
   const admin = useAdmin()!;
   const toast = useToast();
   const g = admin.profile!.group!;
   const tickets = useStore((s) => s.tickets);
-  const mine = useMemo(() => tickets.filter((t) => t.location.startsWith(`المجموعة ${g.number} —`)), [tickets, g.number]);
-  const [form, setForm] = useState({ kind: "room" as TicketKind, severity: "medium" as Ticket["severity"], name: "المجموعة كاملة", place: "فندق أبراج النور — البرج (ب) — الغرفة 1214", text: "التكييف في الغرفة 1214 لا يعمل منذ الصباح، والحاج كبير في السن." });
+  const mine = useMemo(() => tickets.filter((t) => t.location.startsWith(`${groupName(g.number)} —`)), [tickets, g.number]);
+  const [form, setForm] = useState({ kind: "room" as TicketKind, severity: "medium" as Ticket["severity"], name: about ?? "المجموعة كاملة", place: about ? `${HOTEL} — الغرفة ${roster.find((r) => r.name === about)?.room ?? ""}` : `${HOTEL} — الغرفة 1214`, text: about ? "" : "التكييف في الغرفة 1214 لا يعمل منذ الصباح، والحاج كبير في السن." });
 
   const submit = () => {
     if (!form.text.trim()) return;
@@ -553,7 +722,7 @@ function TicketDesk({ roster }: { roster: RosterEntry[] }) {
       name: form.name,
       kind: form.kind,
       severity: form.severity,
-      location: `المجموعة ${g.number} — ${form.place}`,
+      location: `${groupName(g.number)} — ${form.place}`,
       text: form.text.trim(),
       assignee: form.kind === "health" ? "د. ليلى شمس" : form.kind === "transport" ? "هيثم زيدان" : form.kind === "room" || form.kind === "meal" ? "وسام خوري" : "غرفة العمليات — فادي سلوم",
     });
@@ -653,7 +822,7 @@ function DayPlan() {
 
   const send = () => {
     setSent(true);
-    logAdmin(admin.id, "إرسال التقرير اليومي", `المجموعة ${g.number}`, `الحالة: ${report.general} — الصحية: ${report.health} — الشكاوى: ${report.complaints}${report.notes ? ` — ${report.notes}` : ""}`);
+    logAdmin(admin.id, "إرسال التقرير اليومي", groupName(g.number), `الحالة: ${report.general} — الصحية: ${report.health} — الشكاوى: ${report.complaints}${report.notes ? ` — ${report.notes}` : ""}`);
     toast({ title: "أُرسل التقرير اليومي", body: "إلى رئيس التكتل عبد الرحمن العلي ومشرف القطاع نادر قاسم.", icon: "📋", tone: "success" });
   };
 
@@ -771,7 +940,7 @@ function Evaluations() {
             ))}
           </ul>
           <ul className="mt-5 space-y-2">
-            {["«المجموعة 27 كانت كالعائلة»", "«موجود دائماً»", "«عرفنا كل شيء قبل أن نسافر»"].map((c) => (
+            {[`«${groupName(admin.profile!.group!.number)} كانت كالعائلة»`, "«موجود دائماً»", "«عرفنا كل شيء قبل أن نسافر»"].map((c) => (
               <li key={c} className="rounded-2xl bg-sand px-4 py-2 text-sm italic text-ink-soft">{c}</li>
             ))}
           </ul>

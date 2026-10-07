@@ -15,7 +15,7 @@ def field(label):
 S = "F"
 c.goto("/administrator/group", wait=1800)
 c.shot("group-form", "طلب تشكيل مجموعة: الرقم تلقائي، والسعة تحددها الإدارة عند الاعتماد", section=S)
-field("اسم تعريفي").fill("مجموعة الشام"); c.settle(300)
+field("اسم المجموعة").fill("مجموعة الشام"); c.settle(300)
 sb = p.locator("button:has-text('إرسال طلب التشكيل')").first
 sb.scroll_into_view_if_needed(); c.settle(300)
 c.shot("group-submit", "إرسال طلب التشكيل: الفريق يُدعى بعد الاعتماد", hl=[("button:has-text('إرسال طلب التشكيل')", "")], section=S)

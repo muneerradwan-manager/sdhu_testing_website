@@ -3,7 +3,7 @@
 from cap import Cap, ROOT
 c = Cap(storage=str(ROOT / "admin" / "state-passed.json")); p = c.page
 c.goto("/administrator/group", wait=1800)
-p.locator("label:has-text('اسم تعريفي') input").first.fill("مجموعة الشام")
+p.locator("label:has-text('اسم المجموعة') input").first.fill("مجموعة الشام")
 sb = p.locator("button:has-text('إرسال طلب التشكيل')").first
 sb.scroll_into_view_if_needed(); sb.click(); c.settle(1500)
 p.get_by_role("button", name="شام كاش").first.click(); c.settle(700)
