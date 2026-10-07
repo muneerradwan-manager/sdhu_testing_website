@@ -15,26 +15,51 @@ export const ADMIN_ROLE = "إداري";
 
 /**
  * "done" = finished the whole journey (passed, group approved, contracts signed) so every screen of the
- * role shows; "start" = a fresh file that has not begun. "field" and "tech" are older names for "done".
+ * role shows; "ready" = qualified, at the start of his own work in the formation; "start" = a fresh file that
+ * has not begun. "field" and "tech" are older names for "done".
  */
-export type DemoAdminMode = "start" | "done" | "field" | "tech";
+export type DemoAdminMode = "start" | "ready" | "done" | "field" | "tech";
 
-export type DemoAdmin = { id: string; phone: string; position: string; title: string; note: string; mode: "start" | "done" };
+/**
+ * `section`: where the demo's list shows him — the role he works in this season, or the place a cluster gives.
+ * `mode`: «done» finished his journey (every screen of his place shows); «ready» qualified for the season and at
+ * the start of his own work — a cluster to file, a group to form, an invitation waiting for his answer; «start»
+ * has not registered for the season yet.
+ */
+export type DemoAdmin = { id: string; phone: string; position: string; section: string; title: string; note: string; mode: "start" | "ready" | "done" };
 
-/** Twelve demo administrators: two for each role — one finished, one not started */
+/** The demo's list, in the order of the cluster's structure: its head, his deputy and accountant, then the groups and the cluster's people */
+export const DEMO_GROUPS = ["رئيس تكتل", "نائب رئيس التكتل", "محاسب التكتل", "رئيس مجموعة", "معاون", "معاون التكتل", "معاون بعدد", "معاون ومنسق تقني", "منسق تقني", "موجّه ديني", "مرشد ديني", "موجّهة دينية", "مرشدة دينية"];
+
+/** The demo administrators: every role and every place a cluster gives, most of them finished in تكتل النور, some not started */
 export const DEMO_ADMINS: DemoAdmin[] = [
-  { id: "01033300881", phone: "0944281449", position: "group-head", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس مجموعة الخبير ثلاثة مواسم متتالية (4.6 – 4.8)، فئتها الثالثة. جدّد صفته معفى من الامتحانين، ومنحته الإدارة صفة «رئيس تكتل» موسمية، فقدّم طلب تكتل النور (اقتصادي): ست مجموعات مجموع فئاتها 11 ومقاعدها، ومعاون التكتل، ومنسقان وموجّهتان، ونائبه ومحاسبه. أرسله فاعتمدته الإدارة بعد مراجعته. يبقى رئيس مجموعته ويدير التكتل كله." },
-  { id: "01033300882", phone: "0944282449", position: "group-head", mode: "done", title: "نبيل الساعاتي — رئيس مجموعة منحته الإدارة صفة رئيس تكتل", note: "54 عاماً — رئيس مجموعة الميزان ثلاثة مواسم متتالية بتقييم 4.3 – 4.6، فئتها الثالثة. جدّد صفته، واعتُمدت مجموعته ولم تدخل تكتلاً. منحته الإدارة صفة «رئيس تكتل» موسمية للزيادة العددية: يقدّم طلب تشكيل تكتل من أوله في مدته — المستوى، فالمجموعات ومقاعدها، فمعاون التكتل والمنسق والموجّهة، فالنائب والمحاسب — ويرسله للمراجعة." },
-  { id: "01033300883", phone: "0944283449", position: "group-head", mode: "done", title: "بسام درويش — نائب رئيس تكتل النور", note: "51 عاماً — رئيس مجموعة أحفاد بني هاشم (الفئة الثانية) في 1446 و1447 (4.4). مجموعته في تكتل النور، ودعاه رئيسه نائباً له فقبل: صفة ثانوية فوق رئاسة مجموعته، يرى بها مجموعات التكتل ومعلوماته." },
-  { id: "01033300884", phone: "0944284449", position: "group-head", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "45 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالامتحانين. لم يبدأ." },
-  { id: "01033300871", phone: "0944271449", position: "group-head", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وشكّل مجموعته «مجموعة اللطيف» وحده، وأعطته الإدارة الفئة الثانية (90 حاجاً في الاقتصادي، بموجّه ومعاون). قبل دعوة تكتل النور لها. يلحق بها الحجاج ويرحّب بالعائلات ويفتح التجمّعات." },
-  { id: "01033300885", phone: "0944285449", position: "group-head", mode: "start", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له: يريد رئاسة مجموعة يشكّلها بنفسه، ويخضع للامتحانين. لم يبدأ." },
-  { id: "01033300872", phone: "0944272449", position: "group-deputy", mode: "done", title: "ياسر عبد الله — معاون", note: "40 عاماً — معاون مجموعة اللطيف في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد المعاون في مجموعة اللطيف فقبل. أنهى رحلته." },
-  { id: "01033300886", phone: "0944286449", position: "group-deputy", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون مجموعة الإحسان في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
-  { id: "01033300874", phone: "0944274449", position: "tech", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق تقني في 1447 (4.8)، جدّد الصفة نفسها. المنسق للتكتل لا لمجموعة: تكتل النور بمجموع فئات 11 له منسقان، ووزّع رئيسه عليه ثلاثاً من مجموعاته (الخبير واللطيف وأحفاد بني هاشم). يسجّل الحجاج على الحج في مكتب دمشق دون أن يضعهم في مجموعة، ويرفع عقود من يتفق مع مجموعاته، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
-  { id: "01033300887", phone: "0944287449", position: "tech", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص، أول موسم له. لم يبدأ." },
-  { id: "01033300873", phone: "0944273449", position: "guide-m", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه مجموعة اللطيف في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد الموجّه في مجموعة اللطيف فقبل. أنهى رحلته." },
-  { id: "01033300888", phone: "0944288449", position: "guide-m", mode: "start", title: "عبد الغني الطباع — موجّه ديني", note: "43 عاماً — أول موسم له. لم يبدأ." },
+  { id: "01033300881", phone: "0944281449", position: "group-head", section: "رئيس تكتل", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس مجموعة الخبير ثلاثة مواسم متتالية (4.6 – 4.8)، فئتها الثالثة. جدّد صفته معفى من الامتحانين، ومنحته الإدارة صفة «رئيس تكتل» موسمية، فقدّم طلب تكتل النور (اقتصادي): ست مجموعات مجموع فئاتها 11 ومقاعدها، ومعاون التكتل، ومنسقان وموجّهتان، ونائبه ومحاسبه. أرسله فاعتمدته الإدارة بعد مراجعته. يبقى رئيس مجموعته ويدير التكتل كله." },
+  { id: "01033300882", phone: "0944282449", position: "group-head", section: "رئيس تكتل", mode: "ready", title: "نبيل الساعاتي — رئيس مجموعة منحته الإدارة صفة رئيس تكتل", note: "54 عاماً — رئيس مجموعة الميزان ثلاثة مواسم متتالية بتقييم 4.3 – 4.6، فئتها الثالثة. جدّد صفته، واعتُمدت مجموعته ولم تدخل تكتلاً. منحته الإدارة صفة «رئيس تكتل» موسمية للزيادة العددية: يقدّم طلب تشكيل تكتل من أوله في مدته — المستوى، فالمجموعات ومقاعدها، فمعاون التكتل والمنسق والموجّهة، فالنائب والمحاسب — ويرسله للمراجعة." },
+  { id: "01033300883", phone: "0944283449", position: "group-head", section: "نائب رئيس التكتل", mode: "done", title: "بسام درويش — نائب رئيس تكتل النور", note: "51 عاماً — رئيس مجموعة أحفاد بني هاشم (الفئة الثانية) في 1446 و1447 (4.4). مجموعته في تكتل النور، ودعاه رئيسه نائباً له فقبل: صفة ثانوية فوق رئاسة مجموعته، يرى بها مجموعات التكتل ومعلوماته." },
+  { id: "01033300884", phone: "0944284449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "45 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالامتحانين. لم يبدأ." },
+  { id: "01033300871", phone: "0944271449", position: "group-head", section: "رئيس مجموعة", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وشكّل مجموعته «مجموعة اللطيف» وحده، وأعطته الإدارة الفئة الثانية (90 حاجاً في الاقتصادي، بموجّه ومعاون). قبل دعوة تكتل النور لها. يلحق بها الحجاج ويرحّب بالعائلات ويفتح التجمّعات." },
+  { id: "01033300885", phone: "0944285449", position: "group-head", section: "رئيس مجموعة", mode: "ready", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له رئيساً: نجح في الامتحانين، ولم يطلب تشكيل مجموعته بعد. يسمّيها ويدفع رسمها في «تشكيل المجموعات»، فتعتمدها الإدارة بفئته." },
+  { id: "01033300872", phone: "0944272449", position: "group-deputy", section: "معاون", mode: "done", title: "ياسر عبد الله — معاون", note: "40 عاماً — معاون مجموعة اللطيف في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد المعاون في مجموعة اللطيف فقبل. أنهى رحلته." },
+  { id: "01033300886", phone: "0944286449", position: "group-deputy", section: "معاون", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون مجموعة الإحسان في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
+  { id: "01033300874", phone: "0944274449", position: "tech", section: "منسق تقني", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق تقني في 1447 (4.8)، جدّد الصفة نفسها. المنسق للتكتل لا لمجموعة: تكتل النور بمجموع فئات 11 له منسقان، ووزّع رئيسه عليه ثلاثاً من مجموعاته (الخبير واللطيف وأحفاد بني هاشم). يسجّل الحجاج على الحج في مكتب دمشق دون أن يضعهم في مجموعة، ويرفع عقود من يتفق مع مجموعاته، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
+  { id: "01033300887", phone: "0944287449", position: "tech", section: "منسق تقني", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص، أول موسم له. لم يبدأ." },
+  { id: "01033300873", phone: "0944273449", position: "guide-m", section: "موجّه ديني", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه مجموعة اللطيف في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد الموجّه في مجموعة اللطيف فقبل. أنهى رحلته." },
+  { id: "01033300888", phone: "0944288449", position: "guide-m", section: "موجّه ديني", mode: "start", title: "عبد الغني الطباع — موجّه ديني", note: "43 عاماً — أول موسم له. لم يبدأ." },
+  { id: "01033300944", phone: "0944944449", position: "group-deputy", section: "محاسب التكتل", mode: "done", title: "مهند السيد — معاون ومحاسب تكتل النور", note: "38 عاماً — معاون بثلاثة مواسم (4.7). دعاه رئيس تكتل النور إلى مقعد المعاون في مجموعة أحفاد بني هاشم، ثم محاسباً للتكتل: صفة ثانوية يسجّل بها مصروفات التكتل، من كادره." },
+  { id: "01033300947", phone: "0944947449", position: "group-deputy", section: "معاون التكتل", mode: "done", title: "عمر الحايك — معاون تكتل النور", note: "31 عاماً — معاون من فرع اللاذقية (4.3). معاون التكتل لا لمجموعة: العدد الثابت في المستوى الاقتصادي واحد، للمطارات والمخيمات والطوارئ مع رئيس التكتل." },
+  { id: "01033300975", phone: "0944975449", position: "assistant-count", section: "معاون بعدد", mode: "done", title: "عبد الكريم الشلاح — معاون بعدد", note: "44 عاماً — «معاون بعدد» (4.2): من معاوني التكتل بلا حد أقصى، ويضيف 20 حاجاً إلى عدد حجاج تكتل النور. يمتحن امتحان المعاون." },
+  { id: "01033300961", phone: "0944961449", position: "assistant-tech", section: "معاون ومنسق تقني", mode: "done", title: "لؤي العظمة — معاون ومنسق تقني", note: "33 عاماً — يجمع الصفتين (4.4)، ويمتحن امتحان المنسق. في تكتل النور أحد منسقَيه — ولا بد أن يكون أحد منسقي كل تكتل بهذه الصفة — ووزّع عليه رئيسه طيبة وزمزم والإيمان." },
+  { id: "01033300965", phone: "0944965449", position: "murshid", section: "مرشد ديني", mode: "done", title: "الشيخ مأمون الحلواني — مرشد ديني", note: "54 عاماً — مرشد خمسة مواسم (4.9)، ويمتحن امتحان الموجّه. في المقعد الحر من مجموعة الخبير (الفئة الثالثة)، وبه نال تكتل النور «شارة الإرشاد»." },
+  { id: "01033300981", phone: "0944981449", position: "guide-f", section: "موجّهة دينية", mode: "done", title: "هالة الدقر — موجّهة دينية", note: "43 عاماً — موجّهة للتكتل لا لمجموعة (4.7): حاجّات تكتل النور كلهن. مجموع فئاته 11، فله موجّهتان (واحدة لكل 7 وحدات)." },
+  { id: "01033300984", phone: "0944984449", position: "guide-f", section: "موجّهة دينية", mode: "start", title: "لينا العاني — موجّهة دينية", note: "36 عاماً — موجّهة في 1447 (4.2). لم تبدأ موسم 1448." },
+  { id: "01033300891", phone: "0944891449", position: "group-head", section: "نائب رئيس التكتل", mode: "ready", title: "صلاح الدين المارديني — مدعو نائباً لرئيس تكتل البيان", note: "47 عاماً — رئيس مجموعة الأمل (الفئة الثانية، 4.4). قبل دعوة تكتل البيان لمجموعته، ودعاه رئيسه نائباً له: الدعوة في «تشكيل التكتلات» بانتظار رده." },
+  { id: "01033300892", phone: "0944892449", position: "group-deputy", section: "محاسب التكتل", mode: "ready", title: "غسان الكيلاني — مدعو معاوناً ومحاسباً في تكتل البيان", note: "39 عاماً — معاون (4.3). دعاه رئيس تكتل البيان إلى مقعد المعاون في مجموعة البشرى، ومحاسباً للتكتل: دعوتان بانتظار رده." },
+  { id: "01033300893", phone: "0944893449", position: "group-deputy", section: "معاون التكتل", mode: "ready", title: "حسن اللبابيدي — مدعو معاوناً لتكتل البيان", note: "35 عاماً — معاون (4.2). دعاه رئيس تكتل البيان معاوناً للتكتل كله: الدعوة بانتظار رده." },
+  { id: "01033300894", phone: "0944894449", position: "assistant-count", section: "معاون بعدد", mode: "ready", title: "ماهر الشربجي — معاون بعدد مدعو إلى تكتل البيان", note: "46 عاماً — معاون بعدد (4.1): إن قبل أضاف 20 حاجاً إلى عدد حجاج تكتل البيان. الدعوة بانتظار رده." },
+  { id: "01033300895", phone: "0944895449", position: "assistant-tech", section: "معاون ومنسق تقني", mode: "ready", title: "خلدون الصيرفي — مدعو منسقاً لتكتل البيان", note: "32 عاماً — معاون ومنسق تقني (4.5). مجموع فئات تكتل البيان 5، فله منسق واحد، ولا بد أن يكون بهذه الصفة: الدعوة بانتظار رده." },
+  { id: "01033300896", phone: "0944896449", position: "murshid", section: "مرشد ديني", mode: "ready", title: "الشيخ عبد الهادي البغدادي — مدعو إلى مقعد في تكتل البيان", note: "51 عاماً — مرشد ديني (4.6). دعاه رئيس تكتل البيان إلى مقعد الموجّه في مجموعة البشرى: الدعوة بانتظار رده." },
+  { id: "01033300897", phone: "0944897449", position: "murshida", section: "مرشدة دينية", mode: "ready", title: "سوسن الحفار — مرشدة مدعوة إلى تكتل البيان", note: "45 عاماً — مرشدة دينية (4.5). موجّهة تكتل البيان الوحيدة إن قبلت (واحدة لكل 7 وحدات): الدعوة بانتظار ردها." },
+  { id: "01033300985", phone: "0944985449", position: "murshida", section: "مرشدة دينية", mode: "done", title: "نهى الطباع — مرشدة دينية", note: "49 عاماً — مرشدة أربعة مواسم (4.8)، وتمتحن امتحان الموجّهة. ثانية موجّهات تكتل النور، وتمنحه هي أيضاً «شارة الإرشاد»." },
 ];
 /** تكتل النور في هذا العرض، ومجموعة أحمد فيه (27). فريقه وإسناده في طلبه (SEED_CLUSTERS) */
 export const TECH_POSTING = { clusterId: "al-nour", groupNumber: 27 };
@@ -45,9 +70,9 @@ export function positionOf(p: AdminProfile | undefined) {
   return p?.positions.includes("tech") ? "tech" : (p?.positions[0] ?? "tech");
 }
 
-/** هل يملك هذا الإداري صفة المنسق التقني؟ */
+/** هل يعمل هذا الإداري منسقاً تقنياً؟ بصفته، أو بمكانه بين منسقي تكتله («معاون ومنسق تقني») */
 export function isTechCoordinator(p: AdminProfile | undefined) {
-  return !!p?.positions.includes("tech");
+  return !!p?.positions.includes("tech") || !!p?.coordinatorIn;
 }
 
 /**
@@ -327,6 +352,21 @@ const HISTORY: Record<string, { season: string; roleKey: string | null; cluster?
   "01033300874": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "tech", cluster: "تكتل النور", groups: [27, 31, 5], rating: 4.8 }],
   "01033300886": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", groups: [41], rating: 4.3 }],
   "01033300873": [{ season: "1446", roleKey: "guide-m", groups: [27], rating: 4.9 }, { season: "1447", roleKey: "guide-m", groups: [27], rating: 4.9 }],
+  "01033300944": [{ season: "1445", roleKey: "group-deputy", groups: [5], rating: 4.5 }, { season: "1446", roleKey: "group-deputy", groups: [5], rating: 4.6 }, { season: "1447", roleKey: "group-deputy", groups: [44], rating: 4.7 }],
+  "01033300947": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "group-deputy", groups: [33], rating: 4.3 }],
+  "01033300975": [{ season: "1446", roleKey: "assistant-count", cluster: "تكتل النور", rating: 4.0 }, { season: "1447", roleKey: "assistant-count", cluster: "تكتل النور", rating: 4.2 }],
+  "01033300961": [{ season: "1446", roleKey: "tech", groups: [18], rating: 4.2 }, { season: "1447", roleKey: "assistant-tech", cluster: "تكتل النور", groups: [18, 33], rating: 4.4 }],
+  "01033300965": [{ season: "1445", roleKey: "murshid", groups: [31], rating: 4.8 }, { season: "1446", roleKey: "murshid", groups: [31], rating: 4.9 }, { season: "1447", roleKey: "murshid", groups: [31], rating: 4.9 }],
+  "01033300981": [{ season: "1446", roleKey: "guide-f", cluster: "تكتل النور", rating: 4.6 }, { season: "1447", roleKey: "guide-f", cluster: "تكتل النور", rating: 4.7 }],
+  "01033300984": [{ season: "1446", roleKey: null }, { season: "1447", roleKey: "guide-f", cluster: "تكتل الشهباء", rating: 4.2 }],
+  "01033300985": [{ season: "1446", roleKey: "murshida", cluster: "تكتل النور", rating: 4.7 }, { season: "1447", roleKey: "murshida", cluster: "تكتل النور", rating: 4.8 }],
+  "01033300891": [{ season: "1446", roleKey: "group-head", groups: [64], rating: 4.2 }, { season: "1447", roleKey: "group-head", groups: [64], rating: 4.4 }],
+  "01033300892": [{ season: "1447", roleKey: "group-deputy", groups: [22], rating: 4.3 }],
+  "01033300893": [{ season: "1447", roleKey: "group-deputy", groups: [12], rating: 4.2 }],
+  "01033300894": [{ season: "1447", roleKey: "assistant-count", cluster: "تكتل الشهباء", rating: 4.1 }],
+  "01033300895": [{ season: "1446", roleKey: "assistant-tech", groups: [14], rating: 4.3 }, { season: "1447", roleKey: "assistant-tech", groups: [14, 22], rating: 4.5 }],
+  "01033300896": [{ season: "1447", roleKey: "murshid", groups: [9], rating: 4.6 }],
+  "01033300897": [{ season: "1447", roleKey: "murshida", cluster: "تكتل الشهباء", rating: 4.5 }],
 };
 
 export function seasonHistory(id: string): SeasonRecord[] {
@@ -553,12 +593,12 @@ export function demoAdminLogin(
       resultPublishedAt: keep ? undefined : now - 35 * min,
       // Only a group head has a group of his own; a guide, an assistant or a coordinator works in the groups
       // the head of تكتل النور assigned to him
-      group: position !== "group-head"
+      group: position !== "group-head" || (mode === "ready" && !READY_GROUPS[id])
         ? undefined
         : {
-            number: demoGroupNumber(id),
-            // Its head accepted تكتل النور's invitation (or is its head); نبيل's group is in no cluster yet
-            clusterId: id === CLUSTER_DEMO.next ? undefined : TECH_POSTING.clusterId,
+            number: mode === "ready" ? READY_GROUPS[id].number : demoGroupNumber(id),
+            // Its head accepted تكتل النور's invitation (or is its head); a ready head's group is where the story put it
+            clusterId: mode === "ready" ? READY_GROUPS[id].clusterId : TECH_POSTING.clusterId,
             // Its pilgrims and seats follow its head's category under the cluster's tier
             capacity: 0,
             requestedAt: now - 30 * min,
@@ -566,13 +606,13 @@ export function demoAdminLogin(
             approvedAt: now - 20 * min,
             approvedBy: "مازن الحلبي",
           },
-      ...postFor(id, position),
-      ...clusterStateFor(id, position, now - 15 * min),
+      // A ready administrator has no place yet: what waits for him is in «تشكيل التكتلات»
+      ...(mode === "ready" ? {} : { ...postFor(id), ...clusterStateFor(id, position, now - 15 * min) }),
     });
     actions.adminLogin(id);
     logAdmin(
       id,
-      `دخول تجريبي (${positionLabelOf(position)} — ${keep ? "تجديد الصفة نفسها دون امتحان" : "ملف مكتمل"} ومجموعة معتمدة)`,
+      `دخول تجريبي (${positionLabelOf(position)} — ${keep ? "تجديد الصفة نفسها دون امتحان" : "ملف مكتمل"}${mode === "ready" ? "، في أول عمله" : " ومجموعة معتمدة"})`,
       `الإداري ${id.slice(-3)}`,
     );
     // يفتح مكتب التسجيل على مثال كامل: طلبان سبق أن سجّلهما
@@ -587,6 +627,12 @@ export function demoAdminLogin(
 /** The demo's cluster story: عبد الرحمن filed تكتل النور's request; بسام (a former group head) accepted to be its deputy head; أحمد accepted its invitation for his group */
 export const CLUSTER_DEMO = { head: "01033300881", deputy: "01033300883", /** Granted «رئيس تكتل», his group outside any cluster: he files a request from its start */ next: "01033300882" };
 
+/** The groups of the demo's ready group heads: نبيل's outside any cluster, صلاح الدين's in تكتل البيان; مروان has none yet */
+const READY_GROUPS: Record<string, { number: number; clusterId?: string }> = {
+  "01033300882": { number: 63 },
+  "01033300891": { number: 64, clusterId: "al-bayan" },
+};
+
 /** The group each finished demo group head leads in the story: the cluster's head 31, his deputy 5, نبيل 63, the rest 27 */
 export function demoGroupNumber(id: string) {
   return id === CLUSTER_DEMO.head ? 31 : id === CLUSTER_DEMO.deputy ? 5 : id === CLUSTER_DEMO.next ? 63 : TECH_POSTING.groupNumber;
@@ -594,14 +640,22 @@ export function demoGroupNumber(id: string) {
 
 const NOUR = () => SEED_CLUSTERS.find((c) => c.cluster.id === "al-nour")!;
 
-/** Where a finished guide, assistant or coordinator works in تكتل النور: his seat's group, or the groups sorted to him */
-function postFor(id: string, position: string): Partial<AdminProfile> {
+/**
+ * Where a finished demo administrator works in تكتل النور, as its request holds him: among its coordinators
+ * (the groups sorted to him), in a group's seat, among its female guides or its assistants — and its accountant
+ */
+function postFor(id: string): Partial<AdminProfile> {
   const nour = NOUR();
   const c = nour.cluster;
   const base = { clusterId: c.id, clusterName: c.name, headId: nour.headId, headName: nour.headName };
-  if (position === "tech") return { coordinatorIn: { ...base, groups: Object.entries(c.sorting).filter(([, who]) => who === id).map(([n]) => Number(n)) } };
+  const out: Partial<AdminProfile> = {};
+  if (c.accountant?.id === id) out.accountantOf = base;
+  if (c.coordinators.some((x) => x.id === id)) return { ...out, coordinatorIn: { ...base, groups: Object.entries(c.sorting).filter(([, who]) => who === id).map(([n]) => Number(n)) } };
   const seat = Object.entries(c.seats).flatMap(([n, seats]) => seats.filter((x) => x.who?.id === id).map((x) => ({ n: Number(n), kind: x.kind })))[0];
-  return seat ? { servesIn: { ...base, role: seat.kind, groups: [seat.n] } } : {};
+  if (seat) return { ...out, servesIn: { ...base, role: seat.kind, groups: [seat.n] } };
+  if (c.femaleGuides.some((x) => x.id === id)) return { ...out, servesIn: { ...base, role: "guide-f", groups: [] } };
+  if (c.assistants.some((x) => x.id === id)) return { ...out, servesIn: { ...base, role: "cluster-assistant", groups: [] } };
+  return out;
 }
 
 /** What the formation left on each finished group head's file: the head owns the request, the deputy holds his cluster role */

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { BadgeCheck, Building2, CalendarClock, Check, CircleDashed, ExternalLink, Eye, Inbox, PencilRuler, Plus, RotateCcw, ShieldCheck, UserMinus, UsersRound, X } from "lucide-react";
+import { BadgeCheck, Building2, CalendarClock, Check, CircleDashed, ExternalLink, Eye, Inbox, PencilRuler, Plus, Printer, RotateCcw, ShieldCheck, UserMinus, UsersRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf } from "@/lib/cluster-profile";
@@ -11,7 +12,7 @@ import { groupName } from "@/lib/groups";
 import { dayLabel } from "@/lib/operations";
 import { actions, useStore, type ClusterInvite, type Seat } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { ClusterReport, requestLine } from "@/app/administrator/_components/cluster-report";
+import { ClusterPrint, ClusterReport, requestLine } from "@/app/administrator/_components/cluster-report";
 import { DEPUTY_TITLE, ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, reviewCluster, usePicks, type Cluster, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { categoryOfId, seatsLabel, seatsOf, useStructure } from "@/app/administrator/_lib/structure";
 import { Drawer, Empty, Panel, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
@@ -207,6 +208,9 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
             <RotateCcw className="size-4" /> إعادة فتحه لرئيسه للتعديل
           </Button>
         )}
+        <Button size="sm" variant="glass" onClick={() => window.print()}>
+          <Printer className="size-4" /> طباعة التقرير
+        </Button>
         {(c.status === "draft" || c.status === "rejected") && <span className="text-xs text-white/60">عند رئيسه: {c.status === "draft" ? "لم يرسله بعد" : "يصلحه ويعيد إرساله"}.</span>}
         {c.status === "reviewing" && !x.complete && <span className="self-center text-xs text-gold">لا يُعتمد ناقصاً: أعده بملاحظات، أو أكمله بتعديل استثنائي.</span>}
       </div>
@@ -220,6 +224,9 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
       </ul>
 
       <ClusterReport req={x} dark />
+      <PrintSheet>
+        <ClusterPrint req={x} />
+      </PrintSheet>
       <Exceptional x={x} />
       <RecordHistory system="admins" refId={c.id} />
 

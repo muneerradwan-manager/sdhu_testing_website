@@ -1,5 +1,6 @@
 import type { AdminProfile, ClusterInvite, ClusterRecord, GroupInvite, Seat } from "@/lib/store";
 import { HEADS_POOL } from "./people";
+import { GEN_CLUSTERS } from "./season-seed";
 import { categoryOfId, seatsOf, type Structure } from "./structure";
 
 export { HEADS_POOL };
@@ -30,6 +31,8 @@ export type ClusterGroup = {
 
 const at = (d: number, h = 9) => Date.UTC(2026, 10, d, h);
 const acc = (id: string, name: string, when = at(14)): ClusterInvite => ({ id, name, at: when, status: "accepted" });
+/** An invitation still waiting for its answer */
+const wait = (id: string, name: string): ClusterInvite => ({ id, name, at: at(14), status: "pending" });
 
 function poolGroup(id: string): GroupInvite {
   const h = HEADS_POOL.find((x) => x.id === id)!;
@@ -52,7 +55,7 @@ const sorting = (map: Record<string, number[]>) => Object.fromEntries(Object.ent
 /**
  * The requests the season already has, filed by heads who are not on this device (and تكتل النور, whose head
  * عبد الرحمن العلي signs in with it). تكتل النور is approved; تكتل الشهباء was sent and waits for its
- * review; تكتل الياسمين was sent back with notes to fix.
+ * review; تكتل الياسمين was sent back with notes to fix; a dozen more are generated over the branches.
  */
 export const SEED_CLUSTERS: SeedCluster[] = [
   {
@@ -70,7 +73,7 @@ export const SEED_CLUSTERS: SeedCluster[] = [
       review: { at: at(17), by: "مازن الحلبي" },
       decision: { status: "approved", at: at(18, 11), by: "مازن الحلبي" },
       deputy: acc("01033300883", "بسام درويش"),
-      accountant: acc("seed-07", "طارق الحوراني"),
+      accountant: acc("01033300944", "مهند السيد"),
       groups: byNumber([
         demoGroup("01033300881", "عبد الرحمن العلي", 31, "c3", 112),
         demoGroup("01033300871", "أحمد سليمان الحمصي", 27, "c2", 44),
@@ -80,7 +83,7 @@ export const SEED_CLUSTERS: SeedCluster[] = [
         poolGroup("seed-05"),
       ]),
       seats: {
-        31: [guide("01033300951", "الشيخ معتز البارودي"), assistant("01033300941", "عماد الشامي"), guide("01033300955", "الشيخ مأمون الحلواني", true)],
+        31: [guide("01033300951", "الشيخ معتز البارودي"), assistant("01033300941", "عماد الشامي"), guide("01033300965", "الشيخ مأمون الحلواني", true)],
         27: [guide("01033300873", "الشيخ خالد الرفاعي"), assistant("01033300872", "ياسر عبد الله")],
         5: [guide("01033300957", "الشيخ عمار الكردي"), assistant("01033300944", "مهند السيد")],
         18: [guide("01033300953", "الشيخ وائل الحافظ")],
@@ -144,6 +147,37 @@ export const SEED_CLUSTERS: SeedCluster[] = [
       sorting: {},
     },
   },
+  {
+    headId: "seed-16",
+    headName: "سليم القدسي",
+    headGroup: 65,
+    cluster: {
+      id: "al-bayan",
+      name: "تكتل البيان",
+      createdAt: at(13),
+      tier: "eco",
+      status: "draft",
+      // The demo's ready administrators answer these from their own accounts
+      deputy: wait("01033300891", "صلاح الدين المارديني"),
+      accountant: wait("01033300892", "غسان الكيلاني"),
+      groups: byNumber([
+        { ...acc("seed-16", "سليم القدسي"), number: 65, branch: "دمشق", category: "c2", pilgrims: 63 },
+        { ...acc("01033300891", "صلاح الدين المارديني"), number: 64, branch: "دمشق", category: "c2", pilgrims: 52 },
+        { ...acc("seed-17", "رائد الحلاق"), number: 66, branch: "دمشق", category: "c1", pilgrims: 38 },
+      ]),
+      seats: {
+        65: [{ kind: "guide", who: wait("01033300896", "الشيخ عبد الهادي البغدادي") }, { kind: "assistant", who: wait("01033300892", "غسان الكيلاني") }],
+        64: [guide("01033300991", "الشيخ هيثم المالكي"), assistant("01033300995", "مؤيد الزين")],
+        66: [guide("01033300990", "الشيخ نادر السقا")],
+      },
+      assistants: [wait("01033300893", "حسن اللبابيدي"), wait("01033300894", "ماهر الشربجي")],
+      coordinators: [wait("01033300895", "خلدون الصيرفي")],
+      femaleGuides: [wait("01033300897", "سوسن الحفار")],
+      sorting: {},
+    },
+  },
+  // The season's other requests, over every branch, tier and state (./season-seed)
+  ...GEN_CLUSTERS,
 ];
 
 /** A cluster's groups whose heads accepted, in the order they were invited */

@@ -240,6 +240,43 @@ main:has([data-dark-page]) + footer {
   animation: page-in 380ms var(--ease-out-expo) backwards;
 }
 
+/* ───────────────────────── Printed sheets (components/print/print-sheet.tsx) ─────────────────────────
+   A page holding a sheet prints the sheet alone: everything else in <body> is hidden on paper, the screen's
+   zoom is undone, and the sheet takes A4 with its page numbers at the foot. The screen never shows it. */
+.print-sheet {
+  display: none;
+}
+@media print {
+  html:has(> body > .print-sheet) {
+    zoom: 1 !important;
+    font-size: 16px;
+  }
+  body:has(> .print-sheet) {
+    display: block;
+    min-height: 0;
+    background: #fff;
+  }
+  body:has(> .print-sheet) > :not(.print-sheet) {
+    display: none !important;
+  }
+  .print-sheet {
+    display: block;
+    page: sheet;
+    color: #000;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@page sheet {
+  size: A4 portrait;
+  margin: 12mm 12mm 16mm;
+  @bottom-center {
+    content: "صفحة " counter(page) " من " counter(pages);
+    font-size: 9pt;
+    color: #666;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

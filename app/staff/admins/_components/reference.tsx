@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatNumber, nowMs } from "@/lib/utils";
+import { DEMO_ADMINS } from "@/app/administrator/_lib/admin";
 import { useClusterRequests } from "@/app/administrator/_lib/formation";
 import { HEADS_POOL, ROSTER } from "@/app/administrator/_lib/people";
 import {
@@ -42,7 +43,7 @@ import { Drawer, Panel, Tabs, smallInputClass, textareaClass, useStaffUser } fro
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
-import { Chip, SearchBox } from "../../_components/ops-ui";
+import { Chip, FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
 import { logAdmins } from "../desk";
 
@@ -669,6 +670,8 @@ function usePeople(): Person[] {
     const key = (pos?: string) => (pos ? (s.roles.find((r) => r.key === pos || r.name === pos)?.key ?? pos) : undefined);
     const map = new Map<string, Person>();
     for (const r of rows) map.set(r.id, { id: r.id, name: r.name, applied: key(r.profile.positions[0] ?? r.position) });
+    // The demo accounts not signed in on this device yet, with the role of their story
+    for (const d of DEMO_ADMINS) if (!map.has(d.id)) map.set(d.id, { id: d.id, name: d.title.split(" — ")[0], applied: d.position });
     for (const c of ROSTER) if (!map.has(c.id)) map.set(c.id, { id: c.id, name: c.name, applied: c.roleKey });
     for (const h of HEADS_POOL) if (!map.has(h.id)) map.set(h.id, { id: h.id, name: h.name, applied: "group-head" });
     return [...map.values()];
@@ -680,8 +683,14 @@ function People() {
   const cadre = useCadre();
   const people = usePeople();
   const [q, setQ] = useState("");
+  const [role, setRole] = useState("");
+  const [branch, setBranch] = useState("");
   const [open, setOpen] = useState<Person | null>(null);
-  const found = people.filter((p) => !q.trim() || [p.name, roleName(p.applied ?? "", s), branchOf(p.id, cadre)].some((t) => t.includes(q.trim())));
+  const [shown, setShown] = useState(40);
+  const roleNow = (p: Person) => seasonalOf(p.id, cadre)?.role ?? p.applied ?? "";
+  const found = people
+    .filter((p) => (!role || roleNow(p) === role || p.applied === role) && (!branch || branchesOf(p.id, cadre).includes(branch)))
+    .filter((p) => !q.trim() || [p.name, roleName(p.applied ?? "", s), branchOf(p.id, cadre)].some((t) => t.includes(q.trim())));
   const granted = people.filter((p) => seasonalOf(p.id, cadre));
   return (
     <>
@@ -708,9 +717,13 @@ function People() {
         </ul>
       </Panel>
       <Panel icon={<UsersRound />} title="الأشخاص" action={<Chip>{people.length}</Chip>}>
-        <SearchBox value={q} onChange={setQ} placeholder="ابحث بالاسم أو الصفة أو الفرع" label="بحث في الأشخاص" />
+        <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr]">
+          <SearchBox value={q} onChange={setQ} placeholder="ابحث بالاسم أو الصفة أو الفرع" label="بحث في الأشخاص" />
+          <FilterSelect label="الصفة" all={`كل الصفات (${people.length})`} value={role} onChange={setRole} options={s.roles.map((r) => ({ value: r.key, label: `${r.name} (${people.filter((p) => roleNow(p) === r.key).length})` }))} />
+          <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
+        </div>
         <ul className="mt-3 grid gap-2 md:grid-cols-2">
-          {found.slice(0, 40).map((p) => {
+          {found.slice(0, shown).map((p) => {
             const g = seasonalOf(p.id, cadre);
             const cat = categoryOf(p.id, cadre);
             return (
@@ -727,7 +740,11 @@ function People() {
             );
           })}
         </ul>
-        {found.length > 40 && <p className="mt-2 text-xs text-white/55">أول 40 من {found.length} — ضيّق البحث.</p>}
+        {found.length > shown && (
+          <Button size="sm" variant="glass" className="mt-3" onClick={() => setShown(shown + 60)}>
+            عرض المزيد ({found.length - shown})
+          </Button>
+        )}
       </Panel>
       <Drawer open={!!open} onClose={() => setOpen(null)} title={open?.name ?? ""}>
         {open && <PersonCadre id={open.id} name={open.name} applied={open.applied} />}

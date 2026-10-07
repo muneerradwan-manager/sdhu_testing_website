@@ -2,17 +2,18 @@
 
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, Check, CircleDashed, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, CalendarClock, Calculator, Check, CircleDashed, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { OperationClosed } from "@/components/app/operation-closed";
+import { PrintSheet } from "@/components/print/print-sheet";
 import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
 import { dayLabel, rangeLabel } from "@/lib/operations";
 import { useSeason } from "@/lib/season-live";
-import { useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
+import { actions, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 import { adminName, logAdmin, nowMs, resultOf, useAdmin } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
@@ -50,7 +51,7 @@ import {
   type Window,
 } from "../../_lib/formation";
 import { categoryOf, categoryOfId, does, roleName, roleOf, seasonalOf, seatsLabel, seatsOf, useCadre, useStructure } from "../../_lib/structure";
-import { ClusterReport } from "../../_components/cluster-report";
+import { ClusterPrint, ClusterReport } from "../../_components/cluster-report";
 import { StandingCard } from "../../_components/standing";
 import { AdminShell, LockedCard, SectionTitle, SimButton } from "../../_components/ui";
 import { AdminRequests } from "../requests/requests";
@@ -117,7 +118,25 @@ function WindowNote({ w }: { w: Window }) {
         : w.state === "open"
           ? `مفتوحة حتى ${dayLabel(w.op.end, true)} — مضى الموعد الأول (${dayLabel(w.early)})، فلا شارة التزام لما يُرسَل الآن.`
           : `انتهى الموعد النهائي ${dayLabel(w.op.end, true)}: لا إرسال ولا تعديل بعده.`;
-  return <p className={cn("rounded-2xl p-3 text-sm font-semibold", w.state === "closed" || w.state === "before" ? "bg-gold/20 text-maroon" : "bg-green-light/10 text-green")}>{text}</p>;
+  return (
+    <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3 text-sm font-semibold", w.state === "closed" || w.state === "before" ? "bg-gold/20 text-maroon" : "bg-green-light/10 text-green")}>
+      <span>{text}</span>
+      <TryNow w={w} />
+    </div>
+  );
+}
+
+/**
+ * The demo's way past the dates, beside a closed window: it moves the demo's «today» to the window's first
+ * day, as the date bar at the foot of the page does. Not for a window the staff stopped by hand.
+ */
+function TryNow({ w }: { w: Window }) {
+  if (!w.op.start || (w.op.status !== "upcoming" && w.op.status !== "closed")) return null;
+  return (
+    <Button size="sm" variant="outline" className="bg-white" onClick={() => actions.setToday(w.op.start)}>
+      <CalendarClock className="size-4" /> جرّبها الآن: انقل تاريخ التجربة إلى {dayLabel(w.op.start)}
+    </Button>
+  );
 }
 
 function FileRequest() {
@@ -220,7 +239,12 @@ function Invitations({ compact = false }: { compact?: boolean }) {
       <p className="mt-2 text-sm leading-7 text-ink-soft">
         {compact ? "رؤساء التكتلات يدعون المجموعات إليها. تقبل دعوة واحدة لمجموعتك، فتدخل بحجاجها، وقد يدعوك رئيسها نائباً له أو محاسباً." : "رؤساء التكتلات يدعون كل واحد إلى مكانه: مقعد موجّه أو معاون في إحدى مجموعاتهم، أو من منسقي التكتل أو موجّهاته أو معاونيه. لكل شخص مكان واحد في الموسم."}
       </p>
-      {!open && <p className="mt-3 rounded-2xl bg-sand p-3 text-sm text-ink-soft">مدة تشكيل التكتلات {rangeLabel(w.op.start, w.op.end)}. الرد على الدعوات في مدتها.</p>}
+      {!open && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sand p-3 text-sm text-ink-soft">
+          <span>مدة تشكيل التكتلات {rangeLabel(w.op.start, w.op.end)}. الرد على الدعوات في مدتها.</span>
+          <TryNow w={w} />
+        </div>
+      )}
       <ul className="mt-4 space-y-2">
         {inbox.length === 0 && <li className="rounded-2xl bg-sand p-4 text-sm text-hint">لا دعوات بعد.</li>}
         {inbox.map((x) => (
@@ -230,16 +254,15 @@ function Invitations({ compact = false }: { compact?: boolean }) {
               رئيسه {x.req.headName} — يدعوك: {inviteWhat(x)}
             </p>
             {x.invite.status === "pending" ? (
-              open && (
-                <div className="mt-2 flex gap-2">
-                  <Button size="sm" onClick={() => answer(x, "accepted")}>
-                    <Check className="size-4" /> أقبل
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => answer(x, "declined")}>
-                    <X className="size-4" /> أعتذر
-                  </Button>
-                </div>
-              )
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button size="sm" disabled={!open} onClick={() => answer(x, "accepted")}>
+                  <Check className="size-4" /> أقبل
+                </Button>
+                <Button size="sm" variant="outline" disabled={!open} onClick={() => answer(x, "declined")}>
+                  <X className="size-4" /> أعتذر
+                </Button>
+                {!open && <span className="text-xs text-hint">تُجاب في مدة التشكيل</span>}
+              </div>
             ) : (
               <Badge tone={x.invite.status === "accepted" ? "green" : "ink"} className="mt-2">
                 {x.invite.status === "accepted" ? "قبلتَها" : `اعتذرت${x.invite.reason ? ` — ${x.invite.reason}` : ""}`}
@@ -939,6 +962,9 @@ function ReportStep({ req, editable }: { req: ClusterRequest; editable: boolean 
           </Button>
         </div>
         <ClusterReport req={req} signatures />
+        <PrintSheet>
+          <ClusterPrint req={req} />
+        </PrintSheet>
       </Card>
       <Card className="space-y-3 md:p-6">
         <SectionTitle icon={Send}>{editable ? "قبل الإرسال" : "شروط الطلب"}</SectionTitle>

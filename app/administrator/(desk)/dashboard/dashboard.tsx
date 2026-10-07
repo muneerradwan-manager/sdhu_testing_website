@@ -19,7 +19,7 @@ import { cn, maskNationalId } from "@/lib/utils";
 import { effectiveRole, journeyOf, positionLabelOf, resultOf, seasonHistory, useAdmin, type SeasonRecord } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
-import { useClusterGroupsOf } from "../../_lib/formation";
+import { POOLS, useClusterGroupsOf } from "../../_lib/formation";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { groupName } from "@/lib/groups";
 import { AdminShell } from "../../_components/ui";
@@ -64,7 +64,7 @@ export function AdminDashboard() {
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = useClusterGroupsOf(profile).length;
   const status1448 = coord
-    ? `منسق تقني في ${coord.clusterName} — ${groupsLabel(coord.groups.map((g) => g.number))}`
+    ? `${POOLS[coord.role].title} في ${coord.clusterName} — ${coord.role === "guide-f" || coord.role === "cluster-assistant" ? "للتكتل كله" : groupsLabel(coord.groups.map((g) => g.number))}${profile?.accountantOf ? ` — ومحاسب التكتل` : ""}`
     : profile?.deputyOf
     ? `نائب رئيس ${profile.deputyOf.clusterName} — يتابع ${clusterGroups} مجموعات، منها مجموعته «${profile.group ? groupName(profile.group.number) : ""}»`
     : profile?.cluster

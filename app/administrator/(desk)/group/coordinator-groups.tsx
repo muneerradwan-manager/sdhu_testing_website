@@ -48,7 +48,7 @@ export function CoordinatorGroups() {
           : post.groups.flatMap((g) => (rec.seats[g.number] ?? []).flatMap((x) => (x.who?.status === "accepted" && x.who.id !== admin.id ? [x.who] : [])));
   const wide = post.role === "guide-f" || post.role === "cluster-assistant";
   const totals = clusterTotals(post.groups);
-  const title = post.groups.length > 1 && !wide ? "إدارة المجموعات" : "إدارة المجموعة";
+  const title = wide ? "مجموعات التكتل" : post.groups.length > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
   return (
     <AdminShell title={title} subtitle={`${role.one} في ${post.clusterName}: ${wide ? "للتكتل كله" : groupsLabel(post.groups.map((g) => g.number))}. ${post.role === "tech" ? "تلحق بها وحدها الحجاج بعقودهم، وتأخذ ملفاتهم الصحية." : "تعمل فيها مع رؤسائها."}`}>
       <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">

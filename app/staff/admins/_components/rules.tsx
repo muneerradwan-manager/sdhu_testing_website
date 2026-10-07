@@ -453,26 +453,17 @@ function Requirements() {
   const { skills } = useSkills();
   const { languages } = useLanguages();
   const stored = useStore((s) => s.adminRules.requirements);
-  const added = useStore((s) => s.adminRules.docTypes) ?? [];
   const st = useStructure();
   const off = st.roles.filter((r) => !r.active).map((r) => r.key);
   const [adding, setAdding] = useState("");
-  const [cert, setCert] = useState<{ label: string; hint: string; valid: string } | null>(null);
+  const [cert, setCert] = useState<CertDraft | null>(null);
+  const saveCertificate = useSaveCertificate();
   const label = (id: string) => criterionLabel(id, types);
   const free = criteriaCatalog(types, skills, languages).map((g) => ({ ...g, ids: g.ids.filter((id) => !table.rows.includes(id)) })).filter((g) => g.ids.length);
 
-  /** A certificate the platform's list does not have: named by the administration, with its validity, and added as a row */
+  /** A certificate the platform's list does not have, added here as a row of the table — whether a role asks for it yet or not */
   const addCertificate = () => {
-    if (!cert?.label.trim()) return;
-    const valid = Math.max(0, Math.min(9, Math.round(Number(cert.valid) || 0)));
-    const key = `cert-${Date.now()}`;
-    actions.setAdminRules({
-      docTypes: [...added, { key, label: cert.label.trim(), hint: cert.hint.trim() || "صورة واضحة أو PDF", validSeasons: valid }],
-      requirements: { rows: [...table.rows, `doc:${key}`], cells: table.cells },
-    });
-    logAdmins(user, "rules", { action: "إضافة شهادة جديدة إلى جدول شروط الصفات", target: cert.label.trim(), detail: valid ? `سارية ${valid} مواسم` : "لا تنتهي" });
-    toast({ title: "أُضيفت الشهادة", body: `${cert.label.trim()} — حدّد لكل صفة: مطلوبة أو تقوّي الطلب.`, tone: "success", icon: "🏅" });
-    setCert(null);
+    if (cert && saveCertificate(cert, true)) setCert(null);
   };
 
   const write = (next: RoleRequirements, e: { action: string; target?: string; before?: string; after?: string; ref?: string }) => {
@@ -621,26 +612,11 @@ function Requirements() {
         </div>
       )}
       {cert ? (
-        <div className="mt-4 space-y-2 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-          <p className="font-bold text-white">شهادة جديدة لا توجد في القائمة</p>
-          <input value={cert.label} onChange={(e) => setCert({ ...cert, label: e.target.value })} placeholder="اسم الشهادة، مثل: شهادة تجويد القرآن الكريم" className={smallInputClass} aria-label="اسم الشهادة" />
-          <input value={cert.hint} onChange={(e) => setCert({ ...cert, hint: e.target.value })} placeholder="ملاحظة للمتقدم (اختيارية)" className={smallInputClass} aria-label="ملاحظة للمتقدم" />
-          <label className="flex flex-wrap items-center gap-2 text-sm text-white/80">
-            تبقى سارية
-            <span className="w-20 shrink-0"><input inputMode="numeric" value={cert.valid} onChange={(e) => setCert({ ...cert, valid: e.target.value })} className={cn(smallInputClass, "px-1 text-center")} aria-label="مدة الصلاحية بالمواسم" /></span>
-            مواسم (0 = لا تنتهي)
-          </label>
-          <div className="flex gap-2">
-            <Button size="sm" variant="gold" disabled={!cert.label.trim()} onClick={addCertificate}>
-              <Plus className="size-4" /> إضافة إلى الجدول
-            </Button>
-            <Button size="sm" variant="ghost" className="text-white" onClick={() => setCert(null)}>
-              إلغاء
-            </Button>
-          </div>
+        <div className="mt-4">
+          <CertificateForm draft={cert} onChange={setCert} onSave={addCertificate} onCancel={() => setCert(null)} saveLabel="إضافة إلى الجدول" />
         </div>
       ) : (
-        <button type="button" onClick={() => setCert({ label: "", hint: "", valid: "0" })} className="mt-3 flex items-center gap-2 text-sm font-semibold text-gold underline">
+        <button type="button" onClick={() => setCert(blankCert())} className="mt-3 flex items-center gap-2 text-sm font-semibold text-gold underline">
           <Plus className="size-4" /> شهادة جديدة لا توجد في القائمة
         </button>
       )}
@@ -693,7 +669,16 @@ function Catalog() {
   const { all: skills } = useSkills();
   const { all: langs } = useLanguages();
   const rules = useStore((s) => s.adminRules);
-  const [docDraft, setDocDraft] = useState<{ key: string | null; label: string; hint: string; valid: string } | null>(null);
+  const [docDraft, setDocDraft] = useState<CertDraft | null>(null);
+  const saveCertificate = useSaveCertificate();
+  /** What each role asks of a document now, for its form */
+  const rolesOf = (key: string) =>
+    Object.fromEntries(
+      APPLIED_ROLES.flatMap((r) => {
+        const v = table.rows.includes(`doc:${key}`) ? table.cells[r.key]?.[`doc:${key}`] : undefined;
+        return v === "required" || v === "preferred" ? [[r.key, v]] : [];
+      }),
+    ) as CertDraft["roles"];
   const [skill, setSkill] = useState({ label: "", emoji: "" });
   const [lang, setLang] = useState("");
 
@@ -719,29 +704,7 @@ function Catalog() {
   };
 
   const saveDoc = () => {
-    if (!docDraft?.label.trim()) return;
-    const label = docDraft.label.trim();
-    const hint = docDraft.hint.trim() || "صورة واضحة أو PDF";
-    const valid = Math.max(0, Math.min(9, Math.round(Number(docDraft.valid) || 0)));
-    const key = docDraft.key;
-    const added = rules.docTypes ?? [];
-    if (!key) {
-      actions.setAdminRules({ docTypes: [...added, { key: `cert-${Date.now()}`, label, hint, validSeasons: valid }] });
-      logAdmins(user, "rules", { action: "إضافة شهادة إلى قوائم ملف الإداري", target: label, detail: VALIDITY_TEXT(valid) });
-      toast({ title: "أُضيفت الشهادة", body: `${label} — حدّد في «شروط الصفات» الصفات التي تطلبها.`, tone: "success", icon: "🏅" });
-    } else if (added.some((d) => d.key === key)) {
-      actions.setAdminRules({ docTypes: added.map((d) => (d.key === key ? { ...d, label, hint, validSeasons: valid } : d)) });
-      logAdmins(user, "rules", { action: "تعديل شهادة في قوائم ملف الإداري", target: label, detail: VALIDITY_TEXT(valid) });
-      toast({ title: "حُفظت الشهادة", body: label, tone: "success", icon: "💾" });
-    } else {
-      // The platform's own documents: the wording here, the validity where the season keeps it
-      const field = SEASON_VALIDITY[key as keyof typeof SEASON_VALIDITY];
-      actions.setAdminRules({ docEdits: { ...rules.docEdits, [key]: { label, hint, ...(field ? {} : { validSeasons: valid }) } } });
-      if (field) actions.setSeason({ [field]: Math.max(1, valid) });
-      logAdmins(user, "rules", { action: "تعديل وثيقة في قوائم ملف الإداري", target: label, detail: VALIDITY_TEXT(field ? Math.max(1, valid) : valid) });
-      toast({ title: "حُفظت الوثيقة", body: label, tone: "success", icon: "💾" });
-    }
-    setDocDraft(null);
+    if (docDraft && saveCertificate(docDraft)) setDocDraft(null);
   };
 
   const removeDoc = (key: string, label: string) => {
@@ -815,7 +778,7 @@ function Catalog() {
         icon={<ScrollText />}
         title="الشهادات والوثائق"
         action={
-          <Button size="sm" variant="gold" onClick={() => setDocDraft({ key: null, label: "", hint: "", valid: "0" })}>
+          <Button size="sm" variant="gold" onClick={() => setDocDraft(blankCert())}>
             <Plus className="size-4" /> شهادة جديدة
           </Button>
         }
@@ -824,10 +787,16 @@ function Catalog() {
           كل ما يمكن أن يُطلب من الإداري في ملفه، ومدة صلاحية كل نوع بالمواسم. ما يُضاف هنا يصير سطراً يمكن طلبه في «شروط الصفات»، ومنها يعرف الإداري أي صفة تفتحها شهادته. صلاحية «الإسعافات الأولية» و«لا حكم عليه» و«التزكية» هي نفسها في إعدادات الموسم.
         </p>
         <ul className="mt-4 space-y-2">
-          {docDraft && !docDraft.key && <DocForm draft={docDraft} onChange={setDocDraft} onSave={saveDoc} onCancel={() => setDocDraft(null)} />}
+          {docDraft && !docDraft.key && (
+            <li>
+              <CertificateForm draft={docDraft} onChange={setDocDraft} onSave={saveDoc} onCancel={() => setDocDraft(null)} />
+            </li>
+          )}
           {docs.map((d) =>
             docDraft?.key === d.key ? (
-              <DocForm key={d.key} draft={docDraft} fixedValidity={d.key in SEASON_VALIDITY} onChange={setDocDraft} onSave={saveDoc} onCancel={() => setDocDraft(null)} />
+              <li key={d.key}>
+                <CertificateForm draft={docDraft} fixedValidity={d.key in SEASON_VALIDITY} onChange={setDocDraft} onSave={saveDoc} onCancel={() => setDocDraft(null)} />
+              </li>
             ) : (
               <li key={d.key} className={cn("flex flex-wrap items-start justify-between gap-3 rounded-2xl p-3 ring-1", d.off ? "bg-maroon/15 ring-maroon/30" : "bg-white/[.06] ring-white/10")}>
                 <div className="min-w-0 flex-1">
@@ -840,7 +809,7 @@ function Catalog() {
                   <p className="text-xs text-white/60">{d.hint}</p>
                   {usedByLine(`doc:${d.key}`)}
                 </div>
-                {actionsFor({ label: d.label, off: d.off, custom: d.custom, onEdit: () => setDocDraft({ key: d.key, label: d.label, hint: d.hint, valid: String(d.validSeasons) }), onToggle: () => toggle("docsOff", d.key, d.label, "doc"), onRemove: () => removeDoc(d.key, d.label) })}
+                {actionsFor({ label: d.label, off: d.off, custom: d.custom, onEdit: () => setDocDraft({ key: d.key, label: d.label, hint: d.hint, valid: String(d.validSeasons), roles: rolesOf(d.key) }), onToggle: () => toggle("docsOff", d.key, d.label, "doc"), onRemove: () => removeDoc(d.key, d.label) })}
               </li>
             ),
           )}
@@ -903,37 +872,194 @@ function Catalog() {
 }
 
 /** Adding or editing one certificate: its name, a word to the applicant, and how many seasons it stays valid */
-function DocForm({
+/** A certificate as its form edits it: what the applicant reads, how long it stays valid, and what each role asks of it */
+type CertDraft = { key: string | null; label: string; hint: string; valid: string; roles: Record<string, "required" | "preferred"> };
+
+const blankCert = (): CertDraft => ({ key: null, label: "", hint: "", valid: "0", roles: {} });
+
+const LEVEL_TEXT = { required: "مطلوبة", preferred: "تقوّي الطلب", none: "لا تطلبها" } as const;
+
+const LEVELS: { v?: "required" | "preferred"; label: string; on: string }[] = [
+  { v: "required", label: LEVEL_TEXT.required, on: "bg-gold text-ink ring-gold" },
+  { v: "preferred", label: LEVEL_TEXT.preferred, on: "bg-green-light/30 text-white ring-green-light/60" },
+  { label: LEVEL_TEXT.none, on: "bg-white/15 text-white ring-white/30" },
+];
+
+const VALIDITY_MODES = [
+  { key: "never", label: "لا تنتهي" },
+  { key: "season", label: "تُجدَّد كل موسم" },
+  { key: "seasons", label: "سارية عدة مواسم" },
+] as const;
+
+/** The roles with a column in «شروط الصفات» (the active ones), each with the roles that share its column */
+function useCertRoles() {
+  const st = useStructure();
+  return APPLIED_ROLES.filter((r) => st.roles.find((x) => x.key === r.key)?.active !== false).map((r) => ({
+    key: r.key,
+    label: r.label,
+    with: st.roles.filter((x) => x.active && x.examAs === r.key).map((x) => x.name),
+  }));
+}
+
+/**
+ * Saves a certificate whole, from either form: its entry in the lists (one the administration added, or
+ * the platform's own reworded — its validity kept in the season settings where the season holds it) and
+ * its row in «شروط الصفات», where each role's choice is written. `row` keeps the row in the table even
+ * while no role asks for it (added from the table itself).
+ */
+function useSaveCertificate() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const table = useRoleRequirements();
+  const rules = useStore((s) => s.adminRules);
+  const roles = useCertRoles();
+  return (d: CertDraft, row = false) => {
+    const label = d.label.trim();
+    if (!label) return false;
+    const hint = d.hint.trim() || "صورة واضحة أو PDF";
+    const field = d.key ? SEASON_VALIDITY[d.key as keyof typeof SEASON_VALIDITY] : undefined;
+    const valid = Math.max(field ? 1 : 0, Math.min(9, Math.round(Number(d.valid) || 0)));
+    const added = rules.docTypes ?? [];
+    const key = d.key ?? `cert-${Date.now()}`;
+    const id = `doc:${key}`;
+    const cells = { ...table.cells };
+    const changes: string[] = [];
+    for (const r of roles) {
+      const was = cells[r.key]?.[id];
+      const before = was === "required" || was === "preferred" ? was : undefined;
+      const after = d.roles[r.key];
+      if (before === after) continue;
+      const col = { ...(cells[r.key] ?? {}) };
+      if (after) col[id] = after;
+      else delete col[id];
+      cells[r.key] = col;
+      changes.push(`${r.label}: ${LEVEL_TEXT[after ?? "none"]}`);
+    }
+    const asks = roles.filter((r) => d.roles[r.key]).map((r) => `${r.label} (${LEVEL_TEXT[d.roles[r.key]]})`);
+    const rows = table.rows.includes(id) || !(asks.length || row) ? table.rows : [...table.rows, id];
+    const requirements = changes.length || rows !== table.rows ? { requirements: { rows, cells } } : {};
+    if (!d.key) actions.setAdminRules({ docTypes: [...added, { key, label, hint, validSeasons: valid }], ...requirements });
+    else if (added.some((x) => x.key === key)) actions.setAdminRules({ docTypes: added.map((x) => (x.key === key ? { ...x, label, hint, validSeasons: valid } : x)), ...requirements });
+    else {
+      // The platform's own documents: the wording here, the validity where the season keeps it
+      actions.setAdminRules({ docEdits: { ...rules.docEdits, [key]: { label, hint, ...(field ? {} : { validSeasons: valid }) } }, ...requirements });
+      if (field) actions.setSeason({ [field]: valid });
+    }
+    const who = asks.length ? `تطلبها: ${asks.join("، ")}` : "لا تطلبها صفة بعد";
+    logAdmins(user, "rules", {
+      action: d.key ? "تعديل شهادة في قوائم ملف الإداري" : "إضافة شهادة إلى قوائم ملف الإداري",
+      target: label,
+      detail: [VALIDITY_TEXT(valid), who, ...(d.key && changes.length ? [`تغيّر: ${changes.join("، ")}`] : [])].join(" — "),
+    });
+    toast({ title: d.key ? "حُفظت الشهادة" : "أُضيفت الشهادة", body: `${label} — ${VALIDITY_TEXT(valid)} — ${who}`, tone: "success", icon: d.key ? "💾" : "🏅" });
+    return true;
+  };
+}
+
+/**
+ * A certificate whole, new or edited: its name and the note the applicant reads, how long it stays valid,
+ * and for every role whether it is required, strengthens the application, or is not asked — the same
+ * choice as a cell of «شروط الصفات», written there.
+ */
+function CertificateForm({
   draft,
   fixedValidity,
   onChange,
   onSave,
   onCancel,
+  saveLabel = "حفظ",
 }: {
-  draft: { key: string | null; label: string; hint: string; valid: string };
+  draft: CertDraft;
   fixedValidity?: boolean;
-  onChange: (d: { key: string | null; label: string; hint: string; valid: string }) => void;
+  onChange: (d: CertDraft) => void;
   onSave: () => void;
   onCancel: () => void;
+  saveLabel?: string;
 }) {
+  const roles = useCertRoles();
+  const n = Math.round(Number(draft.valid) || 0);
+  const mode = n <= 0 ? "never" : n === 1 ? "season" : "seasons";
+  const set = (patch: Partial<CertDraft>) => onChange({ ...draft, ...patch });
+  const level = (role: string, v?: "required" | "preferred") => {
+    const next = { ...draft.roles };
+    if (v) next[role] = v;
+    else delete next[role];
+    set({ roles: next });
+  };
   return (
-    <li className="space-y-2 rounded-2xl bg-white/[.08] p-4 ring-1 ring-gold/40">
+    <div className="space-y-4 rounded-2xl bg-white/[.08] p-4 ring-1 ring-gold/40">
       <p className="font-bold text-white">{draft.key ? "تعديل الشهادة" : "شهادة جديدة"}</p>
-      <input value={draft.label} onChange={(e) => onChange({ ...draft, label: e.target.value })} placeholder="اسم الشهادة، مثل: شهادة تجويد القرآن الكريم" className={smallInputClass} aria-label="اسم الشهادة" />
-      <input value={draft.hint} onChange={(e) => onChange({ ...draft, hint: e.target.value })} placeholder="ملاحظة للمتقدم (اختيارية)" className={smallInputClass} aria-label="ملاحظة للمتقدم" />
-      <label className="flex flex-wrap items-center gap-2 text-sm text-white/80">
-        تبقى سارية
-        <span className="w-20 shrink-0"><input inputMode="numeric" value={draft.valid} onChange={(e) => onChange({ ...draft, valid: e.target.value })} className={cn(smallInputClass, "px-1 text-center")} aria-label="مدة الصلاحية بالمواسم" /></span>
-        {fixedValidity ? "مواسم (من 1؛ تُحفظ في إعدادات الموسم)" : "مواسم (0 = لا تنتهي)"}
-      </label>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="space-y-1 text-xs font-bold text-white/80">
+          اسم الشهادة أو الوثيقة
+          <input value={draft.label} onChange={(e) => set({ label: e.target.value })} placeholder="مثل: شهادة تجويد القرآن الكريم" className={smallInputClass} />
+        </label>
+        <label className="space-y-1 text-xs font-bold text-white/80">
+          ملاحظة يقرؤها المتقدم تحت اسمها
+          <input value={draft.hint} onChange={(e) => set({ hint: e.target.value })} placeholder="مثل: صادرة خلال آخر سنتين (اختيارية)" className={smallInputClass} />
+        </label>
+      </div>
+
+      <fieldset>
+        <legend className="text-xs font-bold text-white/80">مدة صلاحيتها</legend>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {VALIDITY_MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              aria-pressed={mode === m.key}
+              disabled={fixedValidity && m.key === "never"}
+              onClick={() => set({ valid: m.key === "never" ? "0" : m.key === "season" ? "1" : String(Math.max(2, n)) })}
+              className={cn("rounded-xl px-3 py-1.5 text-sm font-bold ring-1 transition disabled:opacity-40", mode === m.key ? "bg-gold text-ink ring-gold" : "bg-white/5 text-white/80 ring-white/15 hover:bg-white/10")}
+            >
+              {m.label}
+            </button>
+          ))}
+          {mode === "seasons" && (
+            <span className="flex items-center gap-2 text-sm text-white/80">
+              <span className="w-16 shrink-0">
+                <input inputMode="numeric" value={draft.valid} onChange={(e) => set({ valid: e.target.value })} className={cn(smallInputClass, "px-1 text-center")} aria-label="عدد المواسم" />
+              </span>
+              مواسم
+            </span>
+          )}
+        </div>
+        <p className="mt-1.5 text-xs text-white/50">{fixedValidity ? "صلاحيتها رقم في إعدادات الموسم أيضاً، وتُحفظ هناك: موسم واحد على الأقل." : "حين تنقضي مواسمها تُطلب من الإداري من جديد."}</p>
+      </fieldset>
+
+      <fieldset>
+        <legend className="text-xs font-bold text-white/80">الصفات التي تطلبها</legend>
+        <p className="mt-1 text-xs leading-6 text-white/50">«مطلوبة»: لا يُقدَّم الطلب دونها. «تقوّي الطلب»: تظهر للمتقدم ولا تمنعه. يُكتب الاختيار في «شروط الصفات» نفسه.</p>
+        <ul className="mt-2 divide-y divide-white/10 rounded-xl bg-white/[.04] ring-1 ring-white/10">
+          {roles.map((r) => (
+            <li key={r.key} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+              <span className="text-sm font-bold text-white">
+                {r.label}
+                {r.with.length > 0 && <span className="block text-[11px] font-normal text-white/50">ومعها: {r.with.join("، ")}</span>}
+              </span>
+              <span className="flex flex-wrap gap-1" role="group" aria-label={`ما تطلبه صفة ${r.label}`}>
+                {LEVELS.map((l) => {
+                  const on = draft.roles[r.key] === l.v;
+                  return (
+                    <button key={l.label} type="button" aria-pressed={on} onClick={() => level(r.key, l.v)} className={cn("rounded-lg px-2.5 py-1 text-xs font-bold ring-1 transition", on ? l.on : "text-white/60 ring-white/15 hover:bg-white/10")}>
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+
       <div className="flex gap-2">
         <Button size="sm" variant="gold" disabled={!draft.label.trim()} onClick={onSave}>
-          <Check className="size-4" /> حفظ
+          <Check className="size-4" /> {saveLabel}
         </Button>
         <Button size="sm" variant="ghost" className="text-white" onClick={onCancel}>
           <X className="size-4" /> إلغاء
         </Button>
       </div>
-    </li>
+    </div>
   );
 }

@@ -4,11 +4,13 @@
  * branch, ages (for the cluster's «شارة العمر»), and the seasonal roles the administration granted.
  */
 import type { SeasonalRole } from "./structure";
+import { GEN_HEADS, GEN_PEOPLE, GEN_ROSTER } from "./season-seed";
 
 /** Approved groups of the season whose heads are not on this device, each with the pilgrims who joined it */
 export type PoolHead = { id: string; name: string; group: number; seasons: number; rating: number; branch: string; category: string; pilgrims: number; age: number };
 
 export const HEADS_POOL: PoolHead[] = [
+  // The story's own groups; the season's generated ones follow (./season-seed)
   { id: "seed-01", name: "عبد الرحمن القباني", group: 61, seasons: 4, rating: 4.7, branch: "دمشق", category: "c3", pilgrims: 98, age: 57 },
   { id: "seed-02", name: "فراس البيطار", group: 9, seasons: 3, rating: 4.2, branch: "دمشق", category: "c1", pilgrims: 44, age: 49 },
   { id: "seed-03", name: "رضوان الزعبي", group: 41, seasons: 3, rating: 4.4, branch: "درعا", category: "c2", pilgrims: 81, age: 46 },
@@ -24,6 +26,10 @@ export const HEADS_POOL: PoolHead[] = [
   { id: "seed-13", name: "كمال الصباغ", group: 22, seasons: 3, rating: 4.6, branch: "دمشق", category: "c3", pilgrims: 118, age: 50 },
   { id: "seed-14", name: "هشام العطار", group: 36, seasons: 0, rating: 0, branch: "حمص", category: "c1", pilgrims: 28, age: 34 },
   { id: "seed-15", name: "أيمن السمان", group: 58, seasons: 2, rating: 3.8, branch: "حماة", category: "c1", pilgrims: 30, age: 45 },
+  // تكتل البيان: its head's group, and another that accepted it
+  { id: "seed-16", name: "سليم القدسي", group: 65, seasons: 4, rating: 4.5, branch: "دمشق", category: "c2", pilgrims: 63, age: 55 },
+  { id: "seed-17", name: "رائد الحلاق", group: 66, seasons: 2, rating: 4.1, branch: "دمشق", category: "c1", pilgrims: 38, age: 43 },
+  ...GEN_HEADS,
 ];
 
 /**
@@ -91,7 +97,7 @@ export const ROSTER: Candidate[] = [
   { id: "01033300991", name: "الشيخ هيثم المالكي", roleKey: "guide-m", branch: "دمشق", area: "المزة", score: 86, seasons: 1, rating: 4.2, skills: ["computer"], age: 35 },
   { id: "01033300992", name: "الشيخ سعيد الدرة", roleKey: "murshid", branch: "دمشق", area: "الميدان", score: 94, seasons: 4, rating: 4.8, skills: ["elderly", "sign"], age: 52 },
   // المرشدون الدينيون
-  { id: "01033300955", name: "الشيخ مأمون الحلواني", roleKey: "murshid", branch: "دمشق", area: "المزرعة", score: 97, seasons: 5, rating: 4.9, skills: ["elderly", "computer"], age: 54 },
+  { id: "01033300965", name: "الشيخ مأمون الحلواني", roleKey: "murshid", branch: "دمشق", area: "المزرعة", score: 97, seasons: 5, rating: 4.9, skills: ["elderly", "computer"], age: 54 },
   { id: "01033300956", name: "الشيخ بلال العبسي", roleKey: "murshid", branch: "درعا", area: "طفس", score: 91, seasons: 3, rating: 4.6, skills: ["elderly"], age: 46 },
   // الموجّهات الدينيات
   { id: "01033300981", name: "هالة الدقر", roleKey: "guide-f", branch: "دمشق", area: "الشعلان", score: 92, seasons: 2, rating: 4.7, skills: ["elderly"], age: 43 },
@@ -101,12 +107,14 @@ export const ROSTER: Candidate[] = [
   // المرشدات الدينيات
   { id: "01033300985", name: "نهى الطباع", roleKey: "murshida", branch: "دمشق", area: "الميدان", score: 95, seasons: 4, rating: 4.8, skills: ["elderly"], age: 49 },
   { id: "01033300986", name: "وفاء البزرة", roleKey: "murshida", branch: "حمص", area: "الخالدية", score: 90, seasons: 2, rating: 4.5, skills: ["elderly", "first-aid"], age: 44 },
+  // The season's generated people: the cadre of its other clusters, and those still free in every branch
+  ...GEN_ROSTER,
 ];
 
 const granted = (role: string, reason: string, label?: string): SeasonalRole => ({ role, reason, label, by: "مازن الحلبي", at: Date.UTC(2026, 9, 28, 9) });
 
 /** The demo accounts in the season's story: a group head's category, branches, seasonal role */
-const DEMO_PEOPLE: Record<string, { category?: string; branch: string; extra?: string[]; seasonal?: SeasonalRole }> = {
+const DEMO_PEOPLE: Record<string, { category?: string; branch: string; extra?: string[]; seasonal?: SeasonalRole; age?: number }> = {
   "01033300881": { category: "c3", branch: "دمشق", extra: ["حماة", "اللاذقية"], seasonal: granted("cluster-head", "رئيس مجموعة الخبير ثلاثة مواسم متتالية بتقييم 4.6 – 4.8: اختارته الإدارة رئيس تكتل، ويبقى رئيس مجموعته") },
   "01033300882": { category: "c3", branch: "دمشق", seasonal: granted("cluster-head", "للزيادة العددية: تكتل إضافي لحجاج مكتب دمشق") },
   "01033300883": { category: "c2", branch: "دمشق" },
@@ -114,12 +122,20 @@ const DEMO_PEOPLE: Record<string, { category?: string; branch: string; extra?: s
   "01033300871": { category: "c2", branch: "دمشق" },
   "01033300885": { category: "c1", branch: "حلب" },
   "01033300886": { branch: "دمشق" },
+  "01033300891": { category: "c2", branch: "دمشق" },
+  "seed-16": { category: "c2", branch: "دمشق", age: 55, seasonal: granted("cluster-head", "رئيس مجموعة البشرى أربعة مواسم بتقييم 4.5: تكتل جديد لحجاج دمشق") },
+  // The staff's own records of the same heads (lib/data/staff-seed), under the ids they were filed with
+  "01033300955": { category: "c2", branch: "دمشق" },
+  "02041700533": { category: "c1", branch: "دمشق" },
+  "05022400319": { category: "c1", branch: "دمشق" },
 };
 
 /** Everyone's seed, by national id (or seed id) */
 export const PEOPLE: Record<string, { category?: string; branch?: string; extra?: string[]; seasonal?: SeasonalRole; age?: number }> = {
   ...Object.fromEntries(ROSTER.map((c) => [c.id, { branch: c.branch, age: c.age }])),
   ...Object.fromEntries(HEADS_POOL.map((h) => [h.id, { category: h.category, branch: h.branch, age: h.age }])),
+  // The generated people whole: their seasonal roles and extra branches too
+  ...GEN_PEOPLE,
   ...DEMO_PEOPLE,
   // The heads of the season's other requests
   "seed-01": { category: "c3", branch: "دمشق", extra: ["حلب", "دير الزور"], age: 57, seasonal: granted("cluster-head", "رئيس مجموعة أربعة مواسم بتقييم 4.7") },

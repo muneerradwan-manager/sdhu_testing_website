@@ -7,7 +7,7 @@ import { HEADS_POOL } from "./people";
  * 1 to 26 were given, and the season's story holds others already (27 is أحمد's, 31 the cluster head's).
  */
 const ISSUED_BEFORE = 26;
-const SEEDED_NUMBERS = [27, 31, 5, 63, ...HEADS_POOL.map((h) => h.group)];
+const SEEDED_NUMBERS = [27, 31, 5, 63, 64, ...HEADS_POOL.map((h) => h.group)];
 
 export function nextGroupNumber(admins: Record<string, AdminProfile>, self: string) {
   const used = new Set([...SEEDED_NUMBERS, ...Object.entries(admins).flatMap(([id, p]) => (id !== self && p.group ? [p.group.number] : []))]);

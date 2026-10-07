@@ -2,8 +2,8 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, CheckCircle2, ClipboardList, CornerDownLeft, Layers, Receipt, Send, UsersRound } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, BadgeCheck, CheckCircle2, ClipboardList, CornerDownLeft, Layers, Receipt, Send } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { useClusters } from "@/lib/cms/content";
@@ -11,16 +11,17 @@ import { groupName, groupShort } from "@/lib/groups";
 import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { adminReceipt } from "@/app/administrator/_lib/admin";
-import { useClusterRequests } from "@/app/administrator/_lib/formation";
-import { DEFAULT_TIER, categoryOfId, seatsLabel, seatsOf, useStructure } from "@/app/administrator/_lib/structure";
+import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
+import { STATUS, useClusterRequests } from "@/app/administrator/_lib/formation";
+import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { patchAdmin } from "../../_components/data";
 import { Drawer, Empty, fmtDateTime, Panel, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
-import { Chip, InfoGrid } from "../../_components/ops-ui";
+import { Chip, FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
-import { GROUP_STATE, logAdmins, useAdminsDesk, type GroupRow } from "../desk";
+import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow } from "../desk";
 
 /** The cluster a group is in: a request filed this season, or one of the season's directory */
 function useClusterName() {
@@ -39,7 +40,6 @@ function useClusterName() {
 export function GroupsTab() {
   const desk = useAdminsDesk();
   const clusterName = useClusterName();
-  const categoryName = useCategoryName();
   const [open, setOpen] = useState<number | null>(null);
   const [returning, setReturning] = useState<GroupRow | null>(null);
   const decide = useDecision();
@@ -82,57 +82,7 @@ export function GroupsTab() {
         </Panel>
       )}
 
-      <div id="approved" className="scroll-mt-24">
-        <Panel
-          icon={<BadgeCheck />}
-          title="المجموعات المعتمدة"
-          action={
-            <span className="flex flex-wrap gap-2">
-              <Chip tone="green">{desk.approved.length}</Chip>
-              {desk.outside.length > 0 && <Chip tone="gold">{desk.outside.length} لم تنضم إلى تكتل</Chip>}
-            </span>
-          }
-          bodyClass="-mx-5 md:-mx-6"
-        >
-          {desk.approved.length === 0 ? (
-            <div className="px-5 md:px-6">
-              <Empty icon={<UsersRound />} title="لا مجموعة معتمدة بعد" />
-            </div>
-          ) : (
-            <div className="overflow-x-auto px-5 md:px-6">
-              <table className="w-full min-w-[40rem] text-sm">
-                <thead>
-                  <tr className="border-b border-white/10 text-right text-xs text-gold">
-                    {["المجموعة", "رئيسها", "الفئة", "التكتل", "اعتمدها"].map((h) => (
-                      <th key={h} className="pb-2 font-bold">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10">
-                  {desk.approved.map((x) => (
-                    <tr key={x.g.number} className="text-white">
-                      <td className="py-2.5">
-                        <button type="button" onClick={() => setOpen(x.g.number)} className="font-bold text-gold hover:underline">
-                          {groupShort(x.g.number)}
-                        </button>
-                      </td>
-                      <td className="py-2.5">{x.row.name}</td>
-                      <td className="py-2.5">{categoryName(x.category) ?? <span className="text-gold">—</span>}</td>
-                      <td className="py-2.5">{clusterName(x.g.clusterId) ?? <span className="font-bold text-gold">لم تنضم بعد</span>}</td>
-                      <td className="py-2.5 text-xs text-white/70">
-                        {x.g.approvedBy} — {fmtDateTime(x.g.approvedAt!)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">تدخل المجموعة التكتلَ بدعوة يقبلها رئيسها في مدة تشكيل التكتلات. وما بقي خارجها بعد الموعد النهائي تضيفه إلى تكتل بتعديل استثنائي من «طلبات التكتلات».</p>
-        </Panel>
-      </div>
+      <SeasonGroups desk={desk} onOpen={setOpen} />
 
       <SystemRecords system="admins" area="groups" title="سجل المجموعات" />
 
@@ -152,6 +102,106 @@ export function GroupsTab() {
           />
         )}
       </Modal>
+    </div>
+  );
+}
+
+// ───────────────────────── The season's groups ─────────────────────────
+
+/**
+ * Every approved group of the season — those approved here and those the season already had — with its head,
+ * branch, category, pilgrims (by its category under its cluster's tier) and its cluster, filtered by category,
+ * branch and whether a cluster holds it. A group approved here opens its sheet.
+ */
+function SeasonGroups({ desk, onOpen }: { desk: AdminsDesk; onOpen: (n: number) => void }) {
+  const s = useStructure();
+  const cadre = useCadre();
+  const [q, setQ] = useState("");
+  const [category, setCategory] = useState("");
+  const [branch, setBranch] = useState("");
+  const [held, setHeld] = useState("");
+  const [shown, setShown] = useState(40);
+  const rows = useMemo(() => {
+    const inCluster = new Map(desk.requests.flatMap((r) => r.groups.map((g) => [g.number, r] as const)));
+    const live = desk.approved.map((x) => ({ number: x.g.number, head: x.row.name, branch: branchOf(x.row.id, cadre), category: x.category, pilgrims: 0, device: true, by: x.g.approvedBy }));
+    const seeded = HEADS_POOL.filter((h) => !live.some((l) => l.number === h.group)).map((h) => ({ number: h.group, head: h.name, branch: branchOf(h.id, cadre), category: categoryOf(h.id, cadre), pilgrims: h.pilgrims, device: false, by: undefined as string | undefined }));
+    return [...live, ...seeded].map((g) => {
+      const r = inCluster.get(g.number);
+      return { ...g, cluster: r, capacity: seatsOf(s, r?.cluster.tier ?? DEFAULT_TIER, g.category).pilgrims, pilgrims: r?.groups.find((x) => x.number === g.number)?.pilgrims ?? g.pilgrims };
+    });
+  }, [desk.approved, desk.requests, cadre, s]);
+  const list = rows
+    .filter((g) => (!category || g.category === category) && (!branch || g.branch === branch) && (!held || (held === "in" ? !!g.cluster : !g.cluster)))
+    .filter((g) => !q.trim() || [groupShort(g.number), g.head, g.cluster?.cluster.name ?? ""].some((x) => x.includes(q.trim())));
+  const byCategory = s.categories.map((c) => ({ c, n: rows.filter((g) => g.category === c.id).length }));
+  return (
+    <div id="approved" className="scroll-mt-24">
+      <Panel
+        icon={<BadgeCheck />}
+        title="مجموعات الموسم المعتمدة"
+        action={
+          <span className="flex flex-wrap gap-2">
+            <Chip tone="green">{rows.length}</Chip>
+            {byCategory.map(({ c, n }) => (
+              <Chip key={c.id}>
+                {c.name}: {n}
+              </Chip>
+            ))}
+            {desk.outside.length > 0 && <Chip tone="gold">{desk.outside.length} خارج التكتلات</Chip>}
+          </span>
+        }
+        bodyClass="-mx-5 md:-mx-6"
+      >
+        <div className="grid gap-2 px-5 sm:grid-cols-2 md:px-6 lg:grid-cols-4">
+          <SearchBox value={q} onChange={setQ} placeholder="المجموعة أو رئيسها أو تكتلها" label="بحث في المجموعات" />
+          <FilterSelect label="الفئة" all="كل الفئات" value={category} onChange={setCategory} options={s.categories.map((c) => ({ value: c.id, label: c.name }))} />
+          <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
+          <FilterSelect label="التكتل" all="في تكتل وخارجه" value={held} onChange={setHeld} options={[{ value: "in", label: "في طلب تكتل" }, { value: "out", label: "خارج التكتلات" }]} />
+        </div>
+        <div className="mt-3 overflow-x-auto px-5 md:px-6">
+          <table className="w-full min-w-[48rem] text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-right text-xs text-gold">
+                {["المجموعة", "رئيسها", "الفرع", "الفئة", "حجاجها", "التكتل", "اعتمدها"].map((h) => (
+                  <th key={h} className="pb-2 font-bold">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {list.slice(0, shown).map((g) => (
+                <tr key={g.number} className="text-white">
+                  <td className="py-2.5">
+                    {g.device ? (
+                      <button type="button" onClick={() => onOpen(g.number)} className="font-bold text-gold hover:underline">
+                        {groupShort(g.number)}
+                      </button>
+                    ) : (
+                      <span className="font-bold">{groupShort(g.number)}</span>
+                    )}
+                  </td>
+                  <td className="py-2.5">{g.head}</td>
+                  <td className="py-2.5 text-white/80">{g.branch}</td>
+                  <td className="py-2.5">{categoryOfId(s, g.category)?.name ?? <span className="text-gold">—</span>}</td>
+                  <td className="py-2.5 tabular-nums">
+                    {g.pilgrims} <span className="text-xs text-white/55">/ {g.capacity}</span>
+                  </td>
+                  <td className="py-2.5">{g.cluster ? <span>{g.cluster.cluster.name} <span className="text-xs text-white/55">({STATUS[g.cluster.status].label})</span></span> : <span className="font-bold text-gold">خارج التكتلات</span>}</td>
+                  <td className="py-2.5 text-xs text-white/60">{g.by ?? "سجل الموسم"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {list.length === 0 && <p className="py-6 text-center text-sm text-white/60">لا مجموعة بهذا البحث.</p>}
+          {list.length > shown && (
+            <Button size="sm" variant="glass" className="mt-3" onClick={() => setShown(shown + 60)}>
+              عرض المزيد ({list.length - shown})
+            </Button>
+          )}
+        </div>
+        <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">تدخل المجموعة التكتلَ بدعوة يقبلها رئيسها في مدة تشكيل التكتلات. وما بقي خارجها بعد الموعد النهائي تضيفه إلى تكتل بتعديل استثنائي من «طلبات التكتلات».</p>
+      </Panel>
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
-import { DEMO_ADMINS, POSITIONS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
+import { DEMO_ADMINS, DEMO_GROUPS, demoAdminLogin, logAdmin, type DemoAdminMode } from "../_lib/admin";
 
 export function AdminLoginFlow() {
   const router = useRouter();
@@ -61,23 +61,23 @@ export function AdminLoginFlow() {
       portal="admin"
       page="login"
       title="دخول الإداريين"
-      subtitle="لرؤساء المجموعات ومعاونيهم والموجّهين الدينيين والمنسقين التقنيين. الدخول بالرقم الوطني وكلمة المرور، ثم رمز تحقق يصل إلى هاتفك."
+      subtitle="لكل الإداريين: رؤساء التكتلات والمجموعات، والمعاونين، والمنسقين التقنيين، والموجّهين والمرشدين، والموجّهات والمرشدات. الدخول بالرقم الوطني وكلمة المرور، ثم رمز تحقق يصل إلى هاتفك."
       steps={["الرقم الوطني وكلمة المرور", "رمز التحقق", "ملفي كإداري"]}
       step={otpStage ? 1 : 0}
       tabs={!otpStage}
       note="لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف."
       below={
         <DemoAccounts
-          hint="لكل صفة إداريان: الأول أنهى رحلته فترى كل ما يظهر له، والثاني لم يبدأ بعد. اضغط على بطاقة للدخول مباشرة، دون كلمة مرور ولا رمز تحقق."
-          groups={POSITIONS.filter((pos) => DEMO_ADMINS.some((d) => d.position === pos.key)).map((pos) => ({
-            label: pos.label,
-            items: DEMO_ADMINS.filter((d) => d.position === pos.key).map((d) => ({
+          hint="لكل صفة ولكل مكان في التكتل حسابان: من أنهى رحلته فترى كل ما يظهر له (أغلبهم في تكتل النور)، ومن لم يبدأ بعد — مؤهَّل في أول عمله: تكتل يقدّم طلبه، أو مجموعة يشكّلها، أو دعوة تنتظر رده في تكتل البيان. ومن لم يسجّل للموسم بعد يجرّب التسجيل والامتحان. اضغط على بطاقة للدخول مباشرة، دون كلمة مرور ولا رمز تحقق."
+          groups={DEMO_GROUPS.filter((g) => DEMO_ADMINS.some((d) => d.section === g)).map((g) => ({
+            label: g,
+            items: DEMO_ADMINS.filter((d) => d.section === g).map((d) => ({
               key: d.id,
               title: d.title,
               note: d.note,
               code: d.id,
               initial: d.title[0],
-              badge: d.mode === "done" ? { text: "أنهى رحلته", tone: "green" as const } : { text: "لم يبدأ بعد", tone: "maroon" as const },
+              badge: d.mode === "done" ? { text: "أنهى رحلته", tone: "green" as const } : d.mode === "ready" ? { text: "لم يبدأ بعد", tone: "maroon" as const } : { text: "لم يسجّل للموسم بعد", tone: "maroon" as const },
               onPick: () => quick(d.id, d.mode),
             })),
           }))}
