@@ -252,8 +252,8 @@ function FileSheet({ f }: { f: FileState }) {
         <p className="flex gap-2 rounded-2xl bg-white/[.06] p-3 text-sm leading-7 text-white/80 ring-1 ring-white/10">
           <Building2 className="mt-1 size-4 shrink-0 text-gold" />
           {p.cluster
-            ? `انتخبه رؤساء المجموعات رئيساً لـ${p.cluster.name}، فصارت صفته على مستوى التكتل ويدير ${clusterGroupsOf(p, f.row.name).length} مجموعات، ومعاونه ${p.cluster.deputyName ?? "لم يُختر"}.`
-            : `اختاره رئيس ${p.deputyOf!.clusterName} ${p.deputyOf!.headName} معاوناً له، فصارت صفته على مستوى التكتل.`}
+            ? `قدّم طلب تشكيل ${p.cluster.name}، فصارت صفته على مستوى التكتل ويدير ${clusterGroupsOf(p, f.row.name).length} مجموعات، ونائبه ${p.cluster.deputy?.status === "accepted" ? p.cluster.deputy.name : "لم يقبل أحد بعد"}.`
+            : `دعاه رئيس ${p.deputyOf!.clusterName} ${p.deputyOf!.headName} نائباً له فقبل، فصارت صفته على مستوى التكتل.`}
         </p>
       )}
 

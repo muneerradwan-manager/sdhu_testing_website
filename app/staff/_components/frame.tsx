@@ -26,13 +26,14 @@ import {
   TowerControl,
   Settings2,
   ShieldCheck,
+  UserRoundPlus,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
 import { PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
-import { actions, useHydrated } from "@/lib/store";
+import { actions, useHydrated, useStore } from "@/lib/store";
 import { SYSTEMS, useOwnedSystems, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
@@ -87,6 +88,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: ["ops.files"] },
   { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: ["ops.files", "operations.room"] },
   { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
+  { href: "/staff/registration", label: "التسجيل على الحج", icon: <UserRoundPlus />, perms: ["pilgrims.register"] },
   { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
   { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
@@ -171,6 +173,7 @@ function Sidebar({ user }: { user: StaffUser }) {
   const toast = useToast();
   const [showPerms, setShowPerms] = useState(false);
   const reviews = useReviewQueue();
+  const contracts = useStore((s) => Object.values(s.post).filter((p) => p.contract?.status === "pending").length);
   const tickets = useTicketQueue();
   const halls = useHalls();
   const myCenters = halls.centersOf(user.id);
@@ -180,7 +183,8 @@ function Sidebar({ user }: { user: StaffUser }) {
   const myAirports = useAirportReps().airportsOf(user.id);
   const counts = useMemo(
     () => ({
-      reviews: reviews.filter((r) => !r.review).length,
+      // Applications that need a decision, and pilgrims' contracts with groups waiting for the office
+      reviews: reviews.filter((r) => !r.review).length + contracts,
       tickets: tickets.filter((t) => t.status !== "resolved").length,
       // Applicants who opened their account in one of my open halls and wait for me to confirm them
       hall: Object.entries(halls.runs)
@@ -195,7 +199,7 @@ function Sidebar({ user }: { user: StaffUser }) {
       exams: 0,
       flights: 0,
     }),
-    [reviews, tickets, halls.runs, myCenters, flights.flights, myAirports, unseen],
+    [reviews, contracts, tickets, halls.runs, myCenters, flights.flights, myAirports, unseen],
   );
   const items = STAFF_NAV.filter((n) =>
     n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),

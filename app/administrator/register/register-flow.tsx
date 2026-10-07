@@ -80,7 +80,7 @@ export function AdminRegisterFlow() {
     go(3);
     confetti({ particleCount: 150, spread: 85, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F", "#289E92", "#AD9E6E"] });
     setTimeout(
-      () => toast({ title: `أهلاً ${person.firstName}`, body: "فُتح لك ملف إداري. باب طلبات المشاركة لموسم 1448 مفتوح من 10 ربيع الأول.", icon: "🧭", tone: "success" }),
+      () => toast({ title: `أهلاً ${person.firstName}`, body: "فُتح لك ملف إداري. التسجيل كإداري لموسم 1448 من 20 إلى 24 أيلول.", icon: "🧭", tone: "success" }),
       700,
     );
   };

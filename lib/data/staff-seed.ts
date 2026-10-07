@@ -43,12 +43,12 @@ export const REG_STATS = {
   ],
 };
 
-/** Applications per day over the 22 registration days — a gentle curve with a closing rush */
+/** Applications per day over the 14 days of the direct registration (12 – 25 August) — an opening rush and a closing one */
 export const DAILY_REGISTRATIONS: number[] = (() => {
   const rnd = seeded("daily-registrations-1448");
-  const raw = Array.from({ length: 22 }, (_, i) => {
-    const opening = Math.max(0, 5 - i) * 0.35;
-    const closing = Math.max(0, i - 16) * 0.3;
+  const raw = Array.from({ length: 14 }, (_, i) => {
+    const opening = Math.max(0, 4 - i) * 0.35;
+    const closing = Math.max(0, i - 10) * 0.3;
     return 1 + opening + closing + rnd() * 0.35;
   });
   const sum = raw.reduce((a, b) => a + b, 0);
@@ -116,7 +116,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50211",
       office: "مكتب دمشق",
       governorate: "دمشق",
-      submittedAt: at(2026, 11, 24, 18, 12),
+      submittedAt: at(2026, 8, 13, 18, 12),
       mode: "national",
       caseLabel: "اسم الأم غير مطابق",
       members: [member(self, "self"), member(wife, "spouse")],
@@ -135,7 +135,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50348",
       office: "مكتب حماة",
       governorate: "حماة",
-      submittedAt: at(2026, 11, 27, 21, 40),
+      submittedAt: at(2026, 8, 15, 21, 40),
       mode: "national",
       caseLabel: "امرأة دون 44 بلا محرم",
       members: [member(self, "self"), member(sister, "sibling")],
@@ -154,7 +154,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50402",
       office: "مكتب درعا",
       governorate: "درعا",
-      submittedAt: at(2026, 11, 29, 11, 5),
+      submittedAt: at(2026, 8, 17, 11, 5),
       mode: "manual",
       caseLabel: "بيانات يدوية غير مؤكدة",
       members: [member(self, "self"), member(friend, "sibling", false)],
@@ -174,7 +174,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50519",
       office: "مكتب حلب",
       governorate: "حلب",
-      submittedAt: at(2026, 11, 30, 9, 50),
+      submittedAt: at(2026, 8, 18, 9, 50),
       mode: "national",
       caseLabel: "رقم وطني مكرر",
       members: [member(self, "self"), member(brother, "sibling")],
@@ -192,7 +192,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50627",
       office: "مكتب حمص",
       governorate: "حمص",
-      submittedAt: at(2026, 12, 2, 16, 20),
+      submittedAt: at(2026, 8, 20, 16, 20),
       mode: "national",
       caseLabel: "إشعار دفع غير واضح",
       members: [member(self, "self")],
@@ -211,7 +211,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50733",
       office: "مكتب إدلب",
       governorate: "إدلب",
-      submittedAt: at(2026, 12, 4, 20, 2),
+      submittedAt: at(2026, 8, 22, 20, 2),
       mode: "national",
       caseLabel: "حج سابق — محرم لوالدته",
       members: [member(self, "self", true, { companionId: "06090400300" }), member(mother, "parent", false, { companionId: "06090400311", needs: ["كرسي متحرك"] })],
@@ -230,7 +230,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50846",
       office: "مكتب ريف دمشق",
       governorate: "ريف دمشق",
-      submittedAt: at(2026, 12, 6, 13, 34),
+      submittedAt: at(2026, 8, 23, 13, 34),
       mode: "national",
       caseLabel: "كبير سن ومرافقه ابن أخ",
       members: [member(self, "self", true, { companionId: "01088700347", needs: ["مشاية"] }), member(nephew, "other", false)],
@@ -249,7 +249,7 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
       number: "50958",
       office: "مكتب دير الزور",
       governorate: "دير الزور",
-      submittedAt: at(2026, 12, 8, 22, 51),
+      submittedAt: at(2026, 8, 24, 22, 51),
       mode: "national",
       caseLabel: "عقد زواج غير مسجل",
       members: [member(self, "self"), member(husband, "spouse", false)],
@@ -267,18 +267,18 @@ export const SEED_APPLICATIONS: SeedApplication[] = [
 // counted by the main applicant's birth year and month (lib/lottery.ts) — nothing moves over automatically.
 
 export const LOTTERY = {
-  /** Eligible applications from the direct-acceptance registration (9 جمادى الآخرة – 1 رجب), ranked by age */
+  /** Eligible applications from the direct-acceptance registration (12 – 25 August), ranked by age */
   directEligible: 61_830,
-  directSeats: 7_875,
+  directSeats: 14_625,
 };
 
 /** Seats requested by eligible DIRECT-ACCEPTANCE applications, grouped by applicant age (oldest first) */
 export const AGE_BUCKETS: { label: string; minAge: number; seats: number }[] = [
-  { label: "80+", minAge: 80, seats: 1_210 },
-  { label: "75–79", minAge: 75, seats: 1_480 },
-  { label: "70–74", minAge: 70, seats: 2_350 },
-  { label: "69", minAge: 69, seats: 690 },
-  { label: "68", minAge: 68, seats: 720 },
+  { label: "80+", minAge: 80, seats: 2_750 },
+  { label: "75–79", minAge: 75, seats: 3_350 },
+  { label: "70–74", minAge: 70, seats: 5_300 },
+  { label: "69", minAge: 69, seats: 1_580 },
+  { label: "68", minAge: 68, seats: 1_645 },
   { label: "67", minAge: 67, seats: 760 },
   { label: "66", minAge: 66, seats: 665 },
   { label: "65", minAge: 65, seats: 910 },
@@ -321,7 +321,7 @@ export const SEED_ADMINS: SeedAdmin[] = [
       receipt: "1448-A-000871",
       eligibleAt: at(2026, 9, 28),
       exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10, 18), answers: {}, score: 84 },
-      group: { number: 27, clusterId: "al-nour", capacity: 50, requestedAt: at(2026, 11, 3, 12), feePaidAt: at(2026, 11, 3, 12, 20) },
+      group: { number: 27, capacity: 50, requestedAt: at(2026, 11, 3, 12), feePaidAt: at(2026, 11, 3, 12, 20) },
     }),
   },
   {
@@ -373,19 +373,19 @@ export const SEED_ADMINS: SeedAdmin[] = [
       exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10), answers: {}, score: 88 },
       oral: { score: 90, by: "منير السيد", at: at(2026, 10, 22, 16) },
       resultPublishedAt: at(2026, 11, 1, 10),
-      group: { number: 8, clusterId: "al-shahba", capacity: 45, requestedAt: at(2026, 11, 4, 15), feePaidAt: at(2026, 11, 4, 15, 12) },
+      group: { number: 8, capacity: 45, requestedAt: at(2026, 11, 4, 15), feePaidAt: at(2026, 11, 4, 15, 12) },
     }),
   },
   {
     name: "بسام درويش",
-    position: "معاون رئيس تكتل",
+    position: "رئيس مجموعة",
     previous: "1446، 1447 — معتمد (معفى من الكتابي)",
     profile: admin("01033300955", {
-      positions: ["معاون رئيس تكتل"],
+      positions: ["رئيس مجموعة"],
       feePaidAt: at(2026, 9, 21),
       oral: { score: 86, by: "منير السيد", at: at(2026, 10, 21, 11) },
       resultPublishedAt: at(2026, 11, 1, 10),
-      group: { number: 31, clusterId: "al-nour", capacity: 50, requestedAt: at(2026, 11, 2, 10), feePaidAt: at(2026, 11, 2, 10, 5), approvedAt: at(2026, 11, 20, 12), approvedBy: "مازن الحلبي" },
+      group: { number: 5, clusterId: "al-nour", capacity: 50, requestedAt: at(2026, 11, 2, 10), feePaidAt: at(2026, 11, 2, 10, 5), approvedAt: at(2026, 11, 9, 12), approvedBy: "مازن الحلبي" },
     }),
   },
 ];
@@ -544,32 +544,32 @@ export const SEED_TASKS: { id: string; title: string; by: string; to: string; co
 // ───────────────────────── Audit trail (historic) ─────────────────────────
 
 export const SEED_EVENTS: AuditEvent[] = [
-  { id: "h-01", at: at(2026, 9, 1, 9, 12), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "إنشاء حساب موظف", target: "نادر قاسم", detail: "بالرقم الوطني ورقم الهاتف — كلمة مرور مؤقتة" },
-  { id: "h-02", at: at(2026, 9, 1, 9, 15), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "نادر قاسم", after: "الإسكان — نطاق القطاع" },
-  { id: "h-03", at: at(2026, 9, 1, 9, 16), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "نادر قاسم", after: "إدارة المهام" },
-  { id: "h-04", at: at(2026, 9, 3, 11, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "تعديل إعدادات الموسم", target: "الحصة الإجمالية", before: "21,000", after: "22,500", detail: "قرار لجنة الخطة التشغيلية 14/1448" },
-  { id: "h-05", at: at(2026, 9, 3, 11, 4), actor: "سهى مراد", role: "مديرة الموسم", action: "تعديل إعدادات الموسم", target: "نسبة القبول المباشر", before: "30%", after: "35%" },
+  { id: "h-01", at: at(2026, 8, 1, 9, 12), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "إنشاء حساب موظف", target: "نادر قاسم", detail: "بالرقم الوطني ورقم الهاتف — كلمة مرور مؤقتة" },
+  { id: "h-02", at: at(2026, 8, 1, 9, 15), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "نادر قاسم", after: "الإسكان — نطاق القطاع" },
+  { id: "h-03", at: at(2026, 8, 1, 9, 16), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "نادر قاسم", after: "إدارة المهام" },
+  { id: "h-04", at: at(2026, 8, 3, 11, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "تعديل إعدادات الموسم", target: "الحصة الإجمالية", before: "21,000", after: "22,500", detail: "قرار لجنة الخطة التشغيلية 14/1448" },
+  { id: "h-05", at: at(2026, 8, 3, 11, 4), actor: "سهى مراد", role: "مديرة الموسم", action: "تعديل إعدادات الموسم", target: "نسبة القبول المباشر", before: "60%", after: "65%" },
   // The exam system: assigned whole to one employee, who runs it from there
-  { id: "h-04a", at: at(2026, 9, 1, 9, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "سامي حلاق (أبو سامي)", after: "إدارة الموظفين", system: "staff", important: true },
-  { id: "h-04b", at: at(2026, 9, 1, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "ماهر عيسى، رهف الخطيب، مازن الحلبي، ريما الجندي", after: "إدارة الإداريين", system: "admins", important: true },
-  { id: "h-05a", at: at(2026, 9, 5, 10, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "منير السيد", after: "إدارة الامتحانات", system: "exams", important: true },
-  { id: "h-05a2", at: at(2026, 9, 5, 10, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "هيثم زيدان", after: "إدارة الطيران", system: "flights", important: true },
+  { id: "h-04a", at: at(2026, 8, 1, 9, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "سامي حلاق (أبو سامي)", after: "إدارة الموظفين", system: "staff", important: true },
+  { id: "h-04b", at: at(2026, 8, 1, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "ماهر عيسى، رهف الخطيب، مازن الحلبي، ريما الجندي", after: "إدارة الإداريين", system: "admins", important: true },
+  { id: "h-05a", at: at(2026, 8, 5, 10, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "منير السيد", after: "إدارة الامتحانات", system: "exams", important: true },
+  { id: "h-05a2", at: at(2026, 8, 5, 10, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "هيثم زيدان", after: "إدارة الطيران", system: "flights", important: true },
   { id: "h-05b", at: at(2026, 9, 8, 12, 30), actor: "منير السيد", role: "مسؤول الامتحانات", action: "تحديد مواعيد الامتحانات الأساسية", target: "5 امتحانات", detail: "من 15 إلى 18 ربيع الآخر 1448، في 9 مراكز", system: "exams", area: "exams", important: true },
   { id: "h-05d", at: at(2026, 9, 10, 11, 0), actor: "هيثم زيدان", role: "مسؤول الطيران", action: "إسناد مندوب مطار", target: "مطار دمشق الدولي", after: "عمر الشامي", system: "flights", area: "refs", ref: "ap-dam" },
   { id: "h-05c", at: at(2026, 9, 8, 12, 45), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إسناد مشرف قاعة امتحانية", target: "مركز دمشق", after: "نسرين الحكيم", system: "exams", area: "centers", ref: "damascus" },
   { id: "h-06", at: at(2026, 10, 23, 18, 40), actor: "منير السيد", role: "مسؤول الامتحانات", system: "exams", area: "results", ref: "01033301422", action: "تعديل نتيجة الشفهي", target: "متقدم 01033301422", before: "12 من 20", after: "14 من 20", detail: "خطأ في الجمع — تصويب اللجنة رقم 5" },
-  { id: "h-06b", at: at(2026, 10, 25, 10, 0), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إعلان النتائج", target: "1,094 ناجحاً من 1,380 متقدماً", system: "exams", area: "results", important: true },
-  { id: "h-07", at: at(2026, 11, 20, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", system: "admins", area: "groups", ref: "31", action: "اعتماد مجموعة", target: "المجموعة 31 — تكتل النور" },
-  { id: "h-08", at: at(2026, 12, 10, 14, 30), actor: "رنا حداد", role: "إدارة التسجيل", action: "اعتماد طلب بعد المراجعة", target: "الطلب 49120", detail: "اسم الأم: خطأ كتابي مؤكد من بيان القيد" },
-  { id: "h-09", at: at(2026, 12, 24, 9, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر — 7,875 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },
-  { id: "h-10", at: at(2026, 12, 24, 10, 0), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد الأعمار المقبولة", target: "القبول المباشر", after: "66 عاماً فأكثر" },
-  { id: "h-11", at: at(2027, 1, 6, 17, 5), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "تصدير إحصاء التسجيل الأولي على القرعة", target: "53,955 طلباً — 95,222 شخصاً", detail: "بحسب سنة ميلاد صاحب الطلب وشهره، للجنة تنظيم القرعة" },
-  { id: "h-12", at: at(2027, 1, 9, 23, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إدخال نتائج القرعة", target: "8 سنوات ميلاد — 14,625 مقعداً", detail: "كما سُحبت في البث: 1961، 1965 (كانون الثاني)، 1970، 1972 (كانون الثاني – نيسان)، 1980، 1987، 1989، 1990 (كانون الثاني)" },
-  { id: "h-13", at: at(2027, 1, 9, 23, 52), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إرسال نتائج القرعة للاعتماد", target: "8 سنوات ميلاد — 14,625 مقعداً" },
-  { id: "h-14", at: at(2027, 1, 10, 9, 5), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد ونشر نتائج القرعة", target: "14,625 مقعداً — 8,221 طلباً", detail: "جدول سنوات الميلاد وأشهرها كما أُعلن في البث" },
-  { id: "h-15", at: at(2027, 1, 12, 11, 20), actor: "رنا حداد", role: "إدارة التسجيل", action: "تحويل تذكرة اعتراض", target: "الطلب 51877", detail: "«أنا من مواليد شباط 1972، وشباط مسحوب، ولم يُقبل طلبي» — حُوّلت إلى التدقيق" },
-  { id: "h-16", at: at(2027, 1, 12, 11, 48), actor: "طارق مصطفى", role: "التدقيق", action: "الاطلاع على سجل الأحداث", target: "تصفية: الطلب 51877" },
-  { id: "h-17", at: at(2027, 1, 12, 12, 10), actor: "طارق مصطفى", role: "التدقيق", action: "الرد على الاعتراض", target: "الطلب 51877", detail: "صاحب الطلب والده، الأكبر سناً فيه، من مواليد 1969، والقرعة تُطابَق بميلاد صاحب الطلب — النتيجة صحيحة" },
+  { id: "h-06b", at: at(2026, 11, 1, 10, 0), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إعلان النتائج", target: "1,094 ناجحاً من 1,380 متقدماً", system: "exams", area: "results", important: true },
+  { id: "h-07", at: at(2026, 11, 9, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", system: "admins", area: "groups", ref: "31", action: "اعتماد مجموعة", target: "المجموعة 31 — تكتل النور" },
+  { id: "h-08", at: at(2026, 8, 27, 14, 30), actor: "رنا حداد", role: "إدارة التسجيل", action: "اعتماد طلب بعد المراجعة", target: "الطلب 49120", detail: "اسم الأم: خطأ كتابي مؤكد من بيان القيد" },
+  { id: "h-09", at: at(2026, 8, 26, 9, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "68 عاماً فأكثر (مواليد 1958 فما قبل) — 14,625 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },
+  { id: "h-10", at: at(2026, 8, 26, 10, 0), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد الأعمار المقبولة", target: "القبول المباشر", after: "68 عاماً فأكثر (مواليد 1958 فما قبل)" },
+  { id: "h-11", at: at(2026, 9, 12, 17, 5), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "تصدير إحصاء التسجيل الأولي على القرعة", target: "53,955 طلباً — 95,222 شخصاً", detail: "بحسب سنة ميلاد صاحب الطلب وشهره، للجنة تنظيم القرعة" },
+  { id: "h-12", at: at(2026, 9, 26, 20, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إدخال نتائج القرعة", target: "8 سنوات ميلاد — 7,875 مقعداً", detail: "كما سُحبت في البث: 1961، 1965 (كانون الثاني)، 1970، 1972 (كانون الثاني – نيسان)، 1980، 1987، 1989، 1990 (كانون الثاني)" },
+  { id: "h-13", at: at(2026, 9, 26, 20, 52), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إرسال نتائج القرعة للاعتماد", target: "8 سنوات ميلاد — 7,875 مقعداً" },
+  { id: "h-14", at: at(2026, 9, 26, 21, 0), actor: "يوسف الزعبي", role: "لجنة اعتماد النتائج", action: "اعتماد ونشر نتائج القرعة", target: "7,875 مقعداً — 4,427 طلباً", detail: "جدول سنوات الميلاد وأشهرها كما أُعلن في البث" },
+  { id: "h-15", at: at(2026, 9, 29, 11, 20), actor: "رنا حداد", role: "إدارة التسجيل", action: "تحويل تذكرة اعتراض", target: "الطلب 51877", detail: "«أنا من مواليد شباط 1972، وشباط مسحوب، ولم يُقبل طلبي» — حُوّلت إلى التدقيق" },
+  { id: "h-16", at: at(2026, 9, 29, 11, 48), actor: "طارق مصطفى", role: "التدقيق", action: "الاطلاع على سجل الأحداث", target: "تصفية: الطلب 51877" },
+  { id: "h-17", at: at(2026, 9, 29, 12, 10), actor: "طارق مصطفى", role: "التدقيق", action: "الرد على الاعتراض", target: "الطلب 51877", detail: "صاحب الطلب والده، الأكبر سناً فيه، من مواليد 1969، والقرعة تُطابَق بميلاد صاحب الطلب — النتيجة صحيحة" },
 ];
 
 /** The objection example (4.5) — application number to trace */
@@ -589,7 +589,7 @@ export const EXEC = {
     { label: "أدّوا الحج فعلاً", value: 22_318 },
   ],
   split: [
-    { label: "قبول مباشر (66+)", value: 7_875, color: "#AD9E6E" },
+    { label: "قبول مباشر (68+)", value: 14_625, color: "#AD9E6E" },
     { label: "القرعة", value: OFFICIAL_LOTTERY.seats, color: "#00594F" },
     { label: "لم يُقبل في القرعة", value: OFFICIAL_LOTTERY.notAcceptedSeats, color: "#E4DDD3" },
   ],

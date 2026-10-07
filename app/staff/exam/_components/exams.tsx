@@ -23,6 +23,7 @@ import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
 import { useExamBank } from "@/app/administrator/_lib/admin-rules";
 import { hallActions, roleLabelOf, runKey, stageOf, useHalls } from "@/app/administrator/_lib/halls";
 import { Drawer, Panel, logAs, smallInputClass, useStaffUser } from "../../_components/kit";
+import { OperationsPanel } from "../../_components/operations";
 import { useExamDesk, useExamProgress } from "./desk";
 import { RecordHistory, Records } from "./records";
 import { Chip, Field, Pick, Switch, selectClass } from "./ui";
@@ -91,6 +92,7 @@ export function Exams() {
 
   return (
     <div className="space-y-4">
+      <OperationsPanel keys={["admin-exams"]} system="exams" area="exams" title="مدة الامتحانات وتفعيلها" />
       <Panel
         icon={<CalendarClock />}
         title="الامتحانات"
@@ -263,7 +265,7 @@ function ExamForm({ start, isNew, onClose }: { start: ExamDef; isNew: boolean; o
           )}
         </Field>
         <Field label="اليوم">
-          <input value={d.date} onChange={(e) => setD({ ...d, date: e.target.value })} className={smallInputClass} placeholder="25 ربيع الآخر 1448" />
+          <input value={d.date} onChange={(e) => setD({ ...d, date: e.target.value })} className={smallInputClass} placeholder="26 ربيع الآخر 1448" />
         </Field>
         <Field label="الساعة">
           <input value={d.time} onChange={(e) => setD({ ...d, time: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" placeholder="09:00" />

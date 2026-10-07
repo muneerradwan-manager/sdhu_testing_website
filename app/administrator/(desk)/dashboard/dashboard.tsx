@@ -30,7 +30,8 @@ import { useExamRules } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
 import { clusterGroupsOf } from "../../_lib/cluster";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
-import { AdminShell } from "../../_components/ui";
+import { AdminShell, useAdminNav } from "../../_components/ui";
+import { rangeLabel, statusLabel, useOperation } from "@/lib/operations";
 
 type Written = { date: string; time: string; questions: number; minutes: number; center?: string };
 
@@ -41,13 +42,11 @@ const nextSteps = (rules: ExamNumbers, w: Written): Record<string, { title: stri
   written: { title: "امتحانك الكتابي في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: امتحان جماعي لصفتك، ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر بهويتك، وافتح حسابك في القاعة بعد أن يفتحها المشرف.`, cta: "قاعتي وموعدي" },
   oral: { title: "بانتظار نتيجة الامتحان الشفهي", text: "تُدخل لجنة الامتحانات (ماهر عيسى) النتيجة على المنصة بعد مقابلتك.", cta: "متابعة النتيجة" },
   result: { title: "نتيجتك النهائية", text: `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.`, cta: "عرض النتيجة" },
-  group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة ورسم 200 $ — حتى 25 جمادى الأولى. رقمها وسعتها يُعطيان تلقائياً، والفريق يُدعى بعد الاعتماد، والتكتل بعد انتخاب رؤساء التكتلات.", cta: "طلب تشكيل مجموعة" },
-  team: { title: "انضم إلى فريق مجموعة", text: "يدعوك رئيس المجموعة إلى فريقه دعوة فردية، فتوافق عليها. لا تشكّل مجموعة ولا تشارك في انتخاب التكتلات، فهي لرؤساء المجموعات.", cta: "مجموعتي" },
+  group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة ورسم 200 $، في مدة تشكيل المجموعات. رقمها وسعتها يُعطيان تلقائياً، وتشكّلها وحدك: فريقها يسنده رئيس التكتل.", cta: "طلب تشكيل مجموعة" },
+  team: { title: "بانتظار دعوة تكتل", text: "رؤساء التكتلات يختارون موجّهيهم ومنسقيهم ومعاونيهم للتكتل كله بدعوات فردية، ثم يسندونهم إلى المجموعات. تقبل دعوة واحدة.", cta: "دعواتي" },
   approval: { title: "طلب المجموعة قيد الاعتماد", text: "يراجعه ماهر عيسى ثم يعتمده مدير المكتب مازن الحلبي.", cta: "متابعة الطلب" },
-  contracts: { title: "ميثاق الفريق جاهز للتوقيع", text: "ميثاق فريق المجموعة — توقيع إلكتروني. عقد التكتل يأتي بعد الانضمام إليه.", cta: "توقيع الميثاق" },
-  election: { title: "انتخاب رؤساء التكتلات", text: "أعلنت الإدارة عدد التكتلات وشروط الترشح. رشّح نفسك إن استوفيت الشروط، وصوّت لمرشح واحد.", cta: "التكتلات" },
-  cluster: { title: "اختر تكتلاً لمجموعتك", text: "أُعلن رؤساء التكتلات. اطلب الانضمام إلى تكتل، ويقرر رئيسه بحسب سعته، ثم توقّعان العقد.", cta: "التكتلات" },
-  requests: { title: "عائلات فُوّجت إلى مجموعتك", text: "رحّب بالعائلات الجديدة، وتابع تسجيل ملفاتها الصحية مع المنسق التقني.", cta: "حجاج المجموعة" },
+  cluster: { title: "تشكيل التكتلات", text: "يدعو رؤساء التكتلات المجموعات بحجاجها: تقبل دعوة واحدة لمجموعتك. وإن استوفيت شروط الطلب قدّمت أنت طلب تشكيل تكتل. لا انتخاب.", cta: "تشكيل التكتلات" },
+  requests: { title: "حجاج مجموعتك", text: "أُلحقت بمجموعتك عائلات جديدة بعقودها: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي أسنده رئيس التكتل.", cta: "حجاج المجموعة" },
   field: { title: "الميدان: افتح أول تجمّع", text: "«ساحة المزة ← المطار» — مسح البطاقات وإرسال «انطلقنا» للجميع.", cta: "وضع الميدان" },
 });
 
@@ -66,8 +65,10 @@ export function AdminDashboard() {
     [hall.session, hall.center, blueprint],
   );
   const steps = useMemo(() => journeyOf(profile, rules, joinCount, written), [profile, rules, joinCount, written]);
+  const nav = useAdminNav();
+  const regOp = useOperation("admin-registration");
+  const registration = rangeLabel(regOp.start, regOp.end);
   const current = steps.find((s) => s.state === "current");
-  const done = steps.filter((s) => s.state === "done").length;
   const result = resultOf(profile, rules);
   const failed = !!result.published && result.final !== undefined && !result.passed;
   const mine = useMemo(() => events.filter((e) => e.actor === admin.name).slice(-7).reverse(), [events, admin.name]);
@@ -95,17 +96,17 @@ export function AdminDashboard() {
           : "لم يتقدم بعد";
 
   const notes = [
-    coord && { t: `دعاك رئيس ${coord.clusterName} ${coord.headName} منسقاً تقنياً لتكتله، وفرز لك ${groupsLabel(coord.groups.map((g) => g.number))}. تسجّل فيها وحدها من يختارها، وتأخذ ملفاتهم الصحية.`, who: "شؤون التكتلات" },
-    profile?.deputyOf && { t: `اختارك رئيس ${profile.deputyOf.clusterName} ${profile.deputyOf.headName} معاوناً له، فصارت صفتك لهذا الموسم معاون رئيس تكتل: ترى مجموعات التكتل كلها ومعلوماته، وتنوب عن الرئيس في متابعتها.`, who: "شؤون الإداريين" },
-    profile?.cluster && { t: `انتخبك رؤساء المجموعات رئيساً لتكتل، فبقيتَ رئيس المجموعة ${profile.group?.number} وارتفعت مهامك إلى مستوى التكتل: تدير الآن ${clusterGroups} مجموعات في ${profile.cluster.name}، لكل واحدة رئيسها وفريقها. معاونك ${profile.cluster.deputyName ?? "—"}.`, who: "شؤون الإداريين" },
-    !profile?.cluster && profile?.group?.clusterId && { t: `قبِل رئيس تكتل النور عبد الرحمن العلي انضمام المجموعة ${profile.group.number}، ووُقّع العقد وصودق عليه.`, who: "شؤون التكتلات" },
-    profile?.group?.approvedAt && { t: `اعتُمدت المجموعة ${profile.group.number} لموسم 1448. ميثاق الفريق جاهز للتوقيع في خزنة الوثائق. التكتل يُحدَّد بعد انتخاب رؤساء التكتلات.`, who: "مدير المكتب" },
+    coord && { t: `دعاك رئيس ${coord.clusterName} ${coord.headName} إلى تكتله فقبلت، وأسند إليك ${groupsLabel(coord.groups.map((g) => g.number))}. تعمل فيها وحدها.`, who: "شؤون التكتلات" },
+    profile?.deputyOf && { t: `دعاك رئيس ${profile.deputyOf.clusterName} ${profile.deputyOf.headName} نائباً له فقبلت، فصارت صفتك لهذا الموسم نائب رئيس تكتل: ترى مجموعات التكتل كلها ومعلوماته، وتنوب عن الرئيس في متابعتها.`, who: "شؤون الإداريين" },
+    profile?.cluster && { t: `قدّمت طلب تشكيل ${profile.cluster.name}، فبقيتَ رئيس المجموعة ${profile.group?.number} وارتفعت مهامك إلى مستوى التكتل: تدير ${clusterGroups} مجموعات، لكل واحدة رئيسها والفريق الذي أسندته إليها. نائبك ${profile.cluster.deputy?.status === "accepted" ? profile.cluster.deputy.name : "لم يقبل بعد"}.`, who: "شؤون الإداريين" },
+    !profile?.cluster && profile?.group?.clusterId && { t: `قبلتَ دعوة تكتل لمجموعتك ${profile.group.number}، فدخلته بحجاجها.`, who: "شؤون التكتلات" },
+    profile?.group?.approvedAt && { t: `اعتُمدت المجموعة ${profile.group.number} لموسم 1448. فريقها يسنده رئيس التكتل الذي تدخله.`, who: "مدير المكتب" },
     result.exempt && { t: "جُدّدت صفتك لموسم 1448 دون امتحان، لأنك شغلتها الموسم الماضي بتقييم مستوفٍ. رسم الموسم مسدد.", who: "شؤون الإداريين" },
-    result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة رئيس مجموعة. يمكنك تقديم طلب تشكيل مجموعة حتى 25 جمادى الأولى.`, who: "إدارة الامتحانات" },
+    result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة رئيس مجموعة. يمكنك تقديم طلب تشكيل مجموعة في مدة تشكيل المجموعات.`, who: "إدارة الامتحانات" },
     profile?.feePaidAt && !profile.examExempt && { t: `أنت مؤهل للامتحان الكتابي: ${hall.exam?.name ?? "امتحان صفتك"}، ${hall.session ? `يوم ${hall.session.date} الساعة ${hall.session.time}` : "يُحدَّد موعده"}، في ${hall.center?.name ?? "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}.`, who: "إدارة الامتحانات" },
     profile?.receipt && { t: `تم استلام طلب مشاركتك في موسم 1448 ورسم التسجيل (الإيصال ${profile.receipt}).`, who: "المنصة" },
     profile?.eligibleAt && { t: `تحققت المنصة من أهليتك لصفة ${positionLabelOf(profile.positions[0] ?? "")} وفق جدول شروط الصفات لموسم 1448${profile.feePaidAt ? "" : ". بقي تسديد رسم التسجيل ليُقدَّم طلبك"}.`, who: "المنصة" },
-    { t: "باب طلبات المشاركة لموسم 1448 مفتوح من 10 ربيع الأول حتى 1 ربيع الآخر.", who: "الإدارة" },
+    { t: `التسجيل كإداري لموسم 1448: ${registration}.`, who: "الإدارة" },
   ].filter(Boolean) as { t: string; who: string }[];
 
   return (
@@ -141,7 +142,7 @@ export function AdminDashboard() {
                 ["العمر", `${ageOf(admin.person)} عاماً`],
                 ["المحافظة", admin.person.governorate],
                 ["الهاتف", profile?.phone ? `${profile.phone.slice(0, 4)} ••• ${profile.phone.slice(-3)}` : "—"],
-                ["الصفة لموسم 1448", profile?.positions.length ? `${positionLabelOf(effectiveRole(profile))}${profile.cluster || profile.deputyOf ? " (بالانتخاب)" : profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
+                ["الصفة لموسم 1448", profile?.positions.length ? `${positionLabelOf(effectiveRole(profile))}${profile.cluster || profile.deputyOf ? " (بتشكيل التكتل)" : profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-2xl bg-sand p-3">
                   <dt className="text-xs text-hint">{k}</dt>
@@ -271,47 +272,35 @@ export function AdminDashboard() {
                 </>
               )}
             </div>
-            <div className="relative mt-8">
-              <div className="flex items-center justify-between text-xs text-white/70">
-                <span>تقدّم الرحلة</span>
-                <span className="font-bold text-gold">{done} من {steps.length}</span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/15">
-                <motion.div className="h-full rounded-full bg-gradient-to-l from-gold to-gold-dark" initial={{ width: 0 }} animate={{ width: `${(done / steps.length) * 100}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} />
-              </div>
-            </div>
           </motion.div>
 
-          {/* Journey stepper */}
+          {/* His operations: each its own tab with its own dates — not one chain from the exam to the field */}
           <Card className="md:p-8">
             <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-              <CalendarClock className="size-6 text-gold-dark" /> رحلتي — من الامتحان إلى الميدان
+              <CalendarClock className="size-6 text-gold-dark" /> عملياتي هذا الموسم
             </h3>
-            <ol className="mt-6">
-              {steps.map((s, i) => (
-                <motion.li key={s.key} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 * i }} className="relative flex gap-4 pb-5 last:pb-0">
-                  {i < steps.length - 1 && <span className={cn("absolute right-[19px] top-10 h-[calc(100%-2.5rem)] w-0.5", s.state === "done" ? "bg-green-light" : "bg-gold-light")} />}
-                  <span
-                    className={cn(
-                      "relative grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold",
-                      s.state === "done" && "bg-green-light text-white",
-                      s.state === "current" && "bg-maroon text-gold ring-4 ring-maroon/15",
-                      s.state === "locked" && "bg-sand text-hint",
-                    )}
-                  >
-                    {s.state === "current" && <span className="absolute inset-0 animate-ping rounded-full bg-maroon/30" />}
-                    {s.state === "done" ? <Check className="size-5" /> : s.state === "locked" ? <Lock className="size-4" /> : i + 1}
-                  </span>
-                  <Link href={s.href} className={cn("group -mt-0.5 flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-3 rounded-2xl p-2 transition hover:bg-sand", s.state === "current" && "bg-maroon/5")}>
-                    <span className="min-w-0">
-                      <span className={cn("block font-bold", s.state === "locked" ? "text-hint" : "text-ink")}>{s.title}</span>
-                      <span className="block text-sm text-ink-soft">{s.detail}</span>
-                    </span>
-                    <span className="shrink-0 text-xs font-semibold text-gold-dark">{s.date}</span>
-                  </Link>
-                </motion.li>
-              ))}
-            </ol>
+            <p className="mt-1 text-sm text-ink-soft">كل عملية مستقلة لها تبويبها في القائمة ومدتها، تُفتح وتُغلق وحدها. ما أنجزته في كل منها يبقى فيها.</p>
+            <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+              {nav.filter((n) => n.href !== "/administrator/dashboard").map((n, i) => {
+                const mineIn = steps.filter((s) => s.href === n.href);
+                const where = mineIn.find((s) => s.state === "current") ?? mineIn.filter((s) => s.state === "done").at(-1) ?? mineIn[0];
+                const finished = mineIn.length > 0 && mineIn.every((s) => s.state === "done");
+                return (
+                  <motion.li key={n.href} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 * i }}>
+                    <Link href={n.href} className={cn("flex h-full gap-3 rounded-2xl border-2 p-3 transition hover:border-gold-dark", n.open ? "border-gold/40 bg-white" : "border-transparent bg-sand")}>
+                      <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", finished ? "bg-green-light text-white" : n.open ? "bg-gold/30 text-green-dark" : "bg-white text-hint")}>
+                        {finished ? <Check className="size-5" /> : n.open ? <n.icon className="size-5" /> : <Lock className="size-4" />}
+                      </span>
+                      <span className="min-w-0">
+                        <span className={cn("block font-bold", n.open ? "text-ink" : "text-ink-soft")}>{n.label}</span>
+                        {n.shown && n.shown.status !== "always" && <span className={cn("block text-xs font-semibold", n.open ? "text-green" : "text-hint")}>{statusLabel(n.shown)}</span>}
+                        {where && <span className="mt-0.5 block text-xs leading-5 text-ink-soft">{where.detail}</span>}
+                      </span>
+                    </Link>
+                  </motion.li>
+                );
+              })}
+            </ul>
           </Card>
 
           <Card className="md:p-7">

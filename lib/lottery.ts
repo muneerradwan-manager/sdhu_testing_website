@@ -32,7 +32,7 @@ export const OFFICIAL_DRAW: DrawPick[] = [
 ];
 
 /** As published before this demo begins: entered by the lottery desk, approved and published */
-export const OFFICIAL_PUBLISHED: PublishedDraw = { picks: OFFICIAL_DRAW, by: "يوسف الزعبي", label: "2 شعبان 1448 — 09:05" };
+export const OFFICIAL_PUBLISHED: PublishedDraw = { picks: OFFICIAL_DRAW, by: "يوسف الزعبي", label: "15 ربيع الآخر 1448 (26 أيلول) — 21:00" };
 
 /** The draw that decides: what the desk published, else the 1448 results (unless the demo cleared them) */
 export function publishedDraw(s: Pick<State, "lottery">): PublishedDraw | null {

@@ -45,7 +45,7 @@ export type Application = {
   ratings: Record<string, number>;
   /**
    * Which registration this application was made in. The two are separate: direct acceptance (oldest
-   * first, 35%) opens first; the lottery (65%) opens afterwards as its own application. Missing = "direct"
+   * first, 65%) opens first; the lottery (35%) opens afterwards as its own application. Missing = "direct"
    * (applications saved before the two were separated).
    */
   track?: "direct" | "lottery";
@@ -109,6 +109,11 @@ export type AdminRules = {
   /** Commitments dropped this season, and edited wording */
   commitmentsOff?: string[];
   commitmentEdits?: Record<string, { label?: string; detail?: string }>;
+  /**
+   * Which roles hold each of the administrators' permissions («التسجيل على الحج»، «إلحاق الحجاج بالمجموعة»),
+   * once the administration changed the table: permission -> role keys (app/administrator/_lib/permissions)
+   */
+  rolePermissions?: Partial<Record<string, string[]>>;
   /** The administrators calendar, once the administration edits a row */
   calendar?: { hijri: string; title: string; detail: string }[];
   /** The stages an administrator is evaluated through, once the administration edits them */
@@ -154,8 +159,8 @@ export type SeasonOverrides = Partial<{
   installmentCount: number;
   /** Administrators: rating needed to keep last season's role; seasons of seniority for a cluster head */
   keepRoleMinRating: number;
-  /** Clusters this season, and consecutive seasons as group head needed to stand for cluster head */
-  clusterCount: number;
+  /** The fewest groups a cluster needs to be approved, and consecutive seasons as group head needed to request one */
+  clusterMinGroups: number;
   clusterHeadSeasons: number;
   /** The administrator's own fees: the seasonal registration, forming a group, forming a cluster */
   administratorRegistration: number;
@@ -209,6 +214,22 @@ export type HealthFile = {
   confirmedAt?: number;
 };
 
+/** The pilgrim–group contract as it was uploaded, and the office's decision on it */
+export type PilgrimContract = {
+  groupNumber: number;
+  clusterId?: string;
+  status: "pending" | "approved" | "returned";
+  uploadedBy: { id: string; name: string; role: string };
+  uploadedAt: number;
+  file: { name: string; size: number };
+  decidedBy?: string;
+  decidedAt?: number;
+  /** Why the office sent it back, for the uploader to fix */
+  reason?: string;
+  /** The group the family is in now, when this contract moves it */
+  transferFrom?: number;
+};
+
 /** Interactive steps after acceptance (المرحلة 6 – 9), keyed by pilgrim session id */
 export type PostAcceptance = {
   confirmedAt?: number;
@@ -217,13 +238,16 @@ export type PostAcceptance = {
   /** Documents already sent back once by the reviewer (the expired-passport case) */
   rejectedOnce?: string[];
   /**
-   * التفويج: when the assignment window opens, the pilgrim reads the group directory and contacts a
-   * group; that group's coordinator enrolls the whole application (a family moves together or not at
-   * all) and both sign the pilgrim–group contract. A coordinator enrolls only into his own group.
+   * Attaching the pilgrim to a group is its own operation, after and apart from registering on the Hajj:
+   * the pilgrim does not choose a group on the platform. He agrees with a group, and whoever holds
+   * «إلحاق الحجاج بالمجموعة» in it (its head, or the coordinator or assistant its cluster's head assigned
+   * to it) uploads the signed contract; office staff approve it, and only then is the whole application in
+   * the group (a family moves together or not at all).
    */
+  contract?: PilgrimContract;
   clusterId?: string;
   groupNumber?: number;
-  /** The coordinator who enrolled the family */
+  /** Who uploaded the contract that put the family in the group */
   enrolledBy?: { id: string; name: string };
   /** Membership is active from this moment */
   groupApprovedAt?: number;
@@ -275,6 +299,13 @@ export type AdminRecord = {
   updatedAt: number;
 };
 
+/** One person's individual invitation from a cluster head: he accepts or declines it himself */
+export type ClusterInvite = { id: string; name: string; at: number; status: "pending" | "accepted" | "declined"; reason?: string };
+/** A group invited into a cluster: its head answers for it, and it comes with the pilgrims it already has */
+export type GroupInvite = ClusterInvite & { number: number; office: string; capacity: number; pilgrims: number; /** Given to the cluster by the administration's distribution, not by invitation */ distributed?: boolean };
+/** The cluster's people, by role: religious guides, assistants (معاونو رؤساء المجموعات), technical coordinators */
+export type TeamPool = "guide" | "assistant" | "tech";
+
 export type AdminProfile = {
   nationalId: string;
   createdAt: number;
@@ -322,60 +353,57 @@ export type AdminProfile = {
   /** The final is never stored: it follows the season's exam rules (resultOf) */
   oral?: { score: number; by: string; at: number; note?: string };
   resultPublishedAt?: number;
-  /** Formed without a cluster: clusters exist only after all groups are formed and their heads elected */
+  /** Formed alone, without a team and without a cluster: a cluster takes it later, and its head assigns its team */
   group?: {
     number: number;
-    /** Set once a cluster accepted the group (or the head was elected and created his own) */
+    /** The cluster whose invitation its head accepted (or whose head he is), or that the distribution gave it */
     clusterId?: string;
     /** Given on approval by the category the head falls in, never typed by him (0 until then) */
     capacity: number;
     /** That category's name, as it read when the group was approved */
     capacityTier?: string;
-    /** How many team roles the category gave the group, from the top: deputy, guide, coordinator */
-    teamSize?: number;
     requestedAt: number;
     feePaidAt?: number;
     approvedAt?: number;
     approvedBy?: string;
     /** Sent back to the head by the holder of «إدارة الإداريين», with what to fix; cleared when he sends it again */
     returned?: { at: number; by: string; note: string };
-    /** The team the head invited one by one, after the group was approved, from the administrators who qualified this season */
-    team?: { roleKey: string; role: string; name: string; id: string }[];
-    /** Team charter (deputy, guide, coordinator) */
-    contractSignedAt?: number;
   };
   /**
-   * Picked as the deputy of an elected cluster head. Like the head, his role for the season becomes a
-   * cluster role: he stops seeing one group and sees the cluster's groups and its information.
+   * The cluster's deputy head («نائب رئيس التكتل»), who accepted its head's invitation. Like the head, his
+   * role for the season becomes a cluster role: he sees the cluster's groups and its information.
    */
-  deputyOf?: { clusterId: string; clusterName: string; headId: string; headName: string; headGroup: number; capacityGroups: number };
-  /** Stood for cluster head this season */
-  candidate?: { at: number; statement: string };
-  /** The candidate this group head voted for (admin id) */
-  vote?: string;
-  /** The cluster this elected head created — he manages it fully and chooses its deputy */
+  deputyOf?: { clusterId: string; clusterName: string; headId: string; headName: string; headGroup: number };
+  /**
+   * The cluster this group head asked to form. Nobody is elected: any group head who meets the season's
+   * conditions files the request, and is its head from then on — the request stays preliminary until the
+   * administration's deadline, when a complete cluster is approved and an incomplete one excluded. He
+   * invites the groups (their heads answer), his deputy, and the people of the cluster — guides, assistants,
+   * coordinators — not group by group: then he assigns them to the groups as he sees fit.
+   */
   cluster?: {
     id: string;
     name: string;
-    deputyId?: string;
-    deputyName?: string;
-    capacityGroups: number;
+    /** Filed: from then he is its head */
     createdAt: number;
+    /** The administration's decision after the deadline, as it reached his record (also in State.formation) */
+    decision?: { status: "approved" | "excluded"; at: number; by: string; reason?: string };
     feePaidAt?: number;
-    /** Group heads' requests to join: admin id -> decision */
-    decisions: Record<string, { status: "accepted" | "declined"; at: number; reason?: string }>;
-    /** The cluster's technical coordinators, invited by its head, as many as its category allows */
-    coordinators?: { id: string; name: string }[];
-    /** Each group of the cluster sorted to one coordinator: group number -> coordinator's id */
-    assignment?: Record<number, string>;
+    deputy?: ClusterInvite;
+    /** Every group invited, by number; his own group is in it from the start */
+    groups: Record<number, GroupInvite>;
+    /** The cluster's people, chosen for the cluster and not for a group */
+    team: Record<TeamPool, ClusterInvite[]>;
+    /** Who serves each group, role by role: group number -> person id. One person may serve several groups */
+    posts: Record<TeamPool, Record<number, string>>;
   };
   /**
-   * A technical coordinator's post: the cluster whose head invited him, and the groups sorted to him.
+   * A technical coordinator's post: the cluster whose head invited him, and the groups assigned to him.
    * He works in those groups only.
    */
   coordinatorIn?: { clusterId: string; clusterName: string; headId: string; headName: string; groups: number[] };
-  /** This group's request to join a cluster: never forced, the cluster head decides, then both sign */
-  clusterRequest?: { clusterId: string; at: number; status: "pending" | "accepted" | "declined"; reason?: string; contractSignedAt?: number };
+  /** A religious guide's or an assistant's post, likewise: his cluster and the groups its head assigned to him */
+  servesIn?: { clusterId: string; clusterName: string; headId: string; headName: string; role: TeamPool; groups: number[] };
   /**
    * Families enrolled in this group that the leader has received and welcomed: pilgrim session id -> "accepted".
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
@@ -444,8 +472,16 @@ export type State = {
     published?: { picks: DrawPick[]; by: string; at: number };
     cleared?: boolean;
   };
-  /** Election of the cluster heads by the group heads, run once per season by the administration */
-  election: { openedAt?: number; closedAt?: number; elected?: string[] };
+  /**
+   * The administration's decisions on the cluster requests once their deadline passed — approved when
+   * complete, excluded when not — by cluster id, and where it distributed the groups left outside an
+   * approved cluster: group number -> cluster id.
+   */
+  formation: { decisions: Record<string, { status: "approved" | "excluded"; at: number; by: string; reason?: string }>; moves: Record<number, string>; distributedAt?: number; distributedBy?: string };
+  /** The demo's "today" (YYYY-MM-DD): every operation opens and closes by it (lib/operations.ts) */
+  clock: { today?: string };
+  /** Each operation's state and dates as the staff who control it left them; a missing one follows its defaults */
+  operations: Partial<Record<import("./operations").OperationKey, import("./operations").OperationOverride>>;
   /** End-of-season classification of the groups and the clusters, once the administration publishes it */
   grading: { publishedAt?: number; publishedBy?: string };
   /** The administrators rules the administration changed this season */
@@ -520,7 +556,9 @@ const initial: State = {
   drafts: {},
   inSeason: {},
   lottery: {},
-  election: {},
+  formation: { decisions: {}, moves: {} },
+  clock: {},
+  operations: {},
   grading: {},
   adminRules: {},
   clusterProfiles: {},
@@ -538,12 +576,43 @@ let state: State = initial;
 let loaded = false;
 const listeners = new Set<() => void>();
 
+/**
+ * A browser may hold state saved by an older build under the same keys in another shape (an earlier take
+ * on cluster formation saved its own `formation`): the slices read here are made whole before use.
+ */
+function normalize(s: State): State {
+  const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+  const f = obj(s.formation);
+  const pools = (v: unknown) => {
+    const o = obj(v);
+    return { guide: Array.isArray(o.guide) ? o.guide : [], tech: Array.isArray(o.tech) ? o.tech : [], assistant: Array.isArray(o.assistant) ? o.assistant : [] };
+  };
+  const posts = (v: unknown) => {
+    const o = obj(v);
+    return { guide: obj(o.guide), tech: obj(o.tech), assistant: obj(o.assistant) };
+  };
+  // A cluster saved before formation requests (an elected head's) carries none of their fields
+  const admins = Object.fromEntries(
+    Object.entries(obj(s.admins)).map(([id, a]) => {
+      const p = a as AdminProfile;
+      return [id, p.cluster ? { ...p, cluster: { ...p.cluster, groups: obj(p.cluster.groups), team: pools(p.cluster.team), posts: posts(p.cluster.posts) } as AdminProfile["cluster"] } : p];
+    }),
+  ) as State["admins"];
+  return {
+    ...s,
+    admins,
+    formation: { ...f, decisions: obj(f.decisions) as State["formation"]["decisions"], moves: obj(f.moves) as State["formation"]["moves"] },
+    clock: obj(s.clock) as State["clock"],
+    operations: obj(s.operations) as State["operations"],
+  };
+}
+
 function load() {
   if (loaded || typeof window === "undefined") return;
   loaded = true;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (raw) state = { ...initial, ...JSON.parse(raw) };
+    if (raw) state = normalize({ ...initial, ...JSON.parse(raw) });
   } catch {
     // Private mode or blocked storage — the demo still works in memory
   }
@@ -763,8 +832,19 @@ export const actions = {
   setLottery(patch: State["lottery"]) {
     setState((s) => ({ ...s, lottery: { ...s.lottery, ...patch } }));
   },
-  setElection(patch: State["election"]) {
-    setState((s) => ({ ...s, election: { ...s.election, ...patch } }));
+  setFormation(patch: Partial<State["formation"]>) {
+    setState((s) => ({ ...s, formation: { ...s.formation, ...patch } }));
+  },
+  /** A decision the demo's story already holds, unless the administration has decided otherwise on this device */
+  seedFormationDecision(id: string, d: State["formation"]["decisions"][string]) {
+    setState((s) => (s.formation.decisions[id] ? s : { ...s, formation: { ...s.formation, decisions: { ...s.formation.decisions, [id]: d } } }));
+  },
+  /** Moves the demo's "today"; undefined goes back to the season's first day */
+  setToday(today: string | undefined) {
+    setState((s) => ({ ...s, clock: { today } }));
+  },
+  setOperation(key: import("./operations").OperationKey, patch: import("./operations").OperationOverride | undefined) {
+    setState((s) => ({ ...s, operations: { ...s.operations, [key]: patch && { ...s.operations[key], ...patch } } }));
   },
   /** The cluster head submits his programme for approval */
   submitClusterProfile(slug: string, change: import("./cluster-profile").ClusterProfileChange) {

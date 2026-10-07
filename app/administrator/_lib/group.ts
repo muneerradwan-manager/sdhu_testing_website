@@ -3,9 +3,9 @@ import type { AdminProfile, Application, PostAcceptance } from "@/lib/store";
 import { seeded } from "@/lib/utils";
 
 /**
- * Members of group 27 already enrolled before this demo (38 + the three seeded families = 44;
- * + عائلة محمد الخطيب = 48). Families join in the assignment window only: they read the group
- * directory, contact the group, and the group's coordinator enrolls them (a family moves as one).
+ * Members of group 27 already in it before this demo (38 + the three seeded families = 44;
+ * + عائلة محمد الخطيب = 48). A family joins by a contract with the group that its head or its
+ * coordinator uploads and the office approves (a family moves as one).
  */
 export const BASE_ACTIVE = 38;
 
@@ -32,8 +32,8 @@ export const SEED_REQUESTS: JoinRequest[] = [
     applicant: "سليم حسن",
     number: "5130",
     kind: "enrolled",
-    receivedLabel: "سجّله المنسق سامر نجار — قبل يومين",
-    note: "اختار المجموعة ليكون مع جيرانه من حي المزة.",
+    receivedLabel: "رفع عقده المنسق سامر نجار واعتمده المكتب — قبل يومين",
+    note: "اتفق مع المجموعة ليكون مع جيرانه من حي المزة.",
     members: [{ id: "01011105130", name: "سليم حسن", age: 66, gender: "M", relation: "صاحب الطلب", needs: ["ضغط الدم"] }],
   },
   {
@@ -42,7 +42,7 @@ export const SEED_REQUESTS: JoinRequest[] = [
     applicant: "هشام عبد الكريم السعدي",
     number: "4877",
     kind: "enrolled",
-    receivedLabel: "سجّله المنسق سامر نجار ووقّع العقد — قبل 5 ساعات",
+    receivedLabel: "رفع عقده المنسق سامر نجار واعتمده المكتب — قبل 5 ساعات",
     members: [
       { id: "01044404877", name: "هشام عبد الكريم السعدي", age: 71, gender: "M", relation: "صاحب الطلب", needs: ["كرسي متحرك", "سكري"] },
       { id: "01044404878", name: "بلال هشام السعدي", age: 38, gender: "M", relation: "ابن — مرافق", needs: [] },
@@ -54,7 +54,7 @@ export const SEED_REQUESTS: JoinRequest[] = [
     applicant: "طارق محمود الحوراني",
     number: "6215",
     kind: "transfer",
-    receivedLabel: "انتقل من المجموعة 31 بطلبه — سجّله المنسق سامر نجار — قبل يوم",
+    receivedLabel: "انتقل من المجموعة 31 بعقد جديد — رفعه المنسق سامر نجار واعتمده المكتب — قبل يوم",
     note: "انتقلت العائلة كاملة (3 أفراد) من المجموعة 31 لتكون مع أقاربها.",
     members: [
       { id: "01055506215", name: "طارق محمود الحوراني", age: 52, gender: "M", relation: "صاحب الطلب", needs: [] },
@@ -86,7 +86,7 @@ export function requestFromApplication(sid: string, app: Application, post: Post
     applicant: applicant ? fullName(applicant) : sid,
     number: app.number,
     kind: moved ? "transfer" : "enrolled",
-    receivedLabel: `${moved ? `انتقل من المجموعة ${moved.from} — ` : ""}سجّله ${post.enrolledBy?.name ?? "المنسق التقني"} ووقّع العقد — ${when}`,
+    receivedLabel: `${moved ? `انتقل من المجموعة ${moved.from} — ` : ""}رفع عقده ${post.enrolledBy?.name ?? "المنسق التقني"} واعتمده المكتب — ${when}`,
     members: app.members.map((m) => ({
       id: m.person.id,
       name: fullName(m.person),
@@ -126,8 +126,8 @@ export function seedRequestsFor(groupNumber: number | undefined, homeNumber: num
       applicant: `${first} ${last}`,
       number: String(4000 + groupNumber * 13 + i),
       kind: rnd() < 0.25 ? "transfer" : "enrolled",
-      receivedLabel: `سجّله منسق المجموعة ${groupNumber} — قبل ${1 + Math.floor(rnd() * 4)} أيام`,
-      note: withCompanion ? "طلب عائلي — يُنقل كاملاً أو لا يُنقل." : "اختار المجموعة ليكون مع أهل منطقته.",
+      receivedLabel: `رفع عقده منسق المجموعة ${groupNumber} واعتمده المكتب — قبل ${1 + Math.floor(rnd() * 4)} أيام`,
+      note: withCompanion ? "طلب عائلي — يُنقل كاملاً أو لا يُنقل." : "اتفق مع المجموعة ليكون مع أهل منطقته.",
       members,
     });
   }

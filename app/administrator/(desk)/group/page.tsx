@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { AdminGroup } from "./group";
 
-export const metadata: Metadata = { title: "مجموعتي" };
+export const metadata: Metadata = { title: "تشكيل المجموعات" };
 
 export default function Page() {
-  return <AdminGroup />;
+  return <AdminGroup part="formation" />;
 }

@@ -1,10 +1,9 @@
 import { SKILLS } from "./admin";
 
 /**
- * The administrators who qualified for season 1448 and are still free to join a group. A group head
- * does not receive a ready-made team: he searches this roster himself and invites ONE person for each
- * role, and that person accepts from his own application. Whoever a group already took is shown with
- * the group that took him, so nobody is invited twice.
+ * The administrators who qualified for season 1448 as religious guides, assistants and technical
+ * coordinators. A cluster head searches this roster and invites ONE person at a time for his cluster,
+ * and that person accepts from his own account; then the head assigns him to the groups (./formation).
  */
 export type Candidate = {
   id: string;
@@ -19,18 +18,9 @@ export type Candidate = {
   /** Last season's rating, if he served before */
   rating: number | null;
   skills: string[];
-  /** The group (or, for a coordinator, the group of the cluster head) that already took him, if any */
+  /** Taken last season by this group (kept from the season's records; this season's cluster is in ./formation) */
   taken?: number;
 };
-
-/**
- * A group's team, from the top of its ladder: the deputy, then the religious guide. The technical
- * coordinator is not one of them: he works for the cluster (./coordinators).
- */
-export const TEAM_ROLES = [
-  { key: "group-deputy", label: "معاون رئيس المجموعة", note: "الحضور والتجمّع وتوزيع الوجبات الخاصة" },
-  { key: "guide-m", label: "الموجّه الديني", note: "الدروس والمناسك والأسئلة الشرعية" },
-] as const;
 
 export const ROSTER: Candidate[] = [
   // معاونو رؤساء المجموعات

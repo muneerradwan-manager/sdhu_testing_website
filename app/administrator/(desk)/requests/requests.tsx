@@ -7,17 +7,19 @@ import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { CONDITIONS, NEEDS, recordHealth } from "@/app/portal/application/_components/post/model";
-import { enrollFamily, groupInfo } from "@/lib/assignment";
+import { submitContract, groupInfo } from "@/lib/assignment";
 import { ageOf, fullName } from "@/lib/registry";
-import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { outcomeOf } from "@/lib/journey";
 import { usePublishedDraw, type PublishedDraw } from "@/lib/lottery";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type Application, type HealthRecord } from "@/lib/store";
 import { cn, digitsOnly } from "@/lib/utils";
-import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
+import { effectiveRole, isTechCoordinator, logAdmin, nowMs, positionLabelOf, useAdmin } from "../../_lib/admin";
+import { useAdminCan } from "../../_lib/permissions";
 import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard } from "../../_components/ui";
+import { OperationClosed } from "@/components/app/operation-closed";
+import { useOperation } from "@/lib/operations";
 import { clusterGroupsOf, clusterViewOf } from "../../_lib/cluster";
 import { useCoordinatorPost } from "../../_lib/coordinators";
 
@@ -26,12 +28,14 @@ function needsLift(r: JoinRequest) {
 }
 
 /**
- * حجاج المجموعة. في مرحلة التفويج يختار الحاج المجموعة من الدليل ويتواصل معها، فيسجّله هنا منسق
- * التكتل المفروز لتلك المجموعة ويوقّعان العقد؛ والطلب العائلي يُسجَّل أو ينتقل كاملاً. رئيس المجموعة
- * يستلمها ويرحّب بها، والمنسق التقني يسجّل ملفها الصحي. المنسق للتكتل لا لمجموعة: يفتح هنا مجموعاته
- * المفروزة له وحدها.
+ * حجاج المجموعة. إلحاق الحاج بالمجموعة عملية مستقلة عن تسجيله على الحج، تبدأ مع تشكيل التكتلات
+ * وتستمر بعده: يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق الذي أسنده رئيس التكتل إليها،
+ * والطلب العائلي يُلحق أو ينتقل كاملاً. رئيس المجموعة يرحّب بالعائلة، والمنسق يسجّل ملفها الصحي.
+ * المنسق للتكتل لا لمجموعة: يفتح هنا مجموعاته المسندة إليه وحدها.
  */
 export function AdminRequests() {
+  const joining = useOperation("group-joining");
+  const can = useAdminCan();
   const admin = useAdmin()!;
   const toast = useToast();
   const p = admin.profile;
@@ -44,7 +48,8 @@ export function AdminRequests() {
   const myCluster = clusterViewOf(p, admin.name);
   // The coordinator works for the cluster, in the groups its head sorted to him
   const coord = useCoordinatorPost(admin.id, p);
-  const clusterGroups = useMemo(() => clusterGroupsOf(p, admin.name), [p, admin.name]);
+  const admins = useStore((s) => s.admins);
+  const clusterGroups = useMemo(() => clusterGroupsOf(p, admin.name, admins), [p, admin.name, admins]);
   const myGroups = coord ? coord.groups : clusterGroups;
   const [picked, setPicked] = useState<number | null>(null);
   const home = p?.group?.number;
@@ -67,17 +72,17 @@ export function AdminRequests() {
       <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يسجّل الحجاج في المجموعات التي يفرزها له رئيس التكتل.">
         <LockedCard
           title={coord ? "لم يفرز لك رئيس التكتل مجموعة بعد" : "لم تنضم إلى تكتل بعد"}
-          text={coord ? `أنت منسق تقني في ${coord.clusterName}. حين يفرز لك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فتسجّل فيها من يختارها.` : "يدعوك رئيس تكتل منسقاً تقنياً بعد انتخاب رؤساء التكتلات، ويفرز لك مجموعات من تكتله."}
-          href="/administrator/group"
-          cta="مجموعاتي"
+          text={coord ? `أنت في ${coord.clusterName}. حين يسند إليك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فتلحق بها الحجاج بعقودهم.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويسند إليك مجموعات من تكتله."}
+          href="/administrator/groups"
+          cta="إدارة المجموعات"
         />
       </AdminShell>
     );
   }
   if (!coord && !g?.approvedAt) {
     return (
-      <AdminShell title="حجاج المجموعة" subtitle="في مرحلة التفويج يختار الحاج مجموعتك ويتواصل معها، فيسجّله منسقها ويوقّعان العقد.">
-        <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/group" cta="مجموعتي" />
+      <AdminShell title="حجاج المجموعة" subtitle="يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.">
+        <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }
@@ -136,7 +141,7 @@ export function AdminRequests() {
   return (
     <AdminShell
       title={myCluster || coord ? `حجاج المجموعة ${openNumber}` : "حجاج المجموعة"}
-      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المفروزة لك منسقاً تقنياً، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `المجموعة ${g!.number} — ${info.clusterName}. `}في مرحلة التفويج يختار الحاج المقبول المجموعة من الدليل ويتواصل معها، فيسجّله منسق التكتل المفروز لها ويوقّعان العقد.`}
+      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المسندة إليك، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `المجموعة ${g!.number} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.`}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
@@ -164,7 +169,7 @@ export function AdminRequests() {
             <PeopleBoard roster={roster} active={active} capacity={capacity} />
           </Card>
 
-          {tech && openNumber !== undefined && <EnrollPanel group={{ clusterId: clusterId ?? "al-nour", number: openNumber }} capacity={capacity} active={active} />}
+          {can("pilgrims.attach") && openNumber !== undefined && (openNumber === home || coord?.groups.some((x) => x.number === openNumber)) && (joining.open ? <ContractPanel group={{ clusterId: clusterId ?? "al-nour", number: openNumber }} capacity={capacity} active={active} /> : <OperationClosed state={joining} text="من في المجموعة باقٍ فيها؛ ما ينتظر فتحها هو رفع عقود الجدد." />)}
 
           <div className="flex flex-wrap items-center gap-2">
             {(
@@ -288,14 +293,13 @@ export function AdminRequests() {
 
         <aside className="space-y-4 lg:sticky lg:top-28">
           <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
-            <p className="font-bold text-gold">كيف تنضم العائلات إلى المجموعة؟</p>
+            <p className="font-bold text-gold">كيف تُلحق العائلات بالمجموعة؟</p>
             <ul className="mt-2 list-inside list-disc space-y-1">
-              <li>في مرحلة التفويج يتصفّح الحاج المقبول دليل المجموعات ويتواصل مع المجموعة التي تناسبه.</li>
-              <li>المنسق التقني للتكتل لا للمجموعة: يفرز رئيس التكتل مجموعاته على منسقيه، ولكل مجموعة منسق واحد.</li>
-              <li>منسق المجموعة المفروز لها وحده يسجّل الحاج فيها، ويوقّعان العقد.</li>
-              <li>تسجيل المنسق لطلب حج في المكتب لا يضع صاحبه في أي من مجموعاته.</li>
-              <li>الطلب العائلي يُسجَّل كاملاً في مجموعة واحدة.</li>
-              <li>الانتقال بين المجموعات ممكن: يسجّله منسق المجموعة الجديدة، والعائلة تنتقل كاملة أو لا تنتقل.</li>
+              <li>لا يختار الحاج المجموعة من المنصة: يتفق معها خارجها.</li>
+              <li>يرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها: رئيسها، أو المنسق أو المعاون الذي أسنده إليها رئيس التكتل.</li>
+              <li>يعتمده موظف المكتب، فيصير الطلب كله في المجموعة ويرى الحاج مجموعته وعقده.</li>
+              <li>تسجيل حاج على الحج لا يضعه في مجموعة من سجّله.</li>
+              <li>الطلب العائلي يُلحق كاملاً بمجموعة واحدة، وينتقل بعقد جديد ترفعه المجموعة الجديدة.</li>
             </ul>
           </div>
           <div className="rounded-3xl border border-gold/30 bg-white p-5 text-sm leading-7">
@@ -305,7 +309,7 @@ export function AdminRequests() {
             <p className="mt-1 text-ink-soft">
               لا يُسأل الحاج عن صحته عند التسجيل. بعد انضمامه إلى المجموعة يسجّل المنسق التقني أمراضه المزمنة وأدويته واحتياجاته، والوثائق الطبية يرفعها الحاج بعد اكتمال دفع المبلغ كاملاً.
             </p>
-            {!tech && <p className="mt-2 font-semibold text-gold-dark">التسجيل من صلاحية منسق التكتل المفروز لمجموعتك.</p>}
+            {!tech && <p className="mt-2 font-semibold text-gold-dark">الملف الصحي يأخذه منسق التكتل المسند إلى مجموعتك.</p>}
           </div>
         </aside>
       </div>
@@ -488,7 +492,12 @@ function PeopleBoard({ roster, active, capacity }: { roster: { age: number; gend
  * المنسق يسجّل في المجموعة المفتوحة من مجموعاته المفروزة له: يبحث عن حاج مقبول تواصل معه (بالرقم الوطني أو رقم الطلب)، فيسجّل
  * الطلب كاملاً ويرسل إليه العقد ليوقّعه برمز على هاتفه. إن كان الحاج في مجموعة أخرى ينتقل الطلب كله.
  */
-function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; number: number }; capacity: number; active: number }) {
+/**
+ * Uploading a pilgrim's contract with the group: the pilgrim agreed with the group outside the platform,
+ * and whoever holds «إلحاق الحجاج بالمجموعة» in it uploads the signed contract. Nothing changes for the
+ * pilgrim until the office approves it; a returned one is fixed and uploaded again.
+ */
+function ContractPanel({ group, capacity, active }: { group: { clusterId: string; number: number }; capacity: number; active: number }) {
   const draw = usePublishedDraw();
   const { acceptedDirectAge } = useSeason();
   const isAccepted = (a: Application) => accepted_(a, draw, acceptedDirectAge);
@@ -498,47 +507,43 @@ function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; 
   const post = useStore((s) => s.post);
   const [q, setQ] = useState("");
   const [found, setFound] = useState<string | null>(null);
-  const [otp, setOtp] = useState("");
+  const [file, setFile] = useState<{ name: string; size: number } | null>(null);
   const [error, setError] = useState("");
 
-  // Accepted applications — the only ones that can join a group, and only in the assignment window
-  const accepted = Object.entries(applications).filter(([sid, a]) => isAccepted(a) && post[sid]?.groupNumber !== group.number);
+  const accepted = Object.entries(applications).filter(([sid, a]) => isAccepted(a) && post[sid]?.groupNumber !== group.number && post[sid]?.contract?.status !== "pending");
+  const mine = Object.entries(post).filter(([sid, x]) => x.contract?.groupNumber === group.number && applications[sid]);
   const app = found ? applications[found] : null;
   const current = found ? post[found] : undefined;
 
   const search = () => {
     setError("");
-    setOtp("");
+    setFile(null);
     const hit = Object.entries(applications).find(([sid, a]) => sid === q.trim() || a.number === q.trim() || a.members.some((m) => m.person.id === q.trim()));
     if (!hit) return setError("لا يوجد طلب بهذا الرقم.");
-    if (!isAccepted(hit[1])) return setError("الطلب لم يُقبل بعد — التفويج للحجاج المقبولين فقط.");
-    if (post[hit[0]]?.groupNumber === group.number && post[hit[0]]?.groupApprovedAt) return setError("هذا الطلب مسجّل في مجموعتك بالفعل.");
+    if (!isAccepted(hit[1])) return setError("الطلب لم يُقبل بعد — الإلحاق بالمجموعات للحجاج المقبولين فقط.");
+    if (post[hit[0]]?.groupNumber === group.number && post[hit[0]]?.groupApprovedAt) return setError("هذا الطلب في مجموعتك بالفعل.");
+    if (post[hit[0]]?.contract?.status === "pending") return setError(`لهذا الطلب عقد بانتظار اعتماد المكتب (المجموعة ${post[hit[0]]!.contract!.groupNumber}).`);
     setFound(hit[0]);
   };
 
-  const enroll = () => {
-    if (!app || !found) return;
-    if (active + app.members.length > capacity) return setError(`لا تتسع المجموعة: ${active} + ${app.members.length} > ${capacity}. الطلب العائلي يُسجَّل كاملاً أو لا يُسجَّل.`);
-    const moving = current?.groupApprovedAt ? current.groupNumber : undefined;
-    enrollFamily({ sessionId: found, app, post: current, group, coordinator: { id: admin.id, name: admin.name }, at: nowMs() });
-    toast({
-      title: moving ? `انتقل الطلب ${app.number} من المجموعة ${moving} إلى مجموعتك` : `سُجّل الطلب ${app.number} في مجموعتك`,
-      body: `${app.members.length} أفراد معاً — وقّع الحاج العقد برمز التحقق.`,
-      icon: "🤝",
-      tone: "success",
-    });
+  const upload = () => {
+    if (!app || !found || !file) return;
+    if (active + app.members.length > capacity) return setError(`لا تتسع المجموعة: ${active} + ${app.members.length} > ${capacity}. الطلب العائلي يُلحق كاملاً أو لا يُلحق.`);
+    const role = `${positionLabelOf(effectiveRole(admin.profile) || admin.profile?.positions[0] || "")} — المجموعة ${group.number}`;
+    submitContract({ sessionId: found, app, post: current, group, uploader: { id: admin.id, name: admin.name, role }, file, at: nowMs() });
+    toast({ title: `رُفع عقد الطلب ${app.number}`, body: "ينتظر اعتماد المكتب، ثم يصير الطلب كله في المجموعة.", icon: "📄", tone: "info" });
     setFound(null);
     setQ("");
-    setOtp("");
+    setFile(null);
   };
 
   return (
     <Card className="md:p-7">
       <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-        <UserPlus className="size-6" /> تسجيل حاج في المجموعة {group.number}
+        <UserPlus className="size-6" /> إلحاق حاج بالمجموعة {group.number}
       </p>
       <p className="mt-1 text-sm leading-7 text-ink-soft">
-        تواصل معك حاج مقبول واختار هذه المجموعة؟ ابحث عن طلبه، ثم أرسل إليه العقد ليوقّعه برمز على هاتفه. تسجّل في المجموعات المفروزة لك وحدها، كلٌّ من صفحتها، والطلب العائلي يُسجَّل كاملاً.
+        اتفق معك حاج مقبول على الالتحاق بالمجموعة؟ ابحث عن طلبه وارفع العقد الموقّع بينه وبين المجموعة، فيعتمده المكتب. لا يختار الحاج المجموعة من المنصة، ولا يصير فيها قبل الاعتماد. والطلب العائلي يُلحق كاملاً.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <input
@@ -580,26 +585,55 @@ function EnrollPanel({ group, capacity, active }: { group: { clusterId: string; 
           </ul>
           {current?.groupApprovedAt && (
             <p className="mt-3 flex items-start gap-2 rounded-xl bg-gold/20 p-3 text-sm font-semibold text-maroon">
-              <ArrowLeftRight className="mt-0.5 size-4 shrink-0" /> الطلب الآن في المجموعة {current.groupNumber}. بالتسجيل عندك ينتقل جميع أفراده ({app.members.length}) معاً، ولا ينتقل أحد وحده.
+              <ArrowLeftRight className="mt-0.5 size-4 shrink-0" /> الطلب الآن في المجموعة {current.groupNumber}. باعتماد هذا العقد ينتقل جميع أفراده ({app.members.length}) معاً، ولا ينتقل أحد وحده.
             </p>
           )}
-          <p className="mt-4 text-sm font-bold">أُرسل العقد إلى هاتف صاحب الطلب — أدخل رمز موافقته</p>
+          <p className="mt-4 text-sm font-bold">العقد الموقّع بين الحاج والمجموعة</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <div className="max-w-xs">
-              <OtpInput value={otp} onChange={setOtp} />
-            </div>
-            <button type="button" onClick={() => setOtp(DEMO_OTP)} className="text-sm text-hint">
-              رمز تجريبي: <span className="font-mono font-bold text-green-dark underline">{DEMO_OTP}</span>
-            </button>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border-2 border-dashed border-gold-dark/60 px-4 py-2.5 text-sm font-bold text-green-dark hover:bg-sand">
+              <FileSignature className="size-4" /> {file ? file.name : "اختر ملف العقد (PDF أو صورة)"}
+              <input type="file" accept=".pdf,image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && setFile({ name: e.target.files[0].name, size: e.target.files[0].size })} />
+            </label>
+            {!file && (
+              <button type="button" onClick={() => setFile({ name: `عقد-${app.number}-المجموعة-${group.number}.pdf`, size: 248_000 })} className="text-sm text-hint underline">
+                ملف تجريبي
+              </button>
+            )}
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button onClick={enroll} disabled={otp !== DEMO_OTP}>
-              <FileSignature className="size-4" /> {current?.groupApprovedAt ? `نقل الطلب كاملاً إلى المجموعة ${group.number} وتوقيع العقد` : `تسجيل الطلب في المجموعة ${group.number} وتوقيع العقد`}
+            <Button onClick={upload} disabled={!file}>
+              <FileSignature className="size-4" /> {current?.groupApprovedAt ? `رفع عقد نقل الطلب إلى المجموعة ${group.number}` : "رفع العقد إلى المكتب"}
             </Button>
             <Button variant="ghost" onClick={() => setFound(null)}>
               إلغاء
             </Button>
           </div>
+        </div>
+      )}
+
+      {mine.length > 0 && (
+        <div className="mt-6">
+          <p className="font-bold text-ink">عقود المجموعة {group.number}</p>
+          <ul className="mt-2 space-y-2">
+            {mine.map(([sid, x]) => {
+              const c = x.contract!;
+              const a = applications[sid];
+              return (
+                <li key={sid} className="flex flex-wrap items-center gap-2 rounded-2xl bg-sand px-3 py-2 text-sm">
+                  <span className="min-w-0 flex-1">
+                    <b>الطلب {a.number}</b> — {a.members.length} أفراد — رفعه {c.uploadedBy.name}
+                    {c.status === "returned" && <span className="block text-xs font-bold text-maroon">أعاده المكتب: {c.reason}</span>}
+                  </span>
+                  <Badge tone={c.status === "approved" ? "green" : c.status === "returned" ? "maroon" : "gold"}>{c.status === "approved" ? `اعتمده ${c.decidedBy}` : c.status === "returned" ? "أُعيد" : "بانتظار المكتب"}</Badge>
+                  {c.status === "returned" && (
+                    <Button size="sm" variant="outline" onClick={() => { setQ(a.number); setFound(sid); }}>
+                      رفع من جديد
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </Card>

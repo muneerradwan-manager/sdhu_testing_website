@@ -26,7 +26,7 @@ export function PublicLists() {
   const draw = usePublishedDraw();
   // The lottery publishes its table of birth years and months; only direct acceptance lists names
   const TABS: { key: ListKind; label: string; count: number; icon: typeof BadgeCheck; hint: string }[] = [
-    { key: "lottery", label: "نتائج القرعة", count: draw ? drawTotals(draw.picks).seats : 0, icon: Dices, hint: "سنوات الميلاد وأشهرها المسحوبة — 1 شعبان 20:00" },
+    { key: "lottery", label: "نتائج القرعة", count: draw ? drawTotals(draw.picks).seats : 0, icon: Dices, hint: "سنوات الميلاد وأشهرها المسحوبة — 26 أيلول، دير الزور" },
     { key: "direct", label: "المقبولون مباشرة", count: RESULTS_SUMMARY.direct, icon: BadgeCheck, hint: `وفق الأكبر سناً — ${RESULTS_SUMMARY.acceptedAge} عاماً فأكثر` },
   ];
   const list = useMemo(() => getDirectList(), []);

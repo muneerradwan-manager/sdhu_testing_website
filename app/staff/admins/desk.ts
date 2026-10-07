@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Vote } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Timer } from "lucide-react";
 import { createElement, useMemo } from "react";
 import type { ExamNumbers } from "@/lib/data/admin-exam";
 import { classify } from "@/lib/grading";
@@ -8,10 +8,12 @@ import { useGraded } from "@/lib/grading-live";
 import { useSeason } from "@/lib/season-live";
 import type { StaffUser } from "@/lib/staff";
 import { useStore, type AdminProfile, type AdminRecord, type AuditEvent, type VaultDoc } from "@/lib/store";
-import { APPLIED_ROLES, candidacy, docState, lastServed, levelOf, recordOf, resultOf, seasonHistory, type DocType } from "@/app/administrator/_lib/admin";
+import { APPLIED_ROLES, docState, levelOf, recordOf, resultOf, type DocType } from "@/app/administrator/_lib/admin";
 import { useDocTypes, useEvaluationStages, useExamRules, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
-import { DEFAULT_CAPACITY_TIERS, capacityFor, teamLabel, withTeam } from "@/app/administrator/_lib/capacity";
-import { HEADS_POOL, clusterGroupsOf, type ClusterGroup } from "@/app/administrator/_lib/cluster";
+import { DEFAULT_CAPACITY_TIERS, capacityFor } from "@/app/administrator/_lib/capacity";
+import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
+import { outsideGroups, useClusterRequests, type ClusterRequest } from "@/app/administrator/_lib/formation";
+import { useOperation } from "@/lib/operations";
 import { roleKeyOf } from "@/app/administrator/_lib/halls";
 import { useClusters } from "@/lib/cms/content";
 import { useAdminRows, type AdminRow } from "../_components/data";
@@ -20,8 +22,8 @@ import type { Alert, SystemStatus } from "../_components/system";
 
 /**
  * The administrators' file seen whole, for whoever holds «إدارة الإداريين» and for the director: the rules
- * the season runs on, who applied and how far each got, the groups and their approval, the election and
- * the clusters it produced, the evaluation and the classification. Every screen of the file reads from
+ * the season runs on, who applied and how far each got, the groups and their approval, the cluster requests
+ * and their approval at the deadline, the evaluation and the classification. Every screen of the file reads from
  * here, so a number is the same on the holder's summary, his tabs and the director's board.
  */
 
@@ -59,10 +61,7 @@ export type GroupState = "unpaid" | "waiting" | "returned" | "approved";
 /** `tier`: before approval, the capacity category its head falls in now, which approval gives the group */
 export type GroupRow = { row: AdminRow; g: NonNullable<AdminProfile["group"]>; state: GroupState; checks: { label: string; ok: boolean }[]; complete: boolean; tier?: import("@/app/administrator/_lib/capacity").CapacityTier };
 
-export type Phase = "closed" | "open" | "announced";
-export type Candidate = { id: string; name: string; group: number; seasons: number; rating: number | null; votes: number; real: boolean };
-/** A cluster an elected head created, with every group in it */
-export type ClusterRow = { row: AdminRow; c: NonNullable<AdminProfile["cluster"]>; groups: ClusterGroup[] };
+export type { ClusterRequest };
 
 export const GROUP_STATE: Record<GroupState, { label: string; tone: "green" | "gold" | "maroon" | "muted" }> = {
   unpaid: { label: "بانتظار رسم التشكيل", tone: "muted" },
@@ -80,7 +79,8 @@ export function useAdminsDesk() {
   const table = useRoleRequirements();
   const { types, validity } = useDocTypes();
   const adminRules = useStore((s) => s.adminRules);
-  const election = useStore((s) => s.election);
+  const requests = useClusterRequests();
+  const formationOp = useOperation("cluster-formation");
   const evaluations = useStore((s) => s.evaluations);
   const grading = useStore((s) => s.grading);
   const profiles = useStore((s) => s.clusterProfiles);
@@ -137,11 +137,11 @@ export function useAdminsDesk() {
         const g = row.profile.group!;
         // The team is not part of the request: the head invites it once the group is approved. The capacity
         // is given on approval, by the category the head falls in
-        const tier = g.approvedAt ? undefined : capacityFor(row.id, adminRules.capacityTiers?.map(withTeam) ?? DEFAULT_CAPACITY_TIERS).tier;
+        const tier = g.approvedAt ? undefined : capacityFor(row.id, adminRules.capacityTiers ?? DEFAULT_CAPACITY_TIERS).tier;
         const checks = [
           { label: "رئيسها مؤهل: نجح وأُعلنت نتيجته أو جدّد صفته", ok: isQualified(row) },
           { label: `رسم التشكيل ${season.fees.groupFormation} $`, ok: !!g.feePaidAt },
-          ...(g.approvedAt ? [] : [{ label: tier ? `فئته: ${tier.label} — ${tier.capacity} حاجاً، وفريق: ${teamLabel(tier.team)}` : "لا تنطبق على رئيسها أي فئة", ok: !!tier }]),
+          ...(g.approvedAt ? [] : [{ label: tier ? `فئته: ${tier.label} — ${tier.capacity} حاجاً` : "لا تنطبق على رئيسها أي فئة", ok: !!tier }]),
         ];
         const state: GroupState = g.approvedAt ? "approved" : g.returned ? "returned" : g.feePaidAt ? "waiting" : "unpaid";
         return { row, g, state, checks, complete: checks.every((c) => c.ok), tier };
@@ -149,31 +149,17 @@ export function useAdminsDesk() {
       .sort((a, b) => a.g.number - b.g.number);
     const waiting = groups.filter((x) => x.state === "waiting");
     const approved = groups.filter((x) => x.state === "approved");
-    const outside = approved.filter((x) => !x.g.clusterId);
 
-    // ── The election and the clusters ──
-    const phase: Phase = !election.openedAt ? "closed" : !election.closedAt ? "open" : "announced";
-    const admins = rows.map((r) => r.profile);
-    const votesFor = (id: string) => admins.filter((a) => a.vote === id).length;
-    const candidates: Candidate[] = [
-      ...rows
-        .filter((r) => r.profile.candidate && appliedRole(r) === "group-head")
-        .map((r) => ({ id: r.id, name: r.name, group: r.profile.group?.number ?? 0, seasons: seasonHistory(r.id).filter((h) => h.roleKey === "group-head").length, rating: lastServed(r.id)?.rating ?? null, votes: votesFor(r.id), real: true })),
-      ...HEADS_POOL.filter((h) => h.candidate).map((h) => ({ id: h.id, name: h.name, group: h.group, seasons: h.seasons, rating: h.rating, votes: h.votes + votesFor(h.id), real: false })),
-    ].sort((a, b) => b.votes - a.votes || a.name.localeCompare(b.name, "ar"));
-    const votes = candidates.reduce((n, c) => n + c.votes, 0);
-    // Counted as the administrator portal counts them: the season's other group heads, and the group heads on the platform
-    const voters = 12 + rows.filter((r) => !r.seed && r.profile.positions[0] === "group-head").length;
-    const standing = rows.filter((r) => appliedRole(r) === "group-head" && candidacy(r.id, A).ok).length + HEADS_POOL.filter((h) => h.seasons >= A.clusterHeadSeasons).length;
-    const elected = election.elected ?? [];
-
-    const clusters: ClusterRow[] = rows.filter((r) => r.profile.cluster).map((row) => ({ row, c: row.profile.cluster!, groups: clusterGroupsOf(row.profile, row.name) }));
-    const pool = new Set(HEADS_POOL.map((h) => h.id));
-    const electedRows = elected.map((id) => ({ id, name: candidates.find((c) => c.id === id)?.name ?? rows.find((r) => r.id === id)?.name ?? id, cluster: clusters.find((c) => c.row.id === id) }));
-    // The pool's heads are the season's other group heads, whose own steps the demo does not play: the
-    // holder chases only the heads on the platform, who can create their cluster
-    const notCreated = electedRows.filter((e) => !e.cluster && !pool.has(e.id));
-    const noDeputy = clusters.filter((x) => !x.c.deputyId);
+    // ── The cluster requests ── filed by the group heads who meet the conditions, decided at the deadline
+    const deadlinePassed = formationOp.status === "closed";
+    const undecided = requests.filter((r) => !r.decision);
+    const approvedClusters = requests.filter((r) => r.decision?.status === "approved");
+    const excluded = requests.filter((r) => r.decision?.status === "excluded");
+    const pool = [
+      ...approved.map((x) => ({ headId: x.row.id, headName: x.row.name, number: x.g.number, office: "مكتب دمشق", capacity: x.g.capacity, pilgrims: 0 })),
+      ...HEADS_POOL.filter((h) => !approved.some((x) => x.g.number === h.group)).map((h) => ({ headId: h.id, headName: h.name, number: h.group, office: h.office, capacity: h.capacity, pilgrims: h.pilgrims })),
+    ];
+    const outside = outsideGroups(requests, pool);
     const programmes = directory.map((c) => ({ cluster: c, state: profiles[c.slug] })).filter((x) => x.state?.pending || x.state?.approved || x.state?.rejected);
     const pendingProgrammes = programmes.filter((x) => x.state?.pending);
 
@@ -207,14 +193,14 @@ export function useAdminsDesk() {
         ? [{ id: "requests", level: "work", title: `${waiting.length} طلبات تشكيل تنتظر قرارك`, hint: `${waiting.filter((x) => x.complete).length} منها مكتملة الشروط: اعتمدها، أو أعد الناقص إلى رئيسه مع ما يصلحه.`, href: `${M}/groups`, action: "قرّر" }]
         : [],
       clusters: [
-        ...notCreated.map((e) => ({ id: `create-${e.id}`, level: "high" as const, title: `${e.name} انتُخب ولم ينشئ تكتله`, hint: "لا تنضم مجموعة إلى تكتل لم يُنشأ بعد. ينشئه الرئيس المنتخب ويدفع رسمه ويختار معاونه.", href: `${M}/clusters#clusters`, action: "تابعه" })),
-        ...noDeputy.map((x) => ({ id: `deputy-${x.c.id}`, level: "high" as const, title: `${x.c.name} بلا معاون`, hint: `يختار رئيسه ${x.row.name} معاونه من رؤساء المجموعات السابقين، ولا يكتمل التكتل دونه.`, href: `${M}/clusters#clusters`, action: "تابعه" })),
-        ...(phase === "closed" && approved.length
-          ? [{ id: "open", level: "work" as const, title: "باب الترشح لرئاسة التكتلات لم يُفتح", hint: `${approved.length} مجموعات معتمدة${waiting.length ? `، و${waiting.length} طلبات لم يُبتّ فيها بعد` : ""}. يرشّح المستوفون أنفسهم ويصوّت رؤساء المجموعات.`, href: `${M}/clusters`, action: "افتح الترشح" }]
+        ...(deadlinePassed && undecided.length
+          ? [{ id: "decide", level: "high" as const, title: `${undecided.length} طلبات تكتل تنتظر قرارك بعد الموعد النهائي`, hint: `${undecided.filter((r) => r.complete).length} منها مكتملة تُعتمد، والناقص يُقصى وتوزَّع مجموعاته.`, href: `${M}/clusters#requests`, action: "قرّر" }]
           : []),
-        ...(phase === "open" ? [{ id: "vote", level: "work" as const, title: `التصويت جارٍ: ${votes} صوتاً من ${voters}`, hint: `أغلقه في نهاية نافذته وأعلن أعلى ${A.clusterCount} مرشحين.`, href: `${M}/clusters`, action: "أغلق وأعلن" }] : []),
-        ...(phase === "announced" && outside.length
-          ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات معتمدة لم تنضم إلى تكتل`, hint: "تطلب كل مجموعة الانضمام، ويقرر رئيس التكتل بحسب سعته.", href: `${M}/groups#approved`, action: "تابعها" }]
+        ...(!deadlinePassed && formationOp.open && requests.length
+          ? [{ id: "forming", level: "work" as const, title: `${requests.length} طلبات تكتل قيد التشكيل`, hint: `${requests.filter((r) => r.complete).length} مكتملة حتى الآن. تُحسم كلها بعد الموعد النهائي.`, href: `${M}/clusters#requests`, action: "تابعها" }]
+          : []),
+        ...(approvedClusters.length && outside.length && !undecided.length
+          ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات خارج التكتلات المعتمدة`, hint: "من طلبات أُقصيت أو لم يأخذها طلب: وزّعها على التكتلات المعتمدة.", href: `${M}/clusters#distribution`, action: "وزّعها" }]
           : []),
         ...(pendingProgrammes.length
           ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في دليل الخدمات قبل أن يُعتمد.", href: `${M}/clusters#programmes`, action: "راجعها" }]
@@ -245,16 +231,11 @@ export function useAdminsDesk() {
       waiting,
       approved,
       outside,
-      phase,
-      candidates,
-      votes,
-      voters,
-      standing,
-      elected,
-      electedRows,
-      clusters,
-      notCreated,
-      noDeputy,
+      requests,
+      undecided,
+      approvedClusters,
+      excluded,
+      deadlinePassed,
       programmes,
       pendingProgrammes,
       toEvaluate,
@@ -266,7 +247,7 @@ export function useAdminsDesk() {
       high: alerts.filter((a) => a.level === "high"),
       badges: Object.fromEntries(AREAS.map((a) => [a, byArea[a].length])) as Record<Area, number>,
     };
-  }, [rows, examRules, season, roles, stages, table, types, validity, adminRules, election, evaluations, grading, profiles, directory, gradedGroups, gradedClusters]);
+  }, [rows, examRules, season, roles, stages, table, types, validity, adminRules, requests, formationOp, evaluations, grading, profiles, directory, gradedGroups, gradedClusters]);
 }
 
 export type AdminsDesk = ReturnType<typeof useAdminsDesk>;
@@ -274,11 +255,10 @@ export type AdminsDesk = ReturnType<typeof useAdminsDesk>;
 /** How the file stands on the director's board: a state line, four numbers in the order the work is done, its blockers */
 export function useAdminsStatus(): SystemStatus {
   const desk = useAdminsDesk();
-  const clusterCount = useSeason().administrators.clusterCount;
   return {
     state:
-      desk.phase === "open"
-        ? { label: `انتخاب رؤساء التكتلات جارٍ: ${desk.votes} صوتاً`, tone: "green", icon: createElement(Vote, { className: "size-4" }) }
+      desk.deadlinePassed && desk.undecided.length
+        ? { label: `طلبات تكتل تنتظر القرار: ${desk.undecided.length}`, tone: "maroon", icon: createElement(Timer, { className: "size-4" }) }
         : desk.high.length
           ? { label: `تحتاج متابعة (${desk.high.length})`, tone: "maroon", icon: createElement(AlertTriangle, { className: "size-4" }) }
           : { label: "تسير بانتظام", tone: "green", icon: createElement(CheckCircle2, { className: "size-4" }) },
@@ -286,7 +266,7 @@ export function useAdminsStatus(): SystemStatus {
       { k: "المتقدمون", v: desk.totals.applied, hint: `${desk.totals.paid} سددوا الرسم` },
       { k: "مؤهَّلون للعمل", v: desk.totals.qualified, hint: `${desk.totals.exempt} بالتجديد دون امتحان` },
       { k: "مجموعات معتمدة", v: desk.approved.length, hint: desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر` : undefined },
-      { k: "تكتلات منشأة", v: `${desk.clusters.length} من ${clusterCount}`, hint: desk.phase === "announced" ? `أُعلن ${desk.elected.length} رؤساء` : undefined },
+      { k: "تكتلات معتمدة", v: desk.approvedClusters.length, hint: desk.requests.length ? `من ${desk.requests.length} طلبات` : undefined },
     ],
     high: desk.high,
   };

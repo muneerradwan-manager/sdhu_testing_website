@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
+import { useStore } from "@/lib/store";
 import { formatNumber } from "@/lib/utils";
 import { clusterGroupsOf, clusterTotals, clusterViewOf } from "../../_lib/cluster";
 import { useAdmin } from "../../_lib/admin";
@@ -13,16 +14,17 @@ import { AdminShell } from "../../_components/ui";
 import { StandingCard } from "../../_components/standing";
 
 /**
- * The screen of a group head who was elected cluster head. He stays the head of his own group, and on
- * top of that his duties rise to the cluster level: he manages every group in his cluster, each with
- * its own head and team. So this screen is a list of groups, not one group.
+ * The screen of a cluster's head (or its deputy head). He stays the head of his own group, and on top of
+ * that his duties rise to the cluster level: he manages every group in his cluster, each with its own head
+ * and the team he assigned to it. So this screen is a list of groups, not one group.
  */
 export function ClusterGroups() {
   const admin = useAdmin()!;
   const p = admin.profile!;
   const cluster = clusterViewOf(p, admin.name)!;
   const head = cluster.isHead;
-  const groups = clusterGroupsOf(p, admin.name);
+  const admins = useStore((s) => s.admins);
+  const groups = clusterGroupsOf(p, admin.name, admins);
   const totals = clusterTotals(groups);
   const [open, setOpen] = useState<number | null>(null);
 
@@ -31,8 +33,8 @@ export function ClusterGroups() {
       title={`مجموعات ${cluster.name}`}
       subtitle={
         head
-          ? "انتُخبت رئيساً للتكتل، فصارت صفتك على مستوى التكتل: لم تعد تدير مجموعة واحدة، بل مجموعات التكتل كلها، ولكل مجموعة رئيسها وفريقها."
-          : `اختارك رئيس التكتل ${cluster.headName} معاوناً، فصارت صفتك على مستوى التكتل: ترى مجموعات التكتل كلها ومعلوماته، وتنوب عن الرئيس في متابعتها.`
+          ? "شكّلت التكتل فصارت صفتك على مستوى التكتل: لم تعد تدير مجموعة واحدة، بل مجموعات التكتل كلها، ولكل مجموعة رئيسها والفريق الذي أسندته إليها."
+          : `دعاك رئيس التكتل ${cluster.headName} نائباً له فقبلت، فصارت صفتك على مستوى التكتل: ترى مجموعات التكتل كلها ومعلوماته، وتنوب عن الرئيس في متابعتها.`
       }
     >
       <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
@@ -41,13 +43,13 @@ export function ClusterGroups() {
             <div className="bg-pattern absolute inset-0 opacity-15" />
             <div className="relative">
               <Badge tone="gold">
-                <Crown className="size-3.5" /> {head ? "رئيس تكتل منتخب" : `معاون رئيس التكتل ${cluster.headName}`}
+                <Crown className="size-3.5" /> {head ? "رئيس التكتل" : `نائب رئيس التكتل ${cluster.headName}`}
               </Badge>
               <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">{cluster.name}</h2>
-              <p className="mt-1 text-sm text-gold">{head ? `المعاون: ${cluster.deputyName ?? "—"} — رسم الإنشاء مسدد` : `رئيس التكتل: ${cluster.headName} — المعاون: أنت`}</p>
+              <p className="mt-1 text-sm text-gold">{head ? `نائب الرئيس: ${cluster.deputyName ?? "—"}` : `رئيس التكتل: ${cluster.headName} — نائبه: أنت`}</p>
               <dl className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  [head ? "المجموعات التي تديرها" : "مجموعات التكتل", formatNumber(totals.groups), `من سعة ${cluster.capacityGroups}`],
+                  [head ? "المجموعات التي تديرها" : "مجموعات التكتل", formatNumber(totals.groups), "بحجاجها"],
                   ["حجاج التكتل", formatNumber(totals.pilgrims), `من أصل ${formatNumber(totals.capacity)} مقعداً`],
                   ["حجاج التكتل بالمقاعد", `${formatNumber(totals.capacity)}`, "مجموع سعات مجموعاته"],
                 ].map(([k, v, hint]) => (
@@ -156,7 +158,7 @@ export function ClusterGroups() {
           <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
             <p className="font-bold text-gold">لماذا عدة مجموعات؟</p>
             <p className="mt-2">
-              رئيس التكتل ومعاونه رئيسا مجموعات ترقّت صفتهما بالانتخاب إلى مستوى التكتل، فلم تعد شاشتهما إدارة مجموعة واحدة بل مجموعات التكتل ومعلوماته. ولكل مجموعة رئيسها وفريقها، والتكتل فوقها في البرنامج والنقل والإسكان والتقييم.
+              رئيس التكتل ونائبه رئيسا مجموعات ترقّت صفتهما بتشكيل التكتل إلى مستواه، فلم تعد شاشتهما إدارة مجموعة واحدة بل مجموعات التكتل ومعلوماته. ولكل مجموعة رئيسها والفريق الذي أسنده رئيس التكتل إليها، والتكتل فوقها في البرنامج والنقل والإسكان والتقييم.
             </p>
           </div>
         </aside>

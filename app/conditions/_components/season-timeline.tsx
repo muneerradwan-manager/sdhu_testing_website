@@ -3,13 +3,15 @@
 import { motion, useScroll, useSpring } from "motion/react";
 import { Check, UserRound } from "lucide-react";
 import { useRef } from "react";
+import { useToday } from "@/lib/operations";
 import { SEASON } from "@/lib/season";
 import { cn } from "@/lib/utils";
 
-/** Index of the phase the demo scenario is in: results published 2 Sha'ban → confirmation window */
-const CURRENT = Math.max(0, SEASON.dates.findIndex((d) => d.hijri.startsWith("2 – 25 شعبان")));
-
 export function SeasonTimeline() {
+  // The row the demo's date is in (the first that has not ended when two overlap)
+  const today = useToday();
+  const at = SEASON.dates.findIndex((d) => today <= d.to);
+  const CURRENT = at === -1 ? SEASON.dates.length : at;
   const ref = useRef<HTMLOListElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 70%", "end 60%"] });
   const scaleY = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });

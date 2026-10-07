@@ -13,6 +13,8 @@ import { SEASON_VALIDITY, useAdminCalendar, useDocTypes, useEvaluationStages, us
 import { Panel, Tabs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip } from "../../_components/ops-ui";
 import { SystemRecords } from "../../_components/system";
+import { OperationsPanel } from "../../_components/operations";
+import { RolePermissionsPanel } from "./role-permissions";
 import { EXAM_KEYS, logAdmins, useAdminsDesk } from "../desk";
 
 type Section = "roles" | "catalog" | "requirements" | "stages" | "calendar";
@@ -36,7 +38,9 @@ export function RulesTab() {
 
   return (
     <div className="space-y-6">
+      <OperationsPanel keys={["admin-registration", "admin-exams", "group-formation", "cluster-formation", "group-management", "cluster-management"]} system="admins" area="rules" title="عمليات الإداريين: حالتها ومواعيدها" />
       <SeasonNumbers />
+      <RolePermissionsPanel />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs
@@ -90,11 +94,11 @@ export function SeasonNumbers() {
   const items: [string, string][] = [
     ["رسم تسجيل الإداري", formatUSD(season.fees.administratorRegistration)],
     ["رسم تشكيل المجموعة", formatUSD(season.fees.groupFormation)],
-    ["رسم إنشاء التكتل", formatUSD(season.fees.clusterFormation)],
+    ["رسم التكتل", formatUSD(season.fees.clusterFormation)],
     ["أدنى تقييم للتجديد في الصفة نفسها", String(A.keepRoleMinRating)],
-    ["عدد التكتلات", String(A.clusterCount)],
-    ["الترشح لرئاسة تكتل", `${A.clusterHeadSeasons} مواسم متتالية بتقييم ${A.clusterHeadMinRating}+`],
-    ["معاون رئيس التكتل", `رئاسة مجموعة ${A.deputySeasons} ${A.deputySeasons === 1 ? "موسماً" : "مواسم"} فأكثر`],
+    ["طلب تشكيل تكتل", `${A.clusterHeadSeasons} مواسم متتالية رئيساً لمجموعة بتقييم ${A.clusterHeadMinRating}+`],
+    ["أقل عدد مجموعات للتكتل", String(A.clusterMinGroups)],
+    ["نائب رئيس التكتل", `رئاسة مجموعة ${A.deputySeasons} ${A.deputySeasons === 1 ? "موسماً" : "مواسم"} فأكثر`],
     ["التصنيف", `ترقية ${pct(season.grading.promoteShare)} · تخفيض ${pct(season.grading.demoteShare)} · يُكرَّم ${season.grading.honorTop}`],
   ];
   return (
@@ -137,7 +141,7 @@ function RolesAndCommitments() {
     <div className="space-y-4">
       <Panel icon={<UsersRound />} title="الصفات المتاحة للتقدم" action={<Chip tone={off.length ? "maroon" : "green"}>{POSITIONS.length - off.length} من {POSITIONS.length}</Chip>}>
         <p className="text-sm leading-7 text-white/70">
-          رئاسة التكتل ومعاونها لا يُتقدَّم إليهما أصلاً: الأولى بالانتخاب والثانية باختيار الرئيس المنتخب، فتبقيان خارج قائمة التقدم مهما فُتحتا.
+          رئاسة التكتل ونيابتها لا يُتقدَّم إليهما في التسجيل كإداري: الأولى بطلب تشكيل تكتل يقدّمه رئيس مجموعة مستوفٍ، والثانية بدعوة من رئيس التكتل، فتبقيان خارج قائمة التقدم مهما فُتحتا.
         </p>
         <ul className="mt-4 space-y-2">
           {POSITIONS.map((p) => {
@@ -148,7 +152,7 @@ function RolesAndCommitments() {
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 font-bold text-white">
                       {p.label}
-                      {p.elected && <Chip tone="gold">بالانتخاب — لا يُتقدَّم إليها</Chip>}
+                      {p.elected && <Chip tone="gold">بطلب تشكيل تكتل أو دعوة — لا يُتقدَّم إليها</Chip>}
                       {desc[p.key] && <Chip tone="gold">وصف معدَّل</Chip>}
                     </p>
                     {editing === p.key ? (
@@ -694,7 +698,7 @@ function Requirements() {
         </button>
       )}
       <p className="mt-4 text-xs leading-6 text-white/55">
-        صفتا رئيس التكتل ومعاونه خارج الجدول: الأولى بالانتخاب بشروط الترشح في إعدادات الموسم، والثانية باختيار الرئيس المنتخب. أدنى تقييم للاستمرار في الصفة نفسها من إعدادات الموسم أيضاً.
+        صفتا رئيس التكتل ونائبه خارج الجدول: الأولى بطلب تشكيل تكتل بشروطه في إعدادات الموسم، والثانية بدعوة من رئيس التكتل. أدنى تقييم للاستمرار في الصفة نفسها من إعدادات الموسم أيضاً.
       </p>
     </Panel>
   );

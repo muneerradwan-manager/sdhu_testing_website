@@ -203,7 +203,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
               { t: `النتيجة: ${stage.title}`, ok: accepted },
               { t: "تأكيد القبول", ok: !!post?.confirmedAt, at: post?.confirmedAt },
               { t: "الصورة الشخصية والجواز", ok: !!post?.confirmedAt && app.members.every((m) => DOCS.every((d) => docStatus(p, m, d.key) === "approved")) },
-              { t: group ? `الانضمام إلى المجموعة ${group.number}${post?.enrolledBy ? ` — سجّله ${post.enrolledBy.name}` : ""}` : `الانضمام إلى مجموعة (مرحلة التفويج)`, ok: !!group, at: post?.groupApprovedAt },
+              { t: group ? `الإلحاق بالمجموعة ${group.number}${post?.enrolledBy ? ` — رفع عقده ${post.enrolledBy.name} واعتمده المكتب` : ""}` : post?.contract?.status === "pending" ? `عقد مع المجموعة ${post.contract.groupNumber} بانتظار المكتب` : "الإلحاق بمجموعة — بعقد مستقل عن التسجيل", ok: !!group, at: post?.groupApprovedAt },
               { t: "المعلومات الصحية والوثائق الطبية", ok: !!post?.health?.confirmedAt && app.members.every((m) => medicalDocsFor(m, post.health).every((d) => post.medical?.[medicalKey(m, d)] === "approved")) },
               { t: "التأشيرة", ok: !!post?.visaAt, at: post?.visaAt },
             ].map((s) => (

@@ -30,16 +30,16 @@ export function AcceptanceSplit() {
         <motion.div
           className="relative flex items-center justify-center overflow-hidden bg-green-dark text-white"
           initial={{ flexBasis: "50%" }}
-          animate={{ flexBasis: inView ? "35%" : "50%" }}
+          animate={{ flexBasis: inView ? "65%" : "50%" }}
           transition={{ duration: 1.2, ease: EASE, delay: 0.2 }}
         >
           <div className="bg-pattern absolute inset-0 opacity-15" />
-          <span className="relative font-display text-3xl font-bold md:text-5xl">35%</span>
+          <span className="relative font-display text-3xl font-bold md:text-5xl">65%</span>
         </motion.div>
         <motion.div
           className="relative flex items-center justify-center overflow-hidden bg-gradient-to-l from-green-light to-green text-white"
           initial={{ flexBasis: "50%" }}
-          animate={{ flexBasis: inView ? "65%" : "50%" }}
+          animate={{ flexBasis: inView ? "35%" : "50%" }}
           transition={{ duration: 1.2, ease: EASE, delay: 0.2 }}
         >
           <motion.div
@@ -48,11 +48,11 @@ export function AcceptanceSplit() {
             animate={inView ? { right: "140%" } : undefined}
             transition={{ duration: 1.6, delay: 1.2, ease: "easeInOut" }}
           />
-          <span className="relative font-display text-3xl font-bold md:text-5xl">65%</span>
+          <span className="relative font-display text-3xl font-bold md:text-5xl">35%</span>
         </motion.div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-[35fr_auto_65fr] md:items-stretch">
+      <div className="mt-6 grid gap-4 md:grid-cols-[65fr_auto_35fr] md:items-stretch">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : undefined}
@@ -63,7 +63,7 @@ export function AcceptanceSplit() {
           <p className="mt-3 font-display text-xl font-bold text-green-dark">القبول المباشر</p>
           <p className="font-display text-3xl font-bold text-ink tabular-nums">{SEASON.directSeats.toLocaleString("en-US")} <span className="text-sm text-ink-soft">مقعداً</span></p>
           <p className="mt-2 text-sm leading-7 text-ink-soft">
-            تسجيل أول بطلب خاص به. يُقبل الأكبر سناً بعمر صاحب الطلب حتى تكتمل النسبة. في هذا الموسم: {SEASON.acceptedDirectAge} عاماً فأكثر.
+            تسجيل أول بطلب خاص به. يُقبل الأكبر سناً بعمر صاحب الطلب حتى تكتمل النسبة. في هذا الموسم: مواليد {SEASON.referenceYear - SEASON.acceptedDirectAge} فما قبل ({SEASON.acceptedDirectAge} عاماً فأكثر).
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-maroon ring-1 ring-gold/50">

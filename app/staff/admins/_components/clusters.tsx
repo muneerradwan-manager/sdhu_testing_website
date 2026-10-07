@@ -2,231 +2,139 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { BadgeCheck, Building2, Crown, ExternalLink, Inbox, Lock, Megaphone, RotateCcw, ShieldCheck, UserCheck, Vote, X } from "lucide-react";
-import { useState } from "react";
+import { BadgeCheck, Building2, Check, CircleDashed, ExternalLink, Gavel, Inbox, Lock, ShieldCheck, Shuffle, Timer, UserCheck, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf } from "@/lib/cluster-profile";
-import { SEASON } from "@/lib/season";
+import { dayLabel, useOperation } from "@/lib/operations";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
-import { cn, formatNumber, formatUSD } from "@/lib/utils";
-import { clusterTotals } from "@/app/administrator/_lib/cluster";
-import { coordinatorTierFor, coordinatorsLabel, groupsLabel, useCoordinatorTiers } from "@/app/administrator/_lib/coordinators";
+import { cn, formatNumber } from "@/lib/utils";
+import { DEPUTY_TITLE, POOLS, POOL_ORDER, decideCluster, distributeGroups, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { CoordinatorTiersPanel } from "./coordinator-tiers";
-import { Drawer, Empty, fmtDateTime, Panel, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, Empty, Panel, fmtDateTime, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip, InfoGrid } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
-import { logAdmins, useAdminsDesk, type AdminsDesk, type ClusterRow } from "../desk";
+import { logAdmins, useAdminsDesk, type AdminsDesk } from "../desk";
 
 /**
- * The clusters, from the election to their published programmes. Nobody applies to head a cluster: the
- * holder opens candidacy, the group heads who meet the season's conditions stand and every group head
- * votes, then he closes the vote and announces the heads — he opens, closes and announces, and never
- * picks the winners. Each elected head creates his cluster, picks his deputy (معاون رئيس تكتل), invites
- * its technical coordinators — as many as its category here allows — and sorts its groups among them, and
- * takes in groups by request; then he writes his cluster's programme, which reaches the pilgrims only once
- * the holder approves it.
+ * The clusters. Nobody is elected: any group head who meets the season's conditions files a request to form
+ * a cluster in its dates — alongside the pilgrims joining the groups — and is its head from then on. He
+ * invites the groups he wants, with their pilgrims, his deputy, and the cluster's guides, coordinators and
+ * assistants, and assigns them to the groups. Once the deadline passes the holder decides: a complete
+ * request is approved, an incomplete one excluded; then he distributes the groups left outside among the
+ * approved clusters. After that, each head writes his cluster's programme, which reaches the pilgrims only
+ * once the holder approves it.
  */
 export function ClustersTab() {
   const desk = useAdminsDesk();
   const [open, setOpen] = useState<string | null>(null);
-  const sheet = desk.clusters.find((x) => x.c.id === open);
+  const sheet = desk.requests.find((x) => x.cluster.id === open);
 
   return (
     <div className="space-y-6">
-      <Election desk={desk} />
+      <Deadline desk={desk} />
       <CoordinatorTiersPanel />
-      {desk.phase === "closed" ? (
-        <Empty icon={<Lock />} title="لم يُفتح باب الترشح بعد" text="تُشكَّل المجموعات وتُعتمد أولاً، ثم يُفتح الترشح لرئاسة التكتلات." />
-      ) : (
-        <Candidates desk={desk} />
-      )}
-      {(desk.phase === "announced" || desk.clusters.length > 0) && <Clusters desk={desk} onOpen={setOpen} />}
+      <Requests desk={desk} onOpen={setOpen} />
+      {(desk.approvedClusters.length > 0 || desk.excluded.length > 0) && <Distribution desk={desk} />}
       <Programmes desk={desk} />
-      <SystemRecords system="admins" area="clusters" title="سجل التكتلات والانتخاب" />
-      <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet?.c.name ?? ""}>
-        {sheet && <ClusterSheet x={sheet} />}
+      <SystemRecords system="admins" area="clusters" title="سجل التكتلات" />
+      <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet?.cluster.name ?? ""}>
+        {sheet && <RequestSheet x={sheet} />}
       </Drawer>
     </div>
   );
 }
 
-// ───────────────────────── The election ─────────────────────────
+// ───────────────────────── The deadline ─────────────────────────
 
-function Election({ desk }: { desk: AdminsDesk }) {
+/** Where the requests stand against their dates, and the decision the deadline calls for */
+function Deadline({ desk }: { desk: AdminsDesk }) {
   const user = useStaffUser()!;
   const toast = useToast();
-  const election = useStore((s) => s.election);
+  const op = useOperation("cluster-formation");
   const A = useSeason().administrators;
-  const [confirmReset, setConfirmReset] = useState(false);
+  const admins = useStore((s) => s.admins);
+  const decisions = useStore((s) => s.formation.decisions);
 
-  const openVote = () => {
-    actions.setElection({ openedAt: Date.now(), closedAt: undefined, elected: undefined });
-    logAdmins(user, "clusters", {
-      action: "فتح باب الترشح لرئاسة التكتلات",
-      target: `${A.clusterCount} تكتلات`,
-      detail: `الشرط: ${A.clusterHeadSeasons} مواسم متتالية رئيساً لمجموعة بتقييم ${A.clusterHeadMinRating} فأكثر — يصوّت رؤساء المجموعات`,
-      important: true,
-    });
-    toast({ title: "فُتح باب الترشح", body: `${A.clusterCount} تكتلات هذا الموسم. يرشّح المستوفون أنفسهم ويصوّت رؤساء المجموعات.`, tone: "gold", icon: "📣" });
-  };
-
-  const close = () => {
-    const winners = desk.candidates.slice(0, A.clusterCount);
-    actions.setElection({ closedAt: Date.now(), elected: winners.map((c) => c.id) });
-    logAdmins(user, "clusters", {
-      action: "إغلاق التصويت وإعلان رؤساء التكتلات",
-      target: `${winners.length} رؤساء من ${desk.candidates.length} مرشحاً`,
-      detail: winners.map((c) => `${c.name} (${c.votes})`).join("، "),
-      important: true,
-    });
-    toast({ title: "أُعلنت النتيجة", body: `${winners.length} رؤساء تكتلات. ينشئ كل منهم تكتله ويختار معاونه.`, tone: "success", icon: "🏛️" });
-  };
-
-  const reset = () => {
-    actions.setElection({ openedAt: undefined, closedAt: undefined, elected: undefined });
-    logAdmins(user, "clusters", { action: "إلغاء انتخاب رؤساء التكتلات وإعادته من البداية", target: "موسم 1448", important: true });
-    toast({ title: "أُعيد الانتخاب إلى نقطة البداية", tone: "warning", icon: "↩️" });
-    setConfirmReset(false);
+  /** Every undecided request at once: the complete approved, the incomplete excluded with what it lacked */
+  const decideAll = () => {
+    let next = { ...decisions };
+    for (const r of desk.undecided) {
+      const status = r.complete ? "approved" : "excluded";
+      const reason = r.complete ? undefined : r.checks.filter((c) => !c.ok).map((c) => c.label).join("، ");
+      decideCluster(r, status, user.name, admins, next, reason);
+      next = { ...next, [r.cluster.id]: { status, at: Date.now(), by: user.name, reason } };
+      logAdmins(user, "clusters", { action: status === "approved" ? "اعتماد تكتل مكتمل" : "إقصاء تكتل ناقص", target: r.cluster.name, detail: reason ?? `${r.groups.length} مجموعات — رئيسه ${r.headName}`, ref: r.cluster.id, important: true });
+    }
+    toast({ title: "حُسمت طلبات التكتلات", body: `اعتُمد ${desk.undecided.filter((r) => r.complete).length}، وأُقصي ${desk.undecided.filter((r) => !r.complete).length}. وزّع مجموعات المُقصى.`, icon: "⚖️", tone: "gold" });
   };
 
   return (
-    <Panel
-      icon={<Vote />}
-      title="انتخاب رؤساء التكتلات"
-      action={
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip tone={desk.phase === "announced" ? "green" : desk.phase === "open" ? "gold" : "maroon"}>
-            {desk.phase === "closed" ? "لم يُفتح بعد" : desk.phase === "open" ? "الترشح والتصويت مفتوحان" : "أُغلق وأُعلنت النتيجة"}
-          </Chip>
-          {desk.phase === "closed" && (
-            <Button size="sm" variant="gold" onClick={openVote}>
-              <Megaphone className="size-4" /> فتح باب الترشح
-            </Button>
-          )}
-          {desk.phase === "open" && (
-            <Button size="sm" variant="gold" onClick={close}>
-              <BadgeCheck className="size-4" /> إغلاق التصويت وإعلان الرؤساء
-            </Button>
-          )}
-          {desk.phase === "announced" && (
-            <Button size="sm" variant={confirmReset ? "maroon" : "glass"} onClick={() => (confirmReset ? reset() : setConfirmReset(true))}>
-              <RotateCcw className="size-4" /> {confirmReset ? "تأكيد: إعادة الانتخاب من البداية" : "إعادة الانتخاب من البداية"}
-            </Button>
-          )}
-        </div>
-      }
-    >
-      <ElectionSteps desk={desk} openedAt={election.openedAt} closedAt={election.closedAt} />
-      <p className="mt-4 text-sm leading-7 text-white/70">
-        من «إعدادات الموسم»: {A.clusterCount} تكتلات، والترشح لمن رأس مجموعة {A.clusterHeadSeasons} مواسم متتالية بتقييم {A.clusterHeadMinRating} فأكثر — يستوفيه {desk.standing}. ويختار كل رئيس منتخب معاونه ممن رأس مجموعة {A.deputySeasons}{" "}
-        {A.deputySeasons === 1 ? "موسماً" : "مواسم"} فأكثر.
+    <Panel icon={<Timer />} title="طلبات تشكيل التكتلات وموعدها النهائي" action={<Chip tone={op.open ? "green" : desk.deadlinePassed ? "gold" : "muted"}>{op.open ? `مفتوحة حتى ${dayLabel(op.end)}` : desk.deadlinePassed ? `انتهت ${dayLabel(op.end)}` : `تفتح ${dayLabel(op.start)}`}</Chip>}>
+      <p className="text-sm leading-7 text-white/75">
+        لا انتخاب ولا عدد مسبق للتكتلات: يقدّم الطلبَ كل رئيس مجموعة رأس مجموعة {A.clusterHeadSeasons} مواسم متتالية بتقييم {A.clusterHeadMinRating} فأكثر. بعد الموعد النهائي يُعتمد كل طلب مكتمل ({A.clusterMinGroups} مجموعات على الأقل، و{DEPUTY_TITLE}، ولكل مجموعة موجّه ومنسق ومعاون)، ويُقصى الناقص وتوزَّع مجموعاته.
       </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+        {[
+          ["الطلبات", desk.requests.length],
+          ["مكتملة الآن", desk.requests.filter((r) => r.complete).length],
+          ["معتمدة", desk.approvedClusters.length],
+          ["مُقصاة", desk.excluded.length],
+        ].map(([k, v]) => (
+          <div key={k} className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+            <p className="text-xs text-white/60">{k}</p>
+            <p className="font-display text-2xl font-bold text-gold">{v}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button variant="gold" disabled={!desk.deadlinePassed || !desk.undecided.length} onClick={decideAll}>
+          <Gavel className="size-4" /> اعتماد المكتمل وإقصاء الناقص ({desk.undecided.length})
+        </Button>
+        {!desk.deadlinePassed && <span className="text-xs text-white/60">يُتاح بعد الموعد النهائي {dayLabel(op.end, true)}: الطلبات أولية حتى ذلك اليوم.</span>}
+      </div>
     </Panel>
   );
 }
 
-/** The election's three steps and where it stands, for this tab and the holder's summary */
-export function ElectionSteps({ desk, openedAt, closedAt }: { desk: AdminsDesk; openedAt?: number; closedAt?: number }) {
-  return (
-    <ol className="grid gap-3 md:grid-cols-3">
-      {[
-        { t: "فتح باب الترشح", d: openedAt ? fmtDateTime(openedAt) : `النافذة: ${SEASON.administrators.clusters.window}`, on: !!openedAt },
-        { t: "ترشّح رؤساء المجموعات وتصويتهم", d: `${desk.candidates.length} مرشحاً — ${desk.votes} صوتاً من ${desk.voters}`, on: desk.phase !== "closed" },
-        { t: "إغلاق التصويت وإعلان الرؤساء", d: closedAt ? `${fmtDateTime(closedAt)} — ${desk.elected.length} رؤساء` : "بانتظار الإغلاق", on: desk.phase === "announced" },
-      ].map((s, i) => (
-        <li key={s.t} className={cn("rounded-2xl p-4 ring-1", s.on ? "bg-green-light/10 ring-green-light/30" : "bg-white/5 ring-white/10")}>
-          <p className="flex items-center gap-2 font-bold text-white">
-            <span className={cn("grid size-6 place-items-center rounded-lg text-xs font-bold", s.on ? "bg-green-light text-white" : "bg-white/10 text-white/60")}>{i + 1}</span>
-            {s.t}
-          </p>
-          <p className="mt-1 text-xs text-white/65">{s.d}</p>
-        </li>
-      ))}
-    </ol>
-  );
+// ───────────────────────── The requests ─────────────────────────
+
+function DecisionChip({ r }: { r: ClusterRequest }) {
+  if (r.decision) return <Chip tone={r.decision.status === "approved" ? "green" : "maroon"}>{r.decision.status === "approved" ? "معتمد" : "مُقصى"}</Chip>;
+  return <Chip tone={r.complete ? "green" : "gold"}>{r.complete ? "مكتمل — أولي" : `ناقص: ${r.checks.filter((c) => !c.ok).length}`}</Chip>;
 }
 
-function Candidates({ desk }: { desk: AdminsDesk }) {
-  const count = useSeason().administrators.clusterCount;
-  const announced = desk.phase === "announced";
+function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => void }) {
   return (
-    <Panel icon={<Crown />} title={announced ? "النتيجة النهائية" : "المرشحون والأصوات"} action={<Chip tone="gold">{formatNumber(desk.candidates.length)} مرشحاً</Chip>}>
-      <ul className="space-y-2">
-        {desk.candidates.map((c, i) => {
-          const won = announced ? desk.elected.includes(c.id) : i < count;
-          return (
-            <motion.li
-              key={c.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(i, 12) * 0.03 }}
-              className={cn("flex flex-wrap items-center gap-3 rounded-2xl p-3 ring-1", won ? "bg-gold/10 ring-gold/40" : "bg-white/5 ring-white/10")}
-            >
-              <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl font-display text-lg font-bold", won ? "bg-gold text-ink" : "bg-white/10 text-white/80")}>{i + 1}</span>
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2 font-bold text-white">
-                  {c.name}
-                  {c.real && <Chip tone="green">من بوابة الإداريين</Chip>}
-                </span>
-                <span className="block text-xs text-white/65">
-                  رئيس المجموعة {c.group} — {c.seasons} مواسم رئاسة{c.rating !== null && ` — تقييم ${c.rating}`}
-                </span>
-              </span>
-              <span className="font-display text-xl font-bold tabular-nums text-gold">{c.votes}</span>
-              <span className="w-20 text-left text-xs font-bold">
-                {announced ? (won ? <Chip tone="green">رئيس تكتل</Chip> : <span className="text-white/45">لم يفز</span>) : won ? <Chip tone="gold">ضمن العدد</Chip> : <span className="text-white/45">خارج العدد</span>}
-              </span>
-            </motion.li>
-          );
-        })}
-      </ul>
-      {desk.phase === "open" && <p className="mt-4 rounded-2xl bg-white/5 p-3 text-xs leading-6 text-white/60">الترتيب يتغير مع كل صوت. عند الإغلاق يفوز أعلى {count} مرشحين أصواتاً، ويُسجَّل القرار باسمك.</p>}
-      {announced && desk.elected.length < count && (
-        <p className="mt-4 rounded-2xl bg-gold/15 p-3 text-xs leading-6 text-gold ring-1 ring-gold/30">
-          أُعلن {desk.elected.length} رؤساء لـ{count} تكتلات: لم يترشح ما يكفي. عدد التكتلات من «إعدادات الموسم»، فإن بقي أكثر من المرشحين فارفع الأمر إلى مديرة الموسم.
-        </p>
-      )}
-    </Panel>
-  );
-}
-
-// ───────────────────────── The clusters ─────────────────────────
-
-function Clusters({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => void }) {
-  const fee = useSeason().fees.clusterFormation;
-  const tiers = useCoordinatorTiers();
-  return (
-    <div id="clusters" className="scroll-mt-24">
-      <Panel icon={<Building2 />} title="التكتلات بعد الانتخاب" action={<Chip tone={desk.clusters.length ? "green" : "maroon"}>{desk.phase === "announced" ? `${desk.clusters.length} من ${desk.elected.length} أنشأ تكتله` : `${desk.clusters.length} تكتلات`}</Chip>}>
-        {desk.clusters.length === 0 ? (
-          <p className="rounded-2xl bg-white/5 p-4 text-sm text-white/70">لم ينشئ أي رئيس منتخب تكتله بعد. يدفع كل منهم رسم الإنشاء ({formatUSD(fee)}) ويختار معاونه من رؤساء المجموعات السابقين.</p>
+    <div id="requests" className="scroll-mt-24">
+      <Panel icon={<Building2 />} title="الطلبات" action={<Chip tone="gold">{desk.requests.length}</Chip>}>
+        {desk.requests.length === 0 ? (
+          <Empty icon={<Inbox />} title="لا طلبات بعد" text="يقدّمها رؤساء المجموعات المستوفون في مدة تشكيل التكتلات." />
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">
-            {desk.clusters.map((x) => {
-              const t = clusterTotals(x.groups);
-              const allowed = coordinatorTierFor(x.row.id, x.c.capacityGroups, tiers).tier?.coordinators ?? 0;
-              const have = x.c.coordinators?.length ?? 0;
+            {desk.requests.map((r) => {
+              const pilgrims = r.groups.reduce((n, g) => n + g.pilgrims, 0);
               return (
-                <li key={x.c.id}>
-                  <button type="button" onClick={() => onOpen(x.c.id)} className={cn("w-full rounded-2xl p-4 text-right ring-1 transition hover:ring-gold/50", x.c.deputyId ? "bg-white/5 ring-white/10" : "bg-maroon/15 ring-maroon/40")}>
-                    <p className="font-display text-xl font-bold text-gold">{x.c.name}</p>
-                    <p className="mt-1 text-sm text-white/85">
-                      <Crown className="mb-0.5 inline size-4 text-gold" /> الرئيس: {x.row.name} — المجموعة {x.row.profile.group?.number}
-                    </p>
+                <li key={r.cluster.id}>
+                  <button type="button" onClick={() => onOpen(r.cluster.id)} className={cn("w-full rounded-2xl p-4 text-right ring-1 transition hover:ring-gold/50", r.decision?.status === "excluded" ? "bg-maroon/15 ring-maroon/40" : "bg-white/5 ring-white/10")}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-display text-xl font-bold text-gold">{r.cluster.name}</p>
+                      <DecisionChip r={r} />
+                    </div>
+                    <p className="mt-1 text-sm text-white/85">الرئيس: {r.headName}{r.headGroup ? ` — المجموعة ${r.headGroup}` : ""}</p>
                     <p className="text-sm text-white/85">
-                      <UserCheck className="mb-0.5 inline size-4 text-green-light" /> المعاون: {x.c.deputyName ?? <b className="text-gold">لم يُختر بعد</b>}
-                    </p>
-                    <p className="text-sm text-white/85">
-                      المنسقون التقنيون: {have ? x.c.coordinators!.map((c) => c.name).join("، ") : <b className="text-gold">لم يُدعَ أحد بعد</b>} <span className="text-xs text-white/55">({have} من {allowed})</span>
+                      <UserCheck className="mb-0.5 inline size-4 text-green-light" /> {DEPUTY_TITLE}: {r.cluster.deputy?.status === "accepted" ? r.cluster.deputy.name : <b className="text-gold">لم يقبل أحد بعد</b>}
                     </p>
                     <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
-                      <Chip tone="green">
-                        {t.groups} من {x.c.capacityGroups} مجموعات
-                      </Chip>
-                      <Chip>{formatNumber(t.pilgrims)} حاجاً</Chip>
-                      {x.c.feePaidAt && <span>رسم الإنشاء مسدد</span>}
+                      <Chip tone="green">{r.groups.length} مجموعات</Chip>
+                      <Chip>{formatNumber(pilgrims)} حاجاً</Chip>
+                      {POOL_ORDER.map((k) => (
+                        <span key={k}>
+                          {POOLS[k].label}: {r.cluster.team[k].filter((x) => x.status === "accepted").length}
+                        </span>
+                      ))}
                     </p>
                   </button>
                 </li>
@@ -234,75 +142,147 @@ function Clusters({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
             })}
           </ul>
         )}
-        {desk.electedRows.some((e) => !e.cluster) && (
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-bold text-white">منتخبون لم ينشئوا تكتلاتهم بعد</p>
-            <ul className="flex flex-wrap gap-2">
-              {desk.electedRows
-                .filter((e) => !e.cluster)
-                .map((e) => (
-                  <li key={e.id}>
-                    <Chip tone={desk.notCreated.some((n) => n.id === e.id) ? "maroon" : "muted"}>{e.name}</Chip>
-                  </li>
-                ))}
-            </ul>
-            <p className="mt-2 text-xs leading-6 text-white/55">لا تنضم مجموعة إلى تكتل لم يُنشأ. ما عليه علامة حمراء رئيس على المنصة ينتظره إنشاء تكتله.</p>
-          </div>
-        )}
       </Panel>
     </div>
   );
 }
 
-/** One cluster whole: its head and deputy, its coordinators and the groups sorted to each, every group in it, and its history */
-function ClusterSheet({ x }: { x: ClusterRow }) {
-  const t = clusterTotals(x.groups);
-  const tiers = useCoordinatorTiers();
-  const { tier } = coordinatorTierFor(x.row.id, x.c.capacityGroups, tiers);
-  const coordinators = x.c.coordinators ?? [];
-  const coordinatorOf = (n: number) => coordinators.find((c) => c.id === x.c.assignment?.[n])?.name;
+/** One request whole: its checks, its groups with who serves each, its people, the decision, and its history */
+function RequestSheet({ x }: { x: ClusterRequest }) {
+  const user = useStaffUser()!;
+  const desk = useAdminsDesk();
+  const admins = useStore((s) => s.admins);
+  const decisions = useStore((s) => s.formation.decisions);
+  const c = x.cluster;
+  const decide = (status: "approved" | "excluded") => {
+    const reason = status === "excluded" ? x.checks.filter((k) => !k.ok).map((k) => k.label).join("، ") || "قرار الإدارة" : undefined;
+    decideCluster(x, status, user.name, admins, decisions, reason);
+    logAdmins(user, "clusters", { action: status === "approved" ? "اعتماد تكتل" : "إقصاء تكتل", target: c.name, detail: reason, ref: c.id, important: true });
+  };
   return (
     <div className="space-y-5">
       <InfoGrid
         rows={[
-          ["رئيس التكتل", `${x.row.name} — المجموعة ${x.row.profile.group?.number ?? "—"}`],
-          ["معاون رئيس التكتل", x.c.deputyName ?? ""],
-          ["أُنشئ", fmtDateTime(x.c.createdAt)],
-          ["رسم الإنشاء", x.c.feePaidAt ? fmtDateTime(x.c.feePaidAt) : "لم يُسدَّد"],
-          ["المجموعات", `${t.groups} من ${x.c.capacityGroups}`],
-          ["المنسقون التقنيون", `${coordinators.length} من ${tier ? coordinatorsLabel(tier.coordinators) : "—"}${tier ? ` (${tier.label})` : ""}`],
-          ["الحجاج", `${formatNumber(t.pilgrims)} من ${formatNumber(t.capacity)} مقعداً`],
+          ["رئيس التكتل", `${x.headName}${x.headGroup ? ` — المجموعة ${x.headGroup}` : ""}`],
+          [DEPUTY_TITLE, c.deputy ? `${c.deputy.name} — ${c.deputy.status === "accepted" ? "قبِل" : c.deputy.status === "declined" ? "اعتذر" : "لم يرد"}` : "لم يُدعَ"],
+          ["المجموعات", `${x.groups.length} — ${formatNumber(x.groups.reduce((n, g) => n + g.pilgrims, 0))} حاجاً`],
+          ["القرار", x.decision ? `${x.decision.status === "approved" ? "معتمد" : "مُقصى"} — ${x.decision.by}` : "أولي حتى الموعد النهائي"],
         ]}
       />
-      {coordinators.length > 0 && (
-        <ul className="space-y-1.5 text-sm">
-          {coordinators.map((c) => (
-            <li key={c.id} className="flex justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
-              <span className="font-bold text-white">{c.name}</span>
-              <span className="text-white/65">{groupsLabel(x.groups.filter((g) => x.c.assignment?.[g.number] === c.id).map((g) => g.number))}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <ul className="space-y-2">
-        {x.groups.map((g) => (
-          <li key={g.number} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 font-display font-bold text-gold">{g.number}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-bold text-white">
-                {g.head} {g.own && <Chip tone="gold">مجموعة الرئيس</Chip>}
-              </span>
-              <span className="block text-xs text-white/60">
-                {g.office} — {g.joined} — منسقها: {coordinatorOf(g.number) ?? "لم يُفرز بعد"}
-              </span>
-            </span>
-            <span className="text-sm tabular-nums text-white/80">
-              {g.pilgrims} / {g.capacity}
-            </span>
+      <ul className="space-y-1.5 text-sm">
+        {x.checks.map((k) => (
+          <li key={k.key} className={cn("flex items-start gap-2 rounded-xl px-3 py-2 ring-1", k.ok ? "bg-green-light/10 text-white ring-green-light/30" : "bg-maroon/20 text-white ring-maroon/40")}>
+            {k.ok ? <Check className="mt-0.5 size-4 shrink-0 text-green-light" /> : <CircleDashed className="mt-0.5 size-4 shrink-0 text-gold" />} {k.label}
           </li>
         ))}
       </ul>
-      <RecordHistory system="admins" refId={x.c.id} />
+      {!x.decision && (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="gold" disabled={!desk.deadlinePassed || !x.complete} onClick={() => decide("approved")}>
+            <BadgeCheck className="size-4" /> اعتماد
+          </Button>
+          <Button size="sm" variant="outline" className="border-white/25 text-white hover:bg-white/10" disabled={!desk.deadlinePassed} onClick={() => decide("excluded")}>
+            <X className="size-4" /> إقصاء
+          </Button>
+          {!desk.deadlinePassed && <span className="self-center text-xs text-white/55">بعد الموعد النهائي</span>}
+        </div>
+      )}
+      <ul className="space-y-2">
+        {x.groups.map((g) => (
+          <li key={g.number} className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
+            <p className="flex flex-wrap items-center gap-2 font-bold text-white">
+              <span className="grid size-9 place-items-center rounded-xl bg-gold/20 font-display text-gold">{g.number}</span> {g.name}
+              {g.distributed && <Chip tone="gold">وزّعتها الإدارة</Chip>}
+              <span className="mr-auto text-sm tabular-nums text-white/75">
+                {g.pilgrims} / {g.capacity}
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-white/60">{POOL_ORDER.map((k) => `${POOLS[k].one}: ${c.team[k].find((m) => m.status === "accepted" && m.id === c.posts[k][g.number])?.name ?? "—"}`).join(" · ")}</p>
+          </li>
+        ))}
+      </ul>
+      <RecordHistory system="admins" refId={c.id} />
+    </div>
+  );
+}
+
+// ───────────────────────── The distribution ─────────────────────────
+
+/**
+ * The groups left outside — from excluded requests, or that no request took — placed among the approved
+ * clusters. The suggestion gives each group to the approved cluster with the fewest groups; the holder
+ * changes any of them, then approves it once.
+ */
+function Distribution({ desk }: { desk: AdminsDesk }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const admins = useStore((s) => s.admins);
+  const formation = useStore((s) => s.formation);
+  const suggestion = useMemo(() => {
+    const load = new Map(desk.approvedClusters.map((r) => [r.cluster.id, r.groups.length]));
+    return Object.fromEntries(
+      desk.outside.map((g) => {
+        const to = [...load.entries()].sort((a, b) => a[1] - b[1])[0]?.[0];
+        if (to) load.set(to, (load.get(to) ?? 0) + 1);
+        return [g.number, to ?? ""];
+      }),
+    ) as Record<number, string>;
+  }, [desk.approvedClusters, desk.outside]);
+  const [picked, setPicked] = useState<Record<number, string>>({});
+  const plan = { ...suggestion, ...picked };
+  const ready = desk.outside.length > 0 && desk.outside.every((g) => plan[g.number]) && !desk.undecided.length;
+
+  const approve = () => {
+    const moves = Object.fromEntries(desk.outside.map((g) => [g.number, plan[g.number]]));
+    distributeGroups(moves, desk.outside, user.name, admins, formation);
+    logAdmins(user, "clusters", { action: "توزيع المجموعات على التكتلات المعتمدة", target: `${desk.outside.length} مجموعات`, detail: desk.outside.map((g) => `${g.number} ← ${desk.approvedClusters.find((r) => r.cluster.id === plan[g.number])?.cluster.name}`).join("، "), important: true });
+    toast({ title: "وُزّعت المجموعات", body: "يسند رئيس كل تكتل فريقه إلى مجموعاته الجديدة.", icon: "🔀", tone: "success" });
+    setPicked({});
+  };
+
+  return (
+    <div id="distribution" className="scroll-mt-24">
+      <Panel icon={<Shuffle />} title="توزيع المجموعات خارج التكتلات" action={<Chip tone={desk.outside.length ? "gold" : "green"}>{desk.outside.length ? `${desk.outside.length} خارجها` : "كلها في تكتلات"}</Chip>}>
+        {desk.undecided.length > 0 ? (
+          <p className="rounded-2xl bg-white/5 p-4 text-sm text-white/70">
+            <Lock className="mb-0.5 inline size-4" /> يُوزَّع بعد حسم كل الطلبات.
+          </p>
+        ) : desk.outside.length === 0 ? (
+          <p className="rounded-2xl bg-white/5 p-4 text-sm text-white/70">{formation.distributedAt ? `وُزّعت بقرار ${formation.distributedBy}.` : "لا مجموعة خارج التكتلات المعتمدة."}</p>
+        ) : (
+          <>
+            <ul className="space-y-2">
+              {desk.outside.map((g) => (
+                <li key={g.number} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 font-display font-bold text-gold">{g.number}</span>
+                  <span className="min-w-0 flex-1 text-sm">
+                    <span className="block font-bold text-white">{g.headName}</span>
+                    <span className="block text-xs text-white/60">
+                      {g.office} — {g.pilgrims}/{g.capacity} {g.from ? `— من ${g.from} المُقصى` : "— لم يأخذها طلب"}
+                    </span>
+                  </span>
+                  <select
+                    value={plan[g.number] ?? ""}
+                    onChange={(e) => setPicked({ ...picked, [g.number]: e.target.value })}
+                    aria-label={`تكتل المجموعة ${g.number}`}
+                    className="h-10 min-w-44 rounded-xl border border-white/20 bg-green-dark px-2 text-sm text-white"
+                  >
+                    <option value="">— اختر تكتلاً —</option>
+                    {desk.approvedClusters.map((r) => (
+                      <option key={r.cluster.id} value={r.cluster.id}>
+                        {r.cluster.name} ({r.groups.length})
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </ul>
+            <Button className="mt-4" variant="gold" disabled={!ready} onClick={approve}>
+              <Shuffle className="size-4" /> اعتماد التوزيع
+            </Button>
+          </>
+        )}
+      </Panel>
     </div>
   );
 }

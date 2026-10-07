@@ -180,8 +180,8 @@ function Dashboard() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_1fr]">
         <div className="space-y-6">
           {(can(user, "registration.review") || can(user, "lottery.import")) && (
-            <Panel dark title="التسجيل اليومي على القبول المباشر — 22 يوماً" icon={<Activity />} delay={0.1} action={<span className="text-xs text-white/70">الذروة في الأيام الأخيرة قبل الإغلاق</span>}>
-              <Columns dark values={DAILY_REGISTRATIONS} height={140} highlight={DAILY_REGISTRATIONS.length - 1} labels={["9 ج2", "15", "20", "25", "1 رجب"]} />
+            <Panel dark title="التسجيل اليومي على القبول المباشر — 14 يوماً (12 – 25 آب)" icon={<Activity />} delay={0.1} action={<span className="text-xs text-white/70">الذروة في الأيام الأخيرة قبل الإغلاق</span>}>
+              <Columns dark values={DAILY_REGISTRATIONS} height={140} highlight={DAILY_REGISTRATIONS.length - 1} labels={["12 آب", "16", "20", "25 آب"]} />
             </Panel>
           )}
           {can(user, "season.settings") && (

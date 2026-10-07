@@ -10,23 +10,26 @@ export const SEASON = {
   referenceYear: 2026,
 
   quota: 22_500,
-  directShare: 0.35,
-  lotteryShare: 0.65,
-  directSeats: 7_875,
-  lotterySeats: 14_625,
-  acceptedDirectAge: 66,
+  /** Season 1448 as announced: 65% accepted directly by age (born 1958 or earlier), 35% by the lottery */
+  directShare: 0.65,
+  lotteryShare: 0.35,
+  directSeats: 14_625,
+  lotterySeats: 7_875,
+  /** Born 1958 or earlier: 68 and over in the reference year */
+  acceptedDirectAge: 68,
   scholarshipSeats: 500,
 
   /**
-   * Two SEPARATE registrations, one after the other. Direct acceptance (oldest first, 35%) opens first;
-   * after its accepted ages are announced, the preliminary lottery registration (65%) opens as its own
+   * Registering on the Hajj: two SEPARATE registrations, one after the other, on the dates the Hajj and
+   * Umrah administration announced for season 1448 (lib/operations.ts). Direct acceptance (oldest first, 65%) opens first;
+   * after its accepted ages are announced, the preliminary lottery registration (35%) opens as its own
    * application. Nobody moves from one to the other automatically — whoever was not accepted directly
    * may register for the lottery with a new application. The draw picks birth years (some by months);
    * the accepted confirm their registration by paying the first installment (see lib/lottery.ts).
    */
   windows: {
-    direct: { hijri: "9 جمادى الآخرة – 1 رجب", gregorian: "19 تشرين الثاني – 10 كانون الأول 2026", announce: "15 رجب" },
-    lottery: { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", draw: "1 شعبان — 20:00", results: "2 شعبان", confirm: "2 – 25 شعبان" },
+    direct: { hijri: "12 – 25 آب", gregorian: "12 – 25 آب 2026 (29 صفر – 12 ربيع الأول 1448)", announce: "26 آب" },
+    lottery: { hijri: "26 آب – 10 أيلول", gregorian: "26 آب – 10 أيلول 2026 (13 – 28 ربيع الأول 1448)", draw: "السبت 26 أيلول", results: "26 أيلول", confirm: "11 – 27 تشرين الأول" },
   },
 
   rules: {
@@ -87,18 +90,18 @@ export const SEASON = {
       maxGapSeasons: 1,
     },
     /**
-     * Cluster head and deputy are never applied for. The administration decides how many clusters the
-     * season has and opens candidacy; the group heads elect the cluster heads from among themselves.
-     * An elected head keeps his own group, manages the cluster, and picks his deputy — who must have
-     * headed a group before.
+     * Cluster head and deputy are never applied for, and nobody is elected. Any group head who meets these
+     * conditions files a request to form a cluster, with its groups and its people, by the deadline; a
+     * complete one is approved. He keeps his own group, and invites his deputy — who must have headed a
+     * group before.
      */
     clusters: {
-      count: 10,
-      /** To stand: this many consecutive seasons as group head, each rated at least this */
+      /** The fewest groups a cluster needs to be approved */
+      minGroups: 4,
+      /** To file a request: this many consecutive seasons as group head, each rated at least this */
       candidacy: { consecutiveSeasons: 3, minRating: 4 },
-      /** The deputy the elected head picks must have headed a group for at least this many seasons */
+      /** The deputy must have headed a group for at least this many seasons */
       deputySeasons: 1,
-      window: "1 – 10 جمادى الآخرة",
     },
   },
 
@@ -124,8 +127,11 @@ export const SEASON = {
     entryTier: 1,
   },
 
-  /** The office opens this window for accepted pilgrims to join groups through the group's coordinator */
-  groupingWindow: "2 – 25 شعبان",
+  /**
+   * Attaching accepted pilgrims to groups: a separate operation from registering on the Hajj. It opens with
+   * the forming of the clusters and goes on after it — by a contract between the pilgrim and the group
+   */
+  groupingWindow: "12 تشرين الثاني – 15 كانون الثاني (موعد تقديري)",
 
   /**
    * Medical documents — vaccination certificates included. None is asked before the assignment window:
@@ -140,20 +146,23 @@ export const SEASON = {
     { key: "prescription", label: "الوصفة الطبية للأدوية الدائمة", hint: "لمن يتناول دواءً دائماً — تكفي 35 يوماً", onlyIfMedications: true },
   ],
 
+  /**
+   * The pilgrims' calendar of season 1448: what the Hajj and Umrah administration announced (SANA, Al Jazeera,
+   * August–October 2026), and, marked «تقديري», what it had not announced yet, on last season's pattern.
+   * `from` and `to` are days, so the public timeline lights the row the demo's date is in.
+   */
   dates: [
-    { hijri: "9 جمادى الآخرة – 1 رجب", gregorian: "19 تشرين الثاني – 10 كانون الأول 2026", title: "التسجيل على القبول المباشر لمن بلغ 66 عاماً فأكثر (35%): رسم التسجيل + الدفعة الأولى", who: "الحاج" },
-    { hijri: "1 – 10 رجب", gregorian: "10 – 19 كانون الأول 2026", title: "تدقيق طلبات القبول المباشر والتحقق من الأهلية", who: "الموظفون" },
-    { hijri: "15 رجب", gregorian: "24 كانون الأول 2026", title: "اعتماد قوائم القبول المباشر", who: "الحاج" },
-    { hijri: "16 – 25 رجب", gregorian: "25 كانون الأول 2026 – 3 كانون الثاني 2027", title: "التسجيل الأولي على القرعة (65%) — طلب مستقل، رسم التسجيل فقط", who: "الحاج" },
-    { hijri: "1 شعبان — 20:00", gregorian: "9 كانون الثاني 2027", title: "القرعة ببث مباشر: تُسحب سنوات ميلاد، ولبعضها أشهر", who: "الحاج" },
-    { hijri: "2 شعبان", gregorian: "10 كانون الثاني 2027", title: "نشر نتائج القرعة: جدول السنوات والأشهر المسحوبة", who: "الحاج" },
-    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "المقبولون بالقرعة يثبّتون تسجيلهم: تأكيد القبول ودفع الدفعة الأولى", who: "الحاج" },
-    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "مرحلة التفويج: يختار الحاج مجموعته ويسجّله منسقها ويوقّعان العقد", who: "الحاج + المنسق" },
-    { hijri: "2 – 25 شعبان", gregorian: "10 كانون الثاني – 2 شباط 2027", title: "الدفعة الثانية عند الانضمام إلى المجموعة — ثم الوثائق الطبية", who: "الحاج" },
-    { hijri: "1 – 15 ذو القعدة", gregorian: "8 – 22 نيسان 2027", title: "إصدار التأشيرات وتوزيع الرحلات", who: "الموظفون" },
-    { hijri: "24 ذو القعدة", gregorian: "1 أيار 2027", title: "السفر: دمشق ← جدة ← مكة", who: "الجميع" },
-    { hijri: "8 – 12 ذو الحجة", gregorian: "14 – 18 أيار 2027", title: "المشاعر المقدسة", who: "الجميع" },
-    { hijri: "23 ذو الحجة", gregorian: "29 أيار 2027", title: "العودة: المدينة ← دمشق", who: "الجميع" },
+    { hijri: "29 صفر – 12 ربيع الأول", gregorian: "12 – 25 آب 2026", from: "2026-08-12", to: "2026-08-25", title: "التسجيل على الحج — القبول المباشر لمواليد 1958 فما قبل ومرافقيهم", who: "الحاج أو من يسجّله" },
+    { hijri: "13 – 28 ربيع الأول", gregorian: "26 آب – 10 أيلول 2026", from: "2026-08-26", to: "2026-09-10", title: "التسجيل على الحج — التسجيل الأولي على القرعة: طلب مستقل، رسم التسجيل فقط", who: "الحاج أو من يسجّله" },
+    { hijri: "29 ربيع الأول", gregorian: "11 أيلول 2026", from: "2026-09-11", to: "2026-09-25", title: "إغلاق التسجيل على الحج: لا طلبات جديدة إلا باستثناء من الإدارة", who: "الجميع" },
+    { hijri: "15 ربيع الآخر", gregorian: "السبت 26 أيلول 2026", from: "2026-09-26", to: "2026-09-26", title: "القرعة العلنية في دير الزور، ونشر نتائجها: تُسحب سنوات ميلاد، ولبعضها أشهر", who: "الحاج" },
+    { hijri: "30 ربيع الآخر – 16 جمادى الأولى", gregorian: "11 – 27 تشرين الأول 2026", from: "2026-10-11", to: "2026-10-27", title: "تثبيت المقبولين تسجيلهم: الدفعة الأولى 3,500 $ عبر شام كاش أو بنك البركة", who: "الحاج" },
+    { hijri: "2 جمادى الآخرة – 7 شعبان (تقديري)", gregorian: "12 تشرين الثاني 2026 – 15 كانون الثاني 2027", from: "2026-11-12", to: "2027-01-15", title: "إلحاق الحاج بمجموعة: يتفق مع المجموعة، ويرفع رئيسها أو منسقها العقد، ويعتمده المكتب", who: "الحاج + المجموعة" },
+    { hijri: "بعد اعتماد العقد (تقديري)", gregorian: "حتى 15 كانون الثاني 2027", from: "2026-11-12", to: "2027-01-15", title: "الدفعة الثانية بعد اعتماد العقد — ثم الوثائق الطبية", who: "الحاج" },
+    { hijri: "1 – 15 ذو القعدة", gregorian: "8 – 22 نيسان 2027", from: "2027-04-08", to: "2027-04-22", title: "إصدار التأشيرات وتوزيع الرحلات", who: "الموظفون" },
+    { hijri: "24 ذو القعدة", gregorian: "1 أيار 2027", from: "2027-05-01", to: "2027-05-01", title: "السفر: دمشق ← جدة ← مكة", who: "الجميع" },
+    { hijri: "8 – 12 ذو الحجة", gregorian: "14 – 18 أيار 2027", from: "2027-05-14", to: "2027-05-18", title: "المشاعر المقدسة", who: "الجميع" },
+    { hijri: "23 ذو الحجة", gregorian: "29 أيار 2027", from: "2027-05-29", to: "2027-05-29", title: "العودة: المدينة ← دمشق", who: "الجميع" },
   ],
 } as const;
 

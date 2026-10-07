@@ -31,6 +31,8 @@ import { SeasonPlanNote } from "@/components/payment/plan-picker";
 import { firstPayment, seasonPlan } from "@/lib/installments";
 import { ABROAD, SEASON, officeArea, officeFor, type Residence } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
+import { OperationClosed } from "@/components/app/operation-closed";
+import { rangeLabel, statusLabel, useAnyOperation } from "@/lib/operations";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { BookletPicker, type Book } from "./_components/booklet";
@@ -103,6 +105,9 @@ export default function ApplyPage() {
   const scale = useStore((s) => s.displayScale);
   const me = getPerson(sessionId)!;
   const season = useSeason();
+  // Direct acceptance, then the lottery: each registration open only in its own dates
+  const hajj = useAnyOperation(["hajj-direct", "hajj-lottery"]);
+  const [directOp, lotteryOp] = hajj.states;
 
   const accounts = useStore((s) => s.accounts);
   // The saved application (autosaved at every step). Approvals inside it change from outside this page
@@ -298,6 +303,14 @@ export default function ApplyPage() {
     });
     router.push("/portal/application");
   };
+
+  if (!hajj.open && !(existing && !previousDirect)) {
+    return (
+      <PortalShell title="التسجيل على الحج">
+        <OperationClosed state={hajj.states.find((o) => o.status === "upcoming") ?? lotteryOp} text="التسجيل على الحج لا يضعك في أي مجموعة: الانضمام إلى مجموعة يأتي لاحقاً بعقد بينك وبين المجموعة." />
+      </PortalShell>
+    );
+  }
 
   if (existing && !previousDirect) {
     return (
@@ -527,10 +540,12 @@ export default function ApplyPage() {
                       description={
                         previousDirect
                           ? `قدّمت فيه الطلب رقم ${previousDirect.number} ولم يُقبل (الأعمار المقبولة ${SEASON.acceptedDirectAge} عاماً فأكثر)`
-                          : `${SEASON.windows.direct.hijri} — لمن بلغ صاحب طلبه ${season.acceptedDirectAge} عاماً فأكثر (حددته الإدارة لهذا الموسم)، ونتحقق من العمر قبل أي دفع. ${Math.round(SEASON.directShare * 100)}% من الحصة (${SEASON.directSeats.toLocaleString("en")} مقعداً).`
+                          : !directOp.open
+                          ? `غير متاح: ${statusLabel(directOp)}.`
+                          : `${rangeLabel(directOp.start, directOp.end)} — لمن بلغ صاحب طلبه ${season.acceptedDirectAge} عاماً فأكثر (حددته الإدارة لهذا الموسم)، ونتحقق من العمر قبل أي دفع. ${Math.round(SEASON.directShare * 100)}% من الحصة (${SEASON.directSeats.toLocaleString("en")} مقعداً).`
                       }
                       selected={track === "direct" && !previousDirect}
-                      disabled={!!previousDirect}
+                      disabled={!!previousDirect || !directOp.open}
                       onClick={() => {
                         setTrack("direct");
                         go("forWhom");
@@ -540,7 +555,8 @@ export default function ApplyPage() {
                       index={1}
                       icon="🎟️"
                       label="التسجيل الأولي على القرعة"
-                      description={`${SEASON.windows.lottery.hijri} — لكل الأعمار المؤهلة، برسم التسجيل فقط. قرعة علنية ببث مباشر يوم ${SEASON.windows.lottery.draw} على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً): تُسحب سنوات ميلاد، ولبعضها أشهر، ويُقبل الطلب إن وافقها ميلاد صاحبه.`}
+                      disabled={!lotteryOp.open}
+                      description={!lotteryOp.open ? `غير متاح: ${statusLabel(lotteryOp)}.` : `${rangeLabel(lotteryOp.start, lotteryOp.end)} — لكل الأعمار المؤهلة، برسم التسجيل فقط. قرعة علنية ببث مباشر يوم ${SEASON.windows.lottery.draw} على ${Math.round(SEASON.lotteryShare * 100)}% من الحصة (${SEASON.lotterySeats.toLocaleString("en")} مقعداً): تُسحب سنوات ميلاد، ولبعضها أشهر، ويُقبل الطلب إن وافقها ميلاد صاحبه.`}
                       selected={track === "lottery"}
                       onClick={() => {
                         if (previousDirect) return moveToLottery();
@@ -552,7 +568,7 @@ export default function ApplyPage() {
                   <p className="mt-5 rounded-2xl bg-gold/20 p-4 text-sm leading-7 text-ink-soft">
                     {previousDirect
                       ? "ننقل أفراد طلبك السابق إلى طلب التسجيل الأولي على القرعة مباشرة، فتراجع الملخص وتدفع رسم التسجيل فقط."
-                      :"في العرض التجريبي يمكنك تجربة التسجيلين الآن؛ في الموسم الفعلي يُفتح كل تسجيل في موعده فقط."}
+                      : "كل تسجيل يُفتح في موعده فقط. في العرض التجريبي غيّر «تاريخ المحاكاة» أسفل الشاشة لتجرب الآخر."}
                   </p>
                   <Button variant="ghost" size="lg" className="mt-6" onClick={back}>
                     <ArrowRight className="size-5" /> رجوع
@@ -1070,7 +1086,7 @@ export default function ApplyPage() {
                     <ol className="mt-1 list-inside list-decimal">
                       {track === "lottery" && <li>إن قُبل طلبك في القرعة تثبّت تسجيلك ({SEASON.windows.lottery.confirm}) بتأكيد القبول ودفع الدفعة الأولى من تكلفة الحج{credit ? " — وهي مدفوعة مسبقاً من طلبك السابق (تُعاد إليك إن لم يُقبل)" : ""}، وإلا سقط القبول.</li>}
                       <li>ترفع لكل فرد الصورة الشخصية وجواز السفر — ولا وثائق طبية قبل التفويج.</li>
-                      <li>حين تُفتح مرحلة التفويج ({SEASON.groupingWindow}) تتصفّح دليل المجموعات وتتواصل مع مجموعة، فيسجّلك منسقها فيها ويوقّع معك العقد.</li>
+                      <li>الإلحاق بمجموعة عملية مستقلة لاحقة ({SEASON.groupingWindow}): لا تختار المجموعة من المنصة، بل تتفق معها، فيرفع رئيسها أو منسقها العقد ويعتمده المكتب. التسجيل على الحج لا يضعك في أي مجموعة.</li>
                       <li>{plan === 1 ? "تكلفة الحج مدفوعة كاملة؛ تسدّد عند الانضمام الهدي، وسعر السكن الخاص إن اخترتموه" : "عند الانضمام إلى المجموعة تدفع الدفعة الثانية"}، ثم ترفع شهادات اللقاحات والوثائق الطبية.</li>
                     </ol>
                   </div>

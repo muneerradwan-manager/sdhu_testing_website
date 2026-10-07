@@ -204,7 +204,7 @@ export function useAdminRows() {
   }, [admins]);
 }
 
-/** The role the season produced: an election outranks the role he applied with */
+/** The role the season produced: heading a cluster (or being its deputy) outranks the role he applied with */
 export function roleLabel(r: AdminRow) {
   const key = effectiveRole(r.profile);
   const label = key ? positionLabelOf(key) : r.position;

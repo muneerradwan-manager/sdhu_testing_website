@@ -162,7 +162,7 @@ export default function ConditionsPage() {
 
       {/* Acceptance */}
       <section id="acceptance" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading eyebrow="طريقة القبول" title="35% مباشرة و65% بالقرعة" description="يُقبل الحجاج عبر تسجيلين منفصلين، واحداً بعد الآخر، ولكل منهما طلب خاص وموعد مستقل." />
+        <SectionHeading eyebrow="طريقة القبول" title="65% مباشرة و35% بالقرعة" description="يُقبل الحجاج عبر تسجيلين منفصلين، واحداً بعد الآخر، ولكل منهما طلب خاص وموعد مستقل." />
         <Reveal>
           <AcceptanceSplit />
         </Reveal>

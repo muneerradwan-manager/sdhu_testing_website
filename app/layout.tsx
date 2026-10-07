@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Amiri } from "next/font/google";
 import localFont from "next/font/local";
+import { DemoClock } from "@/components/app/demo-clock";
 import { GuidedTour } from "@/components/app/tour";
 import { PwaSupport } from "@/components/app/pwa";
 import { Splash } from "@/components/app/splash";
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <main className="flex-1 overflow-x-clip">{children}</main>
           <Footer />
           <GuidedTour />
+          <DemoClock />
           <PwaSupport />
           <PreviewBar />
         </ToastProvider>

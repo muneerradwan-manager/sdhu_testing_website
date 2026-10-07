@@ -9,25 +9,26 @@ import { useClusters } from "@/lib/cms/content";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { adminReceipt } from "@/app/administrator/_lib/admin";
-import { DEFAULT_CAPACITY_TIERS, teamLabel, tierCondition, useCapacityTiers, type CapacityTier } from "@/app/administrator/_lib/capacity";
-import { TEAM_ROLES } from "@/app/administrator/_lib/roster";
+import { DEFAULT_CAPACITY_TIERS, tierCondition, useCapacityTiers, type CapacityTier } from "@/app/administrator/_lib/capacity";
+import { useClusterRequests } from "@/app/administrator/_lib/formation";
 import { patchAdmin } from "../../_components/data";
 import { Drawer, Empty, fmtDateTime, Panel, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip, InfoGrid } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
 import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow } from "../desk";
 
-/** The cluster a group is in: one an elected head created on the platform, or one of the season's directory */
-function useClusterName(desk: AdminsDesk) {
+/** The cluster a group is in: a request filed this season, or one of the season's directory */
+function useClusterName(_desk: AdminsDesk) {
   const directory = useClusters();
-  return (id?: string) => (id ? (desk.clusters.find((x) => x.c.id === id)?.c.name ?? directory.find((c) => c.slug === id)?.name ?? id) : undefined);
+  const requests = useClusterRequests();
+  return (id?: string) => (id ? (requests.find((r) => r.cluster.id === id)?.cluster.name ?? directory.find((c) => c.slug === id)?.name ?? id) : undefined);
 }
 
 /**
  * The groups, from the head's request to the approved group in its cluster. A group head asks for his group
  * and pays its fee; its number is the next of the season. The request comes here with its conditions
- * checked, and approval gives the group its capacity by the categories set here. The team is invited after. The holder decides once: he approves it, or sends it back to
- * its head with what to fix. Approved groups then wait for the election, and join a cluster by request.
+ * checked, and approval gives the group its capacity by the categories set here. The holder decides once: he approves it, or sends it back to
+ * its head with what to fix. The group has no team of its own: the head of the cluster it enters assigns one.
  */
 export function GroupsTab() {
   const desk = useAdminsDesk();
@@ -95,7 +96,7 @@ export function GroupsTab() {
               <table className="w-full min-w-[40rem] text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-right text-xs text-gold">
-                    {["المجموعة", "رئيسها", "السعة", "الفريق", "التكتل", "اعتمدها"].map((h) => (
+                    {["المجموعة", "رئيسها", "السعة", "التكتل", "اعتمدها"].map((h) => (
                       <th key={h} className="pb-2 font-bold">
                         {h}
                       </th>
@@ -112,7 +113,6 @@ export function GroupsTab() {
                       </td>
                       <td className="py-2.5">{x.row.name}</td>
                       <td className="py-2.5 tabular-nums">{x.g.capacity}</td>
-                      <td className="py-2.5 tabular-nums">{x.g.team?.length ?? 0}</td>
                       <td className="py-2.5">{clusterName(x.g.clusterId) ?? <span className="font-bold text-gold">لم تنضم بعد</span>}</td>
                       <td className="py-2.5 text-xs text-white/70">
                         {x.g.approvedBy} — {fmtDateTime(x.g.approvedAt!)}
@@ -123,7 +123,7 @@ export function GroupsTab() {
               </table>
             </div>
           )}
-          <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">لا تنضم مجموعة إلى تكتل قبل انتخاب رؤسائها: تطلب الانضمام بعده، ويقرر رئيس التكتل بحسب سعته، ويوقّعان العقد.</p>
+          <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">تدخل المجموعة التكتلَ بدعوة يقبلها رئيسها في مدة تشكيل التكتلات، وما بقي خارجها توزّعه الإدارة على التكتلات المعتمدة.</p>
         </Panel>
       </div>
 
@@ -159,7 +159,7 @@ function CapacityPanel() {
   return (
     <Panel
       icon={<Gauge />}
-      title="فئات المجموعات: سعتها وفريقها"
+      title="فئات المجموعات: سعتها"
       action={
         <Button size="sm" variant="glass" onClick={() => setEditing(true)}>
           تعديل الفئات
@@ -167,7 +167,7 @@ function CapacityPanel() {
       }
     >
       <p className="mb-3 text-sm leading-7 text-white/70">
-        لا يختار رئيس المجموعة سعتها ولا فريقها: يُعطيان عند اعتماد مجموعته بأول فئة تنطبق عليه بهذا الترتيب، بحسب رئاسته مجموعات في المواسم السابقة وتقييمه في آخرها. الفريق يُؤخذ من أعلى السلّم: المعاون، ثم الموجّه الديني، فلا موجّه دون معاون. أما المنسق التقني فليس من فريق أي مجموعة: لكل تكتل منسقوه بعدد فئته («فئات منسقي التكتلات» في تبويب «التكتلات والانتخاب»)، ويفرز رئيس التكتل مجموعاته عليهم. التعديل يسري على كل ما يُعتمد بعده، وتبقى المجموعات المعتمدة كما أُعطيت.
+        لا يختار رئيس المجموعة سعتها: تُعطى عند اعتماد مجموعته بأول فئة تنطبق عليه بهذا الترتيب، بحسب رئاسته مجموعات في المواسم السابقة وتقييمه في آخرها. ولا فريق للمجموعة نفسها: يسند إليها رئيس تكتلها موجّهاً ومنسقاً ومعاوناً من فريق تكتله. التعديل يسري على كل ما يُعتمد بعده، وتبقى المجموعات المعتمدة كما أُعطيت.
         {edited && <span className="font-bold text-gold"> عُدّلت هذا الموسم.</span>}
       </p>
       <ol className="grid gap-2 md:grid-cols-2">
@@ -177,7 +177,6 @@ function CapacityPanel() {
             <span className="min-w-0 flex-1">
               <span className="block font-bold text-white">{t.label}</span>
               <span className="block text-xs leading-5 text-white/60">{tierCondition(t)}</span>
-              <span className="block text-xs leading-5 text-gold/90">الفريق: {teamLabel(t.team)}</span>
             </span>
             <span className="shrink-0 text-center">
               <span className="block font-display text-2xl font-bold tabular-nums text-gold">{t.capacity}</span>
@@ -186,7 +185,7 @@ function CapacityPanel() {
           </li>
         ))}
       </ol>
-      <Drawer open={editing} onClose={() => setEditing(false)} title="فئات المجموعات: سعتها وفريقها" width="max-w-2xl">
+      <Drawer open={editing} onClose={() => setEditing(false)} title="فئات المجموعات: سعتها" width="max-w-2xl">
         {editing && <CapacityForm tiers={tiers} edited={edited} onClose={() => setEditing(false)} />}
       </Drawer>
     </Panel>
@@ -209,9 +208,9 @@ function CapacityForm({ tiers, edited, onClose }: { tiers: CapacityTier[]; edite
   const save = () => {
     const clean = rows.map((r) => ({ ...r, label: r.label.trim(), ...(r.when === "first" ? { minRating: undefined, maxRating: undefined } : {}) }));
     actions.setAdminRules({ capacityTiers: clean });
-    const line = (t: CapacityTier) => `${t.label} ${t.capacity} (${teamLabel(t.team)})`;
+    const line = (t: CapacityTier) => `${t.label} ${t.capacity}`;
     logAdmins(user, "groups", { action: "تعديل فئات المجموعات", target: "موسم 1448", before: tiers.map(line).join("، "), after: clean.map(line).join("، "), important: true });
-    toast({ title: "حُفظت فئات المجموعات", body: "تُعطى بها سعة كل مجموعة تُعتمد بعد الآن وفريقها.", tone: "success", icon: "💾" });
+    toast({ title: "حُفظت فئات المجموعات", body: "تُعطى بها سعة كل مجموعة تُعتمد بعد الآن.", tone: "success", icon: "💾" });
     onClose();
   };
   const reset = () => {
@@ -224,7 +223,7 @@ function CapacityForm({ tiers, edited, onClose }: { tiers: CapacityTier[]; edite
   return (
     <div className="space-y-4">
       <p className="text-sm leading-7 text-white/70">
-        لكل فئة اسمها، ومن تنطبق عليه: من لم يرأس مجموعة من قبل، أو من رأس مجموعة وتقييمه في آخر رئاسة ضمن مدى (من 5، والحد الأدنى داخل فيه والأعلى خارج). ثم سعتها وفريقها. تُفحص الفئات بترتيبها، ويأخذ الرئيس سعة أول فئة تنطبق عليه وفريقها.
+        لكل فئة اسمها، ومن تنطبق عليه: من لم يرأس مجموعة من قبل، أو من رأس مجموعة وتقييمه في آخر رئاسة ضمن مدى (من 5، والحد الأدنى داخل فيه والأعلى خارج). ثم سعتها. تُفحص الفئات بترتيبها، ويأخذ الرئيس سعة أول فئة تنطبق عليه وفريقها.
       </p>
       <ol className="space-y-3">
         {rows.map((r, i) => (
@@ -266,21 +265,11 @@ function CapacityForm({ tiers, edited, onClose }: { tiers: CapacityTier[]; edite
                 <span className="mb-1 block text-xs text-white/60">السعة (حاجاً)</span>
                 <input type="number" min={1} value={r.capacity} onChange={(e) => set(i, { capacity: Math.max(0, Math.round(Number(e.target.value) || 0)) })} className={cn(smallInputClass, "w-28 text-center font-display text-lg")} dir="ltr" aria-label={`سعة الفئة ${i + 1}`} />
               </label>
-              <label className="block">
-                <span className="mb-1 block text-xs text-white/60">فريق المجموعة</span>
-                <select value={r.team} onChange={(e) => set(i, { team: Number(e.target.value) })} className={cn(smallInputClass, "w-64")} aria-label={`فريق الفئة ${i + 1}`}>
-                  {Array.from({ length: TEAM_ROLES.length + 1 }, (_, n) => (
-                    <option key={n} value={n}>
-                      {teamLabel(n)}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
           </li>
         ))}
       </ol>
-      <Button size="sm" variant="glass" onClick={() => setRows([...rows, { id: `t-${Date.now().toString(36)}`, label: "", when: "returning", capacity: 50, team: TEAM_ROLES.length }])}>
+      <Button size="sm" variant="glass" onClick={() => setRows([...rows, { id: `t-${Date.now().toString(36)}`, label: "", when: "returning", capacity: 50 }])}>
         <Plus className="size-4" /> فئة جديدة
       </Button>
       {invalid && <p className="text-xs font-bold text-gold">لكل فئة اسم وسعة، وحد التقييم الأدنى أقل من الأعلى.</p>}
@@ -309,9 +298,9 @@ function useDecision() {
     approve(x: GroupRow) {
       // Approval gives the group its capacity: its head's category's, as the categories stand now
       if (!x.tier) return;
-      patchAdmin(x.row, { group: { ...x.g, capacity: x.tier.capacity, capacityTier: x.tier.label, teamSize: x.tier.team, approvedAt: Date.now(), approvedBy: user.name, returned: undefined } }, actions.upsertAdmin);
-      logAdmins(user, "groups", { action: "اعتماد مجموعة", target: `المجموعة ${x.g.number}`, after: `رئيسها ${x.row.name}`, detail: `السعة ${x.tier.capacity} حاجاً، والفريق: ${teamLabel(x.tier.team)} (${x.tier.label})`, ref: String(x.g.number) });
-      toast({ title: `اعتُمدت المجموعة ${x.g.number} بسعة ${x.tier.capacity} حاجاً`, body: "يدعو رئيسها فريقه ويوقّعون ميثاقه، وتنتظر انتخاب رؤساء التكتلات لتنضم إلى تكتل.", tone: "success", icon: "🏅" });
+      patchAdmin(x.row, { group: { ...x.g, capacity: x.tier.capacity, capacityTier: x.tier.label, approvedAt: Date.now(), approvedBy: user.name, returned: undefined } }, actions.upsertAdmin);
+      logAdmins(user, "groups", { action: "اعتماد مجموعة", target: `المجموعة ${x.g.number}`, after: `رئيسها ${x.row.name}`, detail: `السعة ${x.tier.capacity} حاجاً (${x.tier.label})`, ref: String(x.g.number) });
+      toast({ title: `اعتُمدت المجموعة ${x.g.number} بسعة ${x.tier.capacity} حاجاً`, body: "تُلحق بها الحجاج بعقودهم، وتدخل تكتلاً بدعوة يقبلها رئيسها، وفريقها يسنده رئيس التكتل.", tone: "success", icon: "🏅" });
     },
     send(x: GroupRow, note: string) {
       patchAdmin(x.row, { group: { ...x.g, returned: { at: Date.now(), by: user.name, note } } }, actions.upsertAdmin);
@@ -349,7 +338,6 @@ function Decision({ x, onApprove, onReturn }: { x: GroupRow; onApprove: () => vo
 }
 
 function RequestCard({ x, delay, onApprove, onReturn, onOpen }: { x: GroupRow; delay: number; onApprove: () => void; onReturn: () => void; onOpen: () => void }) {
-  const team = x.g.team ?? [];
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="space-y-4 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
       <div className="flex items-start justify-between gap-3">
@@ -359,21 +347,10 @@ function RequestCard({ x, delay, onApprove, onReturn, onOpen }: { x: GroupRow; d
             رئيسها: {x.row.name}
             {x.tier && <> · تُعتمد بسعة {x.tier.capacity} حاجاً</>}
           </p>
-          {x.tier && <p className="text-xs text-white/65">وفريقها: {teamLabel(x.tier.team)}</p>}
         </div>
         <Chip tone={x.complete ? "green" : "gold"}>{x.complete ? "مكتملة الشروط" : "ناقصة"}</Chip>
       </div>
       <Checks x={x} />
-      {team.length > 0 && (
-        <ul className="grid gap-1.5 text-xs sm:grid-cols-3">
-          {team.map((t) => (
-            <li key={t.id} className="rounded-xl bg-white/5 px-2.5 py-2 ring-1 ring-white/10">
-              <span className="block text-white/60">{t.role}</span>
-              <span className="block truncate font-bold text-white">{t.name}</span>
-            </li>
-          ))}
-        </ul>
-      )}
       <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/70">
         <span>قُدّم {fmtDateTime(x.g.requestedAt)}</span>
         {x.g.feePaidAt && (
@@ -403,24 +380,12 @@ function GroupSheet({ x, clusterName, onApprove, onReturn }: { x: GroupRow; clus
         rows={[
           ["رئيسها", x.row.name],
           ["السعة", g.approvedAt ? `${g.capacity} حاجاً${g.capacityTier ? ` — ${g.capacityTier}` : ""}` : x.tier ? `تُعطى عند الاعتماد: ${x.tier.capacity} حاجاً — ${x.tier.label}` : "لا تنطبق على رئيسها أي فئة"],
-          ["صفات الفريق", g.approvedAt ? teamLabel(g.teamSize) : x.tier ? `تُعطى عند الاعتماد: ${teamLabel(x.tier.team)}` : ""],
           ["قُدّم الطلب", fmtDateTime(g.requestedAt)],
           ["رسم التشكيل", g.feePaidAt ? `${fmtDateTime(g.feePaidAt)} — ${adminReceipt(x.row.id, "G", g.number)}` : "لم يُسدَّد"],
           ["الاعتماد", g.approvedAt ? `${g.approvedBy} — ${fmtDateTime(g.approvedAt)}` : ""],
-          ["ميثاق الفريق", g.contractSignedAt ? fmtDateTime(g.contractSignedAt) : ""],
         ]}
       />
       <Checks x={x} />
-      {(g.team ?? []).length > 0 && (
-        <ul className="space-y-1.5 text-sm">
-          {g.team!.map((t) => (
-            <li key={t.id} className="flex justify-between gap-2 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
-              <span className="text-white/65">{t.role}</span>
-              <span className="font-bold text-white">{t.name}</span>
-            </li>
-          ))}
-        </ul>
-      )}
       {g.returned && (
         <p className="rounded-2xl bg-maroon/25 p-3 text-sm leading-7 text-white ring-1 ring-maroon/50">
           أعادها {g.returned.by} — {fmtDateTime(g.returned.at)}: {g.returned.note}

@@ -12,6 +12,7 @@ import { actions, useStore, type SeasonOverrides } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
 import { ago, Donut, fmtDateTime, Gate, logAs, PageHeader, Panel, smallInputClass, useNow, useStaffUser } from "../_components/kit";
+import { OperationsPanel } from "../_components/operations";
 
 type Key = keyof Required<SeasonOverrides>;
 
@@ -90,10 +91,10 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     icon: <Coins />,
     fields: [
       { key: "keepRoleMinRating", label: "الاستمرار في الصفة نفسها: أدنى تقييم للموسم السابق (ومعه إعفاء من الامتحانين)", unit: "من 5", min: 0, max: 5, step: 0.1 },
-      { key: "clusterCount", label: "عدد التكتلات هذا الموسم (يُنتخب رؤساؤها من رؤساء المجموعات)", unit: "تكتلات", min: 1, max: 30 },
-      { key: "clusterHeadSeasons", label: "الترشح لرئاسة تكتل: مواسم متتالية رئيساً لمجموعة", unit: "مواسم", min: 0, max: 6 },
-      { key: "clusterHeadMinRating", label: "الترشح لرئاسة تكتل: أدنى تقييم في كل موسم منها", unit: "من 5", min: 0, max: 5, step: 0.1 },
-      { key: "deputySeasons", label: "معاون رئيس التكتل (يختاره الرئيس): مواسم سابقة رئيساً لمجموعة", unit: "مواسم", min: 0, max: 5 },
+      { key: "clusterHeadSeasons", label: "طلب تشكيل تكتل (لا انتخاب): مواسم متتالية رئيساً لمجموعة", unit: "مواسم", min: 0, max: 6 },
+      { key: "clusterHeadMinRating", label: "طلب تشكيل تكتل: أدنى تقييم في كل موسم منها", unit: "من 5", min: 0, max: 5, step: 0.1 },
+      { key: "clusterMinGroups", label: "أقل عدد مجموعات ليُعتمد التكتل عند الموعد النهائي", unit: "مجموعات", min: 1, max: 30 },
+      { key: "deputySeasons", label: "نائب رئيس التكتل (يدعوه الرئيس): مواسم سابقة رئيساً لمجموعة", unit: "مواسم", min: 0, max: 5 },
     ],
   },
 ];
@@ -131,10 +132,10 @@ const LABELS: Record<Key, string> = {
   recordValidSeasons: "صلاحية وثيقة لا حكم عليه",
   recommendationValidSeasons: "صلاحية التزكية",
   keepRoleMinRating: "أدنى تقييم للاستمرار في الصفة",
-  clusterCount: "عدد التكتلات",
-  clusterHeadSeasons: "مواسم الترشح لرئاسة تكتل",
-  clusterHeadMinRating: "أدنى تقييم للترشح",
-  deputySeasons: "مواسم معاون رئيس التكتل",
+  clusterMinGroups: "أقل عدد مجموعات للتكتل",
+  clusterHeadSeasons: "مواسم طلب تشكيل تكتل",
+  clusterHeadMinRating: "أدنى تقييم لطلب تشكيل تكتل",
+  deputySeasons: "مواسم نائب رئيس التكتل",
   promoteShare: "نسبة الترقية من كل فئة",
   demoteShare: "نسبة التخفيض من كل فئة",
   honorTop: "المكرَّمون في كل فئة",
@@ -154,7 +155,7 @@ function valuesOf(s: LiveSeason): Values {
     firstInstallment: s.fees.firstInstallment,
     installmentCount: s.fees.installmentCount,
     keepRoleMinRating: s.administrators.keepRoleMinRating,
-    clusterCount: s.administrators.clusterCount,
+    clusterMinGroups: s.administrators.clusterMinGroups,
     clusterHeadSeasons: s.administrators.clusterHeadSeasons,
     clusterHeadMinRating: s.administrators.clusterHeadMinRating,
     deputySeasons: s.administrators.deputySeasons,
@@ -272,6 +273,11 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
         </div>
       </motion.div>
 
+      {/* The season's calendar comes first: every operation's state and dates, before its numbers */}
+      <div className="mb-6">
+        <OperationsPanel title="عمليات الموسم: حالتها ومواعيدها" />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           {/* Direct share slider */}
@@ -300,7 +306,7 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                 <input
                   type="range"
                   min={10}
-                  max={60}
+                  max={90}
                   value={draft.directShare}
                   onChange={(e) => set("directShare", Number(e.target.value))}
                   aria-label="نسبة القبول المباشر"
@@ -309,8 +315,8 @@ function SeasonForm({ overrides }: { overrides: SeasonOverrides }) {
                 />
                 <div className="mt-1 flex justify-between text-[11px] text-white/75" dir="ltr">
                   <span>10%</span>
-                  <span>35%</span>
-                  <span>60%</span>
+                  <span>65%</span>
+                  <span>90%</span>
                 </div>
                 {draft.directShare !== DEFAULTS.directShare && <Chip tone="gold" className="mt-2">القيمة في الوثيقة: {DEFAULTS.directShare}%</Chip>}
               </div>

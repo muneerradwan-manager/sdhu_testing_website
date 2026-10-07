@@ -14,7 +14,6 @@ import { fmtDate, fmtDateTime, Kpi, PageHeader, Panel, useStaffUser } from "../_
 import { Chip } from "../_components/ops-ui";
 import { Escalate, Raised, Todo } from "../_components/system";
 import { FunnelTable } from "./_components/applicants";
-import { ElectionSteps } from "./_components/clusters";
 import { StageCoverage } from "./_components/evaluation";
 import { useAdminsDesk } from "./desk";
 
@@ -24,7 +23,7 @@ const M = SYSTEMS.admins.manage.href;
  * The dashboard of whoever holds «إدارة الإداريين», in place of a general «لوحتي»: the season's
  * administrators in four numbers, what waits for him — each item one click from the tab it is done in —
  * then, in the order the work is done, where each part stands: the rules, the applicants role by role,
- * the groups, the election and its clusters, the evaluation and the classification. The records stay in
+ * the groups, the cluster requests, the evaluation and the classification. The records stay in
  * the management tabs.
  */
 export function AdminsSummary() {
@@ -33,14 +32,12 @@ export function AdminsSummary() {
   const grant = useHolders().admins.find((h) => h.staffId === user.id);
   const desk = useAdminsDesk();
   const season = useSeason();
-  const election = useStore((s) => s.election);
   const grading = useStore((s) => s.grading);
   const requirementsEdited = useStore((s) => !!s.adminRules.requirements);
   const commitments = useCommitments();
   const stages = useEvaluationStages();
   const calendar = useAdminCalendar();
   const [escalating, setEscalating] = useState(false);
-  const clusterCount = season.administrators.clusterCount;
   const closed = APPLIED_ROLES.filter((r) => !desk.openRoles.includes(r));
   const atHeads = desk.groups.filter((x) => x.state === "unpaid" || x.state === "returned").length;
 
@@ -50,7 +47,7 @@ export function AdminsSummary() {
         eyebrow={`صلاحيتك: ${SYSTEMS.admins.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.admins.summary.label}
         icon={<Gauge />}
-        description="حال الإداريين الموسميين الآن، وما ينتظرك فيهم. العمل نفسه وسجلّ كل جزء في «إدارة الإداريين». ولا يصل إلى مديرة الموسم إلا ما يعطّل العمل، وفتح الصفات وإغلاقها، وفتح الانتخاب وإعلانه وإعادته، ونشر التصنيف، وما ترفعه إليها."
+        description="حال الإداريين الموسميين الآن، وما ينتظرك فيهم. العمل نفسه وسجلّ كل جزء في «إدارة الإداريين». ولا يصل إلى مديرة الموسم إلا ما يعطّل العمل، وفتح الصفات وإغلاقها، وحسم طلبات التكتلات عند موعدها وتوزيع المجموعات، ونشر التصنيف، وما ترفعه إليها."
         actions={
           <>
             <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
@@ -67,12 +64,12 @@ export function AdminsSummary() {
         <Kpi label="المتقدمون" value={desk.totals.applied} icon={<UsersRound />} hint={`${formatNumber(desk.totals.paid)} سددوا الرسم${desk.noRole ? ` · ${desk.noRole} لم يختاروا صفة` : ""}`} />
         <Kpi label="مؤهَّلون للعمل" value={desk.totals.qualified} icon={<GraduationCap />} tone="teal" delay={0.05} hint={`${desk.totals.passed} نجحوا · ${desk.totals.exempt} بالتجديد دون امتحان`} />
         <Kpi label="مجموعات معتمدة" value={desk.approved.length} icon={<BadgeCheck />} tone="maroon" delay={0.1} pulse={desk.waiting.length > 0} hint={desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر قرارك` : `من ${desk.groups.length} طلبات تشكيل`} />
-        <Kpi label="تكتلات منشأة" value={desk.clusters.length} icon={<Building2 />} tone="gold" delay={0.15} hint={`من ${clusterCount} تكتلات الموسم`} />
+        <Kpi label="تكتلات معتمدة" value={desk.approvedClusters.length} icon={<Building2 />} tone="gold" delay={0.15} hint={`من ${desk.requests.length} طلبات تشكيل`} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Todo alerts={desk.alerts} empty="الصفات مفتوحة، والطلبات مبتوت فيها، ولكل تكتل منشأ معاونه، ولا برنامج أو تقييم معلّق." />
-        <Raised system="admins" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — عدد تكتلات لا يكفيه المرشحون، رسم يحتاج مراجعة، قرار خارج القواعد — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
+        <Raised system="admins" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — طلب تكتل يحتاج استثناء، رسم يحتاج مراجعة، قرار خارج القواعد — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
       </div>
 
       {/* In the order the work is done: the rules, who applied, the groups, the clusters, the evaluation, the classification */}
@@ -121,12 +118,11 @@ export function AdminsSummary() {
         )}
       </Panel>
 
-      <Panel icon={<Vote />} title="التكتلات والانتخاب" action={<ManageLink href={`${M}/clusters`} />}>
-        <ElectionSteps desk={desk} openedAt={election.openedAt} closedAt={election.closedAt} />
-        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Stat k="رؤساء منتخبون" v={`${desk.elected.length} من ${clusterCount}`} />
-          <Stat k="تكتلات منشأة" v={desk.clusters.length} tone="green" />
-          <Stat k="تكتلات بلا معاون" v={desk.noDeputy.length} tone={desk.noDeputy.length ? "maroon" : undefined} />
+      <Panel icon={<Building2 />} title="طلبات تشكيل التكتلات" action={<ManageLink href={`${M}/clusters`} />}>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <Stat k="طلبات التشكيل" v={desk.requests.length} />
+          <Stat k="مكتملة الآن" v={desk.requests.filter((r) => r.complete).length} tone="green" />
+          <Stat k={desk.deadlinePassed ? "تنتظر قرارك" : "معتمدة"} v={desk.deadlinePassed ? desk.undecided.length : desk.approvedClusters.length} tone={desk.deadlinePassed && desk.undecided.length ? "maroon" : undefined} />
           <Stat k="برامج تنتظر اعتمادك" v={desk.pendingProgrammes.length} tone={desk.pendingProgrammes.length ? "gold" : undefined} />
         </div>
       </Panel>
@@ -166,7 +162,7 @@ export function AdminsSummary() {
         </div>
       </Panel>
 
-      <Escalate system="admins" open={escalating} onClose={() => setEscalating(false)} example="مثال: أُعلن 8 رؤساء والموسم 10 تكتلات، ولم يترشح ما يكفي. نحتاج قراراً في العدد قبل 11 جمادى الآخرة." />
+      <Escalate system="admins" open={escalating} onClose={() => setEscalating(false)} example="مثال: طلب تكتل ينقصه معاون واحد عند الموعد النهائي ورئيسه يطلب مهلة يومين. نحتاج قراراً قبل توزيع المجموعات." />
     </div>
   );
 }

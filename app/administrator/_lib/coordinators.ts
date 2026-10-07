@@ -1,11 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { NOUR_GROUPS } from "@/lib/flights";
-import { useStore, type AdminProfile } from "@/lib/store";
+import { useStore, type AdminProfile, type TeamPool } from "@/lib/store";
 import { lastServed } from "./admin";
-export { NOUR_ASSIGNMENT, NOUR_COORDINATORS } from "./admin";
-import { clusterGroupsOf, type ClusterGroup } from "./cluster";
+import { SEED_CLUSTERS, groupsFromCluster, type ClusterGroup } from "./cluster";
 
 /**
  * The technical coordinator is not part of a group's team: he works for the cluster. The cluster head
@@ -68,27 +66,25 @@ export function useCoordinatorTiers(): CoordinatorTier[] {
 }
 
 
-export type CoordinatorPost = { clusterId: string; clusterName: string; headId: string; headName: string; groups: ClusterGroup[] };
+export type CoordinatorPost = { clusterId: string; clusterName: string; headId: string; headName: string; role: TeamPool; groups: ClusterGroup[] };
 
 /**
- * Where a coordinator works: his cluster and the groups its head sorted to him. Read from the head's own
- * record when it is on this device, so a change to the sorting reaches him at once; otherwise from what
- * his invitation left on his record.
+ * Where a coordinator — or a guide, or an assistant — works: his cluster and the groups its head assigned
+ * to him. Read from the head's own record when it is on this device, so a change reaches him at once; else
+ * from the season's seeded request; else from what his invitation left on his record.
  */
 export function coordinatorPostOf(id: string, p: AdminProfile | undefined, admins: Record<string, AdminProfile>): CoordinatorPost | null {
-  const c = p?.coordinatorIn;
+  const c = p?.coordinatorIn ?? p?.servesIn;
   if (!c) return null;
+  const role: TeamPool = p?.coordinatorIn ? "tech" : p!.servesIn!.role;
   const head = admins[c.headId];
-  if (head?.cluster?.id === c.clusterId) {
-    const all = clusterGroupsOf(head, c.headName);
-    return { ...c, groups: all.filter((g) => head.cluster!.assignment?.[g.number] === id) };
+  const seed = SEED_CLUSTERS.find((s) => s.cluster.id === c.clusterId);
+  const rec = head?.cluster?.id === c.clusterId ? head.cluster : seed?.cluster;
+  if (rec) {
+    const all = groupsFromCluster(rec, head?.group?.number ?? seed?.headGroup);
+    return { ...c, role, groups: all.filter((g) => rec.posts[role][g.number] === id) };
   }
-  const pool = c.clusterId === "al-nour" ? NOUR_GROUPS : [];
-  const groups = c.groups.flatMap((n) => {
-    const g = pool.find((x) => x.number === n);
-    return g ? [{ id: `g-${n}`, number: n, head: g.head, office: "مكتب دمشق", capacity: g.capacity, pilgrims: g.pilgrims, joined: "مفروزة لك" }] : [];
-  });
-  return { ...c, groups };
+  return { ...c, role, groups: [] };
 }
 
 export function useCoordinatorPost(id: string, p: AdminProfile | undefined) {

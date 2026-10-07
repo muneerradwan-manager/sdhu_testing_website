@@ -98,7 +98,7 @@ export function StageEligible({ app }: { app: Application }) {
   );
 }
 
-/** Oldest-first cut: a distribution of eligible applicants with the 66+ threshold line */
+/** Oldest-first cut: a distribution of eligible applicants with the 68+ threshold line (born 1958 or earlier) */
 export function StageDirect({ age }: { age: number }) {
   const bars = useMemo(() => {
     const rnd = seeded("ages");
@@ -115,7 +115,7 @@ export function StageDirect({ age }: { age: number }) {
         <div>
           <p className="font-display text-2xl font-bold text-green-dark">القبول المباشر وفق الأكبر سناً</p>
           <p className="text-ink-soft">
-            {formatNumber(SEASON.directSeats)} مقعداً (35%) — الأعمار المقبولة: <b className="text-maroon">{SEASON.acceptedDirectAge} عاماً فأكثر</b>
+            {formatNumber(SEASON.directSeats)} مقعداً ({Math.round(SEASON.directShare * 100)}%) — الأعمار المقبولة: <b className="text-maroon">{SEASON.acceptedDirectAge} عاماً فأكثر</b>
           </p>
         </div>
         <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1 }} className={cn("rounded-2xl px-4 py-2 font-bold", accepted ? "bg-green-light text-white" : "bg-gold/30 text-maroon")}>

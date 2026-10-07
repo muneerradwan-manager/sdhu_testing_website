@@ -29,6 +29,7 @@ import { actions, useStore } from "@/lib/store";
 import { cn, formatNumber, maskNationalId } from "@/lib/utils";
 import { useReviewQueue, type ReviewItem } from "../_components/data";
 import { BarList, Donut, Drawer, Empty, fmtDateTime, Gate, Kpi, Legend, logAs, PageHeader, Panel, Tabs, textareaClass, useStaffUser } from "../_components/kit";
+import { ContractsPanel } from "./contracts";
 
 type Filter = "pending" | "approved" | "rejected" | "all";
 
@@ -95,6 +96,8 @@ function Reviews() {
         icon={<ClipboardCheck />}
         description="طبّقت المنصة شروط الموسم على كل فرد في كل طلب. ما استوفى الشروط اعتُمد تلقائياً، وما يلي يحتاج قراراً بشرياً مع سبب مكتوب."
       />
+
+      <ContractsPanel />
 
       {/* Registration overview */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

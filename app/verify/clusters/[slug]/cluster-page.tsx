@@ -193,7 +193,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                 <Users className="size-6 text-gold-dark" /> مجموعات التكتل
               </h2>
               <p className="mt-2 text-sm leading-7 text-ink-soft">
-                في مرحلة التفويج تختار مجموعتك من هنا وتتواصل معها، فيسجّلك منسقها ويوقّعان معك العقد. لكل مجموعة رئيسها وسعتها.
+                للاطلاع: الالتحاق بمجموعة لا يكون من المنصة. تتفق مع المجموعة، فيرفع رئيسها أو منسقها عقدك ويعتمده المكتب. لكل مجموعة رئيسها وسعتها.
               </p>
               <ul className="mt-4 space-y-3">
                 {c.groups.map((g, i) => {

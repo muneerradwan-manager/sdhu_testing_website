@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * مكتب المنسق التقني: تسجيل طلب حج عن مواطن.
+ * التسجيل على الحج عن مواطن: يقوم به كل من يملك صلاحيته — إداري تملكها صفته (رئيس المجموعة،
+ * المنسق التقني، المعاون…) أو موظف إدخال بيانات — ولا يضع الحاج في أي مجموعة.
  *
- * المبدأ الحاكم: المنسق لا «ينوب» عن المواطن بلا إذنه. لكل طلب يسجّله المنسق رمز تحقق
- * يصل إلى هاتف المواطن المسجّل في الشؤون المدنية، ولا يكتمل التسجيل قبل إدخاله. ويُختم كل
- * طلب باسم المنسق (`submittedBy`) فيظهر في الطلب وفي سجل الأحداث، ولا يمكن حذفه.
+ * المبدأ الحاكم: من يسجّل لا «ينوب» عن المواطن بلا إذنه. لكل طلب رمز تحقق يصل إلى هاتف
+ * المواطن المسجّل في الشؤون المدنية، ولا يكتمل التسجيل قبل إدخاله. ويُختم كل طلب باسم من
+ * سجّله (`submittedBy`) فيظهر في الطلب وفي سجل الأحداث، ولا يمكن حذفه.
  */
 
 import { groupInfo } from "@/lib/assignment";
@@ -52,8 +53,8 @@ export function maskedPhone(p: Person) {
 export type FiledApplication = { number: string; receipt: string };
 
 /**
- * مكتب المنسق. الطلب الذي يسجّله يتبع مكتبه، لكنه تسجيل عادي لا يضع أحداً في مجموعة: الانضمام إلى
- * المجموعات يتم في مرحلة التفويج فقط، ويسجّل فيها المنسق الحجاج في المجموعات التي فرزها له رئيس تكتله.
+ * المكتب الذي يتبعه الطلب. تسجيل عادي لا يضع أحداً في مجموعة: إلحاق الحاج بمجموعة عملية مستقلة لاحقة،
+ * بعقد بينه وبين المجموعة يرفعه رئيسها أو من أسنده إليها رئيس التكتل.
  */
 export function coordinatorPosting() {
   const info = groupInfo(TECH_POSTING.clusterId, TECH_POSTING.groupNumber);
@@ -75,7 +76,8 @@ export function fileApplication(opts: {
   track: "direct" | "lottery";
   /** خطة تسديد تكلفة الحج التي حددتها الإدارة للموسم (دفعة واحدة أو دفعتان) */
   plan?: Plan;
-  coordinator: { id: string; name: string; position: string };
+  /** Who filed it: an administrator (his role's key) or a staff member (`role`: his title) */
+  coordinator: { id: string; name: string; position: string; role?: string };
   /** لحظة التقديم — تُمرَّر من معالج الحدث */
   at: number;
 }): FiledApplication {
@@ -110,15 +112,15 @@ export function fileApplication(opts: {
     firstPaid: first ? { amount: first, at, receipt: `1448-P-${number.padStart(6, "0")}-1` } : undefined,
     payMethod,
     ratings: {},
-    submittedBy: coordinator,
+    submittedBy: { id: coordinator.id, name: coordinator.name, position: coordinator.position },
   });
 
   actions.logEvent({
     actor: coordinator.name,
-    role: `إداري — ${positionLabel(coordinator.position)}`,
+    role: coordinator.role ?? `إداري — ${positionLabel(coordinator.position)}`,
     action: "تسجيل طلب حج عن مواطن",
     target: `طلب ${number} — ${fullName(applicant)}`,
-    detail: `${members.length} أفراد — ${track === "direct" ? `القبول المباشر — رسم التسجيل + الدفعة الأولى (${planLabel(plan ?? seasonPlan())})` : "القرعة — رسم التسجيل"} — بموافقة المواطن برمز تحقق — ${posting.office} — دون مجموعة حتى مرحلة التفويج — الإيصال ${receipt}`,
+    detail: `${members.length} أفراد — ${track === "direct" ? `القبول المباشر — رسم التسجيل + الدفعة الأولى (${planLabel(plan ?? seasonPlan())})` : "القرعة — رسم التسجيل"} — بموافقة المواطن برمز تحقق — ${posting.office} — لا يضعه في أي مجموعة — الإيصال ${receipt}`,
   });
 
   return { number, receipt };

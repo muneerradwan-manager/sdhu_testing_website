@@ -13,9 +13,10 @@
 export type Permission =
   | "systems.assign" // منح صلاحيات إدارة الملفات وسحبها، ومتابعة حال كل ملف وأحداثه المهمة
   | "staff.manage" // إدارة الموظفين: الملف كله، من سجل الموظفين وحساباتهم إلى مشاركتهم في الموسم
-  | "admins.manage" // إدارة الإداريين: الملف كله، من قواعد الصفات إلى المجموعات والتكتلات وانتخابها وتقييمها وتصنيفها
+  | "admins.manage" // إدارة الإداريين: الملف كله، من قواعد الصفات إلى المجموعات وطلبات التكتلات واعتمادها وتقييمها وتصنيفها
   | "exams.manage" // إدارة الامتحانات: الملف كله، من المراكز إلى إعلان النتائج
   | "flights.manage" // إدارة الطيران: الملف كله، من الرحلات إلى الإقلاع والهبوط
+  | "pilgrims.register" // التسجيل على الحج: تسجيل أي حاج في مدة التسجيل — لا يضعه في مجموعة ولا يمنح أي صلاحية في المجموعات
   | "registration.review" // مراجعة الطلبات والوثائق
   | "season.settings" // إعدادات الموسم والاعتماد
   | "lottery.import" // إدخال نتائج القرعة (سنوات الميلاد وأشهرها كما سُحبت في البث)
@@ -47,6 +48,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "admins.manage",
   "exams.manage",
   "flights.manage",
+  "pilgrims.register",
   "registration.review",
   "season.settings",
   "lottery.import",
@@ -65,6 +67,8 @@ export const TASK_PERMISSIONS = ALL_PERMISSIONS.filter((p) => !MANAGEMENT_PERMIS
 export const STAFF: StaffUser[] = [
   { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: TASK_PERMISSIONS },
   { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", permissions: ["registration.review"] },
+  // Data entry: this one permission and nothing else — no group, no cluster, no administrator
+  { id: "razan", username: "razan", name: "رزان الحسن", title: "إدخال بيانات — التسجيل على الحج", travels: false, initials: "ر", permissions: ["pilgrims.register"] },
   { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", permissions: ["lottery.import"] },
   { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", permissions: ["lottery.approve"] },
   { id: "maher", username: "maher", name: "ماهر عيسى", title: "شؤون الإداريين", travels: false, initials: "م", permissions: ["admins.manage"] },
@@ -104,6 +108,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "admins.manage": "إدارة الإداريين",
   "exams.manage": "إدارة الامتحانات",
   "flights.manage": "إدارة الطيران",
+  "pilgrims.register": "التسجيل على الحج",
   "registration.review": "مراجعة الطلبات والوثائق",
   "season.settings": "إعدادات الموسم",
   "lottery.import": "إدخال نتائج القرعة",

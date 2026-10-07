@@ -35,10 +35,13 @@ import { ageOf, fullName, isValidNationalId, lookupPerson, type Person } from "@
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { useStore } from "@/lib/store";
 import { cn, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
-import { isTechCoordinator, logAdmin, nowMs, positionOf, useAdmin } from "../../_lib/admin";
+import { effectiveRole, logAdmin, nowMs, positionLabelOf, positionOf, useAdmin } from "../../_lib/admin";
+import { useAdminCan } from "../../_lib/permissions";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { blockFor, coordinatorPosting, fileApplication, filedBy, maskedPhone, type FiledApplication } from "../../_lib/coordinator";
 import { AdminShell, LockedCard, ReceiptCard, SectionTitle } from "../../_components/ui";
+import { OperationClosed } from "@/components/app/operation-closed";
+import { statusLabel, useAnyOperation } from "@/lib/operations";
 import { ApplicationDetail } from "./detail";
 
 type Step = "citizen" | "consent" | "members" | "booklet" | "adder" | "eligibility" | "office" | "done";
@@ -51,12 +54,49 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "office", label: "المكتب والرسم" },
 ];
 
+/** Who files at the desk: an administrator whose role holds the permission, or a staff member who holds it */
+export type Registrar = { id: string; name: string; position: string; label: string; role?: string; log: (action: string, target?: string, detail?: string) => void };
+
 /**
- * مكتب المنسق التقني: يسجّل طلب حج عن مواطن يراجعه في الفرع، بالخطوات نفسها التي
- * يمرّ بها الحاج على هاتفه — لكن بموافقة المواطن برمز تحقق، وبختم اسم المنسق على الطلب.
+ * التسجيل على الحج من الإداريين: لكل صفة تملك صلاحية «التسجيل على الحج» في جدول صلاحيات الصفات
+ * (رئيس المجموعة والمنسق التقني والمعاون، وغيرهم إن منحتهم الإدارة). التسجيل لا يضع الحاج في أي مجموعة.
  */
 export function AdminPilgrims() {
   const admin = useAdmin()!;
+  const can = useAdminCan();
+  if (!can("pilgrims.register")) {
+    return (
+      <AdminShell title="التسجيل على الحج" subtitle="تسجيل طلبات الحج عن المواطنين الذين يراجعون الفرع.">
+        <LockedCard
+          title="صفتك لا تملك صلاحية التسجيل على الحج"
+          text="التسجيل على الحج صلاحية مستقلة تمنحها الإدارة لصفات بعينها في جدول صلاحيات الصفات. وهي لا تتبع الفئة: من يملكها يسجّل أي حاج في مدة التسجيل، ولا يصير الحاج تابعاً لمجموعته."
+          href="/administrator/dashboard"
+          cta="ملفي"
+        />
+      </AdminShell>
+    );
+  }
+  const registrar: Registrar = { id: admin.id, name: admin.name, position: positionOf(admin.profile), label: positionLabelOf(effectiveRole(admin.profile) || positionOf(admin.profile)), log: (a, t, d) => logAdmin(admin.id, a, t, d) };
+  return (
+    <AdminShell
+      title="التسجيل على الحج"
+      subtitle={
+        <>
+          يراجعك مواطن لا يملك هاتفاً ذكياً أو يصعب عليه التسجيل بنفسه، فتفتح له الطلب. لا يكتمل أي طلب قبل موافقته برمز يصل إلى
+          هاتفه، ويبقى اسمك مختوماً على الطلب وفي سجل الأحداث. والتسجيل لا يضع الحاج في مجموعتك.
+        </>
+      }
+    >
+      <RegistrationDesk registrar={registrar} aside={<Posting />} />
+    </AdminShell>
+  );
+}
+
+/**
+ * مكتب التسجيل على الحج: يسجّل طلب حج عن مواطن يراجعه، بالخطوات نفسها التي يمرّ بها الحاج على هاتفه
+ * — لكن بموافقة المواطن برمز تحقق، وبختم اسم من سجّله على الطلب. للإداريين وللموظفين.
+ */
+export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; aside?: React.ReactNode }) {
   const season = useSeason();
   const toast = useToast();
   const applications = useStore((s) => s.applications);
@@ -76,8 +116,12 @@ export function AdminPilgrims() {
   const [viewing, setViewing] = useState<string | null>(null);
   const [checks, setChecks] = useState(0);
 
-  const mine = useMemo(() => filedBy(admin.id, applications), [admin.id, applications]);
-  const [track, setTrack] = useState<"direct" | "lottery">("direct");
+  const mine = useMemo(() => filedBy(registrar.id, applications), [registrar.id, applications]);
+  const [picked, setTrack] = useState<"direct" | "lottery">("direct");
+  // Two registrations, each in its own dates: only the open one can be filed
+  const hajj = useAnyOperation(["hajj-direct", "hajj-lottery"]);
+  const [directOp, lotteryOp] = hajj.states;
+  const track = picked === "direct" && !directOp.open && lotteryOp.open ? "lottery" : picked === "lottery" && !lotteryOp.open && directOp.open ? "direct" : picked;
   // Direct acceptance age is checked here, before the citizen pays anything
   const result = useMemo(
     () => evaluate(members, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined),
@@ -88,19 +132,6 @@ export function AdminPilgrims() {
   const plan = seasonPlan(season.fees);
   const first = track === "direct" ? firstPayment(plan, members.length, season.fees) : 0;
   const [filedFirst, setFiledFirst] = useState(0);
-
-  if (!isTechCoordinator(admin.profile)) {
-    return (
-      <AdminShell title="تسجيل الحجاج" subtitle="مكتب المنسق التقني: تسجيل طلبات الحج عن المواطنين الذين يراجعون الفرع.">
-        <LockedCard
-          title="هذه الشاشة للمنسق التقني"
-          text="تسجيل طلب عن مواطن صلاحية تُمنح لصفة «منسق تقني» وحدها، لأنها تتعامل مع بيانات مواطنين لا يملكون حسابات بعد. اطلب الصفة في طلب المشاركة إن كانت من اختصاصك."
-          href="/administrator/apply"
-          cta="طلب المشاركة"
-        />
-      </AdminShell>
-    );
-  }
 
   const reset = () => {
     setStep("citizen");
@@ -118,7 +149,7 @@ export function AdminPilgrims() {
   const lookup = async () => {
     setError("");
     if (!isValidNationalId(id)) return setError("الرقم الوطني يتكون من 11 رقماً.");
-    const block = blockFor(id, admin.id, { applications, admins });
+    const block = blockFor(id, registrar.id, { applications, admins });
     if (block.kind !== "ok") return setError(block.text);
     setBusy(true);
     const person = await lookupPerson(id);
@@ -137,7 +168,7 @@ export function AdminPilgrims() {
     }
     const p = citizen!;
     setMembers([{ person: p, relation: "self", relationVerified: true, needs: [] }]);
-    logAdmin(admin.id, "بدء تسجيل طلب عن مواطن", fullName(p), "بعد تأكيد موافقته برمز تحقق");
+    registrar.log("بدء تسجيل طلب عن مواطن", fullName(p), "بعد تأكيد موافقته برمز تحقق");
     setStep("members");
   };
 
@@ -162,7 +193,7 @@ export function AdminPilgrims() {
       feePerPerson: season.fees.registrationPerPerson,
       track,
       plan,
-      coordinator: { id: admin.id, name: admin.name, position: positionOf(admin.profile) },
+      coordinator: { id: registrar.id, name: registrar.name, position: registrar.position, role: registrar.role },
       at: nowMs(),
     });
     setFiled(receipt);
@@ -177,15 +208,7 @@ export function AdminPilgrims() {
   };
 
   return (
-    <AdminShell
-      title="تسجيل الحجاج"
-      subtitle={
-        <>
-          يراجعك مواطن لا يملك هاتفاً ذكياً أو يصعب عليه التسجيل بنفسه، فتفتح له الطلب من مكتبك. لا يكتمل أي طلب قبل موافقته
-          برمز يصل إلى هاتفه، ويبقى اسمك مختوماً على الطلب وفي سجل الأحداث.
-        </>
-      }
-    >
+    <>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-6">
           {viewing ? (
@@ -196,7 +219,12 @@ export function AdminPilgrims() {
 
           <AnimatePresence mode="wait">
             {/* ── 1) المواطن ── */}
-            {step === "citizen" && (
+            {step === "citizen" && !hajj.open && (
+              <Pane key="closed">
+                <OperationClosed state={hajj.states.find((o) => o.status === "upcoming") ?? lotteryOp} text="الطلبات المسجّلة باقية في قائمتك؛ ما يُغلق هو تسجيل الجديد." />
+              </Pane>
+            )}
+            {step === "citizen" && hajj.open && (
               <Pane key="citizen">
                 <Card>
                   <SectionTitle icon={SearchCheck}>ابحث عن المواطن في الشؤون المدنية</SectionTitle>
@@ -426,7 +454,7 @@ export function AdminPilgrims() {
                 <Card>
                   <SectionTitle icon={Building2}>نوع التسجيل والدفع</SectionTitle>
                   <p className="mt-2 leading-8 text-ink-soft">
-                    تسجيل عادي على القبول المباشر أو على القرعة، يتبع مكتبك ({posting.office}). لا يدخل الحاج أي مجموعة الآن: في مرحلة التفويج يختار مجموعته، فإن اختار مجموعتك سجّلته فيها من «حجاج المجموعة».
+                    تسجيل عادي على القبول المباشر أو على القرعة، يتبع مكتبك ({posting.office}). التسجيل على الحج لا يضع الحاج في أي مجموعة، ولا في مجموعتك: إلحاقه بمجموعة عملية مستقلة لاحقة، بعقد بينه وبين المجموعة، فإن اختار مجموعتك سجّلته فيها من «حجاج المجموعة».
                   </p>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -437,17 +465,18 @@ export function AdminPilgrims() {
                       ] as const
                     ).map(([k, label, d]) => {
                       const tooYoung = k === "direct" && !!members[0] && ageOf(members[0].person) < season.acceptedDirectAge;
+                      const op = k === "direct" ? directOp : lotteryOp;
                       return (
                         <button
                           key={k}
                           type="button"
-                          disabled={tooYoung}
+                          disabled={tooYoung || !op.open}
                           onClick={() => setTrack(k)}
                           className={cn("rounded-2xl border-2 p-4 text-right transition disabled:cursor-not-allowed disabled:opacity-45", track === k ? "border-green-dark bg-green-dark text-white" : "border-gold/40 bg-white hover:border-gold-dark")}
                         >
                           <span className="block font-bold">{label}</span>
                           <span className={cn("text-xs", track === k ? "text-white/75" : "text-ink-soft")}>
-                            {tooYoung ? `غير متاح: عمر صاحب الطلب ${ageOf(members[0].person)} والقبول المباشر لمن بلغ ${season.acceptedDirectAge} عاماً فأكثر` : d}
+                            {!op.open ? `غير متاح: ${statusLabel(op)}` : tooYoung ? `غير متاح: عمر صاحب الطلب ${ageOf(members[0].person)} والقبول المباشر لمن بلغ ${season.acceptedDirectAge} عاماً فأكثر` : d}
                           </span>
                         </button>
                       );
@@ -525,7 +554,7 @@ export function AdminPilgrims() {
                       ["صاحب الطلب", fullName(members[0]?.person ?? citizen)],
                       ...(members[0] && members[0].person.id !== citizen.id ? ([["في حساب", fullName(citizen)]] as [string, string][]) : []),
                       ["عدد الأفراد", String(members.length)],
-                      ["سجّله", `${admin.name} — منسق تقني`],
+                      ["سجّله", `${registrar.name} — ${registrar.label}`],
                     ]}
                   />
 
@@ -548,11 +577,11 @@ export function AdminPilgrims() {
 
         {/* ── لوحة جانبية: التعيين وما سجّله ── */}
         <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
-          <Posting />
+          {aside}
           <FiledList mine={mine} onReset={() => { setViewing(null); reset(); }} onOpen={setViewing} viewing={viewing} />
         </aside>
       </div>
-    </AdminShell>
+    </>
   );
 }
 
@@ -596,13 +625,14 @@ function Stepper({ current }: { current: Step }) {
 function Posting() {
   const admin = useAdmin()!;
   const post = useCoordinatorPost(admin.id, admin.profile);
+  const role = positionLabelOf(effectiveRole(admin.profile) || positionOf(admin.profile));
   return (
     <div className="relative overflow-hidden rounded-3xl bg-green-dark p-5 text-white">
       <div className="bg-pattern absolute inset-0 opacity-15" />
       <div className="relative">
         <p className="text-xs font-bold text-gold">تعييني هذا الموسم</p>
-        <p className="mt-1 font-display text-xl font-bold">منسق تقني</p>
-        <p className="mt-1 text-sm text-white/75">{post ? `${post.clusterName} — ${groupsLabel(post.groups.map((x) => x.number))}` : "لم تنضم إلى تكتل بعد"}</p>
+        <p className="mt-1 font-display text-xl font-bold">{role}</p>
+        <p className="mt-1 text-sm text-white/75">{post ? `${post.clusterName} — ${groupsLabel(post.groups.map((x) => x.number))}` : admin.profile?.group ? `المجموعة ${admin.profile.group.number}` : "تملك صفتك صلاحية التسجيل على الحج"}</p>
         <ul className="mt-4 space-y-2 text-sm text-white/85">
           <li className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" /> أسجّل عن المواطن بموافقته برمز تحقق
@@ -611,7 +641,7 @@ function Posting() {
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" /> اسمي يُختم على كل طلب سجّلته
           </li>
           <li className="flex gap-2">
-            <UsersRound className="mt-0.5 size-4 shrink-0 text-gold" /> التسجيل هنا لا يضع أحداً في أي مجموعة؛ في مرحلة التفويج أسجّل في مجموعاتي المفروزة لي من يختار إحداها، وأوقّع معه العقد
+            <UsersRound className="mt-0.5 size-4 shrink-0 text-gold" /> التسجيل هنا لا يضع أحداً في أي مجموعة، ولا أصير مسؤولاً عمن سجّلته؛ إلحاقه بمجموعة عملية مستقلة بعقد بينه وبينها
           </li>
           <li className="flex gap-2">
             <CircleAlert className="mt-0.5 size-4 shrink-0 text-gold" /> لا أقبض أي مبلغ خارج الإيصال الرقمي

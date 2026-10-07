@@ -44,6 +44,8 @@ import { cn } from "@/lib/utils";
 import { logAdmin, positionLabelOf, resultOf, useAdmin } from "../../_lib/admin";
 import { hallActions, markedExam, mustSit, roleLabelOf, sentExam, useMyHall } from "../../_lib/halls";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
+import { OperationClosed } from "@/components/app/operation-closed";
+import { rangeLabel, useOperation } from "@/lib/operations";
 
 type Exam = NonNullable<AdminProfile["exam"]>;
 
@@ -55,6 +57,7 @@ export function AdminExam() {
   const [justSubmitted, setJustSubmitted] = useState(false);
   const onSubmitted = useCallback(() => setJustSubmitted(true), []);
   const onGraded = useCallback(() => setJustSubmitted(false), []);
+  const op = useOperation("admin-exams");
   const sits = mustSit(p, hall.key) && !!hall.center;
   const inHall = hall.stage === "open" || hall.stage === "running";
   const joined = !!hall.run?.joined[admin.id];
@@ -82,7 +85,16 @@ export function AdminExam() {
   if (p.examExempt) {
     return (
       <AdminShell title="الامتحان الكتابي في القاعة" subtitle="لا امتحان هذا الموسم: جدّدت الصفة نفسها بتقييم مستوفٍ وفق شروط الإدارة.">
-        <LockedCard title="معفى من الامتحانين" text="من يجدد صفته التي شغلها الموسم الماضي بتقييم لا يقل عن الحد الذي حددته الإدارة يُعفى من الامتحانين الكتابي والشفهي، ويعامَل معاملة الناجح في التأهيل." href="/administrator/group" cta="متابعة إلى مجموعتي" />
+        <LockedCard title="معفى من الامتحانين" text="من يجدد صفته التي شغلها الموسم الماضي بتقييم لا يقل عن الحد الذي حددته الإدارة يُعفى من الامتحانين الكتابي والشفهي، ويعامَل معاملة الناجح في التأهيل." href="/administrator/group" cta="تشكيل المجموعات" />
+      </AdminShell>
+    );
+  }
+
+  // Nothing sat yet and the exams are not open: his hall waits for their dates
+  if (!op.open && !p.exam && !p.oral && !p.resultPublishedAt) {
+    return (
+      <AdminShell title="الامتحانات" subtitle={`امتحانات التأهيل ${rangeLabel(op.start, op.end)}: الكتابي في قاعة مركزك ثم الشفهي، قبل تشكيل المجموعات.`}>
+        <OperationClosed state={op} text={hall.center ? `قاعتك: ${hall.center.name}.` : undefined} />
       </AdminShell>
     );
   }
@@ -894,6 +906,7 @@ function Results({ grading, onGraded }: { grading: boolean; onGraded: () => void
 }
 
 function FinalResult({ written, oral, final, passed, note, by }: { written: number; oral: number; final: number; passed: boolean; note?: string; by?: string }) {
+  const formation = useOperation("group-formation");
   const rules = useExamRules();
   const fired = useRef(false);
   useEffect(() => {
@@ -963,7 +976,7 @@ function FinalResult({ written, oral, final, passed, note, by }: { written: numb
               <ButtonLink href="/administrator/group" variant="gold" size="lg">
                 <BadgeCheck className="size-5" /> التالي: طلب تشكيل مجموعة
               </ButtonLink>
-              <span className="text-sm text-white/70">من 11 إلى 25 جمادى الأولى</span>
+              <span className="text-sm text-white/70">{rangeLabel(formation.start, formation.end)}</span>
             </div>
           )}
         </div>

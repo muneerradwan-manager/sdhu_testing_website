@@ -35,11 +35,11 @@ export const DEFAULT_SUPERVISORS: Record<string, string> = { damascus: "nisreen"
 
 /** Each role's main exam: the same day and hour in every centre */
 export const DEFAULT_SESSIONS: Record<string, { date: string; time: string }> = {
-  "group-head": { date: "15 ربيع الآخر 1448", time: "09:00" },
-  "group-deputy": { date: "16 ربيع الآخر 1448", time: "09:00" },
-  "guide-m": { date: "17 ربيع الآخر 1448", time: "09:00" },
-  "guide-f": { date: "17 ربيع الآخر 1448", time: "12:00" },
-  tech: { date: "18 ربيع الآخر 1448", time: "09:00" },
+  "group-head": { date: "26 ربيع الآخر 1448", time: "09:00" },
+  "group-deputy": { date: "25 ربيع الآخر 1448", time: "09:00" },
+  "guide-m": { date: "23 ربيع الآخر 1448", time: "09:00" },
+  "guide-f": { date: "23 ربيع الآخر 1448", time: "12:00" },
+  tech: { date: "27 ربيع الآخر 1448", time: "09:00" },
 };
 
 /** A sitting is one exam in one centre */

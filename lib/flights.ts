@@ -338,11 +338,17 @@ export function teamOfGroup(g: GroupRef, admins: Record<string, AdminProfile>): 
   if (g.clusterId === "al-nour" && g.number === 27) {
     return [base("01033300871", "أحمد سليمان الحمصي"), base("01033300872", "ياسر عبد الله"), base("01033300873", "الشيخ خالد الرفاعي"), base("01033300874", "سامر نبيل نجار")];
   }
-  // a group formed live, with the team its head invited
-  const known = Object.entries(admins).find(([, p]) => p.group?.number === g.number && (p.group.clusterId ?? "al-nour") === g.clusterId && (p.group.team?.length ?? 0) > 0);
-  if (known) {
-    const [id, p] = known;
-    return [base(id, g.head), ...(p.group?.team ?? []).map((t) => base(t.id, t.name))];
+  // a group formed live: its head, and the team its cluster's head assigned to it
+  const head = Object.entries(admins).find(([, p]) => p.group?.number === g.number);
+  const cluster = Object.values(admins).find((p) => p.cluster && Object.values(p.cluster.groups).some((x) => x.number === g.number && x.status === "accepted"))?.cluster;
+  if (head || cluster) {
+    const team = cluster
+      ? (["guide", "tech", "assistant"] as const).flatMap((k) => {
+          const who = cluster.team[k].find((m) => m.status === "accepted" && m.id === cluster.posts[k][g.number]);
+          return who ? [base(who.id, who.name)] : [];
+        })
+      : [];
+    return [base(head?.[0] ?? `adm-${g.clusterId}-${g.number}-h`, g.head), ...team];
   }
   // every other group: a stable generated team, the same whoever is signed in
   const rnd = seeded(`team-${g.clusterId}-${g.number}`);

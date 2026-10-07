@@ -18,10 +18,10 @@ export const RESULTS_SUMMARY = {
   lotteryRegisteredSeats: OFFICIAL.poolSeats,
   direct: SEASON.directSeats,
   acceptedAge: SEASON.acceptedDirectAge,
-  lastUpdate: "2 شعبان 1448 — 09:05",
-  directApprovedAt: "15 رجب 1448 — 10:00",
+  lastUpdate: "15 ربيع الآخر 1448 (26 أيلول) — 21:00",
+  directApprovedAt: "13 ربيع الأول 1448 (26 آب) — 10:00",
   lotteryWindow: SEASON.windows.lottery.hijri,
-  lotteryAt: "1 شعبان 1448 — 20:00",
+  lotteryAt: "15 ربيع الآخر 1448 (السبت 26 أيلول) — جامعة الفرات، دير الزور",
 } as const;
 
 /** Which registration the application was made in: direct acceptance, lottery, or the scholarship campaign */

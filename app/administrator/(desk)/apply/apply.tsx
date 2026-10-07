@@ -43,6 +43,8 @@ import {
   type RoleOption,
 } from "../../_lib/admin";
 import { AdminShell, ReceiptCard } from "../../_components/ui";
+import { OperationClosed } from "@/components/app/operation-closed";
+import { rangeLabel, useOperation } from "@/lib/operations";
 import { useCommitments, useDocTypes, useRoleRequirements, useRoles } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
 import { DocumentsStep, SkillsStep, attachedDocs, useDemand, useRecord } from "./record";
@@ -62,16 +64,19 @@ export function AdminApply() {
   const admin = useAdmin()!;
   const p = admin.profile;
   const [showReceipt, setShowReceipt] = useState(false);
+  const op = useOperation("admin-registration");
 
-  const view = !p?.feePaidAt ? "wizard" : showReceipt ? "receipt" : "eligible";
+  // A new application waits for the operation to open; one already paid stays to be seen
+  const view = !p?.feePaidAt ? (op.open ? "wizard" : "closed") : showReceipt ? "receipt" : "eligible";
 
   return (
     <AdminShell
-      title="طلب المشاركة في موسم 1448"
-      subtitle="يُفتح باب التقدم من 10 ربيع الأول حتى 1 ربيع الآخر. تحدد الإدارة شروط كل صفة في جدول كل موسم، فتتقدم للصفة التي تناسبك، ويُتحقق من أهليتك قبل الدفع."
+      title="التسجيل كإداري في موسم 1448"
+      subtitle={`يُفتح باب التسجيل ${rangeLabel(op.start, op.end)}. تحدد الإدارة شروط كل صفة في جدول كل موسم، فتتقدم للصفة التي تناسبك، ويُتحقق من أهليتك قبل الدفع.`}
     >
       <AnimatePresence mode="wait">
         <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.35 }}>
+          {view === "closed" && <OperationClosed state={op} text="حسابك الإداري دائم؛ ما يُفتح ويُغلق هو طلب المشاركة في الموسم." />}
           {view === "wizard" && <Wizard onPaid={() => setShowReceipt(true)} />}
           {view === "receipt" && <PaidReceipt onContinue={() => setShowReceipt(false)} />}
           {view === "eligible" && <EligibleSummary />}

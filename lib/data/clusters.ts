@@ -47,7 +47,7 @@ export const CLUSTERS: Cluster[] = [
     office: "دمشق",
     specialty: "خدمة كبار السن والعائلات",
     about: "تكتل يعمل منذ 1440، متخصص في خدمة كبار السن والعائلات، ويرافق حجاجه فريق طبي دائم.",
-    approvedOn: "25 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 12,
     pilgrims: 600,
     makkah: {
@@ -81,7 +81,7 @@ export const CLUSTERS: Cluster[] = [
     office: "دمشق",
     specialty: "سكن قريب من الحرم وخدمة متميزة",
     about: "من أقدم التكتلات المعتمدة، يوفّر سكناً مطلاً على الساحات الشمالية للحرم وبرنامجاً علمياً مكثفاً.",
-    approvedOn: "22 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 8,
     pilgrims: 400,
     makkah: {
@@ -114,7 +114,7 @@ export const CLUSTERS: Cluster[] = [
     office: "ريف دمشق",
     specialty: "تكلفة مناسبة وخدمة منظمة",
     about: "تكتل يركّز على التنظيم الجيد بتكلفة أساسية، مع متابعة يومية من رؤساء المجموعات.",
-    approvedOn: "26 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 16,
     pilgrims: 800,
     makkah: {
@@ -147,7 +147,7 @@ export const CLUSTERS: Cluster[] = [
     office: "حلب",
     specialty: "خبرة طويلة مع حجاج الشمال",
     about: "تكتل حلبي معروف بدقة مواعيده، ويضم فريقاً نسائياً لخدمة الحاجّات.",
-    approvedOn: "24 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 14,
     pilgrims: 700,
     makkah: {
@@ -179,7 +179,7 @@ export const CLUSTERS: Cluster[] = [
     office: "حمص",
     specialty: "رعاية الحجاج لأول مرة",
     about: "تكتل من حمص وحماة، يقدّم برنامج تهيئة متكاملاً للحجاج الذين يسافرون لأول مرة.",
-    approvedOn: "27 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 10,
     pilgrims: 500,
     makkah: {
@@ -211,7 +211,7 @@ export const CLUSTERS: Cluster[] = [
     office: "اللاذقية",
     specialty: "راحة كاملة وغرف خاصة",
     about: "تكتل يوفّر غرفاً ثنائية وخدمة كونسيرج ومرافقين طبيين، مناسب لمن يحتاج راحة خاصة.",
-    approvedOn: "25 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 6,
     pilgrims: 300,
     makkah: {
@@ -243,7 +243,7 @@ export const CLUSTERS: Cluster[] = [
     office: "درعا",
     specialty: "العائلات الكبيرة",
     about: "تكتل من الجنوب يجمع أفراد العائلة الواحدة في طابق واحد قدر الإمكان.",
-    approvedOn: "28 رجب 1448",
+    approvedOn: "25 جمادى الآخرة 1448",
     groupsCount: 9,
     pilgrims: 450,
     makkah: {
@@ -327,11 +327,11 @@ export type IssuedDocument = {
 };
 
 export const DOCUMENTS: IssuedDocument[] = [
-  { number: "1448-R-004512", type: "إيصال رسم التسجيل", kind: "receipt", amount: 100, date: "12 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "طلب عائلي — 4 أفراد × 25 دولاراً" },
-  { number: "1448-P-004512-1", type: "إيصال الدفعة الأولى من تكلفة الحج", kind: "receipt", amount: 14_000, date: "20 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 3,500 دولار — مع التسجيل على القبول المباشر" },
-  { number: "1448-P-004512-2", type: "إيصال الهدي", kind: "receipt", amount: 720, date: "4 رمضان 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 180 دولاراً" },
-  { number: "1448-P-004512-3", type: "إيصال السكن الخاص", kind: "receipt", amount: 200, date: "6 رمضان 1448", holder: "محمد أ. الخ•••", detail: "غرفة بأربعة أسرّة — 4 × 50 $" },
-  { number: "1448-A-000871", type: "إيصال رسم تسجيل إداري", kind: "receipt", amount: 30, date: "20 ربيع الآخر 1448", holder: "أحمد م. سل•••", detail: "رسم تسجيل إداري للموسم" },
+  { number: "1448-R-004512", type: "إيصال رسم التسجيل", kind: "receipt", amount: 100, date: "1 ربيع الأول 1448", holder: "محمد أ. الخ•••", detail: "طلب عائلي — 4 أفراد × 25 دولاراً" },
+  { number: "1448-P-004512-1", type: "إيصال الدفعة الأولى من تكلفة الحج", kind: "receipt", amount: 14_000, date: "2 جمادى الأولى 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 3,500 دولار — مع التسجيل على القبول المباشر" },
+  { number: "1448-P-004512-2", type: "إيصال الهدي", kind: "receipt", amount: 720, date: "28 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 180 دولاراً" },
+  { number: "1448-P-004512-3", type: "إيصال السكن الخاص", kind: "receipt", amount: 200, date: "28 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "غرفة بأربعة أسرّة — 4 × 50 $" },
+  { number: "1448-A-000871", type: "إيصال رسم تسجيل إداري", kind: "receipt", amount: 30, date: "11 ربيع الآخر 1448", holder: "أحمد م. سل•••", detail: "رسم تسجيل إداري للموسم" },
   { number: "1448-C-004512", type: "شهادة أداء فريضة الحج", kind: "certificate", date: "25 ذو الحجة 1448", holder: "محمد أ. الخ•••", detail: "موسم 1448هـ — تكتل النور لخدمة الحجاج" },
 ];
 

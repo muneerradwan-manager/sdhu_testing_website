@@ -51,14 +51,14 @@ export function AdminFlights() {
       <ClusterFlights />
     ) : (
       <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعاتك المفروزة لك.">
-        <LockedCard title="الرحلات تظهر بعد فرز مجموعاتك" text="المنسق التقني للتكتل: حين يدعوك رئيس تكتل ويفرز لك مجموعات منه، ترى هنا رحلاتها." href="/administrator/group" cta="مجموعاتي" />
+        <LockedCard title="الرحلات تظهر بعد فرز مجموعاتك" text="المنسق التقني للتكتل: حين يدعوك رئيس تكتل ويفرز لك مجموعات منه، ترى هنا رحلاتها." href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }
   if (!g?.approvedAt) {
     return (
       <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعتك أو لمجموعات تكتلك.">
-        <LockedCard title="الرحلات تظهر بعد اعتماد المجموعة" text="حين تُعتمد مجموعتك ويضعها مسؤول الطيران على رحلة، ترى هنا رحلة الذهاب ورحلة العودة لكل عائلة." href="/administrator/group" cta="مجموعتي" />
+        <LockedCard title="الرحلات تظهر بعد اعتماد المجموعة" text="حين تُعتمد مجموعتك ويضعها مسؤول الطيران على رحلة، ترى هنا رحلة الذهاب ورحلة العودة لكل عائلة." href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }

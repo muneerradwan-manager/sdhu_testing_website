@@ -10,6 +10,8 @@ import {
   FileSignature,
   FlaskConical,
   GraduationCap,
+  HeartHandshake,
+  Landmark,
   LayoutDashboard,
   Lock,
   MapPinned,
@@ -22,9 +24,11 @@ import { useEffect, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
-import { useHydrated, useStore } from "@/lib/store";
-import { cn, formatUSD, samePath } from "@/lib/utils";
-import { isClusterRole, isTechCoordinator, useAdmin } from "../_lib/admin";
+import { statusLabel, useOperations, type OperationKey, type OperationState } from "@/lib/operations";
+import { useHydrated, useStore, type AdminProfile } from "@/lib/store";
+import { cn, formatUSD } from "@/lib/utils";
+import { effectiveRole, isClusterRole, isTechCoordinator, positionLabelOf, useAdmin } from "../_lib/admin";
+import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
 
@@ -55,58 +59,112 @@ export function AdminGate({ children }: { children: ReactNode }) {
 
 // ───────────────────────── Shell & navigation ─────────────────────────
 
-type NavItem = { href: string; label: string; icon: LucideIcon; techOnly?: boolean };
+/**
+ * The administrator's sidebar, like the staff portal's: each entry is one operation of its own — registering
+ * pilgrims on the Hajj, registering as an administrator, the exams, forming groups, forming clusters, managing
+ * them — shown to whoever it belongs to. They are not stages of one chain: each opens and closes by its own
+ * dates, or by the staff who control it (lib/operations.ts), and a closed one stays in the menu with when it
+ * opens. Stages exist only inside an operation that has several steps.
+ */
+type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean };
+
+type NavItem = {
+  href: string;
+  label: string | ((c: NavCtx) => string);
+  icon: LucideIcon;
+  ops?: OperationKey[];
+  show?: (c: NavCtx) => boolean;
+};
+
+const serving = (c: NavCtx) => c.inGroup || c.cluster;
 
 const NAV: NavItem[] = [
   { href: "/administrator/dashboard", label: "ملفي", icon: LayoutDashboard },
-  { href: "/administrator/apply", label: "طلب المشاركة", icon: ClipboardList },
-  { href: "/administrator/exam", label: "الامتحان والنتيجة", icon: GraduationCap },
-  { href: "/administrator/group", label: "مجموعتي", icon: FileSignature },
-  { href: "/administrator/cluster", label: "التكتل", icon: Building2 },
-  // تسجيل المواطنين من اختصاص المنسق التقني وحده
-  { href: "/administrator/pilgrims", label: "تسجيل الحجاج", icon: UserRoundPlus, techOnly: true },
-  { href: "/administrator/requests", label: "حجاج المجموعة", icon: UsersRound },
-  { href: "/administrator/flights", label: "الرحلات", icon: Plane },
-  { href: "/administrator/field", label: "الميدان", icon: MapPinned },
+  // Registering a pilgrim on the Hajj never puts him in a group
+  { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
+  { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
+  { href: "/administrator/exam", label: "الامتحانات", icon: GraduationCap, ops: ["admin-exams"] },
+  { href: "/administrator/group", label: "تشكيل المجموعات", icon: FileSignature, ops: ["group-formation"], show: (c) => c.head },
+  // A group head files a request or answers the invitations to his group; the others answer theirs
+  { href: "/administrator/cluster", label: "تشكيل التكتلات", icon: Building2, ops: ["cluster-formation"], show: (c) => c.role },
+  { href: "/administrator/groups", label: "إدارة المجموعات", icon: UsersRound, ops: ["group-management"], show: serving },
+  { href: "/administrator/clusters", label: "إدارة التكتلات", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
+  { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: serving },
+  { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
+  { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
 ];
 
-export function AdminNav() {
+function navCtx(p: AdminProfile | undefined, table: Record<AdminPermission, string[]>): NavCtx {
+  const role = p?.positions[0];
+  const cluster = isClusterRole(p);
+  const head = role === "group-head";
+  const tech = isTechCoordinator(p);
+  // A head's group counts once it is approved; a guide, an assistant or a coordinator works in the groups assigned to him
+  const inGroup = head ? !!p?.group?.approvedAt : !!p?.servesIn || !!p?.coordinatorIn;
+  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)) };
+}
+
+export type AdminNavEntry = { href: string; label: string; icon: LucideIcon; open: boolean; shown?: OperationState };
+
+/** The operations this administrator sees, each with its state now: the open one, else the next to open, else the last closed */
+export function useAdminNav(): AdminNavEntry[] {
+  const admin = useAdmin();
+  const ops = useOperations();
+  const table = useRolePermissions();
+  const ctx = navCtx(admin?.profile, table);
+  return NAV.filter((n) => !n.show || n.show(ctx)).map((n) => {
+    const states = n.ops ? ops.filter((o) => n.ops!.includes(o.key)) : [];
+    return {
+      href: n.href,
+      label: typeof n.label === "function" ? n.label(ctx) : n.label,
+      icon: n.icon,
+      open: !states.length || states.some((o) => o.open),
+      shown: states.find((o) => o.open) ?? states.find((o) => o.status === "upcoming") ?? states.at(-1),
+    };
+  });
+}
+
+export function AdminSidebar() {
   const pathname = usePathname();
   const admin = useAdmin();
-  const tech = isTechCoordinator(admin?.profile);
-  const items = NAV.filter((n) => !n.techOnly || tech).map((n) =>
-    // A cluster head manages several groups, not one; a coordinator works in the cluster's groups sorted to him
-    n.href === "/administrator/group" && isClusterRole(admin?.profile)
-      ? { ...n, label: "مجموعات تكتلي" }
-      : n.href === "/administrator/group" && tech
-        ? { ...n, label: "مجموعاتي" }
-        : n.href === "/administrator/requests" && tech
-          ? { ...n, label: "حجاج مجموعاتي" }
-          : n,
-  );
+  const role = effectiveRole(admin?.profile);
+  const items = useAdminNav();
   return (
-    <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-      <nav aria-label="أقسام حساب الإداري" className="scrollbar-none -mx-4 flex max-w-full gap-1 overflow-x-auto px-4 md:mx-0 md:rounded-2xl md:border md:border-white/15 md:bg-white/8 md:p-1 md:px-1 md:backdrop-blur-md">
-        {items.map((n) => {
-          const active = samePath(pathname, n.href);
-          return (
-            <Link
-              key={n.href}
-              href={n.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-bold transition",
-                active ? "text-ink" : "text-white/75 hover:bg-white/10 hover:text-white",
-              )}
-            >
-              {active && <motion.span layoutId="admin-nav-pill" className="absolute inset-0 rounded-xl bg-gold shadow-lg" transition={{ type: "spring", damping: 28, stiffness: 320 }} />}
-              <n.icon className="relative size-4" />
-              <span className="relative">{n.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+    <aside className="min-w-0 self-start lg:sticky lg:top-28">
+      <div className="overflow-hidden rounded-3xl border border-gold/30 bg-white shadow-[0_30px_80px_-40px_rgba(2,21,38,.45)]">
+        <div className="flex items-center gap-3 bg-gradient-to-l from-green-dark to-[#00352f] p-4 text-white">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gold font-display text-xl font-bold text-ink">{admin?.person.firstName[0]}</span>
+          <div className="min-w-0">
+            <p className="truncate font-bold">{admin?.name}</p>
+            <p className="truncate text-xs text-white/65">{role ? `${positionLabelOf(role)} — موسم 1448` : "لم يتقدم لصفة هذا الموسم بعد"}</p>
+          </div>
+        </div>
+        <nav aria-label="أقسام حساب الإداري" className="scrollbar-none flex gap-1 overflow-x-auto p-2 lg:block lg:space-y-1 lg:overflow-visible">
+          {items.map((n) => {
+            const active = pathname.startsWith(n.href) && (n.href !== "/administrator/group" || !pathname.startsWith("/administrator/groups")) && (n.href !== "/administrator/cluster" || !pathname.startsWith("/administrator/clusters"));
+            const { open, shown, label } = n;
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-bold transition",
+                  active ? "text-ink" : open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand",
+                )}
+              >
+                {active && <motion.span layoutId="admin-nav" className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light" transition={{ type: "spring", damping: 30, stiffness: 350 }} />}
+                <span className={cn("relative", active ? "text-green-dark" : open ? "text-gold-dark" : "text-hint")}>{open ? <n.icon className="size-[18px]" /> : <Lock className="size-[18px]" />}</span>
+                <span className="relative min-w-0">
+                  <span className="block whitespace-nowrap">{label}</span>
+                  {shown && shown.status !== "always" && <span className={cn("hidden whitespace-nowrap text-[11px] font-semibold lg:block", active ? "text-green-dark/80" : shown.open ? "text-green" : "text-hint")}>{statusLabel(shown)}</span>}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    </aside>
   );
 }
 
@@ -126,16 +184,16 @@ export function AdminShell({
       wide
       image={image}
       header={
-        <>
-          <AdminNav />
-          <div className="text-white">
-            <h1 className="font-display text-3xl font-bold md:text-5xl">{title}</h1>
-            {subtitle && <div className="mt-3 max-w-3xl text-lg leading-8 text-white/75">{subtitle}</div>}
-          </div>
-        </>
+        <div className="text-white">
+          <h1 className="font-display text-3xl font-bold md:text-5xl">{title}</h1>
+          {subtitle && <div className="mt-3 max-w-3xl text-lg leading-8 text-white/75">{subtitle}</div>}
+        </div>
       }
     >
-      {children}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <AdminSidebar />
+        <div className="min-w-0">{children}</div>
+      </div>
     </PortalShell>
   );
 }

@@ -15,7 +15,7 @@ import { cn, formatUSD } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
 import { paidAt, type CostLine } from "./model";
 import { AccommodationChoice } from "./step-group";
-import { applicantOf, logPilgrim, useNow, type StepProps } from "./shared";
+import { applicantOf, logPilgrim, type StepProps } from "./shared";
 
 const hijriPaid = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit" }).format(at) : "");
 
@@ -178,16 +178,15 @@ function PayFlow({ items, onPaid }: { items: CostLine[]; onPaid: (m: PayMethod) 
     </div>
   );
 }
-/** The pilgrim–group contract signed at enrollment: pilgrim → group coordinator → administration (animated from contractSignedAt) */
+/** The pilgrim–group contract: agreed by the pilgrim, uploaded by the group's side, approved by the office */
 export function SignatureChain({ app, post }: Pick<StepProps, "app" | "post">) {
-  const now = useNow(300);
   const applicant = applicantOf(app);
-  const signedAt = post.contractSignedAt;
-  const since = signedAt ? now - signedAt : 0;
+  const c = post.contract;
+  const approved = c?.status === "approved" || (!c && !!post.groupApprovedAt);
   const chain = [
-    { who: fullName(applicant.person), role: "الحاج — صاحب الطلب", ok: !!signedAt },
-    { who: post.enrolledBy?.name ?? "منسق المجموعة", role: `منسق التكتل المفروز للمجموعة ${post.groupNumber ?? GROUP.number}`, ok: !!signedAt },
-    { who: "رنا حداد", role: "الإدارة — المصادقة", ok: !!signedAt && since > 2500 },
+    { who: fullName(applicant.person), role: "الحاج — صاحب الطلب", ok: !!c || approved, done: "اتفق ووقّع ✓" },
+    { who: c?.uploadedBy.name ?? post.enrolledBy?.name ?? "المجموعة", role: c ? `رفع العقد — ${c.uploadedBy.role}` : `المجموعة ${post.groupNumber ?? GROUP.number}`, ok: !!c || approved, done: "رفع العقد ✓" },
+    { who: c?.decidedBy ?? "إدارة التسجيل", role: "المكتب — الاعتماد", ok: approved, done: "اعتمد العقد ✓" },
   ];
   return (
     <ol className="grid gap-3 md:grid-cols-3">
@@ -205,7 +204,7 @@ export function SignatureChain({ app, post }: Pick<StepProps, "app" | "post">) {
           <p className="mt-2 text-sm text-hint">{c.role}</p>
           <p className="font-bold">{c.who}</p>
           <p className={cn("text-sm font-semibold", c.ok ? "text-green" : "text-gold-dark")}>
-            {c.ok ? (i === 2 ? "صادق على العقد ✓" : "وقّع ✓") : i === chain.findIndex((x) => !x.ok) ? (i === 1 ? "يوقّع الآن..." : "تراجع العقد الآن...") : "بالانتظار"}
+            {c.ok ? c.done : i === chain.findIndex((x) => !x.ok) ? "بالانتظار الآن..." : "بالانتظار"}
           </p>
         </motion.li>
       ))}

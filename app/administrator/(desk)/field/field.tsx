@@ -52,10 +52,10 @@ export function AdminField() {
   const roster = useMemo(() => buildRoster(admin.profile, applications, post), [admin.profile, applications, post]);
   const [tab, setTab] = useState<TabKey>("muster");
 
-  if (!g?.approvedAt || !g.contractSignedAt) {
+  if (!g?.approvedAt) {
     return (
       <AdminShell title="الميدان" subtitle="أدوات رئيس المجموعة في الموسم: التجمّع والحضور، الإعلانات، البلاغات، والتقرير اليومي.">
-        <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان تلقائياً بعد اعتماد مجموعتك وتوقيع العقود." href="/administrator/group" cta="مجموعتي" />
+        <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان تلقائياً بعد اعتماد مجموعتك." href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }
@@ -819,7 +819,7 @@ function Evaluations() {
           </table>
         </div>
         <p className="mt-5 rounded-2xl bg-gold/15 p-4 text-sm leading-7">
-          <b>ملاحظة مشرف القطاع:</b> «من أفضل رؤساء المجموعات في القطاع. يُرشَّح لمعاون رئيس تكتل في 1449.»
+          <b>ملاحظة مشرف القطاع:</b> «من أفضل رؤساء المجموعات في القطاع. يستحق أن يُدعى نائباً لرئيس تكتل في 1449.»
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <ButtonLink href="/administrator/dashboard" variant="outline">ملفي كإداري</ButtonLink>

@@ -86,7 +86,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
       }
       const post2 = { ...post, documents };
       if (app.members.every((m) => memberDocsDone(post2, m)) && !app.members.every((m) => memberDocsDone(post, m))) {
-        toast({ title: `جميع وثائق طلبك رقم ${app.number} مكتملة`, body: "التالي: مرحلة التفويج — اختاروا مجموعتكم وتواصلوا مع منسقها.", icon: "🎉", tone: "gold" });
+        toast({ title: `جميع وثائق طلبك رقم ${app.number} مكتملة`, body: "التالي: الإلحاق بمجموعة — اتفقوا مع مجموعة، فيرفع رئيسها أو منسقها عقدكم.", icon: "🎉", tone: "gold" });
       }
     }, Math.max(0, next - t0));
     return () => clearTimeout(timer);
@@ -109,7 +109,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
     <Question
       step="الخطوة 2 من 6"
       title="ارفع الصورة الشخصية والجواز لكل فرد"
-      hint="لم نطلب أي وثيقة عند التسجيل. الآن بعد القبول: الصورة الشخصية وجواز السفر فقط. لا تُطلب أي وثيقة طبية (ولا اللقاحات) قبل انضمامك إلى مجموعة في مرحلة التفويج."
+      hint="لم نطلب أي وثيقة عند التسجيل. الآن بعد القبول: الصورة الشخصية وجواز السفر فقط. لا تُطلب أي وثيقة طبية (ولا اللقاحات) قبل اعتماد عقدك مع مجموعة."
       speak="ارفع الصورة الشخصية وجواز السفر لكل فرد. الوثائق الطبية واللقاحات تُطلب بعد انضمامك إلى مجموعة."
     >
       {/* Member tabs */}
