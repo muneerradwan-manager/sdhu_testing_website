@@ -2,14 +2,14 @@
 
 import { useMemo } from "react";
 import { groupName, groupShort } from "@/lib/groups";
-import { useOperation, useToday, type OperationState } from "@/lib/operations";
+import { useClockTime, useOperation, useToday, type OperationState } from "@/lib/operations";
 import { actions, useStore, type AdminProfile, type ClusterInvite, type ClusterRecord, type ClusterStatus, type GroupInvite, type Seat, type TeamPool } from "@/lib/store";
 import { adminName, logAdmin, resultOf } from "./admin";
 import { useExamRules } from "./admin-rules";
 import { HEADS_POOL, SEED_CLUSTERS, acceptedGroups, asGroup, clusterGroupsOf, type ClusterGroup } from "./cluster";
 import { assignedRealFamilies } from "./group";
 import { ROSTER } from "./people";
-import { BADGES, ageBadge, ageOfId, branchesOf, categoryOf, does, needsOf, roleName, roleOf, seasonRoleKey, seatsOf, structureNow, useCadre, useStructure, weightOf, type Cadre, type Structure } from "./structure";
+import { BADGES, ageBadge, ageOfId, badgeAgeOf, branchesOf, categoryOf, does, needsOf, roleName, roleOf, seasonRoleKey, seatsOf, structureNow, useCadre, useStructure, weightOf, type Cadre, type Structure } from "./structure";
 
 export type Cluster = ClusterRecord;
 
@@ -45,9 +45,9 @@ export const STEPS: { key: Step; label: string }[] = [
   { key: "report", label: "التقرير" },
 ];
 
-/** A new request: the head's own group, if he heads one, is in it from the start */
-export function newCluster(id: string, name: string, at: number, own?: GroupInvite): Cluster {
-  return { id, name, createdAt: at, status: "draft", groups: own ? { [own.number]: own } : {}, seats: own ? { [own.number]: [] } : {}, assistants: [], coordinators: [], femaleGuides: [], sorting: {} };
+/** A new request, stamped with the season it is filed in: the head's own group, if he heads one, is in it from the start */
+export function newCluster(id: string, name: string, at: number, own?: GroupInvite, season?: number): Cluster {
+  return { id, name, createdAt: at, status: "draft", season, groups: own ? { [own.number]: own } : {}, seats: own ? { [own.number]: [] } : {}, assistants: [], coordinators: [], femaleGuides: [], sorting: {} };
 }
 
 /**
@@ -98,8 +98,11 @@ export type ClusterRequest = {
   headGroup?: number;
   branches: string[];
   cluster: Cluster;
-  /** Filed by a head who is not on this device */
+  /** Filed by a head who is not on this device (or created by the administration on his behalf) */
   seed: boolean;
+  /** The season it was formed in, and whether the administration set it aside in the archive */
+  season: number;
+  archived?: { season: number; at: number; by: string };
   status: ClusterStatus;
   groups: ClusterGroup[];
   weight: number;
@@ -116,7 +119,7 @@ export type ClusterRequest = {
   badges: { age: boolean; guidance: boolean; timeliness: boolean };
 };
 
-function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile>, r: { headId: string; headName: string; headGroup?: number; cluster: Cluster; seed: boolean }): ClusterRequest {
+function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile>, r: { headId: string; headName: string; headGroup?: number; cluster: Cluster; seed: boolean; season: number; archived?: ClusterRequest["archived"] }): ClusterRequest {
   const c = r.cluster;
   const groups = acceptedGroups(c).map((g) => asGroup(s, c, g, g.number === r.headGroup));
   const weight = acceptedGroups(c).reduce((n, g) => n + weightOf(s, g.category), 0);
@@ -151,13 +154,14 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
     { key: "accountant", step: "accountant", label: yes(c.accountant) ? `${ACCOUNTANT_TITLE}: ${c.accountant!.name}` : `${ACCOUNTANT_TITLE} لم يقبل بعد`, ok: yes(c.accountant) && people.includes(c.accountant!.id) && !c.femaleGuides.some((x) => x.id === c.accountant!.id) },
     { key: "answers", step: "report", label: pendingAny ? "دعوات لم يُرد عليها بعد" : "رُدّ على كل الدعوات", ok: !pendingAny },
   ];
-  const ages = people.map(ageOfId).filter((a): a is number => a !== undefined);
+  // A guide's grade counts at its fixed age («عمر مثبَّت»), whatever his own
+  const ages = people.map((id) => badgeAgeOf(id, role(id), s)).filter((a): a is number => a !== undefined);
   const age = ageBadge(ages);
   // The administrative system's age rule: the cadre's average no more than 50 — shown, not blocking
-  if (age.avg !== null) checks.push({ key: "age", step: "report", label: `متوسط أعمار الكادر ${age.avg} سنة — الحد في النظام الإداري 50`, ok: age.avg <= 50, warn: true });
+  if (age.avg !== null) checks.push({ key: "age", step: "report", label: `متوسط أعمار الكادر ${age.avg} سنة (الموجّهون بأعمارهم المثبّتة) — الحد في النظام الإداري 50`, ok: age.avg <= 50, warn: true });
   const blocking = checks.filter((x) => !x.warn);
   const stepOk = Object.fromEntries(STEPS.map((st) => [st.key, blocking.filter((x) => x.step === st.key).every((x) => x.ok)])) as Record<Step, boolean>;
-  const early = new Date(`${s.earlyDeadline}T23:59:59`).getTime();
+  const early = new Date(`${s.earlyDeadline}T${s.earlyTime}:59`).getTime();
   return {
     ...r,
     branches: branchesOf(r.headId, cadre),
@@ -181,16 +185,32 @@ export { BADGES };
 /** The season's requests: on this device, or seeded (as the administration's review left them) */
 export function useClusterRequests(): ClusterRequest[] {
   const admins = useStore((s) => s.admins);
-  const overrides = useStore((s) => s.formation.overrides);
+  const formation = useStore((s) => s.formation);
   const cadre = useCadre();
   const s = useStructure();
   return useMemo(() => {
+    const { overrides, created, archived } = formation;
+    const stamp = (c: Cluster) => ({ season: c.season ?? SEASON_FORMED, archived: archived[c.id] });
     const live = Object.values(admins)
       .filter((a) => a.cluster)
-      .map((a) => ({ headId: a.nationalId, headName: adminName(a.nationalId), headGroup: a.group?.number, cluster: a.cluster!, seed: false }));
-    const seeds = SEED_CLUSTERS.filter((x) => !live.some((l) => l.cluster.id === x.cluster.id)).map((x) => ({ ...x, cluster: overrides[x.cluster.id] ?? x.cluster, seed: true }));
+      .map((a) => ({ headId: a.nationalId, headName: adminName(a.nationalId), headGroup: a.group?.number, cluster: a.cluster!, seed: false, ...stamp(a.cluster!) }));
+    // The season's story, then what the administration created on a leader's behalf: both live in the overrides once touched
+    const seeds = [...SEED_CLUSTERS, ...created]
+      .filter((x) => !live.some((l) => l.cluster.id === x.cluster.id))
+      .map((x) => {
+        const cluster = overrides[x.cluster.id] ?? x.cluster;
+        return { ...x, cluster, seed: true, ...stamp(cluster) };
+      });
     return [...live, ...seeds].map((r) => analyse(s, cadre, admins, r));
-  }, [admins, overrides, cadre, s]);
+  }, [admins, formation, cadre, s]);
+}
+
+/** The season the demo's formations belong to, before the administration begins another */
+export const SEASON_FORMED = 1448;
+
+/** The season new formations are stamped with: the one the administration began last, else the demo's */
+export function useFormingSeason() {
+  return useStore((s) => s.formation.season) ?? SEASON_FORMED;
 }
 
 export function useClusterRequest(id: string | undefined) {
@@ -203,14 +223,15 @@ export function useClusterRequest(id: string | undefined) {
  * Where the requests stand against their dates: not open yet, open before the early deadline (a request sent
  * now earns «شارة الالتزام بالمواعيد»), open after it, or closed — nothing is sent or edited after the final deadline.
  */
-export type Window = { state: "before" | "early" | "open" | "closed"; op: OperationState; early: string };
+export type Window = { state: "before" | "early" | "open" | "closed"; op: OperationState; early: string; earlyTime: string };
 
 export function useFormationWindow(): Window {
   const op = useOperation("cluster-formation");
   const today = useToday();
-  const early = useStructure().earlyDeadline;
-  const state = op.open ? (today <= early ? "early" : "open") : op.status === "upcoming" ? "before" : "closed";
-  return { state, op, early };
+  const time = useClockTime();
+  const { earlyDeadline: early, earlyTime } = useStructure();
+  const state = op.open ? (`${today}T${time}` <= `${early}T${earlyTime}` ? "early" : "open") : op.status === "upcoming" ? "before" : "closed";
+  return { state, op, early, earlyTime };
 }
 
 /** Whether its head may still change it: a draft, one waiting for review, or one sent back — while the window is open */
@@ -251,7 +272,12 @@ export function usePicks(req: ClusterRequest | undefined) {
     const device = Object.values(admins)
       .filter((a) => a.positions[0] && !ROSTER.some((x) => x.id === a.nationalId) && resultOf(a, exam).passed)
       .map((a) => ({ id: a.nationalId, name: adminName(a.nationalId), role: roleOfPerson(a.nationalId, admins, cadre), branch: branchesOf(a.nationalId, cadre)[0], age: ageOfId(a.nationalId), note: "مؤهل هذا الموسم" }));
-    const all = [...roster, ...device].filter((x) => x.id !== req?.headId);
+    // Whoever the administration added to the cadre by hand is offered like the qualified roster
+    const added = Object.values(cadre.added ?? {})
+      .filter((x) => !ROSTER.some((y) => y.id === x.id) && !admins[x.id])
+      .map((x) => ({ id: x.id, name: x.name, role: seasonRoleKey(x.id, x.role, cadre), branch: branchesOf(x.id, cadre)[0], age: ageOfId(x.id), note: "أضافته الإدارة إلى الكادر" }));
+    // A stopped or deleted account is offered to nobody
+    const all = [...roster, ...device, ...added].filter((x) => x.id !== req?.headId && !cadre.status?.[x.id]);
     const mine = new Set(req?.branches ?? []);
     return (b: "guideSeat" | "assistantSeat" | "assistantPool" | "coordinatorPool" | "guidePool"): PickPerson[] =>
       all

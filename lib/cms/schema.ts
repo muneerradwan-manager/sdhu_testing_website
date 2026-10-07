@@ -79,8 +79,8 @@ const HOME: PageDef = {
         },
         { key: "primaryLabel", label: "الزر الأساسي — النص", kind: "text", def: "ابدأ طلب الحج" },
         { key: "primaryHref", label: "الزر الأساسي — الرابط", kind: "url", def: "/register" },
-        { key: "secondaryLabel", label: "الزر الثانوي — النص", kind: "text", def: "الأكاديمية" },
-        { key: "secondaryHref", label: "الزر الثانوي — الرابط", kind: "url", def: "/academy" },
+        { key: "secondaryLabel", label: "الزر الثانوي — النص", kind: "text", def: "التسجيل بصفة إداري" },
+        { key: "secondaryHref", label: "الزر الثانوي — الرابط", kind: "url", def: "/administrator/register" },
         {
           key: "trust",
           label: "سطور الطمأنة",

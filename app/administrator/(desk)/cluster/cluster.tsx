@@ -2,7 +2,7 @@
 
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, Check, CircleDashed, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, Check, CircleDashed, ClipboardList, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { DemoJump, OperationClosed } from "@/components/app/operation-closed";
@@ -11,9 +11,9 @@ import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment
 import { Button } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
-import { dayLabel, rangeLabel } from "@/lib/operations";
+import { dayTimeLabel, rangeLabel } from "@/lib/operations";
 import { useSeason } from "@/lib/season-live";
-import { useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
+import { actions, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 import { adminName, logAdmin, nowMs, resultOf, useAdmin } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
@@ -35,10 +35,12 @@ import {
   newCluster,
   placedIn,
   refit,
+  reviewCluster,
   roleOfPerson,
   sendCluster,
   useClusterRequests,
   useFormationWindow,
+  useFormingSeason,
   useGroupPool,
   useMyInvitations,
   usePicks,
@@ -55,6 +57,7 @@ import { ClusterPrint, ClusterReport } from "../../_components/cluster-report";
 import { StandingCard } from "../../_components/standing";
 import { AdminShell, LockedCard, SectionTitle, SimButton } from "../../_components/ui";
 import { AdminRequests } from "../requests/requests";
+import { PlanStep } from "./plan";
 import { ClusterPublicProfile } from "./public-profile";
 
 /**
@@ -79,7 +82,7 @@ export function AdminCluster({ part }: { part: "formation" | "manage" }) {
 
   if (!p?.positions?.length) {
     return (
-      <AdminShell title={part === "manage" ? "إدارة التكتل" : "تشكيل التكتلات"} subtitle="يشكّل التكتلَ من منحته الإدارة صفة «رئيس تكتل»، ويدعو إليه المجموعات وكادره.">
+      <AdminShell title={part === "manage" ? "إدارة التكتل" : "تشكيل التكتلات"} subtitle="يشكّل التكتلَ من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويدعو إليه المجموعات وكادره.">
         <LockedCard title="بعد تسجيلك كإداري" text="سجّل لموسم 1448 في صفة واحدة. رئيس المجموعة يشكّل مجموعته وحده ثم تُدعى إلى تكتل؛ والموجّه والمعاون والمنسق والموجّهة يدعوهم رؤساء التكتلات؛ ومن تمنحه الإدارة صفة «رئيس تكتل» يقدّم طلب التشكيل." href="/administrator/apply" cta="التسجيل كإداري" />
       </AdminShell>
     );
@@ -101,7 +104,7 @@ export function AdminCluster({ part }: { part: "formation" | "manage" }) {
   }
 
   return (
-    <AdminShell title="تشكيل التكتلات" subtitle="لا انتخاب: يقدّم طلبَ تشكيل التكتل من منحته الإدارة صفة «رئيس تكتل»، ويملؤه بترتيبها، ويرسله فتراجعه.">
+    <AdminShell title="تشكيل التكتلات" subtitle="لا انتخاب: يقدّم طلبَ تشكيل التكتل من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بترتيبها، ويرسله فتراجعه.">
       {mine ? <MyRequest req={mine} /> : leads ? <FileRequest /> : <Invitations />}
     </AdminShell>
   );
@@ -112,12 +115,12 @@ export function AdminCluster({ part }: { part: "formation" | "manage" }) {
 function WindowNote({ w }: { w: Window }) {
   const text =
     w.state === "before"
-      ? `تفتح طلبات التشكيل ${dayLabel(w.op.start, true)}.`
+      ? `تفتح طلبات التشكيل ${dayTimeLabel(w.op.start, w.op.startTime, true)}.`
       : w.state === "early"
-        ? `مفتوحة حتى ${dayLabel(w.op.end, true)}. ما يُرسَل حتى ${dayLabel(w.early, true)} ينال «شارة الالتزام بالمواعيد».`
+        ? `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime, true)}. ما يُرسَل حتى ${dayTimeLabel(w.early, w.earlyTime, true)} ينال «شارة الالتزام بالمواعيد».`
         : w.state === "open"
-          ? `مفتوحة حتى ${dayLabel(w.op.end, true)} — مضى الموعد الأول (${dayLabel(w.early)})، فلا شارة التزام لما يُرسَل الآن.`
-          : `انتهى الموعد النهائي ${dayLabel(w.op.end, true)}: لا إرسال ولا تعديل بعده.`;
+          ? `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime, true)} — مضى الموعد الأول (${dayTimeLabel(w.early, w.earlyTime)})، فلا شارة التزام لما يُرسَل الآن.`
+          : `انتهى الموعد النهائي ${dayTimeLabel(w.op.end, w.op.endTime, true)}: لا إرسال ولا تعديل بعده.`;
   return (
     <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3 text-sm font-semibold", w.state === "closed" || w.state === "before" ? "bg-gold/20 text-maroon" : "bg-green-light/10 text-green")}>
       <span>{text}</span>
@@ -143,12 +146,13 @@ function FileRequest() {
   const inbox = useMyInvitations(admin.id);
   const joined = inbox.find((x) => x.kind === "group" && x.invite.status === "accepted");
   const open = w.state === "early" || w.state === "open";
+  const season = useFormingSeason();
 
   const file = () => {
     const at = nowMs();
     const id = `cluster-${admin.id.slice(-4)}`;
     const own: GroupInvite | undefined = g && category ? { id: admin.id, name: admin.name, at, status: "accepted", number: g.number, branch: "دمشق", category, pilgrims: 0 } : undefined;
-    const c = newCluster(id, name.trim(), at, own);
+    const c = newCluster(id, name.trim(), at, own, season);
     writeCluster({ headId: admin.id, headName: admin.name, headGroup: g?.number, seed: false }, own ? { ...c, seats: { [own.number]: fitSeats(s, undefined, own.category) } } : c, admins);
     logAdmin(admin.id, `بدء طلب تشكيل ${name.trim()}`, g ? groupName(g.number) : undefined, grant ? `بصفة «${roleName(grant.role, s)}» الموسمية — ${grant.reason}` : undefined, { area: "clusters", ref: id });
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F"] });
@@ -289,9 +293,33 @@ function AutoAnswers({ req }: { req: ClusterRequest }) {
 function MyRequest({ req }: { req: ClusterRequest }) {
   const w = useFormationWindow();
   if (req.status === "approved") {
-    return <LockedCard title={`اعتُمد ${req.cluster.name}`} text={`راجعته الإدارة فاعتمدته (${req.cluster.decision?.by ?? ""}). يُدار من الآن في «إدارة التكتل».`} href="/administrator/clusters" cta="إدارة التكتل" />;
+    return <LockedCard title={`اعتُمد ${req.cluster.name}`} text={`راجعته الإدارة فاعتمدته${req.cluster.decision?.by ? ` — ${req.cluster.decision.by}` : ""}. يُدار من الآن في «إدارة التكتل».`} href="/administrator/clusters" cta="إدارة التكتل" />;
   }
   return <RequestDesk req={req} mode="request" editable={editableBy(req.status, w)} header={<RequestHeader req={req} w={w} />} />;
+}
+
+/**
+ * The administration's decision is taken in the staff portal («طلبات التكتلات»); the demo lets the head see either
+ * outcome at once: approved (his cluster opens in «إدارة التكتل»), or sent back with a note to fix.
+ */
+function ReviewSim({ req }: { req: ClusterRequest }) {
+  const admin = useAdmin()!;
+  const toast = useToast();
+  const admins = useStore((x) => x.admins);
+  const decide = (approve: boolean) => {
+    const by = "مازن الحلبي (محاكاة)";
+    const note = approve ? undefined : "أحد المنسقين بلا تفرّغ في مراحل العمل الأساسية: استبدله بمنسق متفرّغ ثم أعد الإرسال قبل الموعد النهائي.";
+    reviewCluster(req, approve ? "approve" : "reject", by, admins, note);
+    actions.logEvent({ actor: by, role: "موظف", action: approve ? "اعتماد تكتل" : "إعادة طلب تكتل إلى رئيسه بملاحظات", target: req.cluster.name, detail: note, system: "admins", area: "clusters", ref: req.cluster.id, important: true });
+    logAdmin(admin.id, approve ? `اعتمدت الإدارة ${req.cluster.name}` : `أعادت الإدارة ${req.cluster.name} بملاحظات`, undefined, note ?? `اعتمده ${by}`);
+    toast(approve ? { title: `اعتُمد ${req.cluster.name}`, body: "تديره الآن من «إدارة التكتل».", icon: "✅", tone: "success" } : { title: "أُعيد الطلب بملاحظات", body: "أصلحه ثم أرسله من «التقرير».", icon: "↩️", tone: "info" });
+  };
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      <SimButton onClick={() => decide(true)}>محاكاة: اعتمدت الإدارة الطلب</SimButton>
+      <SimButton onClick={() => decide(false)}>محاكاة: أعادته الإدارة بملاحظات</SimButton>
+    </div>
+  );
 }
 
 function RequestHeader({ req, w }: { req: ClusterRequest; w: Window }) {
@@ -321,12 +349,13 @@ function RequestHeader({ req, w }: { req: ClusterRequest; w: Window }) {
       )}
       {c.status === "reviewing" && <p className="mt-3 rounded-2xl bg-gold/20 p-3 text-sm font-semibold text-maroon">يراجعه الآن {c.review?.by}: لا تعديل حتى يعتمده أو يعيده إليك.</p>}
       {c.status === "pending" && <p className="mt-3 rounded-2xl bg-sand p-3 text-sm text-ink-soft">أُرسل للمراجعة. ما زلت تستطيع تعديله قبل أن تبدأ مراجعته، ثم تحدّثه من «التقرير».</p>}
+      {(c.status === "pending" || c.status === "reviewing") && <ReviewSim req={req} />}
       {c.reopened && c.status !== "approved" && <p className="mt-3 rounded-2xl bg-sand p-3 text-sm text-ink-soft">أعاد {c.reopened.by} فتحه للتعديل بعد اعتماده، محتفظاً بكل بياناته: عدّل ثم أرسله ليُعتمد من جديد.</p>}
     </Card>
   );
 }
 
-type DeskTab = Step | "team" | "page";
+type DeskTab = Step | "team" | "plan" | "page";
 
 /**
  * One request in tabs, in the administration's order. The head fills it while it is his to edit; once approved
@@ -334,7 +363,8 @@ type DeskTab = Step | "team" | "page";
  * report and its public page. The deputy sees the same tabs read-only.
  */
 function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mode: "request" | "manage" | "deputy"; editable: boolean; header: ReactNode }) {
-  const [tab, setTab] = useState<DeskTab>(mode === "request" ? "tier" : "groups");
+  // «?tab=plan» opens the operational plan (the desk renders on the client only, behind the administrator's gate)
+  const [tab, setTab] = useState<DeskTab>(() => (mode === "request" ? "tier" : typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "plan" ? "plan" : "groups"));
   const [opened, setOpened] = useState<number | null>(null);
   const c = req.cluster;
   const pending = (xs: (ClusterInvite | undefined)[]) => xs.filter((x) => x?.status === "pending").length;
@@ -346,6 +376,7 @@ function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mod
           { key: "groups", label: "المجموعات", icon: UsersRound, badge: String(req.groups.length) },
           { key: "team", label: "كادر التكتل", icon: UserCheck, badge: String(req.cadre) },
           { key: "report", label: "التقرير", icon: Printer },
+          { key: "plan", label: "الخطة التشغيلية", icon: ClipboardList },
           ...(mode === "manage" ? [{ key: "page" as const, label: "الصفحة العامة", icon: Globe }] : []),
         ];
   const waiting = pending([...Object.values(c.groups), ...Object.values(c.seats).flat().map((x) => x.who), ...c.assistants, ...c.coordinators, ...c.femaleGuides, c.deputy, c.accountant]);
@@ -393,6 +424,7 @@ function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mod
             </div>
           )}
           {tab === "report" && <ReportStep req={req} editable={editable && mode === "request"} />}
+          {tab === "plan" && <PlanStep req={req} editable={mode === "manage"} />}
           {tab === "page" && <ClusterPublicProfile />}
         </motion.div>
       </AnimatePresence>
@@ -836,7 +868,7 @@ function StaffStep({ req, editable, sortable }: { req: ClusterRequest; editable:
       </div>
       <Card className="md:p-6">
         <SectionTitle icon={Shuffle}>توزيع المجموعات على المنسقين</SectionTitle>
-        <p className="mt-1 text-sm leading-7 text-ink-soft">يعمل كل منسق في المجموعات الموزَّعة عليه وحدها: يلحق بها الحجاج بعقودهم ويأخذ ملفاتهم الصحية (النظام الإداري: يوزّع رئيس التكتل المجموعات على منسقيه).</p>
+        <p className="mt-1 text-sm leading-7 text-ink-soft">يعمل كل منسق في المجموعات الموزَّعة عليه وحدها: يرى حجاجها حين يلحقهم المكتب بعقودهم، ويأخذ ملفاتهم الصحية (النظام الإداري: يوزّع رئيس التكتل المجموعات على منسقيه).</p>
         {sortable && coords.length > 0 && (
           <Button size="sm" variant="outline" className="mt-2" onClick={spread}>
             <Shuffle className="size-3.5" /> بالتساوي
@@ -964,7 +996,7 @@ function ReportStep({ req, editable }: { req: ClusterRequest; editable: boolean 
         </ul>
         {editable && (
           <>
-            {w.state === "early" && !c.firstSentAt && <p className="text-xs text-green">أرسله حتى {dayLabel(w.early, true)} فينال التكتل «شارة الالتزام بالمواعيد».</p>}
+            {w.state === "early" && !c.firstSentAt && <p className="text-xs text-green">أرسله حتى {dayTimeLabel(w.early, w.earlyTime, true)} فينال التكتل «شارة الالتزام بالمواعيد».</p>}
             <Button size="lg" className="w-full" disabled={!req.complete} onClick={send}>
               <Send className="size-5" /> {cta}
             </Button>

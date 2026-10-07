@@ -2,7 +2,7 @@
 
 import { CalendarRange, Lock } from "lucide-react";
 import { useToast } from "@/components/ui/widgets";
-import { controls, dayLabel, statusLabel, useOperations, type OperationKey, type OperationMode, type OperationState } from "@/lib/operations";
+import { controls, dayLabel, dayTimeLabel, statusLabel, useOperations, type OperationKey, type OperationMode, type OperationState } from "@/lib/operations";
 import { PERMISSION_LABELS } from "@/lib/staff";
 import { actions } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
@@ -35,7 +35,7 @@ export function OperationsPanel({ keys, system, area, title = "مواعيد ال
   const ops = useOperations().filter((o) => !keys || keys.includes(o.key));
   if (!user) return null;
 
-  const change = (o: OperationState, patch: { mode?: OperationMode; start?: string; end?: string }, what: string, before: string, after: string) => {
+  const change = (o: OperationState, patch: { mode?: OperationMode; start?: string; end?: string; startTime?: string; endTime?: string }, what: string, before: string, after: string) => {
     actions.setOperation(o.key, { ...patch, by: user.name, at: nowMs() });
     logAs(user, { action: `${what} — ${o.label}`, target: o.label, before, after, system, area, ref: o.key, important: true });
     toast({ title: o.label, body: `${what}: ${after}`, icon: "🗓️", tone: "info" });
@@ -44,7 +44,7 @@ export function OperationsPanel({ keys, system, area, title = "مواعيد ال
   return (
     <Panel title={title} icon={<CalendarRange />}>
       <p className="mb-4 text-sm leading-7 text-white/70">
-        كل عملية تبويب مستقل عند الإداريين، تُفتح وحدها في تاريخ بدايتها وتُغلق بعد تاريخ نهايتها. ويستطيع من يتحكم بها فتحها أو إيقافها بيده مهما كانت تواريخها، ثم إعادتها إلى التواريخ.
+        كل عملية تبويب مستقل عند الإداريين، تُفتح وحدها في تاريخ بدايتها وتُغلق بعد تاريخ نهايتها — وبالساعة إن حُددت: تُفتح في ساعتها من يومها الأول، وتُغلق في ساعتها من يومها الأخير. ويستطيع من يتحكم بها فتحها أو إيقافها بيده مهما كانت تواريخها، ثم إعادتها إلى التواريخ.
       </p>
       <ul className="space-y-2.5">
         {ops.map((o) => {
@@ -76,18 +76,31 @@ export function OperationsPanel({ keys, system, area, title = "مواعيد ال
                     </button>
                   ))}
                 </div>
-                {(["start", "end"] as const).map((k) => (
-                  <label key={k} className="flex items-center gap-2 rounded-xl bg-black/20 px-3 py-1.5 text-xs">
-                    <span className="shrink-0 text-white/60">{k === "start" ? "البداية" : "النهاية"}</span>
-                    <input
-                      type="date"
-                      value={o[k] ?? ""}
-                      disabled={!mine}
-                      onChange={(e) => change(o, { [k]: e.target.value || undefined }, k === "start" ? "تغيير تاريخ البداية" : "تغيير تاريخ النهاية", dayLabel(o[k], true) || "بلا تاريخ", dayLabel(e.target.value, true) || "بلا تاريخ")}
-                      className="min-w-0 flex-1 bg-transparent font-bold text-white outline-none [color-scheme:dark] disabled:opacity-60"
-                    />
-                  </label>
-                ))}
+                {(["start", "end"] as const).map((k) => {
+                  const tk = k === "start" ? "startTime" : "endTime";
+                  return (
+                    <div key={k} className="flex items-center gap-2 rounded-xl bg-black/20 px-3 py-1.5 text-xs">
+                      <span className="shrink-0 text-white/60">{k === "start" ? "البداية" : "النهاية"}</span>
+                      <input
+                        type="date"
+                        value={o[k] ?? ""}
+                        disabled={!mine}
+                        aria-label={k === "start" ? `تاريخ بداية ${o.label}` : `تاريخ نهاية ${o.label}`}
+                        onChange={(e) => change(o, { [k]: e.target.value || undefined }, k === "start" ? "تغيير تاريخ البداية" : "تغيير تاريخ النهاية", dayLabel(o[k], true) || "بلا تاريخ", dayLabel(e.target.value, true) || "بلا تاريخ")}
+                        className="min-w-0 flex-1 bg-transparent font-bold text-white outline-none [color-scheme:dark] disabled:opacity-60"
+                      />
+                      <input
+                        type="time"
+                        value={o[tk] ?? ""}
+                        disabled={!mine || !o[k]}
+                        aria-label={k === "start" ? `ساعة بداية ${o.label}` : `ساعة نهاية ${o.label}`}
+                        onChange={(e) => change(o, { [tk]: e.target.value || undefined }, k === "start" ? "تغيير ساعة البداية" : "تغيير ساعة النهاية", dayTimeLabel(o[k], o[tk], true) || "بلا ساعة", dayTimeLabel(o[k], e.target.value || undefined, true))}
+                        className="w-20 shrink-0 bg-transparent font-bold text-white outline-none [color-scheme:dark] disabled:opacity-40"
+                        dir="ltr"
+                      />
+                    </div>
+                  );
+                })}
               </div>
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
                 {!mine && <Lock className="size-3" />}

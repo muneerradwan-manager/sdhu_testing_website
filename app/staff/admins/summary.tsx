@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, Building2, Funnel, Gauge, GraduationCap, Layers, ListChecks, Megaphone, ScrollText, UsersRound } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Building2, Contact, Funnel, Gauge, GraduationCap, Layers, ListChecks, Mails, Megaphone, ScrollText, UsersRound } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { groupName } from "@/lib/groups";
@@ -11,10 +11,12 @@ import { SYSTEMS, useHolders } from "@/lib/systems";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 import { useStructure } from "@/app/administrator/_lib/structure";
 import { useAdminCalendar, useCommitments, useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
+import { useFormingSeason } from "@/app/administrator/_lib/formation";
 import { fmtDate, fmtDateTime, Kpi, PageHeader, Panel, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
 import { Escalate, Raised, Todo } from "../_components/system";
 import { FunnelTable } from "./_components/applicants";
+import { useCadreRows } from "./_components/cadre";
 import { StageCoverage } from "./_components/evaluation";
 import { useAdminsDesk } from "./desk";
 
@@ -43,6 +45,8 @@ export function AdminsSummary() {
   const closed = s.roles.filter((r) => r.applied && !r.active);
   const appliedTotal = s.roles.filter((r) => r.applied).length;
   const atHeads = desk.groups.filter((x) => x.state === "unpaid" || x.state === "returned").length;
+  const cadre = useCadreRows();
+  const formingSeason = useFormingSeason();
 
   return (
     <div className="space-y-6">
@@ -67,7 +71,7 @@ export function AdminsSummary() {
         <Kpi label="المتقدمون" value={desk.totals.applied} icon={<UsersRound />} hint={`${formatNumber(desk.totals.paid)} سددوا الرسم${desk.noRole ? ` · ${desk.noRole} لم يختاروا صفة` : ""}`} />
         <Kpi label="مؤهَّلون للعمل" value={desk.totals.qualified} icon={<GraduationCap />} tone="teal" delay={0.05} hint={`${desk.totals.passed} نجحوا · ${desk.totals.exempt} بالتجديد دون امتحان`} />
         <Kpi label="مجموعات معتمدة" value={desk.approved.length} icon={<BadgeCheck />} tone="maroon" delay={0.1} pulse={desk.waiting.length > 0} hint={desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر قرارك` : `من ${desk.groups.length} طلبات تشكيل`} />
-        <Kpi label="تكتلات معتمدة" value={desk.approvedClusters.length} icon={<Building2 />} tone="gold" delay={0.15} hint={`من ${desk.requests.length} طلبات تشكيل`} />
+        <Kpi label="تكتلات معتمدة" value={desk.approvedClusters.length} icon={<Building2 />} tone="gold" delay={0.15} hint={`من ${desk.live.length} طلبات تشكيل`} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
@@ -88,6 +92,16 @@ export function AdminsSummary() {
           {desk.rulesEdited ? `عُدّل ${desk.rulesEdited} من قواعد الموسم` : "القواعد كما تطلقها المنصة"}
           {closed.length ? ` · معطّلة: ${closed.map((r) => r.name).join("، ")}` : ""} · من «إعدادات الموسم»: رسم التسجيل {formatUSD(season.fees.administratorRegistration)}، والتشكيل {formatUSD(season.fees.groupFormation)}، وإنشاء التكتل {formatUSD(season.fees.clusterFormation)}.
         </p>
+      </Panel>
+
+      <Panel icon={<Contact />} title="الكادر الإداري والمراجع" action={<ManageLink href={`${M}/cadre`} />}>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+          <Stat k="الكادر" v={cadre.filter((r) => r.status?.state !== "deleted").length} />
+          <Stat k="في تكتلات معتمدة" v={cadre.filter((r) => r.place).length} tone="green" />
+          <Stat k="حسابات موقوفة" v={cadre.filter((r) => r.status?.state === "disabled").length} tone={cadre.some((r) => r.status?.state === "disabled") ? "maroon" : undefined} />
+          <Stat k="مربوطون بتيليجرام" v={cadre.filter((r) => r.chatId).length} />
+          <Stat k="خطط تشغيلية تنتظر قرارك" v={desk.plansWaiting.length} tone={desk.plansWaiting.length ? "gold" : undefined} />
+        </div>
       </Panel>
 
       <Panel icon={<Funnel />} title="المتقدمون صفةً صفة" action={<ManageLink href={`${M}/applicants`} />} bodyClass="-mx-5 md:-mx-6">
@@ -127,6 +141,15 @@ export function AdminsSummary() {
           <Stat k="معتمدة" v={desk.approvedClusters.length} tone="green" />
           <Stat k="أُعيدت بملاحظات" v={desk.rejected.length} />
           <Stat k="برامج تنتظر اعتمادك" v={desk.pendingProgrammes.length} tone={desk.pendingProgrammes.length ? "gold" : undefined} />
+        </div>
+      </Panel>
+
+      <Panel icon={<Mails />} title="التكتلات والمجموعات والمراسلات" action={<ManageLink href={`${M}/letters`} />}>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <Stat k="الموسم الحالي" v={formingSeason} />
+          <Stat k="تشكيلات مؤرشفة" v={desk.archivedClusters.length} />
+          <Stat k="مراسلات غير مقروءة" v={desk.unreadLetters.length} tone={desk.unreadLetters.length ? "gold" : undefined} />
+          <Stat k="مراسلات بلا رد" v={desk.waitingLetters.length} tone={desk.waitingLetters.length ? "gold" : undefined} />
         </div>
       </Panel>
 

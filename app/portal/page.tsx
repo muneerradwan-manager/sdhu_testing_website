@@ -20,7 +20,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Card, PortalShell } from "@/components/portal/shell";
+import { Card } from "@/components/portal/shell";
+import { PilgrimShell } from "./_components/pilgrim-shell";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
@@ -62,8 +63,7 @@ export default function PortalHome() {
   const stage = app ? stageAt(steps, elapsed).stage : null;
 
   return (
-    <PortalShell
-      wide
+    <PilgrimShell
       image="/images/umayyad-courtyard.jpg"
       title={
         <span className="flex flex-wrap items-center gap-3">
@@ -244,7 +244,7 @@ export default function PortalHome() {
           </div>
         </div>
       </div>
-    </PortalShell>
+    </PilgrimShell>
   );
 }
 

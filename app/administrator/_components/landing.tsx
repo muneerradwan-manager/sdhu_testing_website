@@ -38,6 +38,7 @@ import { useHydrated, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { APPLIED_ROLES, criterionLabel } from "../_lib/admin";
 import { useStructure, type Structure } from "../_lib/structure";
+import { REFERENCE_PAGES } from "./references-shell";
 import {
   useAdminCalendar,
   useDocTypes,
@@ -352,7 +353,7 @@ export function AdministratorLanding() {
             light
             eyebrow="الرحلة"
             title="من الامتحان إلى الميدان"
-            description="التسجيل كإداري، ثم الامتحان، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات من تمنحهم الإدارة صفة «رئيس تكتل» دون انتخاب، وتراجعها، ويُلحق الحجاج بالمجموعات بعقود، ثم الميدان."
+            description="التسجيل كإداري، ثم الامتحان، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات من يحملون صفة «رئيس تكتل» دون انتخاب، وتراجعها الإدارة، ويُلحق المكتب الحجاج بالمجموعات بعقودهم، ثم الميدان."
           />
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {PHASES.map((p, i) => (
@@ -374,6 +375,28 @@ export function AdministratorLanding() {
             ))}
           </Stagger>
         </div>
+      </section>
+
+      {/* ───────── The cadre's references ───────── */}
+      <section className="mx-auto max-w-7xl px-4 pb-4 pt-20 md:px-8">
+        <SectionHeading
+          eyebrow="مراجع الكادر"
+          title="ما يعمل به الكادر"
+          description="التوصيف الوظيفي لكل صفة، والنظام الإداري، والمقررات، ونماذج العقود، والخطط التشغيلية — كما تنشرها الإدارة وتحدّثها."
+        />
+        <Stagger className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {REFERENCE_PAGES.map((r) => (
+            <StaggerItem key={r.href}>
+              <Link href={r.href} className="group flex h-full flex-col rounded-3xl border border-gold/30 bg-white p-5 transition hover:-translate-y-1 hover:shadow-[0_20px_50px_-30px_rgba(2,21,38,.45)]">
+                <span className="grid size-12 place-items-center rounded-2xl bg-sand text-gold-dark transition group-hover:bg-gold/30">
+                  <r.icon className="size-6" />
+                </span>
+                <span className="mt-3 font-display text-lg font-bold text-green-dark">{r.label}</span>
+                <span className="mt-1 text-sm leading-7 text-ink-soft">{r.desc}</span>
+              </Link>
+            </StaggerItem>
+          ))}
+        </Stagger>
       </section>
 
       {/* ───────── Calendar + requirements ───────── */}

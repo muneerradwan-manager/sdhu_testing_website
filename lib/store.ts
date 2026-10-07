@@ -93,6 +93,8 @@ export type Review = { status: "approved" | "rejected"; note: string; by: string
  */
 export type AdminRules = {
   exam?: Partial<{ passMark: number; writtenMin: number; writtenWeight: number }>;
+  /** The oral's days are the operation «الامتحان الشفهي»; here, what each day holds: its seats, its hours, its place */
+  oral?: Partial<{ perDay: number; time: string; place: string; fridays: boolean }>;
   /** Each role's exam as the administration built it: its duration and its weighted sections (lib/data/admin-exam) */
   blueprints?: Record<string, import("./data/admin-exam").ExamBlueprint>;
   /** Questions the administration wrote this season, of any type */
@@ -117,6 +119,8 @@ export type AdminRules = {
   categoryRules?: Record<string, Record<string, import("../app/administrator/_lib/structure").CategoryRule>>;
   composition?: Record<string, import("../app/administrator/_lib/structure").Composition>;
   earlyDeadline?: string;
+  /** Its hour on that day ("HH:MM"); the day's end when absent */
+  earlyTime?: string;
   /** Commitments dropped this season, and edited wording */
   commitmentsOff?: string[];
   commitmentEdits?: Record<string, { label?: string; detail?: string }>;
@@ -330,6 +334,8 @@ export type ClusterRecord = {
   createdAt: number;
   tier?: string;
   status: ClusterStatus;
+  /** The Hijri season it was filed in (the current one when absent) */
+  season?: number;
   /** Sent for review (the last time), and the first time — before the early deadline it earns the timeliness badge */
   sentAt?: number;
   firstSentAt?: number;
@@ -399,8 +405,15 @@ export type AdminProfile = {
     provisional?: number;
     score?: number;
   };
+  /**
+   * The papers of the other exams a role sits when it sits more than one («معاون ومنسق تقني»: the assistant's),
+   * by the exam's role; `exam` stays the paper of the role's own exam (its `examAs`)
+   */
+  exams?: Record<string, NonNullable<AdminProfile["exam"]>>;
   /** The final is never stored: it follows the season's exam rules (resultOf) */
   oral?: { score: number; by: string; at: number; note?: string };
+  /** The oral's day he booked himself after passing the written, from the days the exams' staff set */
+  oralBooking?: { day: string; at: number };
   resultPublishedAt?: number;
   /** Formed alone, without a team and without a cluster: a cluster takes it later, and its head assigns its team */
   group?: {
@@ -450,6 +463,81 @@ export type AdminProfile = {
    */
   joinDecisions: Record<string, "accepted" | "rejected">;
   musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string }[];
+};
+
+/**
+ * One event in a person's career file («أحداث الكادر»), as on the administration's platform: he joined a cluster,
+ * an exceptional edit touched him, his role, seasonal role, branch or category changed, he was added, his account
+ * was stopped or deleted, or a general note. The derived ones (joining an approved cluster, a granted seasonal role)
+ * are read from the season itself; whatever the staff do or write by hand is kept here.
+ */
+export type CadreEventType = "joined" | "exceptional" | "role" | "seasonal" | "branch" | "category" | "added" | "status" | "deleted" | "note";
+export type CadreEvent = {
+  id: string;
+  personId: string;
+  name: string;
+  type: CadreEventType;
+  /** The Hijri season it belongs to; null for one outside every season */
+  season: number | null;
+  /** The day it happened (YYYY-MM-DD), which may be before it was written down */
+  date: string;
+  change?: string;
+  note?: string;
+  by: string;
+  at: number;
+};
+
+/** Someone the administration added to the cadre by hand, outside every season's application */
+export type CadrePerson = { id: string; name: string; gender: "M" | "F"; role: string; branch: string; phone: string; birth?: string; at: number; by: string };
+
+/** How the administration reaches him and how he signs in: phone, birth date, card barcode, login PIN, Telegram */
+export type CadreContact = { phone?: string; birth?: string; barcode?: string; pin?: string; telegram?: string; chatId?: string };
+
+/** A message the staff sent through the Telegram bot: who it was for, and who has the bot linked to receive it */
+export type TelegramMessage = { id: string; at: number; by: string; text: string; to: string[]; reached: string[] };
+
+/** A letter between an administrator and the administration («المراسلات»): its thread, read and closed by the staff */
+export type LetterMessage = { id: string; from: "admin" | "staff"; name: string; text: string; at: number; file?: string };
+export type Letter = {
+  id: string;
+  number: string;
+  adminId: string;
+  adminName: string;
+  subject: string;
+  kind: string;
+  at: number;
+  messages: LetterMessage[];
+  /** When the staff last opened it, and when its writer last read the replies */
+  readAt?: number;
+  adminReadAt?: number;
+  closed?: { at: number; by: string };
+};
+
+/** A cluster's operational plan («الخطة التشغيلية»), filed by its head and accepted or sent back by the administration */
+export type OperationalPlan = {
+  clusterId: string;
+  clusterName: string;
+  headId: string;
+  headName: string;
+  title: string;
+  summary: string;
+  file: string;
+  at: number;
+  status: "submitted" | "accepted" | "returned";
+  decision?: { by: string; at: number; note?: string };
+};
+
+/**
+ * The administration's references for its cadre, as the holder of «إدارة الإداريين» edits them: each role's job
+ * description (and which are shown, in what order), the administrative system's sections, the books of decisions,
+ * and the contract forms. A missing one is the platform's own (app/administrator/_lib/references).
+ */
+export type AdminRefs = {
+  jobs?: Record<string, { summary?: string; duties?: string[]; hidden?: boolean }>;
+  jobOrder?: string[];
+  system?: { id: string; title: string; body: string }[];
+  decisions?: { id: string; title: string; year: string; desc: string; file: string }[];
+  contracts?: { id: string; title: string; desc: string; file: string; party: string }[];
 };
 
 /** One companion's approval to be added to an application — it stays open until they answer */
@@ -516,21 +604,49 @@ export type State = {
    * The season's cluster requests filed by heads who are not on this device, as the administration's review
    * and exceptional edits left them (by cluster id); a missing one is the season's story as seeded
    */
-  formation: { overrides: Record<string, ClusterRecord> };
+  formation: {
+    overrides: Record<string, ClusterRecord>;
+    /** Requests the administration created on a leader's behalf («إنشاء تشكيل نيابة عن قائد») */
+    created: { headId: string; headName: string; headGroup?: number; cluster: ClusterRecord }[];
+    /** Approved formations set aside in the archive, with the season they belonged to */
+    archived: Record<string, { season: number; at: number; by: string }>;
+    /** The administration's free note on a cluster (`c:<id>`) or a group (`g:<number>`) in the directory */
+    notes: Record<string, string>;
+    /** The season new formations are stamped with, once the administration began a new one */
+    season?: number;
+    seasonStarted?: { from: number; to: number; at: number; by: string; archived: string[] };
+  };
   /**
-   * What the administration set on each administrator this season, whether on this device or not: a seasonal
-   * role over the one he applied for (null = taken back), a group head's category, his branch and extra branches
+   * The cadre as the administration keeps it, whether on this device or not: a seasonal role over the one he
+   * applied for (null = taken back), a group head's category, his branch and extra branches — and, across the
+   * seasons, his base role, the people it added by hand, the accounts it stopped or deleted, how it reaches each
+   * one (phone, barcode, PIN, Telegram), the events of each person's file, and what it sent through the bot.
    */
   cadre: {
     seasonal: Record<string, import("../app/administrator/_lib/structure").SeasonalRole | null>;
     category: Record<string, string>;
     branches: Record<string, { branch: string; extra: string[] }>;
+    primary: Record<string, string>;
+    added: Record<string, CadrePerson>;
+    status: Record<string, { state: "disabled" | "deleted"; reason: string; by: string; at: number }>;
+    contact: Record<string, CadreContact>;
+    events: CadreEvent[];
+    telegram: TelegramMessage[];
   };
+  /** When each administrator was last seen on the platform (a heartbeat while his portal is open) */
+  presence: Record<string, number>;
+  /** The letters between the administrators and the administration */
+  letters: Letter[];
+  /** Each cluster's operational plan, by cluster id */
+  plans: Record<string, OperationalPlan>;
+  /** The administration's references for its cadre */
+  adminRefs: AdminRefs;
   /**
-   * The demo's "today" (YYYY-MM-DD): every operation opens and closes by it (lib/operations.ts). `allOpen`
-   * tries everything together instead: every operation open whatever its dates.
+   * The demo's "today" (YYYY-MM-DD) and, when set, its hour ("HH:MM"; else the real one): every operation opens
+   * and closes by them (lib/operations.ts). `allOpen` tries everything together instead: every operation open
+   * whatever its dates.
    */
-  clock: { today?: string; allOpen?: boolean };
+  clock: { today?: string; time?: string; allOpen?: boolean };
   /** Each operation's state and dates as the staff who control it left them; a missing one follows its defaults */
   operations: Partial<Record<import("./operations").OperationKey, import("./operations").OperationOverride>>;
   /** End-of-season classification of the groups and the clusters, once the administration publishes it */
@@ -589,6 +705,9 @@ export type ExamHalls = {
 
 export type StoreState = State;
 
+/** The cadre's lists kept by person (the events and the bot's messages are lists of their own) */
+export type CadreKey = "seasonal" | "category" | "branches" | "primary" | "added" | "status" | "contact";
+
 const KEY = "sdhu-demo-v1";
 const initial: State = {
   accounts: {},
@@ -607,8 +726,12 @@ const initial: State = {
   drafts: {},
   inSeason: {},
   lottery: {},
-  formation: { overrides: {} },
-  cadre: { seasonal: {}, category: {}, branches: {} },
+  formation: { overrides: {}, created: [], archived: {}, notes: {} },
+  cadre: { seasonal: {}, category: {}, branches: {}, primary: {}, added: {}, status: {}, contact: {}, events: [], telegram: [] },
+  presence: {},
+  letters: [],
+  plans: {},
+  adminRefs: {},
   clock: {},
   operations: {},
   grading: {},
@@ -655,10 +778,31 @@ function normalize(s: State): State {
   return {
     ...s,
     admins,
-    formation: { overrides: obj(f.overrides) as State["formation"]["overrides"] },
+    formation: {
+      overrides: obj(f.overrides) as State["formation"]["overrides"],
+      created: list(f.created) as State["formation"]["created"],
+      archived: obj(f.archived) as State["formation"]["archived"],
+      notes: obj(f.notes) as State["formation"]["notes"],
+      season: typeof f.season === "number" ? f.season : undefined,
+      seasonStarted: f.seasonStarted as State["formation"]["seasonStarted"],
+    },
     // Rules an earlier build kept (capacity and coordinator tiers by rating, roles opened by key) are the structure's now
     adminRules: Object.fromEntries(Object.entries(obj(s.adminRules)).filter(([k]) => !["capacityTiers", "coordinatorTiers", "rolesOff", "roleDesc"].includes(k))) as AdminRules,
-    cadre: { seasonal: obj(c.seasonal) as State["cadre"]["seasonal"], category: obj(c.category) as State["cadre"]["category"], branches: obj(c.branches) as State["cadre"]["branches"] },
+    cadre: {
+      seasonal: obj(c.seasonal) as State["cadre"]["seasonal"],
+      category: obj(c.category) as State["cadre"]["category"],
+      branches: obj(c.branches) as State["cadre"]["branches"],
+      primary: obj(c.primary) as State["cadre"]["primary"],
+      added: obj(c.added) as State["cadre"]["added"],
+      status: obj(c.status) as State["cadre"]["status"],
+      contact: obj(c.contact) as State["cadre"]["contact"],
+      events: list(c.events) as CadreEvent[],
+      telegram: list(c.telegram) as TelegramMessage[],
+    },
+    presence: obj(s.presence) as State["presence"],
+    letters: list(s.letters) as Letter[],
+    plans: obj(s.plans) as State["plans"],
+    adminRefs: obj(s.adminRefs) as AdminRefs,
     clock: obj(s.clock) as State["clock"],
     operations: obj(s.operations) as State["operations"],
   };
@@ -908,11 +1052,11 @@ export const actions = {
       const overrides = { ...s.formation.overrides };
       if (cluster) overrides[id] = cluster;
       else delete overrides[id];
-      return { ...s, formation: { overrides } };
+      return { ...s, formation: { ...s.formation, overrides } };
     });
   },
-  /** What the administration set on one person this season (seasonal role, category, branches) */
-  setCadre<K extends keyof State["cadre"]>(key: K, id: string, value: State["cadre"][K][string] | undefined) {
+  /** What the administration set on one person (seasonal role, category, branches, base role, contact…) */
+  setCadre<K extends CadreKey>(key: K, id: string, value: State["cadre"][K][string] | undefined) {
     setState((s) => {
       const next = { ...s.cadre[key] } as State["cadre"][K];
       if (value === undefined) delete next[id];
@@ -920,9 +1064,46 @@ export const actions = {
       return { ...s, cadre: { ...s.cadre, [key]: next } };
     });
   },
+  /** One event written into a person's file */
+  addCadreEvent(e: Omit<CadreEvent, "id" | "at">) {
+    setState((s) => ({ ...s, cadre: { ...s.cadre, events: [...s.cadre.events, { ...e, id: uid(), at: Date.now() }] } }));
+  },
+  /** A message through the Telegram bot, and to whom it reached */
+  addTelegram(m: Omit<TelegramMessage, "id" | "at">) {
+    setState((s) => ({ ...s, cadre: { ...s.cadre, telegram: [...s.cadre.telegram, { ...m, id: uid(), at: Date.now() }] } }));
+  },
+  /** The heartbeat of an open portal: «متصل الآن» on the staff's roster */
+  seen(id: string, at: number) {
+    setState((s) => (at - (s.presence[id] ?? 0) < 30_000 ? s : { ...s, presence: { ...s.presence, [id]: at } }));
+  },
+  addLetter(letter: Letter) {
+    setState((s) => ({ ...s, letters: [...s.letters, letter] }));
+  },
+  updateLetter(id: string, fn: (l: Letter) => Letter) {
+    setState((s) => ({ ...s, letters: s.letters.map((l) => (l.id === id ? fn(l) : l)) }));
+  },
+  setPlan(clusterId: string, plan: OperationalPlan | undefined) {
+    setState((s) => {
+      const plans = { ...s.plans };
+      if (plan) plans[clusterId] = plan;
+      else delete plans[clusterId];
+      return { ...s, plans };
+    });
+  },
+  /** The formations' archive, their notes, the requests created on a leader's behalf, the current season */
+  setFormation(fn: (f: State["formation"]) => State["formation"]) {
+    setState((s) => ({ ...s, formation: fn(s.formation) }));
+  },
+  setAdminRefs(patch: AdminRefs) {
+    setState((s) => ({ ...s, adminRefs: { ...s.adminRefs, ...patch } }));
+  },
   /** Moves the demo's "today"; undefined goes back to the season's first day */
-  setToday(today: string | undefined) {
-    setState((s) => ({ ...s, clock: { ...s.clock, today } }));
+  setToday(today: string | undefined, time?: string) {
+    setState((s) => ({ ...s, clock: { ...s.clock, today, time } }));
+  },
+  /** The demo's hour on its day; undefined follows the real clock */
+  setClockTime(time: string | undefined) {
+    setState((s) => ({ ...s, clock: { ...s.clock, time } }));
   },
   /** Everything open at once, or back to the dates */
   setAllOpen(allOpen: boolean) {

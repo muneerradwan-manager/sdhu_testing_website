@@ -51,7 +51,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" data-scroll-behavior="smooth" className={`${qomra.variable} ${amiri.variable} antialiased`}>
+    // The visitor's display size is set on <html> (`--user-zoom`, lib/store applyScale) as the store loads, which is
+    // before React checks <html> while hydrating: that one attribute is the browser's, not a mismatch
+    <html lang="ar" dir="rtl" data-scroll-behavior="smooth" className={`${qomra.variable} ${amiri.variable} antialiased`} suppressHydrationWarning>
       <body className="flex min-h-[calc(100dvh/var(--zoom))] flex-col">
         <Splash />
         <ToastProvider>

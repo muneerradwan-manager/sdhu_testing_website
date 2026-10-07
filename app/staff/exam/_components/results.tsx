@@ -2,17 +2,18 @@
 
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { CheckCircle2, Download, GraduationCap, Megaphone, PenLine, PencilLine, Scale, UsersRound } from "lucide-react";
+import { CalendarDays, CheckCircle2, Download, GraduationCap, Megaphone, PencilLine, Scale, UsersRound } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
-import { pointsOf, weightsLabel } from "@/lib/data/admin-exam";
+import { weightsLabel } from "@/lib/data/admin-exam";
 import { matches } from "@/lib/ops";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { resultOf } from "@/app/administrator/_lib/admin";
-import { useAllQuestions, useExamRules } from "@/app/administrator/_lib/admin-rules";
-import { markedExam, roleKeyOf, useHalls } from "@/app/administrator/_lib/halls";
+import { ORAL_DEFAULTS, oralDayLabel, useExamRules, useOral } from "@/app/administrator/_lib/admin-rules";
+import { rangeLabel } from "@/lib/operations";
+import { roleKeyOf, roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
 import { patchAdmin, roleLabel, type AdminRow } from "../../_components/data";
 import { Drawer, Empty, fmtDateTime, Meter, Panel, logAs, smallInputClass, stamp, useStaffUser } from "../../_components/kit";
 import { SearchBox } from "../../_components/ops-ui";
@@ -24,7 +25,8 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 const pct = (w: number) => Math.round(w * 100);
 
 type Filter = "all" | Standing;
-const FILTERS: Filter[] = ["all", "waiting", "grading", "oral", "ready", "published", "below", "absent", "exempt"];
+// No «قيد التصحيح»: the written exam has no written answers, every paper is marked once it is sent
+const FILTERS: Filter[] = ["all", "waiting", "oral", "ready", "published", "below", "absent", "exempt"];
 
 /** A paper's number for the grader: the applicant's name stays hidden until the mark is in */
 export const paperCode = (id: string) => `1448-W-${id.slice(-5)}`;
@@ -44,7 +46,6 @@ export function Results() {
   const start = params.get("s");
   const [filter, setFilter] = useState<Filter>(FILTERS.includes(start as Filter) ? (start as Filter) : "all");
   const [q, setQ] = useState("");
-  const [grading, setGrading] = useState(start === "grading" && desk.answers > 0);
   const [editingRules, setEditingRules] = useState(false);
   const [oralFor, setOralFor] = useState<AdminRow | null>(null);
   const [confirmAll, setConfirmAll] = useState(false);
@@ -97,8 +98,9 @@ export function Results() {
         </p>
       </Panel>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <WorkCard icon={<PenLine />} title="إجابات تحريرية للتصحيح" n={desk.answers} hint={`في ${desk.papers.length} أوراق، دون أسماء أصحابها`} cta="ابدأ التصحيح" onClick={() => setGrading(true)} />
+      <OralDays />
+
+      <div className="grid gap-3 md:grid-cols-2">
         <WorkCard icon={<PencilLine />} title="بانتظار نتيجة الشفهي" n={desk.count("oral")} hint={`بلغوا حد الكتابي (${rules.writtenMin})`} cta="اعرضهم" onClick={() => setFilter("oral")} />
         <WorkCard icon={<Megaphone />} title="نتائج جاهزة للإعلان" n={ready.length} hint="لا يراها أصحابها قبل إعلانها" cta={confirmAll ? `تأكيد إعلان ${ready.length}` : "إعلان الكل"} onClick={() => (confirmAll ? announce(ready) : setConfirmAll(true))} tone={confirmAll ? "maroon" : "gold"} />
       </div>
@@ -117,9 +119,6 @@ export function Results() {
 
       <Records area="results" />
 
-      <Drawer open={grading} onClose={() => setGrading(false)} title="تصحيح الأسئلة التحريرية" width="max-w-3xl">
-        <Grading />
-      </Drawer>
       <Drawer open={editingRules} onClose={() => setEditingRules(false)} title="قواعد النجاح" width="max-w-xl">
         <RulesForm />
       </Drawer>
@@ -127,6 +126,83 @@ export function Results() {
         {oralFor && <OralForm key={oralFor.id} row={oralFor} onClose={() => setOralFor(null)} />}
       </Modal>
     </div>
+  );
+}
+
+/**
+ * The oral's days as the administrators book them: the days themselves are the operation «الامتحان الشفهي»
+ * (its dates in «الامتحانات»), and here each day's seats, hours and place, with how many booked each day.
+ */
+function OralDays() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const oral = useOral();
+  const stored = useStore((s) => s.adminRules.oral);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ perDay: String(oral.perDay), time: oral.time, place: oral.place, fridays: oral.fridays });
+  const total = Object.values(oral.booked).reduce((a, b) => a + b, 0);
+  const save = () => {
+    const perDay = Math.max(1, Math.min(500, Math.round(Number(draft.perDay) || ORAL_DEFAULTS.perDay)));
+    const next = { perDay, time: draft.time.trim() || ORAL_DEFAULTS.time, place: draft.place.trim() || ORAL_DEFAULTS.place, fridays: draft.fridays };
+    actions.setAdminRules({ oral: { ...stored, ...next } });
+    logAs(user, { action: "تعديل أيام الامتحان الشفهي", target: "الامتحان الشفهي", detail: `${perDay} مقعداً في اليوم — ${next.time} — ${next.place}${next.fridays ? " — يشمل أيام الجمعة" : " — بلا أيام الجمعة"}`, system: "exams", area: "results" });
+    toast({ title: "حُفظت أيام الشفهي", body: `${perDay} مقعداً في اليوم — ${next.time}`, tone: "success", icon: "💾" });
+    setEditing(false);
+  };
+  return (
+    <Panel
+      icon={<CalendarDays />}
+      title="أيام الامتحان الشفهي"
+      action={
+        <Button
+          size="sm"
+          variant="glass"
+          onClick={() => {
+            if (!editing) setDraft({ perDay: String(oral.perDay), time: oral.time, place: oral.place, fridays: oral.fridays });
+            setEditing(!editing);
+          }}
+        >
+          {editing ? "إلغاء" : "تعديل المقاعد والوقت والمكان"}
+        </Button>
+      }
+    >
+      <p className="text-sm leading-7 text-white/80">
+        أيامه {rangeLabel(oral.op.start, oral.op.end)}{oral.fridays ? "" : " بلا أيام الجمعة"} (تُضبط في «الامتحانات» مع مدة الامتحانات): يحجز من اجتاز الكتابي يوماً منها بنفسه، قبل موعده بيوم على الأقل. {oral.time} — {oral.place} — {oral.perDay} مقعداً في اليوم. حجز حتى الآن {total}.
+      </p>
+      {editing && (
+        <div className="mt-3 grid gap-3 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10 md:grid-cols-[8rem_1fr_2fr_auto] md:items-end">
+          <Field label="مقاعد اليوم">
+            <input inputMode="numeric" value={draft.perDay} onChange={(e) => setDraft({ ...draft, perDay: e.target.value })} className={cn(smallInputClass, "text-center")} />
+          </Field>
+          <Field label="الوقت">
+            <input value={draft.time} onChange={(e) => setDraft({ ...draft, time: e.target.value })} className={smallInputClass} />
+          </Field>
+          <Field label="المكان">
+            <input value={draft.place} onChange={(e) => setDraft({ ...draft, place: e.target.value })} className={smallInputClass} />
+          </Field>
+          <Button size="sm" variant="gold" onClick={save}>
+            <CheckCircle2 className="size-4" /> حفظ
+          </Button>
+          <label className="flex items-center gap-2 text-sm text-white/80 md:col-span-4">
+            <input type="checkbox" checked={draft.fridays} onChange={(e) => setDraft({ ...draft, fridays: e.target.checked })} className="size-4 accent-[#D9C89E]" />
+            تجلس اللجان أيام الجمعة أيضاً
+          </label>
+        </div>
+      )}
+      <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {oral.days.map((d) => {
+          const n = oral.booked[d] ?? 0;
+          return (
+            <li key={d} className={cn("rounded-2xl p-2.5 ring-1", n >= oral.perDay ? "bg-maroon/20 ring-maroon/40" : n ? "bg-gold/10 ring-gold/40" : "bg-white/[.04] ring-white/10")}>
+              <p className="text-xs font-bold text-white">{oralDayLabel(d)}</p>
+              <p className="text-[11px] text-white/70">
+                {n} من {oral.perDay}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
   );
 }
 
@@ -173,10 +249,16 @@ function ResultRow({ r, i, standing, onOral, onAnnounce }: { r: AdminRow; i: num
             {center && !r.profile.examExempt ? ` · ${center.name}` : ""}
             {sitting && standing === "waiting" ? ` · ${sitting.exam.name}: ${sitting.exam.date}` : ""}
           </p>
+          {standing === "oral" && <p className={cn("text-[11px]", r.profile.oralBooking ? "text-white/80" : "text-gold")}>{r.profile.oralBooking ? `الشفهي: ${oralDayLabel(r.profile.oralBooking.day)}` : "لم يحجز يوم الشفهي بعد"}</p>}
           {r.previous && <p className="text-[11px] text-gold">{r.previous}</p>}
         </div>
       </div>
-      <ScoreCell label={`الكتابي ×${pct(rules.writtenWeight)}%`} value={written} empty={r.previous ? "معفى" : r.profile.exam?.submittedAt ? `مبدئية ${r.profile.exam.provisional ?? "—"}` : "—"} />
+      <ScoreCell
+        label={`الكتابي ×${pct(rules.writtenWeight)}%`}
+        value={written}
+        empty={r.previous ? "معفى" : res.parts.length > 1 && res.parts.some((x) => x.sent) ? `امتحان من اثنين` : "—"}
+        note={res.parts.length > 1 ? res.parts.map((x) => `${roleLabelOf(x.role)} ${x.score ?? "—"}${x.score !== undefined && x.score < rules.writtenMin ? " ✗" : ""}`).join(" · ") : undefined}
+      />
       <ScoreCell label={`الشفهي ×${pct(rules.oralWeight)}%`} value={oral} empty={standing === "below" ? "لا يُستدعى" : "—"} />
       <div>
         <p className="text-[11px] text-white/75">النتيجة النهائية</p>
@@ -213,11 +295,13 @@ function ResultRow({ r, i, standing, onOral, onAnnounce }: { r: AdminRow; i: num
   );
 }
 
-function ScoreCell({ label, value, empty }: { label: string; value?: number; empty: string }) {
+/** A mark; `note` breaks it down (a role that sits two exams: each one's mark, ✗ under the minimum) */
+function ScoreCell({ label, value, empty, note }: { label: string; value?: number; empty: string; note?: string }) {
   return (
     <div>
       <p className="text-[11px] text-white/75">{label}</p>
       {value !== undefined ? <p className="font-display text-xl font-bold tabular-nums text-white">{value}</p> : <p className="text-sm text-gold">{empty}</p>}
+      {note && <p className="text-[11px] text-white/70">{note}</p>}
     </div>
   );
 }
@@ -229,7 +313,8 @@ function OralForm({ row, onClose }: { row: AdminRow; onClose: () => void }) {
   const toast = useToast();
   const rules = useExamRules();
   const prev = row.profile.oral;
-  const written = row.profile.exam?.score;
+  // The written as the result counts it: for a role that sits two exams, their average
+  const written = resultOf(row.profile, rules).written;
   const [score, setScore] = useState(prev?.score ?? 80);
   const [committee, setCommittee] = useState("3");
   const [note, setNote] = useState(prev?.note ?? "");
@@ -264,7 +349,10 @@ function OralForm({ row, onClose }: { row: AdminRow; onClose: () => void }) {
     <div>
       <p className="text-xs font-bold text-gold">الامتحان الشفهي — أمام اللجنة، ونتيجته هنا</p>
       <h3 className="mt-1 font-display text-xl font-bold text-white">{row.name}</h3>
-      <p className="text-sm text-white/75">{row.position}</p>
+      <p className="text-sm text-white/75">
+        {row.position}
+        {row.profile.oralBooking ? ` — حجز يوم ${oralDayLabel(row.profile.oralBooking.day, true)}` : ""}
+      </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_7rem]">
         <label className="block">
@@ -335,95 +423,6 @@ function OralForm({ row, onClose }: { row: AdminRow; onClose: () => void }) {
         <RecordHistory refId={row.id} />
       </div>
     </div>
-  );
-}
-
-// ───────────────────────── Grading ─────────────────────────
-
-/**
- * The written answers waiting for a grader. The automated questions were marked the moment a paper was
- * sent; here the grader sees the paper's number, not its owner's name, with what the answer should
- * contain. The written mark is final once its last answer is graded.
- */
-function Grading() {
-  const desk = useExamDesk();
-  if (!desk.papers.length) return <Empty icon={<CheckCircle2 />} title="لا إجابات تنتظر التصحيح" text="كل ما أُرسل من أوراق صُحّح." />;
-  return (
-    <div className="space-y-4">
-      <p className="text-sm leading-7 text-white/70">
-        {desk.answers} إجابات في {desk.papers.length} أوراق. يرى المصحح رقم الورقة لا اسم صاحبها. تكتمل علامة الكتابي حين تُصحَّح آخر إجابة في الورقة، ويراها المتقدم في بوابته.
-      </p>
-      {desk.papers.map(({ row, ids }) => (
-        <Paper key={row.id} row={row} ids={ids} />
-      ))}
-    </div>
-  );
-}
-
-function Paper({ row, ids }: { row: AdminRow; ids: number[] }) {
-  const all = useAllQuestions();
-  const e = row.profile.exam!;
-  const sectionOf = (id: number) => e.paper?.find((s) => s.ids.includes(id));
-  return (
-    <div className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-      <p className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-display text-lg font-bold text-gold" dir="ltr">
-          {paperCode(row.id)}
-        </span>
-        <span className="text-xs text-white/65">علامته المبدئية {e.provisional} من 100</span>
-      </p>
-      <ul className="mt-3 space-y-3">
-        {ids.map((id) => {
-          const q = all.find((x) => x.id === id);
-          return q ? <Answer key={id} row={row} qid={id} max={pointsOf(q)} text={q.text} guide={q.explanation} section={sectionOf(id)?.name} /> : null;
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function Answer({ row, qid, max, text, guide, section }: { row: AdminRow; qid: number; max: number; text: string; guide: string; section?: string }) {
-  const user = useStaffUser()!;
-  const toast = useToast();
-  const [mark, setMark] = useState<number | null>(null);
-  const e = row.profile.exam!;
-
-  const save = () => {
-    if (mark === null) return;
-    const next = markedExam(e, qid, mark, user.name);
-    patchAdmin(row, { exam: next }, actions.upsertAdmin);
-    logAs(user, { action: "تصحيح إجابة تحريرية", target: `ورقة ${paperCode(row.id)}`, after: `${mark} من ${max}`, detail: next.score !== undefined ? `اكتملت علامة الكتابي: ${next.score} من 100` : undefined, system: "exams", area: "results" });
-    toast({ title: `حُفظت الدرجة: ${mark} من ${max}`, body: next.score !== undefined ? `اكتملت الورقة: الكتابي ${next.score} من 100.` : "بقيت إجابات في هذه الورقة.", tone: "success", icon: "✍️" });
-  };
-
-  return (
-    <li className="rounded-2xl bg-black/15 p-3 ring-1 ring-white/10">
-      {section && <p className="text-xs font-bold text-gold">{section}</p>}
-      <p className="mt-0.5 font-bold text-white">{text}</p>
-      <p className="mt-2 whitespace-pre-line rounded-xl bg-white/[.07] p-3 text-sm leading-7 text-white">{String(e.answers[qid] ?? "")}</p>
-      <p className="mt-2 text-xs leading-6 text-white/60">
-        <b className="text-white/80">ما ينتظره السؤال: </b>
-        {guide}
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-sm text-white/80">الدرجة:</span>
-        {Array.from({ length: max + 1 }, (_, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-pressed={mark === i}
-            onClick={() => setMark(i)}
-            className={cn("grid size-9 place-items-center rounded-xl text-sm font-bold ring-1 transition", mark === i ? "bg-gold text-ink ring-gold" : "bg-white/10 text-white ring-white/15 hover:bg-white/20")}
-          >
-            {i}
-          </button>
-        ))}
-        <span className="text-sm text-white/60">من {max}</span>
-        <Button size="sm" variant="gold" disabled={mark === null} onClick={save}>
-          <CheckCircle2 className="size-4" /> حفظ الدرجة
-        </Button>
-      </div>
-    </li>
   );
 }
 

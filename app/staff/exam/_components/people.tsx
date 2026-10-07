@@ -9,8 +9,8 @@ import { useToast } from "@/components/ui/widgets";
 import { matches } from "@/lib/ops";
 import { getPerson } from "@/lib/registry";
 import { cn, maskNationalId } from "@/lib/utils";
-import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
-import { hallActions, roleKeyOf, roleLabelOf, STAGE_LABEL, useHalls } from "@/app/administrator/_lib/halls";
+import { APPLIED_ROLES, paperOf } from "@/app/administrator/_lib/admin";
+import { examRolesOfPosition, hallActions, roleKeyOf, roleLabelOf, STAGE_LABEL, useHalls } from "@/app/administrator/_lib/halls";
 import { Empty, Panel, logAs, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { useExamDesk, type Applicant } from "./desk";
@@ -74,13 +74,18 @@ export function People() {
       ["الاسم", "الرقم الوطني", "الصفة", "المركز", "الامتحان", "الموعد", "الحال"],
       ...desk.rows
         .filter((r) => !r.profile.examExempt && (r.profile.exam?.submittedAt || halls.centerOf(r.id)))
-        .map((r) => {
-          const role = roleKeyOf(r.profile.positions[0] ?? r.position);
-          const sat = r.profile.exam?.submittedAt;
-          // Papers from before the halls carry no sitting
-          const satAt = r.profile.exam?.hall?.split("@")[0];
-          const exam = sat ? (satAt ? halls.examById(satAt) : undefined) : halls.sittingOf(r.id, role)?.exam;
-          return [r.name, maskNationalId(r.id), roleLabelOf(role), halls.centerOf(r.id)?.name, exam?.name, exam ? `${exam.date} ${exam.time}` : "", sat ? "حضر وسلّم" : desk.standings.get(r.id) === "absent" ? "غائب" : "لم يُمتحَن بعد"];
+        // A line per exam he sits: «معاون ومنسق تقني» has two
+        .flatMap((r) => {
+          const pos = r.profile.positions[0] ?? r.position;
+          const roles = examRolesOfPosition(pos);
+          return (roles.length ? roles : [roleKeyOf(pos)]).map((role) => {
+            const paper = paperOf(r.profile, role);
+            const sat = paper?.submittedAt;
+            // Papers from before the halls carry no sitting
+            const satAt = paper?.hall?.split("@")[0];
+            const exam = sat ? (satAt ? halls.examById(satAt) : undefined) : halls.sittingOf(r.id, role)?.exam;
+            return [r.name, maskNationalId(r.id), roleLabelOf(role), halls.centerOf(r.id)?.name, exam?.name, exam ? `${exam.date} ${exam.time}` : "", sat ? "حضر وسلّم" : desk.standings.get(r.id) === "absent" ? "غائب" : "لم يُمتحَن بعد"];
+          });
         }),
     ]);
 

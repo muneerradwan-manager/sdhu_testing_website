@@ -23,7 +23,6 @@ if [ "$WHICH" = all ]; then
   run admin adm_d.py
 fi
 
-CAP_DIR=staff "$PY" adm_prep.py 2>&1 | tail -1
 FIRST=1; run staff stf_a.py a
 for part in b c d; do run staff stf_a.py "$part"; done
 for part in e f g h; do run staff stf_b.py "$part"; done

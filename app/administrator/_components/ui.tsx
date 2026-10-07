@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Lock,
   LogOut,
+  Mails,
   MapPinned,
   Plane,
   ScrollText,
@@ -40,6 +41,8 @@ export function AdminGate({ children }: { children: ReactNode }) {
   const hydrated = useHydrated();
   const sessionId = useStore((s) => s.adminSessionId);
   const hasProfile = useStore((s) => !!(s.adminSessionId && s.admins[s.adminSessionId]));
+  // An account the administration stopped or deleted («الكادر الإداري») opens nothing
+  const stopped = useStore((s) => (s.adminSessionId ? s.cadre.status[s.adminSessionId] : undefined));
   const router = useRouter();
   const pathname = usePathname();
   const ok = !!sessionId && hasProfile;
@@ -47,6 +50,30 @@ export function AdminGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated && !ok) router.replace(`/administrator/login?next=${encodeURIComponent(pathname)}`);
   }, [hydrated, ok, router, pathname]);
+
+  // While his portal is open he is «متصل الآن» on the staff's roster, and his last moment stays «آخر ظهور»
+  useEffect(() => {
+    if (!ok || !sessionId || stopped) return;
+    const beat = () => actions.seen(sessionId, Date.now());
+    beat();
+    const t = setInterval(beat, 60_000);
+    return () => clearInterval(t);
+  }, [ok, sessionId, stopped]);
+
+  if (hydrated && ok && stopped) {
+    return (
+      <div className="grid min-h-[calc(80vh/var(--zoom))] place-items-center bg-maroon-dark px-4 py-32">
+        <div className="max-w-lg rounded-[2rem] border border-gold/40 bg-white p-8 text-center">
+          <Lock className="mx-auto size-12 text-maroon" />
+          <h1 className="mt-4 font-display text-2xl font-bold text-green-dark">{stopped.state === "disabled" ? "حسابك موقوف من الإدارة" : "حسابك محذوف من الكادر"}</h1>
+          <p className="mt-3 leading-8 text-ink-soft">السبب: {stopped.reason}. راجع فرعك أو قسم شؤون المجموعات والتكتلات ليُفعَّل.</p>
+          <button type="button" onClick={() => actions.adminLogout()} className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-green-dark px-5 py-3 font-bold text-white">
+            <LogOut className="size-4" /> تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!hydrated || !ok) {
     return (
@@ -97,6 +124,8 @@ const NAV: NavItem[] = [
   // His own: what reached him, and what he did — each a tab, not a card inside «ملفي»
   { href: "/administrator/notifications", label: "الإشعارات", icon: BellRing },
   { href: "/administrator/activity", label: "سجل نشاطي", icon: ScrollText },
+  // His letters to the administration and its replies
+  { href: "/administrator/letters", label: "المراسلات", icon: Mails },
   // Registering a pilgrim on the Hajj never puts him in a group
   { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
   { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },

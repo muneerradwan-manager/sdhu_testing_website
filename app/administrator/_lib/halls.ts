@@ -5,8 +5,8 @@ import { DEFAULT_BLUEPRINTS, drawPaper, markPaper, withMarks, type ExamBlueprint
 import { getPerson } from "@/lib/registry";
 import { getStaff } from "@/lib/staff";
 import { setState, useStore, type AdminProfile, type HallRun } from "@/lib/store";
-import { APPLIED_ROLES, POSITIONS } from "./admin";
-import { examRoleOf, structureNow } from "./structure";
+import { APPLIED_ROLES, examRolesFor, paperOf, paperPatch, positionKeyOf } from "./admin";
+import { examRoleOf, examRolesOf } from "./structure";
 
 export type { ExamCenter, ExamDef } from "@/lib/data/admin-exam";
 
@@ -46,11 +46,17 @@ export const DEFAULT_SESSIONS: Record<string, { date: string; time: string }> = 
 /** A sitting is one exam in one centre */
 export const runKey = (exam: string, center: string) => `${exam}@${center}`;
 
-/** A role key from a stored role (the portal stores keys; the seeded files carry Arabic labels) */
+/** The exam of a stored role (the portal stores keys; the seeded files carry Arabic labels) */
 export function roleKeyOf(position: string | undefined) {
-  // A role tied to another sits that role's exam («مرشد ديني» the guide's): its sitting is the family's
-  const key = structureNow().roles.find((r) => r.key === position || r.name === position)?.key ?? POSITIONS.find((p) => p.key === position || p.label === position)?.key ?? "";
+  // A role tied to another sits that role's exam («موجّه ديني أ» the guide's): its sitting is the family's
+  const key = positionKeyOf(position);
   return key ? examRoleOf(key) : "";
+}
+
+/** Every exam a stored role sits: two for «معاون ومنسق تقني» (the assistant's and the coordinator's) */
+export function examRolesOfPosition(position: string | undefined) {
+  const key = positionKeyOf(position);
+  return key ? examRolesOf(key) : [];
 }
 
 export const roleLabelOf = (role: string) => APPLIED_ROLES.find((r) => r.key === role)?.label ?? role;
@@ -98,9 +104,18 @@ export function sittingFor(id: string, role: string, center: string | undefined,
   return all.find((s) => !!s.run?.present[id]) ?? all.find((s) => !s.exam.off && s.stage !== "closed") ?? all.filter((s) => s.stage === "closed").at(-1);
 }
 
-/** Who sits the written this season in a sitting: paid, eligible, not exempt, and not already sent elsewhere */
-export function mustSit(p: Pick<AdminProfile, "eligibleAt" | "feePaidAt" | "examExempt" | "exam"> | undefined, key?: string) {
-  return !!p?.eligibleAt && !!p.feePaidAt && !p.examExempt && (!p.exam?.submittedAt || (!!key && p.exam.hall === key));
+/**
+ * Who sits the written this season in a sitting: paid, eligible, not exempt, and not already sent elsewhere
+ * — for one exam of his (`examRole`), or for all of them
+ */
+export function mustSit(p: Pick<AdminProfile, "eligibleAt" | "feePaidAt" | "examExempt" | "exam" | "exams" | "positions"> | undefined, examRole?: string, key?: string) {
+  if (!p?.eligibleAt || !p.feePaidAt || p.examExempt) return false;
+  const roles = examRole ? [examRole] : examRolesFor(p);
+  if (!roles.length) return !p.exam?.submittedAt || (!!key && p.exam.hall === key);
+  return roles.some((r) => {
+    const paper = paperOf(p, r);
+    return !paper?.submittedAt || (!!key && paper.hall === key);
+  });
 }
 
 /** The five main exams as the season opens, with any change made before exams were kept whole */
@@ -150,16 +165,24 @@ export function useHalls() {
 
 export type Halls = ReturnType<typeof useHalls>;
 
-/** An administrator's own sitting: his centre, its hall, his exam's day, and the hall as its supervisor runs it */
+/**
+ * An administrator's own sitting: his centre, its hall, his exam's day, and the hall as its supervisor runs it.
+ * A role that sits two exams sits them one after the other: this is the first not sent yet (or the last).
+ */
 export function useMyHall(id: string, p: AdminProfile | undefined) {
   const halls = useHalls();
-  const role = roleKeyOf(p?.positions[0]);
+  const roles = examRolesFor(p);
+  const rolesKey = roles.join(",");
+  const pending = roles.find((r) => !paperOf(p, r)?.submittedAt);
+  const role = pending ?? roles.at(-1) ?? roleKeyOf(p?.positions[0]);
   return useMemo(() => {
     const center = halls.centerOf(id);
     const sitting = center ? halls.sittingOf(id, role) : undefined;
     const exam = sitting?.exam;
     return {
       role,
+      /** Every exam he sits, in order */
+      roles,
       exam,
       center,
       key: sitting?.key ?? "",
@@ -168,7 +191,8 @@ export function useMyHall(id: string, p: AdminProfile | undefined) {
       session: exam ? { date: exam.date, time: exam.time } : undefined,
       supervisor: center ? halls.supervisorOf(center.id) : null,
     };
-  }, [halls, id, role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the exams' list by its value (rolesKey), not its identity
+  }, [halls, id, role, rolesKey]);
 }
 
 // ───────────────────────── The supervisor's actions ─────────────────────────
@@ -217,7 +241,7 @@ export const hallActions = {
       const run = s.examHalls?.runs?.[key] ?? emptyRun();
       const runs = { ...s.examHalls.runs, [key]: { ...run, present: { ...run.present, [id]: Date.now() } } };
       const p = s.admins[id];
-      const admins = run.startedAt && p && !p.exam ? { ...s.admins, [id]: { ...p, exam: freshExam(id, key, run.startedAt, src) } } : s.admins;
+      const admins = run.startedAt && p && !paperOf(p, src.role) ? { ...s.admins, [id]: { ...p, ...paperPatch(p, src.role, freshExam(id, key, run.startedAt, src)) } } : s.admins;
       return { ...s, admins, examHalls: { ...s.examHalls, runs } };
     });
   },
@@ -227,7 +251,7 @@ export const hallActions = {
     setState((s) => {
       const run = s.examHalls?.runs?.[key] ?? emptyRun();
       const admins = { ...s.admins };
-      for (const id of Object.keys(run.present)) if (admins[id] && !admins[id].exam) admins[id] = { ...admins[id], exam: freshExam(id, key, at, src) };
+      for (const id of Object.keys(run.present)) if (admins[id] && !paperOf(admins[id], src.role)) admins[id] = { ...admins[id], ...paperPatch(admins[id], src.role, freshExam(id, key, at, src)) };
       return { ...s, admins, examHalls: { ...s.examHalls, runs: { ...s.examHalls.runs, [key]: { ...run, startedAt: at } } } };
     });
   },
@@ -238,8 +262,11 @@ export const hallActions = {
       const run = s.examHalls?.runs?.[key] ?? emptyRun();
       const admins = { ...s.admins };
       for (const id of Object.keys(run.present)) {
-        const e = admins[id]?.exam;
-        if (e && !e.submittedAt && e.hall === key) admins[id] = { ...admins[id], exam: sentExam(e, bank, at) };
+        const p = admins[id];
+        if (!p) continue;
+        // the paper of this hall, whichever of his exams it is
+        if (p.exam && !p.exam.submittedAt && p.exam.hall === key) admins[id] = { ...admins[id], exam: sentExam(p.exam, bank, at) };
+        for (const [role, e] of Object.entries(p.exams ?? {})) if (!e.submittedAt && e.hall === key) admins[id] = { ...admins[id], exams: { ...admins[id].exams, [role]: sentExam(e, bank, at) } };
       }
       return { ...s, admins, examHalls: { ...s.examHalls, runs: { ...s.examHalls.runs, [key]: { ...run, endedAt: at } } } };
     });

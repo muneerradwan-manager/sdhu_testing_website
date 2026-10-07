@@ -10,9 +10,12 @@
 export type ExamCategory = "ديني" | "إداري" | "تشغيلي" | "إسعافات أولية" | "إدارة الحشود" | "نقل" | "طوارئ" | "تقني";
 export const EXAM_CATEGORIES: ExamCategory[] = ["ديني", "إداري", "تشغيلي", "إدارة الحشود", "نقل", "إسعافات أولية", "طوارئ", "تقني"];
 
-/** How a question is answered: one of several options, true or false, or a written answer a grader marks */
-export type QuestionType = "choice" | "truefalse" | "written";
-export const QUESTION_TYPES: Record<QuestionType, string> = { choice: "اختيار من متعدد", truefalse: "صح أو خطأ", written: "تحريري" };
+/**
+ * How a question is answered: one of several options, or true or false. The exam has no written answers:
+ * every question is marked by the platform the moment the paper is sent.
+ */
+export type QuestionType = "choice" | "truefalse";
+export const QUESTION_TYPES: Record<QuestionType, string> = { choice: "اختيار من متعدد", truefalse: "صح أو خطأ" };
 export const TRUE_FALSE = ["صح", "خطأ"];
 
 const HEAD = "group-head";
@@ -28,23 +31,22 @@ export type ExamQuestion = {
   category: ExamCategory;
   /** Multiple choice when absent */
   type?: QuestionType;
-  /** A written question's full mark (5 when absent); every other question counts one point */
-  points?: number;
   /** The roles whose exam includes this question (keys from the administrator lib's POSITIONS) */
   roles: string[];
   /** Short scenario shown above the question, when there is one */
   scenario?: string;
   text: string;
-  /** A true-or-false question's are «صح» and «خطأ»; a written question has none */
+  /** A true-or-false question's are «صح» and «خطأ» */
   options: string[];
-  /** The right option; -1 for a written question */
+  /** The right option */
   answer: number;
-  /** Why the answer is right; for a written question, what the grader looks for */
+  /** Why the answer is right */
   explanation: string;
 };
 
 export const typeOf = (q: Pick<ExamQuestion, "type">): QuestionType => q.type ?? "choice";
-export const pointsOf = (q: Pick<ExamQuestion, "type" | "points">) => (typeOf(q) === "written" ? (q.points ?? 5) : 1);
+/** A question of a kind the exam no longer has (a written one kept from before): never served */
+export const isServable = (q: { type?: string }) => !q.type || q.type === "choice" || q.type === "truefalse";
 
 export const EXAM_RULES = {
   writtenWeight: 0.6,
@@ -664,54 +666,6 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     answer: 0,
     explanation: "وقت الوقوف عند الجمهور من الزوال يوم عرفة إلى طلوع فجر يوم النحر، ومن وقف جزءاً منه أدرك الحج.",
   },
-  // ── تحريري: يصححه مصحح مخوّل ──
-  {
-    id: 46,
-    category: "إداري",
-    type: "written",
-    points: 5,
-    roles: [HEAD],
-    scenario: "قبل موعد التجمّع للمطار بساعتين أبلغك حاج أن جواز سفر زوجته ضاع في الفندق.",
-    text: "اكتب الخطوات التي تتخذها بالترتيب، ومن تُبلغ في كل خطوة.",
-    options: [],
-    answer: -1,
-    explanation: "يُنتظر: تهدئة الحاج والبحث المنظم في الغرفة والفندق، وإبلاغ المعاون وإدارة الفندق، ورفع بلاغ إلى غرفة العمليات عبر المنصة، والتنسيق مع البعثة لوثيقة بديلة، وألا تُترك الحاجّة وحدها ولا تتأخر بقية المجموعة. درجة لكل نقطة صحيحة حتى خمس.",
-  },
-  {
-    id: 47,
-    category: "ديني",
-    type: "written",
-    points: 5,
-    roles: GUIDES,
-    text: "اشرح بإيجاز ما يفعله الحاج المتمتّع يوم النحر بالترتيب الذي تعلّمه لحجاج مجموعتك، وحكم تقديم بعضها على بعض.",
-    options: [],
-    answer: -1,
-    explanation: "يُنتظر: رمي جمرة العقبة، ثم ذبح الهدي، ثم الحلق أو التقصير، ثم طواف الإفاضة والسعي. السنة الترتيب، ومن قدّم شيئاً أو أخّره فلا حرج على الصحيح لحديث «افعل ولا حرج». درجة لكل عنصر.",
-  },
-  {
-    id: 48,
-    category: "تشغيلي",
-    type: "written",
-    points: 5,
-    roles: [DEPUTY],
-    scenario: "وصلت المجموعة إلى مخيم منى، ولم تصل وجبات ثلاثة حجاج من مرضى السكري.",
-    text: "كيف تتصرف حتى تصل وجباتهم، وماذا تفعل في الأثناء؟",
-    options: [],
-    answer: -1,
-    explanation: "يُنتظر: مراجعة قائمة الوجبات الخاصة، والتواصل مع متعهد الإعاشة، وإبلاغ رئيس المجموعة وغرفة العمليات، وتأمين بديل مؤقت مناسب ومتابعة من قد يهبط سكره، وتسجيل ما حدث. درجة لكل نقطة.",
-  },
-  {
-    id: 49,
-    category: "تقني",
-    type: "written",
-    points: 5,
-    roles: [TECH],
-    scenario: "حاجّة كبيرة في السن لا تملك هاتفاً ذكياً، وتريد أن تعرف موعد رحلتها ومكان سكنها.",
-    text: "اكتب كيف تخدمها من خلال المنصة دون أن تكشف بياناتها لغير صاحب الحق.",
-    options: [],
-    answer: -1,
-    explanation: "يُنتظر: فتح طلبها ضمن صلاحيات المنسق، وقراءة موعد الرحلة والسكن لها بصوت واضح أو طباعتهما، وتفعيل الإشعارات على هاتف محرمها أو قريبها برضاها، وألا تُعطى بياناتها لأحد غيرها، وإبلاغ رئيس المجموعة. درجة لكل نقطة.",
-  },
 ];
 
 /** The questions of one role's exam, in bank order */
@@ -766,13 +720,13 @@ export function shortageOf(bank: ExamQuestion[], exam: Pick<ExamDef, "role" | "s
   );
 }
 
-const counts = (choice: number, truefalse = 0, written = 0): TypeCounts => ({ choice, truefalse, written });
+const counts = (choice: number, truefalse = 0): TypeCounts => ({ choice, truefalse });
 const SAFETY: ExamSection = { id: "safety", name: "قسم السلامة والطوارئ", weight: 20, categories: ["إسعافات أولية", "طوارئ"], counts: counts(3, 1) };
 const SHARIA_SHORT: ExamSection = { id: "sharia", name: "القسم الشرعي", weight: 10, categories: ["ديني"], counts: counts(1) };
 const GUIDE: ExamBlueprint = {
   minutes: 25,
   sections: [
-    { id: "sharia", name: "القسم الشرعي", weight: 60, categories: ["ديني"], counts: counts(7, 2, 1) },
+    { id: "sharia", name: "القسم الشرعي", weight: 60, categories: ["ديني"], counts: counts(8, 2) },
     { id: "admin", name: "القسم الإداري والتشغيلي", weight: 20, categories: ["إداري", "تشغيلي"], counts: counts(2) },
     SAFETY,
   ],
@@ -783,7 +737,7 @@ export const DEFAULT_BLUEPRINTS: Record<string, ExamBlueprint> = {
   "group-head": {
     minutes: 25,
     sections: [
-      { id: "admin", name: "القسم الإداري", weight: 40, categories: ["إداري"], counts: counts(4, 1, 1) },
+      { id: "admin", name: "القسم الإداري", weight: 40, categories: ["إداري"], counts: counts(5, 1) },
       { id: "field", name: "قسم الميدان والحشود", weight: 30, categories: ["تشغيلي", "إدارة الحشود", "نقل"], counts: counts(4, 1) },
       SAFETY,
       SHARIA_SHORT,
@@ -792,7 +746,7 @@ export const DEFAULT_BLUEPRINTS: Record<string, ExamBlueprint> = {
   "group-deputy": {
     minutes: 25,
     sections: [
-      { id: "field", name: "قسم الميدان والحشود", weight: 40, categories: ["تشغيلي", "إدارة الحشود", "نقل"], counts: counts(5, 1, 1) },
+      { id: "field", name: "قسم الميدان والحشود", weight: 40, categories: ["تشغيلي", "إدارة الحشود", "نقل"], counts: counts(6, 1) },
       { id: "admin", name: "القسم الإداري", weight: 25, categories: ["إداري"], counts: counts(3, 1) },
       { ...SAFETY, weight: 25 },
       SHARIA_SHORT,
@@ -803,18 +757,18 @@ export const DEFAULT_BLUEPRINTS: Record<string, ExamBlueprint> = {
   tech: {
     minutes: 25,
     sections: [
-      { id: "tech", name: "القسم التقني", weight: 50, categories: ["تقني"], counts: counts(5, 1, 1) },
+      { id: "tech", name: "القسم التقني", weight: 50, categories: ["تقني"], counts: counts(6, 1) },
       { id: "admin", name: "القسم الإداري والتشغيلي", weight: 30, categories: ["إداري", "تشغيلي", "نقل"], counts: counts(4) },
       SAFETY,
     ],
   },
 };
 
-export const questionCount = (b: ExamBlueprint) => b.sections.reduce((a, s) => a + s.counts.choice + s.counts.truefalse + s.counts.written, 0);
+export const questionCount = (b: ExamBlueprint) => b.sections.reduce((a, s) => a + (s.counts.choice ?? 0) + (s.counts.truefalse ?? 0), 0);
 
 /** A section's pool for one role: the bank's questions of that role in the section's categories */
 export function sectionPool(bank: ExamQuestion[], roleKey: string, section: Pick<ExamSection, "categories">) {
-  return bank.filter((q) => q.roles.includes(roleKey) && section.categories.includes(q.category));
+  return bank.filter((q) => isServable(q) && q.roles.includes(roleKey) && section.categories.includes(q.category));
 }
 
 /** A section as one applicant received it */
@@ -840,18 +794,17 @@ export function drawPaper(bank: ExamQuestion[], blueprint: ExamBlueprint, roleKe
   const used = new Set<number>();
   return blueprint.sections.map((s) => {
     const pool = sectionPool(bank, roleKey, s).filter((q) => !used.has(q.id));
-    const ids = (Object.keys(s.counts) as QuestionType[]).flatMap((t) =>
+    const ids = (Object.keys(QUESTION_TYPES) as QuestionType[]).flatMap((t) =>
       pool
         .filter((q) => typeOf(q) === t)
         .map((q) => ({ q, k: rnd() }))
         .sort((a, b) => a.k - b.k)
-        .slice(0, s.counts[t])
+        .slice(0, s.counts[t] ?? 0)
         .map(({ q }) => q.id),
     );
-    // written questions last in their section, the rest mixed
+    // the kinds mixed in the section
     const order = new Map(ids.map((id) => [id, rnd()]));
-    const byId = new Map(pool.map((q) => [q.id, q]));
-    ids.sort((a, b) => Number(typeOf(byId.get(a)!) === "written") - Number(typeOf(byId.get(b)!) === "written") || order.get(a)! - order.get(b)!);
+    ids.sort((a, b) => order.get(a)! - order.get(b)!);
     ids.forEach((id) => used.add(id));
     return { id: s.id, name: s.name, weight: s.weight, ids };
   });
@@ -869,9 +822,8 @@ export function weightedScore(paper: PaperSection[], tally: Tally) {
 }
 
 /**
- * Marks a paper the moment it is sent: the automated questions now, the written ones left to a grader.
- * `tally` holds the automated points with every written question's full mark counted as possible;
- * `toGrade` the written answers to mark (a blank one scores nothing and needs no grader).
+ * Marks a paper the moment it is sent: every question is the platform's to mark, a point each. `toGrade` stays
+ * empty (the exam has no written answers); it is kept for papers sent before.
  */
 export function markPaper(paper: PaperSection[], bank: ExamQuestion[], answers: Record<number, number | string>) {
   const byId = new Map(bank.map((q) => [q.id, q]));
@@ -885,15 +837,12 @@ export function markPaper(paper: PaperSection[], bank: ExamQuestion[], answers: 
     for (const id of s.ids) {
       const q = byId.get(id);
       if (!q) continue;
-      possible += pointsOf(q);
-      if (typeOf(q) === "written") {
-        if (String(answers[id] ?? "").trim()) toGrade.push(id);
-      } else {
-        auto++;
-        if (answers[id] === q.answer) {
-          earned += 1;
-          correct++;
-        }
+      // every question counts one point
+      possible += 1;
+      auto++;
+      if (answers[id] === q.answer) {
+        earned += 1;
+        correct++;
       }
     }
     tally[s.id] = { earned, possible };

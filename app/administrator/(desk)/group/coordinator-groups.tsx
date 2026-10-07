@@ -50,7 +50,7 @@ export function CoordinatorGroups() {
   const totals = clusterTotals(post.groups);
   const title = wide ? "مجموعات التكتل" : post.groups.length > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
   return (
-    <AdminShell title={title} subtitle={`${role.one} في ${post.clusterName}: ${wide ? "للتكتل كله" : groupsLabel(post.groups.map((g) => g.number))}. ${post.role === "tech" ? "تلحق بها وحدها الحجاج بعقودهم، وتأخذ ملفاتهم الصحية." : "تعمل فيها مع رؤسائها."}`}>
+    <AdminShell title={title} subtitle={`${role.one} في ${post.clusterName}: ${wide ? "للتكتل كله" : groupsLabel(post.groups.map((g) => g.number))}. ${post.role === "tech" ? "ترى حجاجها حين يلحقهم المكتب بعقودهم، وتأخذ ملفاتهم الصحية." : "تعمل فيها مع رؤسائها."}`}>
       <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-green-dark via-green to-green-dark p-7 text-white shadow-2xl md:p-9">
@@ -131,7 +131,7 @@ export function CoordinatorGroups() {
             </p>
             <p className="mt-1 text-ink-soft">
               {post.role === "tech"
-                ? "تسجّل الحجاج على الحج في مكتبك («التسجيل على الحج»)، وهذا لا يضعهم في مجموعة. وتلحق الحجاج بمجموعاتك بعقودهم وتأخذ ملفاتهم الصحية («حجاج مجموعاتي»)."
+                ? "تسجّل الحجاج على الحج في مكتبك («التسجيل على الحج»)، وهذا لا يضعهم في مجموعة. ويلحق المكتب الحجاج بمجموعاتك بعقودهم، فتراهم وتأخذ ملفاتهم الصحية («حجاج مجموعاتي»)."
                 : post.role === "guide"
                   ? "الدروس والمناسك والأسئلة الشرعية لحجاج مجموعتك."
                   : post.role === "assistant"

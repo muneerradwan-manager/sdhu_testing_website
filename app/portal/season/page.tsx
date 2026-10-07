@@ -4,7 +4,8 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, BookOpen, Bus, Luggage, Map as MapIcon, MessageSquareWarning, Siren, Ticket as TicketIcon, UtensilsCrossed } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { Card, PortalShell } from "@/components/portal/shell";
+import { Card } from "@/components/portal/shell";
+import { PilgrimShell } from "../_components/pilgrim-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { groupName } from "@/lib/groups";
 import { GROUP, assign } from "@/lib/journey";
@@ -51,7 +52,7 @@ export default function SeasonPage() {
 
   if (!app || !post?.visaAt) {
     return (
-      <PortalShell title="حالتي الآن" subtitle="رفيقك اليومي في الموسم.">
+      <PilgrimShell title="حالتي الآن" subtitle="رفيقك اليومي في الموسم.">
         <Card className="text-center">
           <p className="text-5xl">🛂</p>
           <p className="mt-3 font-display text-2xl font-bold text-green-dark">تُفتح «حالتي الآن» بعد صدور التأشيرة</p>
@@ -60,7 +61,7 @@ export default function SeasonPage() {
             {app ? "إلى خطوات طلبي" : "تقديم طلب"}
           </ButtonLink>
         </Card>
-      </PortalShell>
+      </PilgrimShell>
     );
   }
 
@@ -86,8 +87,7 @@ export default function SeasonPage() {
   ];
 
   return (
-    <PortalShell
-      wide
+    <PilgrimShell
       image={day.i === 15 ? "/images/jamarat.jpg" : WHERE[where].image}
       title={
         <span className="flex flex-wrap items-center gap-3">
@@ -190,6 +190,6 @@ export default function SeasonPage() {
 
       <EmergencyModal ctx={ctx} open={sos} onClose={() => setSos(false)} />
       <ComplaintModal ctx={ctx} open={complaint} onClose={() => setComplaint(false)} />
-    </PortalShell>
+    </PilgrimShell>
   );
 }

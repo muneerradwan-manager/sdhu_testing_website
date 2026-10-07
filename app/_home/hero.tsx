@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowLeft, BookOpen, ChevronDown, Radio, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, ChevronDown, Radio, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { list, str } from "@/components/cms/bits";
 import { ButtonLink } from "@/components/ui/button";
@@ -126,8 +126,9 @@ export function Hero() {
               {str(v, "primaryLabel")}
               <ArrowLeft className="size-5 transition-transform group-hover/btn:-translate-x-1" />
             </ButtonLink>
-            <ButtonLink href={str(v, "secondaryHref", "/academy")} variant="glass" size="lg">
-              <BookOpen className="size-5" /> {str(v, "secondaryLabel")}
+            {/* The administrators' way in, beside the pilgrims': account creation is open all year */}
+            <ButtonLink href={str(v, "secondaryHref", "/administrator/register")} variant="glass" size="lg">
+              <BriefcaseBusiness className="size-5" /> {str(v, "secondaryLabel")}
             </ButtonLink>
           </motion.div>
 

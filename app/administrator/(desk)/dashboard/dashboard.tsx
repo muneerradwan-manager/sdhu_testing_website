@@ -22,23 +22,26 @@ import { useMyHall } from "../../_lib/halls";
 import { POOLS, useClusterGroupsOf } from "../../_lib/formation";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { groupName } from "@/lib/groups";
+import { dayLabel } from "@/lib/operations";
 import { AdminShell } from "../../_components/ui";
 import { SeasonSheet } from "./season-sheet";
 
 type Written = { date: string; time: string; questions: number; minutes: number; center?: string };
 
 /** The next step's card; the exam's numbers are the season's, as the administration left them */
-const nextSteps = (rules: ExamNumbers, w: Written): Record<string, { title: string; text: string; cta: string }> => ({
+const nextSteps = (rules: ExamNumbers, w: Written, oralDay?: string): Record<string, { title: string; text: string; cta: string }> => ({
   apply: { title: "سجّل لموسم 1448", text: "التسجيل يتجدد كل موسم: حدّث وثائقك ومهاراتك، واختر صفة واحدة يستوفي ملفك شروطها، ووافق على الالتزامات. تتحقق المنصة من أهليتك قبل أن تدفع.", cta: "ابدأ الطلب" },
   fee: { title: "أنت مؤهل — بقي رسم التسجيل", text: "استوفى ملفك شروط الصفة التي اخترتها. سدّد رسم 30 $ ليُقدَّم طلبك.", cta: "تسديد الرسم" },
   written: { title: "امتحانك الكتابي في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: امتحان جماعي لصفتك، ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر بهويتك، وافتح حسابك في القاعة بعد أن يفتحها المشرف.`, cta: "قاعتي وموعدي" },
-  oral: { title: "بانتظار نتيجة الامتحان الشفهي", text: "تُدخل لجنة الامتحانات (ماهر عيسى) النتيجة على المنصة بعد مقابلتك.", cta: "متابعة النتيجة" },
+  oral: oralDay
+    ? { title: `امتحانك الشفهي ${oralDay}`, text: "احضر بهويتك إلى مكان اللجان في وقته. بعد امتحانك تُدخل إدارة الامتحانات نتيجتك على المنصة.", cta: "موعدي ونتيجتي" }
+    : { title: "احجز يوم امتحانك الشفهي", text: "اجتزت الكتابي: اختر يوماً من أيام الشفهي التي حددتها إدارة الامتحانات، قبل موعده بيوم على الأقل.", cta: "احجز يومك" },
   result: { title: "نتيجتك النهائية", text: `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.`, cta: "عرض النتيجة" },
-  group: { title: "شكّل مجموعتك", text: "طلب تشكيل المجموعة ورسم 200 $، في مدة تشكيل المجموعات. تسمّيها أنت باسم لا تحمله مجموعة أخرى، وفئتك (منها عدد حجاجها ومقاعد فريقها) تثبّتها الإدارة عند الاعتماد. تشكّلها وحدك: مقاعد فريقها يملؤها رئيس التكتل.", cta: "طلب تشكيل مجموعة" },
+  group: { title: "تُشكَّل مجموعتك في المكتب", text: "راجع المكتب في مدة تشكيل المجموعات باسم مجموعتك (لا تحمله مجموعة أخرى)، وسدّد رسمها 200 $ هناك، فيشكّلها موظف إدارة الإداريين بفئتك: منها عدد حجاجها ومقاعد فريقها. مقاعد فريقها يملؤها رئيس التكتل.", cta: "كيف تُشكَّل" },
   team: { title: "بانتظار دعوة تكتل", text: "رؤساء التكتلات يدعون كل واحد إلى مكانه: مقعد الموجّه أو المعاون في إحدى مجموعاتهم، أو من منسقي التكتل أو موجّهاته أو معاونيه. تقبل دعوة واحدة: لكل شخص مكان واحد في الموسم.", cta: "دعواتي" },
-  approval: { title: "طلب المجموعة قيد الاعتماد", text: "يراجعه ماهر عيسى ثم يعتمده مدير المكتب مازن الحلبي.", cta: "متابعة الطلب" },
-  cluster: { title: "تشكيل التكتلات", text: "يدعو رؤساء التكتلات المجموعات بحجاجها: تقبل دعوة واحدة لمجموعتك. ومن منحته الإدارة صفة «رئيس تكتل» يقدّم طلب تشكيل تكتل. لا انتخاب.", cta: "تشكيل التكتلات" },
-  requests: { title: "حجاج مجموعتك", text: "أُلحقت بمجموعتك عائلات جديدة بعقودها: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي وزّع عليه رئيس التكتل مجموعتك.", cta: "حجاج المجموعة" },
+  approval: { title: "مجموعتك عند المكتب", text: "يكمل موظف إدارة الإداريين تشكيلها بفئتك.", cta: "تشكيل المجموعة" },
+  cluster: { title: "تشكيل التكتلات", text: "يدعو رؤساء التكتلات المجموعات بحجاجها: تقبل دعوة واحدة لمجموعتك. ومن يحمل صفة «رئيس تكتل» أساسيةً أو موسمية يقدّم طلب تشكيل تكتل. لا انتخاب.", cta: "تشكيل التكتلات" },
+  requests: { title: "حجاج مجموعتك", text: "يلحق المكتب العائلات بمجموعتك بعقودها، فتراها هنا: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي وزّع عليه رئيس التكتل مجموعتك.", cta: "حجاج المجموعة" },
   field: { title: "الميدان: افتح أول تجمّع", text: "«ساحة المزة ← المطار» — مسح البطاقات وإرسال «انطلقنا» للجميع.", cta: "وضع الميدان" },
 });
 
@@ -60,7 +63,7 @@ export function AdminDashboard() {
   const failed = !!result.published && result.final !== undefined && !result.passed;
   const history = seasonHistory(admin.id);
   const [openSeason, setOpenSeason] = useState<SeasonRecord | null>(null);
-  const next = current ? nextSteps(rules, written)[current.key] : null;
+  const next = current ? nextSteps(rules, written, profile?.oralBooking ? dayLabel(profile.oralBooking.day, true) : undefined)[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = useClusterGroupsOf(profile).length;
   const status1448 = coord

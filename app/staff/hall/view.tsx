@@ -5,10 +5,9 @@ import { CheckCircle2, DoorClosed, DoorOpen, Hourglass, IdCard, Lock, PenLine, P
 import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { typeOf } from "@/lib/data/admin-exam";
 import { cn, maskNationalId } from "@/lib/utils";
 import { useAllQuestions, useExamBank } from "@/app/administrator/_lib/admin-rules";
-import { hallActions, mustSit, roleKeyOf, runKey, STAGE_LABEL, stageOf, targets, useHalls, type ExamCenter, type ExamDef, type HallStage } from "@/app/administrator/_lib/halls";
+import { examRolesOfPosition, hallActions, mustSit, runKey, STAGE_LABEL, stageOf, targets, useHalls, type ExamCenter, type ExamDef, type HallStage } from "@/app/administrator/_lib/halls";
 import { useAdminRows, type AdminRow } from "../_components/data";
 import { Empty, Kpi, PageHeader, Panel, fmtTime, logAs, useNow, useStaffUser } from "../_components/kit";
 
@@ -93,9 +92,10 @@ function useSitters(center: ExamCenter, exam: ExamDef) {
   return useMemo(
     () =>
       rows.filter((r) => {
-        const role = roleKeyOf(r.profile.positions[0] ?? r.position);
+        // Among his exams («معاون ومنسق تقني» sits two), the one this sitting is for
+        const sits = examRolesOfPosition(r.profile.positions[0] ?? r.position).includes(exam.role);
         return (
-          (role === exam.role && halls.centerOf(r.id)?.id === center.id && mustSit(r.profile, key) && halls.sittingOf(r.id, role)?.exam.id === exam.id) ||
+          (sits && halls.centerOf(r.id)?.id === center.id && mustSit(r.profile, exam.role, key) && halls.sittingOf(r.id, exam.role)?.exam.id === exam.id) ||
           !!run?.joined[r.id] ||
           !!run?.present[r.id]
         );
@@ -155,11 +155,11 @@ function Sitting({ center, exam }: { center: ExamCenter; exam: ExamDef }) {
   const src = { bank, blueprint: exam, role: exam.role };
   const target = `${center.name} — ${exam.name}`;
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const types = useMemo(() => new Map(all.map((q) => [q.id, typeOf(q)])), [all]);
 
   const joined = sitters.filter((r) => run?.joined[r.id]);
   const present = sitters.filter((r) => run?.present[r.id]);
-  const sent = sitters.filter((r) => r.profile.exam?.submittedAt && r.profile.exam.hall === key);
+  const paperHere = (r: (typeof sitters)[number]) => [r.profile.exam, ...Object.values(r.profile.exams ?? {})].find((e) => e?.hall === key);
+  const sent = sitters.filter((r) => paperHere(r)?.submittedAt);
   const absent = stage === "closed" || stage === "ended" ? sitters.filter((r) => !run?.present[r.id]) : [];
   const minutes = exam.minutes;
   const left = run?.startedAt ? Math.max(0, minutes * 60_000 - (now - run.startedAt)) : 0;
@@ -252,11 +252,11 @@ function Sitting({ center, exam }: { center: ExamCenter; exam: ExamDef }) {
       <Panel icon={<UsersRound />} title="المتقدمون في القاعة" bodyClass="space-y-2">
         {!sitters.length && <Empty icon={<UsersRound />} title="لا متقدمين لهذه الجلسة في مركزك" text="يظهر هنا كل من دفع رسم التسجيل لصفة هذا الامتحان وتتبع محافظة قيده مركزك، أو نقله إليه صاحب صلاحية «إدارة الامتحانات»." />}
         {sitters.map((r) => {
-          const e = r.profile.exam?.hall === key ? r.profile.exam : undefined;
+          const e = paperHere(r);
           const isJoined = !!run?.joined[r.id];
           const isPresent = !!run?.present[r.id];
           const ids = e?.paper?.flatMap((s) => s.ids) ?? [];
-          const answered = ids.filter((id) => (types.get(id) === "written" ? String(e?.answers[id] ?? "").trim() : e?.answers[id] !== undefined)).length;
+          const answered = ids.filter((id) => e?.answers[id] !== undefined).length;
           const pending = (e?.toGrade ?? []).filter((id) => e?.marks?.[id] === undefined).length;
           let status: ReactNode;
           if (e?.submittedAt) status = <Chip tone="green"><CheckCircle2 className="size-3" /> سلّم — {e.score !== undefined ? `${e.score} من 100` : `مبدئية ${e.provisional}، ${pending} تحريري للتصحيح`}</Chip>;

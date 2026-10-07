@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { DEFAULT_BLUEPRINTS, EXAM_QUESTIONS, drawPaper, finalScoreWith, markPaper, pointsOf, typeOf, weightsLabel, withMarks, type ExamNumbers } from "@/lib/data/admin-exam";
+import { DEFAULT_BLUEPRINTS, EXAM_QUESTIONS, drawPaper, finalScoreWith, markPaper, weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
 import { ageOf, fullName, getPerson, type Person } from "@/lib/registry";
 import { groupName, groupsName } from "@/lib/groups";
-import { OPERATIONS, rangeLabel } from "@/lib/operations";
+import { OPERATIONS, dayLabel, rangeLabel } from "@/lib/operations";
 import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
 import { SEED_CLUSTERS } from "./cluster";
-import { DEFAULT_ROLES, examRoleOf, roleName, seasonalOf, structureNow } from "./structure";
+import { DEFAULT_ROLES, examRoleOf, examRolesOf, roleKeyByName, roleName, seasonalOf, structureNow } from "./structure";
 import { actions, getState, useStore, type AdminProfile, type AdminRecord, type AdminRules, type VaultDoc } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
@@ -29,7 +29,7 @@ export type DemoAdminMode = "start" | "ready" | "done" | "field" | "tech";
 export type DemoAdmin = { id: string; phone: string; position: string; section: string; title: string; note: string; mode: "start" | "ready" | "done" };
 
 /** The demo's list, in the order of the cluster's structure: its head, his deputy and accountant, then the groups and the cluster's people */
-export const DEMO_GROUPS = ["رئيس تكتل", "نائب رئيس التكتل", "محاسب التكتل", "رئيس مجموعة", "معاون", "معاون التكتل", "معاون بعدد", "معاون ومنسق تقني", "منسق تقني", "موجّه ديني", "مرشد ديني", "موجّهة دينية", "مرشدة دينية"];
+export const DEMO_GROUPS = ["رئيس تكتل", "نائب رئيس التكتل", "محاسب التكتل", "رئيس مجموعة", "معاون", "معاون التكتل", "معاون بعدد", "معاون ومنسق تقني", "منسق تقني", "موجّه ديني أ", "موجّه ديني ب", "موجّهة دينية أ", "موجّهة دينية ب"];
 
 /**
  * The demo accounts the login page lists now. Today's test is the group head's registration: a first-timer,
@@ -41,36 +41,36 @@ export const DEMO_LISTED: string[] | null = ["01033300898", "01033300899", "0103
 
 /** The demo administrators: every role and every place a cluster gives, most of them finished in تكتل النور, some not started */
 export const DEMO_ADMINS: DemoAdmin[] = [
-  { id: "01033300898", phone: "0944898449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "أيهم الموصلي — يتقدم لرئاسة مجموعة أول مرة", note: "37 عاماً — لا مواسم سابقة له ولا ملف. يسجّل للموسم ويختار «رئيس مجموعة»، فيرفع وثائقه ويقرّ بالالتزامات، ويدفع الرسم بعد ثبوت أهليته، ثم يمتحن الكتابي والشفهي، وبعد النجاح يطلب تشكيل مجموعته." },
-  { id: "01033300899", phone: "0944899449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "معتصم العرقسوسي — رئيس مجموعة الموسم الماضي يجدّد", note: "45 عاماً — رئيس مجموعة الهدى في 1447 بتقييم 4.4، فئتها الثانية. يسجّل لموسم 1448 فيجد ملفه الدائم بوثائقه ومهاراته، ويجدّد «رئيس مجموعة» معفى من الامتحانين لأن تقييمه فوق الحد، ثم يطلب تشكيل مجموعته." },
+  { id: "01033300898", phone: "0944898449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "أيهم الموصلي — يتقدم لرئاسة مجموعة أول مرة", note: "37 عاماً — لا مواسم سابقة له ولا ملف. يسجّل للموسم ويختار «رئيس مجموعة»، فيرفع وثائقه ويقرّ بالالتزامات، ويدفع الرسم بعد ثبوت أهليته، ثم يمتحن الكتابي والشفهي، وبعد النجاح يراجع المكتب فيشكّل له الموظف مجموعته." },
+  { id: "01033300899", phone: "0944899449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "معتصم العرقسوسي — رئيس مجموعة الموسم الماضي يجدّد", note: "45 عاماً — رئيس مجموعة الهدى في 1447 بتقييم 4.4، فئتها الثانية. يسجّل لموسم 1448 فيجد ملفه الدائم بوثائقه ومهاراته، ويجدّد «رئيس مجموعة» معفى من الامتحانين لأن تقييمه فوق الحد، ثم يراجع المكتب فيشكّل له الموظف مجموعته." },
   { id: "01033300880", phone: "0944880449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "نزيه المحايري — رئيس مجموعة أربعة مواسم يُتاح له إنشاء تكتل", note: "54 عاماً — رئيس مجموعة الصفا أربعة مواسم متتالية (1444 – 1447) بتقييم 4.5 – 4.8، فئتها الثالثة. منحته الإدارة صفة «رئيس تكتل» لهذا الموسم: يجدّد رئاسة مجموعته معفى من الامتحانين، ويظهر له «تشكيل التكتلات» ليقدّم طلب تكتل." },
   { id: "01033300881", phone: "0944281449", position: "group-head", section: "رئيس تكتل", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس مجموعة الخبير ثلاثة مواسم متتالية (4.6 – 4.8)، فئتها الثالثة. جدّد صفته معفى من الامتحانين، ومنحته الإدارة صفة «رئيس تكتل» موسمية، فقدّم طلب تكتل النور (اقتصادي): ست مجموعات مجموع فئاتها 11 ومقاعدها، ومعاون التكتل، ومنسقان وموجّهتان، ونائبه ومحاسبه. أرسله فاعتمدته الإدارة بعد مراجعته. يبقى رئيس مجموعته ويدير التكتل كله." },
   { id: "01033300882", phone: "0944282449", position: "group-head", section: "رئيس تكتل", mode: "ready", title: "نبيل الساعاتي — رئيس مجموعة منحته الإدارة صفة رئيس تكتل", note: "54 عاماً — رئيس مجموعة الميزان ثلاثة مواسم متتالية بتقييم 4.3 – 4.6، فئتها الثالثة. جدّد صفته، واعتُمدت مجموعته ولم تدخل تكتلاً. منحته الإدارة صفة «رئيس تكتل» موسمية للزيادة العددية: يقدّم طلب تشكيل تكتل من أوله في مدته — المستوى، فالمجموعات ومقاعدها، فمعاون التكتل والمنسق والموجّهة، فالنائب والمحاسب — ويرسله للمراجعة." },
   { id: "01033300883", phone: "0944283449", position: "group-head", section: "نائب رئيس التكتل", mode: "done", title: "بسام درويش — نائب رئيس تكتل النور", note: "51 عاماً — رئيس مجموعة أحفاد بني هاشم (الفئة الثانية) في 1446 و1447 (4.4). مجموعته في تكتل النور، ودعاه رئيسه نائباً له فقبل: صفة ثانوية فوق رئاسة مجموعته، يرى بها مجموعات التكتل ومعلوماته." },
   { id: "01033300884", phone: "0944284449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "45 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالامتحانين. لم يبدأ." },
-  { id: "01033300871", phone: "0944271449", position: "group-head", section: "رئيس مجموعة", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وشكّل مجموعته «مجموعة اللطيف» وحده، وأعطته الإدارة الفئة الثانية (90 حاجاً في الاقتصادي، بموجّه ومعاون). قبل دعوة تكتل النور لها. يلحق بها الحجاج ويرحّب بالعائلات ويفتح التجمّعات." },
-  { id: "01033300885", phone: "0944285449", position: "group-head", section: "رئيس مجموعة", mode: "ready", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له رئيساً: نجح في الامتحانين، ولم يطلب تشكيل مجموعته بعد. يسمّيها ويدفع رسمها في «تشكيل المجموعات»، فتعتمدها الإدارة بفئته." },
+  { id: "01033300871", phone: "0944271449", position: "group-head", section: "رئيس مجموعة", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالامتحانين، وشكّل مجموعته «مجموعة اللطيف» وحده، وأعطته الإدارة الفئة الثانية (90 حاجاً في الاقتصادي، بموجّه ومعاون). قبل دعوة تكتل النور لها. يرى حجاجها حين يلحقهم المكتب بها، ويرحّب بالعائلات ويفتح التجمّعات." },
+  { id: "01033300885", phone: "0944285449", position: "group-head", section: "رئيس مجموعة", mode: "ready", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له رئيساً: نجح في الامتحانين، ولم تُشكَّل مجموعته بعد: يراجع المكتب باسمها ورسمها، فيشكّلها موظف إدارة الإداريين بفئته." },
   { id: "01033300872", phone: "0944272449", position: "group-deputy", section: "معاون", mode: "done", title: "ياسر عبد الله — معاون", note: "40 عاماً — معاون مجموعة اللطيف في 1447 (4.1). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد المعاون في مجموعة اللطيف فقبل. أنهى رحلته." },
   { id: "01033300886", phone: "0944286449", position: "group-deputy", section: "معاون", mode: "start", title: "فادي الخياط — معاون سابق يتقدم لرئاسة مجموعة", note: "34 عاماً — معاون مجموعة الإحسان في 1447 بتقييم 4.3. يفتح طلب 1448 فيجد ملفه الدائم بوثائقه ولغاته ومهاراته: يحدّث ما انتهت صلاحيته، ويضيف ويعدّل ويحذف، ثم يتقدم لرئاسة مجموعة بالامتحانين." },
-  { id: "01033300874", phone: "0944274449", position: "tech", section: "منسق تقني", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق تقني في 1447 (4.8)، جدّد الصفة نفسها. المنسق للتكتل لا لمجموعة: تكتل النور بمجموع فئات 11 له منسقان، ووزّع رئيسه عليه ثلاثاً من مجموعاته (الخبير واللطيف وأحفاد بني هاشم). يسجّل الحجاج على الحج في مكتب دمشق دون أن يضعهم في مجموعة، ويرفع عقود من يتفق مع مجموعاته، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
+  { id: "01033300874", phone: "0944274449", position: "tech", section: "منسق تقني", mode: "done", title: "سامر نبيل نجار — منسق تقني", note: "31 عاماً — منسق تقني في 1447 (4.8)، جدّد الصفة نفسها. المنسق للتكتل لا لمجموعة: تكتل النور بمجموع فئات 11 له منسقان، ووزّع رئيسه عليه ثلاثاً من مجموعاته (الخبير واللطيف وأحفاد بني هاشم). يسجّل الحجاج على الحج في مكتب دمشق دون أن يضعهم في مجموعة، ويرى حجاج مجموعاته كما يلحقهم المكتب، ويأخذ ملفاتهم الصحية. يفتح وفي مكتبه طلبان مسجّلان." },
   { id: "01033300887", phone: "0944287449", position: "tech", section: "منسق تقني", mode: "start", title: "رامي الأتاسي — منسق تقني", note: "29 عاماً — من حمص، أول موسم له. لم يبدأ." },
-  { id: "01033300873", phone: "0944273449", position: "guide-m", section: "موجّه ديني", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني", note: "47 عاماً — موجّه مجموعة اللطيف في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد الموجّه في مجموعة اللطيف فقبل. أنهى رحلته." },
-  { id: "01033300888", phone: "0944288449", position: "guide-m", section: "موجّه ديني", mode: "start", title: "عبد الغني الطباع — موجّه ديني", note: "43 عاماً — أول موسم له. لم يبدأ." },
+  { id: "01033300873", phone: "0944273449", position: "guide-m", section: "موجّه ديني ب", mode: "done", title: "الشيخ خالد الرفاعي — موجّه ديني ب", note: "47 عاماً — موجّه مجموعة اللطيف في 1446 و1447 (4.9). جدّد الصفة نفسها معفى من الامتحانين، ودعاه رئيس تكتل النور إلى مقعد الموجّه في مجموعة اللطيف فقبل. أنهى رحلته." },
+  { id: "01033300888", phone: "0944288449", position: "guide-m", section: "موجّه ديني ب", mode: "start", title: "عبد الغني الطباع — موجّه ديني ب", note: "43 عاماً — أول موسم له. لم يبدأ." },
   { id: "01033300944", phone: "0944944449", position: "group-deputy", section: "محاسب التكتل", mode: "done", title: "مهند السيد — معاون ومحاسب تكتل النور", note: "38 عاماً — معاون بثلاثة مواسم (4.7). دعاه رئيس تكتل النور إلى مقعد المعاون في مجموعة أحفاد بني هاشم، ثم محاسباً للتكتل: صفة ثانوية يسجّل بها مصروفات التكتل، من كادره." },
   { id: "01033300947", phone: "0944947449", position: "group-deputy", section: "معاون التكتل", mode: "done", title: "عمر الحايك — معاون تكتل النور", note: "31 عاماً — معاون من فرع اللاذقية (4.3). معاون التكتل لا لمجموعة: العدد الثابت في المستوى الاقتصادي واحد، للمطارات والمخيمات والطوارئ مع رئيس التكتل." },
   { id: "01033300975", phone: "0944975449", position: "assistant-count", section: "معاون بعدد", mode: "done", title: "عبد الكريم الشلاح — معاون بعدد", note: "44 عاماً — «معاون بعدد» (4.2): من معاوني التكتل بلا حد أقصى، ويضيف 20 حاجاً إلى عدد حجاج تكتل النور. يمتحن امتحان المعاون." },
-  { id: "01033300961", phone: "0944961449", position: "assistant-tech", section: "معاون ومنسق تقني", mode: "done", title: "لؤي العظمة — معاون ومنسق تقني", note: "33 عاماً — يجمع الصفتين (4.4)، ويمتحن امتحان المنسق. في تكتل النور أحد منسقَيه — ولا بد أن يكون أحد منسقي كل تكتل بهذه الصفة — ووزّع عليه رئيسه طيبة وزمزم والإيمان." },
-  { id: "01033300965", phone: "0944965449", position: "murshid", section: "مرشد ديني", mode: "done", title: "الشيخ مأمون الحلواني — مرشد ديني", note: "54 عاماً — مرشد خمسة مواسم (4.9)، ويمتحن امتحان الموجّه. في المقعد الحر من مجموعة الخبير (الفئة الثالثة)، وبه نال تكتل النور «شارة الإرشاد»." },
-  { id: "01033300981", phone: "0944981449", position: "guide-f", section: "موجّهة دينية", mode: "done", title: "هالة الدقر — موجّهة دينية", note: "43 عاماً — موجّهة للتكتل لا لمجموعة (4.7): حاجّات تكتل النور كلهن. مجموع فئاته 11، فله موجّهتان (واحدة لكل 7 وحدات)." },
-  { id: "01033300984", phone: "0944984449", position: "guide-f", section: "موجّهة دينية", mode: "start", title: "لينا العاني — موجّهة دينية", note: "36 عاماً — موجّهة في 1447 (4.2). لم تبدأ موسم 1448." },
+  { id: "01033300961", phone: "0944961449", position: "assistant-tech", section: "معاون ومنسق تقني", mode: "done", title: "لؤي العظمة — معاون ومنسق تقني", note: "33 عاماً — يجمع الصفتين (4.4)، فامتحن امتحانَي المعاون والمنسق التقني واجتازهما معاً. في تكتل النور أحد منسقَيه — ولا بد أن يكون أحد منسقي كل تكتل بهذه الصفة — ووزّع عليه رئيسه طيبة وزمزم والإيمان." },
+  { id: "01033300965", phone: "0944965449", position: "murshid", section: "موجّه ديني أ", mode: "done", title: "الشيخ مأمون الحلواني — موجّه ديني أ", note: "54 عاماً — موجّه من الدرجة «أ» خمسة مواسم (4.9)، ويمتحن امتحان الموجّه الديني، ويُحتسب في متوسط أعمار التكتل 40. في المقعد الحر من مجموعة الخبير (الفئة الثالثة)، وبه نال تكتل النور «شارة التميّز في التوجيه الديني»." },
+  { id: "01033300981", phone: "0944981449", position: "guide-f", section: "موجّهة دينية ب", mode: "done", title: "هالة الدقر — موجّهة دينية ب", note: "43 عاماً — موجّهة للتكتل لا لمجموعة (4.7): حاجّات تكتل النور كلهن. مجموع فئاته 11، فله موجّهتان (واحدة لكل 7 وحدات)." },
+  { id: "01033300984", phone: "0944984449", position: "guide-f", section: "موجّهة دينية ب", mode: "start", title: "لينا العاني — موجّهة دينية ب", note: "36 عاماً — موجّهة في 1447 (4.2). لم تبدأ موسم 1448." },
   { id: "01033300891", phone: "0944891449", position: "group-head", section: "نائب رئيس التكتل", mode: "ready", title: "صلاح الدين المارديني — مدعو نائباً لرئيس تكتل البيان", note: "47 عاماً — رئيس مجموعة الأمل (الفئة الثانية، 4.4). قبل دعوة تكتل البيان لمجموعته، ودعاه رئيسه نائباً له: الدعوة في «تشكيل التكتلات» بانتظار رده." },
   { id: "01033300892", phone: "0944892449", position: "group-deputy", section: "محاسب التكتل", mode: "ready", title: "غسان الكيلاني — مدعو معاوناً ومحاسباً في تكتل البيان", note: "39 عاماً — معاون (4.3). دعاه رئيس تكتل البيان إلى مقعد المعاون في مجموعة البشرى، ومحاسباً للتكتل: دعوتان بانتظار رده." },
   { id: "01033300893", phone: "0944893449", position: "group-deputy", section: "معاون التكتل", mode: "ready", title: "حسن اللبابيدي — مدعو معاوناً لتكتل البيان", note: "35 عاماً — معاون (4.2). دعاه رئيس تكتل البيان معاوناً للتكتل كله: الدعوة بانتظار رده." },
   { id: "01033300894", phone: "0944894449", position: "assistant-count", section: "معاون بعدد", mode: "ready", title: "ماهر الشربجي — معاون بعدد مدعو إلى تكتل البيان", note: "46 عاماً — معاون بعدد (4.1): إن قبل أضاف 20 حاجاً إلى عدد حجاج تكتل البيان. الدعوة بانتظار رده." },
   { id: "01033300895", phone: "0944895449", position: "assistant-tech", section: "معاون ومنسق تقني", mode: "ready", title: "خلدون الصيرفي — مدعو منسقاً لتكتل البيان", note: "32 عاماً — معاون ومنسق تقني (4.5). مجموع فئات تكتل البيان 5، فله منسق واحد، ولا بد أن يكون بهذه الصفة: الدعوة بانتظار رده." },
-  { id: "01033300896", phone: "0944896449", position: "murshid", section: "مرشد ديني", mode: "ready", title: "الشيخ عبد الهادي البغدادي — مدعو إلى مقعد في تكتل البيان", note: "51 عاماً — مرشد ديني (4.6). دعاه رئيس تكتل البيان إلى مقعد الموجّه في مجموعة البشرى: الدعوة بانتظار رده." },
-  { id: "01033300897", phone: "0944897449", position: "murshida", section: "مرشدة دينية", mode: "ready", title: "سوسن الحفار — مرشدة مدعوة إلى تكتل البيان", note: "45 عاماً — مرشدة دينية (4.5). موجّهة تكتل البيان الوحيدة إن قبلت (واحدة لكل 7 وحدات): الدعوة بانتظار ردها." },
-  { id: "01033300985", phone: "0944985449", position: "murshida", section: "مرشدة دينية", mode: "done", title: "نهى الطباع — مرشدة دينية", note: "49 عاماً — مرشدة أربعة مواسم (4.8)، وتمتحن امتحان الموجّهة. ثانية موجّهات تكتل النور، وتمنحه هي أيضاً «شارة الإرشاد»." },
+  { id: "01033300896", phone: "0944896449", position: "murshid", section: "موجّه ديني أ", mode: "ready", title: "الشيخ عبد الهادي البغدادي — مدعو إلى مقعد في تكتل البيان", note: "51 عاماً — موجّه ديني أ (4.6). دعاه رئيس تكتل البيان إلى مقعد الموجّه في مجموعة البشرى: الدعوة بانتظار رده." },
+  { id: "01033300897", phone: "0944897449", position: "murshida", section: "موجّهة دينية أ", mode: "ready", title: "سوسن الحفار — موجّهة دينية أ مدعوة إلى تكتل البيان", note: "45 عاماً — موجّهة دينية أ (4.5). موجّهة تكتل البيان الوحيدة إن قبلت (واحدة لكل 7 وحدات): الدعوة بانتظار ردها." },
+  { id: "01033300985", phone: "0944985449", position: "murshida", section: "موجّهة دينية أ", mode: "done", title: "نهى الطباع — موجّهة دينية أ", note: "49 عاماً — موجّهة من الدرجة «أ» أربعة مواسم (4.8)، وتمتحن امتحان الموجّهة الدينية. ثانية موجّهات تكتل النور، وتمنحه هي أيضاً «شارة التميّز في التوجيه الديني»." },
 ];
 /** تكتل النور في هذا العرض، ومجموعة أحمد فيه (27). فريقه وإسناده في طلبه (SEED_CLUSTERS) */
 export const TECH_POSTING = { clusterId: "al-nour", groupNumber: 27 };
@@ -167,10 +167,14 @@ export const FIXED_CRITERIA = ["age-min", "age-max", "gender", "seasons"] as con
 
 /**
  * The roles that sit an exam of their own and have their own column of requirements and permissions. A role
- * the administration tied to another («معاون ومنسق تقني» sits the technical coordinator's, «مرشد ديني» the
- * guide's: ./structure `examAs`) is applied for, but shares that role's exam, requirements and permissions.
+ * the administration tied to another («معاون ومنسق تقني» sits the technical coordinator's, every grade of the
+ * guides the guide's: ./structure `examAs`) is applied for, but shares that role's exam, requirements and permissions.
  */
-export const APPLIED_ROLES = POSITIONS.filter((p) => !p.elected && !DEFAULT_ROLES.find((r) => r.key === p.key)?.examAs);
+export const APPLIED_ROLES = POSITIONS.filter((p) => !p.elected && !DEFAULT_ROLES.find((r) => r.key === p.key)?.examAs).map((p) => ({
+  ...p,
+  // The guides' grades share one exam and one column: «الموجّه الديني», not the grade that owns it
+  label: DEFAULT_ROLES.find((r) => r.key === p.key)?.examName ?? p.label,
+}));
 
 /** The table for season 1448 as the platform ships it */
 export const ROLE_REQUIREMENTS: RoleRequirements = {
@@ -186,7 +190,7 @@ export const ROLE_REQUIREMENTS: RoleRequirements = {
 
 export type Level = "required" | "preferred";
 
-/** A role's column of the table: its own, or the column of the role it is tied to («مرشد ديني» the guide's) */
+/** A role's column of the table: its own, or the column of the role it is tied to («موجّه ديني أ» the guide's) */
 export function columnOf(table: RoleRequirements, roleKey: string) {
   return table.cells[roleKey] ?? table.cells[examRoleOf(roleKey)] ?? {};
 }
@@ -342,9 +346,9 @@ export const ADMIN_CALENDAR = [
   { hijri: "أواخر أيلول – أوائل تشرين الأول", title: "الامتحان الكتابي في القاعات", detail: "جماعي لكل صفة في يومها، في قاعة المركز الامتحاني لمحافظتك — من يجدد صفته بتقييم مستوفٍ معفى" },
   { hijri: "حتى 25 تشرين الأول (تقديري)", title: "الامتحان الشفهي", detail: "أمام لجنة — حضورياً لرؤساء المجموعات والموجّهين، وعن بُعد للمعاونين والمنسقين" },
   { hijri: "1 تشرين الثاني (تقديري)", title: "النتيجة النهائية وقوائم الإداريين المعتمدين", detail: "الكتابي والشفهي بالأوزان وعلامة النجاح التي تضبطها إدارة الامتحانات للموسم" },
-  { hijri: "1 – 10 تشرين الثاني (تقديري)", title: "طلبات تشكيل المجموعات", detail: "رئيس المجموعة يشكّلها ويسمّيها وحده — رسم 200 $ — وتعتمدها إدارة الإداريين بفئته (الأولى… الرابعة): عدد حجاجها ومقاعد فريقها بحسب مستوى التكتل" },
-  { hijri: "12 – 30 تشرين الثاني (تقديري)", title: "تشكيل التكتلات بالطلب", detail: "لا انتخاب: من منحته الإدارة صفة «رئيس تكتل» يقدّم الطلب: المستوى، ثم المجموعات ومقاعدها، ومعاون التكتل، والمنسقون والموجّهات بمجموع الفئات، والنائب والمحاسب. من يرسله قبل الموعد الأول ينال «شارة الالتزام بالمواعيد»" },
-  { hijri: "12 تشرين الثاني – 15 كانون الثاني (تقديري)", title: "إلحاق الحجاج بالمجموعات", detail: "بالتوازي مع تشكيل التكتلات ويستمر بعده: بعقد بين الحاج والمجموعة يرفعه رئيسها أو المنسق الموزَّعة عليه، ويعتمده المكتب" },
+  { hijri: "1 – 10 تشرين الثاني (تقديري)", title: "تشكيل المجموعات في المكتب", detail: "يراجع رئيس المجموعة المكتب باسم مجموعته ورسمها 200 $، فيشكّلها موظف إدارة الإداريين بفئته (الأولى… الرابعة): عدد حجاجها ومقاعد فريقها بحسب مستوى التكتل" },
+  { hijri: "12 – 30 تشرين الثاني (تقديري)", title: "تشكيل التكتلات بالطلب", detail: "لا انتخاب: من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية يقدّم الطلب: المستوى، ثم المجموعات ومقاعدها، ومعاون التكتل، والمنسقون والموجّهات بمجموع الفئات، والنائب والمحاسب. من يرسله قبل الموعد الأول ينال «شارة الالتزام بالمواعيد»" },
+  { hijri: "12 تشرين الثاني – 15 كانون الثاني (تقديري)", title: "إلحاق الحجاج بالمجموعات", detail: "بالتوازي مع تشكيل التكتلات ويستمر بعده: يوقّع الحاج عقده مع المجموعة في المكتب، فيلحقه موظف المكتب بها، ويرى رئيسها ومنسقها حجاجها" },
   { hijri: "حتى 5 كانون الأول (تقديري)", title: "مراجعة طلبات التكتلات واعتمادها", detail: "يراجع موظف إدارة الإداريين كل طلب مُرسَل فيعتمده، أو يعيده بملاحظات يصلحها رئيسه ويرسله ثانية قبل الموعد النهائي — ثم رسم التكتل 500 $" },
   { hijri: "24 ذو القعدة (1 أيار 2027)", title: "السفر مع الحجاج", detail: "الميدان: التجمّعات والإعلانات والتقارير" },
 ] as const;
@@ -455,9 +459,51 @@ export function logAdmin(id: string, action: string, target?: string, detail?: s
   actions.logEvent({ actor: adminName(id), role: ADMIN_ROLE, action, target, detail, ...(file && { system: "admins", area: file.area, ref: file.ref ?? id }) });
 }
 
-/** Written + oral → final, judged by the season's exam rules (useExamRules) as the administration left them */
+type Paper = NonNullable<AdminProfile["exam"]>;
+
+/** A stored role as its key: the portal stores keys, the seeded files carry Arabic names */
+export function positionKeyOf(position: string | undefined) {
+  if (!position) return "";
+  return roleKeyByName(structureNow(), position) ?? POSITIONS.find((x) => x.key === position || x.label === position)?.key ?? "";
+}
+
+/** The exams he sits this season: his role's, or both of «معاون ومنسق تقني»'s */
+export function examRolesFor(p: Pick<AdminProfile, "positions"> | undefined) {
+  const key = positionKeyOf(p?.positions[0]);
+  return key ? examRolesOf(key) : [];
+}
+
+/** His paper of one exam: his role's own exam is in `exam`, any other one in `exams` */
+export function paperOf(p: Pick<AdminProfile, "positions" | "exam" | "exams"> | undefined, examRole: string): Paper | undefined {
+  const key = positionKeyOf(p?.positions[0]);
+  return !key || examRole === examRoleOf(key) ? p?.exam : p?.exams?.[examRole];
+}
+
+/** The change that stores (or clears) his paper of one exam */
+export function paperPatch(p: Pick<AdminProfile, "positions" | "exams"> | undefined, examRole: string, paper: Paper | undefined): Partial<AdminProfile> {
+  const key = positionKeyOf(p?.positions[0]);
+  if (!key || examRole === examRoleOf(key)) return { exam: paper };
+  const exams = { ...p?.exams };
+  if (paper) exams[examRole] = paper;
+  else delete exams[examRole];
+  return { exams };
+}
+
+/** Every exam he sits with his paper of it, in the order he sits them */
+export function papersOf(p: AdminProfile | undefined) {
+  return examRolesFor(p).map((role) => ({ role, paper: paperOf(p, role) }));
+}
+
+/**
+ * Written + oral → final, judged by the season's exam rules (useExamRules) as the administration left them. A
+ * role that sits two exams («معاون ومنسق تقني») has its written once both are marked — their average — and
+ * passes the written only if each of them reaches its minimum.
+ */
 export function resultOf(p: AdminProfile | undefined, rules: ExamNumbers) {
-  const written = p?.exam?.score;
+  const parts = papersOf(p).map((x) => ({ role: x.role, score: x.paper?.score, sent: !!x.paper?.submittedAt }));
+  const several = parts.length > 1;
+  const scored = parts.every((x) => x.score !== undefined);
+  const written = several ? (scored ? Math.round((parts.reduce((a, x) => a + x.score!, 0) / parts.length) * 10) / 10 : undefined) : p?.exam?.score;
   const oral = p?.oral?.score;
   // An oral with no written mark is a file exempt from the written: the oral is the whole result
   const final = oral !== undefined ? finalScoreWith(written, oral, rules) : undefined;
@@ -465,9 +511,13 @@ export function resultOf(p: AdminProfile | undefined, rules: ExamNumbers) {
   // Same role renewed with the required rating: no exams this season, the file counts as qualified
   const exempt = !!p?.examExempt && !!p?.eligibleAt && !!p?.feePaidAt;
   // Below the written minimum there is no oral, so no final mark can pass the file
-  const writtenPassed = exempt || (written !== undefined ? written >= rules.writtenMin : oral !== undefined);
+  const writtenPassed = exempt || (written !== undefined ? (several ? parts.every((x) => x.score! >= rules.writtenMin) : written >= rules.writtenMin) : oral !== undefined);
   return {
     written,
+    /** Each exam's mark, for a role that sits more than one */
+    parts,
+    /** Every paper of his sent */
+    sent: parts.length ? parts.every((x) => x.sent) : !!p?.exam?.submittedAt,
     oral,
     final,
     published: exempt ? p?.feePaidAt : published,
@@ -499,17 +549,16 @@ export function journeyOf(p: AdminProfile | undefined, rules: ExamNumbers, joinC
     { key: "account", title: "إنشاء الحساب الإداري", date: "دائم", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
     { key: "apply", title: "التسجيل كإداري والتحقق من الأهلية", date: when("admin-registration"), href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
     { key: "fee", title: "رسم التسجيل", date: when("admin-registration"), href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
-    { key: "written", title: "الامتحان الكتابي", date: written?.date ? written.date.replace(" 1448", "") : when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? `النتيجة ${r.written} من 100` : p?.exam?.submittedAt ? "أُرسل — بانتظار تصحيح الأسئلة التحريرية" : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || !!p?.exam?.submittedAt },
-    { key: "oral", title: "الامتحان الشفهي", date: when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} — اللجنة رقم 3` : "أمام اللجنة — تُدخل النتيجة على المنصة", done: r.exempt || r.oral !== undefined },
+    { key: "written", title: "الامتحان الكتابي", date: written?.date ? written.date.replace(" 1448", "") : when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.written !== undefined ? (r.parts.length > 1 ? `${r.parts.map((x) => `${roleName(x.role)} ${x.score}`).join(" · ")} — المتوسط ${r.written}` : `النتيجة ${r.written} من 100`) : r.parts.length > 1 && r.parts.some((x) => x.sent) ? `أرسلت ${r.parts.filter((x) => x.sent).length} من امتحانيك` : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || r.sent },
+    { key: "oral", title: "الامتحان الشفهي", date: p?.oralBooking ? dayLabel(p.oralBooking.day) : when("admin-oral"), href: "/administrator/exam", detail: r.exempt ? "معفى" : r.oral !== undefined ? `${r.oral} من 100 — أدخلتها اللجنة` : p?.oralBooking ? `موعدك ${dayLabel(p.oralBooking.day, true)} — أمام اللجنة` : "تحجز يومه بنفسك بعد اجتياز الكتابي", done: r.exempt || r.oral !== undefined },
     { key: "result", title: "النتيجة النهائية", date: when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون امتحان" : r.final !== undefined ? `${r.final} من 100 — ${r.passed ? "ناجح" : "لم يجتز"}` : weightsLabel(rules), done: !!r.published && r.passed },
     teamMember
       ? { key: "team", title: tech ? "الانضمام إلى تكتل منسقاً تقنياً" : "الانضمام إلى تكتل", date: when("cluster-formation"), href: "/administrator/cluster", detail: post ? posted : tech ? "بدعوة فردية من رئيس تكتل، ويوزّع عليك مجموعات منه" : "بدعوة فردية من رئيس تكتل إلى مقعد في إحدى مجموعاته أو إلى التكتل كله", done: !!post }
-      : { key: "group", title: "طلب تشكيل المجموعة", date: when("group-formation"), href: "/administrator/group", detail: g ? `${groupName(g.number)} — ${g.feePaidAt ? "الرسم مسدد" : "بانتظار الرسم"}` : "تسمّيها وحدك — رسم 200 $", done: !!g?.feePaidAt },
-    { key: "approval", title: "اعتماد إدارة الإداريين", date: when("group-formation"), href: "/administrator/group", detail: g?.approvedAt ? `اعتمدها ${g.approvedBy ?? "مازن الحلبي"}` : "يقرر فيه صاحب صلاحية «إدارة الإداريين» ويعطيها فئتك", done: !!g?.approvedAt, groupOnly: true },
+      : { key: "group", title: "تشكيل المجموعة في المكتب", date: when("group-formation"), href: "/administrator/group", detail: g?.approvedAt ? `${groupName(g.number)} — شكّلها ${g.approvedBy ?? "موظف المكتب"}` : g ? `${groupName(g.number)} — عند المكتب` : "باسمها الذي تختاره ورسمها 200 $ في المكتب", done: !!g?.approvedAt },
     { key: "cluster", title: "تشكيل التكتلات", date: when("cluster-formation"), href: "/administrator/cluster", detail: p?.cluster ? `طلب ${p.cluster.name}` : p?.deputyOf ? `${p.deputyOf.clusterName} — نائب رئيسه` : g?.clusterId ? "مجموعتك في تكتل" : "تدعو التكتلات مجموعتك إليها، ويقدّم الطلب من منحته الإدارة صفة رئيس تكتل", done: !!p?.cluster || !!p?.deputyOf || !!g?.clusterId, headOnly: true },
     teamMember
-      ? { key: "requests", title: tech ? "إلحاق الحجاج بمجموعاتي" : "حجاج مجموعاتي", date: when("group-joining"), href: "/administrator/requests", detail: tech ? "عقود الحجاج في المجموعات المسندة إليك، وملفاتهم الصحية" : "حجاج المجموعات المسندة إليك", done: joinCount > 0 }
-      : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: isClusterRole(p) ? "/administrator/clusters" : "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "عقود حجاج مجموعتك وملفاتهم الصحية", done: joinCount > 0 },
+      ? { key: "requests", title: "حجاج مجموعاتي", date: when("group-joining"), href: "/administrator/requests", detail: tech ? "حجاج المجموعات المسندة إليك كما يلحقهم المكتب، وملفاتهم الصحية" : "حجاج المجموعات المسندة إليك", done: joinCount > 0 }
+      : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: isClusterRole(p) ? "/administrator/clusters" : "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج مجموعتك كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 },
     { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "أول تجمّع أُغلق — انطلقنا" : "التجمّعات والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;
@@ -536,28 +585,23 @@ export function useAdmin() {
 }
 
 /**
- * ورقة امتحان كتابي ناجحة في امتحان صفته كما تطلقه المنصة: المؤتمتة صحيحة إلا الثالث والعاشر منها،
- * والتحريري صحّحه المصحح بدرجة دون العلامة الكاملة بدرجة
+ * ورقة امتحان كتابي ناجحة في امتحان صفته كما تطلقه المنصة: إجاباتها صحيحة إلا الثالثة والعاشرة،
+ * والأسئلة كلها اختيار أو صح وخطأ تُصحَّح فور الإرسال
  */
-function passedExam(id: string, position: string, startedAt: number, submittedAt: number): NonNullable<AdminProfile["exam"]> {
+function passedExam(id: string, exam: string, startedAt: number, submittedAt: number): NonNullable<AdminProfile["exam"]> {
   const bank = EXAM_QUESTIONS;
   const byId = new Map(bank.map((q) => [q.id, q]));
-  const exam = examRoleOf(position);
   const paper = drawPaper(bank, DEFAULT_BLUEPRINTS[exam] ?? DEFAULT_BLUEPRINTS["group-head"], exam, id);
   const ids = paper.flatMap((s) => s.ids);
-  const auto = ids.filter((qid) => typeOf(byId.get(qid)!) !== "written");
+  // Two wrong answers in the paper, the rest right
   const answers = Object.fromEntries(
-    ids.map((qid) => {
+    ids.map((qid, i) => {
       const q = byId.get(qid)!;
-      if (typeOf(q) === "written") return [qid, "أجبت بالخطوات المطلوبة بترتيبها، وذكرت من أُبلغ في كل خطوة."];
-      const i = auto.indexOf(qid);
       return [qid, i === 2 || i === 9 ? (q.answer + 1) % q.options.length : q.answer];
     }),
   );
-  const { tally, toGrade } = markPaper(paper, bank, answers);
-  const marks = Object.fromEntries(toGrade.map((qid) => [qid, pointsOf(byId.get(qid)!) - 1]));
-  const { score } = withMarks(paper, tally, toGrade, marks);
-  return { startedAt, submittedAt, paper, answers, tally, toGrade, marks, gradedBy: "ماهر عيسى", gradedAt: submittedAt + 5 * 60_000, provisional: score, score };
+  const { tally, toGrade, score } = markPaper(paper, bank, answers);
+  return { startedAt, submittedAt, paper, answers, tally, toGrade, provisional: score, score };
 }
 
 /**
@@ -597,7 +641,9 @@ export function demoAdminLogin(
       feePaidAt: now - 88 * min,
       receipt: adminReceipt(id, "A"),
       eligibleAt: now - 80 * min,
-      exam: keep ? undefined : passedExam(id, position, now - 70 * min, now - 55 * min),
+      exam: keep ? undefined : passedExam(id, examRoleOf(position), now - 70 * min, now - 55 * min),
+      // A role that sits two exams («معاون ومنسق تقني») passed the other one too, two days before
+      exams: keep ? undefined : Object.fromEntries(examRolesOf(position).filter((r) => r !== examRoleOf(position)).map((r) => [r, passedExam(id, r, now - 2 * 24 * 60 * min, now - 2 * 24 * 60 * min + 15 * min)])),
       oral: keep
         ? undefined
         : tech

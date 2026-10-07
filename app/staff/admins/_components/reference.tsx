@@ -1,13 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDown, ArrowUp, Building, Layers, Pencil, Plus, RotateCcw, Tags, Trash2, UserCog, UsersRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Building, Layers, Pencil, Plus, RotateCcw, Tags, Trash2, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatNumber, nowMs } from "@/lib/utils";
-import { DEMO_ADMINS } from "@/app/administrator/_lib/admin";
 import { useClusterRequests } from "@/app/administrator/_lib/formation";
 import { HEADS_POOL, ROSTER } from "@/app/administrator/_lib/people";
 import {
@@ -18,12 +17,10 @@ import {
   DEFAULT_ROLES,
   DEFAULT_TIERS,
   LEVEL_LABEL,
-  branchOf,
   branchesOf,
   categoryOf,
   roleName,
   seasonalOf,
-  seasonalText,
   seatsOf,
   useCadre,
   useStructure,
@@ -43,18 +40,18 @@ import { Drawer, Panel, Tabs, smallInputClass, textareaClass, useStaffUser } fro
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
-import { Chip, FilterSelect, SearchBox } from "../../_components/ops-ui";
-import { RecordHistory, SystemRecords } from "../../_components/system";
+import { Chip } from "../../_components/ops-ui";
+import { SystemRecords } from "../../_components/system";
 import { logAdmins } from "../desk";
 
-type Section = "roles" | "categories" | "branches" | "labels" | "people";
+type Section = "roles" | "categories" | "branches" | "labels";
 
 /**
  * The administration's reference lists («القوائم المرجعية» of قسم شؤون المجموعات والتكتلات), in the order
  * they are set up: the roles and what each does in a cluster, the tiers with their categories' numbers and
- * their composition, the branches, the ready seasonal labels — then each person's seasonal role, category
- * and branches. Everything here is added, edited, deactivated and deleted by the holder of «إدارة
- * الإداريين»; a list in use cannot lose what is in use. Every change is in the tab's record.
+ * their composition, the branches, the ready seasonal labels. Each person's base and seasonal role, category
+ * and branches are set in «الكادر الإداري». Everything here is added, edited, deactivated and deleted by the
+ * holder of «إدارة الإداريين»; a list in use cannot lose what is in use. Every change is in the tab's record.
  */
 export function ReferenceTab() {
   const s = useStructure();
@@ -70,7 +67,6 @@ export function ReferenceTab() {
           { value: "categories", label: "الفئات والأعداد", count: s.tiers.length },
           { value: "branches", label: "الفروع", count: s.branches.length },
           { value: "labels", label: "التسميات الموسمية", count: s.labels.length },
-          { value: "people", label: "صفات الأشخاص وفئاتهم" },
         ]}
       />
       <AnimatePresence mode="wait">
@@ -79,7 +75,6 @@ export function ReferenceTab() {
           {section === "categories" && <Categories />}
           {section === "branches" && <Branches />}
           {section === "labels" && <Labels />}
-          {section === "people" && <People />}
         </motion.div>
       </AnimatePresence>
       <SystemRecords system="admins" area="reference" title="سجل القوائم المرجعية" />
@@ -129,7 +124,7 @@ function Roles() {
   };
   const remove = (r: RoleDef) => {
     if (use.get(r.key)) return toast({ title: `لا تُحذف صفة «${r.name}»`, body: `يحملها ${use.get(r.key)} الآن (صفة أساسية أو موسمية). عطّلها بدلاً من ذلك.`, tone: "info", icon: "🔒" });
-    if (s.roles.some((x) => x.examAs === r.key)) return toast({ title: `لا تُحذف صفة «${r.name}»`, body: "صفات أخرى تُعامل كـها في الامتحان والشروط.", tone: "info", icon: "🔒" });
+    if (s.roles.some((x) => x.examAs === r.key || x.exams?.includes(r.key))) return toast({ title: `لا تُحذف صفة «${r.name}»`, body: "صفات أخرى تُعامل كـها في الامتحان والشروط، أو تمتحن امتحانها.", tone: "info", icon: "🔒" });
     save(
       s.roles.filter((x) => x.key !== r.key),
       "حذف صفة",
@@ -155,7 +150,7 @@ function Roles() {
       }
     >
       <p className="mb-4 text-sm leading-7 text-white/70">
-        كل صفة بمستواها (تكتل، مجموعة، مشترك) وسلوكها في التكتل: أي مقعد تشغل، ومن أي قائمة مرشّحين تُختار، وهل تقود تكتلاً أو مجموعة، وهل تمنح شارة الإرشاد، وهل لصاحبها فئة. السلوكيات مستقلة، فتُضبط بحرية. لا تُحذف صفة يحملها أحد: تُعطَّل، فلا تُعرض لتعيين جديد وتبقى صالحة لمن يحملها.
+        كل صفة بمستواها (تكتل، مجموعة، مشترك) وسلوكها في التكتل: أي مقعد تشغل، ومن أي قائمة مرشّحين تُختار، وهل تقود تكتلاً أو مجموعة، وهل تمنح شارة التميّز في التوجيه الديني، وهل لصاحبها فئة أو عمر مثبَّت يُحتسب به في متوسط أعمار التكتل. السلوكيات مستقلة، فتُضبط بحرية. لا تُحذف صفة يحملها أحد: تُعطَّل، فلا تُعرض لتعيين جديد وتبقى صالحة لمن يحملها.
       </p>
       <ol className="space-y-2">
         {s.roles.map((r, i) => (
@@ -168,8 +163,13 @@ function Roles() {
                   {r.core && <Chip tone="gold">أساسية أصلية</Chip>}
                   {!r.active && <Chip tone="maroon">معطّلة</Chip>}
                   {!r.applied && <Chip tone="gold">تمنحها الإدارة — لا يُتقدَّم إليها</Chip>}
-                  {r.examAs && <Chip>تُعامل كـ{roleName(r.examAs, s)} في الامتحان والشروط</Chip>}
+                  {r.exams && r.exams.length > 1 ? (
+                    <Chip tone="gold">تمتحن امتحانَي {r.exams.map((x) => roleName(x, s)).join(" و")} ويلزمها اجتيازهما</Chip>
+                  ) : (
+                    r.examAs && <Chip>{s.roles.find((x) => x.key === r.examAs)?.examName ? `تمتحن امتحان ${s.roles.find((x) => x.key === r.examAs)!.examName} وتُعامل بشروطه` : `تُعامل كـ${roleName(r.examAs, s)} في الامتحان والشروط`}</Chip>
+                  )}
                   {r.multiplier ? <Chip tone="green">مضاعف حجاج ×{r.multiplier}</Chip> : null}
+                  {r.fixedAge ? <Chip tone="green">عمر مثبَّت عند {r.fixedAge}</Chip> : null}
                   <span className="text-xs font-normal text-white/55">يحملها {formatNumber(use.get(r.key) ?? 0)}</span>
                 </p>
                 <p className="mt-1 text-xs leading-6 text-white/65">{r.desc}</p>
@@ -248,6 +248,14 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
           <input type="number" min={0} value={r.multiplier ?? ""} onChange={(e) => set({ multiplier: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })} placeholder="بلا مضاعف" className={smallInputClass} dir="ltr" />
         </label>
         <label className="block">
+          <span className="mb-1 block text-xs text-white/60">عمر مثبَّت في متوسط أعمار التكتل (اختياري)</span>
+          <input type="number" min={18} max={90} value={r.fixedAge ?? ""} onChange={(e) => set({ fixedAge: e.target.value ? Math.max(18, Number(e.target.value)) : undefined })} placeholder="بعمره الحقيقي" className={smallInputClass} dir="ltr" />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs text-white/60">اسم امتحانها حين تمتحنه صفات أخرى (اختياري)</span>
+          <input value={r.examName ?? ""} onChange={(e) => set({ examName: e.target.value || undefined })} placeholder="مثال: الموجّه الديني" className={smallInputClass} />
+        </label>
+        <label className="block">
           <span className="mb-1 block text-xs text-white/60">للذكور أو الإناث</span>
           <select value={r.gender ?? ""} onChange={(e) => set({ gender: (e.target.value || undefined) as RoleDef["gender"] })} className={cn(smallInputClass, "[&>option]:text-ink")}>
             <option value="">للجميع</option>
@@ -269,6 +277,34 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
           </select>
         </label>
       </div>
+      {r.applied && (
+        <fieldset>
+          <legend className="mb-1 text-xs text-white/60">الامتحانات التي تمتحنها — إن اخترت أكثر من امتحان يلزمها اجتيازها كلها، كلٌّ في يومه</legend>
+          <div className="flex flex-wrap gap-2">
+            {s.roles
+              .filter((x) => !x.examAs && x.applied && !x.exams?.length)
+              .map((x) => {
+                const current = r.exams?.length ? r.exams : [r.examAs ?? r.key];
+                const on = current.includes(x.key);
+                return (
+                  <button
+                    key={x.key}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      const next = on ? current.filter((k) => k !== x.key) : [...current, x.key];
+                      // One exam is kept as an empty list, so the platform's default does not come back
+                      set({ exams: next.length > 1 ? next : [] });
+                    }}
+                    className={cn("rounded-xl px-3 py-1.5 text-xs font-bold ring-1 transition", on ? "bg-gold text-ink ring-gold" : "text-white/70 ring-white/15 hover:bg-white/10")}
+                  >
+                    امتحان {x.name}
+                  </button>
+                );
+              })}
+          </div>
+        </fieldset>
+      )}
       <label className="block">
         <span className="mb-1 block text-xs text-white/60">وصفها</span>
         <textarea rows={2} value={r.desc} onChange={(e) => set({ desc: e.target.value })} className={textareaClass} />
@@ -562,7 +598,7 @@ function Branches() {
               label={`حذف ${b.name}`}
               onClick={() => {
                 const n = linked(b);
-                if (n) return toast({ title: `لا يُحذف فرع «${b.name}»`, body: `مرتبط الآن بـ ${n} من الإداريين. انقلهم من «صفات الأشخاص وفئاتهم» أولاً.`, tone: "info", icon: "🔒" });
+                if (n) return toast({ title: `لا يُحذف فرع «${b.name}»`, body: `مرتبط الآن بـ ${n} من الإداريين. انقلهم من «الكادر الإداري» أولاً.`, tone: "info", icon: "🔒" });
                 save(
                   s.branches.filter((x) => x.id !== b.id),
                   "حذف فرع",
@@ -616,7 +652,7 @@ function Labels() {
         ) : undefined
       }
     >
-      <p className="mb-3 text-sm leading-7 text-white/70">اقتراحات جاهزة لاسم يُعرض مع الصفة الموسمية حين تُمنح لشخص (من «صفات الأشخاص وفئاتهم»). كل تسمية تُقترح لإحدى الصفات، ولا ترتبط بأحد بنفسها.</p>
+      <p className="mb-3 text-sm leading-7 text-white/70">اقتراحات جاهزة لاسم يُعرض مع الصفة الموسمية حين تُمنح لشخص (من ملفه في «الكادر الإداري»). كل تسمية تُقترح لإحدى الصفات، ولا ترتبط بأحد بنفسها.</p>
       <ul className="space-y-2">
         {s.labels.map((l) => (
           <li key={l.id} className={cn("flex flex-wrap items-center gap-2 rounded-2xl p-3 ring-1", l.active ? "bg-white/[.06] ring-white/10" : "bg-maroon/15 ring-maroon/30")}>
@@ -657,239 +693,3 @@ function Labels() {
     </Panel>
   );
 }
-
-// ───────────────────────── People: seasonal role, category, branches ─────────────────────────
-
-type Person = { id: string; name: string; applied?: string };
-
-/** Everyone the season knows: the administrators on this device and in the staff's records, the qualified roster, the groups' heads */
-function usePeople(): Person[] {
-  const rows = useAdminRows();
-  const s = useStructure();
-  return useMemo(() => {
-    const key = (pos?: string) => (pos ? (s.roles.find((r) => r.key === pos || r.name === pos)?.key ?? pos) : undefined);
-    const map = new Map<string, Person>();
-    for (const r of rows) map.set(r.id, { id: r.id, name: r.name, applied: key(r.profile.positions[0] ?? r.position) });
-    // The demo accounts not signed in on this device yet, with the role of their story
-    for (const d of DEMO_ADMINS) if (!map.has(d.id)) map.set(d.id, { id: d.id, name: d.title.split(" — ")[0], applied: d.position });
-    for (const c of ROSTER) if (!map.has(c.id)) map.set(c.id, { id: c.id, name: c.name, applied: c.roleKey });
-    for (const h of HEADS_POOL) if (!map.has(h.id)) map.set(h.id, { id: h.id, name: h.name, applied: "group-head" });
-    return [...map.values()];
-  }, [rows, s.roles]);
-}
-
-function People() {
-  const s = useStructure();
-  const cadre = useCadre();
-  const people = usePeople();
-  const [q, setQ] = useState("");
-  const [role, setRole] = useState("");
-  const [branch, setBranch] = useState("");
-  const [open, setOpen] = useState<Person | null>(null);
-  const [shown, setShown] = useState(40);
-  const roleNow = (p: Person) => seasonalOf(p.id, cadre)?.role ?? p.applied ?? "";
-  const found = people
-    .filter((p) => (!role || roleNow(p) === role || p.applied === role) && (!branch || branchesOf(p.id, cadre).includes(branch)))
-    .filter((p) => !q.trim() || [p.name, roleName(p.applied ?? "", s), branchOf(p.id, cadre)].some((t) => t.includes(q.trim())));
-  const granted = people.filter((p) => seasonalOf(p.id, cadre));
-  return (
-    <>
-      <Panel icon={<UserCog />} title="الصفات الموسمية الممنوحة" action={<Chip tone="gold">{granted.length}</Chip>}>
-        <p className="mb-3 text-sm leading-7 text-white/70">صفة تمنحها الإدارة لشخص لهذا الموسم فوق صفته التي تقدّم بها، بسببها: «رئيس تكتل» لمن يرأس تكتلاً، و«معاون» لرئيس مجموعة اتحدت مجموعته مع أخرى (ويحتفظ بصفته للمواسم القادمة).</p>
-        <ul className="space-y-2">
-          {granted.map((p) => {
-            const g = seasonalOf(p.id, cadre)!;
-            return (
-              <li key={p.id}>
-                <button type="button" onClick={() => setOpen(p)} className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-white/[.06] p-3 text-right ring-1 ring-white/10 hover:ring-gold/40">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-bold text-white">
-                      {p.name} — {seasonalText(g, s)}
-                    </span>
-                    <span className="block text-xs text-white/60">
-                      صفته الأساسية {roleName(p.applied ?? "", s)} · {g.reason} · منحها {g.by}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </Panel>
-      <Panel icon={<UsersRound />} title="الأشخاص" action={<Chip>{people.length}</Chip>}>
-        <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr]">
-          <SearchBox value={q} onChange={setQ} placeholder="ابحث بالاسم أو الصفة أو الفرع" label="بحث في الأشخاص" />
-          <FilterSelect label="الصفة" all={`كل الصفات (${people.length})`} value={role} onChange={setRole} options={s.roles.map((r) => ({ value: r.key, label: `${r.name} (${people.filter((p) => roleNow(p) === r.key).length})` }))} />
-          <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
-        </div>
-        <ul className="mt-3 grid gap-2 md:grid-cols-2">
-          {found.slice(0, shown).map((p) => {
-            const g = seasonalOf(p.id, cadre);
-            const cat = categoryOf(p.id, cadre);
-            return (
-              <li key={p.id}>
-                <button type="button" onClick={() => setOpen(p)} className="w-full rounded-2xl bg-white/[.06] p-3 text-right ring-1 ring-white/10 hover:ring-gold/40">
-                  <span className="block font-bold text-white">{p.name}</span>
-                  <span className="block text-xs text-white/60">
-                    {roleName(p.applied ?? "", s)}
-                    {g ? ` ← ${seasonalText(g, s)}` : ""} · {branchesOf(p.id, cadre).join("، ")}
-                    {cat ? ` · ${s.categories.find((c) => c.id === cat)?.name}` : ""}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        {found.length > shown && (
-          <Button size="sm" variant="glass" className="mt-3" onClick={() => setShown(shown + 60)}>
-            عرض المزيد ({found.length - shown})
-          </Button>
-        )}
-      </Panel>
-      <Drawer open={!!open} onClose={() => setOpen(null)} title={open?.name ?? ""}>
-        {open && <PersonCadre id={open.id} name={open.name} applied={open.applied} />}
-      </Drawer>
-    </>
-  );
-}
-
-/**
- * One person's season as the administration sets it: a seasonal role (with a ready label and its reason) or
- * none, his category when he leads a group, his branch and extra branches. Each change asks its reason and is
- * written to his record.
- */
-export function PersonCadre({ id, name, applied, history = true }: { id: string; name: string; applied?: string; history?: boolean }) {
-  const user = useStaffUser()!;
-  const toast = useToast();
-  const s = useStructure();
-  const cadre = useCadre();
-  const current = seasonalOf(id, cadre);
-  const [role, setRole] = useState(current?.role ?? "");
-  const [label, setLabel] = useState(current?.label ?? "");
-  const [category, setCategory] = useState(categoryOf(id, cadre) ?? "");
-  const [branch, setBranch] = useState(branchOf(id, cadre));
-  const [extra, setExtra] = useState<string[]>(branchesOf(id, cadre).slice(1));
-  const [reason, setReason] = useState("");
-  const log = (action: string, before: string, after: string) => logAdmins(user, "applicants", { action, target: name, before, after, detail: reason.trim(), ref: id, important: true });
-  const ready = reason.trim().length >= 3;
-  const effective = role || applied;
-  const leads = !!s.roles.find((r) => r.key === effective)?.category || !!s.roles.find((r) => r.key === applied)?.category || !!categoryOf(id, cadre);
-
-  const saveRole = () => {
-    const before = current ? seasonalText(current, s) : "لا صفة موسمية";
-    if (!role) {
-      actions.setCadre("seasonal", id, null);
-      log("سحب صفة موسمية", before, `صفته الأساسية: ${roleName(applied ?? "", s)}`);
-    } else {
-      const g = { role, label: label || undefined, reason: reason.trim(), by: user.name, at: nowMs() };
-      actions.setCadre("seasonal", id, g);
-      log("منح صفة موسمية", before, seasonalText(g, s));
-    }
-    toast({ title: "حُفظت الصفة الموسمية", body: name, tone: "success", icon: "🏷️" });
-    setReason("");
-  };
-  const saveCategory = () => {
-    actions.setCadre("category", id, category || undefined);
-    log("تعديل فئة", s.categories.find((c) => c.id === categoryOf(id, cadre))?.name ?? "—", s.categories.find((c) => c.id === category)?.name ?? "—");
-    toast({ title: "حُفظت الفئة", body: name, tone: "success", icon: "🏷️" });
-    setReason("");
-  };
-  const saveBranches = () => {
-    actions.setCadre("branches", id, { branch, extra: extra.filter((b) => b !== branch) });
-    log("تعديل الفروع", branchesOf(id, cadre).join("، "), [branch, ...extra.filter((b) => b !== branch)].join("، "));
-    toast({ title: "حُفظت الفروع", body: name, tone: "success", icon: "🏢" });
-    setReason("");
-  };
-
-  return (
-    <div className="space-y-5 text-sm">
-      <p className="rounded-2xl bg-white/5 p-3 text-white/80 ring-1 ring-white/10">
-        صفته الأساسية: <b className="text-gold">{roleName(applied ?? "", s) || "—"}</b>
-        {current && (
-          <>
-            {" "}
-            · الموسمية: <b className="text-gold">{seasonalText(current, s)}</b> — {current.reason}
-          </>
-        )}
-      </p>
-      <label className="block">
-        <span className="mb-1 block text-xs text-white/60">السبب (إلزامي لكل تعديل، ويُكتب في سجله)</span>
-        <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="مثال: اتحاد مع مجموعة أخرى — بناءً على كتاب تشكيل التكتلات" />
-      </label>
-
-      <div className="space-y-2 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-        <p className="font-bold text-white">الصفة الموسمية</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <select value={role} onChange={(e) => { setRole(e.target.value); setLabel(""); }} aria-label="الصفة الموسمية" className={cn(smallInputClass, "[&>option]:text-ink")}>
-            <option value="">— لا صفة موسمية —</option>
-            {s.roles
-              .filter((r) => r.active || r.key === role)
-              .map((r) => (
-                <option key={r.key} value={r.key}>
-                  {r.name}
-                </option>
-              ))}
-          </select>
-          <select value={label} onChange={(e) => setLabel(e.target.value)} disabled={!role} aria-label="التسمية المعروضة" className={cn(smallInputClass, "[&>option]:text-ink")}>
-            <option value="">— بلا تسمية —</option>
-            {s.labels
-              .filter((l) => l.active && l.base === role)
-              .map((l) => (
-                <option key={l.id} value={l.label}>
-                  {l.label}
-                </option>
-              ))}
-          </select>
-        </div>
-        <Button size="sm" variant="gold" disabled={!ready || (role === (current?.role ?? "") && label === (current?.label ?? ""))} onClick={saveRole}>
-          حفظ الصفة الموسمية
-        </Button>
-      </div>
-
-      {leads && (
-        <div className="space-y-2 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-          <p className="font-bold text-white">الفئة (فئة مجموعته)</p>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="الفئة" className={cn(smallInputClass, "[&>option]:text-ink")}>
-            <option value="">— لا فئة —</option>
-            {s.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <Button size="sm" variant="gold" disabled={!ready || category === (categoryOf(id, cadre) ?? "")} onClick={saveCategory}>
-            حفظ الفئة
-          </Button>
-        </div>
-      )}
-
-      <div className="space-y-2 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-        <p className="font-bold text-white">الفرع والفروع الإضافية</p>
-        <select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label="الفرع" className={cn(smallInputClass, "[&>option]:text-ink")}>
-          {s.branches
-            .filter((b) => b.active || b.name === branch)
-            .map((b) => (
-              <option key={b.id} value={b.name}>
-                {b.name}
-              </option>
-            ))}
-        </select>
-        <div className="flex flex-wrap gap-2">
-          {s.branches
-            .filter((b) => b.active && b.name !== branch)
-            .map((b) => (
-              <label key={b.id} className={cn("flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-xs ring-1", extra.includes(b.name) ? "bg-gold/20 text-gold ring-gold/40" : "bg-white/5 text-white/70 ring-white/15")}>
-                <input type="checkbox" checked={extra.includes(b.name)} onChange={(e) => setExtra(e.target.checked ? [...extra, b.name] : extra.filter((x) => x !== b.name))} className="size-3.5 accent-[#D9C89E]" /> {b.name}
-              </label>
-            ))}
-        </div>
-        <Button size="sm" variant="gold" disabled={!ready || [branch, ...extra].join() === branchesOf(id, cadre).join()} onClick={saveBranches}>
-          حفظ الفروع
-        </Button>
-      </div>
-
-      {history && <RecordHistory system="admins" refId={id} />}
-    </div>
-  );
-}
-

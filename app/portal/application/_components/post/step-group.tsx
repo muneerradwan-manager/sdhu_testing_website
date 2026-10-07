@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/ui/widgets";
-import { decideContract, demoContractFile, groupInfo, submitContract } from "@/lib/assignment";
+import { attachByContract, decideContract, groupInfo } from "@/lib/assignment";
+import { DemoJump } from "@/components/app/operation-closed";
 import { groupName } from "@/lib/groups";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import Link from "next/link";
@@ -31,18 +32,17 @@ const DEMO_GROUP = { clusterId: "al-nour", number: 27 };
 
 /**
  * الخطوة 3: الإلحاق بمجموعة — عملية مستقلة عن التسجيل على الحج. لا يختار الحاج مجموعته على المنصة: يتفق مع
- * مجموعة خارجها، فيرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها (رئيسها، أو المنسق أو المعاون
- * الموزَّعة عليه من رئيس التكتل)، ثم يعتمده موظف المكتب. بعدها فقط يظهر للحاج أنه في المجموعة، ومعه عقده.
+ * مجموعة، ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب بها ويرفع العقد الموقّع. بعدها يظهر للحاج أنه في
+ * المجموعة، ومعه عقده. الإداريون لا يلحقون أحداً.
  */
 export function StepGroup({ app, post, sessionId }: StepProps) {
   const toast = useToast();
   const joining = useOperation("group-joining");
   if (post.groupApprovedAt && post.contract?.status !== "pending") return null;
   const c = post.contract;
-  const upload = () => {
-    const uploader = { id: "01033300871", name: "أحمد سليمان الحمصي", role: `رئيس ${groupName(DEMO_GROUP.number)}` };
-    submitContract({ sessionId, app, post, group: DEMO_GROUP, uploader, file: demoContractFile(app, DEMO_GROUP.number), at: Date.now() });
-    toast({ title: `رُفع عقدكم مع ${groupName(DEMO_GROUP.number)}`, body: "رفعه رئيسها، وينتظر اعتماد المكتب.", icon: "📄", tone: "info" });
+  const attach = () => {
+    attachByContract({ sessionId, app, post, group: DEMO_GROUP, at: Date.now() });
+    toast({ title: `ألحقكم المكتب ب${groupName(DEMO_GROUP.number)}`, body: "وقّعتم العقد في المكتب، ورفعه موظف المكتب مع إلحاقكم.", icon: "✅", tone: "success" });
   };
   const approve = () => {
     decideContract({ sessionId, app, post, status: "approved", by: { name: "رنا حداد (محاكاة)", role: "إدارة التسجيل" }, at: Date.now() });
@@ -50,10 +50,10 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
   };
   return (
     <Question
-      step="الخطوة 3 من 6"
+      step="الخطوة 3 من 7"
       title="الإلحاق بمجموعة: بعقد بينكم وبين المجموعة"
-      hint={`لا تختارون المجموعة من المنصة. تتفقون مع مجموعة، فيرفع رئيسها أو منسقها عقدكم الموقّع على المنصة، ويعتمده المكتب، فتظهر لكم هنا مجموعتكم وعقدكم. ${app.members.length > 1 ? `أفراد طلبكم (${app.members.length}) يُلحقون معاً بالمجموعة نفسها.` : ""}`}
-      speak="لا تختار المجموعة من المنصة. تتفق مع مجموعة، فيرفع رئيسها أو منسقها العقد، ويعتمده المكتب."
+      hint={`لا تختارون المجموعة من المنصة. تتفقون مع مجموعة، وتوقّعون عقدكم معها في المكتب، فيلحقكم موظف المكتب بها، فتظهر لكم هنا مجموعتكم وعقدكم. ${app.members.length > 1 ? `أفراد طلبكم (${app.members.length}) يُلحقون معاً بالمجموعة نفسها.` : ""}`}
+      speak="لا تختار المجموعة من المنصة. تتفق مع مجموعة، وتوقّع العقد في المكتب، فيلحقك موظف المكتب بها."
     >
       {app.submittedBy && (
         <p className="mb-5 flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
@@ -63,9 +63,9 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
       )}
       <ol className="grid gap-3 md:grid-cols-3">
         {[
-          { t: "تتفقون مع مجموعة", d: "خارج المنصة: مع رئيسها أو منسقها", done: !!c },
-          { t: "يرفع العقد على المنصة", d: c ? `${c.uploadedBy.name} — ${c.uploadedBy.role}` : "رئيس المجموعة أو منسق التكتل الموزَّعة عليه", done: !!c && c.status !== "returned" },
-          { t: "يعتمده المكتب", d: c?.status === "returned" ? `أُعيد: ${c.reason}` : "موظف إدارة التسجيل", done: c?.status === "approved" },
+          { t: "تتفقون مع مجموعة", d: "مع رئيسها أو منسقها", done: !!c },
+          { t: "توقّعون العقد في المكتب", d: c ? `«${c.file.name}»` : "عقد بينكم وبين المجموعة، يشمل أفراد طلبكم كلهم", done: !!c && c.status !== "returned" },
+          { t: "يلحقكم موظف المكتب بها", d: c?.status === "returned" ? `أُعيد: ${c.reason}` : c?.status === "approved" ? c.decidedBy ?? "موظف المكتب" : "موظف المكتب، ويرفع العقد الموقّع", done: c?.status === "approved" },
         ].map((x, i) => (
           <li key={x.t} className={cn("rounded-2xl border-2 p-4", x.done ? "border-green-light/50 bg-green-light/5" : "border-gold/30 bg-white")}>
             <span className={cn("grid size-8 place-items-center rounded-full text-sm font-bold", x.done ? "bg-green-light text-white" : "bg-sand text-green-dark")}>{x.done ? <Check className="size-4" /> : i + 1}</span>
@@ -93,14 +93,16 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
         </div>
       ) : (
         <div className="mt-5 rounded-3xl bg-sand p-5">
-          <p className="font-bold text-green-dark">{joining.open ? "لم يُرفع لكم عقد بعد" : joining.status === "upcoming" ? `يبدأ الإلحاق بالمجموعات ${rangeLabel(joining.start, joining.end)}` : "انتهت مدة الإلحاق بالمجموعات"}</p>
+          <p className="font-bold text-green-dark">{joining.open ? "لم تُلحقوا بمجموعة بعد" : joining.status === "upcoming" ? `يبدأ الإلحاق بالمجموعات ${rangeLabel(joining.start, joining.end)}` : "انتهت مدة الإلحاق بالمجموعات"}</p>
           <p className="mt-1 text-sm leading-7 text-ink-soft">
-            يمكنكم الاطلاع على التكتلات المعتمدة ومجموعاتها في صفحة <Link href="/verify" className="font-bold text-green-dark underline">التحقق من الجهات</Link>، ثم الاتفاق مع المجموعة التي تناسبكم مباشرة.
+            يمكنكم الاطلاع على التكتلات المعتمدة ومجموعاتها في صفحة <Link href="/verify" className="font-bold text-green-dark underline">التحقق من الجهات</Link>، ثم الاتفاق مع المجموعة التي تناسبكم، ومراجعة المكتب لتوقيع العقد والإلحاق.
           </p>
-          {joining.open && (
-            <button type="button" onClick={upload} className="mt-3 rounded-full border border-dashed border-gold-dark px-3 py-1 text-sm font-semibold text-maroon">
-              محاكاة: اتفقنا مع {groupName(DEMO_GROUP.number)} ورفع رئيسها العقد
+          {joining.open ? (
+            <button type="button" onClick={attach} className="mt-3 rounded-full border border-dashed border-gold-dark px-3 py-1 text-sm font-semibold text-maroon">
+              محاكاة: وقّعنا العقد مع {groupName(DEMO_GROUP.number)} في المكتب فألحقنا الموظف بها
             </button>
+          ) : (
+            <DemoJump state={joining} className="mt-3" />
           )}
         </div>
       )}
@@ -125,7 +127,7 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
           </p>
           {post.enrolledBy && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
-              <FileSignature className="size-4" /> رفع عقدكم {post.enrolledBy.name}، واعتمده المكتب
+              <FileSignature className="size-4" /> ألحقكم {post.enrolledBy.name} في المكتب بعقدكم
             </p>
           )}
           <ul className="mt-3 space-y-1 text-sm">
@@ -165,10 +167,10 @@ export function MyGroup({ app, post, sessionId }: StepProps) {
             <li>
               رفعه: {post.contract.uploadedBy.name} — {post.contract.uploadedBy.role}
             </li>
-            <li>اعتمده: {post.contract.decidedBy ?? "المكتب"}</li>
+            <li>{post.contract.decidedBy === post.contract.uploadedBy.name ? `ألحقكم: ${post.contract.decidedBy} في المكتب` : `اعتمده: ${post.contract.decidedBy ?? "المكتب"}`}</li>
           </ul>
           <p className="mt-3 flex items-start gap-2 text-sm leading-7 text-ink-soft">
-            <ArrowLeftRight className="mt-1 size-4 shrink-0 text-gold-dark" /> الانتقال إلى مجموعة أخرى بعقد جديد ترفعه المجموعة الجديدة ويعتمده المكتب. {app.members.length > 1 ? "الطلب العائلي ينتقل كاملاً — كل الأفراد أو لا أحد." : ""}
+            <ArrowLeftRight className="mt-1 size-4 shrink-0 text-gold-dark" /> الانتقال إلى مجموعة أخرى بعقد جديد مع المجموعة الجديدة، يُوقَّع في المكتب ويلحقكم به موظفه. {app.members.length > 1 ? "الطلب العائلي ينتقل كاملاً — كل الأفراد أو لا أحد." : ""}
           </p>
         </div>
       )}

@@ -104,6 +104,25 @@ if ONLY in (None, "b"):
     c.scroll_to("[role=tablist]", 420)
     c.shot("rev-approved", "الطلب في تبويب «معتمدة»", section=S)
     s.close()
+    # Attaching an accepted application to a group in the office: سعاد الحموي was accepted (her portal seeds it),
+    # and the window of «إلحاق الحجاج بالمجموعات» opens with «جرّبها الآن»
+    s = Staff(); c, p = s.c, s.p
+    c.goto("/login", wait=1800)
+    p.locator("main button:has-text('سعاد الحموي')").first.click(); c.settle(3500)
+    s.login("rana")
+    c.goto("/staff/reviews", wait=1800)
+    jump = p.locator("main button:has-text('جرّبها الآن')")
+    if jump.count():
+        jump.first.click(); c.settle(1500)
+    p.get_by_label("الرقم الوطني أو رقم الطلب").fill("01055500730")
+    p.locator("main button:has-text('بحث')").first.click(); c.settle(1200)
+    grp = p.get_by_label("المجموعة")
+    if grp.count():
+        grp.first.select_option(index=1); c.settle(400)
+        p.locator("main input[type=file]").first.set_input_files({"name": "عقد-سعاد-الحموي.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4"}); c.settle(400)
+    c.scroll_to("main h2:has-text('إلحاق الحجاج بالمجموعات')", 110)
+    c.shot("rev-attach", "إلحاق طلب مقبول بمجموعة: البحث عنه، والمجموعة وسعتها، والعقد الموقّع", hl=[("main button:has-text('إلحاق الطلب')", "")], section=S)
+    s.close()
 
 # ───────── C. season.settings ─────────
 if ONLY in (None, "c"):

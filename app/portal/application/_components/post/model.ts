@@ -5,10 +5,12 @@
  * Nothing about documents or health is asked at registration. After acceptance:
  * 1) the pilgrim confirms — a lottery winner also chooses the payment plan and pays the first installment
  *    (direct acceptance paid it with the registration);
- * 2) uploads a personal photo and passport for every member — no medical document before the assignment window;
+ * 2) uploads a personal photo for every member — the photo alone: the passport waits for the second payment, and no
+ *    medical document comes before the group;
  * 3) in the assignment window, reads the group directory and contacts a group: that group's coordinator
  *    enrolls the whole family and both sign the pilgrim–group contract;
  * 4) pays the rest of the Hajj cost by the chosen plan, with the sacrifice and any private rooms;
+ *    then, only once that second payment is in, uploads the passport of every member;
  * 5) only after joining a group: the medical file — vaccination certificates and the other medical
  *    documents (the list the administration sets), and the health information the group's coordinator records; 6) visa.
  */import { ageOf, fullName } from "@/lib/registry";
@@ -54,24 +56,31 @@ export const RESET_POST: Partial<PostAcceptance> = {
   ratings: {},
 };
 
-export type StepKey = "confirm" | "documents" | "group" | "payment" | "medical" | "visa";
+export type StepKey = "confirm" | "documents" | "group" | "payment" | "passport" | "medical" | "visa";
 
 export const STEPS: { key: StepKey; title: string; short: string; emoji: string; question: string; unlocks: string }[] = [
-  { key: "confirm", title: "تأكيد القبول", short: "وتثبيت التسجيل بالدفعة الأولى للمقبولين بالقرعة", emoji: "✍️", question: "هل وصلتك النتيجة بوضوح وفي الوقت المناسب؟", unlocks: "رفع الوثائق" },
-  { key: "documents", title: "الصورة والجواز", short: "لا وثائق طبية قبل الإلحاق بمجموعة", emoji: "📄", question: "كيف تقيّم وضوح الوثائق المطلوبة وسرعة الرد عليها؟", unlocks: "الإلحاق بمجموعة" },
-  { key: "group", title: "الإلحاق بمجموعة", short: "بعقد ترفعه المجموعة ويعتمده المكتب", emoji: "🧭", question: "كيف تقيّم وضوح الإلحاق بالمجموعة واعتماد العقد؟", unlocks: "قسم «المجموعة»" },
-  { key: "payment", title: "الدفعة الثانية", short: "بعد اعتماد عقد المجموعة", emoji: "🧾", question: "كيف تقيّم وضوح التكاليف والدفعات والإيصالات؟", unlocks: "الوثائق الطبية" },
+  { key: "confirm", title: "تأكيد القبول", short: "وتثبيت التسجيل بالدفعة الأولى للمقبولين بالقرعة", emoji: "✍️", question: "هل وصلتك النتيجة بوضوح وفي الوقت المناسب؟", unlocks: "الصورة الشخصية" },
+  { key: "documents", title: "الصورة الشخصية", short: "بعد الدفعة الأولى: الصورة وحدها", emoji: "🖼️", question: "كيف تقيّم وضوح مواصفات الصورة وسرعة مراجعتها؟", unlocks: "الإلحاق بمجموعة" },
+  { key: "group", title: "الإلحاق بمجموعة", short: "بعقد يوقَّع في المكتب ويلحقكم موظفه", emoji: "🧭", question: "كيف تقيّم وضوح الإلحاق بالمجموعة في المكتب؟", unlocks: "«مجموعتي وعقدي»" },
+  { key: "payment", title: "الدفعة الثانية", short: "بعد اعتماد عقد المجموعة", emoji: "🧾", question: "كيف تقيّم وضوح التكاليف والدفعات والإيصالات؟", unlocks: "جواز السفر" },
+  { key: "passport", title: "جواز السفر", short: "بعد اكتمال الدفعة الثانية حصراً", emoji: "🛂", question: "كيف تقيّم وضوح شروط الجواز وسرعة مراجعته؟", unlocks: "الملف الطبي" },
   { key: "medical", title: "الملف الطبي", short: "اللقاحات والوثائق الطبية بعد الانضمام", emoji: "🩺", question: "كيف تقيّم وضوح الوثائق الطبية وتواصل منسق المجموعة؟", unlocks: "التأشيرة والرحلة" },
   { key: "visa", title: "التأشيرة والرحلة", short: "التأشيرة والطيران والسكن", emoji: "🛂", question: "كيف تقيّم وضوح معلومات السفر والتحضير قبل الرحلة؟", unlocks: "الرحلات والفنادق والمخيمات والبطاقات" },
 ];
 export type DocKey = "photo" | "passport";
 
-/** After acceptance: identity documents only. Every medical document (vaccines included) waits until the pilgrim has joined a group */
+/**
+ * The identity documents, each in its own step: the personal photo after the first payment, the passport only
+ * after the second. Every medical document (vaccines included) waits until the pilgrim has joined a group.
+ */
 export const DOCS: { key: DocKey; label: string; emoji: string; reviewer: string; reviewMs: number; hint: string }[] = [
   { key: "photo", label: "الصورة الشخصية", emoji: "🖼️", reviewer: "رنا حداد", reviewMs: 2200, hint: "خلفية بيضاء، حديثة، دون نظارات" },
   { key: "passport", label: "جواز السفر", emoji: "🛂", reviewer: "رنا حداد", reviewMs: 3200, hint: "صفحة البيانات كاملة وواضحة" },
 ];
 export const docKey = (m: Member, d: DocKey) => `${m.person.id}-${d}`;
+
+/** Which documents each step asks for */
+export const STEP_DOCS: Record<"documents" | "passport", DocKey[]> = { documents: ["photo"], passport: ["passport"] };
 
 /** 69+ need a dedicated companion — the oldest one gets the spec's expired-passport case */
 export function elderlyMembers(members: Member[]) {
@@ -93,8 +102,9 @@ export function docStatus(post: PostAcceptance, m: Member, d: DocKey): DocStatus
   return post.documents[docKey(m, d)] ?? "missing";
 }
 
-export function memberDocsDone(post: PostAcceptance, m: Member) {
-  return DOCS.every((d) => docStatus(post, m, d.key) === "approved");
+/** Every document of these kinds (all of them unless told) approved for this member */
+export function memberDocsDone(post: PostAcceptance, m: Member, keys: DocKey[] = DOCS.map((d) => d.key)) {
+  return keys.every((k) => docStatus(post, m, k) === "approved");
 }
 
 // ───────────────────────── Health file ─────────────────────────
@@ -214,9 +224,10 @@ export function paidAt(line: CostLine, app: Application, post: PostAcceptance) {
 export function stepsDone(post: PostAcceptance, app: Application, lines: CostLine[]): Record<StepKey, boolean> {
   return {
     confirm: !!post.confirmedAt && !!app.firstPaid,
-    documents: !!post.confirmedAt && app.members.every((m) => memberDocsDone(post, m)),
+    documents: !!post.confirmedAt && app.members.every((m) => memberDocsDone(post, m, STEP_DOCS.documents)),
     group: !!post.groupApprovedAt && !!post.contractSignedAt,
     payment: lines.every((l) => !!paidAt(l, app, post)),
+    passport: app.members.every((m) => memberDocsDone(post, m, STEP_DOCS.passport)),
     medical: medicalDone(post, app),
     visa: !!post.visaAt,
   };

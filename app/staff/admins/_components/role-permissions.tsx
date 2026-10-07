@@ -12,7 +12,7 @@ import { logAdmins } from "../desk";
 
 /**
  * The administrators' permissions, role by role. A permission is not the category: being a group head
- * does not by itself let him register pilgrims, nor does registering let him attach them to a group.
+ * does not by itself let him register pilgrims, and registering never attaches them to a group (the office does).
  * Each is given to the roles here, and the holder of «إدارة الإداريين» changes it for the season.
  */
 export function RolePermissionsPanel() {
@@ -44,7 +44,7 @@ export function RolePermissionsPanel() {
       }
     >
       <p className="mb-4 text-sm leading-7 text-white/70">
-        الصلاحية مستقلة عن الصفة: لا تأتي مع رئاسة المجموعة ولا مع أي فئة، بل تُمنح للصفات هنا. ومن يسجّل حاجاً على الحج لا يصير الحاج تابعاً لمجموعته؛ إلحاقه بمجموعة صلاحية أخرى، في المجموعات التي يعمل فيها وحدها.
+        الصلاحية مستقلة عن الصفة: لا تأتي مع رئاسة المجموعة ولا مع أي فئة، بل تُمنح للصفات هنا. ومن يسجّل حاجاً على الحج لا يصير الحاج تابعاً لمجموعته؛ إلحاق الحجاج بالمجموعات يجريه موظفو المكتب وحدهم، لا الإداريون.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[36rem] text-sm">

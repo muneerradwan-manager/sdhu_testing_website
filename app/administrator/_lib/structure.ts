@@ -23,7 +23,9 @@ export const LEVEL_LABEL: Record<RoleLevel, string> = { cluster: "تكتل", gro
  * A role and its behaviors. Each behavior is independent: a role may sit in a group's assistant seat and be
  * among the cluster's coordinators at once («معاون ومنسق تقني»). `applied`: an administrator applies for it
  * in «التسجيل كإداري» (with its requirements and exams); a role that is not applied for is granted by the
- * administration as a seasonal role («رئيس تكتل»). `examAs`: the role whose exam it sits.
+ * administration as a seasonal role («رئيس تكتل»). `examAs`: the role whose exam it sits (and whose
+ * requirements and permissions it holds). `exams`: every exam it sits when more than one — «معاون ومنسق
+ * تقني» sits the assistant's and the technical coordinator's, and must pass both.
  */
 export type RoleDef = {
   key: string;
@@ -36,6 +38,7 @@ export type RoleDef = {
   active: boolean;
   applied: boolean;
   examAs?: string;
+  exams?: string[];
   gender?: "M" | "F";
   guideSeat?: boolean;
   assistantSeat?: boolean;
@@ -48,6 +51,13 @@ export type RoleDef = {
   category?: boolean;
   /** Pilgrims each holder adds to the cluster's count when he is one of its assistants («معاون بعدد») */
   multiplier?: number;
+  /**
+   * «عمر مثبَّت»: the age the cluster's average counts for its holder instead of his own — a grade of guides
+   * («موجّه ديني أ» at 40, «ب» at 45, «موجّهة دينية ب» at 48) is not held against the cluster's age badge
+   */
+  fixedAge?: number;
+  /** The name of the exam it qualifies by, when other roles sit it too («امتحان الموجّه الديني» for the guides' grades) */
+  examName?: string;
 };
 
 export type Behavior = "guideSeat" | "assistantSeat" | "assistantPool" | "coordinatorPool" | "guidePool" | "clusterLeader" | "groupLeader" | "guidance" | "category";
@@ -61,23 +71,39 @@ export const BEHAVIORS: { key: Behavior; label: string; hint: string }[] = [
   { key: "guidePool", label: "ضمن مرشّحي موجّهات التكتل", hint: "يظهر خياراً عند اختيار موجّهات التكتل ومرشداته" },
   { key: "clusterLeader", label: "صفة «قائد التكتل»", hint: "تتيح لصاحبها تقديم طلب تشكيل تكتل ورئاسته" },
   { key: "groupLeader", label: "صفة «قائد المجموعة»", hint: "تجعل صاحبها مرشحاً لرئاسة مجموعة ضمن التكتل" },
-  { key: "guidance", label: "تمنح شارة الإرشاد", hint: "وجود شخص واحد بهذه الصفة في التكتل يمنحه شارة الإرشاد" },
+  { key: "guidance", label: "تمنح شارة التميّز في التوجيه الديني", hint: "وجود شخص واحد بهذه الصفة في التكتل يمنحه شارة التميّز في التوجيه الديني" },
   { key: "category", label: "تُظهر حقل «الفئة»", hint: "لصاحبها فئة تحددها الإدارة، وهي فئة المجموعة التي يرأسها" },
 ];
 
-/** The ten roles of the administration's platform, in its order, with the behaviors it gives each */
+/**
+ * The twelve roles of the administration's platform, in its order, with the behaviors it gives each. The religious
+ * guides come in three grades each, men's and women's: «أ» grants the cluster the excellence badge and counts at a
+ * fixed age of 40 in its average, «ب» at 45 (a woman guide at 48), «ج» at her own age. A grade is its own role
+ * (its key kept from the platform's first lists: «أ» was «مرشد ديني»), and every grade sits the guide's exam.
+ */
 export const DEFAULT_ROLES: RoleDef[] = [
-  { key: "cluster-head", name: "رئيس تكتل", level: "cluster", core: true, active: true, applied: false, clusterLeader: true, desc: "تمنحه الإدارة صفةً موسمية: يقدّم طلب تشكيل التكتل، ويختار مجموعاته وكادره، ويدير التكتل كاملاً بعد اعتماده." },
+  { key: "cluster-head", name: "رئيس تكتل", level: "cluster", core: true, active: true, applied: false, clusterLeader: true, desc: "صفة تمنحها الإدارة، أساسيةً لمن ثبت فيها أو موسميةً لموسم واحد: يقدّم طلب تشكيل التكتل، ويختار مجموعاته وكادره، ويدير التكتل كاملاً بعد اعتماده." },
   { key: "group-head", name: "رئيس مجموعة", level: "group", core: true, active: true, applied: true, groupLeader: true, category: true, desc: "يشكّل مجموعته ويقودها. فئته (الأولى… الرابعة) تحددها الإدارة، وهي فئة مجموعته: عدد حجاجها ومقاعد فريقها." },
-  { key: "guide-m", name: "موجّه ديني", level: "group", core: true, active: true, applied: true, gender: "M", guideSeat: true, desc: "يشغل مقعد الموجّه في مجموعة: الدروس والمناسك والإجابة عن الأسئلة الشرعية." },
-  { key: "guide-f", name: "موجّهة دينية", level: "cluster", core: true, active: true, applied: true, gender: "F", guidePool: true, desc: "للتكتل لا لمجموعة: التوجيه الديني لحاجّات التكتل كله. عددها بمجموع فئات مجموعاته." },
   { key: "group-deputy", name: "معاون", level: "shared", core: true, active: true, applied: true, assistantSeat: true, assistantPool: true, desc: "يشغل مقعد المعاون في مجموعة، أو يكون معاون التكتل: الحضور والتجمّع والمطارات والمستلزمات." },
   { key: "tech", name: "منسق تقني", level: "cluster", core: true, active: true, applied: true, coordinatorPool: true, desc: "للتكتل لا لمجموعة: برنامج المنسقين وبيانات الحجاج وأوراقهم. يوزّع رئيس التكتل المجموعات على منسقيه." },
-  { key: "assistant-tech", name: "معاون ومنسق تقني", level: "shared", core: true, active: true, applied: true, examAs: "tech", assistantSeat: true, assistantPool: true, coordinatorPool: true, desc: "يجمع الصفتين: يشغل مقعد معاون، أو يكون من منسقي التكتل. لا بد أن يكون أحد منسقي كل تكتل بهذه الصفة." },
+  { key: "assistant-tech", name: "معاون ومنسق تقني", level: "shared", core: true, active: true, applied: true, examAs: "tech", exams: ["group-deputy", "tech"], assistantSeat: true, assistantPool: true, coordinatorPool: true, desc: "يجمع الصفتين: يمتحن امتحانَي المعاون والمنسق التقني ويلزمه اجتيازهما معاً، ويشغل مقعد معاون، أو يكون من منسقي التكتل. لا بد أن يكون أحد منسقي كل تكتل بهذه الصفة." },
+  { key: "murshid", name: "موجّه ديني أ", level: "group", core: true, active: true, applied: true, examAs: "guide-m", gender: "M", guideSeat: true, guidance: true, fixedAge: 40, desc: "أعلى درجات الموجّهين: يشغل مقعد الموجّه في مجموعة، ويمنح التكتل شارة التميّز في التوجيه الديني. يُحتسب عمره في متوسط التكتل 40." },
+  { key: "guide-m", name: "موجّه ديني ب", level: "group", core: true, active: true, applied: true, gender: "M", guideSeat: true, fixedAge: 45, examName: "الموجّه الديني", desc: "يشغل مقعد الموجّه في مجموعة: الدروس والمناسك والإجابة عن الأسئلة الشرعية. يُحتسب عمره في متوسط التكتل 45." },
+  { key: "guide-m-c", name: "موجّه ديني ج", level: "group", active: true, applied: true, examAs: "guide-m", gender: "M", guideSeat: true, desc: "أولى درجات الموجّهين: يشغل مقعد الموجّه في مجموعة، ويُحتسب في متوسط أعمار التكتل بعمره." },
+  { key: "murshida", name: "موجّهة دينية أ", level: "cluster", core: true, active: true, applied: true, examAs: "guide-f", gender: "F", guidePool: true, guidance: true, fixedAge: 40, desc: "أعلى درجات الموجّهات: من موجّهات التكتل، وتمنحه شارة التميّز في التوجيه الديني. يُحتسب عمرها في متوسط التكتل 40." },
+  { key: "guide-f", name: "موجّهة دينية ب", level: "cluster", core: true, active: true, applied: true, gender: "F", guidePool: true, fixedAge: 48, examName: "الموجّهة الدينية", desc: "للتكتل لا لمجموعة: التوجيه الديني لحاجّات التكتل كله، وعددها بمجموع فئات مجموعاته. يُحتسب عمرها في متوسط التكتل 48." },
+  { key: "guide-f-c", name: "موجّهة دينية ج", level: "cluster", active: true, applied: true, examAs: "guide-f", gender: "F", guidePool: true, desc: "أولى درجات الموجّهات: من موجّهات التكتل، وتُحتسب في متوسط أعمار التكتل بعمرها." },
   { key: "assistant-count", name: "معاون بعدد", level: "shared", core: true, active: true, applied: true, examAs: "group-deputy", assistantSeat: true, assistantPool: true, multiplier: 20, desc: "معاون يُختار من معاوني التكتل بلا حد أقصى، ويضيف كل واحد منهم 20 حاجاً إلى عدد حجاج التكتل." },
-  { key: "murshid", name: "مرشد ديني", level: "group", core: true, active: true, applied: true, examAs: "guide-m", gender: "M", guideSeat: true, guidance: true, desc: "يشغل مقعد الموجّه في مجموعة، ويمنح التكتل شارة الإرشاد." },
-  { key: "murshida", name: "مرشدة دينية", level: "cluster", core: true, active: true, applied: true, examAs: "guide-f", gender: "F", guidePool: true, guidance: true, desc: "من موجّهات التكتل، وتمنحه شارة الإرشاد." },
 ];
+
+/** The roles' names before the guides came in grades, as records written then still say them */
+export const LEGACY_ROLE_NAMES: Record<string, string> = { "موجّه ديني": "guide-m", "مرشد ديني": "murshid", "موجّهة دينية": "guide-f", "مرشدة دينية": "murshida" };
+
+/** A role's key from its key or its name, today's or an earlier one */
+export function roleKeyByName(s: Structure, position: string | undefined) {
+  if (!position) return undefined;
+  return s.roles.find((r) => r.key === position || r.name === position)?.key ?? LEGACY_ROLE_NAMES[position];
+}
 
 /** Roles a cluster gives that are not anyone's role for the season («الصفات الثانوية») */
 export const SECONDARY: Record<string, string> = {
@@ -121,8 +147,9 @@ import { DEFAULT_CATEGORIES, DEFAULT_CATEGORY_RULES, DEFAULT_COMPOSITION, type C
 /** The default tier a group's numbers are read in before it is in a cluster */
 export const DEFAULT_TIER = "eco";
 
-/** Before this day a request sent earns the cluster «شارة الالتزام بالمواعيد» (the early deadline) */
+/** Until this day and hour a request sent earns the cluster «شارة الالتزام بالمواعيد» (the early deadline) */
 export const DEFAULT_EARLY_DEADLINE = "2026-11-19";
+export const DEFAULT_EARLY_TIME = "23:59";
 
 // ───────────────────────── The structure, as the administration left it ─────────────────────────
 
@@ -135,13 +162,15 @@ export type Structure = {
   categoryRules: Record<string, Record<string, CategoryRule>>;
   composition: Record<string, Composition>;
   earlyDeadline: string;
+  earlyTime: string;
 };
 
-type Saved = Pick<State["adminRules"], "roles" | "roleLabels" | "branches" | "tiers" | "categories" | "categoryRules" | "composition" | "earlyDeadline">;
+type Saved = Pick<State["adminRules"], "roles" | "roleLabels" | "branches" | "tiers" | "categories" | "categoryRules" | "composition" | "earlyDeadline" | "earlyTime">;
 
 export function structureOf(r: Saved): Structure {
   return {
-    roles: r.roles ?? DEFAULT_ROLES,
+    // A role list saved before a role sat more than one exam keeps the platform's exams for that role
+    roles: r.roles ? r.roles.map((x) => (x.exams || !x.core ? x : { ...x, exams: DEFAULT_ROLES.find((d) => d.key === x.key)?.exams })) : DEFAULT_ROLES,
     labels: r.roleLabels ?? DEFAULT_LABELS,
     branches: r.branches ?? DEFAULT_BRANCHES,
     tiers: r.tiers ?? DEFAULT_TIERS,
@@ -149,6 +178,7 @@ export function structureOf(r: Saved): Structure {
     categoryRules: r.categoryRules ?? DEFAULT_CATEGORY_RULES,
     composition: r.composition ?? DEFAULT_COMPOSITION,
     earlyDeadline: r.earlyDeadline ?? DEFAULT_EARLY_DEADLINE,
+    earlyTime: r.earlyTime ?? DEFAULT_EARLY_TIME,
   };
 }
 
@@ -169,8 +199,9 @@ export function roleOf(s: Structure, key: string | undefined) {
 }
 
 /** A role's name, a secondary role's, or the key itself when the administration deleted it */
-export function roleName(key: string, s: Structure = structureNow()) {
-  return roleOf(s, key)?.name ?? SECONDARY[key] ?? DEFAULT_ROLES.find((r) => r.key === key)?.name ?? key;
+export function roleName(key: string, s: Structure = structureNow()): string {
+  const legacy = LEGACY_ROLE_NAMES[key];
+  return roleOf(s, key)?.name ?? SECONDARY[key] ?? DEFAULT_ROLES.find((r) => r.key === key)?.name ?? (legacy ? roleName(legacy, s) : key);
 }
 
 /** Does the role behave so? */
@@ -186,6 +217,12 @@ export function appliedRoles(s: Structure) {
 /** The exam a role sits: its own, or the one the administration tied it to */
 export function examRoleOf(key: string, s: Structure = structureNow()) {
   return roleOf(s, key)?.examAs ?? key;
+}
+
+/** Every exam a role sits, each passed on its own: one for most roles, two for «معاون ومنسق تقني» */
+export function examRolesOf(key: string, s: Structure = structureNow()) {
+  const r = roleOf(s, key);
+  return r?.exams?.length ? r.exams : [examRoleOf(key, s)];
 }
 
 export function tierOf(s: Structure, id: string | undefined) {
@@ -256,9 +293,22 @@ export function branchesOf(id: string, cadre: Cadre): string[] {
   return [branchOf(id, cadre), ...extra.filter((b) => b !== branchOf(id, cadre))];
 }
 
-/** The role he works in this season: the seasonal one the administration granted, else the one he applied for */
+/**
+ * His base role («الصفة الأساسية»): the one the administration set in his file, else the season's records, else the
+ * one he applied for. It stays from season to season; a seasonal role covers it for one season.
+ */
+export function primaryOf(id: string, applied: string | undefined, cadre: Cadre) {
+  return cadre.primary?.[id] ?? PEOPLE[id]?.primary ?? applied ?? "";
+}
+
+/** The role he works in this season: the seasonal one the administration granted, else his base role */
 export function seasonRoleKey(id: string, applied: string | undefined, cadre: Cadre) {
-  return seasonalOf(id, cadre)?.role ?? applied ?? "";
+  return seasonalOf(id, cadre)?.role ?? primaryOf(id, applied, cadre);
+}
+
+/** The age his cluster's average counts for him: his role's fixed age («عمر مثبَّت»), else his own */
+export function badgeAgeOf(id: string, roleKey: string | undefined, s: Structure) {
+  return roleOf(s, roleKey)?.fixedAge ?? ageOfId(id);
 }
 
 /** «محمد — معاون (معاون متحد)» — a seasonal role with its displayed label */
@@ -284,7 +334,7 @@ export function ageBadge(ages: number[]) {
 }
 
 export const BADGES = {
-  age: { label: "شارة العمر", icon: "🌟", hint: "متوسط أعمار كادر التكتل 40 سنة أو أقل" },
-  guidance: { label: "شارة الإرشاد", icon: "🧭", hint: "في التكتل مرشد ديني أو مرشدة دينية واحد على الأقل" },
+  age: { label: "شارة العمر", icon: "🌟", hint: "متوسط أعمار كادر التكتل 40 سنة أو أقل — يُحتسب الموجّهون بأعمارهم المثبّتة" },
+  guidance: { label: "شارة التميّز في التوجيه الديني", icon: "🧭", hint: "في التكتل موجّه ديني أو موجّهة دينية من الدرجة «أ» واحد على الأقل" },
   timeliness: { label: "شارة الالتزام بالمواعيد", icon: "⏱️", hint: "أُرسل الطلب قبل الموعد الأول" },
 } as const;

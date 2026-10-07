@@ -4,8 +4,8 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarClock, ChevronLeft, ChevronRight, LockOpen, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
-import { DEMO_START, dayHijri, dayLabel, shiftDay, statusLabel, useAllOpen, useOperations, useToday, type OperationState } from "@/lib/operations";
-import { actions, useHydrated } from "@/lib/store";
+import { DEMO_START, dayHijri, dayLabel, dayTimeLabel, shiftDay, statusLabel, useAllOpen, useClockTime, useOperations, useToday, type OperationState } from "@/lib/operations";
+import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /** The portals, where operations open and close by the date; the public pages keep their own calendar */
@@ -35,6 +35,8 @@ export function DemoClock() {
   const hydrated = useHydrated();
   const pathname = usePathname();
   const today = useToday();
+  const time = useClockTime();
+  const timeSet = useStore((s) => !!s.clock.time);
   const ops = useOperations();
   const allOpen = useAllOpen();
   const [open, setOpen] = useState(false);
@@ -94,7 +96,18 @@ export function DemoClock() {
                   <ChevronLeft className="size-5" />
                 </button>
               </div>
-              <p className="px-4 pt-3 text-xs text-hint">{dayHijri(today)}</p>
+              <div className={cn("flex items-center gap-2 px-4 pt-3 text-xs text-hint", allOpen && "opacity-50")}>
+                <span className="min-w-0 flex-1">{dayHijri(today)}</span>
+                <label className="flex items-center gap-1.5">
+                  الساعة
+                  <input type="time" value={time} onChange={(e) => actions.setClockTime(e.target.value || undefined)} className="h-8 rounded-lg border border-gold/40 px-2 font-bold text-ink outline-none focus:border-green-light" aria-label="الساعة" dir="ltr" />
+                </label>
+                {timeSet && (
+                  <button type="button" onClick={() => actions.setClockTime(undefined)} className="font-bold text-green-dark underline">
+                    الساعة الفعلية
+                  </button>
+                )}
+              </div>
               <ul className="max-h-[45vh] space-y-1.5 overflow-y-auto p-4 pt-2">
                 {ops.map((o) => (
                   <li key={o.key} className="flex items-center gap-2 rounded-2xl bg-sand/60 px-3 py-2">
@@ -105,8 +118,8 @@ export function DemoClock() {
                       <span className={cn("mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold", TONE[o.status])}>{statusLabel(o)}</span>
                     </div>
                     {o.start && (
-                      <button type="button" onClick={() => actions.setToday(o.start)} className="shrink-0 rounded-xl border border-gold/50 px-2.5 py-1.5 text-xs font-bold text-green-dark hover:bg-gold/20">
-                        انتقل إلى {dayLabel(o.start)}
+                      <button type="button" onClick={() => actions.setToday(o.start, o.startTime)} className="shrink-0 rounded-xl border border-gold/50 px-2.5 py-1.5 text-xs font-bold text-green-dark hover:bg-gold/20">
+                        انتقل إلى {dayTimeLabel(o.start, o.startTime)}
                       </button>
                     )}
                   </li>
@@ -131,7 +144,7 @@ export function DemoClock() {
           className="flex items-center gap-2 rounded-full border border-gold/50 bg-maroon-dark/95 py-2 pe-4 ps-2 text-sm font-bold text-white shadow-2xl backdrop-blur"
         >
           <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">{allOpen ? <LockOpen className="size-4" /> : <CalendarClock className="size-4" />}</span>
-          <span>{allOpen ? "كل شيء مفتوح" : dayLabel(today, true)}</span>
+          <span>{allOpen ? "كل شيء مفتوح" : timeSet ? dayTimeLabel(today, time, true) : dayLabel(today, true)}</span>
           <span className="hidden max-w-[26rem] truncate text-xs font-normal text-white/70 sm:inline">— {allOpen ? "تجربة العمليات كلها معاً، أياً كان التاريخ" : live.length ? `مفتوح الآن: ${live.map((o) => o.label.replace("التسجيل على الحج — ", "")).join("، ")}` : "لا عملية موسمية مفتوحة اليوم"}</span>
         </button>
       </div>

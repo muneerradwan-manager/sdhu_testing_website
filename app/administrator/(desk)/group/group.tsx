@@ -2,21 +2,12 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  ArrowLeft,
-  Check,
-  CircleDashed,
-  ClipboardList,
-  Loader2,
-  Lock,
-  UsersRound,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Check, UsersRound } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
-import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { Badge, StarRating, useToast } from "@/components/ui/widgets";
-import { groupName, groupNameTaken, suggestedGroupName } from "@/lib/groups";
+import { ButtonLink } from "@/components/ui/button";
+import { StarRating, useToast } from "@/components/ui/widgets";
+import { groupName, suggestedGroupName } from "@/lib/groups";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
@@ -30,7 +21,7 @@ import { useClusterRequests } from "../../_lib/formation";
 import { DEFAULT_TIER, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "../../_lib/structure";
 import { StandingCard } from "../../_components/standing";
 import { CoordinatorGroups } from "./coordinator-groups";
-import { AdminShell, LockedCard, MovedTo, ReceiptCard } from "../../_components/ui";
+import { AdminShell, LockedCard, MovedTo, SimButton } from "../../_components/ui";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { rangeLabel, useOperation } from "@/lib/operations";
 
@@ -51,7 +42,6 @@ function useGroupTeam(number: number) {
     };
   }, [requests, number]);
 }
-const AUTO_APPROVE_MS = 12_000;
 
 
 /**
@@ -67,7 +57,6 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
   const r = resultOf(p, useExamRules());
   const op = useOperation("group-formation");
   const g = p?.group;
-  const [showReceipt, setShowReceipt] = useState(false);
   const cluster = isClusterRole(p);
   const tech = isTechCoordinator(p);
 
@@ -78,12 +67,12 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
     if (!g?.approvedAt) {
       return (
         <AdminShell image="/images/clock-tower.jpg" title="إدارة المجموعة" subtitle="المجموعة المعتمدة: حجاجها والفريق في مقاعدها كما يملؤها رئيس تكتلها.">
-          <LockedCard title="لا مجموعة معتمدة لك بعد" text="تُدار المجموعة هنا بعد أن تعتمدها إدارة الإداريين. طلب تشكيلها عملية مستقلة في «تشكيل المجموعات»، في مدتها." href="/administrator/group" cta="تشكيل المجموعات" />
+          <LockedCard title="لا مجموعة لك بعد" text="تُدار المجموعة هنا بعد أن يشكّلها موظف إدارة الإداريين في المكتب، في مدة تشكيل المجموعات." href="/administrator/group" cta="تشكيل المجموعات" />
         </AdminShell>
       );
     }
     return (
-      <AdminShell image="/images/clock-tower.jpg" title={`مجموعتي — ${groupName(g.number)}`} subtitle="صلاحياتك تغيّرت تلقائياً: ترى مجموعتك، وتلحق بها حجاجها بعقودهم، وتنشر الإعلانات، وتفتح التجمّعات. مقاعد فريقها يملؤها رئيس تكتلها بفئتها.">
+      <AdminShell image="/images/clock-tower.jpg" title={`مجموعتي — ${groupName(g.number)}`} subtitle="ترى مجموعتك وحجاجها كما يلحقهم المكتب بعقودهم، وتنشر الإعلانات، وتفتح التجمّعات. مقاعد فريقها يملؤها رئيس تكتلها بفئتها.">
         <MyGroup />
       </AdminShell>
     );
@@ -91,27 +80,24 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
 
   if (cluster || tech || (p?.positions.length && p.positions[0] !== "group-head")) {
     return (
-      <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle="يطلب تشكيلَ المجموعة رئيسُها، في مدة تشكيل المجموعات.">
-        <LockedCard title="تشكيل المجموعات لرؤساء المجموعات" text="صفتك هذا الموسم لا تطلب تشكيل مجموعة. ما تعمل فيه من مجموعات تجده في «إدارة المجموعات»." href="/administrator/groups" cta="إدارة المجموعات" />
+      <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle="يشكّل المكتب مجموعة كل رئيس مجموعة، في مدة تشكيل المجموعات.">
+        <LockedCard title="تشكيل المجموعات لرؤساء المجموعات" text="صفتك هذا الموسم لا تشكّل مجموعة. ما تعمل فيه من مجموعات تجده في «إدارة المجموعات»." href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }
 
-  const view = !r.published || !r.passed ? "locked" : !g?.feePaidAt ? (op.open ? "request" : "closed") : showReceipt ? "receipt" : !g.approvedAt ? "pending" : "approved";
+  const view = !r.published || !r.passed ? "locked" : g?.approvedAt ? "approved" : "office";
 
   return (
-    <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle={`يتقدم الناجحون في التأهيل بطلبات تشكيل مجموعاتهم ${rangeLabel(op.start, op.end)}، وتراجعها إدارة الإداريين وتعتمدها. لا يُختار تكتل الآن: تشكيل التكتلات عملية مستقلة.`}>
+    <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle={`يشكّل موظف إدارة الإداريين في المكتب مجموعة كل ناجح في التأهيل ${rangeLabel(op.start, op.end)}: باسمها الذي يختاره رئيسها، ورسمها، وفئة رئيسها. لا يُختار تكتل الآن: تشكيل التكتلات عملية مستقلة.`}>
       <AnimatePresence mode="wait">
         <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.35 }}>
           {view === "locked" && (
-            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد نشر نتيجتك النهائية واجتياز حد النجاح (70) — أو تجديد صفتك معفى — يمكنك تقديم طلب تشكيل مجموعة." href="/administrator/exam" cta="نتيجتي في التأهيل" />
+            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد نشر نتيجتك النهائية واجتياز حد النجاح (70) — أو تجديد صفتك معفى — يشكّل المكتب مجموعتك." href="/administrator/exam" cta="نتيجتي في التأهيل" />
           )}
-          {view === "closed" && <OperationClosed state={op} text="طلب تشكيل المجموعة يُقدَّم في مدة تشكيل المجموعات وحدها." />}
-          {view === "request" && <RequestForm onPaid={() => setShowReceipt(true)} />}
-          {view === "receipt" && <FeeReceipt onContinue={() => setShowReceipt(false)} />}
-          {view === "pending" && <Pending />}
+          {view === "office" && <AtTheOffice />}
           {view === "approved" && (
-            <LockedCard title={`اعتُمدت ${groupName(g!.number)}`} text={`بفئتك (${g!.capacityTier ?? "الفئة الأولى"}): ${g!.capacity} حاجاً في المستوى الاقتصادي، ويتغيّر عددها ومقاعد فريقها بمستوى التكتل الذي تدخله. انتهى تشكيلها، وتُدار من الآن في «إدارة المجموعة».`} href="/administrator/groups" cta="إدارة المجموعة" />
+            <LockedCard title={`شُكّلت ${groupName(g!.number)}`} text={`شكّلها ${g!.approvedBy ?? "موظف المكتب"} بفئتك (${g!.capacityTier ?? "الفئة الأولى"}): ${g!.capacity} حاجاً في المستوى الاقتصادي، ويتغيّر عددها ومقاعد فريقها بمستوى التكتل الذي تدخله. تراها وترى حجاجها في «إدارة المجموعة».`} href="/administrator/groups" cta="إدارة المجموعة" />
           )}
         </motion.div>
       </AnimatePresence>
@@ -119,143 +105,67 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
   );
 }
 
-// ───────────────────────── Request ─────────────────────────
+// ───────────────────────── At the office ─────────────────────────
 
-/** The name alone, as it is kept: «مجموعة اللطيف» typed in full is kept as «اللطيف» */
-function bareGroupName(name: string) {
-  return name.trim().replace(/^مجموعة\s+/, "").trim();
-}
-
-/** What stops a name: none given, or another group of the season carries it */
-function groupNameProblem(name: string, own: number) {
-  const bare = bareGroupName(name);
-  if (!bare) return "اكتب اسماً لمجموعتك";
-  if (groupNameTaken(bare, own)) return "هذا الاسم لمجموعة أخرى هذا الموسم";
-  return null;
-}
-
-/** The head names his group: it is known by this name on every screen, and the administration approves it with the request */
-function GroupNameField({ value, onChange, problem }: { value: string; onChange: (v: string) => void; problem: string | null }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-bold text-ink-soft">اسم المجموعة</span>
-      <span className={cn("mt-2 flex h-14 items-center gap-2 rounded-2xl border-2 bg-white px-4 focus-within:border-green-light", problem ? "border-maroon" : "border-gold/50")}>
-        <span className="shrink-0 font-bold text-hint">مجموعة</span>
-        <input value={value} onChange={(e) => onChange(e.target.value)} required aria-invalid={!!problem} className="h-full min-w-0 flex-1 bg-transparent font-bold text-green-dark outline-none" />
-      </span>
-      <span className={cn("mt-1 block text-xs leading-5", problem ? "font-bold text-maroon" : "text-hint")}>
-        {problem ?? "تسمّيها أنت فتُعرف به في كل الشاشات. الاسم لا يتكرر في الموسم، وتعتمده الإدارة مع طلبك."}
-      </span>
-    </label>
-  );
-}
-
-function RequestForm({ onPaid }: { onPaid: () => void }) {
+/**
+ * The group is formed at the office, not on the platform: the head comes in its dates with the name he chose,
+ * pays its fee there, and the staff member of «إدارة الإداريين» forms it with his category. Until then this
+ * says how; the demo has the office do it at once.
+ */
+function AtTheOffice() {
   const admin = useAdmin()!;
   const toast = useToast();
   const season = useSeason();
-  const fee = season.fees.groupFormation;
-  const existing = admin.profile?.group;
-  const admins = useStore((s) => s.admins);
-  const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
-  const [paying, setPaying] = useState(false);
-  const stage = existing?.requestedAt ? "pay" : "form";
-  // The number is only the platform's key, the next one this season, and is never shown: the head names his
-  // group. The capacity is the administration's, given when it approves the group, by the season's
-  // categories (0 until then)
-  const number = nextGroupNumber(admins, admin.id);
-  const [name, setName] = useState(() => suggestedGroupName(number));
-  const problem = groupNameProblem(name, number);
+  const s = useStructure();
+  const cadre = useCadre();
+  const admins = useStore((x) => x.admins);
+  const op = useOperation("group-formation");
+  const g = admin.profile!.group;
 
-  const submit = () => {
-    if (problem) return;
-    const bare = bareGroupName(name);
-    actions.upsertAdmin(admin.id, { group: { number, name: bare, capacity: 0, requestedAt: Date.now() } });
-    logAdmin(admin.id, `تقديم طلب تشكيل مجموعة ${bare}`, undefined, "فئتها فئة رئيسها تحددها الإدارة عند الاعتماد — دون فريق ودون تكتل: مقاعد فريقها يملؤها رئيس التكتل", { area: "groups", ref: String(number) });
-    toast({ title: `أُرسل طلب تشكيل مجموعة ${bare}`, body: `بقي تسديد رسم تشكيل المجموعة (${formatUSD(fee)}).`, icon: "📨", tone: "info" });
+  /** Demo: the head went to the office, and its staff formed his group with the name the list holds for its number */
+  const formAtOffice = () => {
+    const at = Date.now();
+    const number = g?.number ?? nextGroupNumber(admins, admin.id);
+    const cat = categoryOf(admin.id, cadre) ?? s.categories[0]?.id;
+    if (!cat) return;
+    if (!categoryOf(admin.id, cadre)) actions.setCadre("category", admin.id, cat);
+    const name = categoryOfId(s, cat)?.name ?? "";
+    const n = seatsOf(s, DEFAULT_TIER, cat);
+    const by = "مازن الحلبي (محاكاة)";
+    actions.upsertAdmin(admin.id, { group: { number, name: g?.name ?? suggestedGroupName(number), capacity: n.pilgrims, capacityTier: name, requestedAt: at, feePaidAt: at, approvedAt: at, approvedBy: by } });
+    actions.logEvent({ actor: by, role: "موظف", action: "تشكيل مجموعة في المكتب", target: groupName(number), after: `رئيسها ${admin.name}`, detail: `${name}: ${n.pilgrims} حاجاً في الاقتصادي — ${seatsLabel(n)} — رسم ${season.fees.groupFormation} $ في المكتب`, system: "admins", area: "groups", ref: String(number) });
+    logAdmin(admin.id, `تشكيل ${groupName(number)} في المكتب`, undefined, `شكّلها ${by} — ${name}: ${n.pilgrims} حاجاً في الاقتصادي`);
+    toast({ title: `شُكّلت ${groupName(number)}`, body: `${name}: ${n.pilgrims} حاجاً في المستوى الاقتصادي.`, icon: "🏛️", tone: "success" });
   };
-
-  const pay = (m: PayMethod) => {
-    setPayMethod(m);
-    setPaying(true);
-    setTimeout(() => {
-      onPaid();
-      const g = admin.profile!.group!;
-      const receipt = adminReceipt(admin.id, "G", g.number);
-      actions.upsertAdmin(admin.id, { group: { ...g, feePaidAt: Date.now() } });
-      logAdmin(admin.id, "تسديد رسم تشكيل المجموعة", receipt, `${formatUSD(fee)} — ${groupName(g.number)} — ${payMethodLabel(m)}`, { area: "groups", ref: String(g.number) });
-      setPaying(false);
-    }, 2200);
-  };
-
-  if (stage === "pay") {
-    const g = existing!;
-    return (
-      <Card className="mx-auto max-w-2xl text-center">
-        {paying ? (
-          <div className="grid min-h-72 place-items-center">
-            <div>
-              <div className="relative mx-auto size-24">
-                <motion.span className="absolute inset-0 rounded-full border-4 border-gold-light border-t-maroon" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} />
-                <span className="absolute inset-0 grid place-items-center text-maroon"><Lock className="size-9" /></span>
-              </div>
-              <p className="mt-5 font-display text-2xl font-bold text-green-dark">{payMethod === "bank" ? "نطابق إشعار الدفع مع كشف المصرف..." : "نتحقق من العملية في شام كاش..."}</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <Badge tone="gold" className="text-sm">الطلب مستلم — الخطوة 2 من 2</Badge>
-            <h2 className="mt-4 font-display text-3xl font-bold text-green-dark">رسم تشكيل {groupName(g.number)}</h2>
-            <p className="mt-2 text-ink-soft">بعد التسديد يصدر إيصال رقمي، وتظهر «استمارة المجموعة» في خزنة الوثائق.</p>
-            <p className="mt-6 font-display text-6xl font-bold text-maroon" dir="ltr">{formatUSD(fee)}</p>
-            <p className="mt-1 text-sm text-hint">فئتها تحددها الإدارة عند الاعتماد — التكتل يُحدَّد لاحقاً</p>
-            <div className="mt-8 text-right">
-              <PayMethods amount={fee} reference={adminReceipt(admin.id, "G", g.number)} bankReference={adminReceipt(admin.id, "G", g.number).replace("-G-", "-BANK-")} onConfirm={pay} />
-            </div>
-          </>
-        )}
-      </Card>
-    );
-  }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
-      <Card>
-        <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><ClipboardList className="size-7 text-gold-dark" /> طلب تشكيل مجموعة</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl bg-sand p-4">
-            <GroupNameField value={name} onChange={setName} problem={problem} />
-          </div>
-          <CategoryCard />
-        </div>
-
-        <p className="mt-6 flex items-start gap-2 rounded-2xl bg-green-dark/6 p-4 text-sm leading-7 text-green-dark">
-          <UsersRound className="mt-1 size-5 shrink-0" /> تشكّل مجموعتك وحدك، ولا تختار أحداً: موجّهها ومعاونها يدعوهما رئيس التكتل إلى مقاعدها بحسب فئتها، والمنسق التقني للتكتل يوزّع عليه مجموعتك.
-        </p>
-
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
-          <p className="text-sm text-ink-soft">رسم التشكيل بعد الإرسال: <b className="text-maroon">{formatUSD(fee)}</b></p>
-          <Button size="lg" disabled={!!problem} onClick={submit}>
-            إرسال طلب التشكيل <ArrowLeft className="size-5" />
-          </Button>
+    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <Card className="md:p-8">
+        <p className="font-display text-2xl font-bold text-green-dark">تُشكَّل مجموعتك في المكتب</p>
+        <p className="mt-2 leading-8 text-ink-soft">لا طلب على المنصة: يشكّلها موظف إدارة الإداريين في المكتب، فتظهر لك هنا وفي «إدارة المجموعة» مع حجاجها حين يُلحقون بها.</p>
+        <ol className="mt-5 space-y-2">
+          {[
+            `راجع المكتب في مدة تشكيل المجموعات: ${rangeLabel(op.start, op.end)}.`,
+            "أخبر الموظف باسم مجموعتك: كلمة أو كلمتان، لا تحملهما مجموعة أخرى هذا الموسم.",
+            `سدّد رسم التشكيل ${formatUSD(season.fees.groupFormation)} في المكتب، وتأخذ إيصاله.`,
+            "يشكّلها الموظف بفئتك، فيُعرف عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله.",
+          ].map((t, i) => (
+            <li key={t} className="flex gap-3 rounded-2xl bg-sand/70 p-3 text-sm leading-7">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-green-dark text-xs font-bold text-white">{i + 1}</span>
+              {t}
+            </li>
+          ))}
+        </ol>
+        {g && !g.approvedAt && <p className="mt-4 rounded-2xl bg-gold/20 p-3 text-sm font-semibold text-maroon">طلبك القديم ({groupName(g.number)}) عند المكتب: يكمل الموظف تشكيلها.</p>}
+        <div className="mt-5">
+          {op.open ? (
+            <SimButton onClick={formAtOffice}>محاكاة: راجعتُ المكتب فشكّل الموظف مجموعتي</SimButton>
+          ) : (
+            <OperationClosed state={op} text="تُشكَّل المجموعات في المكتب في مدتها وحدها." />
+          )}
         </div>
       </Card>
-
-      <div className="space-y-4">
-        <div className="relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white">
-          <div className="bg-pattern absolute inset-0 opacity-15" />
-          <div className="relative">
-            <Badge tone="gold">التكتل لاحقاً</Badge>
-            <p className="mt-3 font-display text-2xl font-bold">لا تكتل عند التشكيل</p>
-            <p className="mt-2 text-sm leading-7 text-white/80">
-              تُشكَّل المجموعات أولاً. بعدها يُفتح تشكيل التكتلات مع إلحاق الحجاج بالمجموعات: يدعو رئيسُ تكتل مجموعتك فتقبل الدعوة وتدخل بحجاجك، أو تقدّم أنت الطلب إن منحتك الإدارة صفة «رئيس تكتل». لا انتخاب.
-            </p>
-          </div>
-        </div>
-        <p className="rounded-3xl bg-gold/20 p-4 text-sm leading-7 text-ink">
-          <b>لماذا نُظهر الرسم الآن؟</b> لأن الإداريين طلبوا معرفة رسم التشكيل قبل تقديم الطلب — ملاحظة من تقييم الموسم.
-        </p>
-      </div>
+      <CategoryCard />
     </div>
   );
 }
@@ -287,135 +197,6 @@ function CategoryCard() {
       ) : (
         <p className="mt-1 text-xs leading-5 text-hint">فئة المجموعة فئة رئيسها، لا تُختار: منها عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله.</p>
       )}
-    </div>
-  );
-}
-
-function FeeReceipt({ onContinue }: { onContinue: () => void }) {
-  const admin = useAdmin()!;
-  const season = useSeason();
-  const g = admin.profile!.group!;
-  return (
-    <Card className="text-center">
-      <h2 className="font-display text-3xl font-bold text-green-dark">تم تسديد رسم التشكيل</h2>
-      <p className="mt-2 text-ink-soft">«استمارة المجموعة» محفوظة في خزنة وثائقك.</p>
-      <div className="mt-8">
-        <ReceiptCard receipt={adminReceipt(admin.id, "G", g.number)} item={`رسم تشكيل ${groupName(g.number)}`} amount={season.fees.groupFormation} lines={[["رئيس المجموعة", admin.name], ["التكتل", "يُحدَّد في تشكيل التكتلات"]]} />
-      </div>
-      <Button size="xl" variant="gold" className="mt-8" onClick={onContinue}>
-        متابعة الاعتماد <ArrowLeft className="size-6" />
-      </Button>
-    </Card>
-  );
-}
-
-// ───────────────────────── Pending approval ─────────────────────────
-
-function Pending() {
-  const admin = useAdmin()!;
-  const toast = useToast();
-  const s = useStructure();
-  const cadre = useCadre();
-  const g = admin.profile!.group!;
-  const [now, setNow] = useState(() => Date.now());
-  // From the last time it was sent: paying the fee, or sending it again after the administration returned it
-  const sent = Math.max(g.feePaidAt ?? now, g.requestedAt);
-  const elapsed = now - sent;
-  const left = Math.max(0, Math.ceil((AUTO_APPROVE_MS - elapsed) / 1000));
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    if (g.approvedAt || !g.feePaidAt || g.returned) return;
-    const wait = Math.max(0, Math.max(g.feePaidAt, g.requestedAt) + AUTO_APPROVE_MS - Date.now());
-    const t = setTimeout(() => {
-      const at = Date.now();
-      // A head without a category from the administration starts in the first
-      const cat = categoryOf(admin.id, cadre) ?? s.categories[0]?.id;
-      if (!cat) return;
-      if (!categoryOf(admin.id, cadre)) actions.setCadre("category", admin.id, cat);
-      const name = categoryOfId(s, cat)?.name ?? "";
-      const n = seatsOf(s, DEFAULT_TIER, cat);
-      actions.upsertAdmin(admin.id, { group: { ...g, capacity: n.pilgrims, capacityTier: name, approvedAt: at, approvedBy: "مازن الحلبي (محاكاة)" } });
-      actions.logEvent({ actor: "مازن الحلبي (محاكاة)", role: "موظف", action: "اعتماد مجموعة", target: groupName(g.number), after: `رئيسها ${admin.name}`, detail: `${name}: ${n.pilgrims} حاجاً في الاقتصادي — ${seatsLabel(n)}`, system: "admins", area: "groups", ref: String(g.number) });
-      logAdmin(admin.id, `استلام اعتماد ${groupName(g.number)}`, undefined, `${name}: ${n.pilgrims} حاجاً في الاقتصادي`);
-      toast({ title: `اعتُمدت ${groupName(g.number)}`, body: `${name}: ${n.pilgrims} حاجاً في المستوى الاقتصادي.`, icon: "🏛️", tone: "success" });
-    }, wait);
-    return () => clearTimeout(t);
-  }, [g, admin.id, admin.name, toast, s, cadre]);
-
-  // The name is part of the request: sent back over it, he gives another
-  const [name, setName] = useState(() => g.name ?? suggestedGroupName(g.number));
-  const problem = groupNameProblem(name, g.number);
-
-  /** Sent back by the administration: he sends it again, and it waits for its decision once more */
-  const resend = () => {
-    if (problem) return;
-    const bare = bareGroupName(name);
-    actions.upsertAdmin(admin.id, { group: { ...g, name: bare, returned: undefined, requestedAt: Date.now() } });
-    logAdmin(admin.id, `إعادة إرسال طلب تشكيل مجموعة ${bare}`, undefined, `بعد ملاحظة ${g.returned?.by}: ${g.returned?.note}`, { area: "groups", ref: String(g.number) });
-    toast({ title: "أُعيد إرسال طلبك", body: "يعود إلى شؤون الإداريين لتقرر فيه.", icon: "📨", tone: "info" });
-  };
-
-  const steps = [
-    { t: "استلام طلب التشكيل والرسم", d: adminReceipt(admin.id, "G", g.number), at: 0 },
-    { t: "تحقق المنصة من شروط الطلب", d: "تأهّل الرئيس، والرسم، وأن اسم المجموعة لم تأخذه مجموعة أخرى", at: 6000 },
-    { t: "قرار إدارة الإداريين", d: "يعتمد صاحب صلاحية «إدارة الإداريين» الطلب باسم المجموعة ويحدد فئتك (الأولى… الرابعة): عدد حجاجها ومقاعد فريقها بمستوى تكتلها، أو يعيده إليك مع ملاحظة", at: AUTO_APPROVE_MS },
-  ];
-
-  return (
-    <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">طلب {groupName(g.number)} قيد الاعتماد</h2>
-          <Badge tone="gold"><Loader2 className="size-3.5 animate-spin" /> قيد المعالجة</Badge>
-        </div>
-        <ol className="mt-8">
-          {steps.map((s, i) => {
-            const done = elapsed >= s.at + 400 && s.at < AUTO_APPROVE_MS;
-            const active = !done && (i === 0 || elapsed >= steps[i - 1].at + 400);
-            return (
-              <li key={s.t} className="relative flex gap-4 pb-6 last:pb-0">
-                {i < steps.length - 1 && <span className={cn("absolute right-[19px] top-10 h-[calc(100%-2.5rem)] w-0.5 transition-colors duration-700", done ? "bg-green-light" : "bg-gold-light")} />}
-                <span className={cn("relative grid size-10 shrink-0 place-items-center rounded-full transition-colors duration-500", done ? "bg-green-light text-white" : active ? "bg-gold/40 text-green-dark" : "bg-sand text-hint")}>
-                  {done ? <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}><Check className="size-5" /></motion.span> : active ? <Loader2 className="size-5 animate-spin" /> : <CircleDashed className="size-5" />}
-                </span>
-                <div>
-                  <p className={cn("font-bold", done || active ? "text-ink" : "text-hint")}>{s.t}</p>
-                  <p className="text-sm text-ink-soft">{s.d}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </Card>
-      <div className="space-y-4">
-        {g.returned ? (
-          <div className="rounded-[2rem] border-2 border-maroon/40 bg-white p-6">
-            <p className="font-display text-xl font-bold text-maroon">أُعيد طلبك إليك</p>
-            <p className="mt-1 text-xs text-hint">{g.returned.by} — شؤون الإداريين</p>
-            <p className="mt-3 rounded-2xl bg-maroon/8 p-3 text-sm leading-7 text-ink">{g.returned.note}</p>
-            <div className="mt-4">
-              <GroupNameField value={name} onChange={setName} problem={problem} />
-            </div>
-            <Button variant="maroon" className="mt-4 w-full" disabled={!!problem} onClick={resend}>
-              أصلحتُ ما طُلب — أعد إرسال الطلب
-            </Button>
-          </div>
-        ) : (
-          <div className="rounded-[2rem] border-2 border-dashed border-maroon/30 bg-white p-6 text-center">
-            <p className="text-sm text-ink-soft">يعتمد الطلبَ صاحبُ صلاحية «إدارة الإداريين» من بوابة الموظفين.</p>
-            <Link href="/staff" className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-green-dark underline">لوحة الموظفين <ArrowLeft className="size-4" /></Link>
-            <div className="mx-auto mt-5 grid size-24 place-items-center rounded-full bg-maroon/8">
-              <span className="font-display text-4xl font-bold tabular-nums text-maroon">{left}</span>
-            </div>
-            <p className="mt-3 text-xs font-bold text-maroon">محاكاة: اعتماد تلقائي بعد {left} ثانية إن لم يُعتمد من لوحة الموظفين</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

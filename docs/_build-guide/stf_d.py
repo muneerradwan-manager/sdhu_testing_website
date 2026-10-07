@@ -11,7 +11,6 @@ truncate(int(sys.argv[1]))
 s = Staff(); c, p = s.c, s.p
 S = "N"
 D = "[role=dialog]"
-TABS = "nav[aria-label='تبويبات إدارة الطيران']"
 ROW = lambda no: f"main table tbody tr:has-text('{no}')"
 
 def open_flight(no, wait=1300):
@@ -34,14 +33,14 @@ c.shot("fl-summary", "المطارات ومندوبوها، والرحلات ا�
 
 # ── the first tab: airports, carriers, and each airport's representative
 c.goto("/staff/flights/manage", wait=2000)
-c.shot("fl-refs", "إدارة الطيران: ثلاثة تبويبات بترتيب العمل، وأولها المطارات والناقلون", hl=[(TABS, "")], section=S)
+c.shot("fl-refs", "المطارات والناقلون: أولى عمليات إدارة الطيران في القائمة الجانبية", hl=[("aside a[href$='/staff/flights/manage']", "")], section=S)
 rep = p.locator("select[aria-label='مندوب مطار الملك عبد العزيز — صالة الحجاج']").first
 c.scroll_to("text=مندوبو المطارات", 120)
 rep.select_option("omar"); c.settle(5000)  # its toast fades first
 c.shot("fl-reps", "مندوبو المطارات: مندوب لكل مطار يسجل الإقلاع منه والهبوط فيه", hl=[("select[aria-label='مندوب مطار الملك عبد العزيز — صالة الحجاج']", "")], section=S)
 
 # ── the flights
-s.page_tab("الرحلات", 1800)
+c.goto("/staff/flights/manage/flights", wait=1800)
 c.scroll_to("main table", 330)
 c.shot("fl-list", "قائمة الرحلات: المقاعد، والمجموعات على كل رحلة، والحالة", section=S)
 
@@ -144,7 +143,7 @@ c.shot("fl-records", "سجل الرحلات: كل ما تغيّر في الرح�
 
 # ── dispatch
 c.scroll_top()
-s.page_tab("التفويج", 1800)
+c.goto("/staff/flights/manage/dispatch", wait=1800)
 c.scroll_to("text=التكتلات والمجموعات", 110)
 c.shot("fl-board", "التفويج: كل مجموعة ورحلتاها، وزر «إسناد» لمن ليس على رحلة", hl=[("main tr:has-text('مجموعة الإيمان') button:has-text('إسناد')", "")], section=S)
 p.locator("main tr:has-text('مجموعة الإيمان') button:has-text('إسناد')").first.click(); c.settle(900)

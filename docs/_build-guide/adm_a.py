@@ -12,6 +12,11 @@ ID = "01033300885"
 
 def btn(text, wait=900, exact=False):
     p.get_by_role("button", name=text, exact=exact).first.click(); c.settle(wait)
+def jump():
+    """«جرّبها الآن»: an operation outside today's date opens by moving the demo's date to its first day"""
+    j = p.locator("main button:has-text('جرّبها الآن')")
+    if j.count():
+        j.first.click(); c.settle(1500)
 def link(text, wait=1200):
     p.get_by_role("link", name=text).first.click(); c.settle(wait)
 def field(label):
@@ -70,6 +75,7 @@ def upload(label):
     b = p.locator("main li", has_text=label).first.locator("button:text-is('رفع')")
     b.scroll_into_view_if_needed(); b.click(); c.settle(2300)
 c.goto("/administrator/apply", wait=1800)
+jump()
 c.shot("apply-docs", "طلب المشاركة — الخطوة 1: وثائقك وشهاداتك، وبجانب كل وثيقة الصفات التي تفتحها", hl=[("main li:has-text('لا حكم عليه') button:text-is('رفع')", "1")], section=S)
 for label in ["لا حكم عليه", "الشهادة الجامعية", "إسعافات أولية"]:
     upload(label)
@@ -107,50 +113,47 @@ c.save_state(str(ROOT / "admin" / "state-eligible.json"))
 # ───────── exam: in the hall of his centre ─────────
 S = "E"
 c.goto("/administrator/exam", wait=1800)
+jump()
 c.shot("exam-hall", "قاعتي وموعدي: المركز والقاعة والاتجاهات إليها والموعد وهيكل امتحان صفتي", hl=[("button:has-text('محاكاة: يفتح المشرف القاعة')", "")], section=S)
 btn("محاكاة: يفتح المشرف القاعة", wait=1800)
 c.shot("exam-joined", "دخلت حسابي في القاعة: بانتظار تأكيد المشرف لحضوري", hl=[("button:has-text('محاكاة: يؤكد المشرف حضورك')", "")], section=S)
 btn("محاكاة: يؤكد المشرف حضورك", wait=1400)
 c.shot("exam-present", "حضوري مؤكد: يبدأ الامتحان للجميع معاً", hl=[("button:has-text('محاكاة: يبدأ المشرف الامتحان')", "")], section=S)
 btn("محاكاة: يبدأ المشرف الامتحان", wait=2000)
-c.shot("exam-q1", "شاشة الامتحان: القسم ونوع السؤال والوقت", section=S)
-seen = set()
-for i in range(40):
-    text = p.locator("[role=application]").first.inner_text()
+c.shot("exam-q1", "شاشة الامتحان: الأقسام كلها في صفحة واحدة، والوقت والإرسال", section=S)
+# Every question on one page: answer each block, the right option when the answer key knows it
+blocks = p.locator("[id^='question-']")
+tf_shown = False
+for i in range(blocks.count()):
+    b = blocks.nth(i)
+    text = b.inner_text()
     ans = next((a for t, a in ANS.items() if t in text), None)
-    box = p.locator("textarea[aria-label='الإجابة التحريرية']")
-    if box.count():
-        box.first.fill(ans or "أبلغ رئيس المجموعة وغرفة العمليات، وأتابع حتى يُحل الأمر."); c.settle(900)
-        if "written" not in seen:
-            seen.add("written"); c.shot("exam-writtenq", "سؤال تحريري: أكتب إجابتي ويصححها مصحح", section=S)
-    else:
-        o = p.locator(f"[role=radio]:has-text('{ans[:40]}')") if ans else None
-        if o is not None and o.count(): o.first.click()
-        elif p.locator("[role=radio]").count(): p.locator("[role=radio]").first.click()
-        c.settle(250)
-        if p.locator("[role=radiogroup][aria-label='صح أو خطأ']").count() and "tf" not in seen:
-            seen.add("tf"); c.shot("exam-truefalse", "سؤال صح أو خطأ", section=S)
-    if i == 1:
+    o = b.locator(f"[role=radio]:has-text('{ans[:40]}')") if ans else None
+    if o is not None and o.count():
+        o.first.click()
+    elif b.locator("[role=radio]").count():
+        b.locator("[role=radio]").first.click()
+    c.settle(120)
+    if not tf_shown and b.locator("[role=radiogroup][aria-label$='صح أو خطأ']").count():
+        tf_shown = True
+        b.scroll_into_view_if_needed(); c.settle(400)
+        c.shot("exam-truefalse", "سؤال صح أو خطأ", section=S)
+    if i == 2:
         c.shot("exam-answered", "الإجابة وشبكة الأسئلة مقسومة على الأقسام", section=S)
-    fin = p.locator("button:has-text('مراجعة وإرسال')")
-    if fin.count() and fin.first.is_visible():
-        break
-    # let the question that leaves finish its exit, or its options are clicked as they vanish
-    p.locator("button:text-is('التالي')").last.click(); c.settle(700)
-btn("مراجعة وإرسال", wait=900)
+btn("مراجعة وإرسال الامتحان", wait=900)
 c.shot("exam-confirm", "تأكيد إرسال الامتحان نهائياً", section=S)
 btn("نعم، أرسل الامتحان", wait=800)
 c.shot("exam-grading", "التصحيح التلقائي", section=S)
 c.settle(3500)
-grade = p.locator("button:has-text('محاكاة: يصحح المصحح الإجابات التحريرية')")
-grade.first.scroll_into_view_if_needed(); c.settle(300)
-c.shot("exam-provisional", "النتيجة المبدئية: التحريري بانتظار المصحح، ودرجات كل قسم", hl=[("button:has-text('محاكاة: يصحح المصحح الإجابات التحريرية')", "")], section=S)
-grade.first.click(); c.settle(1800)
 c.scroll_top()
-c.shot("exam-written", "نتيجة الامتحان الكتابي بعد التصحيح — بانتظار الشفهي", section=S)
+c.shot("exam-written", "نتيجة الامتحان الكتابي فور الإرسال: كل الأسئلة اختيار من متعدد أو صح وخطأ", section=S)
+day = p.locator("button[aria-pressed]").filter(has_text="مقعداً متبقياً").first
+day.scroll_into_view_if_needed(); day.click(); c.settle(500)
+c.shot("exam-oral-book", "حجز يوم الامتحان الشفهي من الأيام التي حددتها إدارة الامتحانات", hl=[("button:has-text('احجز')", "")], section=S)
+p.locator("button:has-text('احجز')").first.click(); c.settle(1500)
 sim = p.locator("button:has-text('محاكاة: نتيجة شفهي ناجحة')")
 sim.first.scroll_into_view_if_needed(); c.settle(300)
-c.shot("exam-oral-wait", "الامتحان الشفهي بانتظار نتيجة اللجنة", hl=[("button:has-text('محاكاة: نتيجة شفهي ناجحة')", "")], section=S)
+c.shot("exam-oral-wait", "الامتحان الشفهي في يومك المحجوز، بانتظار نتيجة اللجنة", hl=[("button:has-text('محاكاة: نتيجة شفهي ناجحة')", "")], section=S)
 sim.first.click(); c.settle(2500)
 c.scroll_top()
 c.shot("exam-final", "النتيجة النهائية: تهانينا، اجتزت التأهيل", section=S)

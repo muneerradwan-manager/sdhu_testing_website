@@ -95,14 +95,13 @@ if ONLY == "j":
 # ───────── K. «إدارة الموظفين» (abusami) ─────────
 if ONLY == "k":
     s = Staff(); c, p = s.c, s.p; S = "K"
-    TABS = "nav[aria-label='تبويبات إدارة الموظفين']"
     s.login("abusami")
     c.goto("/staff/employees", wait=2000)
     c.shot("emp-top", "ملخص الموظفين: أرقام السجل والحسابات والموسم، وما ينتظرك الآن", hl=[("aside a[href$='/staff/employees']", "1"), ("aside a[href$='/staff/employees/manage']", "2")], section=S)
     c.scroll_to("main h2:has-text('حسابات البوابة')", 120)
     c.shot("emp-summary", "تركيب السجل، وحسابات البوابة، والمشاركة في الموسم", section=S)
     c.goto("/staff/employees/manage", wait=2000)
-    c.shot("emp-register", "إدارة الموظفين: ثلاثة تبويبات، وأولها سجل الموظفين", hl=[(TABS, "")], section=S)
+    c.shot("emp-register", "سجل الموظفين: أولى عمليات إدارة الموظفين في القائمة الجانبية", hl=[("aside a[href$='/staff/employees/manage']", "")], section=S)
     p.locator("input[aria-label='بحث في الموظفين']").first.fill("وسام"); c.settle(900)
     c.shot("emp-search", "البحث عن موظف", section=S)
     p.locator("main tbody tr").first.click(); c.settle(1200)
@@ -112,14 +111,14 @@ if ONLY == "k":
         lk.click(); c.settle(1500)
         c.shot("emp-asseen", "صفحة الموظف كما يراها هو", section=S)
     p.keyboard.press("Escape"); c.settle(400); p.keyboard.press("Escape"); c.settle(400)
-    s.page_tab("الحسابات", 1800)
+    c.goto("/staff/employees/manage/accounts", wait=1800)
     c.shot("emp-accounts", "حسابات البوابة: صلاحيات كل حساب ومواقعه الميدانية، وسجل صاحبه", section=S)
     p.locator("main button:has-text('عمر الشامي')").first.click(); c.settle(1200)
     c.shot("emp-account", "حساب موظف: صلاحياته ومواقعه، وربطه بسجله، وكلمة المرور المؤقتة", section=S)
     p.keyboard.press("Escape"); c.settle(500)
-    s.page_tab("المشاركون في الموسم", 1800)
+    c.goto("/staff/employees/manage/season", wait=1800)
     c.shot("emp-season", "المشاركون في الموسم: مواقع كل مشارك ورحلتاه، ومن لم يُسند بعد", section=S)
-    s.page_tab("السجل", 1800)
+    c.goto("/staff/employees/manage", wait=1800)
     s.btn("إضافة موظف", 1200)
     c.shot("emp-new", "إضافة موظف: البيانات الأساسية", section=S)
     dlg = p.locator("[role=dialog]").last

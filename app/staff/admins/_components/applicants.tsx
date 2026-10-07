@@ -14,7 +14,7 @@ import { Drawer, Empty, fmtDateTime, Panel } from "../../_components/kit";
 import { Chip, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory, SystemRecords } from "../../_components/system";
 import { useAdminsDesk, type AdminsDesk, type FileState, type Funnel } from "../desk";
-import { PersonCadre } from "./reference";
+import { PersonCadre } from "./cadre";
 
 /**
  * Who applied this season and how far each got, role by role — from the choice of a role to the
@@ -261,7 +261,7 @@ function FileSheet({ f }: { f: FileState }) {
       <details className="rounded-2xl bg-white/[.04] p-3 ring-1 ring-gold/25">
         <summary className="cursor-pointer text-sm font-bold text-gold">صفته الموسمية وفئته وفروعه</summary>
         <div className="mt-3">
-          <PersonCadre id={f.row.id} name={f.row.name} applied={f.row.profile.positions[0]} history={false} />
+          <PersonCadre id={f.row.id} name={f.row.name} applied={f.row.profile.positions[0]} history={false} area="applicants" />
         </div>
       </details>
 

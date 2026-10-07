@@ -1,12 +1,13 @@
 /**
  * إلحاق الحجاج المقبولين بالمجموعات — عملية مستقلة عن التسجيل على الحج.
  *
- * - لا إلحاق تلقائي، ولا تضع الإدارة الحاج في مجموعة، ولا يضعه فيها من سجّله على الحج.
- * - لا يختار الحاج مجموعته على المنصة: يتفق مع مجموعة خارجها، فيرفع العقد الموقّع من يملك صلاحية
- *   «إلحاق الحجاج بالمجموعة» فيها — رئيسها، أو المنسق أو المعاون الذي أسنده إليها رئيس التكتل.
- * - يعتمد موظف المكتب العقد، فيصير الطلب كله في المجموعة ويرى الحاج مجموعته وعقده. وإن أعاده
- *   بسبب، يرفعه صاحبه من جديد.
- * - الانتقال إلى مجموعة أخرى بعقد جديد ترفعه المجموعة الجديدة، والطلب العائلي ينتقل كاملاً أو لا ينتقل.
+ * - لا إلحاق تلقائي، ولا يضع الحاجَ في مجموعة من سجّله على الحج.
+ * - لا يختار الحاج مجموعته على المنصة: يتفق مع مجموعة، ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب
+ *   بها ويرفع العقد الموقّع (`attachByStaff`). الإداريون لا يلحقون أحداً: رئيس المجموعة ومنسقها يرون
+ *   حجاجها بعد إلحاقهم.
+ * - الطلب كله يصير في المجموعة، ويرى الحاج مجموعته وعقده.
+ * - الانتقال إلى مجموعة أخرى بعقد جديد يلحقه به موظف المكتب، والطلب العائلي ينتقل كاملاً أو لا ينتقل.
+ * - عقود رفعتها المجموعات قبل ذلك (`submitContract`) ما زال المكتب يعتمدها أو يعيدها (`decideContract`).
  */
 import { clustersNow } from "./cms/content";
 import { syncFamily } from "./flights";
@@ -96,8 +97,10 @@ export function enrollFamily(opts: {
   at: number;
   /** The office member who approved it */
   approvedBy?: { name: string; role: string };
+  /** Attached by the office itself, its contract uploaded there (not a group's contract approved) */
+  attached?: boolean;
 }) {
-  const { sessionId, app, post, group, coordinator, at, approvedBy } = opts;
+  const { sessionId, app, post, group, coordinator, at, approvedBy, attached } = opts;
   const from = post?.groupNumber && post.groupApprovedAt && post.groupNumber !== group.number ? post.groupNumber : undefined;
   const info = groupInfo(group.clusterId, group.number);
   actions.setPost(sessionId, {
@@ -114,9 +117,15 @@ export function enrollFamily(opts: {
   actions.logEvent({
     actor: approvedBy?.name ?? coordinator.name,
     role: approvedBy?.role ?? "إداري",
-    action: from ? `اعتماد عقد نقل طلب عائلي من ${groupName(from)} إلى ${groupName(group.number)}` : `اعتماد عقد حاج مع ${groupName(group.number)}`,
+    action: attached
+      ? from
+        ? `نقل طلب عائلي من ${groupName(from)} إلى ${groupName(group.number)} بعقده`
+        : `إلحاق طلب حاج ب${groupName(group.number)} بعقده`
+      : from
+        ? `اعتماد عقد نقل طلب عائلي من ${groupName(from)} إلى ${groupName(group.number)}`
+        : `اعتماد عقد حاج مع ${groupName(group.number)}`,
     target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`,
-    detail: `${app.members.length} أفراد معاً — ${info.clusterName} — رفع العقد ${coordinator.name}`,
+    detail: `${app.members.length} أفراد معاً — ${info.clusterName} — ${attached ? "العقد الموقّع رُفع في المكتب" : `رفع العقد ${coordinator.name}`}`,
   });
   // everyone registered in a group travels with it: if the group is already on its flights, so is the family
   syncFamily(sessionId, app, { clusterId: group.clusterId, groupNumber: group.number });
@@ -154,15 +163,27 @@ export function decideContract(opts: { sessionId: string; app: Application; post
   actions.logEvent({ actor: by.name, role: by.role, action: `إعادة عقد حاج مع ${groupName(c.groupNumber)} إلى رافعه`, target: `طلب ${app.number}${applicant ? ` — ${fullName(applicant)}` : ""}`, detail: reason });
 }
 
+/**
+ * The office attaches a family to a group: its contract signed with the group, uploaded by the staff member
+ * who attaches it, and the whole application in the group at once. Coming from another group, it moves whole.
+ */
+export function attachByStaff(opts: { sessionId: string; app: Application; post: PostAcceptance | undefined; group: GroupRef; staff: { id: string; name: string; role: string }; file: PilgrimContract["file"]; at: number }) {
+  const { sessionId, app, post, group, staff, file, at } = opts;
+  const transferFrom = post?.groupApprovedAt && post.groupNumber && post.groupNumber !== group.number ? post.groupNumber : undefined;
+  actions.setPost(sessionId, { contract: { groupNumber: group.number, clusterId: group.clusterId, status: "approved", uploadedBy: staff, uploadedAt: at, file, transferFrom, decidedBy: staff.name, decidedAt: at } });
+  enrollFamily({ sessionId, app, post, group, coordinator: { id: staff.id, name: staff.name }, at, approvedBy: { name: staff.name, role: staff.role }, attached: true });
+}
+
 /** The demo's signed contract file, named after the group, never its number: «عقد-<application>-مجموعة-اللطيف.pdf» */
 export function demoContractFile(app: Application, group: number): PilgrimContract["file"] {
   return { name: `عقد-${app.number}-${groupName(group).replaceAll(" ", "-")}.pdf`, size: 248_000 };
 }
 
-/** The demo's shortcut on the pilgrim's side: the group uploads the contract and the office approves it at once */
-export function attachByContract(opts: { sessionId: string; app: Application; post: PostAcceptance | undefined; group: GroupRef; uploader: PilgrimContract["uploadedBy"]; at: number }) {
-  const { sessionId, app, post, group, uploader, at } = opts;
-  submitContract({ sessionId, app, post, group, uploader, file: demoContractFile(app, group.number), at });
-  const contract: PilgrimContract = { groupNumber: group.number, clusterId: group.clusterId, status: "pending", uploadedBy: uploader, uploadedAt: at, file: demoContractFile(app, group.number) };
-  decideContract({ sessionId, app, post: { ...(post ?? { documents: {}, payments: {}, ratings: {} }), contract } as PostAcceptance, status: "approved", by: { name: "رنا حداد", role: "إدارة التسجيل" }, at: at + 1 });
+/** The office's member who attaches families in the demo («التسجيل والمراجعة») */
+export const DEMO_ATTACHER = { id: "rana", name: "رنا حداد", role: "إدارة التسجيل" };
+
+/** The demo's shortcut on the pilgrim's side: the family signed its contract at the office, and the office attaches it */
+export function attachByContract(opts: { sessionId: string; app: Application; post: PostAcceptance | undefined; group: GroupRef; at: number }) {
+  const { sessionId, app, post, group, at } = opts;
+  attachByStaff({ sessionId, app, post, group, staff: DEMO_ATTACHER, file: demoContractFile(app, group.number), at });
 }

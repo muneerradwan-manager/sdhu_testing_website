@@ -36,7 +36,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
       const info = groupInfo(post.clusterId, post.groupNumber);
       toast({
         title: `أنتم الآن في ${groupName(info.number)}`,
-        body: `${info.clusterName}. رفع عقدكم ${post.enrolledBy?.name ?? coordinatorOf(info).name} واعتمده المكتب. التالي: الدفعة الثانية.`,
+        body: `${info.clusterName}. ألحقكم بها ${post.enrolledBy?.name ?? coordinatorOf(info).name} في المكتب بعقدكم. التالي: الدفعة الثانية.`,
         icon: "🤝",
         tone: "success",
       });
@@ -75,8 +75,8 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
       [0, () => actions.setPost(sessionId, { confirmedAt: post.confirmedAt ?? base })],
       [0, () => paidApp !== app && actions.saveApplication(paidApp)],
       [700, () => actions.setPost(sessionId, { documents })],
-      // The group's head uploads the contract and the office approves it
-      [1400, () => attachByContract({ sessionId, app: paidApp, post, group: { clusterId: info.clusterId, number: info.number }, uploader: { id: "01033300871", name: "أحمد سليمان الحمصي", role: `رئيس ${groupName(info.number)}` }, at: base + 1400 })],
+      // The family signs its contract at the office, and the office attaches it to the group
+      [1400, () => attachByContract({ sessionId, app: paidApp, post, group: { clusterId: info.clusterId, number: info.number }, at: base + 1400 })],
       [2100, () => actions.setPost(sessionId, { payments: Object.fromEntries(payable.map((l) => [l.key, base + 2100])) })],
       [2800, () => recordHealth(sessionId, paidApp, { ...health, confirmedAt: base + 2800 })],
       [3200, () => actions.setPost(sessionId, { medical: Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const]))) })],
@@ -100,7 +100,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
             <p className="font-display text-2xl font-bold md:text-3xl">
               أكملت {doneCount} من {STEPS.length} خطوات
             </p>
-            <p className="mt-1 text-sm text-white/70">التأكيد والوثائق حتى 27 تشرين الأول — الإلحاق بمجموعة حتى 15 كانون الثاني — الدفعة الثانية بعد اعتماد العقد — ثم الملف الطبي</p>
+            <p className="mt-1 text-sm text-white/70">التأكيد والصورة الشخصية حتى 27 تشرين الأول — الإلحاق بمجموعة في المكتب حتى 15 كانون الثاني — الدفعة الثانية بعده — ثم جواز السفر فالملف الطبي</p>
           </div>
           {firstOpen !== -1 && (
             <button
@@ -162,6 +162,8 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
               <StepMedical {...props} />
             ) : step.key === "payment" ? (
               <StepPayment {...props} />
+            ) : step.key === "passport" ? (
+              <StepDocuments {...props} which="passport" />
             ) : (
               <StepVisa {...props} />
             )}
@@ -185,7 +187,7 @@ function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey:
       );
     case "documents":
       return (
-        <StepDone title="الصورة والجواز مكتملان" body="اعتمدت إدارة التسجيل الصورة الشخصية والجواز لجميع الأفراد. التالي: الإلحاق بمجموعة — ولا وثائق طبية قبله." rating={rating} next={nextStep?.title} onNext={onNext}>
+        <StepDone title="الصورة الشخصية مكتملة" body="اعتمدت إدارة التسجيل الصورة الشخصية لجميع الأفراد. التالي: الإلحاق بمجموعة. الجواز يُطلب بعد الدفعة الثانية، ولا وثائق طبية قبل المجموعة." rating={rating} next={nextStep?.title} onNext={onNext}>
           <div className="flex flex-wrap justify-center gap-2">
             {app.members.map((m) => (
               <Pill key={m.person.id} className="text-base">
@@ -199,7 +201,7 @@ function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey:
       return (
         <StepDone
           title={`أنتم الآن في ${groupName(post.groupNumber ?? GROUP.number)}`}
-          body={`رفع ${post.enrolledBy?.name ?? "المجموعة"} عقدكم مع المجموعة واعتمده المكتب. التالي: الدفعة الثانية.`}
+          body={`وقّعتم عقدكم مع المجموعة في المكتب، وألحقكم بها ${post.enrolledBy?.name ?? "موظف المكتب"}. التالي: الدفعة الثانية.`}
           rating={rating}
           next={nextStep?.title}
           onNext={onNext}
@@ -210,11 +212,23 @@ function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey:
       );
     case "payment":
       return (
-        <StepDone title="اكتمل دفع المبلغ كاملاً" body="لكل دفعة إيصال مستقل في خزنة الوثائق. التالي: الملف الطبي." rating={rating} next={nextStep?.title} onNext={onNext}>
+        <StepDone title="اكتمل دفع المبلغ كاملاً" body="لكل دفعة إيصال مستقل في خزنة الوثائق. التالي: جواز السفر لكل فرد." rating={rating} next={nextStep?.title} onNext={onNext}>
           <div className="flex flex-wrap justify-center gap-2">
             {lines.map((l) => (
               <Pill key={l.key} className="text-base">
                 ✓ {l.title}
+              </Pill>
+            ))}
+          </div>
+        </StepDone>
+      );
+    case "passport":
+      return (
+        <StepDone title="جوازات السفر مكتملة" body="اعتمدت إدارة التسجيل جواز السفر لجميع الأفراد. التالي: الملف الطبي." rating={rating} next={nextStep?.title} onNext={onNext}>
+          <div className="flex flex-wrap justify-center gap-2">
+            {app.members.map((m) => (
+              <Pill key={m.person.id} className="text-base">
+                ✓ {m.person.firstName}
               </Pill>
             ))}
           </div>

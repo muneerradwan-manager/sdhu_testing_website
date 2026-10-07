@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { shortageOf } from "@/lib/data/admin-exam";
-import { resultOf } from "@/app/administrator/_lib/admin";
+import { paperOf, resultOf } from "@/app/administrator/_lib/admin";
 import { useExamBank, useExamRules, type ExamRules } from "@/app/administrator/_lib/admin-rules";
-import { mustSit, roleKeyOf, runKey, stageOf, targets, useHalls, type ExamCenter, type ExamDef, type Halls, type Sitting } from "@/app/administrator/_lib/halls";
+import { examRolesOfPosition, mustSit, roleKeyOf, runKey, stageOf, targets, useHalls, type ExamCenter, type ExamDef, type Halls, type Sitting } from "@/app/administrator/_lib/halls";
 import { awaitsOral, useAdminRows, type AdminRow } from "../../_components/data";
 import { useSystemEvents, type Alert } from "../../_components/system";
 
@@ -40,11 +40,12 @@ export function standingOf(r: AdminRow, rules: ExamRules, halls: Halls): Standin
   if (p.resultPublishedAt) return "published";
   const res = resultOf(p, rules);
   if (res.final !== undefined) return "ready";
-  if (p.exam?.submittedAt && p.exam.score === undefined) return "grading";
   if (awaitsOral(r, rules)) return "oral";
   if (res.written !== undefined) return "below";
   if (!mustSit(p)) return "incomplete";
-  const s = halls.sittingOf(r.id, roleKeyOf(p.positions[0] ?? r.position));
+  // The exam he still has to sit: his role's, or the next of the two of «معاون ومنسق تقني»
+  const next = examRolesOfPosition(p.positions[0] ?? r.position).find((x) => !paperOf(p, x)?.submittedAt) ?? roleKeyOf(p.positions[0] ?? r.position);
+  const s = halls.sittingOf(r.id, next);
   return s?.stage === "closed" && !s.run?.present[r.id] ? "absent" : "waiting";
 }
 
@@ -71,12 +72,15 @@ export function useExamDesk() {
   const pendingWritten = usePendingWritten();
 
   return useMemo(() => {
+    // One entry per exam still to sit: «معاون ومنسق تقني» is expected at both of his exams
     const applicants: Applicant[] = rows
       .filter((r) => mustSit(r.profile))
-      .map((r) => {
-        const role = roleKeyOf(r.profile.positions[0] ?? r.position);
+      .flatMap((r) => {
+        const pos = r.profile.positions[0] ?? r.position;
+        const roles = examRolesOfPosition(pos);
+        const todo = (roles.length ? roles : [roleKeyOf(pos)]).filter((x) => !paperOf(r.profile, x)?.submittedAt);
         const center = halls.centerOf(r.id);
-        return { row: r, role, center, moved: !!center && halls.moved[r.id] === center.id, sitting: center ? halls.sittingOf(r.id, role) : undefined };
+        return todo.map((role) => ({ row: r, role, center, moved: !!center && halls.moved[r.id] === center.id, sitting: center ? halls.sittingOf(r.id, role) : undefined }));
       });
     const standings = new Map(rows.map((r) => [r.id, standingOf(r, rules, halls)]));
     const count = (s: Standing) => [...standings.values()].filter((x) => x === s).length;

@@ -159,7 +159,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
           <table className="w-full min-w-[640px] text-right text-sm">
             <thead className="bg-sand text-ink-soft">
               <tr>
-                {["الاسم", "الرقم الوطني", "الصلة", "العمر", "الصلة من السجل", "الصورة والجواز", "الاحتياجات"].map((h) => (
+                {["الاسم", "الرقم الوطني", "الصلة", "العمر", "الصلة من السجل", "الصورة · الجواز", "الاحتياجات"].map((h) => (
                   <th key={h} className="px-3 py-2 font-semibold">
                     {h}
                   </th>
@@ -203,8 +203,9 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
               { t: "تقديم الطلب ودفع ما يستحق عند التسجيل", ok: true, at: app.submittedAt },
               { t: `النتيجة: ${stage.title}`, ok: accepted },
               { t: "تأكيد القبول", ok: !!post?.confirmedAt, at: post?.confirmedAt },
-              { t: "الصورة الشخصية والجواز", ok: !!post?.confirmedAt && app.members.every((m) => DOCS.every((d) => docStatus(p, m, d.key) === "approved")) },
-              { t: group ? `الإلحاق ب${groupName(group.number)}${post?.enrolledBy ? ` — رفع عقده ${post.enrolledBy.name} واعتمده المكتب` : ""}` : post?.contract?.status === "pending" ? `عقد مع ${groupName(post.contract.groupNumber)} بانتظار المكتب` : "الإلحاق بمجموعة — بعقد مستقل عن التسجيل", ok: !!group, at: post?.groupApprovedAt },
+              { t: "الصورة الشخصية (بعد الدفعة الأولى)", ok: !!post?.confirmedAt && app.members.every((m) => docStatus(p, m, "photo") === "approved") },
+              { t: "جواز السفر (بعد الدفعة الثانية)", ok: app.members.every((m) => docStatus(p, m, "passport") === "approved") },
+              { t: group ? `الإلحاق ب${groupName(group.number)}${post?.enrolledBy ? ` — ألحقه ${post.enrolledBy.name} بعقده` : ""}` : post?.contract?.status === "pending" ? `عقد مع ${groupName(post.contract.groupNumber)} بانتظار المكتب` : "الإلحاق بمجموعة — بعقد مستقل عن التسجيل", ok: !!group, at: post?.groupApprovedAt },
               { t: "المعلومات الصحية والوثائق الطبية", ok: !!post?.health?.confirmedAt && app.members.every((m) => medicalDocsFor(m, post.health).every((d) => post.medical?.[medicalKey(m, d)] === "approved")) },
               { t: "التأشيرة", ok: !!post?.visaAt, at: post?.visaAt },
             ].map((s) => (

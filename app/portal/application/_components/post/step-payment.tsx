@@ -30,7 +30,7 @@ export function StepPayment({ app, post, sessionId, lines }: StepProps) {
 
   return (
     <Question
-      step="الخطوة 4 من 6"
+      step="الخطوة 4 من 7"
       title={`بقي عليك: ${formatUSD(remaining)}`}
       hint={`حددت الإدارة لهذا الموسم: ${planLabel(app.plan ?? seasonPlan())}. انضممتم إلى مجموعة، فحان موعد ${(app.plan ?? seasonPlan()) === 1 ? "الهدي والسكن الخاص إن اخترتموه" : "الدفعة الثانية مع الهدي والسكن الخاص إن اخترتموه"}. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
       speak={`بقي عليك ${remaining} دولاراً، تُدفع الآن بعد انضمامك إلى المجموعة. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
@@ -127,7 +127,7 @@ export function StepPayment({ app, post, sessionId, lines }: StepProps) {
               const at = Date.now();
               actions.setPost(sessionId, { payments: { ...post.payments, ...Object.fromEntries(paying.map((l) => [l.key, at])) } });
               logPilgrim(app, `تسديد ${paying.map((l) => l.title).join(" + ")}`, `${formatUSD(paying.reduce((a, l) => a + l.amount, 0))} — ${payMethodLabel(method)} — ${paying.map((l) => l.receipt).join("، ")}`);
-              if (paying.length === open.length) toast({ title: "اكتمل دفع المبلغ كاملاً", body: "التالي: الملف الطبي — ارفع الوثائق الطبية المطلوبة.", icon: "🎉", tone: "gold" });
+              if (paying.length === open.length) toast({ title: "اكتمل دفع المبلغ كاملاً", body: "التالي: جواز السفر لكل فرد.", icon: "🎉", tone: "gold" });
               setPaying(null);
             }}
           />
@@ -179,15 +179,15 @@ function PayFlow({ items, onPaid }: { items: CostLine[]; onPaid: (m: PayMethod) 
     </div>
   );
 }
-/** The pilgrim–group contract: agreed by the pilgrim, uploaded by the group's side, approved by the office */
+/** The pilgrim–group contract: agreed with the group, signed at the office, and the family attached there by its staff */
 export function SignatureChain({ app, post }: Pick<StepProps, "app" | "post">) {
   const applicant = applicantOf(app);
   const c = post.contract;
   const approved = c?.status === "approved" || (!c && !!post.groupApprovedAt);
   const chain = [
-    { who: fullName(applicant.person), role: "الحاج — صاحب الطلب", ok: !!c || approved, done: "اتفق ووقّع ✓" },
-    { who: c?.uploadedBy.name ?? post.enrolledBy?.name ?? "المجموعة", role: c ? `رفع العقد — ${c.uploadedBy.role}` : groupName(post.groupNumber ?? GROUP.number), ok: !!c || approved, done: "رفع العقد ✓" },
-    { who: c?.decidedBy ?? "إدارة التسجيل", role: "المكتب — الاعتماد", ok: approved, done: "اعتمد العقد ✓" },
+    { who: fullName(applicant.person), role: "الحاج — صاحب الطلب", ok: !!c || approved, done: "اتفق ووقّع في المكتب ✓" },
+    { who: groupName(c?.groupNumber ?? post.groupNumber ?? GROUP.number), role: "المجموعة — طرف العقد", ok: !!c || approved, done: "طرف في العقد ✓" },
+    { who: c?.decidedBy ?? post.enrolledBy?.name ?? "إدارة التسجيل", role: "المكتب — الإلحاق ورفع العقد", ok: approved, done: "ألحقكم بالمجموعة ✓" },
   ];
   return (
     <ol className="grid gap-3 md:grid-cols-3">

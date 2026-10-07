@@ -92,7 +92,7 @@ export function Exams() {
 
   return (
     <div className="space-y-4">
-      <OperationsPanel keys={["admin-exams"]} system="exams" area="exams" title="مدة الامتحانات وتفعيلها" />
+      <OperationsPanel keys={["admin-exams", "admin-oral"]} system="exams" area="exams" title="مدة الامتحانات وأيام الشفهي وتفعيلها" />
       <Panel
         icon={<CalendarClock />}
         title="الامتحانات"
@@ -346,7 +346,7 @@ function ExamForm({ start, isNew, onClose }: { start: ExamDef; isNew: boolean; o
             </li>
           ))}
         </ul>
-        <Button size="sm" variant="glass" className="mt-3" onClick={() => setD({ ...d, sections: [...d.sections, { id: `s${Date.now()}`, name: "قسم جديد", weight: 0, categories: [], counts: { choice: 0, truefalse: 0, written: 0 } }] })}>
+        <Button size="sm" variant="glass" className="mt-3" onClick={() => setD({ ...d, sections: [...d.sections, { id: `s${Date.now()}`, name: "قسم جديد", weight: 0, categories: [], counts: { choice: 0, truefalse: 0 } }] })}>
           <Plus className="size-4" /> قسم جديد
         </Button>
       </div>

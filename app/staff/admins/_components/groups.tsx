@@ -2,15 +2,19 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, CheckCircle2, ClipboardList, CornerDownLeft, Layers, Receipt, Send } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CheckCircle2, ClipboardList, CornerDownLeft, Layers, Receipt, Send, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { useClusters } from "@/lib/cms/content";
-import { groupName, groupShort } from "@/lib/groups";
-import { actions } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { groupName, groupNameTaken, groupShort, suggestedGroupName } from "@/lib/groups";
+import { useOperation, rangeLabel } from "@/lib/operations";
+import { useSeason } from "@/lib/season-live";
+import { actions, useStore } from "@/lib/store";
+import { cn, nowMs } from "@/lib/utils";
 import { adminReceipt } from "@/app/administrator/_lib/admin";
+import { nextGroupNumber } from "@/app/administrator/_lib/capacity";
+import { DemoJump } from "@/components/app/operation-closed";
 import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
 import { STATUS, useClusterRequests } from "@/app/administrator/_lib/formation";
 import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
@@ -31,11 +35,11 @@ function useClusterName() {
 }
 
 /**
- * The groups, from the head's request to the approved group in its cluster. A group head asks for his group
- * and pays its fee; its number is the next of the season. The request comes here with its conditions
- * checked, and the holder decides once: he approves it with its head's category (the group's: its pilgrims
- * and its seats under the cluster's tier, «القوائم المرجعية»), or sends it back to its head with what to fix.
- * The group has no team of its own: the head of the cluster it enters fills its seats.
+ * The groups, formed at the office: a qualified group head comes in the formation's dates with the name he
+ * chose and pays its fee there, and the holder forms his group at once with its head's category (the group's:
+ * its pilgrims and its seats under the cluster's tier, «القوائم المرجعية»); its number is the next of the
+ * season. A request filed on the platform before still waits here for its decision. The group has no team of
+ * its own: the head of the cluster it enters fills its seats.
  */
 export function GroupsTab() {
   const desk = useAdminsDesk();
@@ -50,10 +54,12 @@ export function GroupsTab() {
     <div className="space-y-6">
       <CategoriesPanel />
 
-      <Panel icon={<ClipboardList />} title="طلبات تنتظر قرارك" action={<Chip tone={desk.waiting.length ? "gold" : "green"}>{desk.waiting.length}</Chip>}>
-        {desk.waiting.length === 0 ? (
-          <Empty icon={<CheckCircle2 />} title="لا طلب ينتظر قرارك" text="يصل الطلب إلى هنا حين يسدد رئيس المجموعة رسم التشكيل، ومعه شروطه محسوبة." />
-        ) : (
+      <FormAtOffice desk={desk} />
+
+      {desk.waiting.length > 0 && (
+      <Panel icon={<ClipboardList />} title="طلبات تشكيل سابقة تنتظر قرارك" action={<Chip tone="gold">{desk.waiting.length}</Chip>}>
+        {(
+
           <div className="grid gap-4 lg:grid-cols-2">
             {desk.waiting.map((x, i) => (
               <RequestCard key={x.g.number} x={x} delay={i * 0.05} onApprove={(cat) => decide.approve(x, cat)} onReturn={() => setReturning(x)} onOpen={() => setOpen(x.g.number)} />
@@ -61,6 +67,7 @@ export function GroupsTab() {
           </div>
         )}
       </Panel>
+      )}
 
       {pending.length > 0 && (
         <Panel icon={<Send />} title="عند رؤسائها" action={<Chip>{pending.length}</Chip>}>
@@ -103,6 +110,119 @@ export function GroupsTab() {
         )}
       </Modal>
     </div>
+  );
+}
+
+// ───────────────────────── Forming a group at the office ─────────────────────────
+
+/**
+ * A qualified group head at the office: the holder picks him, writes the name he chose (one no other group
+ * holds this season), confirms his category, takes the fee and forms the group — approved at once, its number
+ * the next of the season. Only in the formation's dates.
+ */
+function FormAtOffice({ desk }: { desk: AdminsDesk }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const season = useSeason();
+  const s = useStructure();
+  const cadre = useCadre();
+  const admins = useStore((x) => x.admins);
+  const op = useOperation("group-formation");
+  const [headId, setHeadId] = useState("");
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [paid, setPaid] = useState(false);
+  const head = desk.toForm.find((r) => r.id === headId);
+  const number = head ? (head.profile.group?.number ?? nextGroupNumber(admins, head.id)) : 0;
+  const bare = name.trim().replace(/^مجموعة\s+/, "");
+  const problem = !bare ? "اكتب اسم المجموعة كما اختاره رئيسها" : bare.split(/\s+/).length > 2 ? "كلمة أو كلمتان" : groupNameTaken(bare, number) ? "تحمله مجموعة أخرى هذا الموسم" : null;
+  const cat = category || (head ? categoryOf(head.id, cadre) : "") || "";
+
+  const pick = (id: string) => {
+    setHeadId(id);
+    const r = desk.toForm.find((x) => x.id === id);
+    const n = r ? (r.profile.group?.number ?? nextGroupNumber(admins, r.id)) : 0;
+    setName(r ? (r.profile.group?.name ?? suggestedGroupName(n)) : "");
+    setCategory(r ? (categoryOf(r.id, cadre) ?? "") : "");
+    setPaid(false);
+  };
+
+  const form = () => {
+    if (!head || problem || !cat || !paid) return;
+    const at = nowMs();
+    if (categoryOf(head.id, cadre) !== cat) actions.setCadre("category", head.id, cat);
+    const label = categoryOfId(s, cat)?.name ?? "";
+    const n = seatsOf(s, DEFAULT_TIER, cat);
+    patchAdmin(head, { group: { number, name: bare, capacity: n.pilgrims, capacityTier: label, requestedAt: head.profile.group?.requestedAt ?? at, feePaidAt: at, approvedAt: at, approvedBy: user.name } }, actions.upsertAdmin);
+    logAdmins(user, "groups", { action: "تشكيل مجموعة في المكتب", target: groupName(number), detail: `رئيسها ${head.name} — ${label}: ${n.pilgrims} حاجاً في الاقتصادي — ${seatsLabel(n)} — رسم ${season.fees.groupFormation} $ بإيصال ${adminReceipt(head.id, "G", number)}`, ref: String(number), important: true });
+    toast({ title: `شُكّلت مجموعة ${bare}`, body: `${head.name} — ${label}: ${n.pilgrims} حاجاً في الاقتصادي. يراها في بوابة الإداريين الآن.`, tone: "success", icon: "🏛️" });
+    setHeadId("");
+    setName("");
+    setCategory("");
+    setPaid(false);
+  };
+
+  return (
+    <Panel icon={<UserPlus />} title="تشكيل مجموعة في المكتب" action={<Chip tone={desk.toForm.length ? "gold" : "green"}>{desk.toForm.length} رئيس مجموعة بلا مجموعة</Chip>}>
+      <p className="text-sm leading-7 text-white/70">
+        يأتي رئيس المجموعة الناجح في التأهيل إلى المكتب في مدة تشكيل المجموعات ({rangeLabel(op.start, op.end)}) باسم مجموعته، ويسدد رسمها، فتشكّلها هنا بفئته. لا طلب له على المنصة: يرى مجموعته في بوابته فور تشكيلها، ثم حجاجها حين يلحقهم المكتب بها.
+      </p>
+      {!op.open ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 text-sm text-white/80 ring-1 ring-white/10">
+          <span>تُشكَّل المجموعات في مدتها وحدها.</span>
+          <DemoJump state={op} />
+        </div>
+      ) : desk.toForm.length === 0 ? (
+        <Empty icon={<CheckCircle2 />} title="لا رئيس مجموعة ينتظر" text="كل رئيس مجموعة مؤهل له مجموعة. يظهر هنا من ينجح أو يجدد صفته." />
+      ) : (
+        <div className="mt-4 grid gap-3 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10 md:grid-cols-2">
+          <label className="block md:col-span-2">
+            <span className="mb-1 block text-xs font-bold text-white/80">رئيس المجموعة</span>
+            <select value={headId} onChange={(e) => pick(e.target.value)} className={cn(smallInputClass, "[&_option]:text-ink")} aria-label="رئيس المجموعة">
+              <option value="">اختر رئيس المجموعة الذي راجع المكتب...</option>
+              {desk.toForm.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} — {branchOf(r.id, cadre)}
+                  {categoryOf(r.id, cadre) ? ` — ${categoryOfId(s, categoryOf(r.id, cadre))?.name}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          {head && (
+            <>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-white/80">اسم المجموعة كما اختاره رئيسها</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-sm text-white/70">مجموعة</span>
+                  <input value={bare} onChange={(e) => setName(e.target.value)} className={cn(sizedInput, "min-w-0 flex-1")} aria-label="اسم المجموعة" />
+                </span>
+                <span className={cn("mt-1 block text-xs", problem ? "text-gold" : "text-green-light")}>{problem ?? "متاح هذا الموسم"}</span>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-white/80">فئته (فئة المجموعة)</span>
+                <select value={cat} onChange={(e) => setCategory(e.target.value)} className={cn(smallInputClass, "[&_option]:text-ink")} aria-label="الفئة">
+                  <option value="">اختر الفئة...</option>
+                  {s.categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {seatsOf(s, DEFAULT_TIER, c.id).pilgrims} حاجاً في الاقتصادي
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-white/85 md:col-span-2">
+                <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="size-4 accent-[#D9C89E]" />
+                سدّد رسم التشكيل {season.fees.groupFormation} $ في المكتب — الإيصال {adminReceipt(head.id, "G", number)}
+              </label>
+              <div className="md:col-span-2">
+                <Button size="sm" variant="gold" disabled={!!problem || !cat || !paid} onClick={form}>
+                  <BadgeCheck className="size-4" /> تشكيل مجموعة {bare || "…"}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
 

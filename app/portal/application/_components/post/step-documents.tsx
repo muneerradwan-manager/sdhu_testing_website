@@ -10,16 +10,37 @@ import type { Member } from "@/lib/rules";
 import { actions, type DocStatus } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
-import { DOCS, docKey, docStatus, memberDocsDone, passportCaseMember, type DocKey } from "./model";
+import { DOCS, STEP_DOCS, docKey, docStatus, memberDocsDone, passportCaseMember, type DocKey } from "./model";
 import { Pill, logPilgrim, useNow, type StepProps } from "./shared";
 
 const UPLOAD_MS = 1600;
 
-export function StepDocuments({ app, post, sessionId }: StepProps) {
+/** What each documents step says: the photo after the first payment, the passport after the second */
+const TEXT = {
+  documents: {
+    step: "الخطوة 2 من 7",
+    title: "ارفع الصورة الشخصية لكل فرد",
+    hint: "بعد الدفعة الأولى تُطلب الصورة الشخصية وحدها. جواز السفر يُطلب بعد اكتمال الدفعة الثانية، ولا تُطلب أي وثيقة طبية (ولا اللقاحات) قبل اعتماد عقدك مع مجموعة.",
+    speak: "ارفع الصورة الشخصية لكل فرد. جواز السفر يُطلب بعد الدفعة الثانية.",
+    done: "التالي: الإلحاق بمجموعة بعقد يعتمده المكتب.",
+  },
+  passport: {
+    step: "الخطوة 5 من 7",
+    title: "ارفع جواز السفر لكل فرد",
+    hint: "اكتملت الدفعة الثانية، فحان وقت جواز السفر: صفحة البيانات كاملة وواضحة، والجواز سارٍ ستة أشهر على الأقل بعد العودة.",
+    speak: "اكتملت الدفعة الثانية. ارفع جواز السفر لكل فرد.",
+    done: "التالي: الملف الطبي.",
+  },
+};
+
+export function StepDocuments({ app, post, sessionId, which = "documents" }: StepProps & { which?: "documents" | "passport" }) {
   const toast = useToast();
   const now = useNow(120);
+  const keys = STEP_DOCS[which];
+  const docs = DOCS.filter((d) => keys.includes(d.key));
+  const text = TEXT[which];
   const [active, setActive] = useState(() => {
-    const firstOpen = app.members.find((m) => !memberDocsDone(post, m));
+    const firstOpen = app.members.find((m) => !memberDocsDone(post, m, keys));
     return (firstOpen ?? app.members[0]).person.id;
   });
   /** key → upload start (local only; the store learns about it once the upload completes) */
@@ -85,12 +106,12 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
         }
       }
       const post2 = { ...post, documents };
-      if (app.members.every((m) => memberDocsDone(post2, m)) && !app.members.every((m) => memberDocsDone(post, m))) {
-        toast({ title: `جميع وثائق طلبك رقم ${app.number} مكتملة`, body: "التالي: الإلحاق بمجموعة — اتفقوا مع مجموعة، فيرفع رئيسها أو منسقها عقدكم.", icon: "🎉", tone: "gold" });
+      if (app.members.every((m) => memberDocsDone(post2, m, keys)) && !app.members.every((m) => memberDocsDone(post, m, keys))) {
+        toast({ title: `${docs.map((d) => d.label).join(" و")}: مكتملة لطلبك رقم ${app.number}`, body: text.done, icon: "🎉", tone: "gold" });
       }
     }, Math.max(0, next - t0));
     return () => clearTimeout(timer);
-  }, [uploading, post, sessionId, app, toast, elder]);
+  }, [uploading, post, sessionId, app, toast, elder, keys, docs, text.done]);
 
   const upload = (m: Member, d: DocKey) => {
     const key = docKey(m, d);
@@ -98,27 +119,22 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
   };
 
   const uploadAll = (m: Member) => {
-    const keys = DOCS.filter((d) => ["missing", "rejected"].includes(docStatus(post, m, d.key)) && !(docKey(m, d.key) in uploading));
+    const open = docs.filter((d) => ["missing", "rejected"].includes(docStatus(post, m, d.key)) && !(docKey(m, d.key) in uploading));
     const at = Date.now();
-    setUploading((u) => ({ ...u, ...Object.fromEntries(keys.map((d, i) => [docKey(m, d.key), at + i * 350])) }));
+    setUploading((u) => ({ ...u, ...Object.fromEntries(open.map((d, i) => [docKey(m, d.key), at + i * 350])) }));
   };
 
-  const doneCount = app.members.filter((m) => memberDocsDone(post, m)).length;
+  const doneCount = app.members.filter((m) => memberDocsDone(post, m, keys)).length;
 
   return (
-    <Question
-      step="الخطوة 2 من 6"
-      title="ارفع الصورة الشخصية والجواز لكل فرد"
-      hint="لم نطلب أي وثيقة عند التسجيل. الآن بعد القبول: الصورة الشخصية وجواز السفر فقط. لا تُطلب أي وثيقة طبية (ولا اللقاحات) قبل اعتماد عقدك مع مجموعة."
-      speak="ارفع الصورة الشخصية وجواز السفر لكل فرد. الوثائق الطبية واللقاحات تُطلب بعد انضمامك إلى مجموعة."
-    >
+    <Question step={text.step} title={text.title} hint={text.hint} speak={text.speak}>
       {/* Member tabs */}
       <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
         {app.members.map((m) => {
-          const req = DOCS;
+          const req = docs;
           const ok = req.filter((d) => docStatus(post, m, d.key) === "approved").length;
           const done = ok === req.length;
-          const bad = DOCS.some((d) => docStatus(post, m, d.key) === "rejected");
+          const bad = docs.some((d) => docStatus(post, m, d.key) === "rejected");
           const on = m.person.id === active;
           return (
             <button
@@ -158,7 +174,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
                 {member.relation === "self" ? "صاحب الطلب" : relationLabel(member.relation, member.person.gender)} — {ageOf(member.person)} عاماً
               </p>
             </div>
-            {!memberDocsDone(post, member) && (
+            {!memberDocsDone(post, member, keys) && (
               <Button variant="outline" size="md" onClick={() => uploadAll(member)}>
                 <Upload className="size-4" /> رفع الناقص (صور تجريبية)
               </Button>
@@ -166,7 +182,7 @@ export function StepDocuments({ app, post, sessionId }: StepProps) {
           </div>
 
           <ul className="mt-5 space-y-3">
-            {DOCS.map((d, i) => {
+            {docs.map((d, i) => {
               const req = "required" as const;
               const key = docKey(member, d.key);
               const status = docStatus(post, member, d.key);

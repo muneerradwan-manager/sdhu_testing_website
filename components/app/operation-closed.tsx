@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { CalendarClock, CalendarX2, PauseCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { dayLabel, rangeLabel, type OperationState } from "@/lib/operations";
+import { dayTimeLabel, rangeLabel, type OperationState } from "@/lib/operations";
 import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +18,8 @@ const jumpable = (state: OperationState) => !!state.start && (state.status === "
 export function DemoJump({ state, className }: { state: OperationState; className?: string }) {
   if (!jumpable(state)) return null;
   return (
-    <Button size="sm" variant="outline" className={cn("bg-white", className)} onClick={() => actions.setToday(state.start)}>
-      <CalendarClock className="size-4" /> جرّبها الآن: انقل تاريخ التجربة إلى {dayLabel(state.start)}
+    <Button size="sm" variant="outline" className={cn("bg-white", className)} onClick={() => actions.setToday(state.start, state.startTime)}>
+      <CalendarClock className="size-4" /> جرّبها الآن: انقل تاريخ التجربة إلى {dayTimeLabel(state.start, state.startTime)}
     </Button>
   );
 }
@@ -34,13 +34,13 @@ export function OperationClosed({ state, text, children }: { state: OperationSta
     state.status === "off"
       ? `«${state.label}» موقوفة الآن`
       : state.status === "upcoming"
-        ? `«${state.label}» تفتح ${dayLabel(state.start, true)}`
-        : `أُغلقت «${state.label}» ${dayLabel(state.end, true)}`;
+        ? `«${state.label}» تفتح ${dayTimeLabel(state.start, state.startTime, true)}`
+        : `أُغلقت «${state.label}» ${dayTimeLabel(state.end, state.endTime, true)}`;
   const why =
     state.status === "off"
       ? "أوقفتها الإدارة بيدها، وتعود حين تفعّلها أو تعيدها إلى تواريخها."
       : state.status === "upcoming"
-        ? `مدتها هذا الموسم ${rangeLabel(state.start, state.end)}، وتُفتح وحدها في يومها الأول.`
+        ? `مدتها هذا الموسم ${rangeLabel(state.start, state.end)}، وتُفتح وحدها في يومها الأول${state.startTime ? ` الساعة ${state.startTime}` : ""}.`
         : `كانت مفتوحة ${rangeLabel(state.start, state.end)}. لا جديد فيها بعد إغلاقها إلا بقرار من الإدارة.`;
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-[2rem] border border-gold/30 bg-white p-8 text-center shadow-[0_30px_80px_-40px_rgba(2,21,38,.45)] md:p-12">

@@ -7,9 +7,9 @@
 1. شغّل الموقع: `npm run build && npx next start -p 3001` داخل `sdhu_testing_website`. ولالتقاط نسخة ثانية في الوقت نفسه شغّلها على منفذ آخر ومرّر `CAP_BASE=http://localhost:<المنفذ>`.
 2. الالتقاط (المتغير `CAP_DIR` يحدد مجلد اللقطات، والرقم = عدد اللقطات المحفوظة قبل إعادة التشغيل):
    - الحاج: `run1.py` ثم `run2.py 42` … (انظر تاريخ الجلسة)، في المجلد الجذري.
-   - الإداري: `CAP_DIR=admin python adm_a.py 0` ← `adm_b.py 35` ← `adm_c.py 75 ret|head|deputy|tech|members`.
-   - الموظف: `CAP_DIR=staff python adm_prep.py` (يجهّز مجموعة 40 بانتظار الاعتماد) ثم `stf_a.py 0 a|b|c|d` ← `stf_b.py N e|f|g|h` ← `stf_c.py N i|j|k|l|m` ← `stf_d.py N`.
-   - يحتاج `stf_b.py e` الحالة `admin/state-eligible.json` (من `adm_a.py`)، و`stf_b.py g` الحالة `admin/state-head-profile.json` التي ينتجها `adm_c.py head`.
+   - الإداري: `CAP_DIR=admin python adm_a.py 0` ← `adm_b.py N` ← `adm_c.py N ret|inv|file|head|deputy|tech|members|letters` ← `adm_d.py N`.
+   - الموظف: `stf_a.py 0 a|b|c|d` ← `stf_b.py N e|f|g|h` ← `stf_c.py N i|j|k|l|m` ← `stf_d.py N`. (لم يعد `adm_prep.py` لازماً: تُشكَّل المجموعات في المكتب.)
+   - يحتاج `stf_b.py e` الحالة `admin/state-eligible.json` (من `adm_a.py`)، و`stf_b.py g` الحالة `admin/state-head-profile.json` التي ينتجها `adm_c.py head` (فيها برنامج التكتل وخطته التشغيلية المقدّمان).
    - ملفات الإدارة (الموظفون، الإداريون، الامتحانات، الطيران) تبويباتها روابط لا `role=tab`: تُفتح بـ`Staff.page_tab()`. والدخول يفتح لكل موظف أول أقسامه، لا «لوحتي» دائماً.
 3. تحويل اللقطات: `python -c "from cap import to_jpg; to_jpg()"` مع `CAP_DIR` المناسب.
 4. البناء: `python build_docx.py <content|admin_content|staff_content> <.|admin|staff> <المسار.docx>`

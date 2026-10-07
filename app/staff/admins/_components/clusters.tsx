@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { BadgeCheck, Building2, CalendarClock, Check, CircleDashed, ExternalLink, Eye, Inbox, PencilRuler, Plus, Printer, RotateCcw, ShieldCheck, UserMinus, UsersRound, X } from "lucide-react";
+import { Archive, ArchiveRestore, BadgeCheck, Building2, CalendarClock, Check, CircleDashed, Download, ExternalLink, Eye, Inbox, PencilRuler, Plus, Printer, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus, UsersRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf } from "@/lib/cluster-profile";
 import { groupName } from "@/lib/groups";
-import { dayLabel } from "@/lib/operations";
-import { actions, useStore, type ClusterInvite, type Seat } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { downloadCsv } from "@/lib/csv";
+import { dayLabel, dayTimeLabel } from "@/lib/operations";
+import { actions, getState, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
+import { cn, nowMs } from "@/lib/utils";
 import { ClusterPrint, ClusterReport, requestLine } from "@/app/administrator/_components/cluster-report";
-import { DEPUTY_TITLE, ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, reviewCluster, usePicks, type Cluster, type ClusterRequest } from "@/app/administrator/_lib/formation";
-import { categoryOfId, seatsLabel, seatsOf, useStructure } from "@/app/administrator/_lib/structure";
+import { logCadre, nameOf, placesOf } from "@/app/administrator/_lib/cadre";
+import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
+import { DEPUTY_TITLE, ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, newCluster, reviewCluster, roleOfPerson, useFormingSeason, useGroupPool, usePicks, writeCluster, type Cluster, type ClusterRequest } from "@/app/administrator/_lib/formation";
+import { categoryOf, categoryOfId, does, roleName, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
+import { useCadreRows } from "./cadre";
 import { Drawer, Empty, Panel, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 
 /** The shared input without its full width, for an input given its own */
@@ -60,19 +64,20 @@ function WindowPanel({ desk }: { desk: AdminsDesk }) {
   const s = useStructure();
   const w = desk.formationWindow;
   const [early, setEarly] = useState(s.earlyDeadline);
+  const [earlyTime, setEarlyTime] = useState(s.earlyTime);
   const save = () => {
-    actions.setAdminRules({ earlyDeadline: early });
-    logAdmins(user, "clusters", { action: "تعديل الموعد الأول لطلبات التكتلات", target: "شارة الالتزام بالمواعيد", before: dayLabel(s.earlyDeadline, true), after: dayLabel(early, true), important: true });
-    toast({ title: "حُفظ الموعد الأول", body: `ما يُرسل حتى ${dayLabel(early, true)} ينال شارة الالتزام بالمواعيد.`, tone: "success", icon: "💾" });
+    actions.setAdminRules({ earlyDeadline: early, earlyTime });
+    logAdmins(user, "clusters", { action: "تعديل الموعد الأول لطلبات التكتلات", target: "شارة الالتزام بالمواعيد", before: dayTimeLabel(s.earlyDeadline, s.earlyTime, true), after: dayTimeLabel(early, earlyTime, true), important: true });
+    toast({ title: "حُفظ الموعد الأول", body: `ما يُرسل حتى ${dayTimeLabel(early, earlyTime, true)} ينال شارة الالتزام بالمواعيد.`, tone: "success", icon: "💾" });
   };
   return (
-    <Panel icon={<CalendarClock />} title="طلبات تشكيل التكتلات ومواعيدها" action={<Chip tone={w.state === "closed" ? "gold" : w.state === "before" ? "muted" : "green"}>{w.state === "before" ? `تفتح ${dayLabel(w.op.start)}` : w.state === "closed" ? `انتهت ${dayLabel(w.op.end)}` : `مفتوحة حتى ${dayLabel(w.op.end)}`}</Chip>}>
+    <Panel icon={<CalendarClock />} title="مواعيد الاستقبال" action={<Chip tone={w.state === "closed" ? "gold" : w.state === "before" ? "muted" : "green"}>{w.state === "before" ? `تفتح ${dayTimeLabel(w.op.start, w.op.startTime)}` : w.state === "closed" ? `انتهت ${dayTimeLabel(w.op.end, w.op.endTime)}` : `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime)}`}</Chip>}>
       <p className="text-sm leading-7 text-white/75">
-        لا انتخاب: يقدّم الطلب من منحته الإدارة صفة «رئيس تكتل»، ويملؤه بالترتيب — المستوى، المجموعات ومقاعدها، معاون التكتل، المنسقون والموجّهات، النائب، المحاسب — ويرسله بعد اكتماله. تراجعه أنت: تعتمده أو تعيده بملاحظات. تفتح الطلبات وتُغلق بمواعيد عملية «تشكيل التكتلات» في «قواعد الإداريين»؛ والموعد الأول هنا.
+        لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات ومقاعدها، معاون التكتل، المنسقون والموجّهات، النائب، المحاسب — ويرسله بعد اكتماله. لا يُرسل شيء قبل ساعة البدء ولا بعد ساعة الموعد النهائي، وما يُرسل حتى الموعد الأول ينال «شارة الالتزام بالمواعيد». البدء والنهائي من عملية «تشكيل التكتلات» في «قواعد الإداريين»؛ والموعد الأول هنا.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-5">
         {[
-          ["الطلبات", desk.requests.length],
+          ["الطلبات", desk.live.length],
           ["مسودات", desk.drafts.length],
           ["قيد المراجعة", desk.sent.length + desk.reviewing.length],
           ["معتمدة", desk.approvedClusters.length],
@@ -84,17 +89,30 @@ function WindowPanel({ desk }: { desk: AdminsDesk }) {
           </div>
         ))}
       </div>
+      <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
+        {[
+          ["البدء", dayTimeLabel(w.op.start, w.op.startTime ?? "00:00", true)],
+          ["الموعد الأول (شارة الالتزام)", dayTimeLabel(s.earlyDeadline, s.earlyTime, true)],
+          ["الموعد النهائي", dayTimeLabel(w.op.end, w.op.endTime ?? "23:59", true)],
+        ].map(([k, v]) => (
+          <div key={k} className="rounded-xl bg-black/20 px-3 py-2">
+            <p className="text-white/55">{k}</p>
+            <p className="font-bold text-white">{v}</p>
+          </div>
+        ))}
+      </div>
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="block">
-          <span className="mb-1 block text-xs text-white/60">الموعد الأول (شارة الالتزام بالمواعيد)</span>
-          <input type="date" value={early} onChange={(e) => setEarly(e.target.value)} className={cn(sizedInput, "w-44")} dir="ltr" />
+          <span className="mb-1 block text-xs text-white/60">الموعد الأول: اليوم</span>
+          <input type="date" value={early} onChange={(e) => setEarly(e.target.value)} className={cn(sizedInput, "w-44 [color-scheme:dark]")} dir="ltr" />
         </label>
-        <Button size="sm" variant="glass" disabled={early === s.earlyDeadline} onClick={save}>
+        <label className="block">
+          <span className="mb-1 block text-xs text-white/60">والساعة</span>
+          <input type="time" value={earlyTime} onChange={(e) => setEarlyTime(e.target.value || "23:59")} className={cn(sizedInput, "w-28 [color-scheme:dark]")} dir="ltr" />
+        </label>
+        <Button size="sm" variant="glass" disabled={early === s.earlyDeadline && earlyTime === s.earlyTime} onClick={save}>
           حفظ
         </Button>
-        <span className="text-xs text-white/55">
-          الفتح {dayLabel(w.op.start, true)} · النهائي {dayLabel(w.op.end, true)}
-        </span>
       </div>
     </Panel>
   );
@@ -116,19 +134,57 @@ const TONE: Record<Cluster["status"], "green" | "gold" | "maroon" | "muted"> = {
 function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => void }) {
   const s = useStructure();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
-  const list = desk.requests.filter((r) => filter === "all" || r.status === filter);
+  const [shelf, setShelf] = useState<"live" | "archived">("live");
+  const [tier, setTier] = useState("");
+  const [creating, setCreating] = useState(false);
+  const pool = shelf === "live" ? desk.live : desk.archivedClusters;
+  const inTier = pool.filter((r) => !tier || r.cluster.tier === tier);
+  const list = inTier.filter((r) => filter === "all" || r.status === filter);
   return (
     <div id="requests" className="scroll-mt-24">
-      <Panel icon={<Building2 />} title="الطلبات" action={<Chip tone="gold">{desk.requests.length}</Chip>}>
+      <Panel
+        icon={<Building2 />}
+        title="التكتلات المُرسلة"
+        action={
+          <span className="flex flex-wrap items-center gap-2">
+            <Chip tone="gold">{desk.live.length}</Chip>
+            <Button size="sm" variant="gold" onClick={() => setCreating(true)}>
+              <UserPlus className="size-4" /> إنشاء تشكيل نيابة عن قائد
+            </Button>
+          </span>
+        }
+      >
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="flex rounded-xl bg-black/20 p-1" role="group" aria-label="النشطة والمؤرشفة">
+            {(
+              [
+                ["live", `النشطة (${desk.live.length})`],
+                ["archived", `المؤرشفة (${desk.archivedClusters.length})`],
+              ] as const
+            ).map(([k, l]) => (
+              <button key={k} type="button" aria-pressed={shelf === k} onClick={() => setShelf(k)} className={cn("rounded-lg px-3 py-1.5 text-xs font-bold", shelf === k ? "bg-gold text-ink" : "text-white/75 hover:text-white")}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="المستوى" className={cn(sizedInput, "h-9 w-44 text-sm [&>option]:text-ink")}>
+            <option value="">كل المستويات</option>
+            {s.tiers.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({pool.filter((r) => r.cluster.tier === t.id).length})
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="mb-4 flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <button key={f.key} type="button" onClick={() => setFilter(f.key)} className={cn("rounded-full px-3 py-1.5 text-xs font-bold ring-1", filter === f.key ? "bg-gold text-green-dark ring-gold" : "bg-white/5 text-white/80 ring-white/15")}>
-              {f.label} ({f.key === "all" ? desk.requests.length : desk.requests.filter((r) => r.status === f.key).length})
+              {f.label} ({f.key === "all" ? inTier.length : inTier.filter((r) => r.status === f.key).length})
             </button>
           ))}
         </div>
         {list.length === 0 ? (
-          <Empty icon={<Inbox />} title="لا طلبات" text="يقدّمها من منحته الإدارة صفة «رئيس تكتل» في مدة تشكيل التكتلات." />
+          <Empty icon={<Inbox />} title={shelf === "archived" ? "لا تشكيلات مؤرشفة" : "لا طلبات"} text={shelf === "archived" ? "تُؤرشف التشكيلات المعتمدة واحداً واحداً من الطلب نفسه، أو كلها معاً عند «بدء موسم جديد» في «التكتلات والمجموعات»." : "يقدّمها من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية في مدة تشكيل التكتلات، أو تنشئها الإدارة نيابة عنه."} />
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">
             {list.map((r) => (
@@ -136,10 +192,13 @@ function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
                 <button type="button" onClick={() => onOpen(r.cluster.id)} className={cn("w-full rounded-2xl p-4 text-right ring-1 transition hover:ring-gold/50", r.status === "rejected" ? "bg-maroon/15 ring-maroon/40" : "bg-white/5 ring-white/10")}>
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-display text-xl font-bold text-gold">{r.cluster.name}</p>
-                    <Chip tone={TONE[r.status]}>{STATUS[r.status].label}</Chip>
+                    <span className="flex flex-wrap justify-end gap-1">
+                      <Chip tone={TONE[r.status]}>{STATUS[r.status].label}</Chip>
+                      {r.archived && <Chip>مؤرشف — {r.archived.season}</Chip>}
+                    </span>
                   </div>
                   <p className="mt-1 text-sm text-white/85">
-                    الرئيس: {r.headName} — {s.tiers.find((t) => t.id === r.cluster.tier)?.name ?? "بلا مستوى"} — {r.branches.join("، ")}
+                    الرئيس: {r.headName} — {s.tiers.find((t) => t.id === r.cluster.tier)?.name ?? "بلا مستوى"} — {r.branches.join("، ")} — موسم {r.season}
                   </p>
                   <p className="text-sm text-white/85">
                     {DEPUTY_TITLE}: {r.cluster.deputy?.status === "accepted" ? r.cluster.deputy.name : <b className="text-gold">لم يقبل أحد بعد</b>}
@@ -147,8 +206,9 @@ function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
                   <p className="mt-2 text-xs text-white/60">{requestLine(r)}</p>
                   <p className="mt-1 flex flex-wrap gap-1.5 text-xs">
                     {r.complete ? <Chip tone="green">مكتمل الشروط</Chip> : <Chip tone="gold">ناقص: {r.checks.filter((c) => !c.ok && !c.warn).length}</Chip>}
+                    {r.cluster.byAdministration && <Chip tone="gold">🛠️ أُنشئ من الإدارة</Chip>}
                     {r.badges.timeliness && <Chip>⏱️ ملتزم بالمواعيد</Chip>}
-                    {r.badges.guidance && <Chip>🧭 الإرشاد</Chip>}
+                    {r.badges.guidance && <Chip>🧭 التميّز في التوجيه</Chip>}
                     {r.badges.age && <Chip>🌟 العمر</Chip>}
                   </p>
                 </button>
@@ -157,7 +217,86 @@ function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => 
           </ul>
         )}
       </Panel>
+      <OnBehalf open={creating} onClose={() => setCreating(false)} desk={desk} onCreated={onOpen} />
     </div>
+  );
+}
+
+/**
+ * «إنشاء تشكيل نيابة عن قائد»: the administration opens a request for a leader who has none — a cluster head by
+ * his base or seasonal role — with its name, its tier and its reason. It starts as a draft holding his own group;
+ * the holder fills its places by exceptional edits and sends it for review on his behalf.
+ */
+function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: () => void; desk: AdminsDesk; onCreated: (id: string) => void }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const s = useStructure();
+  const cadre = useCadre();
+  const admins = useStore((x) => x.admins);
+  const season = useFormingSeason();
+  const rows = useCadreRows();
+  const [who, setWho] = useState("");
+  const [name, setName] = useState("");
+  const [tier, setTier] = useState(s.tiers[0]?.id ?? "");
+  const [reason, setReason] = useState("");
+  const busy = new Set(desk.live.map((r) => r.headId));
+  const leaders = rows.filter((r) => !r.status && does(s, r.seasonal?.role ?? r.primary, "clusterLeader") && !busy.has(r.id));
+  const leader = leaders.find((r) => r.id === who);
+  const create = () => {
+    if (!leader) return;
+    const at = nowMs();
+    const id = `cluster-adm-${at.toString(36)}`;
+    // His own group comes in with him: his approved group on this device, or the season's records of it
+    const live = admins[leader.id]?.group?.approvedAt ? admins[leader.id]!.group : undefined;
+    const seed = HEADS_POOL.find((h) => h.id === leader.id);
+    const number = live?.number ?? seed?.group;
+    const category = categoryOf(leader.id, cadre);
+    const own: GroupInvite | undefined = number !== undefined && category ? { id: leader.id, name: leader.name, at, status: "accepted", number, branch: leader.branch, category, pilgrims: seed?.pilgrims ?? 0 } : undefined;
+    const base = newCluster(id, name.trim(), at, own, season);
+    const cluster: Cluster = { ...base, tier, seats: own ? { [own.number]: fitSeats(s, tier, own.category) } : {}, byAdministration: { by: user.name, reason: reason.trim(), at } };
+    if (admins[leader.id]) writeCluster({ headId: leader.id, headName: leader.name, headGroup: number, seed: false }, cluster, admins);
+    else actions.setFormation((f) => ({ ...f, created: [...f.created, { headId: leader.id, headName: leader.name, headGroup: number, cluster }] }));
+    logAdmins(user, "clusters", { action: "إنشاء تشكيل نيابة عن قائد", target: cluster.name, detail: `${leader.name} — ${s.tiers.find((t) => t.id === tier)?.name} — ${reason.trim()}`, ref: id, important: true });
+    toast({ title: `أُنشئ ${cluster.name}`, body: `مسودة باسم ${leader.name}: املأ أماكنه بتعديل استثنائي ثم أرسله للمراجعة نيابة عنه.`, tone: "success", icon: "🛠️" });
+    onClose();
+    onCreated(id);
+    setWho("");
+    setName("");
+    setReason("");
+  };
+  return (
+    <Modal open={open} onClose={onClose} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
+      <p className="text-xs font-bold text-gold">إنشاء تشكيل نيابة عن قائد</p>
+      <h3 className="mt-1 font-display text-xl font-bold">طلب تكتل باسم رئيسه</h3>
+      <p className="mt-1 text-sm leading-7 text-white/70">لمن يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ولم يقدّم طلباً. يبدأ مسودة فيها مجموعته، وتحمل شارة «أُنشئ من الإدارة».</p>
+      <div className="mt-4 space-y-3 text-sm">
+        <select value={who} onChange={(e) => { setWho(e.target.value); const l = leaders.find((x) => x.id === e.target.value); if (l && !name) setName(`تكتل ${l.name.split(" ")[0] === "الشيخ" ? l.name.split(" ")[1] : l.name.split(" ")[0]}`); }} aria-label="القائد" className={cn(smallInputClass, "[&>option]:text-ink")}>
+          <option value="">— اختر القائد ({leaders.length}) —</option>
+          {leaders.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name} — {l.seasonal ? `${roleName(l.seasonal.role, s)} موسمية` : roleName(l.primary, s)} — {l.branch}
+            </option>
+          ))}
+        </select>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم التكتل" aria-label="اسم التكتل" className={smallInputClass} />
+        <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="المستوى" className={cn(smallInputClass, "[&>option]:text-ink")}>
+          {s.tiers.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="السبب (إلزامي) — مثال: القائد خارج البلاد، وفوّض الإدارة بكتاب" aria-label="السبب" />
+      </div>
+      <div className="mt-4 flex gap-2">
+        <Button variant="gold" disabled={!leader || name.trim().length < 3 || reason.trim().length < 3} onClick={create}>
+          إنشاء المسودة
+        </Button>
+        <Button variant="glass" onClick={onClose}>
+          إلغاء
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -177,10 +316,28 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
     setRejecting(false);
     setNote("");
   };
+  const sendForHim = () => {
+    const at = nowMs();
+    writeCluster(x, { ...c, status: "pending", sentAt: at, firstSentAt: c.firstSentAt ?? at, review: undefined, decision: undefined }, admins);
+    logAdmins(user, "clusters", { action: "إرسال تشكيل للمراجعة نيابة عن قائده", target: c.name, detail: requestLine(x), ref: c.id, important: true });
+    toast({ title: "أُرسل للمراجعة", body: `${c.name} — نيابة عن ${x.headName}`, tone: "success", icon: "📨" });
+  };
+  const archive = (on: boolean) => {
+    actions.setFormation((f) => {
+      const archived = { ...f.archived };
+      if (on) archived[c.id] = { season: x.season, at: nowMs(), by: user.name };
+      else delete archived[c.id];
+      return { ...f, archived };
+    });
+    logAdmins(user, "clusters", { action: on ? "أرشفة تكتل معتمد" : "استعادة تكتل من الأرشيف", target: c.name, detail: `موسم ${x.season}`, ref: c.id, important: true });
+    toast({ title: on ? `أُرشف ${c.name}` : `استُعيد ${c.name}`, body: on ? "يبقى في «التكتلات والمجموعات» بموسمه، ويخرج من عمل الموسم." : "عاد إلى التكتلات النشطة.", tone: "info", icon: on ? "🗄️" : "↩️" });
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <Chip tone={TONE[c.status]}>{STATUS[c.status].label}</Chip>
+        {x.archived && <Chip>مؤرشف — موسم {x.archived.season}</Chip>}
+        {c.byAdministration && <Chip tone="gold">🛠️ أُنشئ من الإدارة: {c.byAdministration.reason}</Chip>}
         {c.sentAt && <span className="text-xs text-white/60">أُرسل {fmtDateTime(c.sentAt)}</span>}
         {c.review && c.status !== "pending" && <span className="text-xs text-white/60">راجعه {c.review.by}</span>}
         {c.decision && <span className="text-xs text-white/60">{c.decision.status === "approved" ? "اعتمده" : "أعاده"} {c.decision.by} — {fmtDateTime(c.decision.at)}</span>}
@@ -208,10 +365,29 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
             <RotateCcw className="size-4" /> إعادة فتحه لرئيسه للتعديل
           </Button>
         )}
+        {c.status === "draft" && c.byAdministration && (
+          <Button size="sm" variant="gold" disabled={!x.complete} onClick={sendForHim}>
+            <Send className="size-4" /> إرساله للمراجعة نيابة عنه
+          </Button>
+        )}
         <Button size="sm" variant="glass" onClick={() => window.print()}>
           <Printer className="size-4" /> طباعة التقرير
         </Button>
-        {(c.status === "draft" || c.status === "rejected") && <span className="text-xs text-white/60">عند رئيسه: {c.status === "draft" ? "لم يرسله بعد" : "يصلحه ويعيد إرساله"}.</span>}
+        <Button size="sm" variant="glass" onClick={() => exportCluster(x)}>
+          <Download className="size-4" /> Excel
+        </Button>
+        {c.status === "approved" &&
+          (x.archived ? (
+            <Button size="sm" variant="glass" onClick={() => archive(false)}>
+              <ArchiveRestore className="size-4" /> استعادته من الأرشيف
+            </Button>
+          ) : (
+            <Button size="sm" variant="ghost" className="text-white" onClick={() => archive(true)}>
+              <Archive className="size-4" /> أرشفة
+            </Button>
+          ))}
+        {(c.status === "draft" || c.status === "rejected") && !c.byAdministration && <span className="text-xs text-white/60">عند رئيسه: {c.status === "draft" ? "لم يرسله بعد" : "يصلحه ويعيد إرساله"}.</span>}
+        {c.status === "draft" && c.byAdministration && !x.complete && <span className="self-center text-xs text-gold">أنشأته الإدارة: املأ أماكنه بالتعديل الاستثنائي أدناه حتى يكتمل، ثم أرسله.</span>}
         {c.status === "reviewing" && !x.complete && <span className="self-center text-xs text-gold">لا يُعتمد ناقصاً: أعده بملاحظات، أو أكمله بتعديل استثنائي.</span>}
       </div>
 
@@ -248,6 +424,22 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
   );
 }
 
+/** One cluster in a sheet: its line, its groups, then everyone in it with his post — as the administration's platform exports it */
+function exportCluster(x: ClusterRequest) {
+  const c = x.cluster;
+  const places = placesOf(x, c);
+  downloadCsv(`${c.name}-${x.season}.csv`, [
+    ["التكتل", c.name, "الرئيس", x.headName, "الموسم", x.season, "الحالة", STATUS[x.status].label],
+    ["مجموع الفئات", x.weight, "الحجاج", x.pilgrims, "الكادر", x.cadre, "الفروع", x.branches.join("، ")],
+    [],
+    ["المجموعة", "رئيسها", "الفئة", "الحجاج", "الفرع"],
+    ...x.groups.map((g) => [groupName(g.number), g.head, g.categoryName, g.pilgrims, g.branch]),
+    [],
+    ["الاسم", "الصفة في التكتل", "المجموعة", "الصفة الأساسية"],
+    ...[...places].map(([id, p]) => [nameOf(id, x), p.posts.join("، "), p.group !== undefined ? groupName(p.group) : "", roleName(roleOfPerson(id, getState().admins, getState().cadre))]),
+  ]);
+}
+
 // ───────────────────────── Exceptional edits ─────────────────────────
 
 type Place = { key: string; label: string; who?: ClusterInvite; remove: (c: Cluster) => Cluster; fill?: { behavior: Parameters<ReturnType<typeof usePicks>>[0]; put: (c: Cluster, x: ClusterInvite) => Cluster } };
@@ -259,6 +451,7 @@ type Place = { key: string; label: string; who?: ClusterInvite; remove: (c: Clus
  */
 function Exceptional({ x }: { x: ClusterRequest }) {
   const user = useStaffUser()!;
+  const s = useStructure();
   const toast = useToast();
   const admins = useStore((s) => s.admins);
   const picks = usePicks(x);
@@ -293,6 +486,23 @@ function Exceptional({ x }: { x: ClusterRequest }) {
     ...(c.accountant && yes(c.accountant) ? [{ key: "accountant", label: ACCOUNTANT_TITLE, who: c.accountant, remove: (k: Cluster) => ({ ...k, accountant: undefined }) }] : []),
   ];
 
+  const pool = useGroupPool(x).filter((g) => !g.takenBy && !c.groups[g.number] && !!g.category);
+  const [group, setGroup] = useState("");
+  const addGroup = () => {
+    const g = pool.find((y) => String(y.number) === group);
+    if (!g?.category) return;
+    const why = reason.trim();
+    const inv: GroupInvite = { id: g.headId, name: g.headName, at: nowMs(), status: "accepted", number: g.number, branch: g.branch, category: g.category, pilgrims: g.pilgrims, byAdministration: { by: user.name, reason: why } };
+    exceptionalEdit(x, { ...c, groups: { ...c.groups, [g.number]: inv }, seats: { ...c.seats, [g.number]: fitSeats(s, c.tier, g.category) } }, admins);
+    const text = `أُضيفت استثنائياً إلى «${c.name}» — تجاوزاً للضوابط المعتادة. السبب: ${why}`;
+    logAdmins(user, "clusters", { action: "تعديل استثنائي: إضافة مجموعة", target: c.name, detail: `${groupName(g.number)}: ${text}`, ref: c.id, important: true });
+    logCadre(g.headId, g.headName, "exceptional", user.name, { change: `${groupName(g.number)} ← ${c.name}`, note: why, season: x.season });
+    toast({ title: `أُضيفت ${groupName(g.number)}`, body: c.name, tone: "success", icon: "🛠️" });
+    setPlace(null);
+    setGroup("");
+    setReason("");
+  };
+
   const apply = () => {
     if (!place) return;
     const why = reason.trim();
@@ -301,6 +511,7 @@ function Exceptional({ x }: { x: ClusterRequest }) {
       const text = `أُزيل استثنائياً من ${place.label} ضمن «${c.name}» — تجاوزاً للضوابط المعتادة. السبب: ${why}`;
       logAdmins(user, "clusters", { action: "تعديل استثنائي: إزالة", target: c.name, detail: `${place.who.name}: ${text}`, ref: c.id, important: true });
       logAdmins(user, "applicants", { action: "تعديل استثنائي", target: place.who.name, detail: text, ref: place.who.id });
+      logCadre(place.who.id, place.who.name, "exceptional", user.name, { change: `أُزيل من ${place.label} — ${c.name}`, note: why, season: x.season });
       toast({ title: `أُزيل ${place.who.name}`, body: place.label, tone: "info", icon: "🛠️" });
     } else if (place.fill) {
       const p = picks(place.fill.behavior).find((y) => y.id === person);
@@ -309,6 +520,7 @@ function Exceptional({ x }: { x: ClusterRequest }) {
       const text = `أُضيف استثنائياً إلى ${place.label} ضمن «${c.name}» — تجاوزاً للضوابط المعتادة. السبب: ${why}`;
       logAdmins(user, "clusters", { action: "تعديل استثنائي: إضافة", target: c.name, detail: `${p.name}: ${text}`, ref: c.id, important: true });
       logAdmins(user, "applicants", { action: "تعديل استثنائي", target: p.name, detail: text, ref: p.id });
+      logCadre(p.id, p.name, "exceptional", user.name, { change: `أُضيف إلى ${place.label} — ${c.name}`, note: why, season: x.season });
       toast({ title: `أُضيف ${p.name}`, body: place.label, tone: "success", icon: "🛠️" });
     }
     setPlace(null);
@@ -324,6 +536,15 @@ function Exceptional({ x }: { x: ClusterRequest }) {
       </p>
       <p className="mt-1 text-xs leading-6 text-white/60">خارج الضوابط المعتادة، بسبب يُكتب في سجل التكتل وسجل الشخص. المُضاف يُعدّ قابلاً دون دعوة.</p>
       <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+        <li>
+          <button type="button" onClick={() => setPlace({ key: "group-new", label: "مجموعة — إضافة", remove: (k) => k })} className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-right text-xs ring-1", place?.key === "group-new" ? "bg-gold/20 ring-gold/60" : "bg-white/5 ring-white/10 hover:ring-gold/40")}>
+            <Plus className="size-3.5 shrink-0 text-green-light" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-white/60">مجموعة معتمدة بحجاجها</span>
+              <span className="block font-bold text-white">إضافة مجموعة ({pool.length} متاحة في فروعه)</span>
+            </span>
+          </button>
+        </li>
         {places.map((pl) => (
           <li key={pl.key}>
             <button type="button" onClick={() => setPlace(pl)} className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-right text-xs ring-1", place?.key === pl.key ? "bg-gold/20 ring-gold/60" : "bg-white/5 ring-white/10 hover:ring-gold/40")}>
@@ -338,8 +559,18 @@ function Exceptional({ x }: { x: ClusterRequest }) {
       </ul>
       {place && (
         <div className="mt-4 space-y-3 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-          <p className="text-sm font-bold text-white">{place.who ? `إزالة ${place.who.name} من ${place.label}` : `إضافة إلى ${place.label}`}</p>
-          {!place.who && (
+          <p className="text-sm font-bold text-white">{place.key === "group-new" ? "إضافة مجموعة معتمدة إلى التكتل" : place.who ? `إزالة ${place.who.name} من ${place.label}` : `إضافة إلى ${place.label}`}</p>
+          {place.key === "group-new" && (
+            <select value={group} onChange={(e) => setGroup(e.target.value)} aria-label="المجموعة" className={cn(smallInputClass, "[&>option]:text-ink")}>
+              <option value="">— اختر من المجموعات المعتمدة في فروعه —</option>
+              {pool.map((g) => (
+                <option key={g.number} value={g.number}>
+                  {groupName(g.number)} — {g.headName} — {categoryOfId(s, g.category)?.name} — {g.branch}
+                </option>
+              ))}
+            </select>
+          )}
+          {!place.who && place.key !== "group-new" && (
             <select value={person} onChange={(e) => setPerson(e.target.value)} aria-label="من يُضاف" className={cn(smallInputClass, "[&>option]:text-ink")}>
               <option value="">— اختر من المؤهلين في فروعه —</option>
               {candidates.map((y) => (
@@ -351,7 +582,7 @@ function Exceptional({ x }: { x: ClusterRequest }) {
           )}
           <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="السبب (إلزامي)" aria-label="سبب التعديل الاستثنائي" />
           <div className="flex gap-2">
-            <Button size="sm" variant="gold" disabled={reason.trim().length < 3 || (!place.who && !person)} onClick={apply}>
+            <Button size="sm" variant="gold" disabled={reason.trim().length < 3 || (place.key === "group-new" ? !group : !place.who && !person)} onClick={place.key === "group-new" ? addGroup : apply}>
               تنفيذ التعديل
             </Button>
             <Button size="sm" variant="glass" onClick={() => setPlace(null)}>
@@ -376,7 +607,7 @@ function Outside({ desk }: { desk: AdminsDesk }) {
   const toast = useToast();
   const s = useStructure();
   const admins = useStore((x) => x.admins);
-  const targets = useMemo(() => desk.requests.filter((r) => r.status !== "rejected" && r.status !== "draft"), [desk.requests]);
+  const targets = useMemo(() => desk.live.filter((r) => r.status !== "rejected" && r.status !== "draft"), [desk.live]);
   const [adding, setAdding] = useState<OutsideGroup | null>(null);
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");

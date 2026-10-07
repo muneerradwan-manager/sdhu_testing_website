@@ -1,26 +1,22 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, FileSignature, HeartPulse, Inbox, Radio, Search, Stethoscope, UserPlus, UsersRound } from "lucide-react";
+import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, Eye, FileSignature, HeartPulse, Inbox, Radio, Stethoscope, UserPlus, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { CONDITIONS, NEEDS, recordHealth } from "@/app/portal/application/_components/post/model";
-import { submitContract, groupInfo } from "@/lib/assignment";
+import { groupInfo } from "@/lib/assignment";
 import { groupName } from "@/lib/groups";
 import { ageOf, fullName } from "@/lib/registry";
-import { outcomeOf } from "@/lib/journey";
-import { usePublishedDraw, type PublishedDraw } from "@/lib/lottery";
-import { useSeason } from "@/lib/season-live";
-import { actions, useStore, type Application, type HealthRecord } from "@/lib/store";
-import { cn, digitsOnly } from "@/lib/utils";
-import { effectiveRole, isTechCoordinator, logAdmin, nowMs, positionLabelOf, useAdmin } from "../../_lib/admin";
-import { useAdminCan } from "../../_lib/permissions";
+import { actions, useStore, type HealthRecord } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
-import { OperationClosed } from "@/components/app/operation-closed";
-import { useOperation } from "@/lib/operations";
+import { PilgrimSheet } from "../../_components/pilgrim-sheet";
+import { rangeLabel, useOperation } from "@/lib/operations";
 import { clusterViewOf } from "../../_lib/cluster";
 import { useClusterGroupsOf } from "../../_lib/formation";
 import { useCoordinatorPost } from "../../_lib/coordinators";
@@ -30,9 +26,9 @@ function needsLift(r: JoinRequest) {
 }
 
 /**
- * حجاج المجموعة. إلحاق الحاج بالمجموعة عملية مستقلة عن تسجيله على الحج، تبدأ مع تشكيل التكتلات
- * وتستمر بعده: يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق الذي وزّعها عليه رئيس التكتل،
- * والطلب العائلي يُلحق أو ينتقل كاملاً. رئيس المجموعة يرحّب بالعائلة، والمنسق يسجّل ملفها الصحي.
+ * حجاج المجموعة. إلحاق الحاج بالمجموعة عملية مستقلة عن تسجيله على الحج، يجريها المكتب وحده: يتفق
+ * الحاج مع المجموعة ويوقّع عقده معها في المكتب، فيلحقه بها موظف المكتب، والطلب العائلي يُلحق أو ينتقل
+ * كاملاً. يرى رئيس المجموعة حجاجها ويرحّب بالعائلة، والمنسق يسجّل ملفها الصحي.
  * المنسق للتكتل لا لمجموعة: يفتح هنا مجموعاته المسندة إليه وحدها.
  */
 /**
@@ -42,7 +38,6 @@ function needsLift(r: JoinRequest) {
  */
 export function AdminRequests({ fixed, embedded = false }: { fixed?: number; embedded?: boolean } = {}) {
   const joining = useOperation("group-joining");
-  const can = useAdminCan();
   const admin = useAdmin()!;
   const toast = useToast();
   const p = admin.profile;
@@ -63,6 +58,8 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   const openGroup = myGroups.find((x) => x.number === openNumber);
   const openName = openNumber === undefined ? "المجموعة" : groupName(openNumber);
   const [healthFor, setHealthFor] = useState<string | null>(null);
+  // One pilgrim's file, opened from his family's card
+  const [person, setPerson] = useState<{ family: string; id: string } | null>(null);
   const tech = isTechCoordinator(p);
 
   const families = useMemo(() => {
@@ -81,7 +78,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
       <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يسجّل الحجاج في المجموعات التي يفرزها له رئيس التكتل.">
         <LockedCard
           title={coord ? "لم يفرز لك رئيس التكتل مجموعة بعد" : "لم تنضم إلى تكتل بعد"}
-          text={coord ? `أنت في ${coord.clusterName}. حين يوزّع عليك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فتلحق بها الحجاج بعقودهم.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويسند إليك مجموعات من تكتله."}
+          text={coord ? `أنت في ${coord.clusterName}. حين يوزّع عليك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فترى حجاجها حين يلحقهم المكتب بعقودهم، وتأخذ ملفاتهم الصحية.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويسند إليك مجموعات من تكتله."}
           href="/administrator/groups"
           cta="إدارة المجموعات"
         />
@@ -90,8 +87,8 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   }
   if (!embedded && !coord && !g?.approvedAt) {
     return (
-      <AdminShell title="حجاج المجموعة" subtitle="يتفق الحاج مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.">
-        <LockedCard title="لا مجموعة معتمدة بعد" text="يظهر حجاج مجموعتك بعد اعتمادها من مدير المكتب." href="/administrator/groups" cta="إدارة المجموعة" />
+      <AdminShell title="حجاج المجموعة" subtitle="يتفق الحاج مع المجموعة ويوقّع عقده معها في المكتب، فيلحقه بها موظف المكتب.">
+        <LockedCard title="لا مجموعة لك بعد" text="يظهر حجاج مجموعتك بعد أن يشكّلها موظف إدارة الإداريين في المكتب." href="/administrator/group" cta="تشكيل المجموعة" />
       </AdminShell>
     );
   }
@@ -146,6 +143,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   };
 
   const healthTarget = families.find((r) => r.id === healthFor);
+  const personFamily = person ? families.find((r) => r.id === person.family) : undefined;
 
   const content = (
     <>
@@ -175,7 +173,11 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
             <PeopleBoard roster={roster} active={active} capacity={capacity} />
           </Card>
 
-          {can("pilgrims.attach") && openNumber !== undefined && (openNumber === home || coord?.groups.some((x) => x.number === openNumber) || (embedded && myCluster?.isHead)) && (joining.open ? <ContractPanel group={{ clusterId: clusterId ?? "al-nour", number: openNumber }} capacity={capacity} active={active} /> : <OperationClosed state={joining} text="من في المجموعة باقٍ فيها؛ ما ينتظر فتحها هو رفع عقود الجدد." />)}
+          {/* The office attaches the pilgrims; the group's side sees them here */}
+          <p className="flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
+            <FileSignature className="mt-1 size-4 shrink-0 text-green-dark" />
+            يلحق موظفو المكتب الحجاج ب{openName}: يتفق الحاج مع المجموعة ويوقّع عقده معها في المكتب، فيُلحق بها هو وأفراد طلبه معاً. تراهم هنا فور إلحاقهم{joining.open ? "" : ` — مدة الإلحاق ${rangeLabel(joining.start, joining.end)}`}، واضغط أي حاج لترى ملفه وآخر ما وصل إليه.
+          </p>
 
           <div className="flex flex-wrap items-center gap-2">
             {(
@@ -201,7 +203,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                 <Card className="text-center">
                   <Inbox className="mx-auto size-12 text-gold-dark" />
                   <p className="mt-3 font-display text-xl font-bold text-green-dark">لا عائلات في هذا التصنيف</p>
-                  <p className="mt-1 text-sm leading-7 text-ink-soft">حين يسجّل منسق المجموعة حاجاً اختار {openName} يظهر هنا مباشرة.</p>
+                  <p className="mt-1 text-sm leading-7 text-ink-soft">حين يلحق موظف المكتب عائلة ب{openName} تظهر هنا مباشرة.</p>
                 </Card>
               </motion.div>
             )}
@@ -247,7 +249,13 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                   <div className="p-6">
                     <ul className="grid gap-2 sm:grid-cols-2">
                       {r.members.map((m) => (
-                        <li key={m.id} className="flex items-start gap-3 rounded-2xl bg-sand p-3">
+                        <li key={m.id}>
+                          <button
+                            type="button"
+                            onClick={() => setPerson({ family: r.id, id: m.id })}
+                            aria-label={`ملف ${m.name}`}
+                            className="group flex w-full items-start gap-3 rounded-2xl bg-sand p-3 text-right transition hover:bg-gold/20 hover:shadow-md"
+                          >
                           <span className="grid size-10 shrink-0 place-items-center">
                             <PersonIcon kind={m.age >= 69 ? "elderly" : m.gender === "F" ? "woman" : "man"} className="size-8" />
                           </span>
@@ -266,6 +274,8 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                               </p>
                             )}
                           </div>
+                          <Eye className="mr-auto size-4 shrink-0 self-center text-green-dark opacity-40 transition group-hover:opacity-100" />
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -284,7 +294,8 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                           <Stethoscope className="size-4" /> {health ? "تعديل الملف الصحي" : "تسجيل الملف الصحي"}
                         </Button>
                       )}
-                      {isNew(r) && !tech && (
+                      {/* The group's head welcomes the family (and the cluster's head for any of its groups); its team only sees it */}
+                      {isNew(r) && !coord && (
                         <Button onClick={() => welcome(r)}>
                           <UsersRound className="size-4" /> استلام والترحيب
                         </Button>
@@ -301,11 +312,10 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
           <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
             <p className="font-bold text-gold">كيف تُلحق العائلات بالمجموعة؟</p>
             <ul className="mt-2 list-inside list-disc space-y-1">
-              <li>لا يختار الحاج المجموعة من المنصة: يتفق معها خارجها.</li>
-              <li>يرفع العقد الموقّع من يملك صلاحية «إلحاق الحجاج بالمجموعة» فيها: رئيسها، أو المنسق الموزَّعة عليه، أو المعاون في مقعدها.</li>
-              <li>يعتمده موظف المكتب، فيصير الطلب كله في المجموعة ويرى الحاج مجموعته وعقده.</li>
+              <li>لا يختار الحاج المجموعة من المنصة: يتفق معها، ويوقّع عقده معها في المكتب.</li>
+              <li>يلحقه موظف المكتب بالمجموعة ويرفع العقد الموقّع، فيصير الطلب كله فيها ويرى الحاج مجموعته وعقده. الإداريون لا يلحقون أحداً.</li>
               <li>تسجيل حاج على الحج لا يضعه في مجموعة من سجّله.</li>
-              <li>الطلب العائلي يُلحق كاملاً بمجموعة واحدة، وينتقل بعقد جديد ترفعه المجموعة الجديدة.</li>
+              <li>الطلب العائلي يُلحق كاملاً بمجموعة واحدة، وينتقل بعقد جديد يلحقه به المكتب.</li>
             </ul>
           </div>
           <div className="rounded-3xl border border-gold/30 bg-white p-5 text-sm leading-7">
@@ -323,13 +333,16 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
       <Modal open={!!healthTarget} onClose={() => setHealthFor(null)}>
         {healthTarget && <HealthForm family={healthTarget} onDone={() => setHealthFor(null)} />}
       </Modal>
+      <Modal open={!!personFamily} onClose={() => setPerson(null)} className="max-w-3xl">
+        {personFamily && person && <PilgrimSheet family={personFamily} memberId={person.id} groupLabel={openName} onClose={() => setPerson(null)} />}
+      </Modal>
     </>
   );
   if (embedded) return content;
   return (
     <AdminShell
       title={myCluster || coord ? `حجاج ${openName}` : "حجاج المجموعة"}
-      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المسندة إليك، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `${groupName(g!.number)} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة، فيلحقه بها رئيسها أو المنسق المسند إليها بعقد بينهما.`}
+      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المسندة إليك، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `${groupName(g!.number)} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة ويوقّع عقده معها في المكتب، فيلحقه بها موظف المكتب.`}
     >
       {content}
     </AdminShell>
@@ -507,155 +520,3 @@ function PeopleBoard({ roster, active, capacity }: { roster: { age: number; gend
  * المنسق يسجّل في المجموعة المفتوحة من مجموعاته المفروزة له: يبحث عن حاج مقبول تواصل معه (بالرقم الوطني أو رقم الطلب)، فيسجّل
  * الطلب كاملاً ويرسل إليه العقد ليوقّعه برمز على هاتفه. إن كان الحاج في مجموعة أخرى ينتقل الطلب كله.
  */
-/**
- * Uploading a pilgrim's contract with the group: the pilgrim agreed with the group outside the platform,
- * and whoever holds «إلحاق الحجاج بالمجموعة» in it uploads the signed contract. Nothing changes for the
- * pilgrim until the office approves it; a returned one is fixed and uploaded again.
- */
-function ContractPanel({ group, capacity, active }: { group: { clusterId: string; number: number }; capacity: number; active: number }) {
-  const draw = usePublishedDraw();
-  const { acceptedDirectAge } = useSeason();
-  const isAccepted = (a: Application) => accepted_(a, draw, acceptedDirectAge);
-  const admin = useAdmin()!;
-  const toast = useToast();
-  const applications = useStore((s) => s.applications);
-  const post = useStore((s) => s.post);
-  const [q, setQ] = useState("");
-  const [found, setFound] = useState<string | null>(null);
-  const [file, setFile] = useState<{ name: string; size: number } | null>(null);
-  const [error, setError] = useState("");
-
-  const accepted = Object.entries(applications).filter(([sid, a]) => isAccepted(a) && post[sid]?.groupNumber !== group.number && post[sid]?.contract?.status !== "pending");
-  const mine = Object.entries(post).filter(([sid, x]) => x.contract?.groupNumber === group.number && applications[sid]);
-  const app = found ? applications[found] : null;
-  const current = found ? post[found] : undefined;
-
-  const search = () => {
-    setError("");
-    setFile(null);
-    const hit = Object.entries(applications).find(([sid, a]) => sid === q.trim() || a.number === q.trim() || a.members.some((m) => m.person.id === q.trim()));
-    if (!hit) return setError("لا يوجد طلب بهذا الرقم.");
-    if (!isAccepted(hit[1])) return setError("الطلب لم يُقبل بعد — الإلحاق بالمجموعات للحجاج المقبولين فقط.");
-    if (post[hit[0]]?.groupNumber === group.number && post[hit[0]]?.groupApprovedAt) return setError("هذا الطلب في مجموعتك بالفعل.");
-    if (post[hit[0]]?.contract?.status === "pending") return setError(`لهذا الطلب عقد بانتظار اعتماد المكتب (${groupName(post[hit[0]]!.contract!.groupNumber)}).`);
-    setFound(hit[0]);
-  };
-
-  const upload = () => {
-    if (!app || !found || !file) return;
-    if (active + app.members.length > capacity) return setError(`لا تتسع المجموعة: ${active} + ${app.members.length} > ${capacity}. الطلب العائلي يُلحق كاملاً أو لا يُلحق.`);
-    const role = `${positionLabelOf(effectiveRole(admin.profile) || admin.profile?.positions[0] || "")} — ${groupName(group.number)}`;
-    submitContract({ sessionId: found, app, post: current, group, uploader: { id: admin.id, name: admin.name, role }, file, at: nowMs() });
-    toast({ title: `رُفع عقد الطلب ${app.number}`, body: "ينتظر اعتماد المكتب، ثم يصير الطلب كله في المجموعة.", icon: "📄", tone: "info" });
-    setFound(null);
-    setQ("");
-    setFile(null);
-  };
-
-  return (
-    <Card className="md:p-7">
-      <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-        <UserPlus className="size-6" /> إلحاق حاج ب{groupName(group.number)}
-      </p>
-      <p className="mt-1 text-sm leading-7 text-ink-soft">
-        اتفق معك حاج مقبول على الالتحاق بالمجموعة؟ ابحث عن طلبه وارفع العقد الموقّع بينه وبين المجموعة، فيعتمده المكتب. لا يختار الحاج المجموعة من المنصة، ولا يصير فيها قبل الاعتماد. والطلب العائلي يُلحق كاملاً.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <input
-          value={q}
-          onChange={(e) => setQ(digitsOnly(e.target.value).slice(0, 11))}
-          onKeyDown={(e) => e.key === "Enter" && search()}
-          inputMode="numeric"
-          dir="ltr"
-          placeholder="الرقم الوطني أو رقم الطلب"
-          className="h-12 min-w-56 flex-1 rounded-2xl border-2 border-gold/50 px-4 text-center font-mono text-lg outline-none focus:border-green-light"
-        />
-        <Button onClick={search} disabled={!q}>
-          <Search className="size-4" /> بحث
-        </Button>
-      </div>
-      {accepted.length > 0 && !app && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-hint">حجاج مقبولون للتجربة:</span>
-          {accepted.slice(0, 6).map(([sid, a]) => (
-            <button key={sid} type="button" onClick={() => setQ(a.number)} className="rounded-full bg-sand px-3 py-1 font-semibold text-green-dark hover:bg-gold-light">
-              {a.members.find((m) => m.relation === "self")?.person.firstName ?? a.number} — {a.number}
-            </button>
-          ))}
-        </div>
-      )}
-      {error && <p className="mt-3 rounded-2xl bg-maroon/8 p-3 text-sm font-bold text-maroon">{error}</p>}
-
-      {app && found && (
-        <div className="mt-5 rounded-2xl border-2 border-gold/50 p-4">
-          <p className="font-bold">
-            الطلب {app.number} — {app.members.length} أفراد — {app.office}
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-2 text-sm">
-            {app.members.map((m) => (
-              <li key={m.person.id} className="rounded-full bg-sand px-3 py-1">
-                {fullName(m.person)} ({ageOf(m.person)})
-              </li>
-            ))}
-          </ul>
-          {current?.groupApprovedAt && (
-            <p className="mt-3 flex items-start gap-2 rounded-xl bg-gold/20 p-3 text-sm font-semibold text-maroon">
-              <ArrowLeftRight className="mt-0.5 size-4 shrink-0" /> الطلب الآن في {groupName(current.groupNumber!)}. باعتماد هذا العقد ينتقل جميع أفراده ({app.members.length}) معاً، ولا ينتقل أحد وحده.
-            </p>
-          )}
-          <p className="mt-4 text-sm font-bold">العقد الموقّع بين الحاج والمجموعة</p>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border-2 border-dashed border-gold-dark/60 px-4 py-2.5 text-sm font-bold text-green-dark hover:bg-sand">
-              <FileSignature className="size-4" /> {file ? file.name : "اختر ملف العقد (PDF أو صورة)"}
-              <input type="file" accept=".pdf,image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && setFile({ name: e.target.files[0].name, size: e.target.files[0].size })} />
-            </label>
-            {!file && (
-              <button type="button" onClick={() => setFile({ name: `عقد-${app.number}-${groupName(group.number).replaceAll(" ", "-")}.pdf`, size: 248_000 })} className="text-sm text-hint underline">
-                ملف تجريبي
-              </button>
-            )}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button onClick={upload} disabled={!file}>
-              <FileSignature className="size-4" /> {current?.groupApprovedAt ? `رفع عقد نقل الطلب إلى ${groupName(group.number)}` : "رفع العقد إلى المكتب"}
-            </Button>
-            <Button variant="ghost" onClick={() => setFound(null)}>
-              إلغاء
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {mine.length > 0 && (
-        <div className="mt-6">
-          <p className="font-bold text-ink">عقود {groupName(group.number)}</p>
-          <ul className="mt-2 space-y-2">
-            {mine.map(([sid, x]) => {
-              const c = x.contract!;
-              const a = applications[sid];
-              return (
-                <li key={sid} className="flex flex-wrap items-center gap-2 rounded-2xl bg-sand px-3 py-2 text-sm">
-                  <span className="min-w-0 flex-1">
-                    <b>الطلب {a.number}</b> — {a.members.length} أفراد — رفعه {c.uploadedBy.name}
-                    {c.status === "returned" && <span className="block text-xs font-bold text-maroon">أعاده المكتب: {c.reason}</span>}
-                  </span>
-                  <Badge tone={c.status === "approved" ? "green" : c.status === "returned" ? "maroon" : "gold"}>{c.status === "approved" ? `اعتمده ${c.decidedBy}` : c.status === "returned" ? "أُعيد" : "بانتظار المكتب"}</Badge>
-                  {c.status === "returned" && (
-                    <Button size="sm" variant="outline" onClick={() => { setQ(a.number); setFound(sid); }}>
-                      رفع من جديد
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-/** Direct applications are accepted by the announced age, lottery ones by the published draw */
-function accepted_(a: Application, draw: PublishedDraw | null, minAge: number) {
-  return outcomeOf(a, draw, minAge).accepted;
-}
