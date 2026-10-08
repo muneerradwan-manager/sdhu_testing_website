@@ -57,7 +57,7 @@ export type FiledApplication = { number: string; receipt: string };
 
 /**
  * المكتب الذي يتبعه الطلب. تسجيل عادي لا يضع أحداً في مجموعة: إلحاق الحاج بمجموعة عملية مستقلة لاحقة،
- * بعقد بينه وبين المجموعة يرفعه رئيسها أو المنسق الموزَّعة عليه.
+ * بعقد بينه وبين المجموعة يرفعه رئيسها أو المنسق الموزَّع عليها.
  */
 export function coordinatorPosting() {
   const info = groupInfo(TECH_POSTING.clusterId, TECH_POSTING.groupNumber);

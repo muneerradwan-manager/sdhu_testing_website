@@ -21,6 +21,8 @@ export type JoinRequest = {
   receivedLabel: string;
   note?: string;
   members: JoinMember[];
+  /** In the group from before its latest arrivals: welcomed long ago, nothing waits on it */
+  settled?: boolean;
 };
 
 /** Needs that call for a room near the lift — forwarded to the tower supervisor automatically */
@@ -155,6 +157,17 @@ export function activeCount(groupNumber: number | undefined, post: Record<string
   return base + seeds + real;
 }
 
+/**
+ * How many pilgrims a group has, the same on every screen: its number in its cluster's record when it is in one
+ * (the families the office attached from the pilgrim portal on top), else the demo's base for a group on its own.
+ */
+export function groupCount(groupNumber: number | undefined, post: Record<string, PostAcceptance>, applications: Record<string, Application>, inCluster?: { pilgrims: number }, homeNumber = groupNumber) {
+  if (groupNumber === undefined || !inCluster) return activeCount(groupNumber, post, applications, undefined, homeNumber);
+  const real = assignedRealFamilies(groupNumber, post, applications).reduce((n, r) => n + r.members.length, 0);
+  const seeds = seedRequestsFor(groupNumber, homeNumber).reduce((n, r) => n + r.members.length, 0);
+  return Math.max(inCluster.pilgrims, seeds) + real;
+}
+
 /** Group composition for the capacity board: men, women and elderly (69+) — nobody under 17 travels */
 export function compositionOf(roster: { age: number; gender: "M" | "F" }[]) {
   const elderly = roster.filter((r) => r.age >= 69).length;
@@ -226,4 +239,30 @@ export function buildRoster(
   const all = [...real, ...filler];
   all.splice(Math.min(all.length, 23), 0, salim);
   return all;
+}
+
+// ───────────────────────── Every pilgrim of a group ─────────────────────────
+
+export type GroupPilgrim = { family: JoinRequest; member: JoinMember };
+
+/**
+ * Every pilgrim of a group, one row each, as many as it counts: the families attached lately (from the pilgrim
+ * portal and the demo's seeded ones), then the pilgrims who were in it before — the same people the field
+ * roster names — each its own settled application.
+ */
+export function groupPilgrims(families: JoinRequest[], roster: RosterEntry[], total: number): GroupPilgrim[] {
+  const rows: GroupPilgrim[] = families.flatMap((family) => family.members.map((member) => ({ family, member })));
+  const seen = new Set(rows.map((r) => r.member.id));
+  for (const e of roster) {
+    if (rows.length >= total) break;
+    if (seen.has(e.id)) continue;
+    seen.add(e.id);
+    const weeks = 2 + Math.floor(seeded(`since-${e.id}`)() * 6);
+    const member: JoinMember = { id: e.id, name: e.name, age: e.age, gender: e.gender, relation: "صاحب الطلب", needs: e.needs };
+    rows.push({
+      family: { id: `roster-${e.id}`, real: false, settled: true, applicant: e.name, number: String(3000 + (Number(e.id.slice(-5)) % 6000)), kind: "enrolled", receivedLabel: `ألحقه المكتب بعقده — قبل ${weeks} أسابيع`, members: [member] },
+      member,
+    });
+  }
+  return rows.slice(0, total);
 }

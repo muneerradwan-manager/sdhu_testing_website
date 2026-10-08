@@ -64,7 +64,7 @@ export const OPERATIONS: OperationDef[] = [
   { key: "cluster-formation", label: "تشكيل التكتلات", desc: "طلبات تشكيل التكتلات بالتوازي مع إلحاق الحجاج: من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية يملأ الطلب بترتيبه ويرسله، من ساعة البدء حتى ساعة الموعد النهائي. الموعد الأول لشارة الالتزام في «طلبات التكتلات».", start: "2026-11-12", startTime: "09:00", end: "2026-11-30", endTime: "23:59", control: "admins.manage", estimate: true },
   { key: "cluster-approval", label: "مراجعة طلبات التكتلات واعتمادها", desc: "يراجع موظف إدارة الإداريين كل طلب يُرسل: يعتمده، أو يعيده بملاحظات يصلحها رئيسه قبل الموعد النهائي. وما بقي خارج التكتلات يُضاف بتعديل استثنائي.", start: "2026-11-12", end: "2026-12-05", control: "admins.manage", estimate: true },
   { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها والفريق في مقاعدها. دائمة ما دامت المجموعة قائمة.", control: "admins.manage" },
-  { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع مجموعاته على منسقيه وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
+  { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع منسقيه وموجّهاته على مجموعاته وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
 ];
 
 export const OPERATION_KEYS = OPERATIONS.map((o) => o.key);

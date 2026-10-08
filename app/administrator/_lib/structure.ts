@@ -1,5 +1,6 @@
 "use client";
 
+import { peopleFor } from "./distribution";
 import { useMemo } from "react";
 import { ageOf, getPerson } from "@/lib/registry";
 import { getState, useStore, type State } from "@/lib/store";
@@ -85,7 +86,7 @@ export const DEFAULT_ROLES: RoleDef[] = [
   { key: "cluster-head", name: "رئيس تكتل", level: "cluster", core: true, active: true, applied: false, clusterLeader: true, desc: "صفة تمنحها الإدارة، أساسيةً لمن ثبت فيها أو موسميةً لموسم واحد: يقدّم طلب تشكيل التكتل، ويختار مجموعاته وكادره، ويدير التكتل كاملاً بعد اعتماده." },
   { key: "group-head", name: "رئيس مجموعة", level: "group", core: true, active: true, applied: true, groupLeader: true, category: true, desc: "يشكّل مجموعته ويقودها. فئته (الأولى… الرابعة) تحددها الإدارة، وهي فئة مجموعته: عدد حجاجها ومقاعد فريقها." },
   { key: "group-deputy", name: "معاون", level: "shared", core: true, active: true, applied: true, assistantSeat: true, assistantPool: true, desc: "يشغل مقعد المعاون في مجموعة، أو يكون معاون التكتل: الحضور والتجمّع والمطارات والمستلزمات." },
-  { key: "tech", name: "منسق تقني", level: "cluster", core: true, active: true, applied: true, coordinatorPool: true, desc: "للتكتل لا لمجموعة: برنامج المنسقين وبيانات الحجاج وأوراقهم. يوزّع رئيس التكتل المجموعات على منسقيه." },
+  { key: "tech", name: "منسق تقني", level: "cluster", core: true, active: true, applied: true, coordinatorPool: true, desc: "للتكتل لا لمجموعة: برنامج المنسقين وبيانات الحجاج وأوراقهم. يوزّع رئيس التكتل منسقيه على المجموعات، كلٌّ ضمن حدّه من الوحدات." },
   { key: "assistant-tech", name: "معاون ومنسق تقني", level: "shared", core: true, active: true, applied: true, examAs: "tech", exams: ["group-deputy", "tech"], assistantSeat: true, assistantPool: true, coordinatorPool: true, desc: "يجمع الصفتين: يمتحن امتحانَي المعاون والمنسق التقني ويلزمه اجتيازهما معاً، ويشغل مقعد معاون، أو يكون من منسقي التكتل. لا بد أن يكون أحد منسقي كل تكتل بهذه الصفة." },
   { key: "murshid", name: "موجّه ديني أ", level: "group", core: true, active: true, applied: true, examAs: "guide-m", gender: "M", guideSeat: true, guidance: true, fixedAge: 40, desc: "أعلى درجات الموجّهين: يشغل مقعد الموجّه في مجموعة، ويمنح التكتل شارة التميّز في التوجيه الديني. يُحتسب عمره في متوسط التكتل 40." },
   { key: "guide-m", name: "موجّه ديني ب", level: "group", core: true, active: true, applied: true, gender: "M", guideSeat: true, fixedAge: 45, examName: "الموجّه الديني", desc: "يشغل مقعد الموجّه في مجموعة: الدروس والمناسك والإجابة عن الأسئلة الشرعية. يُحتسب عمره في متوسط التكتل 45." },
@@ -257,10 +258,13 @@ export function compositionOf(s: Structure, tierId: string | undefined): Composi
   return s.composition[tierId ?? DEFAULT_TIER] ?? DEFAULT_COMPOSITION[DEFAULT_TIER];
 }
 
-/** What a cluster of this weight needs under its tier */
-export function needsOf(s: Structure, tierId: string | undefined, weight: number) {
+/**
+ * What a cluster of this weight needs under its tier. Given its groups' units, its coordinators and female guides
+ * are never fewer than can carry every group within their quota (./distribution).
+ */
+export function needsOf(s: Structure, tierId: string | undefined, weight: number, units?: number[]) {
   const c = compositionOf(s, tierId);
-  const per = (n: number) => (n <= 0 ? 0 : Math.round(weight / n));
+  const per = (n: number) => (units ? peopleFor(units, n) : n <= 0 ? 0 : Math.round(weight / n));
   return { ...c, coordinators: per(c.perCoordinator), femaleGuides: per(c.perGuide) };
 }
 

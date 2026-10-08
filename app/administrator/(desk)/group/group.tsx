@@ -13,7 +13,7 @@ import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
 import { useExamRules } from "../../_lib/admin-rules";
-import { activeCount } from "../../_lib/group";
+import { groupCount } from "../../_lib/group";
 import { isClusterRole, isTechCoordinator } from "../../_lib/admin";
 import { nextGroupNumber } from "../../_lib/capacity";
 import { teamOf } from "../../_lib/cluster";
@@ -38,6 +38,7 @@ function useGroupTeam(number: number) {
         ...t.guides.map((x) => ({ role: "موجّه المجموعة", name: x.name })),
         ...t.assistants.map((x) => ({ role: "معاون المجموعة", name: x.name })),
         ...(t.coordinator ? [{ role: "المنسق التقني (للتكتل)", name: t.coordinator.name }] : []),
+        ...(t.femaleGuide ? [{ role: "الموجّهة الدينية (للتكتل)", name: t.femaleGuide.name }] : []),
       ],
     };
   }, [requests, number]);
@@ -221,8 +222,8 @@ function MyGroup() {
   const applications = useStore((s) => s.applications);
   const post = useStore((s) => s.post);
   const g = admin.profile!.group!;
-  const members = activeCount(g.number, post, applications);
   const { cluster, team } = useGroupTeam(g.number);
+  const members = groupCount(g.number, post, applications, cluster?.cluster.groups[g.number]);
   const s = useStructure();
   const cadre = useCadre();
   const category = categoryOf(admin.id, cadre);

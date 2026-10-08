@@ -52,8 +52,8 @@ export function AdminFlights() {
     return coord?.groups.length ? (
       <ClusterFlights />
     ) : (
-      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعاتك المفروزة لك.">
-        <LockedCard title="الرحلات تظهر بعد فرز مجموعاتك" text="المنسق التقني للتكتل: حين يدعوك رئيس تكتل ويفرز لك مجموعات منه، ترى هنا رحلاتها." href="/administrator/groups" cta="إدارة المجموعات" />
+      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة للمجموعات التي وُزّعت عليها.">
+        <LockedCard title="الرحلات تظهر بعد توزيعك على مجموعات" text="المنسق التقني للتكتل: حين يدعوك رئيس تكتل ويوزّعك على مجموعات منه، ترى هنا رحلاتها." href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }

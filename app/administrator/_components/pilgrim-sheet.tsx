@@ -141,7 +141,7 @@ export function PilgrimSheet({ family, memberId, groupLabel, onClose }: { family
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge tone="ink">الطلب {family.number}</Badge>
-            <Badge tone={family.real ? "gold" : "ink"}>{family.real ? "من بوابة الحاج" : `عائلة ${family.applicant}`}</Badge>
+            <Badge tone={family.real ? "gold" : "ink"}>{family.real ? "من بوابة الحاج" : family.members.length > 1 ? `عائلة ${family.applicant}` : "طلب فردي"}</Badge>
             <Badge tone={current ? "gold" : "green"}>{current ? `الآن: ${current.title}` : "أتمّ خطواته السبع"}</Badge>
           </div>
         </div>

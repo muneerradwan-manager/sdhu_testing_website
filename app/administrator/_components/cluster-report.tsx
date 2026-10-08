@@ -196,13 +196,17 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
   };
   const date = (ms?: number) => (ms ? gregorianDate(new Date(ms)) : "—");
   const earned = (Object.keys(BADGES) as (keyof typeof BADGES)[]).filter((k) => req.badges[k]);
-  const sortedTo = (id: string) => req.groups.filter((g) => c.sorting[g.number] === id).map((g) => groupName(g.number));
+  // The groups each coordinator and female guide was distributed on, and the units they make
+  const carried = (map: Record<number, string> | undefined, id: string) => {
+    const gs = req.groups.filter((g) => map?.[g.number] === id);
+    return gs.length ? `${gs.map((g) => groupName(g.number)).join("، ")} (${gs.reduce((n, g) => n + g.units, 0)} وحدات)` : "";
+  };
   const team = [
     ...(yes(c.deputy) ? [{ ...c.deputy!, task: DEPUTY_TITLE, note: "" }] : []),
     ...(yes(c.accountant) ? [{ ...c.accountant!, task: ACCOUNTANT_TITLE, note: "" }] : []),
     ...c.assistants.filter(yes).map((x) => ({ ...x, task: POOLS["cluster-assistant"].title, note: "" })),
-    ...c.coordinators.filter(yes).map((x) => ({ ...x, task: POOLS.tech.title, note: sortedTo(x.id).join("، ") })),
-    ...c.femaleGuides.filter(yes).map((x) => ({ ...x, task: POOLS["guide-f"].title, note: "" })),
+    ...c.coordinators.filter(yes).map((x) => ({ ...x, task: POOLS.tech.title, note: carried(c.sorting, x.id) })),
+    ...c.femaleGuides.filter(yes).map((x) => ({ ...x, task: POOLS["guide-f"].title, note: carried(c.guideSorting, x.id) })),
   ];
   const capacity = req.groups.reduce((n, g) => n + g.capacity, 0);
   const data: [string, string][] = [
@@ -305,7 +309,7 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
                 <th className={TH}>الاسم</th>
                 <th className={TH}>الصفة الإدارية</th>
                 <th className={TH}>المهمة في التكتل</th>
-                <th className={TH}>المجموعات الموزّعة عليه</th>
+                <th className={TH}>المجموعات التي وُزّع عليها</th>
               </tr>
             </thead>
             <tbody>

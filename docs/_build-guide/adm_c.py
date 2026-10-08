@@ -118,9 +118,9 @@ if ONLY in (None, "head"):
     c.scroll_top()
     c.shot("head-group-open", "مجموعة من التكتل: فريقها في مقاعدها، وحجاجها وعقودهم", section=S)
     tab(p, c, "كادر التكتل")
-    c.shot("head-team", "كادر التكتل: معاونوه ومنسقوه وموجّهاته ونائبه ومحاسبه، وتوزيع المجموعات على المنسقين", section=S)
-    c.scroll_to("main h2:has-text('توزيع المجموعات على المنسقين'), main :text('توزيع المجموعات على المنسقين')", 120)
-    c.shot("head-coord-sort", "توزيع المجموعات على المنسقين: لكل مجموعة منسق واحد", hl=[("button:has-text('توزيع بالتساوي')", "")], section=S)
+    c.shot("head-team", "كادر التكتل: معاونوه ومنسقوه وموجّهاته ونائبه ومحاسبه، وتوزيعهم على المجموعات", section=S)
+    c.scroll_to("main :text('توزيع المنسقين على المجموعات')", 120)
+    c.shot("head-coord-sort", "توزيع المنسقين على المجموعات: ما يحمله كلٌّ من حدّه، ومنسق كل مجموعة", hl=[("main button:has-text('توزيع تلقائي ضمن الحدود')", "")], section=S)
     tab(p, c, "التقرير")
     c.shot("head-report", "التقرير النهائي للتكتل، يُطبع على ورقة A4", section=S)
     tab(p, c, "الخطة التشغيلية")
@@ -188,7 +188,7 @@ if ONLY in (None, "tech"):
         c.shot("tech-detail", "تفاصيل طلب سجّله المنسق", section=S)
     c.goto("/administrator/requests", wait=1800)
     jump(p, c)
-    c.shot("tech-requests", "حجاج مجموعاتي: حجاج المجموعات الموزّعة عليه، وملفاتهم الصحية", section=S)
+    c.shot("tech-requests", "حجاج مجموعاتي: حجاج المجموعات التي وُزّع عليها، وملفاتهم الصحية", section=S)
     c.close()
 
 # ───────── the group's team, and the cluster's own posts ─────────
@@ -206,7 +206,7 @@ if ONLY in (None, "members"):
         c.shot(f"{key}-field", f"{cap}: الميدان", section=S)
         c.close()
     c, p = session("01033300981", "/administrator/groups")
-    c.shot("gf-groups", "موجّهة التكتل: مجموعات التكتل كلها، فهي لحاجّاته كلهن", section=S)
+    c.shot("gf-groups", "موجّهة التكتل: المجموعات التي وُزّعت عليها ضمن حدّها من الوحدات", section=S)
     c.close()
 
 # ───────── notifications, Telegram, letters, and the PIN ─────────

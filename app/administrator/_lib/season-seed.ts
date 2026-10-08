@@ -8,7 +8,8 @@
  */
 import type { ClusterInvite, ClusterRecord, ClusterStatus, GroupInvite, Seat } from "@/lib/store";
 import type { SeasonalRole } from "./structure";
-import { DEFAULT_CATEGORY_RULES, DEFAULT_COMPOSITION } from "./structure-defaults";
+import { distribute, peopleFor, type Unit } from "./distribution";
+import { DEFAULT_CATEGORIES, DEFAULT_CATEGORY_RULES, DEFAULT_COMPOSITION } from "./structure-defaults";
 
 type Head = { id: string; name: string; group: number; seasons: number; rating: number; branch: string; category: string; pilgrims: number; age: number };
 type Person = { id: string; name: string; roleKey: string; branch: string; area: string; score: number; seasons: number; rating: number | null; skills: string[]; age: number };
@@ -209,9 +210,7 @@ function build(plan: Plan) {
     }
     seats[h.group] = list;
   });
-  const weight = plan.cats.reduce((a, b) => a + b, 0);
   const comp = DEFAULT_COMPOSITION[plan.tier];
-  const per = (k: number) => (k <= 0 ? 0 : Math.round(weight / k));
   const assistants: ClusterInvite[] = [
     ...Array.from({ length: comp.assistants }, (_, i) => {
       const p = person("group-deputy", plan.branch, i === 0 && rnd() < 0.4 ? { role: "group-deputy", label: "معاون - مكتب سياحي", reason: "يتابع حجوزات التكتل مع المكتب السياحي", by: "رهف الخطيب", at: Date.UTC(2026, 10, 4, 10) } : undefined);
@@ -221,12 +220,14 @@ function build(plan: Plan) {
     // No assistant seat in the second group: the merged head is one of the cluster's assistants instead
     ...(merged && !Object.values(seats).flat().some((x) => x.who?.id === merged!.id) ? [answer(merged, n++)] : []),
   ];
-  const coordinators = Array.from({ length: per(comp.perCoordinator) }, (_, i) => answer(person(i === 0 ? "assistant-tech" : rnd() < 0.3 ? "assistant-tech" : "tech", where(i)), n++));
-  const femaleNeed = per(comp.perGuide);
+  const units: Unit[] = heads.map((h) => ({ number: h.group, units: DEFAULT_CATEGORIES.find((k) => k.id === h.category)?.weight ?? 1 }));
+  const coordinators = Array.from({ length: peopleFor(units.map((u) => u.units), comp.perCoordinator) }, (_, i) => answer(person(i === 0 ? "assistant-tech" : rnd() < 0.3 ? "assistant-tech" : "tech", where(i)), n++));
+  const femaleNeed = peopleFor(units.map((u) => u.units), comp.perGuide);
   const femaleGuides = Array.from({ length: plan.unfinished ? Math.max(0, femaleNeed - 1) : femaleNeed }, (_, i) => answer(person(rnd() < 0.3 ? "murshida" : "guide-f", where(i)), n++));
-  const sorting: Record<number, string> = {};
+  // Coordinators and female guides on the groups, each within his quota of units
   const accepted = coordinators.filter((x) => x.status === "accepted");
-  heads.forEach((h, i) => accepted.length && (sorting[h.group] = accepted[Math.floor((i * accepted.length) / heads.length)].id));
+  const sorting = distribute(units, accepted.map((x) => x.id), comp.perCoordinator).map;
+  const guideSorting = distribute(units, femaleGuides.filter((x) => x.status === "accepted").map((x) => x.id), comp.perGuide).map;
 
   const deputy = heads[1] ? acc(heads[1], at, plan.unfinished ? "pending" : "accepted") : undefined;
   const pool = [...heads.slice(1), ...accepted, ...Object.values(seats).flat().flatMap((x) => (x.who?.status === "accepted" ? [x.who] : []))];
@@ -250,6 +251,7 @@ function build(plan: Plan) {
     coordinators,
     femaleGuides,
     sorting,
+    guideSorting,
   };
   return { headId: headGroup.id, headName: headGroup.name, headGroup: headGroup.group, cluster };
 }

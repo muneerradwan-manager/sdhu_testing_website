@@ -41,7 +41,9 @@ c.shot("group-in-cluster", "مجموعتك في التكتل: فريقها في 
 S = "H"
 c.goto("/administrator/requests", wait=1800)
 jump()
-c.shot("req-list", "حجاج المجموعة: العائلات والتصفية", section=S)
+c.shot("req-list", "حجاج المجموعة: عددهم من سعتها، ولوحة يُفتح منها ملف كل حاج", section=S)
+c.scroll_to("main h3:has-text('كل حجاج')", 120)
+c.shot("req-all", "كل حجاج المجموعة بأسمائهم: البحث والتصفية، ويُفتح ملف كل حاج بالضغط عليه", section=S)
 w = p.locator("button:has-text('استلام والترحيب')").first
 w.scroll_into_view_if_needed(); c.settle(300)
 c.shot("req-family", "بطاقة عائلة وزر «استلام والترحيب»", hl=[("button:has-text('استلام والترحيب')", "")], section=S)

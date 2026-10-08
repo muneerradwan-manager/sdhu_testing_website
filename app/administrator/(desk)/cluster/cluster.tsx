@@ -19,6 +19,7 @@ import { adminName, logAdmin, nowMs, resultOf, useAdmin } from "../../_lib/admin
 import { useExamRules } from "../../_lib/admin-rules";
 import { acceptedGroups, clusterViewOf } from "../../_lib/cluster";
 import { coordinatorsLabel } from "../../_lib/coordinators";
+import { distribute, fits, loadOf } from "../../_lib/distribution";
 import {
   ACCOUNTANT_TITLE,
   DEPUTY_TITLE,
@@ -97,7 +98,7 @@ export function AdminCluster({ part }: { part: "formation" | "manage" }) {
       );
     }
     return (
-      <AdminShell title={theirs.cluster.name} subtitle={view.isHead ? "تكتلك المعتمد: مجموعاته وحجاجها، وكادره، وتوزيع مجموعاته على منسقيه." : `تكتلك الذي دعاك رئيسه ${view.headName} نائباً له. تتابع مجموعاته وكادره وتنوب عنه.`}>
+      <AdminShell title={theirs.cluster.name} subtitle={view.isHead ? "تكتلك المعتمد: مجموعاته وحجاجها، وكادره، وتوزيع منسقيه وموجّهاته على مجموعاته." : `تكتلك الذي دعاك رئيسه ${view.headName} نائباً له. تتابع مجموعاته وكادره وتنوب عنه.`}>
         {view.isHead ? <ManageCluster req={theirs} /> : <DeputyCluster req={theirs} />}
       </AdminShell>
     );
@@ -661,19 +662,25 @@ function GroupsStep({ req, editable, onOpen }: { req: ClusterRequest; editable: 
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ادعُ مجموعة: باسمها أو برئيسها أو بفرعها" className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </label>
           <ul className="mt-2 max-h-80 space-y-1.5 overflow-y-auto">
-            {found.slice(0, 12).map((g) => (
+            {found.slice(0, 12).map((g) => {
+              // A group with more pilgrims than its category takes under this tier cannot come in
+              const cap = c.tier && g.category ? seatsOf(s, c.tier, g.category).pilgrims : undefined;
+              const big = cap !== undefined && g.pilgrims > cap;
+              return (
               <li key={g.number} className="flex items-center gap-3 rounded-xl bg-sand/70 px-3 py-2 text-sm">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-bold">{groupName(g.number)}</span>
                   <span className="block text-xs text-ink-soft">
                     {g.headName} — {g.branch} — {categoryOfId(s, g.category)?.name ?? "لا فئة لرئيسها بعد"} — {g.pilgrims} حاجاً {g.takenBy && <b className="text-maroon">— في {g.takenBy}</b>}
+                    {big && <b className="text-maroon"> — أكبر من سعة فئتها في هذا المستوى ({cap})</b>}
                   </span>
                 </span>
-                <Button size="sm" variant="outline" disabled={!!g.takenBy || !g.category || g.headId === admin.id} onClick={() => add(g)}>
+                <Button size="sm" variant="outline" disabled={!!g.takenBy || !g.category || g.headId === admin.id || big} onClick={() => add(g)}>
                   <Send className="size-3.5" /> ادعُ
                 </Button>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </Card>
       )}
@@ -783,6 +790,11 @@ function GroupDesk({ req, number, onBack }: { req: ClusterRequest; number: numbe
       <GroupCard req={req} g={g} own={g.id === req.headId} editable={false} onWithdraw={() => undefined} />
       <p className="rounded-2xl bg-sand p-3 text-sm text-ink-soft">
         منسقها: <b>{c.coordinators.find((x) => x.status === "accepted" && x.id === c.sorting[number])?.name ?? "لم يوزَّع عليها منسق"}</b>
+        {c.femaleGuides.length > 0 && (
+          <>
+            {" — "}موجّهتها: <b>{c.femaleGuides.find((x) => x.status === "accepted" && x.id === c.guideSorting?.[number])?.name ?? "لم توزَّع عليها موجّهة"}</b>
+          </>
+        )}
       </p>
       <AdminRequests fixed={number} embedded />
     </div>
@@ -831,20 +843,10 @@ function StaffStep({ req, editable, sortable }: { req: ClusterRequest; editable:
   const live = (xs: ClusterInvite[]) => xs.filter((x) => x.status !== "declined").length;
   const combo = req.checks.find((x) => x.key === "combo");
   const coords = c.coordinators.filter((x) => x.status === "accepted");
-  const setSort = (num: number, id: string) => {
-    const sorting = { ...c.sorting };
-    if (id) sorting[num] = id;
-    else delete sorting[num];
-    write({ ...c, sorting }, `توزيع ${groupName(num)} على منسق`, coords.find((x) => x.id === id)?.name ?? "دون منسق");
-  };
-  const spread = () => {
-    if (!coords.length) return;
-    const per = Math.ceil(req.groups.length / coords.length);
-    write({ ...c, sorting: Object.fromEntries(req.groups.map((g, i) => [g.number, coords[Math.min(coords.length - 1, Math.floor(i / per))].id])) }, "توزيع المجموعات على المنسقين بالتساوي");
-  };
+  const guides = c.femaleGuides.filter((x) => x.status === "accepted");
   return (
     <div className="space-y-6">
-      {editable && <StepNote title="المنسقون والموجّهات والمرشدات الدينيات" desc={`العدد محسوب من مجموع الفئات (${req.weight}): منسق لكل ${n.perCoordinator} وحدات، وموجّهة أو مرشدة لكل ${n.perGuide}.`} />}
+      {editable && <StepNote title="المنسقون والموجّهات والمرشدات الدينيات" desc={`العدد محسوب من مجموع الفئات (${req.weight}): منسق لكل ${n.perCoordinator} وحدات، وموجّهة أو مرشدة لكل ${n.perGuide}، ولا يقلّ عمّا يتسع لكل المجموعات: لا يُوزَّع أحد على أكثر من وحداته.`} />}
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card className="space-y-3 md:p-6">
           <SectionTitle icon={Building2} action={<Badge tone={coords.length === n.coordinators ? "green" : "gold"}>{coords.length} من {coordinatorsLabel(n.coordinators)}</Badge>}>
@@ -861,36 +863,102 @@ function StaffStep({ req, editable, sortable }: { req: ClusterRequest; editable:
             الموجّهات والمرشدات
           </SectionTitle>
           {c.femaleGuides.map((x) => (
-            <InviteRow key={x.id} req={req} x={x} editable={editable} onRemove={() => write({ ...c, femaleGuides: c.femaleGuides.filter((m) => m.id !== x.id) }, `سحب دعوة ${x.name}`, x.name)} />
+            <InviteRow key={x.id} req={req} x={x} editable={editable} onRemove={() => write({ ...c, femaleGuides: c.femaleGuides.filter((m) => m.id !== x.id), guideSorting: Object.fromEntries(Object.entries(c.guideSorting ?? {}).filter(([, who]) => who !== x.id)) }, `سحب دعوة ${x.name}`, x.name)} />
           ))}
           {editable && <PersonPicker people={picks("guidePool")} exclude={exclude} placeholder="ادعُ موجّهة أو مرشدة" full={live(c.femaleGuides) >= n.femaleGuides ? (n.femaleGuides ? `اكتمل العدد المسموح (${n.femaleGuides}).` : "لا موجّهات في هذا المستوى لهذا المجموع.") : undefined} onPick={(x) => write({ ...c, femaleGuides: [...c.femaleGuides, invite(x.id, x.name)] }, "دعوة موجّهة للتكتل", x.name)} />}
         </Card>
       </div>
-      <Card className="md:p-6">
-        <SectionTitle icon={Shuffle}>توزيع المجموعات على المنسقين</SectionTitle>
-        <p className="mt-1 text-sm leading-7 text-ink-soft">يعمل كل منسق في المجموعات الموزَّعة عليه وحدها: يرى حجاجها حين يلحقهم المكتب بعقودهم، ويأخذ ملفاتهم الصحية (النظام الإداري: يوزّع رئيس التكتل المجموعات على منسقيه).</p>
-        {sortable && coords.length > 0 && (
-          <Button size="sm" variant="outline" className="mt-2" onClick={spread}>
-            <Shuffle className="size-3.5" /> بالتساوي
-          </Button>
-        )}
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-          {req.groups.map((g) => (
+      <Distribution req={req} sortable={sortable} people={coords} field="sorting" quota={n.perCoordinator} title="توزيع المنسقين على المجموعات" one="منسق" note="يعمل كل منسق في المجموعات التي وُزّع عليها وحدها: يرى حجاجها حين يلحقهم المكتب بعقودهم، ويأخذ ملفاتهم الصحية." />
+      {(n.femaleGuides > 0 || c.femaleGuides.length > 0) && (
+        <Distribution req={req} sortable={sortable} people={guides} field="guideSorting" quota={n.perGuide} title="توزيع الموجّهات والمرشدات على المجموعات" one="موجّهة" note="توجّه كل موجّهة أو مرشدة حاجّات المجموعات التي وُزّعت عليها، وتراهنّ في «حجاج مجموعاتي»." />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Distributing the coordinators, or the female guides and murshidas, on the cluster's groups: each group one of
+ * them, each of them groups up to his quota of units (a group weighs its category: الأولى 1 … الرابعة 4) and no
+ * more. A choice that would take someone over his quota is not offered; «توزيع تلقائي» spreads them within it.
+ */
+function Distribution({ req, sortable, people, field, quota, title, one, note }: { req: ClusterRequest; sortable: boolean; people: ClusterInvite[]; field: "sorting" | "guideSorting"; quota: number; title: string; one: string; note: string }) {
+  const write = useWrite(req);
+  const c = req.cluster;
+  const map = c[field] ?? {};
+  const units = req.groups.map((g) => ({ number: g.number, units: g.units }));
+  const mine = (num: number) => people.find((x) => x.id === map[num]);
+  const set = (num: number, id: string) => {
+    const next = { ...map };
+    if (id) next[num] = id;
+    else delete next[num];
+    write({ ...c, [field]: next }, `توزيع ${people.find((x) => x.id === id)?.name ?? `دون ${one}`} على ${groupName(num)}`);
+  };
+  const auto = () => {
+    const { map: next, left } = distribute(units, people.map((x) => x.id), quota);
+    write({ ...c, [field]: next }, `${title}: توزيع تلقائي ضمن حدود الوحدات`, undefined, left.length ? `بقيت ${left.length} بلا ${one}: لا تتسع لها الحدود` : undefined);
+  };
+  const over = people.filter((x) => loadOf(units, map, x.id) > quota);
+  const bare = req.groups.filter((g) => !mine(g.number));
+  return (
+    <Card className="md:p-6">
+      <SectionTitle
+        icon={Shuffle}
+        action={
+          sortable && people.length > 0 ? (
+            <Button size="sm" variant="outline" onClick={auto}>
+              <Shuffle className="size-3.5" /> توزيع تلقائي ضمن الحدود
+            </Button>
+          ) : undefined
+        }
+      >
+        {title}
+      </SectionTitle>
+      <p className="mt-1 text-sm leading-7 text-ink-soft">
+        {note} حدّ كلٍّ {quota} وحدات في هذا المستوى، والوحدة فئة المجموعة: الأولى 1، الثانية 2، الثالثة 3، الرابعة 4.
+      </p>
+      {people.length === 0 ? (
+        <p className="mt-3 rounded-xl bg-sand px-3 py-2 text-sm text-hint">يُوزَّعون على المجموعات بعد أن يقبلوا دعواتهم.</p>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {people.map((x) => {
+            const load = loadOf(units, map, x.id);
+            return (
+              <span key={x.id} className={cn("rounded-full px-3 py-1 text-xs font-bold", load > quota ? "bg-maroon text-white" : load === quota ? "bg-green-dark text-white" : "bg-sand text-ink")}>
+                {x.name}: {load} من {quota} وحدات
+              </span>
+            );
+          })}
+        </div>
+      )}
+      {over.length > 0 && <p className="mt-2 rounded-xl bg-maroon/5 px-3 py-2 text-xs font-bold text-maroon">يتجاوز حدّه: {over.map((x) => x.name).join("، ")}. انقل عنه مجموعة إلى غيره.</p>}
+      {people.length > 0 && bare.length > 0 && <p className="mt-2 rounded-xl bg-gold/15 px-3 py-2 text-xs font-bold text-ink">بلا {one}: {bare.map((g) => groupName(g.number)).join("، ")}.</p>}
+      <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+        {req.groups.map((g) => {
+          const unit = { number: g.number, units: g.units };
+          return (
             <li key={g.number} className="flex items-center gap-2 rounded-xl bg-sand px-3 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate font-bold">{groupName(g.number)}</span>
-              <select value={coords.some((x) => x.id === c.sorting[g.number]) ? c.sorting[g.number] : ""} disabled={!sortable} onChange={(e) => setSort(g.number, e.target.value)} aria-label={`منسق ${groupName(g.number)}`} className="h-9 rounded-lg border-2 border-gold/40 bg-white px-2 text-xs font-bold disabled:opacity-80">
-                <option value="">— دون منسق —</option>
-                {coords.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.name}
-                  </option>
-                ))}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold">{groupName(g.number)}</span>
+                <span className="block text-xs text-hint">
+                  {g.categoryName}: {g.units} {g.units === 1 ? "وحدة" : g.units === 2 ? "وحدتان" : "وحدات"}
+                </span>
+              </span>
+              <select value={mine(g.number)?.id ?? ""} disabled={!sortable} onChange={(e) => set(g.number, e.target.value)} aria-label={`${one} ${groupName(g.number)}`} className="h-9 max-w-[55%] rounded-lg border-2 border-gold/40 bg-white px-2 text-xs font-bold disabled:opacity-80">
+                <option value="">— دون {one} —</option>
+                {people.map((x) => {
+                  const ok = fits(units, map, x.id, unit, quota);
+                  return (
+                    <option key={x.id} value={x.id} disabled={!ok}>
+                      {x.name} ({loadOf(units, map, x.id)} من {quota}){ok ? "" : " — يتجاوز حدّه"}
+                    </option>
+                  );
+                })}
               </select>
             </li>
-          ))}
-        </ul>
-      </Card>
-    </div>
+          );
+        })}
+      </ul>
+    </Card>
   );
 }
 
@@ -1041,7 +1109,7 @@ function ManageCluster({ req }: { req: ClusterRequest }) {
           <b className="font-display text-lg text-green-dark">{req.groups.length}</b> مجموعات — <b className="font-display text-lg text-green-dark">{formatNumber(req.pilgrims)}</b> حاجاً بفئاتها
         </span>
       </div>
-      <p className="rounded-2xl bg-sand px-4 py-2 text-xs leading-6 text-ink-soft">تعديل مجموعات التكتل وكادره بعد اعتماده للإدارة: تعيد فتح الطلب لك، أو تعدّله تعديلاً استثنائياً بسبب يُسجَّل. توزيع المجموعات على المنسقين لك متى شئت.</p>
+      <p className="rounded-2xl bg-sand px-4 py-2 text-xs leading-6 text-ink-soft">تعديل مجموعات التكتل وكادره بعد اعتماده للإدارة: تعيد فتح الطلب لك، أو تعدّله تعديلاً استثنائياً بسبب يُسجَّل. توزيع المنسقين والموجّهات على المجموعات لك متى شئت.</p>
       {!c.feePaidAt && (
         <div className="rounded-2xl border-2 border-gold/40 bg-sand p-4">
           <p className="font-bold">

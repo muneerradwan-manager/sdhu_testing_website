@@ -1,7 +1,7 @@
 import type { AdminProfile, ClusterInvite, ClusterRecord, GroupInvite, Seat } from "@/lib/store";
 import { HEADS_POOL } from "./people";
 import { GEN_CLUSTERS } from "./season-seed";
-import { categoryOfId, seatsOf, type Structure } from "./structure";
+import { categoryOfId, seatsOf, weightOf, type Structure } from "./structure";
 
 export { HEADS_POOL };
 
@@ -20,6 +20,8 @@ export type ClusterGroup = {
   branch: string;
   category: string;
   categoryName: string;
+  /** Its category's units: what it weighs on the coordinator and the female guide it is distributed to */
+  units: number;
   /** The pilgrims its category takes under the cluster's tier */
   capacity: number;
   pilgrims: number;
@@ -93,7 +95,9 @@ export const SEED_CLUSTERS: SeedCluster[] = [
       assistants: [acc("01033300947", "عمر الحايك"), acc("01033300975", "عبد الكريم الشلاح")],
       coordinators: [acc("01033300874", "سامر نبيل نجار"), acc("01033300961", "لؤي العظمة")],
       femaleGuides: [acc("01033300981", "هالة الدقر"), acc("01033300985", "نهى الطباع")],
-      sorting: sorting({ "01033300874": [31, 27, 5], "01033300961": [18, 33, 47] }),
+      // Within each one's units: سامر 5 of 6 (الخبير 3، اللطيف 2)، لؤي 6 of 6; هالة 6 of 7، نهى 5 of 7
+      sorting: sorting({ "01033300874": [31, 27], "01033300961": [5, 47, 18, 33] }),
+      guideSorting: sorting({ "01033300981": [31, 27, 18], "01033300985": [5, 47, 33] }),
     },
   },
   {
@@ -121,6 +125,7 @@ export const SEED_CLUSTERS: SeedCluster[] = [
       coordinators: [acc("01033300972", "حسان المارديني")],
       femaleGuides: [acc("01033300982", "سمر الخطيب")],
       sorting: sorting({ "01033300972": [52, 41, 9, 8] }),
+      guideSorting: sorting({ "01033300982": [52, 41, 9, 8] }),
     },
   },
   {
@@ -195,6 +200,7 @@ export function asGroup(s: Structure, c: ClusterRecord, g: GroupInvite, own: boo
     branch: g.branch,
     category: g.category,
     categoryName: categoryOfId(s, g.category)?.name ?? "—",
+    units: weightOf(s, g.category),
     capacity: seatsOf(s, c.tier, g.category).pilgrims,
     pilgrims: g.pilgrims,
     joined: own ? "مجموعة رئيس التكتل" : g.byAdministration ? `أضافتها الإدارة — ${g.byAdministration.reason}` : "قبِل رئيسها دعوة التكتل",
@@ -240,11 +246,16 @@ export function clusterTotals(groups: ClusterGroup[]) {
   };
 }
 
-/** Who sits in a group's seats, among those who accepted: its guides and its assistants, and its coordinator */
+/** Who sits in a group's seats, among those who accepted: its guides and its assistants, and the coordinator and the female guide distributed on it */
 export function teamOf(c: ClusterRecord, number: number) {
   const seats = c.seats[number] ?? [];
   const sat = (k: Seat["kind"]) => seats.filter((x) => x.kind === k && x.who?.status === "accepted").map((x) => x.who!);
-  return { guides: sat("guide"), assistants: sat("assistant"), coordinator: c.coordinators.find((x) => x.status === "accepted" && x.id === c.sorting[number]) };
+  return {
+    guides: sat("guide"),
+    assistants: sat("assistant"),
+    coordinator: c.coordinators.find((x) => x.status === "accepted" && x.id === c.sorting[number]),
+    femaleGuide: c.femaleGuides.find((x) => x.status === "accepted" && x.id === c.guideSorting?.[number]),
+  };
 }
 
 /**

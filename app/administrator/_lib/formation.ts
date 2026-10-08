@@ -1,5 +1,6 @@
 "use client";
 
+import { loadOf } from "./distribution";
 import { useMemo } from "react";
 import { groupName, groupShort } from "@/lib/groups";
 import { useClockTime, useOperation, useToday, type OperationState } from "@/lib/operations";
@@ -17,7 +18,7 @@ export type Cluster = ClusterRecord;
 export const POOLS: Record<TeamPool, { label: string; one: string; title: string; note: string }> = {
   guide: { label: "الموجّهون والمرشدون", one: "موجّه ديني", title: "موجّه المجموعة", note: "مقعد الموجّه في مجموعة" },
   assistant: { label: "معاونو المجموعات", one: "معاون", title: "معاون المجموعة", note: "مقعد المعاون في مجموعة" },
-  tech: { label: "المنسقون التقنيون", one: "منسق تقني", title: "المنسق التقني", note: "للتكتل: يوزّع رئيسه المجموعات على منسقيه" },
+  tech: { label: "المنسقون التقنيون", one: "منسق تقني", title: "المنسق التقني", note: "للتكتل: يوزّعه رئيسه على مجموعات ضمن حدّه من الوحدات" },
   "guide-f": { label: "الموجّهات والمرشدات", one: "موجّهة دينية", title: "موجّهة التكتل", note: "للتكتل كله: حاجّاته" },
   "cluster-assistant": { label: "معاونو التكتل", one: "معاون التكتل", title: "معاون التكتل", note: "للتكتل كله: المطارات والمخيمات والطوارئ" },
 };
@@ -123,7 +124,8 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
   const c = r.cluster;
   const groups = acceptedGroups(c).map((g) => asGroup(s, c, g, g.number === r.headGroup));
   const weight = acceptedGroups(c).reduce((n, g) => n + weightOf(s, g.category), 0);
-  const needs = needsOf(s, c.tier, weight);
+  const needs = needsOf(s, c.tier, weight, groups.map((g) => g.units));
+  const units = groups.map((g) => ({ number: g.number, units: g.units }));
   const role = (id: string) => roleOfPerson(id, admins, cadre);
   const yes = (x?: ClusterInvite) => x?.status === "accepted";
   const counted = c.assistants.filter((x) => yes(x) && !roleOf(s, role(x.id))?.multiplier);
@@ -141,6 +143,8 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
     { key: "groups", step: "groups", label: `${groups.length} مجموعات قبلت`, ok: groups.length > 0 },
     { key: "weight", step: "groups", label: `مجموع الفئات ${weight} — المطلوب بين ${needs.min} و${needs.max}`, ok: weight >= needs.min && weight <= needs.max },
     ...(sameName ? [{ key: "names", step: "groups" as Step, label: `اسم ${groupName(sameName.number)} مطابق لاسم التكتل — يجب أن يختلف`, ok: false }] : []),
+    // A group holds no more pilgrims than its category takes under the cluster's tier
+    ...groups.filter((g) => g.pilgrims > g.capacity).map((g): Check => ({ key: `full-${g.number}`, step: "groups", label: `${groupName(g.number)}: فيها ${g.pilgrims} حاجاً، وسعة ${g.categoryName} في هذا المستوى ${g.capacity}`, ok: false })),
     ...groups.map((g): Check => {
       const seats = c.seats[g.number] ?? [];
       const filled = seats.filter((x) => yes(x.who)).length;
@@ -150,6 +154,11 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
     { key: "coordinators", step: "staff", label: `المنسقون: ${coords.length} من ${needs.coordinators} (منسق لكل ${needs.perCoordinator} وحدات)`, ok: coords.length === needs.coordinators },
     ...(needs.coordinators > 0 ? [{ key: "combo", step: "staff" as Step, label: `أحد المنسقين بصفة «${roleName("assistant-tech", s)}»`, ok: coords.some((x) => does(s, role(x.id), "assistantSeat") && does(s, role(x.id), "coordinatorPool")) }] : []),
     { key: "female", step: "staff", label: `الموجّهات والمرشدات: ${guides.length} من ${needs.femaleGuides} (واحدة لكل ${needs.perGuide} وحدات)`, ok: guides.length === needs.femaleGuides },
+    // Nobody distributed on more units than his quota
+    ...[...coords.map((x) => ({ x, map: c.sorting, quota: needs.perCoordinator })), ...guides.map((x) => ({ x, map: c.guideSorting ?? {}, quota: needs.perGuide }))]
+      .map(({ x, map, quota }) => ({ x, quota, load: loadOf(units, map, x.id) }))
+      .filter((r) => r.load > r.quota)
+      .map((r): Check => ({ key: `over-${r.x.id}`, step: "staff", label: `${r.x.name}: موزَّع على ${r.load} وحدات، وحدّه ${r.quota}`, ok: false })),
     { key: "deputy", step: "deputy", label: yes(c.deputy) ? `${DEPUTY_TITLE}: ${c.deputy!.name}` : `${DEPUTY_TITLE} من رؤساء المجموعات لم يقبل بعد`, ok: yes(c.deputy) && groups.some((g) => g.headId === c.deputy!.id) },
     { key: "accountant", step: "accountant", label: yes(c.accountant) ? `${ACCOUNTANT_TITLE}: ${c.accountant!.name}` : `${ACCOUNTANT_TITLE} لم يقبل بعد`, ok: yes(c.accountant) && people.includes(c.accountant!.id) && !c.femaleGuides.some((x) => x.id === c.accountant!.id) },
     { key: "answers", step: "report", label: pendingAny ? "دعوات لم يُرد عليها بعد" : "رُدّ على كل الدعوات", ok: !pendingAny },
@@ -351,11 +360,18 @@ export function useMyInvitations(id: string) {
   return useMemo(() => invitationsFor(id, requests), [id, requests]);
 }
 
-/** The groups a coordinator works in: those its head sorted to him */
+/** The groups a coordinator works in: those its head distributed him on */
 export function sortedTo(c: Cluster, id: string) {
   return acceptedGroups(c)
     .map((g) => g.number)
     .filter((n) => c.sorting[n] === id);
+}
+
+/** The groups a female guide or murshida serves: those its head distributed her on */
+export function guidedBy(c: Cluster, id: string) {
+  return acceptedGroups(c)
+    .map((g) => g.number)
+    .filter((n) => c.guideSorting?.[n] === id);
 }
 
 /**
@@ -381,7 +397,7 @@ export function writeCluster(req: Pick<ClusterRequest, "headId" | "headName" | "
     const seat = Object.entries(next.seats).flatMap(([n, seats]) => seats.filter((x) => x.who?.id === id && yes(x.who)).map((x) => ({ n: Number(n), kind: x.kind })))[0];
     const female = next.femaleGuides.some((x) => x.id === id && yes(x));
     const assistant = next.assistants.some((x) => x.id === id && yes(x));
-    const serves = seat ? { ...base, role: seat.kind, groups: [seat.n] } : female ? { ...base, role: "guide-f" as const, groups: [] } : assistant ? { ...base, role: "cluster-assistant" as const, groups: [] } : undefined;
+    const serves = seat ? { ...base, role: seat.kind, groups: [seat.n] } : female ? { ...base, role: "guide-f" as const, groups: guidedBy(next, id) } : assistant ? { ...base, role: "cluster-assistant" as const, groups: [] } : undefined;
     if (serves || a.servesIn?.clusterId === next.id) patch.servesIn = serves;
     // A group head who accepted brings his group into the cluster
     const g = Object.values(next.groups).find((x) => x.id === id);

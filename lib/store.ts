@@ -359,6 +359,8 @@ export type ClusterRecord = {
   femaleGuides: ClusterInvite[];
   /** Which coordinator works in each group: group number -> his id. One coordinator takes several groups */
   sorting: Record<number, string>;
+  /** Which female guide or murshida serves each group, the same way (each within her quota of units) */
+  guideSorting?: Record<number, string>;
 };
 
 export type AdminProfile = {
@@ -772,7 +774,7 @@ function normalize(s: State): State {
         return [id, { ...p, cluster: undefined, deputyOf: gone(p.deputyOf) ? undefined : p.deputyOf, coordinatorIn: gone(p.coordinatorIn) ? undefined : p.coordinatorIn, servesIn: gone(p.servesIn) ? undefined : p.servesIn }];
       }
       const k = p.cluster;
-      return [id, { ...p, cluster: { ...k, groups: obj(k.groups), seats: obj(k.seats), assistants: list(k.assistants), coordinators: list(k.coordinators), femaleGuides: list(k.femaleGuides), sorting: obj(k.sorting) } as ClusterRecord }];
+      return [id, { ...p, cluster: { ...k, groups: obj(k.groups), seats: obj(k.seats), assistants: list(k.assistants), coordinators: list(k.coordinators), femaleGuides: list(k.femaleGuides), sorting: obj(k.sorting), guideSorting: obj(k.guideSorting) } as ClusterRecord }];
     }),
   ) as State["admins"];
   return {

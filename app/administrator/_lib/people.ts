@@ -12,15 +12,15 @@ export type PoolHead = { id: string; name: string; group: number; seasons: numbe
 
 export const HEADS_POOL: PoolHead[] = [
   // The story's own groups; the season's generated ones follow (./season-seed)
-  { id: "seed-01", name: "عبد الرحمن القباني", group: 61, seasons: 4, rating: 4.7, branch: "دمشق", category: "c3", pilgrims: 98, age: 57 },
+  { id: "seed-01", name: "عبد الرحمن القباني", group: 61, seasons: 4, rating: 4.7, branch: "دمشق", category: "c3", pilgrims: 84, age: 57 },
   { id: "seed-02", name: "فراس البيطار", group: 9, seasons: 3, rating: 4.2, branch: "دمشق", category: "c1", pilgrims: 44, age: 49 },
   { id: "seed-03", name: "رضوان الزعبي", group: 41, seasons: 3, rating: 4.4, branch: "درعا", category: "c2", pilgrims: 81, age: 46 },
   { id: "seed-04", name: "حسام الساعاتي", group: 52, seasons: 5, rating: 4.6, branch: "حمص", category: "c2", pilgrims: 86, age: 53 },
   { id: "seed-05", name: "صالح العلي", group: 47, seasons: 3, rating: 4.1, branch: "حماة", category: "c2", pilgrims: 77, age: 44 },
   { id: "seed-06", name: "نزار الشيخ", group: 33, seasons: 3, rating: 4.3, branch: "اللاذقية", category: "c1", pilgrims: 40, age: 41 },
   { id: "seed-07", name: "طارق الحوراني", group: 18, seasons: 4, rating: 4.5, branch: "دمشق", category: "c1", pilgrims: 43, age: 39 },
-  { id: "seed-08", name: "ماهر الجابي", group: 55, seasons: 2, rating: 4.0, branch: "حلب", category: "c2", pilgrims: 64, age: 38 },
-  { id: "seed-09", name: "غسان النحاس", group: 44, seasons: 1, rating: 3.9, branch: "دير الزور", category: "c1", pilgrims: 36, age: 31 },
+  { id: "seed-08", name: "ماهر الجابي", group: 55, seasons: 2, rating: 4.0, branch: "حلب", category: "c2", pilgrims: 56, age: 38 },
+  { id: "seed-09", name: "غسان النحاس", group: 44, seasons: 1, rating: 3.9, branch: "دير الزور", category: "c1", pilgrims: 28, age: 31 },
   { id: "seed-10", name: "لؤي حمدان", group: 8, seasons: 2, rating: 4.2, branch: "دمشق", category: "c1", pilgrims: 41, age: 37 },
   { id: "seed-11", name: "يحيى المصري", group: 12, seasons: 2, rating: 4.4, branch: "دمشق", category: "c2", pilgrims: 72, age: 42 },
   { id: "seed-12", name: "عمر الدباغ", group: 14, seasons: 1, rating: 4.1, branch: "دمشق", category: "c1", pilgrims: 33, age: 35 },

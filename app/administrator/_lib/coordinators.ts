@@ -14,7 +14,7 @@ import { useStructure, type Structure } from "./structure";
  * sorted to him: he files pilgrims' applications in the office, enrolls the families who chose one of his
  * groups, and takes their health files.
  */
-export const COORDINATOR_ROLE = { key: "tech", label: "المنسق التقني", note: "يسجّل الحجاج في مجموعاته الموزَّعة عليه، ويأخذ ملفاتهم الصحية" } as const;
+export const COORDINATOR_ROLE = { key: "tech", label: "المنسق التقني", note: "يعمل في المجموعات التي وُزّع عليها، ويأخذ ملفات حجاجها الصحية" } as const;
 
 export function coordinatorsLabel(n: number) {
   return n === 0 ? "لا منسق" : n === 1 ? "منسق واحد" : n === 2 ? "منسقان" : `${n} منسقين`;
@@ -23,8 +23,8 @@ export function coordinatorsLabel(n: number) {
 export type CoordinatorPost = { clusterId: string; clusterName: string; headId: string; headName: string; role: TeamPool; groups: ClusterGroup[] };
 
 /**
- * Where someone the cluster's head picked works: a coordinator's groups (sorted to him), a guide's or an
- * assistant's seat's group, or the whole cluster for a female guide or a cluster assistant. Read from the
+ * Where someone the cluster's head picked works: the groups a coordinator or a female guide was distributed on,
+ * a guide's or an assistant's seat's group, or the whole cluster for a cluster assistant. Read from the
  * head's own record when it is on this device, so a change reaches him at once; else from the season's
  * seeded request; else from what his invitation left on his record.
  */
@@ -38,9 +38,11 @@ export function coordinatorPostOf(s: Structure, id: string, p: AdminProfile | un
     const mine =
       role === "tech"
         ? all.filter((g) => rec.cluster.sorting[g.number] === id)
-        : role === "guide" || role === "assistant"
-          ? all.filter((g) => (rec.cluster.seats[g.number] ?? []).some((x) => x.who?.id === id && x.who.status === "accepted"))
-          : all;
+        : role === "guide-f"
+          ? all.filter((g) => rec.cluster.guideSorting?.[g.number] === id)
+          : role === "guide" || role === "assistant"
+            ? all.filter((g) => (rec.cluster.seats[g.number] ?? []).some((x) => x.who?.id === id && x.who.status === "accepted"))
+            : all;
     return { ...c, role, groups: mine };
   }
   return { ...c, role, groups: [] };

@@ -110,10 +110,10 @@ type NavItem = {
 const serving = (c: NavCtx) => c.inGroup || c.cluster;
 /**
  * A group head has one group, and so has a guide or an assistant in its seat: the plural is only for whoever
- * serves several (a coordinator). A female guide or a cluster assistant works for the whole cluster.
+ * serves several (a coordinator or a female guide, distributed on groups). A cluster assistant works for the whole cluster.
  */
 const groupsTab = (c: NavCtx) =>
-  c.p?.servesIn?.role === "guide-f" || c.p?.servesIn?.role === "cluster-assistant" ? "مجموعات التكتل" : (c.p?.coordinatorIn?.groups.length ?? c.p?.servesIn?.groups.length ?? 1) > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
+  c.p?.servesIn?.role === "cluster-assistant" ? "مجموعات التكتل" : (c.p?.coordinatorIn?.groups.length ?? c.p?.servesIn?.groups.length ?? 1) > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
 /** A cluster's head and deputy open its groups — each with its team and pilgrims — inside «إدارة التكتل» */
 const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster;
 

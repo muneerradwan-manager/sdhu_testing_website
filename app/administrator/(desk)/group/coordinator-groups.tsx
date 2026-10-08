@@ -16,9 +16,9 @@ import { AdminShell, LockedCard } from "../../_components/ui";
 
 /**
  * The screen of whoever a cluster's head invited to a place in it — a technical coordinator, the religious
- * guide or the assistant in a group's seat, a female guide or an assistant of the whole cluster. None of
- * them has a group of his own: the coordinator works in the groups the head sorted to him, a seat's holder in
- * its group, a female guide and a cluster assistant for the whole cluster.
+ * guide or the assistant in a group's seat, a female guide, an assistant of the whole cluster. None of them
+ * has a group of his own: the coordinator and the female guide work in the groups the head distributed them on
+ * (each within his quota of units), a seat's holder in its group, a cluster assistant for the whole cluster.
  */
 export function CoordinatorGroups() {
   const admin = useAdmin()!;
@@ -46,7 +46,9 @@ export function CoordinatorGroups() {
         : post.role === "cluster-assistant"
           ? rec.assistants.filter((x) => x.status === "accepted" && x.id !== admin.id)
           : post.groups.flatMap((g) => (rec.seats[g.number] ?? []).flatMap((x) => (x.who?.status === "accepted" && x.who.id !== admin.id ? [x.who] : [])));
-  const wide = post.role === "guide-f" || post.role === "cluster-assistant";
+  const wide = post.role === "cluster-assistant";
+  // Distributed on groups by the cluster's head, each within his units
+  const spread = post.role === "tech" || post.role === "guide-f";
   const totals = clusterTotals(post.groups);
   const title = wide ? "مجموعات التكتل" : post.groups.length > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
   return (
@@ -60,10 +62,10 @@ export function CoordinatorGroups() {
                 <Cpu className="size-3.5" /> {role.title}
               </Badge>
               <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">{post.clusterName}</h2>
-              <p className="mt-1 text-sm text-gold">رئيس التكتل: {post.headName} — هو من دعاك{post.role === "tech" ? " ووزّع عليك مجموعاتك" : ""}</p>
+              <p className="mt-1 text-sm text-gold">رئيس التكتل: {post.headName} — هو من دعاك{spread ? " ووزّعك على مجموعاتك" : ""}</p>
               <dl className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  [wide ? "مجموعات التكتل" : post.groups.length > 1 ? "مجموعاتي" : "مجموعتي", formatNumber(totals.groups), post.role === "tech" ? "يغيّرها رئيس التكتل متى شاء" : wide ? "تعمل للتكتل كله" : "مقعدك فيها"],
+                  [wide ? "مجموعات التكتل" : post.groups.length > 1 ? "مجموعاتي" : "مجموعتي", formatNumber(totals.groups), spread ? `${formatNumber(post.groups.reduce((n, g) => n + g.units, 0))} وحدات — يغيّرها رئيس التكتل متى شاء` : wide ? "تعمل للتكتل كله" : "مقعدك فيها"],
                   ["حجاجها", formatNumber(totals.pilgrims), `من ${formatNumber(totals.capacity)} بفئاتها`],
                   [post.role === "guide" || post.role === "assistant" ? "معك في مقاعدها" : role.label, formatNumber(others.length + (post.role === "guide" || post.role === "assistant" ? 0 : 1)), others.length ? others.map((c) => c.name).join("، ") : "أنت وحدك"],
                 ].map(([k, v, hint]) => (
@@ -79,10 +81,10 @@ export function CoordinatorGroups() {
 
           <Card>
             <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
-              <LayoutList className="size-5 text-gold-dark" /> {post.role === "tech" ? "المجموعات الموزَّعة عليك" : wide ? "مجموعات التكتل" : "مجموعتك"} — {formatNumber(totals.groups)}
+              <LayoutList className="size-5 text-gold-dark" /> {spread ? "المجموعات التي وُزّعت عليها" : wide ? "مجموعات التكتل" : "مجموعتك"} — {formatNumber(totals.groups)}
             </h3>
             {post.groups.length === 0 ? (
-              <p className="mt-3 rounded-2xl bg-sand p-4 text-sm text-ink-soft">{post.role === "tech" ? "لم يوزّع عليك رئيس التكتل مجموعة بعد." : "لا مجموعة بعد."}</p>
+              <p className="mt-3 rounded-2xl bg-sand p-4 text-sm text-ink-soft">{spread ? "لم يوزّعك رئيس التكتل على مجموعة بعد." : "لا مجموعة بعد."}</p>
             ) : (
               <ul className="mt-4 space-y-2">
                 {post.groups.map((g, i) => (
@@ -121,7 +123,7 @@ export function CoordinatorGroups() {
             <ul className="mt-2 list-inside list-disc space-y-1">
               <li>رئيس المجموعة لا يختار أحداً: يشكّل مجموعته وحده.</li>
               <li>رئيس التكتل يدعو موجّه كل مجموعة ومعاونها إلى مقاعدها بحسب فئتها في مستوى التكتل.</li>
-              <li>ويختار منسقي التكتل وموجّهاته ومعاونه بمجموع فئات مجموعاته، ويوزّع المجموعات على منسقيه.</li>
+              <li>ويختار منسقي التكتل وموجّهاته ومعاونه بمجموع فئات مجموعاته، ويوزّع منسقيه وموجّهاته على المجموعات، كلٌّ ضمن حدّه من الوحدات.</li>
               <li>لكل شخص مكان واحد في الموسم.</li>
             </ul>
           </div>
@@ -137,7 +139,7 @@ export function CoordinatorGroups() {
                   : post.role === "assistant"
                     ? "الحضور والتجمّع والمطارات والمستلزمات مع رئيس مجموعتك."
                     : post.role === "guide-f"
-                      ? "التوجيه الديني لحاجّات التكتل كله، والدروس والمناسك."
+                      ? "التوجيه الديني لحاجّات المجموعات التي وُزّعتِ عليها، والدروس والمناسك."
                       : "المطارات والمخيمات والطوارئ مع رئيس التكتل، ودعم رؤساء مجموعاته."}
             </p>
             <p className="mt-2 flex items-center gap-1 text-xs text-hint">

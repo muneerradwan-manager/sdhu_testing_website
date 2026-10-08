@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, Eye, FileSignature, HeartPulse, Inbox, Radio, Stethoscope, UserPlus, UsersRound } from "lucide-react";
+import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, Eye, FileSignature, Search, HeartPulse, Inbox, Radio, Stethoscope, UserPlus, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,12 @@ import { ageOf, fullName } from "@/lib/registry";
 import { actions, useStore, type HealthRecord } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
-import { LIFT_NEEDS, activeCount, assignedRealFamilies, buildRoster, compositionOf, seedRequestsFor, type JoinRequest } from "../../_lib/group";
+import { LIFT_NEEDS, assignedRealFamilies, buildRoster, compositionOf, groupCount, groupPilgrims, seedRequestsFor, type GroupPilgrim, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
 import { PilgrimSheet } from "../../_components/pilgrim-sheet";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import { clusterViewOf } from "../../_lib/cluster";
-import { useClusterGroupsOf } from "../../_lib/formation";
+import { useClusterGroupsOf, useClusterRequests } from "../../_lib/formation";
 import { useCoordinatorPost } from "../../_lib/coordinators";
 
 function needsLift(r: JoinRequest) {
@@ -56,29 +56,35 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   const home = p?.group?.number;
   const openNumber = fixed ?? (myCluster || coord ? (picked ?? myGroups[0]?.number) : home) ?? home;
   const openGroup = myGroups.find((x) => x.number === openNumber);
+  // The open group as its cluster records it (a group head's own group too), for its count and capacity
+  const requests = useClusterRequests();
+  const placed = openGroup ?? requests.find((r) => r.groups.some((x) => x.number === openNumber))?.groups.find((x) => x.number === openNumber);
   const openName = openNumber === undefined ? "المجموعة" : groupName(openNumber);
   const [healthFor, setHealthFor] = useState<string | null>(null);
   // One pilgrim's file, opened from his family's card
-  const [person, setPerson] = useState<{ family: string; id: string } | null>(null);
+  const [person, setPerson] = useState<{ family: JoinRequest; id: string } | null>(null);
   const tech = isTechCoordinator(p);
 
   const families = useMemo(() => {
     if (openNumber === undefined) return [];
     return [...assignedRealFamilies(openNumber, post, applications), ...seedRequestsFor(openNumber, home)];
   }, [openNumber, home, post, applications]);
-  const roster = useMemo(
-    () => buildRoster(p, applications, post, { groupNumber: openNumber, size: openGroup && openNumber !== home ? openGroup.pilgrims : undefined }),
-    [p, applications, post, openNumber, home, openGroup],
+  // As many as its cluster counts for it, the same number «إدارة التكتل» shows
+  const active = groupCount(openNumber, post, applications, placed, home);
+  // Every pilgrim of the open group by name: the families attached lately, then those in it from before
+  const everyone = useMemo(
+    () => groupPilgrims(families, buildRoster(p, applications, post, { groupNumber: openNumber, size: active }), active),
+    [families, p, applications, post, openNumber, active],
   );
 
   // A cluster's head and deputy open each group's pilgrims from the cluster's groups
   if (!embedded && myCluster) return <MovedTo href="/administrator/clusters" title="إدارة التكتل" />;
   if (!embedded && isTechCoordinator(p) && !coord?.groups.length) {
     return (
-      <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يسجّل الحجاج في المجموعات التي يفرزها له رئيس التكتل.">
+      <AdminShell title="حجاج مجموعاتي" subtitle="المنسق التقني للتكتل لا لمجموعة: يعمل في المجموعات التي يوزّعه عليها رئيس التكتل.">
         <LockedCard
-          title={coord ? "لم يفرز لك رئيس التكتل مجموعة بعد" : "لم تنضم إلى تكتل بعد"}
-          text={coord ? `أنت في ${coord.clusterName}. حين يوزّع عليك رئيسه ${coord.headName} مجموعات منه تظهر هنا، فترى حجاجها حين يلحقهم المكتب بعقودهم، وتأخذ ملفاتهم الصحية.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويسند إليك مجموعات من تكتله."}
+          title={coord ? "لم يوزّعك رئيس التكتل على مجموعة بعد" : "لم تنضم إلى تكتل بعد"}
+          text={coord ? `أنت في ${coord.clusterName}. حين يوزّعك رئيسه ${coord.headName} على مجموعات منه تظهر هنا، فترى حجاجها حين يلحقهم المكتب بعقودهم، وتأخذ ملفاتهم الصحية.` : "يدعوك رئيس تكتل في مدة تشكيل التكتلات، ويوزّعك على مجموعات من تكتله."}
           href="/administrator/groups"
           cta="إدارة المجموعات"
         />
@@ -95,7 +101,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
 
   const clusterId = coord?.clusterId ?? g?.clusterId;
   const info = groupInfo(clusterId, openNumber ?? g?.number);
-  const capacity = (openGroup && openNumber !== home ? openGroup.capacity : g?.capacity) ?? 50;
+  const capacity = placed?.capacity || g?.capacity || 50;
   const headOfOpen = openGroup && openNumber !== home ? openGroup.head : admin.name;
   const switcher = !fixed && (myCluster || coord) && myGroups.length > 1 && (
     <Card className="md:p-5">
@@ -107,7 +113,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
             <span className="mr-2 text-sm font-normal text-ink-soft">رئيسها المباشر {headOfOpen}</span>
           </p>
         </div>
-        <Badge tone="gold">{coord ? `${coord.clusterName} — ${myGroups.length} مجموعات مفروزة لك` : `${myCluster!.name} — ${myGroups.length} مجموعات تديرها كلها`}</Badge>
+        <Badge tone="gold">{coord ? `${coord.clusterName} — ${myGroups.length} مجموعات وُزّعت عليها` : `${myCluster!.name} — ${myGroups.length} مجموعات تديرها كلها`}</Badge>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {myGroups.map((x) => {
@@ -128,7 +134,6 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
     </Card>
   );
 
-  const active = activeCount(openNumber, post, applications, openGroup && openNumber !== home ? Math.max(0, openGroup.pilgrims - 6) : undefined, home);
   const healthMissing = (r: JoinRequest) => r.real && !post[r.id]?.health;
   const isNew = (r: JoinRequest) => !decisions[r.id];
   const shown = families.filter((r) => (filter === "all" ? true : filter === "new" ? isNew(r) : healthMissing(r)));
@@ -143,7 +148,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   };
 
   const healthTarget = families.find((r) => r.id === healthFor);
-  const personFamily = person ? families.find((r) => r.id === person.family) : undefined;
+  const pick = (r: GroupPilgrim) => setPerson({ family: r.family, id: r.member.id });
 
   const content = (
     <>
@@ -170,8 +175,10 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                 </Badge>
               </div>
             </div>
-            <PeopleBoard roster={roster} active={active} capacity={capacity} />
+            <PeopleBoard rows={everyone} capacity={capacity} onPick={pick} />
           </Card>
+
+          <PilgrimList rows={everyone} name={openName} onPick={pick} />
 
           {/* The office attaches the pilgrims; the group's side sees them here */}
           <p className="flex items-start gap-2 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
@@ -182,7 +189,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
           <div className="flex flex-wrap items-center gap-2">
             {(
               [
-                ["all", `الكل (${families.length})`],
+                ["all", `آخر العائلات الملحقة (${families.length})`],
                 ["new", `جديدة (${newCount})`],
                 ["health", `بانتظار الملف الصحي (${healthCount})`],
               ] as const
@@ -252,7 +259,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                         <li key={m.id}>
                           <button
                             type="button"
-                            onClick={() => setPerson({ family: r.id, id: m.id })}
+                            onClick={() => setPerson({ family: r, id: m.id })}
                             aria-label={`ملف ${m.name}`}
                             className="group flex w-full items-start gap-3 rounded-2xl bg-sand p-3 text-right transition hover:bg-gold/20 hover:shadow-md"
                           >
@@ -333,8 +340,8 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
       <Modal open={!!healthTarget} onClose={() => setHealthFor(null)}>
         {healthTarget && <HealthForm family={healthTarget} onDone={() => setHealthFor(null)} />}
       </Modal>
-      <Modal open={!!personFamily} onClose={() => setPerson(null)} className="max-w-3xl">
-        {personFamily && person && <PilgrimSheet family={personFamily} memberId={person.id} groupLabel={openName} onClose={() => setPerson(null)} />}
+      <Modal open={!!person} onClose={() => setPerson(null)} className="max-w-3xl">
+        {person && <PilgrimSheet family={person.family} memberId={person.id} groupLabel={openName} onClose={() => setPerson(null)} />}
       </Modal>
     </>
   );
@@ -342,7 +349,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   return (
     <AdminShell
       title={myCluster || coord ? `حجاج ${openName}` : "حجاج المجموعة"}
-      subtitle={`${coord ? `من مجموعات ${coord.clusterName} المسندة إليك، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `${groupName(g!.number)} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة ويوقّع عقده معها في المكتب، فيلحقه بها موظف المكتب.`}
+      subtitle={`${coord ? `من مجموعات ${coord.clusterName} التي وُزّعت عليها، رئيسها ${headOfOpen}. ` : myCluster ? `مجموعة من مجموعات ${myCluster.name} التي تديرها كلها، رئيسها المباشر ${headOfOpen}. ` : `${groupName(g!.number)} — ${info.clusterName}. `}يتفق الحاج المقبول مع المجموعة ويوقّع عقده معها في المكتب، فيلحقه بها موظف المكتب.`}
     >
       {content}
     </AdminShell>
@@ -478,28 +485,40 @@ function PersonIcon({ kind, className }: { kind: PersonKind; className?: string 
   );
 }
 
-function PeopleBoard({ roster, active, capacity }: { roster: { age: number; gender: "M" | "F" }[]; active: number; capacity: number }) {
-  // Members in the order they joined, one icon per seat; empty seats stay faint
-  const people = roster.slice(0, Math.min(active, capacity));
-  while (people.length < Math.min(active, capacity)) people.push({ age: 50, gender: "M" });
-  const { men, women, elderly } = compositionOf(people);
-  const kinds: PersonKind[] = [
-    ...people.map((r): PersonKind => (r.age >= 69 ? "elderly" : r.gender === "F" ? "woman" : "man")),
-    ...Array.from({ length: Math.max(0, capacity - people.length) }, () => "empty" as const),
-  ];
+function PeopleBoard({ rows, capacity, onPick }: { rows: GroupPilgrim[]; capacity: number; onPick: (r: GroupPilgrim) => void }) {
+  // One icon per pilgrim in the order they joined, each opening his file; empty seats stay faint
+  const people = rows.slice(0, capacity);
+  const { men, women, elderly } = compositionOf(people.map((r) => r.member));
+  const kindOf = (r: GroupPilgrim): PersonKind => (r.member.age >= 69 ? "elderly" : r.member.gender === "F" ? "woman" : "man");
+  const empty = Math.max(0, capacity - people.length);
   const legend: { kind: PersonKind; label: string; n: number }[] = [
     { kind: "man", label: "رجال", n: men },
     { kind: "woman", label: "نساء", n: women },
     { kind: "elderly", label: "كبار السن (69+)", n: elderly },
-    { kind: "empty", label: "مقاعد شاغرة", n: Math.max(0, capacity - people.length) },
+    { kind: "empty", label: "مقاعد شاغرة", n: empty },
   ];
   return (
     <div className="mt-5">
       <div className="grid grid-cols-10 gap-1 sm:gap-1.5" aria-label={`${people.length} من ${capacity}: ${men} رجال، ${women} نساء، ${elderly} من كبار السن`}>
-        {kinds.map((k, i) => (
-          <motion.span key={i} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.012, duration: 0.3 }} className="grid place-items-center">
-            <PersonIcon kind={k} className="h-9 w-7 sm:h-10 sm:w-8" />
-          </motion.span>
+        {people.map((r, i) => (
+          <motion.button
+            key={r.member.id}
+            type="button"
+            onClick={() => onPick(r)}
+            title={r.member.name}
+            aria-label={`ملف ${r.member.name}`}
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: i * 0.012, duration: 0.3 }}
+            className="grid place-items-center rounded-lg transition hover:bg-gold/25"
+          >
+            <PersonIcon kind={kindOf(r)} className="h-9 w-7 sm:h-10 sm:w-8" />
+          </motion.button>
+        ))}
+        {Array.from({ length: empty }, (_, i) => (
+          <span key={`empty-${i}`} className="grid place-items-center">
+            <PersonIcon kind="empty" className="h-9 w-7 sm:h-10 sm:w-8" />
+          </span>
         ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
@@ -509,14 +528,98 @@ function PeopleBoard({ roster, active, capacity }: { roster: { age: number; gend
             <b className="tabular-nums">{l.n}</b> <span className="text-ink-soft">{l.label}</span>
           </span>
         ))}
+        <span className="text-xs text-hint">اضغط أي حاج لترى ملفه.</span>
       </div>
     </div>
+  );
+}
+
+// ───────────────────────── Every pilgrim, by name ─────────────────────────
+
+const ONLY = [
+  ["all", "الكل"],
+  ["needs", "ذوو الاحتياجات"],
+  ["elderly", "كبار السن"],
+  ["women", "النساء"],
+] as const;
+
+/** The group's whole list: search by name or application number, a few filters, each pilgrim opening his file */
+function PilgrimList({ rows, name, onPick }: { rows: GroupPilgrim[]; name: string; onPick: (r: GroupPilgrim) => void }) {
+  const [q, setQ] = useState("");
+  const [only, setOnly] = useState<(typeof ONLY)[number][0]>("all");
+  const term = q.trim();
+  const shown = rows.filter(
+    (r) =>
+      (only === "all" || (only === "needs" ? r.member.needs.length > 0 : only === "elderly" ? r.member.age >= 69 : r.member.gender === "F")) &&
+      (!term || r.member.name.includes(term) || r.family.number.includes(term) || r.family.applicant.includes(term)),
+  );
+  return (
+    <Card className="md:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
+          <UsersRound className="size-5 text-gold-dark" /> كل حجاج {name} — {rows.length}
+        </h3>
+        <label className="relative w-full sm:w-72">
+          <span className="sr-only">ابحث عن حاج</span>
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو رقم الطلب" className="h-10 w-full rounded-xl bg-sand pr-9 pl-3 text-sm outline-none focus:ring-4 focus:ring-green-light/15" />
+        </label>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {ONLY.map(([k, l]) => (
+          <button key={k} type="button" aria-pressed={only === k} onClick={() => setOnly(k)} className={cn("rounded-full px-3 py-1 text-xs font-bold transition", only === k ? "bg-green-dark text-white" : "bg-sand text-ink-soft hover:text-ink")}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 max-h-[28rem] overflow-y-auto rounded-2xl border border-gold/30">
+        <div className="sticky top-0 z-10 hidden grid-cols-[2.5rem_1fr_4rem_5rem_1fr_1.5rem] gap-2 bg-sand px-3 py-2 text-xs font-bold text-ink-soft sm:grid">
+          <span>#</span>
+          <span>الحاج</span>
+          <span>العمر</span>
+          <span>الطلب</span>
+          <span>الاحتياجات</span>
+          <span />
+        </div>
+        {shown.length === 0 ? (
+          <p className="p-6 text-center text-sm text-hint">لا حاج مطابقاً.</p>
+        ) : (
+          <ul className="divide-y divide-gold/20">
+            {shown.map((r) => (
+              <li key={r.member.id}>
+                <button
+                  type="button"
+                  onClick={() => onPick(r)}
+                  className="group grid w-full grid-cols-[2.5rem_1fr_1.5rem] items-center gap-2 px-3 py-2.5 text-right text-sm transition hover:bg-gold/15 sm:grid-cols-[2.5rem_1fr_4rem_5rem_1fr_1.5rem]"
+                >
+                  <span className="tabular-nums text-hint">{rows.indexOf(r) + 1}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold text-ink">{r.member.name}</span>
+                    <span className="block truncate text-xs text-ink-soft">
+                      {r.member.gender === "F" ? "أنثى" : "ذكر"}
+                      {r.family.members.length > 1 ? ` — ${r.member.relation}، عائلة ${r.family.applicant}` : ""}
+                      <span className="sm:hidden"> — {r.member.age} عاماً</span>
+                    </span>
+                  </span>
+                  <span className="hidden font-display text-maroon sm:block">{r.member.age}</span>
+                  <span className="hidden tabular-nums text-ink-soft sm:block">{r.family.number}</span>
+                  <span className="hidden flex-wrap gap-1 sm:flex">
+                    {r.member.needs.length ? r.member.needs.map((x) => <Badge key={x} tone={LIFT_NEEDS.includes(x) ? "maroon" : "gold"}>{x}</Badge>) : <span className="text-hint">—</span>}
+                  </span>
+                  <Eye className="size-4 text-green-dark opacity-40 transition group-hover:opacity-100" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Card>
   );
 }
 
 // ───────────────────────── Enrollment (coordinator) ─────────────────────────
 
 /**
- * المنسق يسجّل في المجموعة المفتوحة من مجموعاته المفروزة له: يبحث عن حاج مقبول تواصل معه (بالرقم الوطني أو رقم الطلب)، فيسجّل
+ * المنسق يسجّل في المجموعة المفتوحة من المجموعات التي وُزّع عليها: يبحث عن حاج مقبول تواصل معه (بالرقم الوطني أو رقم الطلب)، فيسجّل
  * الطلب كاملاً ويرسل إليه العقد ليوقّعه برمز على هاتفه. إن كان الحاج في مجموعة أخرى ينتقل الطلب كله.
  */
