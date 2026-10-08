@@ -4,7 +4,7 @@ from cap import Cap, ROOT
 
 import json, sys
 from pathlib import Path
-KEEP = int(sys.argv[1]) if len(sys.argv) > 1 else 42
+KEEP = int(sys.argv[1]) if len(sys.argv) > 1 else 43
 man = json.loads((ROOT/"manifest.json").read_text("utf-8"))
 for e in man[KEEP:]:
     f = ROOT/"shots"/e["file"]
@@ -19,6 +19,11 @@ def btn(text, wait=900, exact=False):
     c.settle(wait)
 
 # ───────── E. تقديم طلب الحج ─────────
+# The season runs on its dates: the demo's date (its bar at the bottom) moves to the first day of the
+# registration for direct acceptance, 12 August, the family's track
+c.goto("/portal", wait=800)
+p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
+  s.clock = { ...(s.clock || {}), today: '2026-08-12', time: undefined }; localStorage.setItem(k, JSON.stringify(s)); }""")
 c.goto("/portal")
 c.shot("apply-cta", "من ملفي: زر «ابدأ الطلب الآن»", hl=[("a:has-text('ابدأ الطلب الآن')", "")], section=S)
 c.click("a:has-text('ابدأ الطلب الآن')", wait=1500)
@@ -136,7 +141,11 @@ at(6.9); c.shot("track-direct", "اعتماد القبول المباشر وفق
 at(9.5); c.shot("track-accepted", "مبارك! تم قبول طلبك", section=S, wait=0)
 c.settle(1500)
 c.scroll_to("#steps", 100)
-c.shot("post-steps", "الخطوات المطلوبة بعد القبول (6 خطوات)", section="G")
+c.shot("post-steps", "الخطوات المطلوبة بعد القبول (7 خطوات)", section="G")
+# The account's sidebar, with the pages a step has not opened yet locked
+c.scroll_top()
+c.shot("portal-sidebar", "القائمة الجانبية: صفحات حسابك، والمقفلة منها بما يفتحها", hl=[("nav[aria-label='أقسام حساب الحاج']", "")], section="D")
+c.scroll_to("#steps", 100)
 c.save_state(str(ROOT / "state-submitted.json"))
 
 # ───────── G. ما بعد القبول ─────────
@@ -152,48 +161,61 @@ btn("أؤكد وأوقّع إلكترونياً", wait=2200)
 c.scroll_to("#steps", 100)
 c.shot("post-confirm-done", "تم تأكيد قبولك — وتقييم المرحلة", section=S)
 btn("التالي:", wait=1200)
+
+# 2. the personal photo alone
 c.scroll_to("#steps", 100)
-c.shot("post-docs", "الخطوة 2: الصورة الشخصية والجواز لكل فرد", section=S)
+c.shot("post-docs", "الخطوة 2: الصورة الشخصية لكل فرد", section=S)
 c.scroll_by(300)
 btn("رفع الناقص", wait=1200)
-c.shot("post-docs-uploading", "جارٍ رفع الوثائق ثم مراجعتها", section=S)
-c.settle(4500)
-c.shot("post-docs-rejected", "أُعيد جواز كبيرة السن لأن صلاحيته قصيرة", section=S)
-p.locator("button:has-text('رفع الجواز المجدَّد')").click(); c.settle(6000)
-c.shot("post-docs-approved", "الجواز الجديد مقبول", section=S)
-# other members
-for name in ["محمد", "فاطمة", "عمر"]:
-    p.locator(f"button:has-text('{name}')").first.click(); c.settle(500)
-    b = p.locator("button:has-text('رفع الناقص')")
-    if b.count():
-        b.first.click(); c.settle(200)
-c.settle(7000)
+c.shot("post-docs-uploading", "جارٍ رفع الصورة ثم مراجعتها", section=S)
+c.settle(4000)
+c.shot("post-docs-approved", "الصورة مقبولة — مطابقة لمواصفات التأشيرة", section=S)
+def upload_rest():
+    for name in ["محمد", "فاطمة", "عمر", "خديجة"]:
+        p.locator(f"button:has-text('{name}')").first.click(); c.settle(500)
+        b = p.locator("button:has-text('رفع الناقص')")
+        if b.count() and b.first.is_enabled():
+            b.first.click(); c.settle(200)
+    c.settle(7000)
+upload_rest()
 c.scroll_to("#steps", 100)
-c.shot("post-docs-done", "الصورة والجواز مكتملان لجميع الأفراد", section=S)
+c.shot("post-docs-done", "الصورة الشخصية مكتملة لجميع الأفراد", section=S)
 btn("التالي:", wait=1500)
+
+def go_step(title):
+    """A step opened from the step bar: «التالي» goes back to the first finished step the page has not seen go by"""
+    c.scroll_to("#steps", 100)
+    p.locator(f"#steps li:has-text('{title}') button").first.click(); c.settle(1200)
+    c.scroll_to("#steps", 100)
+
+def open_step(title):
+    """Back on «طلبي وخطواته», a step opened from the step bar"""
+    c.goto("/portal/application", wait=1500)
+    go_step(title)
+
+# 3. attached to a group in the office, by a contract signed there; the groups browsed in the public directory
 c.scroll_to("#steps", 100)
-c.shot("post-group", "الخطوة 3: مرحلة التفويج — دليل المجموعات", section=S)
-c.scroll_by(500)
-c.shot("post-group-dir", "بطاقات التكتلات: المستوى والفنادق والمقاعد", section=S)
-p.locator("details summary:has-text('جدول المقارنة')").click(); c.settle(700)
-c.scroll_to("details[open]", 120)
-c.shot("post-group-compare", "جدول المقارنة بين التكتلات", section=S)
-c.scroll_to("button:has-text('تكتل النور')", 140)
-p.locator("button:has-text('تكتل النور')").first.click(); c.settle(1200)
-c.scroll_to("text=برنامج معتمد", 140)
+c.shot("post-group", "الخطوة 3: الإلحاق بمجموعة في المكتب — ثلاث مراحل", section=S)
+c.goto("/verify", wait=1200)
+p.locator("[role=tab]:has-text('دليل الخدمات')").first.click(); c.settle(1500)
+c.scroll_to("[role=tabpanel], main article", 140)
+c.shot("post-group-dir", "دليل الخدمات: بطاقات التكتلات المعتمدة بمستواها وفنادقها ومقاعد مجموعاتها", section=S)
+p.locator("article:has-text('تكتل النور') a:has-text('عرض البرنامج الكامل')").first.click(); c.settle(2200)
 c.shot("post-cluster-detail", "صفحة التكتل: السكن والنقل والبرامج", section=S)
-c.scroll_to("text=مجموعة اللطيف", 140)
-c.shot("post-group-card", "بطاقة المجموعة ومنسقها", hl=[("div:has(> div > div > p:text-is('مجموعة اللطيف')) button[aria-label^='اتصال']", "1"), ("div:has(> div > div > p:text-is('مجموعة اللطيف')) button:has-text('محاكاة')", "2")], section=S)
-p.locator("div:has(> div > div > p:text-is('مجموعة اللطيف')) button:has-text('محاكاة')").click(); c.settle(900)
-c.shot("post-contract", "عقد الحاج مع المجموعة — توقيع برمز الهاتف", section=S)
-c.otp("1448")
-btn("أوافق وأوقّع العقد", wait=2500)
+c.scroll_to("text=مجموعات التكتل", 140)
+c.shot("post-group-card", "بطاقة المجموعة: رئيسها ومقاعدها المتبقية — للاطلاع", hl=[("li:has-text('مجموعة اللطيف')", "")], section=S)
+open_step("الإلحاق بمجموعة")
+j = p.locator("main button:has-text('جرّبها الآن')")
+if j.count():
+    j.first.click(); c.settle(1500)
+p.locator("button:has-text('محاكاة: وقّعنا العقد')").first.click(); c.settle(6000)  # the toasts go
 c.scroll_to("#steps", 100)
-c.shot("post-group-done", "أنتم الآن في مجموعة اللطيف — سلسلة التوقيع", section=S)
-c.scroll_to("text=نوع السكن", 330)
-c.shot("post-mygroup", "مجموعتي: الفريق والأفراد ونوع السكن وإمكانية الانتقال", section=S)
-c.scroll_to("#steps", 100)
-btn("التالي:", wait=1500)
+c.shot("post-group-done", "ألحقكم المكتب بمجموعة اللطيف — سلسلة العقد", section=S)
+c.goto("/portal/application/group", wait=1800)
+c.shot("post-mygroup", "مجموعتي وعقدي: المجموعة وفريقها وقناتها وعقدكم", hl=[("nav[aria-label='أقسام حساب الحاج'] a[href='/portal/application/group']", "")], section=S)
+open_step("الدفعة الثانية")
+
+# 4. the second payment
 c.scroll_to("#steps", 100)
 # The family takes private rooms of its own: two rooms of two beds for the four of them
 p.locator("button[aria-pressed]:has-text('غرف خاصة لكم')").first.click(); c.settle(1200)
@@ -210,11 +232,28 @@ c.shot("post-payment-modal", "نافذة الدفع: اختر شام كاش أو
 p.locator("div[role='dialog'] button:has-text('شام كاش')").click(); c.settle(700)
 p.locator("div[role='dialog'] button:has-text('رقم عملية تجريبي')").click(); c.settle(400)
 p.locator("div[role='dialog'] button:has-text('تأكيد الدفع')").click(); c.settle(3200)
+c.settle(3000)  # let the toasts go
 c.scroll_to("#steps", 100)
 c.shot("post-payment-done", "اكتمل دفع المبلغ كاملاً", section=S)
-btn("التالي:", wait=1500)
+go_step("جواز السفر")
+
+# 5. the passport, after the second payment only
 c.scroll_to("#steps", 100)
-c.shot("post-medical", "الخطوة 5: الملف الطبي — المعلومات الصحية يسجّلها المنسق", section=S)
+c.shot("post-passport", "الخطوة 5: جواز السفر لكل فرد — بعد الدفعة الثانية", section=S)
+c.scroll_by(300)
+btn("رفع الناقص", wait=1200)
+c.settle(4500)
+c.shot("post-docs-rejected", "أُعيد جواز كبيرة السن لأن صلاحيته قصيرة", section=S)
+p.locator("button:has-text('رفع الجواز المجدَّد')").click(); c.settle(6000)
+upload_rest()
+c.settle(4000)
+c.scroll_to("#steps", 100)
+c.shot("post-passport-done", "جوازات السفر مكتملة لجميع الأفراد", section=S)
+go_step("الملف الطبي")
+
+# 6. the medical file
+c.scroll_to("#steps", 100)
+c.shot("post-medical", "الخطوة 6: الملف الطبي — المعلومات الصحية يسجّلها المنسق", section=S)
 p.locator("button:has-text('محاكاة: المنسق يسجّل الآن')").click(); c.settle(1200)
 c.scroll_to("text=كرسي متحرك", 260)
 c.shot("post-medical-needs", "احتياجات خديجة كما سجّلها المنسق: تُراعى في السكن والنقل دون كلفة", hl=[("text=كرسي متحرك", "")], section=S)
@@ -226,9 +265,11 @@ c.shot("post-medical-docs", "شهادات اللقاحات والوثائق ال
 btn("رفع الكل", wait=4500)
 c.scroll_to("#steps", 100)
 c.shot("post-medical-done", "الملف الطبي مكتمل", section=S)
-btn("التالي:", wait=1500)
+go_step("التأشيرة والرحلة")
+
+# 7. the visa and the trip
 c.scroll_to("#steps", 100)
-c.shot("post-visa", "الخطوة 6: التأشيرة والرحلة", hl=[("button:has-text('تابع حالة التأشيرة الآن')", "")], section=S)
+c.shot("post-visa", "الخطوة 7: التأشيرة والرحلة", hl=[("button:has-text('تابع حالة التأشيرة الآن')", "")], section=S)
 btn("تابع حالة التأشيرة الآن", wait=3500)
 c.shot("post-visa-progress", "إصدار التأشيرات لكل فرد على حدة", section=S)
 c.settle(6500)
@@ -236,29 +277,46 @@ c.scroll_to("#steps", 100)
 c.shot("post-visa-done", "صدرت التأشيرات — رحلتكم جاهزة", section=S)
 c.save_state(str(ROOT / "state-accepted.json"))
 
-# dossier sections
+# ───────── H. ملف الرحلة: its pages in the sidebar ─────────
 S = "H"
+c.settle(5000)  # the visa's toasts go
+c.scroll_top()
+c.shot("dossier-nav", "صفحات ملف الرحلة في القائمة الجانبية، مفتوحة كلها بعد صدور التأشيرة", hl=[("nav[aria-label='أقسام حساب الحاج']", "")], section=S)
+c.goto("/portal/application/visa", wait=1800)
+c.scroll_to("text=وثائق أفراد الطلب", 130)
+c.shot("dossier-documents", "وثائق أفراد الطلب: الصورة والجواز والتأشيرة لكل فرد، وحال كل منها", hl=[("button[aria-label^='جواز السفر']", "")], section=S)
+p.locator("button[aria-label^='جواز السفر']").first.click(); c.settle(1000)
+c.shot("dossier-document-open", "جواز السفر كما رُفع: صفحة بياناته", section=S)
+p.locator("[role=dialog] button:has-text('إغلاق')").last.click(); c.settle(600)
+c.goto("/portal/application/trip", wait=1800)
 c.scroll_to("#cards", 130)
 c.shot("dossier-cards", "بطاقات الحجاج الرقمية", section=S)
 c.scroll_to("#flights", 130)
 c.shot("dossier-flights", "رحلة الذهاب والعودة ومقاعد الأفراد", section=S)
-c.scroll_to("#makkah", 130)
-c.shot("dossier-makkah", "فندق مكة: الغرف والوجبات والحافلة", section=S)
-c.scroll_to("#madinah", 130)
-c.shot("dossier-madinah", "فندق المدينة وموعد الروضة", section=S)
 c.scroll_to("#mashaer", 130)
 c.shot("dossier-mashaer", "المشاعر المقدسة: المخيمات والمواقع", section=S)
 p.locator("button:has-text('عرفات')").first.click(); c.settle(900)
 c.shot("dossier-arafat", "تفاصيل مخيم عرفات", section=S)
 c.scroll_to("#itinerary", 130)
 c.shot("dossier-itinerary", "برنامج الرحلة يوماً بيوم", section=S)
+c.goto("/portal/application/hotels", wait=1800)
+c.scroll_to("#makkah", 130)
+c.shot("dossier-makkah", "فندق مكة: الغرف والوجبات والحافلة", section=S)
+c.scroll_to("#madinah", 130)
+c.shot("dossier-madinah", "فندق المدينة وموعد الروضة", section=S)
+c.goto("/portal/application/group", wait=1800)
 c.scroll_to("#group", 130)
 c.shot("dossier-group", "فريق المجموعة وقناة المجموعة", section=S)
+c.scroll_to("button:has-text('عرض العقد')", 420)
+c.shot("dossier-contract", "عقدكم مع المجموعة: حاله وخطواته وتكلفته", hl=[("button:has-text('عرض العقد')", "")], section=S)
+btn("عرض العقد", wait=1200)
+c.shot("dossier-contract-open", "العقد كما وُقّع، وزر «طباعة العقد»", section=S)
+p.keyboard.press("Escape"); c.settle(600)
+c.goto("/portal/application/payments", wait=1800)
 c.scroll_to("#payments", 130)
-c.shot("dossier-payments", "التكاليف والإيصالات والعقد", section=S)
-c.scroll_by(450)
+c.shot("dossier-payments", "التكاليف والإيصالات", section=S)
+c.goto("/portal/application", wait=1800)
+c.scroll_to("text=كيف تقيّم وضوح طريقتي", 200)
 c.shot("dossier-rating", "تقييم وضوح القبول والقرعة", section=S)
-c.scroll_top()
-c.shot("dossier-nav", "شريط الأقسام وزر «حالتي الآن»", hl=[("a[href='/portal/season']", "")], section=S)
 c.close()
 print("DONE run2")

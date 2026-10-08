@@ -163,8 +163,10 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   const track = app ? trackOf(app) : "direct";
   const direct = track === "direct";
   const steps = app ? outcomeOf(app, draw, acceptedDirectAge).steps : [];
+  // No application yet: no stages, and the page shows how to file one (below)
   const { stage, index: stageIdx } = stageAt(steps, elapsed);
-  const accepted = stage.key === "accepted";
+  const stageKey = stage?.key;
+  const accepted = stageKey === "accepted";
   const applicant = app?.members.find((m) => m.relation === "self") ?? app?.members[0];
 
   const assignments = useMemo(
@@ -188,12 +190,12 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
 
   // Notifications + celebration on live transitions
   useEffect(() => {
-    if (!app) return;
-    if (lastStage.current && lastStage.current !== stage.key) {
-      const n = NOTIFY[stage.key === "notAccepted" && !direct ? "notDrawn" : stage.key];
+    if (!app || !stageKey) return;
+    if (lastStage.current && lastStage.current !== stageKey) {
+      const n = NOTIFY[stageKey === "notAccepted" && !direct ? "notDrawn" : stageKey];
       if (n) toast({ title: n.title, body: n.body(app.number), icon: n.icon, tone: n.tone });
     }
-    if (stage.key === "accepted" && !celebrated.current && lastStage.current !== null && lastStage.current !== "accepted") {
+    if (stageKey === "accepted" && !celebrated.current && lastStage.current !== null && lastStage.current !== "accepted") {
       celebrated.current = true;
       const end = Date.now() + 1800;
       const colors = ["#D9C89E", "#00594F", "#289E92", "#AD9E6E", "#ffffff"];
@@ -203,8 +205,8 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
         if (Date.now() < end) requestAnimationFrame(frame);
       })();
     }
-    lastStage.current = stage.key;
-  }, [stage.key, app, toast, direct]);
+    lastStage.current = stageKey;
+  }, [stageKey, app, toast, direct]);
 
   if (!app || !applicant) {
     return (

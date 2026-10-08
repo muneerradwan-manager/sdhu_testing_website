@@ -5,6 +5,9 @@ def btn(text, wait=900):
     p.get_by_role("button", name=text).first.click(); c.settle(wait)
 c.goto("/login", wait=1200)
 p.locator("button:has-text('حسن الطباع')").click(); c.settle(2500)
+# The season runs on its dates: the registration for direct acceptance opens 12 August (the date bar)
+p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
+  s.clock = { ...(s.clock || {}), today: '2026-08-12', time: undefined }; localStorage.setItem(k, JSON.stringify(s)); }""")
 c.goto("/portal/apply", wait=1500)
 btn("لنبدأ"); btn("التسجيل على القبول المباشر"); btn("لي أنا"); btn("داخل سوريا"); btn("لا، طلب فردي", wait=1200)
 p.wait_for_selector("text=جميع أفراد الطلب مستوفون للشروط", timeout=25000); c.settle(800)

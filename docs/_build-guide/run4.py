@@ -108,10 +108,11 @@ n = stars.count()
 for i in range(n):
     li = stars.nth(i)
     yes = li.locator("button:has-text('نعم')")
+    # through the page: the demo's date bar at the bottom sits over the lower rows
     if yes.count():
-        yes.click()
+        yes.first.evaluate("b => b.click()")
     else:
-        li.locator("button").nth(4).click()
+        li.locator("button").nth(4).evaluate("b => b.click()")
     p.wait_for_timeout(120)
 c.settle(600)
 c.scroll_to("#evaluation", 120)
@@ -136,7 +137,13 @@ c.goto("/academy/duas", wait=1500)
 c.shot("track-top", "صفحة المسار", section=S)
 c.scroll_to("text=المستويات والدروس", 100)
 c.shot("track-levels", "المستويات والدروس واختبار المستوى", section=S)
-lessons = ["travel-duas", "talbiyah", "tawaf-duas", "zamzam-maqam"]
+# Every lesson of the track, as its page lists them (the certificate opens once all are done)
+lessons = []
+for h in p.locator("a[href^='/academy/duas/']").evaluate_all("els => els.map(e => e.getAttribute('href'))"):
+    slug = h.split("/")[-1].split("#")[0]
+    if slug and slug not in lessons:
+        lessons.append(slug)
+print("lessons:", lessons)
 for i, l in enumerate(lessons):
     c.goto(f"/academy/duas/{l}", wait=1500)
     if i == 0:
@@ -165,12 +172,18 @@ c.shot("quiz-result", "نتيجة الاختبار", section=S)
 btn("إنهاء", wait=600)
 c.scroll_to("#certificate", 100)
 c.shot("academy-certificate", "شهادة إتمام المسار", hl=[("button:has-text('حفظ في خزنة الوثائق')", "1"), ("button:has-text('طباعة')", "2")], section=S)
-btn("حفظ في خزنة الوثائق", wait=900)
-c.shot("academy-certificate-saved", "حُفظت الشهادة في خزنة الوثائق", section=S)
+# The certificate opens once every level of the track is done; this run takes its first level only
+if p.get_by_role("button", name="حفظ في خزنة الوثائق").count():
+    btn("حفظ في خزنة الوثائق", wait=900)
+    c.shot("academy-certificate-saved", "حُفظت الشهادة في خزنة الوثائق", section=S)
 c.save_state(str(ROOT / "state-final.json"))
 
 # ───────── L. سيناريوهات أخرى ─────────
 S = "L"
+# The season runs on its dates: these cases happen in the lottery's registration, 26 August (the date bar)
+c.goto("/portal", wait=800)
+p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
+  s.clock = { ...(s.clock || {}), today: '2026-08-26', time: undefined }; localStorage.setItem(k, JSON.stringify(s)); }""")
 c.goto("/portal", wait=1000)
 btn("تسجيل الخروج", wait=1500)
 c.goto("/login", wait=1000)
