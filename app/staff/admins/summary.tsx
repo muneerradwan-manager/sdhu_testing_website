@@ -69,7 +69,7 @@ export function AdminsSummary() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="المتقدمون" value={desk.totals.applied} icon={<UsersRound />} hint={`${formatNumber(desk.totals.paid)} سددوا الرسم${desk.noRole ? ` · ${desk.noRole} لم يختاروا صفة` : ""}`} />
-        <Kpi label="مؤهَّلون للعمل" value={desk.totals.qualified} icon={<GraduationCap />} tone="teal" delay={0.05} hint={`${desk.totals.passed} نجحوا · ${desk.totals.exempt} بالتجديد دون امتحان`} />
+        <Kpi label="مؤهَّلون للعمل" value={desk.totals.qualified} icon={<GraduationCap />} tone="teal" delay={0.05} hint={`${desk.totals.passed} نجحوا · ${desk.totals.exempt} بالتجديد دون اختبار`} />
         <Kpi label="مجموعات معتمدة" value={desk.approved.length} icon={<BadgeCheck />} tone="maroon" delay={0.1} pulse={desk.waiting.length > 0} hint={desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر قرارك` : `من ${desk.groups.length} طلبات تشكيل`} />
         <Kpi label="تكتلات معتمدة" value={desk.approvedClusters.length} icon={<Building2 />} tone="gold" delay={0.15} hint={`من ${desk.live.length} طلبات تشكيل`} />
       </div>

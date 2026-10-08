@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { EXAM_QUESTIONS, EXAM_RULES, isServable, type ExamNumbers, type ExamQuestion } from "@/lib/data/admin-exam";
-import { dateOf, shiftDay, useOperation } from "@/lib/operations";
+import { EXAM_QUESTIONS, isServable, type ExamQuestion } from "@/lib/data/admin-exam";
 import { useStore } from "@/lib/store";
-import { gregorianDate } from "@/lib/utils";
 import { EVALUATION_STAGES } from "@/lib/data/staff-seed";
 import { useSeason } from "@/lib/season-live";
 import { ADMIN_CALENDAR, COMMITMENTS, DOCUMENTS, LANGUAGES, ROLE_REQUIREMENTS, SKILLS, type DocType, type RoleRequirements } from "./admin";
@@ -15,48 +13,6 @@ import { useStructure } from "./structure";
  * whatever the administration edits in the staff portal wins. Every screen of the administrator
  * portal reads through these hooks, so a change in the staff portal shows up the same season.
  */
-
-export type ExamRules = Omit<typeof EXAM_RULES, keyof ExamNumbers> & ExamNumbers;
-
-/** What each oral day holds unless the exams' staff change it */
-export const ORAL_DEFAULTS = { perDay: 30, time: "09:00 – 14:00", place: "مبنى مديرية الحج — دمشق، لجان الامتحان الشفهي" };
-
-/**
- * The oral as the exams' staff set it: its days are those of the operation «الامتحان الشفهي» (from its first
- * day to its last), each with its seats, hours and place, and how many booked each day so far.
- */
-export function useOral() {
-  const op = useOperation("admin-oral");
-  const o = useStore((s) => s.adminRules.oral);
-  const admins = useStore((s) => s.admins);
-  return useMemo(() => {
-    const days: string[] = [];
-    // Friday is the weekend: no committee sits unless the exams' staff open it
-    if (op.start && op.end) for (let d = op.start; d <= op.end && days.length < 60; d = shiftDay(d, 1)) if (o?.fridays || dateOf(d).getDay() !== 5) days.push(d);
-    const booked: Record<string, number> = {};
-    for (const p of Object.values(admins)) if (p.oralBooking && !p.oral) booked[p.oralBooking.day] = (booked[p.oralBooking.day] ?? 0) + 1;
-    return { op, days, booked, perDay: o?.perDay ?? ORAL_DEFAULTS.perDay, time: o?.time ?? ORAL_DEFAULTS.time, place: o?.place ?? ORAL_DEFAULTS.place, fridays: !!o?.fridays };
-  }, [op, o, admins]);
-}
-
-/** «الأحد 18 تشرين الأول» */
-export function oralDayLabel(day: string, withYear = false) {
-  return gregorianDate(dateOf(day), { weekday: "long", day: "numeric", month: "long", ...(withYear ? {} : { year: undefined }) });
-}
-
-export function useExamRules(): ExamRules {
-  const o = useStore((s) => s.adminRules.exam);
-  return useMemo(() => {
-    const writtenWeight = o?.writtenWeight ?? EXAM_RULES.writtenWeight;
-    return {
-      ...EXAM_RULES,
-      passMark: o?.passMark ?? EXAM_RULES.passMark,
-      writtenMin: o?.writtenMin ?? EXAM_RULES.writtenMin,
-      writtenWeight,
-      oralWeight: Math.round((1 - writtenWeight) * 100) / 100,
-    };
-  }, [o]);
-}
 
 /** One question as the administration left it */
 export function mergeQuestion(q: ExamQuestion, edit?: { text?: string; options?: string[]; answer?: number; explanation?: string; points?: number }): ExamQuestion {

@@ -22,6 +22,9 @@ import {
   FileStack,
   Gauge,
   GraduationCap,
+  CalendarRange,
+  ChartColumn,
+  Radio,
   IdCard,
   KeyRound,
   Landmark,
@@ -105,6 +108,10 @@ const OPERATION_ICONS: Record<string, ReactNode> = {
   "/staff/exam/manage/bank": <FileQuestion />,
   "/staff/exam/manage/people": <UsersRound />,
   "/staff/exam/manage/results": <GraduationCap />,
+  "/staff/exam/manage/sittings": <CalendarRange />,
+  "/staff/exam/manage/live": <Radio />,
+  "/staff/exam/manage/review": <ClipboardCheck />,
+  "/staff/exam/manage/stats": <ChartColumn />,
   "/staff/flights/manage": <Building2 />,
   "/staff/flights/manage/flights": <Plane />,
   "/staff/flights/manage/dispatch": <Route />,
@@ -223,6 +230,7 @@ function Sidebar({ user }: { user: StaffUser }) {
   const tickets = useTicketQueue();
   const halls = useHalls();
   const myCenters = halls.centersOf(user.id);
+  const admins = useStore((s) => s.admins);
   const owned = useOwnedSystems(user);
   const unseen = useSystemsUnseen();
   const flights = useFlightsData();
@@ -232,10 +240,16 @@ function Sidebar({ user }: { user: StaffUser }) {
       // Applications that need a decision, and pilgrims' contracts with groups waiting for the office
       reviews: reviews.filter((r) => !r.review).length + contracts,
       tickets: tickets.filter((t) => t.status !== "resolved").length,
-      // Applicants who opened their account in one of my open halls and wait for me to confirm them
+      // In my halls' sittings that are open or running: devices asking to enter, and submissions waiting for my confirmation
       hall: Object.entries(halls.runs)
-        .filter(([k, r]) => myCenters.some((c) => k.endsWith(`@${c.id}`)) && !r.endedAt && !r.closedAt)
-        .reduce((a, [, r]) => a + Object.keys(r.joined).filter((id) => !r.present[id]).length, 0),
+        .filter(([k, r]) => myCenters.some((c) => k.endsWith(`@${c.id}`)) && r.openedAt && !r.endedAt && !r.closedAt)
+        .reduce(
+          (n, [k, r]) =>
+            n +
+            Object.keys(r.requests ?? {}).length +
+            Object.values(admins).reduce((m, p) => m + [p.exam, ...Object.values(p.exams ?? {})].filter((a) => a?.hall === k && a.status === "submitted").length, 0),
+          0,
+        ),
       // Flights leaving my airport waiting for their take-off, or in the air to it waiting for their landing
       airport: flights.flights.filter((f) => (myAirports.includes(f.fromId) && f.status === "locked") || (myAirports.includes(f.divertedToId ?? f.toId) && f.status === "departed")).length,
       // What the director has not read yet; what waits for a system's owner is counted by its own badge
@@ -245,7 +259,7 @@ function Sidebar({ user }: { user: StaffUser }) {
       exams: 0,
       flights: 0,
     }),
-    [reviews, contracts, tickets, halls.runs, myCenters, flights.flights, myAirports, unseen],
+    [reviews, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
   );
   const items = STAFF_NAV.filter((n) =>
     n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),

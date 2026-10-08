@@ -92,10 +92,7 @@ export type Review = { status: "approved" | "rejected"; note: string; by: string
  * defaults the platform ships with.
  */
 export type AdminRules = {
-  exam?: Partial<{ passMark: number; writtenMin: number; writtenWeight: number }>;
-  /** The oral's days are the operation «الامتحان الشفهي»; here, what each day holds: its seats, its hours, its place */
-  oral?: Partial<{ perDay: number; time: string; place: string; fridays: boolean }>;
-  /** Each role's exam as the administration built it: its duration and its weighted sections (lib/data/admin-exam) */
+  /** Each role's test as it was built before tests were kept whole in examHalls.exams (read into them) */
   blueprints?: Record<string, import("./data/admin-exam").ExamBlueprint>;
   /** Questions the administration wrote this season, of any type */
   questionsAdded?: import("./data/admin-exam").ExamQuestion[];
@@ -386,36 +383,22 @@ export type AdminProfile = {
   receipt?: string;
   eligibleAt?: number;
   /**
-   * The written exam, sat in the hall of his centre (`hall`, see examHalls). `paper` is what he was served,
-   * section by section; `answers` an option's index, or a written answer's text. At sending, `tally` keeps
-   * the automated points and `toGrade` the written answers a grader marks (`marks`). `score` is the
-   * written mark once nothing is left to grade; until then `provisional` counts the ungraded as 0.
+   * His attempt at his role's test (الاختبار المؤتمت), in the hall of his centre (`hall`, see examHalls). The
+   * supervisor approves his device's entry (`ready`, «مقترن — لم يبدأ»); the test starts (`active`) — his time
+   * from his own entry; he sends it (`submitted`, «بانتظار التأكيد») and the supervisor confirms it with his PIN on
+   * the device or from his panel (`confirmed`), or does not (`unconfirmed`: the administration decides —
+   * `decision`); a paired attempt never started is `voided` when the sitting ends. `paper` is what he was served
+   * section by section, `answers` an option's index; at sending `tally` keeps each section's points and `score`
+   * his share of all of them (%). Passing is passing every section at its pass mark.
    */
-  exam?: {
-    startedAt: number;
-    submittedAt?: number;
-    hall?: string;
-    /** The role's duration when the hall started, so a change to the exam does not move his clock */
-    minutes?: number;
-    paper?: import("./data/admin-exam").PaperSection[];
-    answers: Record<number, number | string>;
-    tally?: import("./data/admin-exam").Tally;
-    toGrade?: number[];
-    marks?: Record<number, number>;
-    gradedBy?: string;
-    gradedAt?: number;
-    provisional?: number;
-    score?: number;
-  };
+  exam?: Attempt;
   /**
    * The papers of the other exams a role sits when it sits more than one («معاون ومنسق تقني»: the assistant's),
    * by the exam's role; `exam` stays the paper of the role's own exam (its `examAs`)
    */
   exams?: Record<string, NonNullable<AdminProfile["exam"]>>;
-  /** The final is never stored: it follows the season's exam rules (resultOf) */
+  /** Kept from before the test had no oral: never read */
   oral?: { score: number; by: string; at: number; note?: string };
-  /** The oral's day he booked himself after passing the written, from the days the exams' staff set */
-  oralBooking?: { day: string; at: number };
   resultPublishedAt?: number;
   /** Formed alone, without a team and without a cluster: a cluster takes it later, and its head assigns its team */
   group?: {
@@ -684,11 +667,59 @@ export type State = {
 export type HallRun = {
   openedAt?: number;
   openedBy?: string;
+  /** Opened outside its time (an hour before it until the end of its day): why */
+  openedReason?: string;
   startedAt?: number;
+  /** Kept from before a sitting ended and closed in one step */
   endedAt?: number;
   closedAt?: number;
+  /** Kept from before devices paired: an account opened in the hall */
   joined: Record<string, number>;
+  /** Checked in by the supervisor, by his barcode or his national id */
   present: Record<string, number>;
+  /** Entry requests from applicants' devices: when, the pairing code on his screen, and what flags it */
+  requests?: Record<string, { at: number; code: string; offNetwork?: boolean; resume?: boolean }>;
+  /** Devices whose entry was approved (or let in automatically) */
+  paired?: Record<string, number>;
+  /** The hall's network as recorded when it was opened, and whether phones' mobile data is let in (emergency) */
+  network?: string;
+  mobileData?: boolean;
+};
+
+/** Where an attempt stands (the administration's exam platform's statuses) */
+export type AttemptStatus = "ready" | "active" | "submitted" | "confirmed" | "unconfirmed" | "voided";
+
+/** What the platform noticed on the device during the test: signals for the supervisor's decision, not proof */
+export type AttemptAlerts = { focusLost?: number; reentries?: number; screenshots?: number; ipChanged?: boolean; deviceChanged?: boolean; disconnected?: boolean };
+
+export type Attempt = {
+  status?: AttemptStatus;
+  /** When his time began: the test's start, or his own entry after it */
+  startedAt?: number;
+  submittedAt?: number;
+  hall?: string;
+  /** The test's duration when his attempt began, so a change to the test does not move his clock */
+  minutes?: number;
+  paper?: import("./data/admin-exam").PaperSection[];
+  answers: Record<number, number | string>;
+  tally?: import("./data/admin-exam").Tally;
+  score?: number;
+  /** Whether the test shows him his result once confirmed */
+  showResult?: boolean;
+  pairedAt?: number;
+  /** Sent by the platform when the supervisor ended the sitting with him still answering */
+  autoSubmitted?: boolean;
+  confirmedAt?: number;
+  confirmedBy?: string;
+  confirmVia?: "pin" | "panel" | "batch" | "auto" | "decision";
+  /** «لا أؤكد»: why the supervisor did not confirm it */
+  unconfirmedReason?: string;
+  /** The administration's decision on an attempt referred to it: approved (اعتماد إداري) or voided (إلغاء إداري) */
+  decision?: { kind: "approve" | "void"; by: string; at: number; note: string };
+  alerts?: AttemptAlerts;
+  /** Wrong PINs typed on his device, and until when it is locked after too many */
+  pinTries?: number;
+  pinLockedUntil?: number;
 };
 
 export type ExamHalls = {
@@ -703,6 +734,8 @@ export type ExamHalls = {
   /** each role's main exam date, as changed before exams were kept whole in `exams` (read into them) */
   sessions?: Record<string, { date: string; time: string }>;
   runs: Record<string, HallRun>;
+  /** Each supervisor's own confirmation PIN, typed on applicants' devices: staff id -> PIN */
+  pins?: Record<string, string>;
 };
 
 export type StoreState = State;

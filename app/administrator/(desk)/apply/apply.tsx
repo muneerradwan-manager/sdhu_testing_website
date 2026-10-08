@@ -135,7 +135,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
       commitmentsAt: nowMs(),
       eligibleAt: nowMs(),
     });
-    logAdmin(admin.id, "اكتمل التحقق من الأهلية قبل الدفع (آلياً)", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الامتحانين" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — مستوفٍ لشروطها في جدول موسم 1448 — ${attached.length} وثائق سارية من ملفه الدائم (${attached.filter((d) => d.issuedSeason === SEASON.hijriYear).length} محدّثة هذا الموسم) — الموافقة على الالتزامات`, { area: "applicants" });
+    logAdmin(admin.id, "اكتمل التحقق من الأهلية قبل الدفع (آلياً)", `الإداري ${admin.id.slice(-3)}`, `الصفة: ${label} (${renewal === "keep" ? `تجديد الصفة نفسها${exempt ? " — معفى من الاختبار" : ""}` : renewal === "change" ? "صفة جديدة" : "أول موسم"}) — مستوفٍ لشروطها في جدول موسم 1448 — ${attached.length} وثائق سارية من ملفه الدائم (${attached.filter((d) => d.issuedSeason === SEASON.hijriYear).length} محدّثة هذا الموسم) — الموافقة على الالتزامات`, { area: "applicants" });
     toast({ title: `أنت مؤهل لصفة ${label}`, body: `بقي رسم التسجيل (${formatUSD(fee)}) ليُقدَّم طلبك.`, icon: "✅", tone: "success" });
   };
 
@@ -185,7 +185,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
               <div>
                 <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">صفتك لموسم 1448</h2>
                 <p className="mt-2 leading-8 text-ink-soft">
-                  صفة واحدة فقط في الموسم. تُفتح لك الصفات بحسب وثائقك وشهاداتك ومهاراتك، وبحسب شروط كل صفة في جدول الإدارة لهذا الموسم (العمر، الجنس، الخبرة): الصفة المقفلة يظهر تحتها ما ينقصك لها. {options.last ? "يمكنك الاستمرار في صفتك السابقة أو التقدم لصفة أخرى." : "هذا أول موسم لك، فتخضع للامتحانين."}
+                  صفة واحدة فقط في الموسم. تُفتح لك الصفات بحسب وثائقك وشهاداتك ومهاراتك، وبحسب شروط كل صفة في جدول الإدارة لهذا الموسم (العمر، الجنس، الخبرة): الصفة المقفلة يظهر تحتها ما ينقصك لها. {options.last ? "يمكنك الاستمرار في صفتك السابقة أو التقدم لصفة أخرى." : "هذا أول موسم لك، فتؤدي الاختبار المؤتمت."}
                 </p>
 
                 {options.last && (
@@ -321,7 +321,7 @@ function Wizard({ onPaid }: { onPaid: () => void }) {
           </dl>
         </div>
         <p className="rounded-3xl bg-green-dark/6 p-4 text-sm leading-6 text-green-dark">
-          لا تدفع رسماً عن صفة لا تستوفي شروطها: تتحقق المنصة من أهليتك قبل الدفع. من يجدد الصفة نفسها بتقييم مستوفٍ يُعفى من الامتحانين؛ ومن يتقدم لصفة جديدة أو لأول مرة يخضع للامتحانين الكتابي والشفهي.
+          لا تدفع رسماً عن صفة لا تستوفي شروطها: تتحقق المنصة من أهليتك قبل الدفع. من يجدد الصفة نفسها بتقييم مستوفٍ يُعفى من الاختبار؛ ومن يتقدم لصفة جديدة أو لأول مرة يؤدي الاختبار المؤتمت في قاعة مركزه الامتحاني.
         </p>
       </aside>
     </div>
@@ -491,12 +491,12 @@ function EligibleSummary() {
       <Card className="relative overflow-hidden">
         <div className="bg-pattern-dark absolute inset-0" />
         <div className="relative">
-          <Badge tone="green" className="text-sm"><BadgeCheck className="size-4" /> {p.examExempt ? "جُدّدت صفتك — معفى من الامتحانين" : "مؤهل للامتحان الكتابي"}</Badge>
+          <Badge tone="green" className="text-sm"><BadgeCheck className="size-4" /> {p.examExempt ? "جُدّدت صفتك — معفى من الاختبار" : "مؤهل للاختبار المؤتمت"}</Badge>
           <h2 className="mt-4 font-display text-3xl font-bold text-green-dark md:text-4xl">{p.examExempt ? `جُدّدت صفتك يا ${admin.person.firstName}` : `طلبك مقدَّم يا ${admin.person.firstName}`}</h2>
           <p className="mt-3 max-w-xl leading-8 text-ink-soft">
             {p.examExempt
-              ? `الصفة نفسها التي شغلتها الموسم الماضي بتقييم مستوفٍ، فلا امتحان هذا الموسم وفق شروط الإدارة. رسم الموسم مسدد، وتنتقل مباشرة إلى ${positionLabelOf(p.positions[0]) === "رئيس مجموعة" ? "طلب تشكيل المجموعة (برسمه)" : "التعيين في مجموعتك"}.`
-              : <>أنت مؤهل لصفة <b>{positionLabelOf(p.positions[0] ?? "")}</b> والرسم مسدد. امتحانك الكتابي: <b>{hall.session?.date}، الساعة {hall.session?.time}</b>، في <b>{hall.center ? `${hall.center.name} — ${hall.center.hall}` : "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}</b>، جماعياً مع كل المتقدمين لصفتك. احضر بهويتك، وتفتح حسابك في القاعة بإشراف مشرفها.</>}
+              ? `الصفة نفسها التي شغلتها الموسم الماضي بتقييم مستوفٍ، فلا اختبار هذا الموسم وفق شروط الإدارة. رسم الموسم مسدد، وتنتقل مباشرة إلى ${positionLabelOf(p.positions[0]) === "رئيس مجموعة" ? "طلب تشكيل المجموعة (برسمه)" : "التعيين في مجموعتك"}.`
+              : <>أنت مؤهل لصفة <b>{positionLabelOf(p.positions[0] ?? "")}</b> والرسم مسدد. اختبارك المؤتمت: <b>{hall.session?.date}، الساعة {hall.session?.time}</b>، في <b>{hall.center ? `${hall.center.name} — ${hall.center.hall}` : "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}</b>، مع كل المتقدمين لصفتك. احضر ببطاقتك وهويتك: يسجّل مشرف القاعة حضورك، وتدخل الاختبار من جهازك برقمك الوطني بموافقته.</>}
           </p>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">
             {rows.filter((r) => r.ok).map((r) => (
@@ -509,7 +509,7 @@ function EligibleSummary() {
             </li>
           </ul>
           <ButtonLink href={p.examExempt ? "/administrator/group" : "/administrator/exam"} size="xl" variant="gold" className="mt-8">
-            {p.examExempt ? "متابعة إلى مجموعتي" : "قاعتي وموعد امتحاني"} <ArrowLeft className="size-6" />
+            {p.examExempt ? "متابعة إلى مجموعتي" : "قاعتي وموعد اختباري"} <ArrowLeft className="size-6" />
           </ButtonLink>
         </div>
       </Card>
@@ -544,7 +544,7 @@ function RoleCard({ option, checks, selected, onSelect, exemptBadge }: { option:
   const met = checks.filter((c) => c.level !== "preferred" && c.ok);
   const preferred = checks.filter((c) => c.level === "preferred");
   const fits = option.ok && missing.length === 0;
-  const badge = !option.ok ? "غير متاح" : missing.length ? "مقفلة" : exemptBadge && option.examExempt ? "معفى من الامتحانين" : "بالامتحانين";
+  const badge = !option.ok ? "غير متاح" : missing.length ? "مقفلة" : exemptBadge && option.examExempt ? "معفى من الاختبار" : "بالاختبار المؤتمت";
   return (
     <button
       type="button"

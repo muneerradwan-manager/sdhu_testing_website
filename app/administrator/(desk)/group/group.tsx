@@ -12,7 +12,6 @@ import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
-import { useExamRules } from "../../_lib/admin-rules";
 import { groupCount } from "../../_lib/group";
 import { isClusterRole, isTechCoordinator } from "../../_lib/admin";
 import { nextGroupNumber } from "../../_lib/capacity";
@@ -55,7 +54,7 @@ function useGroupTeam(number: number) {
 export function AdminGroup({ part }: { part: "formation" | "manage" }) {
   const admin = useAdmin()!;
   const p = admin.profile;
-  const r = resultOf(p, useExamRules());
+  const r = resultOf(p);
   const op = useOperation("group-formation");
   const g = p?.group;
   const cluster = isClusterRole(p);
@@ -94,7 +93,7 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
       <AnimatePresence mode="wait">
         <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.35 }}>
           {view === "locked" && (
-            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد نشر نتيجتك النهائية واجتياز حد النجاح (70) — أو تجديد صفتك معفى — يشكّل المكتب مجموعتك." href="/administrator/exam" cta="نتيجتي في التأهيل" />
+            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد تأكيد تسليمك ونجاحك في كل أقسام الاختبار المؤتمت — أو تجديد صفتك معفى — يشكّل المكتب مجموعتك." href="/administrator/exam" cta="نتيجتي في التأهيل" />
           )}
           {view === "office" && <AtTheOffice />}
           {view === "approved" && (

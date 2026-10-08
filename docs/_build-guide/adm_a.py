@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Administrator guide — run A: a NEW administrator (مروان الحلبي, first season) from the landing page to the exam result.
+"""Administrator guide — run A: a NEW administrator (مروان الحلبي, first season) from the landing page to the result of his automated test.
 Usage: CAP_DIR=admin python adm_a.py [keep]"""
 import json, sys, time
 from cap import Cap, ROOT, truncate
@@ -48,7 +48,7 @@ S = "C"
 c.goto("/administrator/dashboard", wait=1800)
 c.shot("dash-new", "ملفي كإداري: الخطوة التالية وتقدّم الرحلة", section=S)
 c.scroll_by(650)
-c.shot("dash-new-2", "رحلتي — من الامتحان إلى الميدان (13 محطة)", section=S)
+c.shot("dash-new-2", "رحلتي — من الاختبار إلى الميدان", section=S)
 
 # ───────── logout / login ─────────
 S = "B"
@@ -107,23 +107,29 @@ p.locator("button:has-text('ادفع وقدّم الطلب')").first.scroll_into
 btn("ادفع وقدّم الطلب", wait=3500)
 c.scroll_top(); c.shot("apply-receipt", "تم استلام طلب مشاركتك", hl=[("main button:text-is('متابعة')", "")], section=S)
 btn("متابعة", wait=1800, exact=True)
-c.scroll_top(); c.shot("apply-summary", "طلبك مقدَّم — مؤهل للامتحان الكتابي", section=S)
+c.scroll_top(); c.shot("apply-summary", "طلبك مقدَّم — مؤهل للاختبار المؤتمت", section=S)
 c.save_state(str(ROOT / "admin" / "state-eligible.json"))
 
-# ───────── exam: in the hall of his centre ─────────
+# ───────── the automated test: in the hall of his centre ─────────
 S = "E"
 c.goto("/administrator/exam", wait=1800)
-jump()
-c.shot("exam-hall", "قاعتي وموعدي: المركز والقاعة والاتجاهات إليها والموعد وهيكل امتحان صفتي", hl=[("button:has-text('محاكاة: يفتح المشرف القاعة')", "")], section=S)
-btn("محاكاة: يفتح المشرف القاعة", wait=1800)
-c.shot("exam-joined", "دخلت حسابي في القاعة: بانتظار تأكيد المشرف لحضوري", hl=[("button:has-text('محاكاة: يؤكد المشرف حضورك')", "")], section=S)
-btn("محاكاة: يؤكد المشرف حضورك", wait=1400)
-c.shot("exam-present", "حضوري مؤكد: يبدأ الامتحان للجميع معاً", hl=[("button:has-text('محاكاة: يبدأ المشرف الامتحان')", "")], section=S)
-btn("محاكاة: يبدأ المشرف الامتحان", wait=2000)
-c.shot("exam-q1", "شاشة الامتحان: الأقسام كلها في صفحة واحدة، والوقت والإرسال", section=S)
+jump()  # the tests' period
+jump()  # his sitting's day, half an hour before it
+c.scroll_to("main ol:has(li:has-text('يفتح المشرف القاعة'))", 330)
+c.shot("exam-hall", "قاعتي وموعدي: القاعة والموعد والمشرف، وأقسام اختبار صفتي ونسبة النجاح في كل قسم", hl=[("button:has-text('محاكاة: يفتح المشرف القاعة')", "")], section=S)
+btn("محاكاة: يفتح المشرف القاعة", wait=1600)
+c.shot("exam-checkin", "القاعة مفتوحة: سجّل حضورك عند الباب ببطاقتك", hl=[("button:has-text('محاكاة: يمسح المشرف بطاقتك')", "")], section=S)
+btn("محاكاة: يمسح المشرف بطاقتك", wait=1400)
+p.locator("input[aria-label='الرقم الوطني']").first.fill(ID); c.settle(400)
+c.shot("exam-device", "الاختبار الإلكتروني: رقمك الوطني للدخول إلى الاختبار", hl=[("main button[type=submit]:has-text('دخول')", "")], section=S)
+p.locator("main button[type=submit]:has-text('دخول')").first.click(); c.settle(1400)
+c.shot("exam-pairing", "ابقَ في مقعدك: رمز الاقتران، بانتظار موافقة المشرف", hl=[("button:has-text('محاكاة: يوافق المشرف على دخولك')", "")], section=S)
+btn("محاكاة: يوافق المشرف على دخولك", wait=1400)
+c.shot("exam-ready", "تمت الموافقة على دخولك: أنت جاهز — لا تغلق هذه الصفحة", hl=[("button:has-text('محاكاة: يبدأ المشرف الاختبار')", "")], section=S)
+btn("محاكاة: يبدأ المشرف الاختبار", wait=2000)
+c.shot("exam-q1", "شاشة الاختبار: الأقسام في صفحة واحدة، والخيارات بالأحرف، والوقت و«إنهاء وتسليم»", section=S)
 # Every question on one page: answer each block, the right option when the answer key knows it
 blocks = p.locator("[id^='question-']")
-tf_shown = False
 for i in range(blocks.count()):
     b = blocks.nth(i)
     text = b.inner_text()
@@ -134,31 +140,23 @@ for i in range(blocks.count()):
     elif b.locator("[role=radio]").count():
         b.locator("[role=radio]").first.click()
     c.settle(120)
-    if not tf_shown and b.locator("[role=radiogroup][aria-label$='صح أو خطأ']").count():
-        tf_shown = True
-        b.scroll_into_view_if_needed(); c.settle(400)
-        c.shot("exam-truefalse", "سؤال صح أو خطأ", section=S)
     if i == 2:
-        c.shot("exam-answered", "الإجابة وشبكة الأسئلة مقسومة على الأقسام", section=S)
-btn("مراجعة وإرسال الامتحان", wait=900)
-c.shot("exam-confirm", "تأكيد إرسال الامتحان نهائياً", section=S)
-btn("نعم، أرسل الامتحان", wait=800)
-c.shot("exam-grading", "التصحيح التلقائي", section=S)
-c.settle(3500)
+        c.shot("exam-answered", "قائمة الأسئلة مقسومة على الأقسام، و«أجبت عن … من …» لكل قسم", section=S)
+p.locator("main button:has-text('إنهاء وتسليم'), [aria-label='الاختبار المؤتمت'] button:has-text('إنهاء وتسليم')").last.click(); c.settle(900)
+c.shot("exam-confirm", "تأكيد التسليم: بعد التسليم لا يمكنك العودة", section=S)
+btn("نعم، سلّم", wait=1800)
 c.scroll_top()
-c.shot("exam-written", "نتيجة الامتحان الكتابي فور الإرسال: كل الأسئلة اختيار من متعدد أو صح وخطأ", section=S)
-day = p.locator("button[aria-pressed]").filter(has_text="مقعداً متبقياً").first
-day.scroll_into_view_if_needed(); day.click(); c.settle(500)
-c.shot("exam-oral-book", "حجز يوم الامتحان الشفهي من الأيام التي حددتها إدارة الامتحانات", hl=[("button:has-text('احجز')", "")], section=S)
-p.locator("button:has-text('احجز')").first.click(); c.settle(1500)
-sim = p.locator("button:has-text('محاكاة: نتيجة شفهي ناجحة')")
-sim.first.scroll_into_view_if_needed(); c.settle(300)
-c.shot("exam-oral-wait", "الامتحان الشفهي في يومك المحجوز، بانتظار نتيجة اللجنة", hl=[("button:has-text('محاكاة: نتيجة شفهي ناجحة')", "")], section=S)
-sim.first.click(); c.settle(2500)
+pin = p.locator("input#pin").first
+pin.fill("0000"); c.settle(300)
+p.locator("main button[type=submit]:has-text('تأكيد')").first.click(); c.settle(900)
+c.shot("exam-pin-wrong", "رمز خاطئ: عدد المحاولات الباقية", section=S)
+pin.fill("1448"); c.settle(300)
+c.shot("exam-submitted", "انتهى الاختبار: ارفع يدك، ويكتب المشرف رمزه السري ليؤكد تسليمك", hl=[("main button[type=submit]:has-text('تأكيد')", "")], section=S)
+p.locator("main button[type=submit]:has-text('تأكيد')").first.click(); c.settle(6000)  # the toast gone
 c.scroll_top()
-c.shot("exam-final", "النتيجة النهائية: تهانينا، اجتزت التأهيل", section=S)
-c.scroll_by(600)
-c.shot("exam-final-2", "تفاصيل النتيجة والخطوة التالية", section=S)
+c.shot("exam-verdict", "تهانينا، اجتزت الاختبار المؤتمت — والخطوة التالية", section=S)
+c.scroll_to("main p:has-text('نتيجتك')", 140)
+c.shot("exam-result", "تم تأكيد تسليمك — نتيجتك قسماً قسماً: الدرجة والنسبة والمطلوب", section=S)
 c.save_state(str(ROOT / "admin" / "state-passed.json"))
 c.close()
 print("DONE adm_a")

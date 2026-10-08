@@ -307,7 +307,7 @@
   "n": 39,
   "key": "ex-top",
   "file": "039-ex-top.png",
-  "caption": "ملخص الامتحانات: أرقام الامتحان، وما ينتظرك الآن",
+  "caption": "نظرة عامة: أرقام الاختبارات، وما ينتظرك الآن",
   "section": "E",
   "note": null
  },
@@ -315,7 +315,7 @@
   "n": 40,
   "key": "ex-summary",
   "file": "040-ex-summary.png",
-  "caption": "المراكز ومشرفو قاعاتها، والامتحانات وحال كل منها",
+  "caption": "المحاولات والجلسات حسب الحالة، والنتائج المؤكَّدة",
   "section": "E",
   "note": null
  },
@@ -323,7 +323,7 @@
   "n": 41,
   "key": "ex-centers",
   "file": "041-ex-centers.png",
-  "caption": "المراكز الامتحانية: أولى عمليات إدارة الامتحانات في القائمة الجانبية",
+  "caption": "القاعات والمحافظات: أولى عمليات إدارة الامتحانات في القائمة الجانبية",
   "section": "E",
   "note": null
  },
@@ -331,1342 +331,1446 @@
   "n": 42,
   "key": "ex-center",
   "file": "042-ex-center.png",
-  "caption": "تعديل مركز: قاعته وموقعها على الخريطة، والمحافظات التي يخدمها، ومقاعده ومشرف قاعته",
+  "caption": "تعديل قاعة: موقعها على الخريطة، والمحافظات التي تخدمها، ومقاعدها ومشرفها ورقم شاشتها",
   "section": "E",
   "note": null
  },
  {
   "n": 43,
-  "key": "ex-exams",
-  "file": "043-ex-exams.png",
-  "caption": "الامتحانات: لكل صفة امتحانها الأساسي بموعده ومدته وأسئلته ومراكزه",
+  "key": "ex-screens",
+  "file": "043-ex-screens.png",
+  "caption": "شاشة عرض كل قاعة، ورابط دخول المتقدمين",
   "section": "E",
   "note": null
  },
  {
   "n": 44,
-  "key": "ex-exam",
-  "file": "044-ex-exam.png",
-  "caption": "تعديل امتحان: اسمه وموعده ومدته ومراكزه",
+  "key": "ex-exams",
+  "file": "044-ex-exams.png",
+  "caption": "الاختبارات: لكل صفة اختبارها بأقسامه، وحالته، ووضع الدخول",
   "section": "E",
   "note": null
  },
  {
   "n": 45,
-  "key": "ex-exam-sections",
-  "file": "045-ex-exam-sections.png",
-  "caption": "أقسام الامتحان: وزن كل قسم، والتصنيفات التي يُسحب منها، وعدد أسئلته من كل نوع",
+  "key": "ex-exam",
+  "file": "045-ex-exam.png",
+  "caption": "تعديل اختبار: اسمه وحالته ومدته وموعده، وظهور النتيجة، ووضع الدخول",
   "section": "E",
   "note": null
  },
  {
   "n": 46,
-  "key": "ex-bank",
-  "file": "046-ex-bank.png",
-  "caption": "بنك الأسئلة: اختيار من متعدد وصح وخطأ، والتصفية بالصفة والتصنيف والنوع",
+  "key": "ex-exam-sections",
+  "file": "046-ex-exam-sections.png",
+  "caption": "تعليمات شاشة القاعة، وأقسام الاختبار: ما يُسحب من كل قسم، ونسبة النجاح فيه، وترتيب أسئلته",
   "section": "E",
   "note": null
  },
  {
   "n": 47,
-  "key": "ex-bank-new",
-  "file": "047-ex-bank-new.png",
-  "caption": "سؤال جديد: نوعه وتصنيفه والصفات التي يدخل امتحانها، ونصه وإجابته",
+  "key": "ex-bank",
+  "file": "047-ex-bank.png",
+  "caption": "بنك الأسئلة: أسئلة الاختيار في أقسام الاختبارات، والفعّالة والمعطّلة",
   "section": "E",
   "note": null
  },
  {
   "n": 48,
-  "key": "ex-people",
-  "file": "048-ex-people.png",
-  "caption": "المتقدمون: مركز كل متقدم وحاله، والنقل إلى مركز آخر",
+  "key": "ex-bank-new",
+  "file": "048-ex-bank-new.png",
+  "caption": "سؤال جديد: خياراته من 2 إلى 6 وإجابة واحدة صحيحة، وشرحها",
   "section": "E",
   "note": null
  },
  {
   "n": 49,
-  "key": "hall-idle",
-  "file": "049-hall-idle.png",
-  "caption": "قاعتي الامتحانية: امتحانات المركز ومؤشرات الجلسة وفتح القاعة",
+  "key": "ex-people",
+  "file": "049-ex-people.png",
+  "caption": "المتقدمون: قاعة كل متقدم وحاله، والمُسند منهم إلى جلسة",
   "section": "E",
   "note": null
  },
  {
   "n": 50,
-  "key": "hall-joined",
-  "file": "050-hall-joined.png",
-  "caption": "متقدم فتح حسابه في القاعة: مطابقة الهوية وتأكيد الحضور",
+  "key": "ex-sittings",
+  "file": "050-ex-sittings.png",
+  "caption": "جلسات الاختبار: الجلسة اختبار في قاعة بموعد، ومتى يمكن فتحها",
   "section": "E",
   "note": null
  },
  {
   "n": 51,
-  "key": "hall-running",
-  "file": "051-hall-running.png",
-  "caption": "الامتحان جارٍ: العدّاد واحد للقاعة، وتقدّم كل متقدم",
+  "key": "ex-sitting",
+  "file": "051-ex-sitting.png",
+  "caption": "جلسة: متقدموها ومحاولاتهم",
   "section": "E",
   "note": null
  },
  {
   "n": 52,
-  "key": "hall-ended",
-  "file": "052-hall-ended.png",
-  "caption": "انتهى الامتحان: أُرسلت الأوراق وصُحّحت المؤتمتة",
+  "key": "hall-list",
+  "file": "052-hall-list.png",
+  "caption": "قاعتي الامتحانية: جلساتي، ما يمكن فتحه الآن أولاً، والـPIN",
   "section": "E",
   "note": null
  },
  {
   "n": 53,
-  "key": "hall-closed",
-  "file": "053-hall-closed.png",
-  "caption": "أُغلقت القاعة: الحاضرون والغائبون",
+  "key": "hall-idle",
+  "file": "053-hall-idle.png",
+  "caption": "الجلسة: مؤشراتها، والروابط والـPIN، وفتح القاعة",
   "section": "E",
   "note": null
  },
  {
   "n": 54,
-  "key": "ex-results",
-  "file": "054-ex-results.png",
-  "caption": "النتائج والشفهي: قواعد النجاح، وما ينتظر الشفهي والإعلان",
+  "key": "hall-open",
+  "file": "054-hall-open.png",
+  "caption": "فتح القاعة: تُسجَّل شبكتك شبكةً للقاعة",
   "section": "E",
   "note": null
  },
  {
   "n": 55,
-  "key": "ex-oral-days",
-  "file": "055-ex-oral-days.png",
-  "caption": "أيام الامتحان الشفهي: مقاعد كل يوم وساعته ومكانه، ومن حجز فيه",
+  "key": "hall-checkin",
+  "file": "055-hall-checkin.png",
+  "caption": "الحضور: مسح باركود البطاقة أو كتابة الرقم الوطني",
   "section": "E",
   "note": null
  },
  {
   "n": 56,
-  "key": "ex-oral-row",
-  "file": "056-ex-oral-row.png",
-  "caption": "متقدّم بانتظار نتيجة الشفهي",
+  "key": "hall-present",
+  "file": "056-hall-present.png",
+  "caption": "سُجّل حضوره",
   "section": "E",
   "note": null
  },
  {
   "n": 57,
-  "key": "ex-oral",
-  "file": "057-ex-oral.png",
-  "caption": "إدخال درجة الشفهي واللجنة والملاحظات",
+  "key": "hall-requests",
+  "file": "057-hall-requests.png",
+  "caption": "طلبات الدخول: طابق الرمز على شاشة المتقدم ثم وافق",
   "section": "E",
   "note": null
  },
  {
   "n": 58,
-  "key": "ex-announce",
-  "file": "058-ex-announce.png",
-  "caption": "إعلان النتيجة النهائية للمتقدّم",
+  "key": "hall-start",
+  "file": "058-hall-start.png",
+  "caption": "بدء الاختبار: لا يبدأ وفي القاعة طلبات معلّقة",
   "section": "E",
   "note": null
  },
  {
   "n": 59,
-  "key": "ex-rules",
-  "file": "059-ex-rules.png",
-  "caption": "قواعد النجاح: علامة النجاح، وحد الكتابي، ووزنا الكتابي والشفهي",
+  "key": "hall-running",
+  "file": "059-hall-running.png",
+  "caption": "الاختبار جارٍ: الوقت من بدء الاختبار، ومؤشرات القاعة",
   "section": "E",
   "note": null
  },
  {
   "n": 60,
-  "key": "ex-records",
-  "file": "060-ex-records.png",
-  "caption": "سجل النتائج: كل تغيير في هذا الجزء، ومن أجراه ومتى",
+  "key": "hall-display",
+  "file": "060-hall-display.png",
+  "caption": "شاشة القاعة: الاختبار ووقته وتعليماته، ورمز الدخول في الزاوية",
   "section": "E",
   "note": null
  },
  {
   "n": 61,
+  "key": "ex-live",
+  "file": "061-ex-live.png",
+  "caption": "الجلسات الفعالة: متابعة فقط، والإدارة من لوحة المشرف",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 62,
+  "key": "hall-monitor",
+  "file": "062-hall-monitor.png",
+  "caption": "المراقبة والتأكيد: حال كل محاولة وتنبيهاتها، والتأكيد",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 63,
+  "key": "hall-pin",
+  "file": "063-hall-pin.png",
+  "caption": "PIN التأكيد: رمزك الذي تكتبه على جهاز المتقدم",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 64,
+  "key": "hall-pin-device",
+  "file": "064-hall-pin-device.png",
+  "caption": "على جهاز المتقدم: تكتب رمزك فيتأكد تسليمه",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 65,
+  "key": "hall-end",
+  "file": "065-hall-end.png",
+  "caption": "إنهاء الاختبار وإغلاق القاعة: لا رجعة فيه",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 66,
+  "key": "hall-ended",
+  "file": "066-hall-ended.png",
+  "caption": "انتهت الجلسة: الحصيلة",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 67,
+  "key": "ex-review",
+  "file": "067-ex-review.png",
+  "caption": "المراجعة: محاولات تحتاج قراراً — اعتماد إداري أو إلغاء إداري",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 68,
+  "key": "ex-decide",
+  "file": "068-ex-decide.png",
+  "caption": "قرار إداري: ملاحظة القرار إلزامية",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 69,
+  "key": "ex-attendance",
+  "file": "069-ex-attendance.png",
+  "caption": "الحضور والغياب في كل جلسة",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 70,
+  "key": "ex-results",
+  "file": "070-ex-results.png",
+  "caption": "النتائج: المحاولات المؤكَّدة قسماً قسماً، والناجح من نجح في كل الأقسام",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 71,
+  "key": "ex-answers",
+  "file": "071-ex-answers.png",
+  "caption": "مراجعة إجابات محاولة: تُسجَّل في سجل التدقيق",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 72,
+  "key": "ex-stats",
+  "file": "072-ex-stats.png",
+  "caption": "الإحصائيات: المؤدّون والناجحون والمتوسط والوسيط، حسب القسم والجلسة والمحافظة والسؤال",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 73,
+  "key": "ex-records",
+  "file": "073-ex-records.png",
+  "caption": "سجل الجلسات: كل فتح وحضور ودخول وتأكيد، ومن أجراه ومتى",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 74,
   "key": "adm-top",
-  "file": "061-adm-top.png",
+  "file": "074-adm-top.png",
   "caption": "ملخص الإداريين: أرقامهم، وما ينتظرك الآن، وعمليات الملف في القائمة الجانبية",
   "section": "F",
   "note": null
  },
  {
-  "n": 62,
+  "n": 75,
   "key": "adm-summary",
-  "file": "062-adm-summary.png",
+  "file": "075-adm-summary.png",
   "caption": "حال كل جزء من الملف: القواعد، والكادر والمراجع، والمتقدمون، والمجموعات والتكتلات",
   "section": "F",
   "note": null
  },
  {
-  "n": 63,
+  "n": 76,
   "key": "adm-rules",
-  "file": "063-adm-rules.png",
+  "file": "076-adm-rules.png",
   "caption": "قواعد الإداريين: عملياتهم بمواعيدها وساعاتها، ثم قواعد الموسم",
   "section": "F",
   "note": null
  },
  {
-  "n": 64,
+  "n": 77,
   "key": "rules-roles",
-  "file": "064-rules-roles.png",
+  "file": "077-rules-roles.png",
   "caption": "الصفات المتاحة والتزامات الإداري",
   "section": "F",
   "note": null
  },
  {
-  "n": 65,
+  "n": 78,
   "key": "rules-catalog",
-  "file": "065-rules-catalog.png",
+  "file": "078-rules-catalog.png",
   "caption": "الشهادات والمهارات واللغات: القوائم التي يُبنى منها ملف الإداري",
   "section": "F",
   "note": null
  },
  {
-  "n": 66,
+  "n": 79,
   "key": "rules-requirements",
-  "file": "066-rules-requirements.png",
+  "file": "079-rules-requirements.png",
   "caption": "شروط الصفات: جدول الموسم — لكل صفة شهاداتها، مطلوبة أو تقوّي الطلب",
   "section": "F",
   "note": null
  },
  {
-  "n": 67,
+  "n": 80,
   "key": "rules-stages",
-  "file": "067-rules-stages.png",
+  "file": "080-rules-stages.png",
   "caption": "مراحل تقييم الإداري",
   "section": "F",
   "note": null
  },
  {
-  "n": 68,
+  "n": 81,
   "key": "rules-calendar",
-  "file": "068-rules-calendar.png",
+  "file": "081-rules-calendar.png",
   "caption": "رزنامة الإداريين",
   "section": "F",
   "note": null
  },
  {
-  "n": 69,
+  "n": 82,
   "key": "ref-roles",
-  "file": "069-ref-roles.png",
+  "file": "082-ref-roles.png",
   "caption": "القوائم المرجعية — الصفات: اثنتا عشرة صفة، ومنها درجات الموجّهين أ وب وج",
   "section": "F",
   "note": null
  },
  {
-  "n": 70,
+  "n": 83,
   "key": "ref-grades",
-  "file": "070-ref-grades.png",
+  "file": "083-ref-grades.png",
   "caption": "درجات الموجّهين: العمر المثبَّت لكل درجة، وشارة التميّز في التوجيه الديني للدرجة «أ»",
   "section": "F",
   "note": null
  },
  {
-  "n": 71,
+  "n": 84,
   "key": "ref-role-form",
-  "file": "071-ref-role-form.png",
+  "file": "084-ref-role-form.png",
   "caption": "تعديل صفة: مستواها وسلوكها، وعمرها المثبَّت، واسم امتحانها",
   "section": "F",
   "note": null
  },
  {
-  "n": 72,
+  "n": 85,
   "key": "ref-categories",
-  "file": "072-ref-categories.png",
+  "file": "085-ref-categories.png",
   "caption": "الفئات والأعداد: لكل مستوى تركيبة التكتل وحجاج كل فئة ومقاعدها",
   "section": "F",
   "note": null
  },
  {
-  "n": 73,
+  "n": 86,
   "key": "ref-branches",
-  "file": "073-ref-branches.png",
+  "file": "086-ref-branches.png",
   "caption": "الفروع: داخل سوريا وخارجها، وعدد المرتبطين بكل فرع",
   "section": "F",
   "note": null
  },
  {
-  "n": 74,
+  "n": 87,
   "key": "ref-labels",
-  "file": "074-ref-labels.png",
+  "file": "087-ref-labels.png",
   "caption": "التسميات الموسمية الجاهزة: اقتراحات تُمنح مع الصفة الموسمية",
   "section": "F",
   "note": null
  },
  {
-  "n": 75,
+  "n": 88,
   "key": "refs-jobs",
-  "file": "075-refs-jobs.png",
+  "file": "088-refs-jobs.png",
   "caption": "المراجع الإدارية — التوصيف الوظيفي: بطاقة لكل صفة، تُرتَّب وتُخفى وتُعدَّل",
   "section": "F",
   "note": null
  },
  {
-  "n": 76,
+  "n": 89,
   "key": "refs-job-form",
-  "file": "076-refs-job-form.png",
+  "file": "089-refs-job-form.png",
   "caption": "تعديل توصيف صفة: خلاصتها ومهامها، مهمة في كل سطر",
   "section": "F",
   "note": null
  },
  {
-  "n": 77,
+  "n": 90,
   "key": "refs-system",
-  "file": "077-refs-system.png",
+  "file": "090-refs-system.png",
   "caption": "النظام الإداري: أقسامه السبعة وخاتمته، تُرتَّب وتُعدَّل وتُحذف ويُضاف إليها",
   "section": "F",
   "note": null
  },
  {
-  "n": 78,
+  "n": 91,
   "key": "refs-system-form",
-  "file": "078-refs-system-form.png",
+  "file": "091-refs-system-form.png",
   "caption": "تحرير قسم: نصه بفقرات وبنود، وإلى جانبه كما يظهر في الصفحة العامة",
   "section": "F",
   "note": null
  },
  {
-  "n": 79,
+  "n": 92,
   "key": "refs-decisions",
-  "file": "079-refs-decisions.png",
+  "file": "092-refs-decisions.png",
   "caption": "المقررات الإدارية: كل مقرر بموسمه وملفه",
   "section": "F",
   "note": null
  },
  {
-  "n": 80,
+  "n": 93,
   "key": "refs-contracts",
-  "file": "080-refs-contracts.png",
+  "file": "093-refs-contracts.png",
   "caption": "نماذج العقود: طرفا كل عقد، وملفه",
   "section": "F",
   "note": null
  },
  {
-  "n": 81,
+  "n": 94,
   "key": "cadre-roster",
-  "file": "081-cadre-roster.png",
+  "file": "094-cadre-roster.png",
   "caption": "الكادر الإداري: كل فرد بصفته الأساسية ومكانه في تكتله وفرعه وهاتفه وتيليجرامه وحضوره",
   "section": "F",
   "note": null
  },
  {
-  "n": 82,
+  "n": 95,
   "key": "cadre-columns",
-  "file": "082-cadre-columns.png",
+  "file": "095-cadre-columns.png",
   "caption": "الأعمدة: تختار ما يظهر في الجدول وما يُصدَّر إلى Excel",
   "section": "F",
   "note": null
  },
  {
-  "n": 83,
+  "n": 96,
   "key": "cadre-person",
-  "file": "083-cadre-person.png",
+  "file": "096-cadre-person.png",
   "caption": "ملف الفرد: بياناته، ورمز دخوله وتيليجرامه، وإيقاف حسابه أو حذفه",
   "section": "F",
   "note": null
  },
  {
-  "n": 84,
+  "n": 97,
   "key": "cadre-person-role",
-  "file": "084-cadre-person-role.png",
+  "file": "097-cadre-person-role.png",
   "caption": "صفته الأساسية والموسمية وفئته وفروعه: كل تعديل بسببه",
   "section": "F",
   "note": null
  },
  {
-  "n": 85,
+  "n": 98,
   "key": "cadre-stop",
-  "file": "085-cadre-stop.png",
+  "file": "098-cadre-stop.png",
   "caption": "إيقاف حساب: لا يدخل المنصة ولا يُدعى إلى تكتل حتى يُفعَّل",
   "section": "F",
   "note": null
  },
  {
-  "n": 86,
+  "n": 99,
   "key": "cadre-person-events",
-  "file": "086-cadre-person-events.png",
+  "file": "099-cadre-person-events.png",
   "caption": "أحداث ملفه: انضمامه إلى تكتل، وكل تعديل عليه، وما يُكتب بيدك",
   "section": "F",
   "note": null
  },
  {
-  "n": 87,
+  "n": 100,
   "key": "cadre-add",
-  "file": "087-cadre-add.png",
+  "file": "100-cadre-add.png",
   "caption": "إضافة كادر: من السجل المدني بالرقم الوطني، بصفته وفرعه وسبب إضافته",
   "section": "F",
   "note": null
  },
  {
-  "n": 88,
+  "n": 101,
   "key": "cadre-events",
-  "file": "088-cadre-events.png",
+  "file": "101-cadre-events.png",
   "caption": "أحداث الكادر: ملفات الأفراد كلهم بنوع كل حدث وموسمه وتغييره ومن سجّله",
   "section": "F",
   "note": null
  },
  {
-  "n": 89,
+  "n": 102,
   "key": "cadre-telegram",
-  "file": "089-cadre-telegram.png",
+  "file": "102-cadre-telegram.png",
   "caption": "إرسال تيليجرام إلى من في القائمة المعروضة: يصل المربوطين بالبوت",
   "section": "F",
   "note": null
  },
  {
-  "n": 90,
+  "n": 103,
   "key": "adm-applicants",
-  "file": "090-adm-applicants.png",
+  "file": "103-adm-applicants.png",
   "caption": "المتقدمون صفةً صفة: من تقدّم ومن ثبتت أهليته وسدد ونجح وتأهّل",
   "section": "F",
   "note": null
  },
  {
-  "n": 91,
+  "n": 104,
   "key": "adm-files",
-  "file": "091-adm-files.png",
+  "file": "104-adm-files.png",
   "caption": "الملفات الدائمة للإداريين: الوثائق وصلاحيتها وما ينقص كل ملف",
   "section": "F",
   "note": null
  },
  {
-  "n": 92,
+  "n": 105,
   "key": "adm-eval-list",
-  "file": "092-adm-eval-list.png",
+  "file": "105-adm-eval-list.png",
   "caption": "التقييم مرحلةً مرحلة: من قُيّم في كل مرحلة",
   "section": "F",
   "note": null
  },
  {
-  "n": 93,
+  "n": 106,
   "key": "adm-eval",
-  "file": "093-adm-eval.png",
+  "file": "106-adm-eval.png",
   "caption": "تقييم الإداري: درجة من 1 إلى 5 لكل مرحلة، وملاحظة ودليل",
   "section": "F",
   "note": null
  },
  {
-  "n": 94,
+  "n": 107,
   "key": "grade-top",
-  "file": "094-grade-top.png",
+  "file": "107-grade-top.png",
   "caption": "تصنيف المجموعات والتكتلات ونشره",
   "section": "F",
   "note": null
  },
  {
-  "n": 95,
+  "n": 108,
   "key": "grade-tier",
-  "file": "095-grade-tier.png",
+  "file": "108-grade-tier.png",
   "caption": "الترتيب داخل كل فئة: مرقّاة وثابتة ومخفّضة",
   "section": "F",
   "note": null
  },
  {
-  "n": 96,
+  "n": 109,
   "key": "grade-published",
-  "file": "096-grade-published.png",
+  "file": "109-grade-published.png",
   "caption": "اعتُمدت نتائج التصنيف ونُشرت",
   "section": "F",
   "note": null
  },
  {
-  "n": 97,
+  "n": 110,
   "key": "adm-records",
-  "file": "097-adm-records.png",
+  "file": "110-adm-records.png",
   "caption": "سجل التصنيف: كل تغيير في هذا الجزء، ومن أجراه ومتى",
   "section": "F",
   "note": null
  },
  {
-  "n": 98,
+  "n": 111,
   "key": "grp-card",
-  "file": "098-grp-card.png",
+  "file": "111-grp-card.png",
   "caption": "تشكيل مجموعة في المكتب: رئيسها المؤهل، واسمها، وفئته، ورسم التشكيل",
   "section": "G",
   "note": null
  },
  {
-  "n": 99,
+  "n": 112,
   "key": "grp-approve",
-  "file": "099-grp-approve.png",
+  "file": "112-grp-approve.png",
   "caption": "تشكيل المجموعة",
   "section": "G",
   "note": null
  },
  {
-  "n": 100,
+  "n": 113,
   "key": "grp-approved",
-  "file": "100-grp-approved.png",
+  "file": "113-grp-approved.png",
   "caption": "شُكّلت المجموعة",
   "section": "G",
   "note": null
  },
  {
-  "n": 101,
+  "n": 114,
   "key": "grp-list",
-  "file": "101-grp-list.png",
+  "file": "114-grp-list.png",
   "caption": "مجموعات الموسم المعتمدة: رئيس كل مجموعة وفئتها وحجاجها وتكتلها",
   "section": "G",
   "note": null
  },
  {
-  "n": 102,
+  "n": 115,
   "key": "cl-window",
-  "file": "102-cl-window.png",
+  "file": "115-cl-window.png",
   "caption": "مواعيد الاستقبال: البدء والموعد الأول والموعد النهائي باليوم والساعة",
   "section": "G",
   "note": null
  },
  {
-  "n": 103,
+  "n": 116,
   "key": "cl-requests",
-  "file": "103-cl-requests.png",
+  "file": "116-cl-requests.png",
   "caption": "التكتلات المُرسلة: النشطة والمؤرشفة، والمستوى، والحالات",
   "section": "G",
   "note": null
  },
  {
-  "n": 104,
+  "n": 117,
   "key": "cl-sheet",
-  "file": "104-cl-sheet.png",
+  "file": "117-cl-sheet.png",
   "caption": "طلب جاري المراجعة: الاعتماد أو الرفض مع ملاحظات، والطباعة وExcel، وشروطه",
   "section": "G",
   "note": null
  },
  {
-  "n": 105,
+  "n": 118,
   "key": "cl-exceptional",
-  "file": "105-cl-exceptional.png",
+  "file": "118-cl-exceptional.png",
   "caption": "التعديل الاستثنائي: إضافة مجموعة أو فرد إلى مكان أو إزالته، بسبب يُكتب في ملفه",
   "section": "G",
   "note": null
  },
  {
-  "n": 106,
+  "n": 119,
   "key": "cl-onbehalf",
-  "file": "106-cl-onbehalf.png",
+  "file": "119-cl-onbehalf.png",
   "caption": "إنشاء تشكيل نيابة عن قائد: القائد واسم التكتل ومستواه والسبب",
   "section": "G",
   "note": null
  },
  {
-  "n": 107,
+  "n": 120,
   "key": "cl-onbehalf-sheet",
-  "file": "107-cl-onbehalf-sheet.png",
+  "file": "120-cl-onbehalf-sheet.png",
   "caption": "المسودة باسم قائدها وشارة «أُنشئ من الإدارة»: تُملأ بالتعديل الاستثنائي ثم تُرسل نيابة عنه",
   "section": "G",
   "note": null
  },
  {
-  "n": 108,
+  "n": 121,
   "key": "cl-archived",
-  "file": "108-cl-archived.png",
+  "file": "121-cl-archived.png",
   "caption": "المؤرشفة: التكتلات المعتمدة التي خرجت من عمل الموسم، بموسمها",
   "section": "G",
   "note": null
  },
  {
-  "n": 109,
+  "n": 122,
   "key": "dir-clusters",
-  "file": "109-dir-clusters.png",
+  "file": "122-dir-clusters.png",
   "caption": "التكتلات والمجموعات: كل تكتل معتمد بموسمه وأرقامه وملاحظة الإدارة عليه",
   "section": "G",
   "note": null
  },
  {
-  "n": 110,
+  "n": 123,
   "key": "dir-members",
-  "file": "110-dir-members.png",
+  "file": "123-dir-members.png",
   "caption": "أعضاء تكتل: كل فرد بصفته في التكتل ومجموعته",
   "section": "G",
   "note": null
  },
  {
-  "n": 111,
+  "n": 124,
   "key": "dir-groups",
-  "file": "111-dir-groups.png",
+  "file": "124-dir-groups.png",
   "caption": "المجموعات: رئيس كل مجموعة وتكتلها وموسمها وفئته وحجاجها",
   "section": "G",
   "note": null
  },
  {
-  "n": 112,
+  "n": 125,
   "key": "dir-season",
-  "file": "112-dir-season.png",
+  "file": "125-dir-season.png",
   "caption": "بدء موسم جديد: تُؤرشف تشكيلات الموسم المعتمدة، وتُختم الطلبات بعده بالموسم التالي",
   "section": "G",
   "note": null
  },
  {
-  "n": 113,
+  "n": 126,
   "key": "let-list",
-  "file": "113-let-list.png",
+  "file": "126-let-list.png",
   "caption": "المراسلات: غير مقروءة، وبدون رد، وتم الرد، ومغلقة",
   "section": "G",
   "note": null
  },
  {
-  "n": 114,
+  "n": 127,
   "key": "let-thread",
-  "file": "114-let-thread.png",
+  "file": "127-let-thread.png",
   "caption": "مراسلة: سياقها ومرفقاتها، والرد والإغلاق والطباعة",
   "section": "G",
   "note": null
  },
  {
-  "n": 115,
+  "n": 128,
   "key": "prof-diff",
-  "file": "115-prof-diff.png",
+  "file": "128-prof-diff.png",
   "caption": "برنامج تكتل ينتظر اعتمادك: قبل وبعد لكل حقل عدّله رئيس التكتل",
   "section": "G",
   "note": null
  },
  {
-  "n": 116,
+  "n": 129,
   "key": "prof-published",
-  "file": "116-prof-published.png",
+  "file": "129-prof-published.png",
   "caption": "اعتُمد البرنامج ونُشر في دليل الخدمات",
   "section": "G",
   "note": null
  },
  {
-  "n": 117,
+  "n": 130,
   "key": "refs-plans",
-  "file": "117-refs-plans.png",
+  "file": "130-refs-plans.png",
   "caption": "الخطط التشغيلية: ما قدّمه رؤساء التكتلات، تُقبل أو تُعاد بملاحظات",
   "section": "G",
   "note": null
  },
  {
-  "n": 118,
+  "n": 131,
   "key": "audit-top",
-  "file": "118-audit-top.png",
+  "file": "131-audit-top.png",
   "caption": "سجل الأحداث: للإضافة فقط",
   "section": "H",
   "note": null
  },
  {
-  "n": 119,
+  "n": 132,
   "key": "audit-trace",
-  "file": "119-audit-trace.png",
+  "file": "132-audit-trace.png",
   "caption": "تتبّع طلب عند الاعتراض",
   "section": "H",
   "note": null
  },
  {
-  "n": 120,
+  "n": 133,
   "key": "audit-filters",
-  "file": "120-audit-filters.png",
+  "file": "133-audit-filters.png",
   "caption": "البحث والتصفية حسب الموظف والصفة والإجراء",
   "section": "H",
   "note": null
  },
  {
-  "n": 121,
+  "n": 134,
   "key": "exec-top",
-  "file": "121-exec-top.png",
+  "file": "134-exec-top.png",
   "caption": "لوحة الإدارة العليا",
   "section": "H",
   "note": null
  },
  {
-  "n": 122,
+  "n": 135,
   "key": "exec-2",
-  "file": "122-exec-2.png",
+  "file": "135-exec-2.png",
   "caption": "رضا الحجاج والشكاوى وترتيب التكتلات",
   "section": "H",
   "note": null
  },
  {
-  "n": 123,
+  "n": 136,
   "key": "ops-top",
-  "file": "123-ops-top.png",
+  "file": "136-ops-top.png",
   "caption": "غرفة العمليات: المؤشرات الحية",
   "section": "I",
   "note": null
  },
  {
-  "n": 124,
+  "n": 137,
   "key": "ops-map",
-  "file": "124-ops-map.png",
+  "file": "137-ops-map.png",
   "caption": "خريطة المشاعر وطابور البلاغات",
   "section": "I",
   "note": null
  },
  {
-  "n": 125,
+  "n": 138,
   "key": "ops-drawer",
-  "file": "125-ops-drawer.png",
+  "file": "138-ops-drawer.png",
   "caption": "تفاصيل البلاغ: الحالة والإسناد ومسار البلاغ",
   "section": "I",
   "note": null
  },
  {
-  "n": 126,
+  "n": 139,
   "key": "ops-update",
-  "file": "126-ops-update.png",
+  "file": "139-ops-update.png",
   "caption": "إسناد البلاغ وإضافة تحديث",
   "section": "I",
   "note": null
  },
  {
-  "n": 127,
+  "n": 140,
   "key": "ops-closed",
-  "file": "127-ops-closed.png",
+  "file": "140-ops-closed.png",
   "caption": "تغيير حالة البلاغ إلى «مغلق»",
   "section": "I",
   "note": null
  },
  {
-  "n": 128,
+  "n": 141,
   "key": "ops-bus",
-  "file": "128-ops-bus.png",
+  "file": "141-ops-bus.png",
   "caption": "اقتراح حافلات مزدلفة المبكرة لكبار السن",
   "section": "I",
   "note": null
  },
  {
-  "n": 129,
+  "n": 142,
   "key": "ops-tasks",
-  "file": "129-ops-tasks.png",
+  "file": "142-ops-tasks.png",
   "caption": "المهام الداخلية (كانبان)",
   "section": "I",
   "note": null
  },
  {
-  "n": 130,
+  "n": 143,
   "key": "ops-task-new",
-  "file": "130-ops-task-new.png",
+  "file": "143-ops-task-new.png",
   "caption": "إضافة مهمة جديدة وإسنادها",
   "section": "I",
   "note": null
  },
  {
-  "n": 131,
+  "n": 144,
   "key": "ops-log",
-  "file": "131-ops-log.png",
+  "file": "144-ops-log.png",
   "caption": "سجل المناوبة",
   "section": "I",
   "note": null
  },
  {
-  "n": 132,
+  "n": 145,
   "key": "ops-files-view",
-  "file": "132-ops-files-view.png",
+  "file": "145-ops-files-view.png",
   "caption": "الملفات التشغيلية لغرفة العمليات: عرض فقط",
   "section": "I",
   "note": null
  },
  {
-  "n": 133,
+  "n": 146,
   "key": "cms-top",
-  "file": "133-cms-top.png",
+  "file": "146-cms-top.png",
   "caption": "محتوى المنصة: الصفحات والأقسام",
   "section": "J",
   "note": null
  },
  {
-  "n": 134,
+  "n": 147,
   "key": "cms-pages",
-  "file": "134-cms-pages.png",
+  "file": "147-cms-pages.png",
   "caption": "قائمة الصفحات: اضغط بطاقة الصفحة لتعديلها",
   "section": "J",
   "note": null
  },
  {
-  "n": 135,
+  "n": 148,
   "key": "cms-editor",
-  "file": "135-cms-editor.png",
+  "file": "148-cms-editor.png",
   "caption": "محرر الصفحة: أقسام الصفحة ونموذج القسم",
   "section": "J",
   "note": null
  },
  {
-  "n": 136,
+  "n": 149,
   "key": "cms-edit",
-  "file": "136-cms-edit.png",
+  "file": "149-cms-edit.png",
   "caption": "تعديل نص في قسم: يُحفظ في المسودة تلقائياً",
   "section": "J",
   "note": null
  },
  {
-  "n": 137,
+  "n": 150,
   "key": "cms-preview",
-  "file": "137-cms-preview.png",
+  "file": "150-cms-preview.png",
   "caption": "معاينة المسودة قبل النشر",
   "section": "J",
   "note": null
  },
  {
-  "n": 138,
+  "n": 151,
   "key": "cms-collections",
-  "file": "138-cms-collections.png",
+  "file": "151-cms-collections.png",
   "caption": "مجموعات المحتوى: الأخبار والأسئلة الشائعة والتكتلات والأكاديمية",
   "section": "J",
   "note": null
  },
  {
-  "n": 139,
+  "n": 152,
   "key": "cms-news",
-  "file": "139-cms-news.png",
+  "file": "152-cms-news.png",
   "caption": "مقالات الأخبار: إضافة مقال جديد أو تعديل مقال",
   "section": "J",
   "note": null
  },
  {
-  "n": 140,
+  "n": 153,
   "key": "cms-media",
-  "file": "140-cms-media.png",
+  "file": "153-cms-media.png",
   "caption": "مكتبة الوسائط",
   "section": "J",
   "note": null
  },
  {
-  "n": 141,
+  "n": 154,
   "key": "cms-revisions",
-  "file": "141-cms-revisions.png",
+  "file": "154-cms-revisions.png",
   "caption": "النسخ السابقة واستعادتها",
   "section": "J",
   "note": null
  },
  {
-  "n": 142,
+  "n": 155,
   "key": "cms-archive",
-  "file": "142-cms-archive.png",
+  "file": "155-cms-archive.png",
   "caption": "الأرشيف واستعادة المحذوف",
   "section": "J",
   "note": null
  },
  {
-  "n": 143,
+  "n": 156,
   "key": "emp-top",
-  "file": "143-emp-top.png",
+  "file": "156-emp-top.png",
   "caption": "ملخص الموظفين: أرقام السجل والحسابات والموسم، وما ينتظرك الآن",
   "section": "K",
   "note": null
  },
  {
-  "n": 144,
+  "n": 157,
   "key": "emp-summary",
-  "file": "144-emp-summary.png",
+  "file": "157-emp-summary.png",
   "caption": "تركيب السجل، وحسابات البوابة، والمشاركة في الموسم",
   "section": "K",
   "note": null
  },
  {
-  "n": 145,
+  "n": 158,
   "key": "emp-register",
-  "file": "145-emp-register.png",
+  "file": "158-emp-register.png",
   "caption": "سجل الموظفين: أولى عمليات إدارة الموظفين في القائمة الجانبية",
   "section": "K",
   "note": null
  },
  {
-  "n": 146,
+  "n": 159,
   "key": "emp-search",
-  "file": "146-emp-search.png",
+  "file": "159-emp-search.png",
   "caption": "البحث عن موظف",
   "section": "K",
   "note": null
  },
  {
-  "n": 147,
+  "n": 160,
   "key": "emp-drawer",
-  "file": "147-emp-drawer.png",
+  "file": "160-emp-drawer.png",
   "caption": "ملف الموظف: البيانات والمواقع والرحلتان والحساب، وسجلّه",
   "section": "K",
   "note": null
  },
  {
-  "n": 148,
+  "n": 161,
   "key": "emp-asseen",
-  "file": "148-emp-asseen.png",
+  "file": "161-emp-asseen.png",
   "caption": "صفحة الموظف كما يراها هو",
   "section": "K",
   "note": null
  },
  {
-  "n": 149,
+  "n": 162,
   "key": "emp-accounts",
-  "file": "149-emp-accounts.png",
+  "file": "162-emp-accounts.png",
   "caption": "حسابات البوابة: صلاحيات كل حساب ومواقعه الميدانية، وسجل صاحبه",
   "section": "K",
   "note": null
  },
  {
-  "n": 150,
+  "n": 163,
   "key": "emp-account",
-  "file": "150-emp-account.png",
+  "file": "163-emp-account.png",
   "caption": "حساب موظف: صلاحياته ومواقعه، وربطه بسجله، وكلمة المرور المؤقتة",
   "section": "K",
   "note": null
  },
  {
-  "n": 151,
+  "n": 164,
   "key": "emp-season",
-  "file": "151-emp-season.png",
+  "file": "164-emp-season.png",
   "caption": "المشاركون في الموسم: مواقع كل مشارك ورحلتاه، ومن لم يُسند بعد",
   "section": "K",
   "note": null
  },
  {
-  "n": 152,
+  "n": 165,
   "key": "emp-new",
-  "file": "152-emp-new.png",
+  "file": "165-emp-new.png",
   "caption": "إضافة موظف: البيانات الأساسية",
   "section": "K",
   "note": null
  },
  {
-  "n": 153,
+  "n": 166,
   "key": "emp-new-filled",
-  "file": "153-emp-new-filled.png",
+  "file": "166-emp-new-filled.png",
   "caption": "بعد تعبئة بيانات الموظف",
   "section": "K",
   "note": null
  },
  {
-  "n": 154,
+  "n": 167,
   "key": "emp-new-save",
-  "file": "154-emp-new-save.png",
+  "file": "167-emp-new-save.png",
   "caption": "حفظ الموظف الجديد",
   "section": "K",
   "note": null
  },
  {
-  "n": 155,
+  "n": 168,
   "key": "emp-added",
-  "file": "155-emp-added.png",
+  "file": "168-emp-added.png",
   "caption": "أُضيف الموظف",
   "section": "K",
   "note": null
  },
  {
-  "n": 156,
+  "n": 169,
   "key": "emp-records",
-  "file": "156-emp-records.png",
+  "file": "169-emp-records.png",
   "caption": "سجل الإضافة والتعديل والإيقاف: كل تغيير في السجل، ومن أجراه ومتى",
   "section": "K",
   "note": null
  },
  {
-  "n": 157,
+  "n": 170,
   "key": "ref-hotels",
-  "file": "157-ref-hotels.png",
+  "file": "170-ref-hotels.png",
   "caption": "البيانات المرجعية: الفنادق",
   "section": "L",
   "note": null
  },
  {
-  "n": 158,
+  "n": 171,
   "key": "ref-hotel-new",
-  "file": "158-ref-hotel-new.png",
+  "file": "171-ref-hotel-new.png",
   "caption": "نموذج إضافة فندق",
   "section": "L",
   "note": null
  },
  {
-  "n": 159,
+  "n": 172,
   "key": "ref-copy",
-  "file": "159-ref-copy.png",
+  "file": "172-ref-copy.png",
   "caption": "نقل عناصر من موسم 1447",
   "section": "L",
   "note": null
  },
  {
-  "n": 160,
+  "n": 173,
   "key": "ref-camps",
-  "file": "160-ref-camps.png",
+  "file": "173-ref-camps.png",
   "caption": "المخيمات في منى وعرفات",
   "section": "L",
   "note": null
  },
  {
-  "n": 161,
+  "n": 174,
   "key": "of-top",
-  "file": "161-of-top.png",
+  "file": "174-of-top.png",
   "caption": "الملفات التشغيلية: ثلاثة أنواع لكل موسم",
   "section": "L",
   "note": null
  },
  {
-  "n": 162,
+  "n": 175,
   "key": "of-vacant",
-  "file": "162-of-vacant.png",
+  "file": "175-of-vacant.png",
   "caption": "ملف التسكين في مكة: المناصب الإلزامية الشاغرة",
   "section": "L",
   "note": null
  },
  {
-  "n": 163,
+  "n": 176,
   "key": "of-picker",
-  "file": "163-of-picker.png",
+  "file": "176-of-picker.png",
   "caption": "اختيار موظف لمنصب شاغر",
   "section": "L",
   "note": null
  },
  {
-  "n": 164,
+  "n": 177,
   "key": "of-assigned",
-  "file": "164-of-assigned.png",
+  "file": "177-of-assigned.png",
   "caption": "بعد إسناد المنصب",
   "section": "L",
   "note": null
  },
  {
-  "n": 165,
+  "n": 178,
   "key": "of-info",
-  "file": "165-of-info.png",
+  "file": "178-of-info.png",
   "caption": "معلومات الملف: رقم القرار وفترة العمل",
   "section": "L",
   "note": null
  },
  {
-  "n": 166,
+  "n": 179,
   "key": "of-activate",
-  "file": "166-of-activate.png",
+  "file": "179-of-activate.png",
   "caption": "محاولة التفعيل: يُفعَّل الملف عند اكتمال المناصب الإلزامية ووجود رقم القرار",
   "section": "L",
   "note": null
  },
  {
-  "n": 167,
+  "n": 180,
   "key": "med-tasks",
-  "file": "167-med-tasks.png",
+  "file": "180-med-tasks.png",
   "caption": "الفريق الطبي: مهامي اليوم في لوحتي",
   "section": "M",
   "note": null
  },
  {
-  "n": 168,
+  "n": 181,
   "key": "med-files",
-  "file": "168-med-files.png",
+  "file": "181-med-files.png",
   "caption": "الفريق الطبي: ملفاتي التشغيلية",
   "section": "M",
   "note": null
  },
  {
-  "n": 169,
+  "n": 182,
   "key": "trn-tasks",
-  "file": "169-trn-tasks.png",
+  "file": "182-trn-tasks.png",
   "caption": "فريق المواصلات: مهامي اليوم في لوحتي",
   "section": "M",
   "note": null
  },
  {
-  "n": 170,
+  "n": 183,
   "key": "trn-files",
-  "file": "170-trn-files.png",
+  "file": "183-trn-files.png",
   "caption": "فريق المواصلات: ملفاتي التشغيلية",
   "section": "M",
   "note": null
  },
  {
-  "n": 171,
+  "n": 184,
   "key": "fl-top",
-  "file": "171-fl-top.png",
+  "file": "184-fl-top.png",
   "caption": "ملخص الطيران: أرقام الموسم، وما ينتظرك الآن",
   "section": "N",
   "note": null
  },
  {
-  "n": 172,
+  "n": 185,
   "key": "fl-summary",
-  "file": "172-fl-summary.png",
+  "file": "185-fl-summary.png",
   "caption": "المطارات ومندوبوها، والرحلات القادمة، والتكتلات على رحلاتها",
   "section": "N",
   "note": null
  },
  {
-  "n": 173,
+  "n": 186,
   "key": "fl-refs",
-  "file": "173-fl-refs.png",
+  "file": "186-fl-refs.png",
   "caption": "المطارات والناقلون: أولى عمليات إدارة الطيران في القائمة الجانبية",
   "section": "N",
   "note": null
  },
  {
-  "n": 174,
+  "n": 187,
   "key": "fl-reps",
-  "file": "174-fl-reps.png",
+  "file": "187-fl-reps.png",
   "caption": "مندوبو المطارات: مندوب لكل مطار يسجل الإقلاع منه والهبوط فيه",
   "section": "N",
   "note": null
  },
  {
-  "n": 175,
+  "n": 188,
   "key": "fl-list",
-  "file": "175-fl-list.png",
+  "file": "188-fl-list.png",
   "caption": "قائمة الرحلات: المقاعد، والمجموعات على كل رحلة، والحالة",
   "section": "N",
   "note": null
  },
  {
-  "n": 176,
+  "n": 189,
   "key": "fl-new",
-  "file": "176-fl-new.png",
+  "file": "189-fl-new.png",
   "caption": "رحلة جديدة: لمن الرحلة، ونوعها (ذهاب فقط، عودة فقط، ذهاب وعودة)، والسعة",
   "section": "N",
   "note": null
  },
  {
-  "n": 177,
+  "n": 190,
   "key": "fl-new-return",
-  "file": "177-fl-new-return.png",
+  "file": "190-fl-new-return.png",
   "caption": "في «ذهاب وعودة» تُملأ رحلة العودة تحت رحلة الذهاب، ثم «حفظ الرحلتين»",
   "section": "N",
   "note": null
  },
  {
-  "n": 178,
+  "n": 191,
   "key": "fl-draft",
-  "file": "178-fl-draft.png",
+  "file": "191-fl-draft.png",
   "caption": "المسودة: الرحلة المقابلة مرتبطة بها، و«نشر الرحلتين»",
   "section": "N",
   "note": null
  },
  {
-  "n": 179,
+  "n": 192,
   "key": "fl-picker",
-  "file": "179-fl-picker.png",
+  "file": "192-fl-picker.png",
   "caption": "اختيار الموظفين: واحد أو أكثر، بلا حد إلا مقاعد الرحلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 180,
+  "n": 193,
   "key": "fl-picker-return",
-  "file": "180-fl-picker-return.png",
+  "file": "193-fl-picker-return.png",
   "caption": "رحلة العودة المقابلة مختارة سلفاً: يُسند الموظفون ذهاباً وعودة معاً",
   "section": "N",
   "note": null
  },
  {
-  "n": 181,
+  "n": 194,
   "key": "fl-staff-done",
-  "file": "181-fl-staff-done.png",
+  "file": "194-fl-staff-done.png",
   "caption": "الموظفون الأربعة على الرحلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 182,
+  "n": 195,
   "key": "fl-drawer",
-  "file": "182-fl-drawer.png",
+  "file": "195-fl-drawer.png",
   "caption": "رحلة حجاج: المجموعات عليها، ثم الحجاج مرتبون بالمجموعة والعائلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 183,
+  "n": 196,
   "key": "fl-groups",
-  "file": "183-fl-groups.png",
+  "file": "196-fl-groups.png",
   "caption": "إضافة مجموعات: تُختار المجموعة كاملة، والعدد والمتبقي في الأسفل",
   "section": "N",
   "note": null
  },
  {
-  "n": 184,
+  "n": 197,
   "key": "fl-groups-return",
-  "file": "184-fl-groups-return.png",
+  "file": "197-fl-groups-return.png",
   "caption": "وإسنادها إلى رحلة العودة المقابلة في الخطوة نفسها",
   "section": "N",
   "note": null
  },
  {
-  "n": 185,
+  "n": 198,
   "key": "fl-groups-done",
-  "file": "185-fl-groups-done.png",
+  "file": "198-fl-groups-done.png",
   "caption": "المجموعتان على الرحلة مع أفرادهما وفريقيهما",
   "section": "N",
   "note": null
  },
  {
-  "n": 186,
+  "n": 199,
   "key": "fl-group-remove",
-  "file": "186-fl-group-remove.png",
+  "file": "199-fl-group-remove.png",
   "caption": "إزالة مجموعة من الرحلة: تعود مقاعدها متاحة",
   "section": "N",
   "note": null
  },
  {
-  "n": 187,
+  "n": 200,
   "key": "fl-lock",
-  "file": "187-fl-lock.png",
+  "file": "200-fl-lock.png",
   "caption": "إقفال الرحلة وإصدار كشف الركاب",
   "section": "N",
   "note": null
  },
  {
-  "n": 188,
+  "n": 201,
   "key": "fl-manifest",
-  "file": "188-fl-manifest.png",
+  "file": "201-fl-manifest.png",
   "caption": "كشف الركاب: الإصدار، والتصدير إلى نسك مسار والناقل",
   "section": "N",
   "note": null
  },
  {
-  "n": 189,
+  "n": 202,
   "key": "fl-manifest-rows",
-  "file": "189-fl-manifest-rows.png",
+  "file": "202-fl-manifest-rows.png",
   "caption": "صفوف الكشف: الاسم والصفة والمجموعة والاحتياجات",
   "section": "N",
   "note": null
  },
  {
-  "n": 190,
+  "n": 203,
   "key": "fl-select",
-  "file": "190-fl-select.png",
+  "file": "203-fl-select.png",
   "caption": "اختيار أفراد على رحلة مقفلة: إلغاء الإسناد أو النقل",
   "section": "N",
   "note": null
  },
  {
-  "n": 191,
+  "n": 204,
   "key": "fl-move",
-  "file": "191-fl-move.png",
+  "file": "204-fl-move.png",
   "caption": "النقل بعد الإقفال: الرحلة الجديدة والسبب الإلزامي",
   "section": "N",
   "note": null
  },
  {
-  "n": 192,
+  "n": 205,
   "key": "fl-reissue",
-  "file": "192-fl-reissue.png",
+  "file": "205-fl-reissue.png",
   "caption": "تغيّرت الإسنادات بعد الكشف: أصدر كشفاً جديداً",
   "section": "N",
   "note": null
  },
  {
-  "n": 193,
+  "n": 206,
   "key": "fl-postpone",
-  "file": "193-fl-postpone.png",
+  "file": "206-fl-postpone.png",
   "caption": "تأجيل رحلة: السبب، والإسنادات تبقى",
   "section": "N",
   "note": null
  },
  {
-  "n": 194,
+  "n": 207,
   "key": "fl-postponed",
-  "file": "194-fl-postponed.png",
+  "file": "207-fl-postponed.png",
   "caption": "الرحلة مؤجلة: حدّد الموعد الجديد أو ألغها",
   "section": "N",
   "note": null
  },
  {
-  "n": 195,
+  "n": 208,
   "key": "fl-reschedule",
-  "file": "195-fl-reschedule.png",
+  "file": "208-fl-reschedule.png",
   "caption": "الموعد الجديد: تاريخ ووقت المغادرة والوصول",
   "section": "N",
   "note": null
  },
  {
-  "n": 196,
+  "n": 209,
   "key": "fl-divert",
-  "file": "196-fl-divert.png",
+  "file": "209-fl-divert.png",
   "caption": "تحويل الوجهة: المطار البديل وعدد الحافلات",
   "section": "N",
   "note": null
  },
  {
-  "n": 197,
+  "n": 210,
   "key": "fl-diverted",
-  "file": "197-fl-diverted.png",
+  "file": "210-fl-diverted.png",
   "caption": "الرحلة محوّلة: المرحلة الأرضية بالحافلات",
   "section": "N",
   "note": null
  },
  {
-  "n": 198,
+  "n": 211,
   "key": "fl-cancel",
-  "file": "198-fl-cancel.png",
+  "file": "211-fl-cancel.png",
   "caption": "إلغاء رحلة: المسافرون يصيرون «بحاجة إلى رحلة»",
   "section": "N",
   "note": null
  },
  {
-  "n": 199,
+  "n": 212,
   "key": "fl-records",
-  "file": "199-fl-records.png",
+  "file": "212-fl-records.png",
   "caption": "سجل الرحلات: كل ما تغيّر في الرحلات، ومن غيّره ومتى",
   "section": "N",
   "note": null
  },
  {
-  "n": 200,
+  "n": 213,
   "key": "fl-board",
-  "file": "200-fl-board.png",
+  "file": "213-fl-board.png",
   "caption": "التفويج: كل مجموعة ورحلتاها، وزر «إسناد» لمن ليس على رحلة",
   "section": "N",
   "note": null
  },
  {
-  "n": 201,
+  "n": 214,
   "key": "fl-board-assign",
-  "file": "201-fl-board-assign.png",
+  "file": "214-fl-board-assign.png",
   "caption": "إسناد مجموعة من التفويج: رحلة الذهاب ورحلة العودة مقترحتان",
   "section": "N",
   "note": null
  },
  {
-  "n": 202,
+  "n": 215,
   "key": "fl-board-lists",
-  "file": "202-fl-board-lists.png",
+  "file": "215-fl-board-lists.png",
   "caption": "بحاجة إلى رحلة، وموظفون بلا رحلة، والتنبيهات",
   "section": "N",
   "note": null
  },
  {
-  "n": 203,
+  "n": 216,
   "key": "fl-assign-one",
-  "file": "203-fl-assign-one.png",
+  "file": "216-fl-assign-one.png",
   "caption": "إسناد فردي لمن فقد مقعده",
   "section": "N",
   "note": null
  },
  {
-  "n": 204,
+  "n": 217,
   "key": "fl-my",
-  "file": "204-fl-my.png",
+  "file": "217-fl-my.png",
   "caption": "رحلاتي: رحلة الموظف ذهاباً وعودة في «ملفاتي التشغيلية»",
   "section": "N",
   "note": null
  },
  {
-  "n": 205,
+  "n": 218,
   "key": "fl-airport",
-  "file": "205-fl-airport.png",
+  "file": "218-fl-airport.png",
   "caption": "رحلات مطاري: المغادرة من مطار المندوب والوصول إليه",
   "section": "N",
   "note": null
  },
  {
-  "n": 206,
+  "n": 219,
   "key": "fl-depart",
-  "file": "206-fl-depart.png",
+  "file": "219-fl-depart.png",
   "caption": "تسجيل الإقلاع: علّم من تخلّف فقط",
   "section": "N",
   "note": null
  },
  {
-  "n": 207,
+  "n": 220,
   "key": "fl-departed",
-  "file": "207-fl-departed.png",
+  "file": "220-fl-departed.png",
   "caption": "أقلعت: صعد الجميع إلا من عُلّم متخلفاً",
   "section": "N",
   "note": null
  },
  {
-  "n": 208,
+  "n": 221,
   "key": "fl-land",
-  "file": "208-fl-land.png",
+  "file": "221-fl-land.png",
   "caption": "تسجيل الهبوط في مطار الوصول: «تأكيد الهبوط»",
   "section": "N",
   "note": null
  },
  {
-  "n": 209,
+  "n": 222,
   "key": "fl-arrived",
-  "file": "209-fl-arrived.png",
+  "file": "222-fl-arrived.png",
   "caption": "هبطت الرحلة",
   "section": "N",
   "note": null

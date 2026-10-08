@@ -2,6 +2,8 @@
 
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
+import type { SectionResult } from "@/lib/data/admin-exam";
+import type { Attempt, AttemptStatus } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { smallInputClass } from "../../_components/kit";
 
@@ -97,3 +99,54 @@ export function Switch({ on, onChange, label, disabled }: { on: boolean; onChang
 export const selectClass = cn(smallInputClass, "[&>option]:text-ink");
 
 export { downloadCsv } from "@/lib/csv";
+
+/** «86%», «72.5%» — a share as read, one decimal at most; «—» when there is none */
+export const pct = (n: number | undefined) => (n === undefined || !Number.isFinite(n) ? "—" : `${Math.round(n * 10) / 10}%`);
+
+/** The share `part` is of `whole`, as a percentage with one decimal (0 when there is nothing to share) */
+export const share = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : 0);
+
+/** How each attempt status reads on the dark cards */
+export const ATTEMPT_TONE: Record<AttemptStatus, ChipTone> = { ready: "muted", active: "gold", submitted: "gold", confirmed: "green", unconfirmed: "maroon", voided: "maroon" };
+
+/**
+ * What the device noticed during an attempt, each signal with its count. Signals that support the supervisor's
+ * decision, not proof: a dropped network or a switched app raises them too.
+ */
+export function alertParts(a: Pick<Attempt, "alerts" | "autoSubmitted"> | undefined): string[] {
+  const x = a?.alerts ?? {};
+  return [
+    x.focusLost ? `فقدان تركيز ×${x.focusLost}` : "",
+    x.reentries ? `استئناف ×${x.reentries}` : "",
+    x.screenshots ? `لقطة شاشة ×${x.screenshots}` : "",
+    x.ipChanged ? "تغيّر IP" : "",
+    x.deviceChanged ? "تغيّر جهاز" : "",
+    x.disconnected ? "انقطاع اتصال" : "",
+    a?.autoSubmitted ? "تسليم تلقائي" : "",
+  ].filter(Boolean);
+}
+
+/** Each section of a marked attempt: the share he got against the share it asks — green passed, maroon not */
+export function SectionChips({ sections, empty = "بلا أقسام — ورقة من قبل الأقسام" }: { sections: SectionResult[]; empty?: string }) {
+  if (!sections.length) return <span className="text-xs text-white/55">{empty}</span>;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {sections.map((s) => (
+        <Chip key={s.id} tone={s.passed ? "green" : "maroon"}>
+          {s.name} {pct(s.percent)} / {s.pass}%
+        </Chip>
+      ))}
+    </span>
+  );
+}
+
+/** A figure in a small box: a value that may carry decimals or a unit, under its label */
+export function Figure({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: ReactNode; tone?: "gold" | "maroon" | "green" }) {
+  return (
+    <div className={cn("rounded-2xl p-3 ring-1", tone === "maroon" ? "bg-maroon/20 ring-maroon/40" : tone === "gold" ? "bg-gold/10 ring-gold/40" : tone === "green" ? "bg-green-light/15 ring-green-light/30" : "bg-black/15 ring-white/10")}>
+      <p className="text-[11px] text-white/65">{label}</p>
+      <p className={cn("font-display text-2xl font-bold tabular-nums", tone === "gold" ? "text-gold" : "text-white")}>{value}</p>
+      {hint && <p className="text-[11px] leading-4 text-white/55">{hint}</p>}
+    </div>
+  );
+}

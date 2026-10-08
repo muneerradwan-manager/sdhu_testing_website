@@ -3,14 +3,18 @@
 import { RecordHistory as SystemRecordHistory, SystemRecords } from "../../_components/system";
 
 /** The parts of the exam system, each a tab of its management page */
-export type Area = "centers" | "people" | "exams" | "bank" | "results";
+export type Area = "centers" | "people" | "exams" | "bank" | "sittings" | "live" | "review" | "results" | "stats";
 
 const TITLE: Record<Area, string> = {
-  centers: "سجل المراكز",
+  centers: "سجل القاعات والمحافظات",
   people: "سجل المتقدمين",
-  exams: "سجل الامتحانات وجلساتها",
+  exams: "سجل الاختبارات",
   bank: "سجل بنك الأسئلة",
+  sittings: "سجل الجلسات: الفتح والحضور والدخول والتأكيد",
+  live: "سجل الجلسات الجارية",
+  review: "سجل القرارات",
   results: "سجل النتائج",
+  stats: "سجل الإحصائيات",
 };
 
 /** A tab's records, where that part of the exam is worked on */

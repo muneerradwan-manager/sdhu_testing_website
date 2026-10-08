@@ -149,7 +149,7 @@ export function SeasonSheet({ id, record, onClose }: { id: string; record: Seaso
 
           {keep && (
             <p className={cn("rounded-2xl px-4 py-3 text-sm font-semibold leading-6", keep.ok ? "bg-green-light/10 text-green" : "bg-maroon/10 text-maroon")}>
-              أثره على طلب موسم 1448: {keep.reason}.{!keep.ok && " وتبقى له الصفات الأخرى بالامتحانين."}
+              أثره على طلب موسم 1448: {keep.reason}.{!keep.ok && " وتبقى له الصفات الأخرى بالاختبار المؤتمت."}
             </p>
           )}
         </div>

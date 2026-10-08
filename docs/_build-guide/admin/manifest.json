@@ -59,7 +59,7 @@
   "n": 8,
   "key": "dash-new-2",
   "file": "008-dash-new-2.png",
-  "caption": "رحلتي — من الامتحان إلى الميدان (13 محطة)",
+  "caption": "رحلتي — من الاختبار إلى الميدان",
   "section": "C",
   "note": null
  },
@@ -203,7 +203,7 @@
   "n": 26,
   "key": "apply-summary",
   "file": "026-apply-summary.png",
-  "caption": "طلبك مقدَّم — مؤهل للامتحان الكتابي",
+  "caption": "طلبك مقدَّم — مؤهل للاختبار المؤتمت",
   "section": "D",
   "note": null
  },
@@ -211,854 +211,846 @@
   "n": 27,
   "key": "exam-hall",
   "file": "027-exam-hall.png",
-  "caption": "قاعتي وموعدي: المركز والقاعة والاتجاهات إليها والموعد وهيكل امتحان صفتي",
+  "caption": "قاعتي وموعدي: القاعة والموعد والمشرف، وأقسام اختبار صفتي ونسبة النجاح في كل قسم",
   "section": "E",
   "note": null
  },
  {
   "n": 28,
-  "key": "exam-joined",
-  "file": "028-exam-joined.png",
-  "caption": "دخلت حسابي في القاعة: بانتظار تأكيد المشرف لحضوري",
+  "key": "exam-checkin",
+  "file": "028-exam-checkin.png",
+  "caption": "القاعة مفتوحة: سجّل حضورك عند الباب ببطاقتك",
   "section": "E",
   "note": null
  },
  {
   "n": 29,
-  "key": "exam-present",
-  "file": "029-exam-present.png",
-  "caption": "حضوري مؤكد: يبدأ الامتحان للجميع معاً",
+  "key": "exam-device",
+  "file": "029-exam-device.png",
+  "caption": "الاختبار الإلكتروني: رقمك الوطني للدخول إلى الاختبار",
   "section": "E",
   "note": null
  },
  {
   "n": 30,
-  "key": "exam-q1",
-  "file": "030-exam-q1.png",
-  "caption": "شاشة الامتحان: الأقسام كلها في صفحة واحدة، والوقت والإرسال",
+  "key": "exam-pairing",
+  "file": "030-exam-pairing.png",
+  "caption": "ابقَ في مقعدك: رمز الاقتران، بانتظار موافقة المشرف",
   "section": "E",
   "note": null
  },
  {
   "n": 31,
-  "key": "exam-truefalse",
-  "file": "031-exam-truefalse.png",
-  "caption": "سؤال صح أو خطأ",
+  "key": "exam-ready",
+  "file": "031-exam-ready.png",
+  "caption": "تمت الموافقة على دخولك: أنت جاهز — لا تغلق هذه الصفحة",
   "section": "E",
   "note": null
  },
  {
   "n": 32,
-  "key": "exam-answered",
-  "file": "032-exam-answered.png",
-  "caption": "الإجابة وشبكة الأسئلة مقسومة على الأقسام",
+  "key": "exam-q1",
+  "file": "032-exam-q1.png",
+  "caption": "شاشة الاختبار: الأقسام في صفحة واحدة، والخيارات بالأحرف، والوقت و«إنهاء وتسليم»",
   "section": "E",
   "note": null
  },
  {
   "n": 33,
-  "key": "exam-confirm",
-  "file": "033-exam-confirm.png",
-  "caption": "تأكيد إرسال الامتحان نهائياً",
+  "key": "exam-answered",
+  "file": "033-exam-answered.png",
+  "caption": "قائمة الأسئلة مقسومة على الأقسام، و«أجبت عن … من …» لكل قسم",
   "section": "E",
   "note": null
  },
  {
   "n": 34,
-  "key": "exam-grading",
-  "file": "034-exam-grading.png",
-  "caption": "التصحيح التلقائي",
+  "key": "exam-confirm",
+  "file": "034-exam-confirm.png",
+  "caption": "تأكيد التسليم: بعد التسليم لا يمكنك العودة",
   "section": "E",
   "note": null
  },
  {
   "n": 35,
-  "key": "exam-written",
-  "file": "035-exam-written.png",
-  "caption": "نتيجة الامتحان الكتابي فور الإرسال: كل الأسئلة اختيار من متعدد أو صح وخطأ",
+  "key": "exam-pin-wrong",
+  "file": "035-exam-pin-wrong.png",
+  "caption": "رمز خاطئ: عدد المحاولات الباقية",
   "section": "E",
   "note": null
  },
  {
   "n": 36,
-  "key": "exam-oral-book",
-  "file": "036-exam-oral-book.png",
-  "caption": "حجز يوم الامتحان الشفهي من الأيام التي حددتها إدارة الامتحانات",
+  "key": "exam-submitted",
+  "file": "036-exam-submitted.png",
+  "caption": "انتهى الاختبار: ارفع يدك، ويكتب المشرف رمزه السري ليؤكد تسليمك",
   "section": "E",
   "note": null
  },
  {
   "n": 37,
-  "key": "exam-oral-wait",
-  "file": "037-exam-oral-wait.png",
-  "caption": "الامتحان الشفهي في يومك المحجوز، بانتظار نتيجة اللجنة",
+  "key": "exam-verdict",
+  "file": "037-exam-verdict.png",
+  "caption": "تهانينا، اجتزت الاختبار المؤتمت — والخطوة التالية",
   "section": "E",
   "note": null
  },
  {
   "n": 38,
-  "key": "exam-final",
-  "file": "038-exam-final.png",
-  "caption": "النتيجة النهائية: تهانينا، اجتزت التأهيل",
+  "key": "exam-result",
+  "file": "038-exam-result.png",
+  "caption": "تم تأكيد تسليمك — نتيجتك قسماً قسماً: الدرجة والنسبة والمطلوب",
   "section": "E",
   "note": null
  },
  {
   "n": 39,
-  "key": "exam-final-2",
-  "file": "039-exam-final-2.png",
-  "caption": "تفاصيل النتيجة والخطوة التالية",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 40,
   "key": "group-form",
-  "file": "040-group-form.png",
+  "file": "039-group-form.png",
   "caption": "تشكيل المجموعات: تراجع المكتب باسم مجموعتك ورسمها، فيشكّلها الموظف بفئتك",
   "section": "F",
   "note": null
  },
  {
-  "n": 41,
+  "n": 40,
   "key": "group-pending",
-  "file": "041-group-pending.png",
+  "file": "040-group-pending.png",
   "caption": "شُكّلت مجموعتك: من شكّلها، وفئتها، وعدد حجاجها",
   "section": "F",
   "note": null
  },
  {
-  "n": 42,
+  "n": 41,
   "key": "group-mine",
-  "file": "042-group-mine.png",
+  "file": "041-group-mine.png",
   "caption": "إدارة المجموعة: مجموعتك، وفريقها الذي يملأ مقاعده رئيس التكتل، ومهامك قبل الموسم",
   "section": "F",
   "note": null
  },
  {
-  "n": 43,
+  "n": 42,
   "key": "cluster-member",
-  "file": "043-cluster-member.png",
+  "file": "042-cluster-member.png",
   "caption": "دعوة تكتل النور لمجموعتك: قبلتها فدخلت التكتل بحجاجها",
   "section": "G",
   "note": null
  },
  {
-  "n": 44,
+  "n": 43,
   "key": "group-in-cluster",
-  "file": "044-group-in-cluster.png",
+  "file": "043-group-in-cluster.png",
   "caption": "مجموعتك في التكتل: فريقها في مقاعدها كما ملأها رئيس التكتل",
   "section": "G",
   "note": null
  },
  {
-  "n": 45,
+  "n": 44,
   "key": "req-list",
-  "file": "045-req-list.png",
+  "file": "044-req-list.png",
   "caption": "حجاج المجموعة: عددهم من سعتها، ولوحة يُفتح منها ملف كل حاج",
   "section": "H",
   "note": null
  },
  {
-  "n": 46,
+  "n": 45,
   "key": "req-all",
-  "file": "046-req-all.png",
+  "file": "045-req-all.png",
   "caption": "كل حجاج المجموعة بأسمائهم: البحث والتصفية، ويُفتح ملف كل حاج بالضغط عليه",
   "section": "H",
   "note": null
  },
  {
-  "n": 47,
+  "n": 46,
   "key": "req-family",
-  "file": "047-req-family.png",
+  "file": "046-req-family.png",
   "caption": "بطاقة عائلة وزر «استلام والترحيب»",
   "section": "H",
   "note": null
  },
  {
-  "n": 48,
+  "n": 47,
   "key": "req-welcomed",
-  "file": "048-req-welcomed.png",
+  "file": "047-req-welcomed.png",
   "caption": "تم الترحيب بالعائلة",
   "section": "H",
   "note": null
  },
  {
-  "n": 49,
+  "n": 48,
   "key": "req-person",
-  "file": "049-req-person.png",
+  "file": "048-req-person.png",
   "caption": "ملف الحاج: بياناته والتواصل، وأين وصل، ووثائقه وملفه الصحي وسكنه، وآخر ما جرى",
   "section": "H",
   "note": null
  },
  {
-  "n": 50,
+  "n": 49,
   "key": "field-top",
-  "file": "050-field-top.png",
+  "file": "049-field-top.png",
   "caption": "الميدان: الإحصاءات والتبويبات",
   "section": "I",
   "note": null
  },
  {
-  "n": 51,
+  "n": 50,
   "key": "field-muster-new",
-  "file": "051-field-muster-new.png",
+  "file": "050-field-muster-new.png",
   "caption": "فتح تجمّع جديد",
   "section": "I",
   "note": null
  },
  {
-  "n": 52,
+  "n": 51,
   "key": "field-muster-open",
-  "file": "052-field-muster-open.png",
+  "file": "051-field-muster-open.png",
   "caption": "التجمّع مفتوح: ابدأ مسح البطاقات",
   "section": "I",
   "note": null
  },
  {
-  "n": 53,
+  "n": 52,
   "key": "field-muster-scan",
-  "file": "053-field-muster-scan.png",
+  "file": "052-field-muster-scan.png",
   "caption": "مسح البطاقات: الحاضرون والغائب",
   "section": "I",
   "note": null
  },
  {
-  "n": 54,
+  "n": 53,
   "key": "field-muster-absent",
-  "file": "054-field-muster-absent.png",
+  "file": "053-field-muster-absent.png",
   "caption": "حاج متأخر: اتصال أو تنبيه أو إبلاغ",
   "section": "I",
   "note": null
  },
  {
-  "n": 55,
+  "n": 54,
   "key": "field-muster-complete",
-  "file": "055-field-muster-complete.png",
+  "file": "054-field-muster-complete.png",
   "caption": "اكتمل الحضور: أغلق التجمّع وأرسل «انطلقنا»",
   "section": "I",
   "note": null
  },
  {
-  "n": 56,
+  "n": 55,
   "key": "field-muster-closed",
-  "file": "056-field-muster-closed.png",
+  "file": "055-field-muster-closed.png",
   "caption": "أُغلق التجمّع وسُجّل في سجل التجمّعات",
   "section": "I",
   "note": null
  },
  {
-  "n": 57,
+  "n": 56,
   "key": "field-channel",
-  "file": "057-field-channel.png",
+  "file": "056-field-channel.png",
   "caption": "قناة المجموعة: إعلان جديد للحجاج",
   "section": "I",
   "note": null
  },
  {
-  "n": 58,
+  "n": 57,
   "key": "field-channel-write",
-  "file": "058-field-channel-write.png",
+  "file": "057-field-channel-write.png",
   "caption": "كتابة الإعلان واختيار الفئة ثم النشر",
   "section": "I",
   "note": null
  },
  {
-  "n": 59,
+  "n": 58,
   "key": "field-channel-sent",
-  "file": "059-field-channel-sent.png",
+  "file": "058-field-channel-sent.png",
   "caption": "نُشر الإعلان في قناة المجموعة",
   "section": "I",
   "note": null
  },
  {
-  "n": 60,
+  "n": 59,
   "key": "field-pilgrims",
-  "file": "060-field-pilgrims.png",
+  "file": "059-field-pilgrims.png",
   "caption": "قائمة حجاج المجموعة مع البحث",
   "section": "I",
   "note": null
  },
  {
-  "n": 61,
+  "n": 60,
   "key": "field-report",
-  "file": "061-field-report.png",
+  "file": "060-field-report.png",
   "caption": "بلاغ إلى غرفة العمليات",
   "section": "I",
   "note": null
  },
  {
-  "n": 62,
+  "n": 61,
   "key": "field-daily",
-  "file": "062-field-daily.png",
+  "file": "061-field-daily.png",
   "caption": "يومي والتقرير اليومي",
   "section": "I",
   "note": null
  },
  {
-  "n": 63,
+  "n": 62,
   "key": "field-daily-sent",
-  "file": "063-field-daily-sent.png",
+  "file": "062-field-daily-sent.png",
   "caption": "أُرسل التقرير اليومي",
   "section": "I",
   "note": null
  },
  {
-  "n": 64,
+  "n": 63,
   "key": "field-ratings",
-  "file": "064-field-ratings.png",
+  "file": "063-field-ratings.png",
   "caption": "تقييماتي ودرجة الأداء",
   "section": "I",
   "note": null
  },
  {
-  "n": 65,
+  "n": 64,
   "key": "dash-done",
-  "file": "065-dash-done.png",
+  "file": "064-dash-done.png",
   "caption": "ملفي بعد إتمام محطات الرحلة",
   "section": "C",
   "note": null
  },
  {
-  "n": 66,
+  "n": 65,
   "key": "quick-login",
-  "file": "066-quick-login.png",
+  "file": "065-quick-login.png",
   "caption": "الدخول الفوري بحساب تجريبي من صفحة الدخول",
   "section": "B",
   "note": null
  },
  {
-  "n": 67,
+  "n": 66,
   "key": "ret-docs",
-  "file": "067-ret-docs.png",
+  "file": "066-ret-docs.png",
   "caption": "إداري عائد: ملفه الدائم أول الطلب، ووثيقة منتهية الصلاحية تحتاج تحديثاً",
   "section": "D",
   "note": null
  },
  {
-  "n": 68,
+  "n": 67,
   "key": "ret-docs-expired",
-  "file": "068-ret-docs-expired.png",
+  "file": "067-ret-docs-expired.png",
   "caption": "زر «حدّثها الآن» للوثيقة المنتهية",
   "section": "D",
   "note": null
  },
  {
-  "n": 69,
+  "n": 68,
   "key": "ret-role",
-  "file": "069-ret-role.png",
+  "file": "068-ret-role.png",
   "caption": "إداري عائد: آخر موسم شارك فيه وخيار الاستمرار في الصفة نفسها",
   "section": "D",
   "note": null
  },
  {
-  "n": 70,
+  "n": 69,
   "key": "ret-role-keep",
-  "file": "070-ret-role-keep.png",
-  "caption": "الاستمرار في الصفة نفسها: معفى من الامتحانين",
+  "file": "069-ret-role-keep.png",
+  "caption": "الاستمرار في الصفة نفسها: معفى من الاختبار",
+  "section": "D",
+  "note": null
+ },
+ {
+  "n": 70,
+  "key": "ret-role-unavailable",
+  "file": "070-ret-role-unavailable.png",
+  "caption": "تقييم الموسم السابق دون الحد: الاستمرار غير متاح والتقدم بالاختبار المؤتمت",
   "section": "D",
   "note": null
  },
  {
   "n": 71,
-  "key": "ret-role-unavailable",
-  "file": "071-ret-role-unavailable.png",
-  "caption": "تقييم الموسم السابق دون الحد: الاستمرار غير متاح والتقدم بالامتحانين",
-  "section": "D",
-  "note": null
- },
- {
-  "n": 72,
   "key": "inv-seat",
-  "file": "072-inv-seat.png",
+  "file": "071-inv-seat.png",
   "caption": "دعواتي: دعوة رئيس تكتل إلى مقعد الموجّه في إحدى مجموعاته",
   "section": "H",
   "note": null
  },
  {
-  "n": 73,
+  "n": 72,
   "key": "inv-accepted",
-  "file": "073-inv-accepted.png",
+  "file": "072-inv-accepted.png",
   "caption": "قبلت الدعوة: مكانك في التكتل، وتُعتذر عنك تلقائياً دعواتك الأخرى لمكان آخر",
   "section": "H",
   "note": null
  },
  {
-  "n": 74,
+  "n": 73,
   "key": "inv-deputy",
-  "file": "074-inv-deputy.png",
+  "file": "073-inv-deputy.png",
   "caption": "رئيس مجموعة قبلت مجموعته دعوة تكتل، فدعاه رئيسه نائباً له: صفة ثانوية",
   "section": "H",
   "note": null
  },
  {
-  "n": 75,
+  "n": 74,
   "key": "cl-file",
-  "file": "075-cl-file.png",
+  "file": "074-cl-file.png",
   "caption": "طلب تشكيل تكتل: صفة «رئيس تكتل»، وخطوات الطلب السبع، واسم التكتل",
   "section": "I",
   "note": null
  },
  {
-  "n": 76,
+  "n": 75,
   "key": "cl-tier",
-  "file": "076-cl-tier.png",
+  "file": "075-cl-tier.png",
   "caption": "1. المستوى: يحدد حجاج كل فئة ومقاعدها، وحدود مجموع الفئات، وعدد المنسقين والموجّهات",
   "section": "I",
   "note": null
  },
  {
-  "n": 77,
+  "n": 76,
   "key": "cl-groups",
-  "file": "077-cl-groups.png",
+  "file": "076-cl-groups.png",
   "caption": "2. المجموعات: مجموعتك فيه من البداية، ومقاعد كل مجموعة بفئتها",
   "section": "I",
   "note": null
  },
  {
-  "n": 78,
+  "n": 77,
   "key": "cl-invite-group",
-  "file": "078-cl-invite-group.png",
+  "file": "077-cl-invite-group.png",
   "caption": "دعوة مجموعة معتمدة من فروعك: يقبل رئيسها دعوة واحدة لمجموعته",
   "section": "I",
   "note": null
  },
  {
-  "n": 79,
+  "n": 78,
   "key": "cl-seats",
-  "file": "079-cl-seats.png",
+  "file": "078-cl-seats.png",
   "caption": "مقاعد المجموعة: تدعو لكل مقعد موجّهاً أو معاوناً من المؤهلين في فروعك",
   "section": "I",
   "note": null
  },
  {
-  "n": 80,
+  "n": 79,
   "key": "cl-assistants",
-  "file": "080-cl-assistants.png",
+  "file": "079-cl-assistants.png",
   "caption": "3. معاون التكتل: عدد ثابت لكل مستوى، ومعهم «معاون بعدد» يضيف كلٌّ 20 حاجاً",
   "section": "I",
   "note": null
  },
  {
-  "n": 81,
+  "n": 80,
   "key": "cl-staff",
-  "file": "081-cl-staff.png",
+  "file": "080-cl-staff.png",
   "caption": "4. المنسقون والموجّهات: عددهم بمجموع الفئات، وأحد المنسقين «معاون ومنسق تقني»",
   "section": "I",
   "note": null
  },
  {
-  "n": 82,
+  "n": 81,
   "key": "cl-deputy",
-  "file": "082-cl-deputy.png",
+  "file": "081-cl-deputy.png",
   "caption": "5. النائب: من رؤساء مجموعات التكتل",
   "section": "I",
   "note": null
  },
  {
-  "n": 83,
+  "n": 82,
   "key": "cl-accountant",
-  "file": "083-cl-accountant.png",
+  "file": "082-cl-accountant.png",
   "caption": "6. المحاسب: من كادر التكتل عدا الموجّهات، وقد يكون النائب",
   "section": "I",
   "note": null
  },
  {
-  "n": 84,
+  "n": 83,
   "key": "cl-report",
-  "file": "084-cl-report.png",
+  "file": "083-cl-report.png",
   "caption": "7. التقرير: شروط الطلب، والإرسال بعد اكتمالها، والطباعة",
   "section": "I",
   "note": null
  },
  {
-  "n": 85,
+  "n": 84,
   "key": "head-dash",
-  "file": "085-head-dash.png",
+  "file": "084-head-dash.png",
   "caption": "رئيس التكتل: ملفي — صفته وتكتله المعتمد",
   "section": "J",
   "note": null
  },
  {
-  "n": 86,
+  "n": 85,
   "key": "head-manage",
-  "file": "086-head-manage.png",
+  "file": "085-head-manage.png",
   "caption": "إدارة التكتل: مجموعاته بفئاتها ومقاعد فريقها، وتبويبات الكادر والتقرير والخطة والصفحة العامة",
   "section": "J",
   "note": null
  },
  {
-  "n": 87,
+  "n": 86,
   "key": "head-group-open",
-  "file": "087-head-group-open.png",
+  "file": "086-head-group-open.png",
   "caption": "مجموعة من التكتل: فريقها في مقاعدها، وحجاجها وعقودهم",
   "section": "J",
   "note": null
  },
  {
-  "n": 88,
+  "n": 87,
   "key": "head-team",
-  "file": "088-head-team.png",
+  "file": "087-head-team.png",
   "caption": "كادر التكتل: معاونوه ومنسقوه وموجّهاته ونائبه ومحاسبه، وتوزيعهم على المجموعات",
   "section": "J",
   "note": null
  },
  {
-  "n": 89,
+  "n": 88,
   "key": "head-coord-sort",
-  "file": "089-head-coord-sort.png",
+  "file": "088-head-coord-sort.png",
   "caption": "توزيع المنسقين على المجموعات: ما يحمله كلٌّ من حدّه، ومنسق كل مجموعة",
   "section": "J",
   "note": null
  },
  {
-  "n": 90,
+  "n": 89,
   "key": "head-report",
-  "file": "090-head-report.png",
+  "file": "089-head-report.png",
   "caption": "التقرير النهائي للتكتل، يُطبع على ورقة A4",
   "section": "J",
   "note": null
  },
  {
-  "n": 91,
+  "n": 90,
   "key": "head-plan",
-  "file": "091-head-plan.png",
+  "file": "090-head-plan.png",
   "caption": "الخطة التشغيلية: خلاصتها وملفها، تقدّمها للإدارة",
   "section": "J",
   "note": null
  },
  {
-  "n": 92,
+  "n": 91,
   "key": "head-plan-sent",
-  "file": "092-head-plan-sent.png",
+  "file": "091-head-plan-sent.png",
   "caption": "قُدّمت الخطة: تنتظر قرار الإدارة، ويصلك هنا وفي الإشعارات",
   "section": "J",
   "note": null
  },
  {
-  "n": 93,
+  "n": 92,
   "key": "head-profile",
-  "file": "093-head-profile.png",
+  "file": "092-head-profile.png",
   "caption": "صفحة التكتل العامة في دليل الخدمات: التعديل",
   "section": "J",
   "note": null
  },
  {
-  "n": 94,
+  "n": 93,
   "key": "head-profile-send",
-  "file": "094-head-profile-send.png",
+  "file": "093-head-profile-send.png",
   "caption": "إرسال التعديل لاعتماد الإدارة",
   "section": "J",
   "note": null
  },
  {
-  "n": 95,
+  "n": 94,
   "key": "head-profile-pending",
-  "file": "095-head-profile-pending.png",
+  "file": "094-head-profile-pending.png",
   "caption": "تعديلك عند الإدارة للاعتماد",
   "section": "J",
   "note": null
  },
  {
-  "n": 96,
+  "n": 95,
   "key": "cdep-dash",
-  "file": "096-cdep-dash.png",
+  "file": "095-cdep-dash.png",
   "caption": "نائب رئيس التكتل: ملفي — صفة ثانوية فوق رئاسة مجموعته",
   "section": "K",
   "note": null
  },
  {
-  "n": 97,
+  "n": 96,
   "key": "cdep-cluster",
-  "file": "097-cdep-cluster.png",
+  "file": "096-cdep-cluster.png",
   "caption": "إدارة التكتل كما يراها النائب: للعرض",
   "section": "K",
   "note": null
  },
  {
-  "n": 98,
+  "n": 97,
   "key": "cacc-dash",
-  "file": "098-cacc-dash.png",
+  "file": "097-cacc-dash.png",
   "caption": "محاسب التكتل: ملفي — صفة ثانوية فوق مقعده في المجموعة",
   "section": "K",
   "note": null
  },
  {
-  "n": 99,
+  "n": 98,
   "key": "tech-dash",
-  "file": "099-tech-dash.png",
+  "file": "098-tech-dash.png",
   "caption": "المنسق التقني: ملفي — منسق في تكتل النور لثلاث من مجموعاته",
   "section": "L",
   "note": null
  },
  {
-  "n": 100,
+  "n": 99,
   "key": "tech-groups",
-  "file": "100-tech-groups.png",
+  "file": "099-tech-groups.png",
   "caption": "إدارة المجموعات: المجموعات التي وزّعها عليه رئيس التكتل",
   "section": "L",
   "note": null
  },
  {
-  "n": 101,
+  "n": 100,
   "key": "tech-reg",
-  "file": "101-tech-reg.png",
+  "file": "100-tech-reg.png",
   "caption": "التسجيل على الحج: البحث عن المواطن في الشؤون المدنية",
   "section": "L",
   "note": null
  },
  {
-  "n": 102,
+  "n": 101,
   "key": "tech-reg-found",
-  "file": "102-tech-reg-found.png",
+  "file": "101-tech-reg-found.png",
   "caption": "بيانات المواطن ورقم هاتفه الذي يمليه",
   "section": "L",
   "note": null
  },
  {
-  "n": 103,
+  "n": 102,
   "key": "tech-reg-otp",
-  "file": "103-tech-reg-otp.png",
+  "file": "102-tech-reg-otp.png",
   "caption": "إدخال رمز موافقة المواطن",
   "section": "L",
   "note": null
  },
  {
-  "n": 104,
+  "n": 103,
   "key": "tech-reg-members",
-  "file": "104-tech-reg-members.png",
+  "file": "103-tech-reg-members.png",
   "caption": "من سيحج مع المواطن؟",
   "section": "L",
   "note": null
  },
  {
-  "n": 105,
+  "n": 104,
   "key": "tech-reg-elig",
-  "file": "105-tech-reg-elig.png",
+  "file": "104-tech-reg-elig.png",
   "caption": "فحص الأهلية",
   "section": "L",
   "note": null
  },
  {
-  "n": 106,
+  "n": 105,
   "key": "tech-detail",
-  "file": "106-tech-detail.png",
+  "file": "105-tech-detail.png",
   "caption": "تفاصيل طلب سجّله المنسق",
   "section": "L",
   "note": null
  },
  {
-  "n": 107,
+  "n": 106,
   "key": "tech-requests",
-  "file": "107-tech-requests.png",
+  "file": "106-tech-requests.png",
   "caption": "حجاج مجموعاتي: حجاج المجموعات التي وُزّع عليها، وملفاتهم الصحية",
   "section": "L",
   "note": null
  },
  {
-  "n": 108,
+  "n": 107,
   "key": "gdep-dash",
-  "file": "108-gdep-dash.png",
+  "file": "107-gdep-dash.png",
   "caption": "معاون المجموعة: ملفي",
   "section": "M",
   "note": null
  },
  {
-  "n": 109,
+  "n": 108,
   "key": "gdep-group",
-  "file": "109-gdep-group.png",
+  "file": "108-gdep-group.png",
   "caption": "معاون المجموعة: إدارة المجموعة",
   "section": "M",
   "note": null
  },
  {
-  "n": 110,
+  "n": 109,
   "key": "gdep-requests",
-  "file": "110-gdep-requests.png",
+  "file": "109-gdep-requests.png",
   "caption": "معاون المجموعة: حجاج المجموعة",
   "section": "M",
   "note": null
  },
  {
-  "n": 111,
+  "n": 110,
   "key": "gdep-field",
-  "file": "111-gdep-field.png",
+  "file": "110-gdep-field.png",
   "caption": "معاون المجموعة: الميدان",
   "section": "M",
   "note": null
  },
  {
-  "n": 112,
+  "n": 111,
   "key": "guide-dash",
-  "file": "112-guide-dash.png",
+  "file": "111-guide-dash.png",
   "caption": "موجّه المجموعة: ملفي",
   "section": "M",
   "note": null
  },
  {
-  "n": 113,
+  "n": 112,
   "key": "guide-group",
-  "file": "113-guide-group.png",
+  "file": "112-guide-group.png",
   "caption": "موجّه المجموعة: إدارة المجموعة",
   "section": "M",
   "note": null
  },
  {
-  "n": 114,
+  "n": 113,
   "key": "guide-requests",
-  "file": "114-guide-requests.png",
+  "file": "113-guide-requests.png",
   "caption": "موجّه المجموعة: حجاج المجموعة",
   "section": "M",
   "note": null
  },
  {
-  "n": 115,
+  "n": 114,
   "key": "guide-field",
-  "file": "115-guide-field.png",
+  "file": "114-guide-field.png",
   "caption": "موجّه المجموعة: الميدان",
   "section": "M",
   "note": null
  },
  {
-  "n": 116,
+  "n": 115,
   "key": "gf-groups",
-  "file": "116-gf-groups.png",
+  "file": "115-gf-groups.png",
   "caption": "موجّهة التكتل: المجموعات التي وُزّعت عليها ضمن حدّها من الوحدات",
   "section": "M",
   "note": null
  },
  {
-  "n": 117,
+  "n": 116,
   "key": "notif-list",
-  "file": "117-notif-list.png",
+  "file": "116-notif-list.png",
   "caption": "الإشعارات: ما وصلك من الإدارة ومن رؤساء التكتلات",
   "section": "C2",
   "note": null
  },
  {
-  "n": 118,
+  "n": 117,
   "key": "notif-telegram",
-  "file": "118-notif-telegram.png",
+  "file": "117-notif-telegram.png",
   "caption": "تيليجرام ورمز الدخول: رمز الربط ببوت المنصة، ورمز دخولك",
   "section": "C2",
   "note": null
  },
  {
-  "n": 119,
+  "n": 118,
   "key": "notif-telegram-linked",
-  "file": "119-notif-telegram-linked.png",
+  "file": "118-notif-telegram-linked.png",
   "caption": "رُبط تيليجرام: رمز دخولك يظهر ويصلك من البوت",
   "section": "C2",
   "note": null
  },
  {
-  "n": 120,
+  "n": 119,
   "key": "letters-new",
-  "file": "120-letters-new.png",
+  "file": "119-letters-new.png",
   "caption": "المراسلات: رسالة جديدة إلى الإدارة بموضوعها ونوعها ومرفقها",
   "section": "C2",
   "note": null
  },
  {
-  "n": 121,
+  "n": 120,
   "key": "letters-sent",
-  "file": "121-letters-sent.png",
+  "file": "120-letters-sent.png",
   "caption": "أُرسلت الرسالة برقمها: يصلك الرد في سياقها",
   "section": "C2",
   "note": null
  },
  {
-  "n": 122,
+  "n": 121,
   "key": "letters-list",
-  "file": "122-letters-list.png",
+  "file": "121-letters-list.png",
   "caption": "رسائلي: «رد جديد» على الرسالة التي ردّت عليها الإدارة",
   "section": "C2",
   "note": null
  },
  {
-  "n": 123,
+  "n": 122,
   "key": "letters-reply",
-  "file": "123-letters-reply.png",
+  "file": "122-letters-reply.png",
   "caption": "رد الإدارة في سياق الرسالة، وتردّ فيه ما دامت مفتوحة",
   "section": "C2",
   "note": null
  },
  {
-  "n": 124,
+  "n": 123,
   "key": "login-pin",
-  "file": "124-login-pin.png",
+  "file": "123-login-pin.png",
   "caption": "الدخول باسمك أو هاتفك ورمز الدخول (PIN)",
   "section": "B",
   "note": null
  },
  {
-  "n": 125,
+  "n": 124,
   "key": "refs-landing",
-  "file": "125-refs-landing.png",
+  "file": "124-refs-landing.png",
   "caption": "مراجع الكادر في صفحة الإداري: خمس صفحات تنشرها الإدارة",
   "section": "A",
   "note": null
  },
  {
-  "n": 126,
+  "n": 125,
   "key": "pub-jobs",
-  "file": "126-pub-jobs.png",
+  "file": "125-pub-jobs.png",
   "caption": "التوصيف الوظيفي: الهيكل التنظيمي للتكتل، ثم بطاقة لكل صفة",
   "section": "A",
   "note": null
  },
  {
-  "n": 127,
+  "n": 126,
   "key": "pub-system",
-  "file": "127-pub-system.png",
+  "file": "126-pub-system.png",
   "caption": "النظام الإداري: أقسامه وفهرسها والطباعة",
   "section": "A",
   "note": null
  },
  {
-  "n": 128,
+  "n": 127,
   "key": "cfl-top",
-  "file": "128-cfl-top.png",
+  "file": "127-cfl-top.png",
   "caption": "رحلات التكتل: الأعداد، ومن يضع المجموعات على الرحلات",
   "section": "N",
   "note": null
  },
  {
-  "n": 129,
+  "n": 128,
   "key": "cfl-table",
-  "file": "129-cfl-table.png",
+  "file": "128-cfl-table.png",
   "caption": "مجموعات تكتلي ورحلاتها ذهاباً وعودة",
   "section": "N",
   "note": null
  },
  {
-  "n": 130,
+  "n": 129,
   "key": "cfl-cards",
-  "file": "130-cfl-cards.png",
+  "file": "129-cfl-cards.png",
   "caption": "بطاقات رحلات التكتل: الموعد والتجمّع ومجموعاتك عليها",
   "section": "N",
   "note": null
  },
  {
-  "n": 131,
+  "n": 130,
   "key": "gfl-top",
-  "file": "131-gfl-top.png",
+  "file": "130-gfl-top.png",
   "caption": "رحلات المجموعة: رحلة الذهاب ورحلة العودة",
   "section": "N",
   "note": null
  },
  {
-  "n": 132,
+  "n": 131,
   "key": "gfl-list",
-  "file": "132-gfl-list.png",
+  "file": "131-gfl-list.png",
   "caption": "كشف المجموعة: رحلة كل فرد وحالته",
   "section": "N",
   "note": null
  },
  {
-  "n": 133,
+  "n": 132,
   "key": "gfl-muster",
-  "file": "133-gfl-muster.png",
+  "file": "132-gfl-muster.png",
   "caption": "تجمّع «ساحة المزة ← المطار» مرتبط برحلة المجموعة: المسح يسجّل الصعود",
   "section": "N",
   "note": null

@@ -90,7 +90,7 @@ const GROUPS: { title: string; icon: React.ReactNode; fields: FieldDef[] }[] = [
     title: "الإداريون — تجديد الصفة كل موسم",
     icon: <Coins />,
     fields: [
-      { key: "keepRoleMinRating", label: "الاستمرار في الصفة نفسها: أدنى تقييم للموسم السابق (ومعه إعفاء من الامتحانين)", unit: "من 5", min: 0, max: 5, step: 0.1 },
+      { key: "keepRoleMinRating", label: "الاستمرار في الصفة نفسها: أدنى تقييم للموسم السابق (ومعه إعفاء من الاختبار)", unit: "من 5", min: 0, max: 5, step: 0.1 },
     ],
   },
 ];

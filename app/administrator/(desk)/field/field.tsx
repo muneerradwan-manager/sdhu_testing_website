@@ -32,7 +32,6 @@ import { groupName } from "@/lib/groups";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
 import { cn, seeded } from "@/lib/utils";
 import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
-import { useExamRules } from "../../_lib/admin-rules";
 import { MISSING_ID, buildRoster, type RosterEntry } from "../../_lib/group";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
 
@@ -886,9 +885,9 @@ const WEIGHTS = [
 
 function Evaluations() {
   const admin = useAdmin()!;
-  const r = resultOf(admin.profile, useExamRules());
-  const qual = r.final ?? 84.4;
-  const rows = [...WEIGHTS, { src: "التأهيل", what: "نتيجة الامتحان النهائية", score: String(qual), pct: qual, w: 10 }];
+  const r = resultOf(admin.profile);
+  const qual = r.score ?? 84.4;
+  const rows = [...WEIGHTS, { src: "التأهيل", what: "نتيجة الاختبار المؤتمت", score: `${qual}%`, pct: qual, w: 10 }];
 
   return (
     <div className="space-y-6">

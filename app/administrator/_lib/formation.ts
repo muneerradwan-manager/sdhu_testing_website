@@ -6,7 +6,6 @@ import { groupName, groupShort } from "@/lib/groups";
 import { useClockTime, useOperation, useToday, type OperationState } from "@/lib/operations";
 import { actions, useStore, type AdminProfile, type ClusterInvite, type ClusterRecord, type ClusterStatus, type GroupInvite, type Seat, type TeamPool } from "@/lib/store";
 import { adminName, logAdmin, resultOf } from "./admin";
-import { useExamRules } from "./admin-rules";
 import { HEADS_POOL, SEED_CLUSTERS, acceptedGroups, asGroup, clusterGroupsOf, type ClusterGroup } from "./cluster";
 import { assignedRealFamilies } from "./group";
 import { ROSTER } from "./people";
@@ -272,14 +271,13 @@ export function usePicks(req: ClusterRequest | undefined) {
   const admins = useStore((s) => s.admins);
   const cadre = useCadre();
   const s = useStructure();
-  const exam = useExamRules();
   const requests = useClusterRequests();
   return useMemo(() => {
     const takenBy = new Map<string, string>();
     for (const r of requests) if (r.cluster.id !== req?.cluster.id) for (const id of placedIn(r.cluster)) takenBy.set(id, r.cluster.name);
     const roster = ROSTER.map((x) => ({ id: x.id, name: x.name, role: seasonRoleKey(x.id, x.roleKey, cadre), branch: branchesOf(x.id, cadre)[0], age: x.age, note: `${x.area} — نتيجة التأهيل ${x.score}` }));
     const device = Object.values(admins)
-      .filter((a) => a.positions[0] && !ROSTER.some((x) => x.id === a.nationalId) && resultOf(a, exam).passed)
+      .filter((a) => a.positions[0] && !ROSTER.some((x) => x.id === a.nationalId) && resultOf(a).passed)
       .map((a) => ({ id: a.nationalId, name: adminName(a.nationalId), role: roleOfPerson(a.nationalId, admins, cadre), branch: branchesOf(a.nationalId, cadre)[0], age: ageOfId(a.nationalId), note: "مؤهل هذا الموسم" }));
     // Whoever the administration added to the cadre by hand is offered like the qualified roster
     const added = Object.values(cadre.added ?? {})
@@ -293,7 +291,7 @@ export function usePicks(req: ClusterRequest | undefined) {
         .filter((x) => does(s, x.role, b) && (!mine.size || mine.has(x.branch)))
         .map((x) => ({ ...x, takenBy: takenBy.get(x.id) }))
         .sort((a, b2) => Number(!!a.takenBy) - Number(!!b2.takenBy) || a.name.localeCompare(b2.name, "ar"));
-  }, [admins, cadre, s, exam, requests, req]);
+  }, [admins, cadre, s, requests, req]);
 }
 
 /** A group a head may invite: an approved group, its head's category and branch, and where it stands */

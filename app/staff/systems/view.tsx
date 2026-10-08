@@ -38,17 +38,18 @@ type Status = { state: { label: string; tone: "green" | "maroon"; icon: ReactNod
 function useExamStatus(): Status {
   const desk = useExamDesk();
   const halls = useHalls();
+  const confirmed = desk.attempts.filter((a) => a.status === "confirmed");
   return {
     state: desk.live.length
-      ? { label: `امتحان جارٍ الآن في ${desk.live.length} قاعات`, tone: "green", icon: <RadioTower className="size-4" /> }
+      ? { label: `اختبار جارٍ الآن في ${desk.live.length} قاعات`, tone: "green", icon: <RadioTower className="size-4" /> }
       : desk.high.length
         ? { label: `تحتاج متابعة (${desk.high.length})`, tone: "maroon", icon: <AlertTriangle className="size-4" /> }
         : { label: "تسير بانتظام", tone: "green", icon: <CheckCircle2 className="size-4" /> },
     numbers: [
-      { k: "امتحانات مفعّلة", v: `${halls.exams.filter((e) => !e.off).length} من ${halls.exams.length}` },
-      { k: "ينتظرون امتحانهم", v: desk.expected.length },
+      { k: "اختبارات منشورة", v: `${halls.exams.filter((e) => e.status === "published").length} من ${halls.exams.length}` },
+      { k: "ينتظرون اختبارهم", v: desk.expected.length },
       { k: "جلسات جارية الآن", v: desk.live.length },
-      { k: "نتائج معلنة", v: desk.count("published"), hint: `الناجحون ${desk.passed}` },
+      { k: "نتائج مؤكَّدة", v: confirmed.length, hint: `ناجحون ${confirmed.filter((a) => a.passed).length}${desk.decisions.length ? ` · تحتاج قراراً ${desk.decisions.length}` : ""}` },
     ],
     high: desk.high,
   };

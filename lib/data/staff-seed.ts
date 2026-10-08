@@ -8,6 +8,7 @@ import { groupName } from "@/lib/groups";
 import type { Person, Relation } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import type { AdminProfile, AuditEvent, Ticket } from "@/lib/store";
+import { satAttempt } from "@/lib/data/admin-exam";
 import { OFFICIAL_DRAW, drawTotals } from "@/lib/lottery";
 import { seeded } from "@/lib/utils";
 
@@ -310,6 +311,9 @@ const admin = (id: string, p: Partial<AdminProfile>): AdminProfile => ({
   ...p,
 });
 
+/** The Damascus hall's supervisor, who confirms its submissions with her PIN */
+const SUPERVISOR = "نسرين الحكيم";
+
 export const SEED_ADMINS: SeedAdmin[] = [
   {
     name: "أحمد سليمان الحمصي",
@@ -321,7 +325,7 @@ export const SEED_ADMINS: SeedAdmin[] = [
       feePaidAt: at(2026, 9, 21),
       receipt: "1448-A-000871",
       eligibleAt: at(2026, 9, 28),
-      exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10, 18), answers: {}, score: 84 },
+      exam: satAttempt({ id: "01033300871", role: "group-head", hall: "group-head@damascus", startedAt: at(2026, 10, 7, 9, 2), submittedAt: at(2026, 10, 7, 9, 21), by: SUPERVISOR }),
       group: { number: 27, capacity: 50, requestedAt: at(2026, 11, 3, 12), feePaidAt: at(2026, 11, 3, 12, 20) },
     }),
   },
@@ -332,9 +336,7 @@ export const SEED_ADMINS: SeedAdmin[] = [
     profile: admin("01033300872", {
       positions: ["معاون"],
       feePaidAt: at(2026, 9, 22),
-      exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10, 5), answers: {}, score: 78 },
-      oral: { score: 80, by: "منير السيد", at: at(2026, 10, 23, 18), note: "هادئ ومنظم" },
-      resultPublishedAt: at(2026, 11, 1, 10),
+      exam: satAttempt({ id: "01033300872", role: "group-deputy", hall: "group-deputy@damascus", startedAt: at(2026, 10, 6, 9, 1), submittedAt: at(2026, 10, 6, 9, 24), wrong: 3, by: SUPERVISOR }),
     }),
   },
   {
@@ -343,7 +345,7 @@ export const SEED_ADMINS: SeedAdmin[] = [
     profile: admin("01033301105", {
       positions: ["موجّه ديني"],
       feePaidAt: at(2026, 9, 23),
-      exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10, 30), answers: {}, score: 91 },
+      exam: satAttempt({ id: "01033301105", role: "guide-m", hall: "guide-m@daraa", startedAt: at(2026, 10, 4, 9, 3), submittedAt: at(2026, 10, 4, 9, 19), wrong: 1, by: "مشرف قاعة درعا" }),
     }),
   },
   {
@@ -352,7 +354,8 @@ export const SEED_ADMINS: SeedAdmin[] = [
     profile: admin("01033301217", {
       positions: ["منسق تقني"],
       feePaidAt: at(2026, 9, 24),
-      exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 9, 58), answers: {}, score: 73 },
+      // Left the hall before the supervisor typed his PIN: the administration decides on his attempt
+      exam: satAttempt({ id: "01033301217", role: "tech", hall: "tech@latakia", startedAt: at(2026, 10, 8, 9, 2), submittedAt: at(2026, 10, 8, 9, 23), wrong: 3, status: "unconfirmed", reason: "غادر القاعة قبل أن يكتب المشرف رمزه على جهازه" }),
     }),
   },
   {
@@ -361,8 +364,8 @@ export const SEED_ADMINS: SeedAdmin[] = [
     profile: admin("05022400319", {
       positions: ["رئيس مجموعة"],
       feePaidAt: at(2026, 9, 25),
-      exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10, 29), answers: {}, score: 72 },
-      oral: { score: 60, by: "منير السيد", at: at(2026, 10, 23, 17, 20) },
+      // Below the pass mark in the administrative section: not passed
+      exam: satAttempt({ id: "05022400319", role: "group-head", hall: "group-head@latakia", startedAt: at(2026, 10, 7, 9, 1), submittedAt: at(2026, 10, 7, 9, 25), wrong: 8, by: "مشرف قاعة اللاذقية" }),
     }),
   },
   {
@@ -371,21 +374,20 @@ export const SEED_ADMINS: SeedAdmin[] = [
     profile: admin("02041700533", {
       positions: ["رئيس مجموعة"],
       feePaidAt: at(2026, 9, 21),
-      exam: { startedAt: at(2026, 10, 7, 9), submittedAt: at(2026, 10, 7, 10), answers: {}, score: 88 },
-      oral: { score: 90, by: "منير السيد", at: at(2026, 10, 22, 16) },
-      resultPublishedAt: at(2026, 11, 1, 10),
+      exam: satAttempt({ id: "02041700533", role: "group-head", hall: "group-head@hama", startedAt: at(2026, 10, 7, 9, 4), submittedAt: at(2026, 10, 7, 9, 22), wrong: 1, by: "مشرف قاعة حماة" }),
       group: { number: 8, capacity: 45, requestedAt: at(2026, 11, 4, 15), feePaidAt: at(2026, 11, 4, 15, 12) },
     }),
   },
   {
     name: "بسام درويش",
     position: "رئيس مجموعة",
-    previous: "1446، 1447 — معتمد (معفى من الكتابي)",
+    previous: "1446، 1447 — معتمد (معفى من الاختبار بالتجديد)",
     profile: admin("01033300955", {
       positions: ["رئيس مجموعة"],
       feePaidAt: at(2026, 9, 21),
-      oral: { score: 86, by: "منير السيد", at: at(2026, 10, 21, 11) },
-      resultPublishedAt: at(2026, 11, 1, 10),
+      eligibleAt: at(2026, 9, 21),
+      // Renewed the same role with a qualifying rating: no test this season
+      examExempt: true,
       group: { number: 5, clusterId: "al-nour", capacity: 50, requestedAt: at(2026, 11, 2, 10), feePaidAt: at(2026, 11, 2, 10, 5), approvedAt: at(2026, 11, 9, 12), approvedBy: "مازن الحلبي" },
     }),
   },
@@ -555,11 +557,11 @@ export const SEED_EVENTS: AuditEvent[] = [
   { id: "h-04b", at: at(2026, 8, 1, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "ماهر عيسى، رهف الخطيب، مازن الحلبي، ريما الجندي", after: "إدارة الإداريين", system: "admins", important: true },
   { id: "h-05a", at: at(2026, 8, 5, 10, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "منير السيد", after: "إدارة الامتحانات", system: "exams", important: true },
   { id: "h-05a2", at: at(2026, 8, 5, 10, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "هيثم زيدان", after: "إدارة الطيران", system: "flights", important: true },
-  { id: "h-05b", at: at(2026, 9, 8, 12, 30), actor: "منير السيد", role: "مسؤول الامتحانات", action: "تحديد مواعيد الامتحانات الأساسية", target: "5 امتحانات", detail: "من 15 إلى 18 ربيع الآخر 1448، في 9 مراكز", system: "exams", area: "exams", important: true },
+  { id: "h-05b", at: at(2026, 9, 8, 12, 30), actor: "منير السيد", role: "مسؤول الامتحانات", action: "نشر الاختبارات الأساسية", target: "5 اختبارات", detail: "جلساتها من 23 إلى 27 ربيع الآخر 1448، في 9 قاعات", system: "exams", area: "exams", important: true },
   { id: "h-05d", at: at(2026, 9, 10, 11, 0), actor: "هيثم زيدان", role: "مسؤول الطيران", action: "إسناد مندوب مطار", target: "مطار دمشق الدولي", after: "عمر الشامي", system: "flights", area: "refs", ref: "ap-dam" },
-  { id: "h-05c", at: at(2026, 9, 8, 12, 45), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إسناد مشرف قاعة امتحانية", target: "مركز دمشق", after: "نسرين الحكيم", system: "exams", area: "centers", ref: "damascus" },
-  { id: "h-06", at: at(2026, 10, 23, 18, 40), actor: "منير السيد", role: "مسؤول الامتحانات", system: "exams", area: "results", ref: "01033301422", action: "تعديل نتيجة الشفهي", target: "متقدم 01033301422", before: "12 من 20", after: "14 من 20", detail: "خطأ في الجمع — تصويب اللجنة رقم 5" },
-  { id: "h-06b", at: at(2026, 11, 1, 10, 0), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إعلان النتائج", target: "1,094 ناجحاً من 1,380 متقدماً", system: "exams", area: "results", important: true },
+  { id: "h-05c", at: at(2026, 9, 8, 12, 45), actor: "منير السيد", role: "مسؤول الامتحانات", action: "إسناد مشرف قاعة", target: "مركز دمشق", after: "نسرين الحكيم", system: "exams", area: "centers", ref: "damascus" },
+  { id: "h-06", at: at(2026, 10, 8, 13, 40), actor: "منير السيد", role: "مسؤول الامتحانات", system: "exams", area: "review", ref: "01033301422", action: "اعتماد إداري", target: "متقدم 01033301422", before: "غير مؤكَّد", after: "مؤكَّد", detail: "انقطع جهازه قبل أن يكتب المشرف رمزه — طابقت الإدارة هويته مع سجل الحضور" },
+  { id: "h-06b", at: at(2026, 10, 9, 10, 0), actor: "منير السيد", role: "مسؤول الامتحانات", action: "تصدير النتائج", target: "1,094 ناجحاً من 1,380 متقدماً", detail: "المحاولات المؤكَّدة وحدها — النجاح في كل الأقسام", system: "exams", area: "results", important: true },
   { id: "h-07", at: at(2026, 11, 9, 12, 0), actor: "مازن الحلبي", role: "مدير المكتب", system: "admins", area: "groups", ref: "31", action: "اعتماد مجموعة", target: `${groupName(31)} — تكتل النور` },
   { id: "h-08", at: at(2026, 8, 27, 14, 30), actor: "رنا حداد", role: "إدارة التسجيل", action: "اعتماد طلب بعد المراجعة", target: "الطلب 49120", detail: "اسم الأم: خطأ كتابي مؤكد من بيان القيد" },
   { id: "h-09", at: at(2026, 8, 26, 9, 40), actor: "كنان الأحمد", role: "إدارة التسجيل", action: "إصدار الأعمار المقبولة", target: "القبول المباشر", after: "68 عاماً فأكثر (مواليد 1958 فما قبل) — 14,625 مقعداً", detail: "ترتيب طلبات التسجيل على القبول المباشر من الأكبر سناً" },

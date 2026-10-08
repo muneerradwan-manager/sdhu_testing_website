@@ -13,30 +13,25 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/widgets";
-import { questionCount, weightsLabel, type ExamNumbers } from "@/lib/data/admin-exam";
+import { questionCount } from "@/lib/data/admin-exam";
 import { ageOf } from "@/lib/registry";
 import { cn, maskNationalId } from "@/lib/utils";
 import { effectiveRole, journeyOf, positionLabelOf, resultOf, seasonHistory, useAdmin, type SeasonRecord } from "../../_lib/admin";
-import { useExamRules } from "../../_lib/admin-rules";
 import { useMyHall } from "../../_lib/halls";
 import { POOLS, useClusterGroupsOf } from "../../_lib/formation";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
 import { groupName } from "@/lib/groups";
-import { dayLabel } from "@/lib/operations";
 import { AdminShell } from "../../_components/ui";
 import { SeasonSheet } from "./season-sheet";
 
 type Written = { date: string; time: string; questions: number; minutes: number; center?: string };
 
-/** The next step's card; the exam's numbers are the season's, as the administration left them */
-const nextSteps = (rules: ExamNumbers, w: Written, oralDay?: string): Record<string, { title: string; text: string; cta: string }> => ({
+/** The next step's card; the test's numbers are the season's, as the exam system left them */
+const nextSteps = (w: Written): Record<string, { title: string; text: string; cta: string }> => ({
   apply: { title: "سجّل لموسم 1448", text: "التسجيل يتجدد كل موسم: حدّث وثائقك ومهاراتك، واختر صفة واحدة يستوفي ملفك شروطها، ووافق على الالتزامات. تتحقق المنصة من أهليتك قبل أن تدفع.", cta: "ابدأ الطلب" },
   fee: { title: "أنت مؤهل — بقي رسم التسجيل", text: "استوفى ملفك شروط الصفة التي اخترتها. سدّد رسم 30 $ ليُقدَّم طلبك.", cta: "تسديد الرسم" },
-  written: { title: "امتحانك الكتابي في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: امتحان جماعي لصفتك، ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر بهويتك، وافتح حسابك في القاعة بعد أن يفتحها المشرف.`, cta: "قاعتي وموعدي" },
-  oral: oralDay
-    ? { title: `امتحانك الشفهي ${oralDay}`, text: "احضر بهويتك إلى مكان اللجان في وقته. بعد امتحانك تُدخل إدارة الامتحانات نتيجتك على المنصة.", cta: "موعدي ونتيجتي" }
-    : { title: "احجز يوم امتحانك الشفهي", text: "اجتزت الكتابي: اختر يوماً من أيام الشفهي التي حددتها إدارة الامتحانات، قبل موعده بيوم على الأقل.", cta: "احجز يومك" },
-  result: { title: "نتيجتك النهائية", text: `${weightsLabel(rules)} — الحد الأدنى للنجاح ${rules.passMark}.`, cta: "عرض النتيجة" },
+  test: { title: "اختبارك المؤتمت في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر ببطاقتك وهويتك: يسجّل المشرف حضورك، وتدخل الاختبار من جهازك برقمك الوطني بموافقته.`, cta: "قاعتي وموعدي" },
+  result: { title: "نتيجتك", text: "تُحتسب بعد أن يؤكد مشرف القاعة تسليمك: تنجح باجتياز كل قسم من أقسام الاختبار بالنسبة المطلوبة فيه.", cta: "عرض النتيجة" },
   group: { title: "تُشكَّل مجموعتك في المكتب", text: "راجع المكتب في مدة تشكيل المجموعات باسم مجموعتك (لا تحمله مجموعة أخرى)، وسدّد رسمها 200 $ هناك، فيشكّلها موظف إدارة الإداريين بفئتك: منها عدد حجاجها ومقاعد فريقها. مقاعد فريقها يملؤها رئيس التكتل.", cta: "كيف تُشكَّل" },
   team: { title: "بانتظار دعوة تكتل", text: "رؤساء التكتلات يدعون كل واحد إلى مكانه: مقعد الموجّه أو المعاون في إحدى مجموعاتهم، أو من منسقي التكتل أو موجّهاته أو معاونيه. تقبل دعوة واحدة: لكل شخص مكان واحد في الموسم.", cta: "دعواتي" },
   approval: { title: "مجموعتك عند المكتب", text: "يكمل موظف إدارة الإداريين تشكيلها بفئتك.", cta: "تشكيل المجموعة" },
@@ -50,20 +45,19 @@ export function AdminDashboard() {
   const profile = admin.profile;
   const coord = useCoordinatorPost(admin.id, profile);
   const joinCount = Object.keys(profile?.joinDecisions ?? {}).length;
-  const rules = useExamRules();
   const hall = useMyHall(admin.id, profile);
   const blueprint = hall.exam;
   const written = useMemo<Written>(
     () => ({ date: hall.session?.date ?? "", time: hall.session?.time ?? "", questions: blueprint ? questionCount(blueprint) : 0, minutes: blueprint?.minutes ?? 0, center: hall.center?.name }),
     [hall.session, hall.center, blueprint],
   );
-  const steps = useMemo(() => journeyOf(profile, rules, joinCount, written), [profile, rules, joinCount, written]);
+  const steps = useMemo(() => journeyOf(profile, joinCount, written), [profile, joinCount, written]);
   const current = steps.find((s) => s.state === "current");
-  const result = resultOf(profile, rules);
-  const failed = !!result.published && result.final !== undefined && !result.passed;
+  const result = resultOf(profile);
+  const failed = !!result.published && !result.exempt && !result.passed;
   const history = seasonHistory(admin.id);
   const [openSeason, setOpenSeason] = useState<SeasonRecord | null>(null);
-  const next = current ? nextSteps(rules, written, profile?.oralBooking ? dayLabel(profile.oralBooking.day, true) : undefined)[current.key] : null;
+  const next = current ? nextSteps(written)[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = useClusterGroupsOf(profile).length;
   const status1448 = coord
@@ -75,9 +69,9 @@ export function AdminDashboard() {
     : profile?.group?.approvedAt
     ? `رئيس ${groupName(profile.group.number)}${clusterName ? ` — ${clusterName}` : " — دون تكتل بعد"}`
     : result.exempt
-      ? `مجدَّد في الصفة نفسها — دون امتحان`
+      ? `مجدَّد في الصفة نفسها — دون اختبار`
       : result.passed
-        ? `ناجح في التأهيل (${result.final})`
+        ? `ناجح في التأهيل${result.score !== undefined ? ` (${result.score}%)` : ""}`
       : profile?.feePaidAt
         ? "متقدم — قيد التأهيل"
         : profile?.eligibleAt
@@ -139,7 +133,7 @@ export function AdminDashboard() {
             {failed ? (
               <>
                 <p className="mt-4 font-display text-3xl font-bold">لم تجتز التأهيل هذا الموسم</p>
-                <p className="mt-2 leading-8 text-white/75">النتيجة النهائية {result.final} من 100، والحد الأدنى 70. يبقى ملفك وسجلك مرجعاً في أي تأهيل لاحق.</p>
+                <p className="mt-2 leading-8 text-white/75">لم تبلغ النسبة المطلوبة في كل أقسام الاختبار المؤتمت. يبقى ملفك وسجلك مرجعاً في أي تأهيل لاحق.</p>
                 <ButtonLink href="/administrator/exam" variant="gold" size="lg" className="mt-6">عرض التفاصيل <ArrowLeft className="size-5" /></ButtonLink>
               </>
             ) : next && current ? (

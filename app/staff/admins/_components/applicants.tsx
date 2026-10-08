@@ -8,7 +8,7 @@ import { groupName } from "@/lib/groups";
 import { matches } from "@/lib/ops";
 import { cn, formatNumber, maskNationalId } from "@/lib/utils";
 import { docState, resultOf } from "@/app/administrator/_lib/admin";
-import { useDocTypes, useExamRules, useSkills } from "@/app/administrator/_lib/admin-rules";
+import { useDocTypes, useSkills } from "@/app/administrator/_lib/admin-rules";
 import { roleLabel } from "../../_components/data";
 import { Drawer, Empty, fmtDateTime, Panel } from "../../_components/kit";
 import { Chip, InfoGrid, SearchBox } from "../../_components/ops-ui";
@@ -29,7 +29,7 @@ export function ApplicantsTab() {
       <Panel icon={<FunnelIcon />} title="المتقدمون صفةً صفة" action={<Chip tone="gold">{formatNumber(desk.totals.applied)} متقدماً</Chip>} bodyClass="-mx-5 md:-mx-6">
         <FunnelTable funnel={desk.funnel} totals={desk.totals} />
         <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">
-          {desk.noRole ? `و${desk.noRole} حسابات إدارية لم تختر صفة بعد. ` : ""}يُدفع الرسم بعد ثبوت الأهلية فقط. «تأهّلوا»: من جدّدوا صفتهم معفين، ومن نجحوا وأعلنت «إدارة الامتحانات» نتيجتهم — وهم وحدهم من يشكّل مجموعة أو ينضم إلى فريق.
+          {desk.noRole ? `و${desk.noRole} حسابات إدارية لم تختر صفة بعد. ` : ""}يُدفع الرسم بعد ثبوت الأهلية فقط. «تأهّلوا»: من جدّدوا صفتهم معفين، ومن نجحوا في كل أقسام الاختبار المؤتمت وأكّد مشرف القاعة تسليمهم — وهم وحدهم من يشكّل مجموعة أو ينضم إلى فريق.
         </p>
       </Panel>
       <Files desk={desk} />
@@ -165,12 +165,11 @@ function Files({ desk }: { desk: AdminsDesk }) {
 
 /** One administrator's file: where his application stands, his documents and their validity, his languages and skills */
 function FileSheet({ f }: { f: FileState }) {
-  const rules = useExamRules();
   const { validity } = useDocTypes();
   const { all: skills } = useSkills();
   const p = f.row.profile;
-  const res = resultOf(p, rules);
-  const result = res.exempt ? "معفى بالتجديد في صفته" : res.final !== undefined ? `${res.final} من 100 — ${res.passed ? "ناجح" : "لم يجتز"}${res.published ? "" : " (لم تُعلن)"}` : p.exam?.submittedAt ? "قيد التصحيح" : p.feePaidAt ? "لم يُمتحن بعد" : "";
+  const res = resultOf(p);
+  const result = res.exempt ? "معفى بالتجديد في صفته" : res.confirmed ? `${res.score ?? "—"}% — ${res.passed ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}${res.published ? "" : " (لم تُعرض عليه)"}` : res.parts.some((x) => x.status === "submitted") ? "سلّم — بانتظار تأكيد المشرف" : res.parts.some((x) => x.status === "unconfirmed") ? "غير مؤكَّد — بانتظار قرار الإدارة" : p.feePaidAt ? "لم يختبر بعد" : "";
 
   return (
     <div className="space-y-5">

@@ -42,7 +42,6 @@ import { REFERENCE_PAGES } from "./references-shell";
 import {
   useAdminCalendar,
   useDocTypes,
-  useExamRules,
   useRoleRequirements,
 } from "../_lib/admin-rules";
 
@@ -73,7 +72,7 @@ function rolesByLevel(s: Structure) {
 const PHASES: { title: string; text: string; icon: LucideIcon }[] = [
   {
     title: "التأهيل",
-    text: "طلب مشاركة، أهلية، امتحان كتابي جماعي في قاعة مركزك بأقسام وأوزان، وشفهي أمام لجنة.",
+    text: "طلب مشاركة، أهلية، ثم الاختبار المؤتمت في قاعة مركزك بإشراف مشرفها: تنجح باجتياز كل قسم من أقسامه.",
     icon: GraduationCap,
   },
   {
@@ -113,7 +112,6 @@ export function AdministratorLanding() {
   const { types: docTypes } = useDocTypes();
   const hydrated = useHydrated();
   const season = useSeason();
-  const { passMark } = useExamRules();
   const session = useStore((s) => s.adminSessionId);
   const conditions = [
     { k: "الصفة", v: "تتقدم فقط لصفة يستوفي ملفك شروطها" },
@@ -176,8 +174,7 @@ export function AdministratorLanding() {
             <p className="mt-5 max-w-2xl text-lg leading-9 text-white/80">
               الإداري الموسمي يرافق الحجاج من دمشق حتى العودة: يقود مجموعة، أو
               يعاون، أو يوجّه، أو يساعد تقنياً. رحلتك كلها على المنصة — من
-              الامتحان إلى تشكيل المجموعة إلى الميدان — ما عدا الامتحان الشفهي
-              الذي يُجرى أمام لجنة.
+              الاختبار إلى تشكيل المجموعة إلى الميدان.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               {hydrated && session ? (
@@ -204,7 +201,7 @@ export function AdministratorLanding() {
             <dl className="mt-10 grid max-w-xl grid-cols-2 gap-4 sm:grid-cols-4">
               {[
                 { k: "متقدماً في الموسم الماضي", v: 1380 },
-                { k: "حد النجاح من 100", v: passMark },
+                { k: "٪ للنجاح في كل قسم من الاختبار", v: 50 },
                 { k: "حاجاً كحد أعلى للمجموعة", v: 50 },
                 {
                   k: "دولاراً رسم التسجيل",
@@ -352,8 +349,8 @@ export function AdministratorLanding() {
           <SectionHeading
             light
             eyebrow="الرحلة"
-            title="من الامتحان إلى الميدان"
-            description="التسجيل كإداري، ثم الامتحان، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات من يحملون صفة «رئيس تكتل» دون انتخاب، وتراجعها الإدارة، ويُلحق المكتب الحجاج بالمجموعات بعقودهم، ثم الميدان."
+            title="من الاختبار إلى الميدان"
+            description="التسجيل كإداري، ثم الاختبار المؤتمت، ثم تُشكَّل المجموعات وتُعتمد، ثم تُشكَّل التكتلات بطلبات من يحملون صفة «رئيس تكتل» دون انتخاب، وتراجعها الإدارة، ويُلحق المكتب الحجاج بالمجموعات بعقودهم، ثم الميدان."
           />
           <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {PHASES.map((p, i) => (
@@ -506,7 +503,7 @@ export function AdministratorLanding() {
               </table>
             </div>
             <p className="mt-4 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink-soft">
-              من يجدد الصفة نفسها بتقييم مستوفٍ يُعفى من الامتحانين، بشرط أن
+              من يجدد الصفة نفسها بتقييم مستوفٍ يُعفى من الاختبار، بشرط أن
               يستوفي ملفه شروط الصفة في جدول الموسم.
             </p>
           </Reveal>

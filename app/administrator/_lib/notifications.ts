@@ -5,7 +5,6 @@ import { groupName } from "@/lib/groups";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import { useStore } from "@/lib/store";
 import { positionLabelOf, resultOf, useAdmin } from "./admin";
-import { useExamRules } from "./admin-rules";
 import { groupsLabel, useCoordinatorPost } from "./coordinators";
 import { inviteWhat, useClusterGroupsOf, useMyInvitations } from "./formation";
 import { useMyHall } from "./halls";
@@ -20,7 +19,6 @@ export type AdminNote = { t: string; who: string; href?: string; urgent?: boolea
 export function useAdminNotes(): AdminNote[] {
   const admin = useAdmin()!;
   const profile = admin.profile;
-  const rules = useExamRules();
   const hall = useMyHall(admin.id, profile);
   const coord = useCoordinatorPost(admin.id, profile);
   const clusterGroups = useClusterGroupsOf(profile).length;
@@ -40,7 +38,7 @@ export function useAdminNotes(): AdminNote[] {
       .map((l) => ({ t: `ردّت الإدارة على رسالتك «${l.subject}» (${l.number}).`, who: "المراسلات", href: "/administrator/letters", urgent: true }));
     const plan = profile?.cluster ? plans[profile.cluster.id] : undefined;
     const planNote = plan?.decision && { t: plan.status === "accepted" ? `قبلت الإدارة الخطة التشغيلية ل${plan.clusterName}.` : `أعادت الإدارة الخطة التشغيلية ل${plan.clusterName} بملاحظات: ${plan.decision.note}`, who: "إدارة الإداريين", href: "/administrator/clusters?tab=plan", urgent: plan.status === "returned" };
-    const result = resultOf(profile, rules);
+    const result = resultOf(profile);
     const pending = inbox
       .filter((x) => x.invite.status === "pending")
       .map((x) => ({
@@ -60,13 +58,13 @@ export function useAdminNotes(): AdminNote[] {
       profile?.cluster && { t: `قدّمت طلب تشكيل ${profile.cluster.name}${profile.group ? `، وبقيتَ رئيس ${groupName(profile.group.number)}` : ""}: تدير ${clusterGroups} مجموعات، لكل واحدة رئيسها ومقاعد فريقها التي ملأتها. نائبك ${profile.cluster.deputy?.status === "accepted" ? profile.cluster.deputy.name : "لم يقبل بعد"}.`, who: "شؤون الإداريين", href: "/administrator/cluster" },
       !profile?.cluster && profile?.group?.clusterId && { t: `قبلتَ دعوة تكتل ل${groupName(profile.group.number)}، فدخلته بحجاجها.`, who: "شؤون التكتلات", href: "/administrator/groups" },
       profile?.group?.approvedAt && { t: `شُكّلت ${groupName(profile.group.number)} لموسم 1448 في المكتب. مقاعد فريقها بفئتها يملؤها رئيس التكتل الذي تدخله، وحجاجها يلحقهم المكتب بها.`, who: profile.group.approvedBy ?? "إدارة الإداريين", href: "/administrator/groups" },
-      result.exempt && { t: "جُدّدت صفتك لموسم 1448 دون امتحان، لأنك شغلتها الموسم الماضي بتقييم مستوفٍ. رسم الموسم مسدد.", who: "شؤون الإداريين" },
-      result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت التأهيل بنتيجة ${result.final} وصرت مؤهلاً لصفة ${positionLabelOf(profile?.positions[0] ?? "")}. ${profile?.positions[0] === "group-head" ? "راجع المكتب في مدة تشكيل المجموعات ليشكّل مجموعتك." : "يدعوك رؤساء التكتلات إلى مكانك في مدة تشكيل التكتلات."}`, who: "إدارة الامتحانات", href: "/administrator/exam" },
-      profile?.feePaidAt && !profile.examExempt && { t: `أنت مؤهل للامتحان الكتابي: ${hall.exam?.name ?? "امتحان صفتك"}، ${hall.session ? `يوم ${hall.session.date} الساعة ${hall.session.time}` : "يُحدَّد موعده"}، في ${hall.center?.name ?? "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}.`, who: "إدارة الامتحانات", href: "/administrator/exam" },
+      result.exempt && { t: "جُدّدت صفتك لموسم 1448 دون اختبار، لأنك شغلتها الموسم الماضي بتقييم مستوفٍ. رسم الموسم مسدد.", who: "شؤون الإداريين" },
+      result.published && result.passed && !result.exempt && { t: `تهانينا، اجتزت الاختبار المؤتمت في كل أقسامه (${result.score}%) وصرت مؤهلاً لصفة ${positionLabelOf(profile?.positions[0] ?? "")}. ${profile?.positions[0] === "group-head" ? "راجع المكتب في مدة تشكيل المجموعات ليشكّل مجموعتك." : "يدعوك رؤساء التكتلات إلى مكانك في مدة تشكيل التكتلات."}`, who: "إدارة الامتحانات", href: "/administrator/exam" },
+      profile?.feePaidAt && !profile.examExempt && { t: `أنت مؤهل للاختبار المؤتمت: ${hall.exam?.name ?? "اختبار صفتك"}، ${hall.session ? `يوم ${hall.session.date} الساعة ${hall.session.time}` : "يُحدَّد موعده"}، في ${hall.center?.name ?? "المركز الامتحاني الذي تُسندك إليه إدارة الامتحانات"}.`, who: "إدارة الامتحانات", href: "/administrator/exam" },
       profile?.receipt && { t: `تم استلام طلب مشاركتك في موسم 1448 ورسم التسجيل (الإيصال ${profile.receipt}).`, who: "المنصة", href: "/administrator/apply" },
       profile?.eligibleAt && { t: `تحققت المنصة من أهليتك لصفة ${positionLabelOf(profile.positions[0] ?? "")} وفق جدول شروط الصفات لموسم 1448${profile.feePaidAt ? "" : ". بقي تسديد رسم التسجيل ليُقدَّم طلبك"}.`, who: "المنصة", href: "/administrator/apply" },
       { t: `التسجيل كإداري لموسم 1448: ${rangeLabel(regOp.start, regOp.end)}.`, who: "الإدارة", href: "/administrator/apply" },
     ];
     return notes.filter(Boolean) as AdminNote[];
-  }, [profile, rules, clusterGroups, inbox, coord, hall.exam, hall.session, hall.center, regOp.start, regOp.end, telegram, letters, plans, admin.id]);
+  }, [profile, clusterGroups, inbox, coord, hall.exam, hall.session, hall.center, regOp.start, regOp.end, telegram, letters, plans, admin.id]);
 }

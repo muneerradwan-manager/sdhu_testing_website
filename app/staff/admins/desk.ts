@@ -2,14 +2,13 @@
 
 import { AlertTriangle, CheckCircle2, Timer } from "lucide-react";
 import { createElement, useMemo } from "react";
-import type { ExamNumbers } from "@/lib/data/admin-exam";
 import { classify } from "@/lib/grading";
 import { useGraded } from "@/lib/grading-live";
 import { useSeason } from "@/lib/season-live";
 import type { StaffUser } from "@/lib/staff";
 import { useStore, type AdminProfile, type AdminRecord, type AuditEvent, type VaultDoc } from "@/lib/store";
 import { APPLIED_ROLES, docState, levelOf, recordOf, resultOf, type DocType } from "@/app/administrator/_lib/admin";
-import { useDocTypes, useEvaluationStages, useExamRules, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
+import { useDocTypes, useEvaluationStages, useRoleRequirements, useRoles } from "@/app/administrator/_lib/admin-rules";
 import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
 import { useClusterRequests, useFormationWindow, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
@@ -37,7 +36,7 @@ export function logAdmins(user: StaffUser, area: Area, e: Omit<AuditEvent, "id" 
 }
 
 /** The rules that belong to «إدارة الامتحانات»: this file neither counts nor resets them */
-export const EXAM_KEYS = ["exam", "blueprints", "questionsAdded", "questionsOff", "questionEdits", "questionRoles"] as const;
+export const EXAM_KEYS = ["blueprints", "questionsAdded", "questionsOff", "questionEdits", "questionRoles"] as const;
 
 /**
  * The role he applied for this season, as its exam and requirements count it («موجّه ديني أ» under the guide's).
@@ -48,9 +47,9 @@ export function appliedRole(r: AdminRow) {
   return key === "cluster-head" || key === "cluster-deputy" ? "group-head" : key;
 }
 
-/** Qualified to work this season: his announced result passed, or he renewed his role without exams */
-export function qualified(p: AdminProfile, rules: ExamNumbers) {
-  const res = resultOf(p, rules);
+/** Qualified to work this season: his confirmed test passed in every section and shown to him, or he renewed his role without a test */
+export function qualified(p: AdminProfile) {
+  const res = resultOf(p);
   return res.passed && !!res.published;
 }
 
@@ -78,7 +77,6 @@ export const GROUP_STATE: Record<GroupState, { label: string; tone: "green" | "g
 
 export function useAdminsDesk() {
   const rows = useAdminRows();
-  const examRules = useExamRules();
   const season = useSeason();
   const roles = useRoles();
   const stages = useEvaluationStages();
@@ -107,7 +105,7 @@ export function useAdminsDesk() {
 
     // ── Applicants ──
     const withRole = rows.filter((r) => appliedRole(r));
-    const isQualified = (r: AdminRow) => qualified(r.profile, examRules);
+    const isQualified = (r: AdminRow) => qualified(r.profile);
     const funnel: Funnel[] = APPLIED_ROLES.map((role) => {
       const mine = withRole.filter((r) => appliedRole(r) === role.key);
       const paid = mine.filter((r) => r.profile.feePaidAt);
@@ -293,7 +291,7 @@ export function useAdminsDesk() {
       high: alerts.filter((a) => a.level === "high"),
       badges: Object.fromEntries(AREAS.map((a) => [a, byArea[a].length])) as Record<Area, number>,
     };
-  }, [rows, examRules, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, evaluations, grading, profiles, directory, gradedGroups, gradedClusters, letters, plans]);
+  }, [rows, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, evaluations, grading, profiles, directory, gradedGroups, gradedClusters, letters, plans]);
 }
 
 export type AdminsDesk = ReturnType<typeof useAdminsDesk>;
@@ -310,7 +308,7 @@ export function useAdminsStatus(): SystemStatus {
           : { label: "تسير بانتظام", tone: "green", icon: createElement(CheckCircle2, { className: "size-4" }) },
     numbers: [
       { k: "المتقدمون", v: desk.totals.applied, hint: `${desk.totals.paid} سددوا الرسم` },
-      { k: "مؤهَّلون للعمل", v: desk.totals.qualified, hint: `${desk.totals.exempt} بالتجديد دون امتحان` },
+      { k: "مؤهَّلون للعمل", v: desk.totals.qualified, hint: `${desk.totals.exempt} بالتجديد دون اختبار` },
       { k: "مجموعات معتمدة", v: desk.approved.length, hint: desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر` : undefined },
       { k: "تكتلات معتمدة", v: desk.approvedClusters.length, hint: desk.live.length ? `من ${desk.live.length} طلبات — ${desk.sent.length + desk.reviewing.length} قيد المراجعة` : undefined },
     ],

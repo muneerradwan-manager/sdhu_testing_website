@@ -16,7 +16,6 @@ import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 import { adminName, logAdmin, nowMs, resultOf, useAdmin } from "../../_lib/admin";
-import { useExamRules } from "../../_lib/admin-rules";
 import { acceptedGroups, clusterViewOf } from "../../_lib/cluster";
 import { coordinatorsLabel } from "../../_lib/coordinators";
 import { distribute, fits, loadOf } from "../../_lib/distribution";
@@ -137,10 +136,9 @@ function FileRequest() {
   const w = useFormationWindow();
   const s = useStructure();
   const cadre = useCadre();
-  const exam = useExamRules();
   const admins = useStore((x) => x.admins);
   const grant = seasonalOf(admin.id, cadre);
-  const qualified = resultOf(p, exam).passed;
+  const qualified = resultOf(p).passed;
   const g = p.group?.approvedAt ? p.group : undefined;
   const category = categoryOf(admin.id, cadre);
   const [name, setName] = useState(`تكتل ${admin.person.firstName}`);
@@ -184,7 +182,7 @@ function FileRequest() {
           {w.state === "before" || w.state === "closed" ? (
             <OperationClosed state={w.op} />
           ) : !qualified ? (
-            <p className="rounded-2xl bg-gold/20 p-4 text-sm font-semibold text-maroon">تقدّم الطلب بعد أن تتأهل لموسم 1448: سجّل كإداري، ثم اجتز الامتحانين أو جدّد صفتك بتقييمك.</p>
+            <p className="rounded-2xl bg-gold/20 p-4 text-sm font-semibold text-maroon">تقدّم الطلب بعد أن تتأهل لموسم 1448: سجّل كإداري، ثم اجتز الاختبار المؤتمت أو جدّد صفتك بتقييمك.</p>
           ) : joined ? (
             <p className="rounded-2xl bg-green-light/10 p-4 text-sm font-semibold text-green">قبلتَ دعوة {joined.req.cluster.name} لمجموعتك، فلا تقدّم طلباً آخر.</p>
           ) : (

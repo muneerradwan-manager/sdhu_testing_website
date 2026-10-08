@@ -124,7 +124,7 @@ function Roles() {
   };
   const remove = (r: RoleDef) => {
     if (use.get(r.key)) return toast({ title: `لا تُحذف صفة «${r.name}»`, body: `يحملها ${use.get(r.key)} الآن (صفة أساسية أو موسمية). عطّلها بدلاً من ذلك.`, tone: "info", icon: "🔒" });
-    if (s.roles.some((x) => x.examAs === r.key || x.exams?.includes(r.key))) return toast({ title: `لا تُحذف صفة «${r.name}»`, body: "صفات أخرى تُعامل كـها في الامتحان والشروط، أو تمتحن امتحانها.", tone: "info", icon: "🔒" });
+    if (s.roles.some((x) => x.examAs === r.key || x.exams?.includes(r.key))) return toast({ title: `لا تُحذف صفة «${r.name}»`, body: "صفات أخرى تُعامل كـها في الاختبار والشروط، أو تؤدي اختبارها.", tone: "info", icon: "🔒" });
     save(
       s.roles.filter((x) => x.key !== r.key),
       "حذف صفة",
@@ -164,9 +164,9 @@ function Roles() {
                   {!r.active && <Chip tone="maroon">معطّلة</Chip>}
                   {!r.applied && <Chip tone="gold">تمنحها الإدارة — لا يُتقدَّم إليها</Chip>}
                   {r.exams && r.exams.length > 1 ? (
-                    <Chip tone="gold">تمتحن امتحانَي {r.exams.map((x) => roleName(x, s)).join(" و")} ويلزمها اجتيازهما</Chip>
+                    <Chip tone="gold">تؤدي اختبارَي {r.exams.map((x) => roleName(x, s)).join(" و")} ويلزمها اجتيازهما</Chip>
                   ) : (
-                    r.examAs && <Chip>{s.roles.find((x) => x.key === r.examAs)?.examName ? `تمتحن امتحان ${s.roles.find((x) => x.key === r.examAs)!.examName} وتُعامل بشروطه` : `تُعامل كـ${roleName(r.examAs, s)} في الامتحان والشروط`}</Chip>
+                    r.examAs && <Chip>{s.roles.find((x) => x.key === r.examAs)?.examName ? `تؤدي اختبار ${s.roles.find((x) => x.key === r.examAs)!.examName} وتُعامل بشروطه` : `تُعامل كـ${roleName(r.examAs, s)} في الاختبار والشروط`}</Chip>
                   )}
                   {r.multiplier ? <Chip tone="green">مضاعف حجاج ×{r.multiplier}</Chip> : null}
                   {r.fixedAge ? <Chip tone="green">عمر مثبَّت عند {r.fixedAge}</Chip> : null}
@@ -252,7 +252,7 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
           <input type="number" min={18} max={90} value={r.fixedAge ?? ""} onChange={(e) => set({ fixedAge: e.target.value ? Math.max(18, Number(e.target.value)) : undefined })} placeholder="بعمره الحقيقي" className={smallInputClass} dir="ltr" />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs text-white/60">اسم امتحانها حين تمتحنه صفات أخرى (اختياري)</span>
+          <span className="mb-1 block text-xs text-white/60">اسم اختبارها حين تؤديه صفات أخرى (اختياري)</span>
           <input value={r.examName ?? ""} onChange={(e) => set({ examName: e.target.value || undefined })} placeholder="مثال: الموجّه الديني" className={smallInputClass} />
         </label>
         <label className="block">
@@ -264,7 +264,7 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
           </select>
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs text-white/60">تُعامل في الامتحان والشروط والصلاحيات كـ</span>
+          <span className="mb-1 block text-xs text-white/60">تُعامل في الاختبار والشروط والصلاحيات كـ</span>
           <select value={r.examAs ?? ""} onChange={(e) => set({ examAs: e.target.value || undefined })} className={cn(smallInputClass, "[&>option]:text-ink")}>
             <option value="">— نفسها —</option>
             {s.roles
@@ -279,7 +279,7 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
       </div>
       {r.applied && (
         <fieldset>
-          <legend className="mb-1 text-xs text-white/60">الامتحانات التي تمتحنها — إن اخترت أكثر من امتحان يلزمها اجتيازها كلها، كلٌّ في يومه</legend>
+          <legend className="mb-1 text-xs text-white/60">الاختبارات التي تؤديها — إن اخترت أكثر من اختبار يلزمها اجتيازها كلها، كلٌّ في جلسته</legend>
           <div className="flex flex-wrap gap-2">
             {s.roles
               .filter((x) => !x.examAs && x.applied && !x.exams?.length)
@@ -298,7 +298,7 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
                     }}
                     className={cn("rounded-xl px-3 py-1.5 text-xs font-bold ring-1 transition", on ? "bg-gold text-ink ring-gold" : "text-white/70 ring-white/15 hover:bg-white/10")}
                   >
-                    امتحان {x.name}
+                    اختبار {x.name}
                   </button>
                 );
               })}

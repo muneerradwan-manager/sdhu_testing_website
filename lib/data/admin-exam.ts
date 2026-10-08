@@ -1,18 +1,21 @@
 /**
- * Written qualification exam for seasonal administrators (الجزء الثاني — 3.4).
- * A small, fictional sample of the question bank. Every role sits its own exam: each question belongs to
- * the roles whose exam it is part of — some to every role (first aid, emergencies, dealing with pilgrims),
- * most to one or two (the guides' rulings, the coordinator's desk, the deputy's attendance).
- * A role's exam is built in sections (the sharia section, the field section...), each with its share of
- * the mark and its number of questions of each type; the paper is drawn from the bank per applicant.
+ * The administrators' qualification test (الاختبار المؤتمت), as the administration's exam platform runs it.
+ * A small, fictional sample of the question bank. Every role sits its own test: each question belongs to the
+ * roles whose test it is part of — some to every role (first aid, emergencies, dealing with pilgrims), most to
+ * one or two (the guides' rulings, the coordinator's desk, the deputy's attendance).
+ * A role's test is built in sections (القسم الإداري، القسم الشرعي…): each draws so many questions for every
+ * paper and has its own pass mark, and passing the test means passing every section. There are no written
+ * (تحريرية) questions and no oral exam: every question is chosen from options and marked by the platform.
  */
+
+import type { Attempt } from "@/lib/store";
 
 export type ExamCategory = "ديني" | "إداري" | "تشغيلي" | "إسعافات أولية" | "إدارة الحشود" | "نقل" | "طوارئ" | "تقني";
 export const EXAM_CATEGORIES: ExamCategory[] = ["ديني", "إداري", "تشغيلي", "إدارة الحشود", "نقل", "إسعافات أولية", "طوارئ", "تقني"];
 
 /**
- * How a question is answered: one of several options, or true or false. The exam has no written answers:
- * every question is marked by the platform the moment the paper is sent.
+ * How a question is answered: one of several options, or true or false (two options). There are no written
+ * answers: every question is marked by the platform the moment the paper is sent.
  */
 export type QuestionType = "choice" | "truefalse";
 export const QUESTION_TYPES: Record<QuestionType, string> = { choice: "اختيار من متعدد", truefalse: "صح أو خطأ" };
@@ -48,15 +51,6 @@ export const typeOf = (q: Pick<ExamQuestion, "type">): QuestionType => q.type ??
 /** A question of a kind the exam no longer has (a written one kept from before): never served */
 export const isServable = (q: { type?: string }) => !q.type || q.type === "choice" || q.type === "truefalse";
 
-export const EXAM_RULES = {
-  writtenWeight: 0.6,
-  oralWeight: 0.4,
-  passMark: 70,
-  writtenMin: 70,
-  season: 1448,
-  oralDate: "11 جمادى الأولى 1448 (22 تشرين الأول، تقديري) — 10:30 — مبنى مديرية الحج — اللجنة رقم 3",
-  resultsDate: "21 جمادى الأولى 1448 (1 تشرين الثاني، تقديري)",
-} as const;
 
 export const EXAM_QUESTIONS: ExamQuestion[] = [
   {
@@ -272,7 +266,7 @@ export const EXAM_QUESTIONS: ExamQuestion[] = [
     roles: [HEAD],
     text: "تريد تشكيل مجموعتك لموسم 1448. متى يُرسل طلب التشكيل؟",
     options: [
-      "فور النجاح في الامتحان الكتابي، قبل الشفهي",
+      "فور تسليم الاختبار المؤتمت، قبل إعلان النتيجة",
       "بعد إلحاق الحجاج بالمجموعة",
       "بعد إعلان نجاحك، في مدة تشكيل المجموعات، وحدك دون فريق",
       "بعد أن يدعو رئيس تكتل مجموعتك إليه",
@@ -673,109 +667,123 @@ export function questionsForRole(bank: ExamQuestion[], roleKey: string) {
   return bank.filter((q) => q.roles.includes(roleKey));
 }
 
-// ───────────────────────── Sections and papers ─────────────────────────
+// ───────────────────────── Tests, sections and papers ─────────────────────────
 
-/** How many questions of each type a section draws */
-export type TypeCounts = Record<QuestionType, number>;
-
-/** One part of a role's exam: its subject, its share of the written mark (%), the bank categories it draws from, and its questions by type */
-export type ExamSection = { id: string; name: string; weight: number; categories: ExamCategory[]; counts: TypeCounts };
-
-/** A role's exam as the administration builds it: its duration and its sections, whose weights add up to 100 */
-export type ExamBlueprint = { minutes: number; sections: ExamSection[] };
+/** A section draws its questions in an order of each paper's own, or in the bank's order */
+export type SectionOrder = "random" | "ordered";
+export const SECTION_ORDERS: Record<SectionOrder, string> = { random: "عشوائي", ordered: "مرتّب" };
 
 /**
- * One exam as the exam system's owner keeps it: what it is called, the role it qualifies for, when it is
- * sat and where, and how it is built. Every role has its main exam, whose id is the role's key; a make-up
- * exam is sat by whoever missed his role's main one. `centers` absent means every active centre.
+ * One part of a role's test: its name, the bank categories its questions come from, how many it draws for every
+ * paper, and the share of them (%) an applicant must answer right to pass it. Passing the test means passing every
+ * section: there is no overall mark to reach, and no weights.
+ */
+export type ExamSection = { id: string; name: string; categories: ExamCategory[]; draw: number; pass: number; order: SectionOrder };
+
+/** A role's test as built: its time and its sections */
+export type ExamBlueprint = { minutes: number; sections: ExamSection[] };
+
+export type ExamStatus = "draft" | "published" | "archived";
+export const EXAM_STATUS: Record<ExamStatus, string> = { draft: "مسودة", published: "منشور", archived: "مؤرشف" };
+
+/** How an applicant's device comes into the test once the supervisor has checked him in */
+export type Pairing = "auto_all" | "auto_clean" | "manual";
+export const PAIRING: Record<Pairing, { label: string; hint: string }> = {
+  auto_all: { label: "دخول تلقائي للجميع", hint: "يدخل المتقدم المسجَّل حضوره مباشرة بلا رمز ولا موافقة. العودة أثناء الاختبار تبقى لموافقة المشرف." },
+  auto_clean: { label: "تلقائي من شبكة القاعة", hint: "يدخل تلقائياً من على شبكة القاعة. ومن خارجها يوافق المشرف ويكتب السبب." },
+  manual: { label: "موافقة يدوية", hint: "يذهب المشرف إلى مقعد المتقدم ويطابق رمز الاقتران على شاشته، ثم يوافق على الطلب." },
+};
+
+/**
+ * One test as the exam system keeps it: its name, the role it qualifies for, when it is sat and where, how it is
+ * built, and how its sittings run. Every role has its main test, whose id is the role's key; a make-up test is sat
+ * by whoever missed his role's main one. `centers` absent means every active hall.
  */
 export type ExamDef = ExamBlueprint & {
   id: string;
   name: string;
   role: string;
   kind: "main" | "makeup";
+  /** Its day (ISO, the demo clock's): when its halls can be opened, an hour before its time to the end of its day */
+  day?: string;
+  /** Its day as read (Hijri), and its hour */
   date: string;
   time: string;
   centers?: string[];
-  /** Stopped: no hall opens it until the owner starts it again */
+  /** Only a published test is sat; an archived one keeps its attempts and results */
+  status: ExamStatus;
+  /** The applicant sees his result the moment his submission is confirmed */
+  showResult: boolean;
+  /** One line per point, shown on the hall's display screen during the test */
+  instructions: string[];
+  pairing: Pairing;
+  /** Entry requests count as the hall's only from its network; from outside it the supervisor writes why he approves */
+  network: boolean;
+  /** Before tests had a status: stopped */
   off?: boolean;
 };
 
 export const EXAM_KINDS: Record<ExamDef["kind"], string> = { main: "أساسي", makeup: "استدراكي" };
 
-/** A centre where the written exam is sat: its hall, the governorates it serves, and its seats */
-/** A centre; `at` is its hall's place on the map, pinned when the centre is created */
-export type ExamCenter = { id: string; name: string; hall: string; at?: { lat: number; lng: number }; governorates: string[]; capacity?: number; off?: boolean };
+/** What the hall's screen shows during a test unless its owner wrote otherwise */
+export const DEFAULT_INSTRUCTIONS = [
+  "ابقَ في مقعدك ولا تغادر القاعة قبل أن يؤكّد المشرف تسليمك.",
+  "الجهاز للاختبار وحده: لا تفتح تطبيقاً آخر ولا تلتقط صورة للشاشة، فكل ذلك يُسجَّل.",
+  "أجب عن كل الأسئلة: لا خصم على الإجابة الخاطئة.",
+  "النجاح يلزمه بلوغ النسبة المطلوبة في كل قسم.",
+  "عند الانتهاء ارفع يدك وانتظر المشرف ليكتب رمزه السري على شاشتك.",
+];
 
-/** How many questions an exam asks that its role's bank cannot serve, section by section and type by type */
-export function shortageOf(bank: ExamQuestion[], exam: Pick<ExamDef, "role" | "sections">) {
-  return exam.sections.reduce(
-    (a, s) =>
-      a +
-      (Object.keys(s.counts) as QuestionType[]).reduce((b, t) => {
-        const have = sectionPool(bank, exam.role, s).filter((q) => typeOf(q) === t).length;
-        return b + Math.max(0, s.counts[t] - have);
-      }, 0),
-    0,
-  );
-}
-
-const counts = (choice: number, truefalse = 0): TypeCounts => ({ choice, truefalse });
-const SAFETY: ExamSection = { id: "safety", name: "قسم السلامة والطوارئ", weight: 20, categories: ["إسعافات أولية", "طوارئ"], counts: counts(3, 1) };
-const SHARIA_SHORT: ExamSection = { id: "sharia", name: "القسم الشرعي", weight: 10, categories: ["ديني"], counts: counts(1) };
-const GUIDE: ExamBlueprint = {
-  minutes: 25,
-  sections: [
-    { id: "sharia", name: "القسم الشرعي", weight: 60, categories: ["ديني"], counts: counts(8, 2) },
-    { id: "admin", name: "القسم الإداري والتشغيلي", weight: 20, categories: ["إداري", "تشغيلي"], counts: counts(2) },
-    SAFETY,
-  ],
-};
-
-/** Each role's exam as the platform ships it; the exam system's owner rebuilds it in «إدارة الامتحانات» */
-export const DEFAULT_BLUEPRINTS: Record<string, ExamBlueprint> = {
-  "group-head": {
-    minutes: 25,
-    sections: [
-      { id: "admin", name: "القسم الإداري", weight: 40, categories: ["إداري"], counts: counts(5, 1) },
-      { id: "field", name: "قسم الميدان والحشود", weight: 30, categories: ["تشغيلي", "إدارة الحشود", "نقل"], counts: counts(4, 1) },
-      SAFETY,
-      SHARIA_SHORT,
-    ],
-  },
-  "group-deputy": {
-    minutes: 25,
-    sections: [
-      { id: "field", name: "قسم الميدان والحشود", weight: 40, categories: ["تشغيلي", "إدارة الحشود", "نقل"], counts: counts(6, 1) },
-      { id: "admin", name: "القسم الإداري", weight: 25, categories: ["إداري"], counts: counts(3, 1) },
-      { ...SAFETY, weight: 25 },
-      SHARIA_SHORT,
-    ],
-  },
-  "guide-m": GUIDE,
-  "guide-f": GUIDE,
-  tech: {
-    minutes: 25,
-    sections: [
-      { id: "tech", name: "القسم التقني", weight: 50, categories: ["تقني"], counts: counts(6, 1) },
-      { id: "admin", name: "القسم الإداري والتشغيلي", weight: 30, categories: ["إداري", "تشغيلي", "نقل"], counts: counts(4) },
-      SAFETY,
-    ],
-  },
-};
-
-export const questionCount = (b: ExamBlueprint) => b.sections.reduce((a, s) => a + (s.counts.choice ?? 0) + (s.counts.truefalse ?? 0), 0);
+/** A hall where tests are sat: its place, the governorates it serves, its seats, and the number of its display screen */
+export type ExamCenter = { id: string; name: string; hall: string; at?: { lat: number; lng: number }; governorates: string[]; capacity?: number; off?: boolean; display?: number };
 
 /** A section's pool for one role: the bank's questions of that role in the section's categories */
 export function sectionPool(bank: ExamQuestion[], roleKey: string, section: Pick<ExamSection, "categories">) {
   return bank.filter((q) => isServable(q) && q.roles.includes(roleKey) && section.categories.includes(q.category));
 }
 
-/** A section as one applicant received it */
-export type PaperSection = { id: string; name: string; weight: number; ids: number[] };
+/** How many questions a test draws that its role's bank cannot serve */
+export function shortageOf(bank: ExamQuestion[], exam: Pick<ExamDef, "role" | "sections">) {
+  const used = new Set<number>();
+  return exam.sections.reduce((a, s) => {
+    const pool = sectionPool(bank, exam.role, s).filter((q) => !used.has(q.id));
+    pool.slice(0, s.draw).forEach((q) => used.add(q.id));
+    return a + Math.max(0, s.draw - pool.length);
+  }, 0);
+}
+
+const ADMIN_CATEGORIES: ExamCategory[] = ["إداري", "تشغيلي", "إدارة الحشود", "نقل", "إسعافات أولية", "طوارئ"];
+const section = (id: string, name: string, categories: ExamCategory[]) => (draw: number): ExamSection => ({ id, name, categories, draw, pass: 50, order: "random" });
+const ADMIN = section("admin", "القسم الإداري", ADMIN_CATEGORIES);
+const SHARIA = section("sharia", "القسم الشرعي", ["ديني"]);
+const TECHNICAL = section("tech", "القسم التقني", ["تقني"]);
+
+/** Each role's test as the platform ships it (every section passed at 50%); the exam system rebuilds it */
+export const DEFAULT_BLUEPRINTS: Record<string, ExamBlueprint> = {
+  "group-head": { minutes: 25, sections: [ADMIN(14), SHARIA(1)] },
+  "group-deputy": { minutes: 25, sections: [ADMIN(14), SHARIA(1)] },
+  "guide-m": { minutes: 25, sections: [SHARIA(10), ADMIN(5)] },
+  "guide-f": { minutes: 25, sections: [SHARIA(10), ADMIN(5)] },
+  tech: { minutes: 25, sections: [ADMIN(8), TECHNICAL(7)] },
+};
+
+export const questionCount = (b: Pick<ExamBlueprint, "sections">) => b.sections.reduce((a, s) => a + (s.draw ?? 0), 0);
+
+/**
+ * A section kept from before sections had a draw and a pass mark (its share of a weighted mark, its counts by
+ * type): its questions drawn as they were, passed at 50%
+ */
+export function asSection(s: ExamSection | (Omit<ExamSection, "draw" | "pass" | "order"> & { counts?: Record<string, number>; weight?: number; draw?: number; pass?: number; order?: SectionOrder })): ExamSection {
+  const old = s as { counts?: Record<string, number> };
+  const draw = s.draw ?? Object.values(old.counts ?? {}).reduce((a, n) => a + (n ?? 0), 0);
+  return { id: s.id, name: s.name, categories: s.categories, draw, pass: s.pass ?? 50, order: s.order ?? "random" };
+}
+
+/** A section as one applicant received it: its questions, and the share he must answer right */
+export type PaperSection = { id: string; name: string; pass: number; ids: number[]; /** kept from weighted papers */ weight?: number };
 
 /** A fixed shuffle per applicant: two applicants seldom get the same questions in the same order */
-function seeded(seed: string) {
+export function seeded(seed: string) {
   let h = 2166136261;
   for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   return () => {
@@ -786,89 +794,105 @@ function seeded(seed: string) {
 }
 
 /**
- * The paper one applicant sits: each section draws its count of each type from its pool, in an order
- * of his own. A question that falls in two sections' categories is drawn once.
+ * The paper one applicant sits: each section draws its count from its pool — in his own order, or in the bank's
+ * order for an «مرتّب» section. A question that falls in two sections' categories is drawn once.
  */
 export function drawPaper(bank: ExamQuestion[], blueprint: ExamBlueprint, roleKey: string, seed: string): PaperSection[] {
   const rnd = seeded(seed);
   const used = new Set<number>();
-  return blueprint.sections.map((s) => {
+  return blueprint.sections.map((raw) => {
+    const s = asSection(raw);
     const pool = sectionPool(bank, roleKey, s).filter((q) => !used.has(q.id));
-    const ids = (Object.keys(QUESTION_TYPES) as QuestionType[]).flatMap((t) =>
-      pool
-        .filter((q) => typeOf(q) === t)
-        .map((q) => ({ q, k: rnd() }))
-        .sort((a, b) => a.k - b.k)
-        .slice(0, s.counts[t] ?? 0)
-        .map(({ q }) => q.id),
-    );
-    // the kinds mixed in the section
-    const order = new Map(ids.map((id) => [id, rnd()]));
-    ids.sort((a, b) => order.get(a)! - order.get(b)!);
+    const ids = (s.order === "ordered" ? pool : pool.map((q) => ({ q, k: rnd() })).sort((a, b) => a.k - b.k).map(({ q }) => q)).slice(0, s.draw).map((q) => q.id);
     ids.forEach((id) => used.add(id));
-    return { id: s.id, name: s.name, weight: s.weight, ids };
+    return { id: s.id, name: s.name, pass: s.pass, ids };
   });
+}
+
+/** The order a question's options are shown in on one paper: always shuffled (a true-or-false question keeps «صح» first) */
+export function optionOrder(q: Pick<ExamQuestion, "id" | "options" | "type">, seed: string) {
+  const idx = q.options.map((_, i) => i);
+  if (typeOf(q) === "truefalse") return idx;
+  const rnd = seeded(`${seed}:${q.id}`);
+  return idx.map((i) => ({ i, k: rnd() })).sort((a, b) => a.k - b.k).map(({ i }) => i);
 }
 
 /** Points earned and possible per section */
 export type Tally = Record<string, { earned: number; possible: number }>;
 
-/** The written mark out of 100: each section's share of its points, weighted by the section's weight */
-export function weightedScore(paper: PaperSection[], tally: Tally) {
-  const live = paper.filter((s) => (tally[s.id]?.possible ?? 0) > 0);
-  const total = live.reduce((a, s) => a + s.weight, 0);
-  if (!total) return 0;
-  return Math.round(live.reduce((a, s) => a + (s.weight * tally[s.id].earned) / tally[s.id].possible, 0) / total * 100);
+/** One section of a marked paper: what he got, its share, the share it asks, and whether he passed it */
+export type SectionResult = { id: string; name: string; earned: number; possible: number; percent: number; pass: number; passed: boolean };
+
+const pct = (earned: number, possible: number) => (possible ? Math.round((earned / possible) * 1000) / 10 : 0);
+
+/** A marked paper section by section: passing it means passing every section */
+export function sectionsOf(paper: PaperSection[], tally: Tally): SectionResult[] {
+  return paper
+    .filter((s) => (tally[s.id]?.possible ?? 0) > 0)
+    .map((s) => {
+      const { earned, possible } = tally[s.id];
+      const percent = pct(earned, possible);
+      const pass = s.pass ?? 50;
+      return { id: s.id, name: s.name, earned, possible, percent, pass, passed: percent >= pass };
+    });
 }
 
 /**
- * Marks a paper the moment it is sent: every question is the platform's to mark, a point each. `toGrade` stays
- * empty (the exam has no written answers); it is kept for papers sent before.
+ * Marks a paper the moment it is sent: a point for every right answer. Its share of all its points (%) is shown
+ * beside the sections; passing is passing every section.
  */
 export function markPaper(paper: PaperSection[], bank: ExamQuestion[], answers: Record<number, number | string>) {
   const byId = new Map(bank.map((q) => [q.id, q]));
   const tally: Tally = {};
-  const toGrade: number[] = [];
   let correct = 0;
-  let auto = 0;
+  let possible = 0;
   for (const s of paper) {
     let earned = 0;
-    let possible = 0;
+    let all = 0;
     for (const id of s.ids) {
-      const q = byId.get(id);
-      if (!q) continue;
-      // every question counts one point
-      possible += 1;
-      auto++;
-      if (answers[id] === q.answer) {
-        earned += 1;
-        correct++;
-      }
+      if (!byId.has(id)) continue;
+      all += 1;
+      if (answers[id] === byId.get(id)!.answer) earned += 1;
     }
-    tally[s.id] = { earned, possible };
+    tally[s.id] = { earned, possible: all };
+    correct += earned;
+    possible += all;
   }
-  return { tally, toGrade, correct, auto, score: weightedScore(paper, tally) };
+  const sections = sectionsOf(paper, tally);
+  return { tally, correct, possible, score: pct(correct, possible), sections, passed: sections.length > 0 && sections.every((x) => x.passed) };
 }
-
-/** The written mark with the grader's marks added; `pending` is what is still unmarked (counted as 0) */
-export function withMarks(paper: PaperSection[], tally: Tally, toGrade: number[], marks: Record<number, number> = {}) {
-  const t: Tally = Object.fromEntries(Object.entries(tally).map(([k, v]) => [k, { ...v }]));
-  for (const s of paper) for (const id of s.ids) if (toGrade.includes(id) && marks[id] !== undefined) t[s.id].earned += marks[id];
-  return { score: weightedScore(paper, t), tally: t, pending: toGrade.filter((id) => marks[id] === undefined) };
-}
-
-/** How results are judged this season (the shipped values are EXAM_RULES); each role's paper is its blueprint */
-export type ExamNumbers = { passMark: number; writtenMin: number; writtenWeight: number; oralWeight: number };
 
 /**
- * Written + oral → final, with the season's weights. Whoever was exempt from the written has the oral
- * alone. Never stored: a change to the weights reaches every result, and both portals read the same one.
+ * A sat attempt at a role's test as the platform ships it, for the seeds and the demo: every answer right but `wrong`
+ * of its largest section (2 by default — enough wrong there fails it), confirmed by the hall's supervisor with his
+ * PIN unless another status is given
  */
-export function finalScoreWith(written: number | undefined, oral: number, rules: Pick<ExamNumbers, "writtenWeight" | "oralWeight">) {
-  return written === undefined ? oral : Math.round((written * rules.writtenWeight + oral * rules.oralWeight) * 10) / 10;
-}
-
-/** «الكتابي 60% + الشفهي 40%» with the season's weights */
-export function weightsLabel(rules: Pick<ExamNumbers, "writtenWeight" | "oralWeight">) {
-  return `الكتابي ${Math.round(rules.writtenWeight * 100)}% + الشفهي ${Math.round(rules.oralWeight * 100)}%`;
+export function satAttempt(o: { id: string; role: string; startedAt: number; submittedAt: number; hall?: string; wrong?: number; by?: string; status?: "confirmed" | "submitted" | "unconfirmed"; reason?: string }): Attempt {
+  const byId = new Map(EXAM_QUESTIONS.map((q) => [q.id, q]));
+  const paper = drawPaper(EXAM_QUESTIONS, DEFAULT_BLUEPRINTS[o.role] ?? DEFAULT_BLUEPRINTS["group-head"], o.role, o.id);
+  const big = paper.reduce((a, s) => (s.ids.length > a.ids.length ? s : a), paper[0]);
+  const wrong = new Set(big.ids.slice(0, o.wrong ?? 2));
+  const answers = Object.fromEntries(
+    paper.flatMap((s) => s.ids).map((qid) => {
+      const q = byId.get(qid)!;
+      return [qid, wrong.has(qid) ? (q.answer + 1) % q.options.length : q.answer];
+    }),
+  );
+  const { tally, score } = markPaper(paper, EXAM_QUESTIONS, answers);
+  const status = o.status ?? "confirmed";
+  return {
+    status,
+    hall: o.hall,
+    minutes: DEFAULT_BLUEPRINTS[o.role]?.minutes,
+    startedAt: o.startedAt,
+    pairedAt: o.startedAt - 5 * 60_000,
+    submittedAt: o.submittedAt,
+    paper,
+    answers,
+    tally,
+    score,
+    showResult: true,
+    ...(status === "confirmed" && { confirmedAt: o.submittedAt + 60_000, confirmedBy: o.by, confirmVia: "pin" as const }),
+    ...(status === "unconfirmed" && { unconfirmedReason: o.reason }),
+  };
 }

@@ -18,7 +18,7 @@ const STEPS = ["البيانات الأساسية", "رمز التحقق", "ال
 
 const FILE_PARTS = [
   { icon: UserRound, label: "البيانات الشخصية" },
-  { icon: GraduationCap, label: "التأهيل ونتائج الامتحانات" },
+  { icon: GraduationCap, label: "التأهيل ونتيجة الاختبار" },
   { icon: Briefcase, label: "المناصب الموسمية" },
   { icon: Star, label: "التقييمات" },
   { icon: FolderLock, label: "خزنة الوثائق" },

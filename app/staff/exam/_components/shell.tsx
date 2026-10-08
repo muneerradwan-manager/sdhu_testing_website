@@ -16,16 +16,16 @@ export function ExamGate({ children }: { children: ReactNode }) {
 
 /**
  * One operation of the exam file: its own page from its own entry in the menu, in the order the work is done —
- * the centres, then the exams and their sections, then the question bank that fills them, then who sits where,
- * then the results — each with its records. Putting the whole file back as the platform ships it stays at hand
- * on every one of them.
+ * the halls, then the tests and their sections, then the question bank that fills them, then who sits where and
+ * the sittings, then following them, the review, the results and the statistics — each with its records. Putting
+ * the tests and the bank back as the platform ships them stays at hand on every one of them.
  */
 export function ManageShell({ children }: { children: ReactNode }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const rules = useStore((s) => s.adminRules);
   const exams = useStore((s) => s.examHalls.exams);
-  const edited = [rules.exam, rules.questionsOff, rules.questionEdits, rules.questionRoles, rules.blueprints, rules.questionsAdded, exams].some((v) => v !== undefined);
+  const edited = [rules.questionsOff, rules.questionEdits, rules.questionRoles, rules.blueprints, rules.questionsAdded, exams].some((v) => v !== undefined);
 
   return (
     <div>
@@ -39,10 +39,10 @@ export function ManageShell({ children }: { children: ReactNode }) {
               variant="outline"
               className="border-white/25 text-white hover:bg-white/10"
               onClick={() => {
-                actions.setAdminRules({ exam: undefined, questionsOff: undefined, questionEdits: undefined, questionRoles: undefined, blueprints: undefined, questionsAdded: undefined });
+                actions.setAdminRules({ questionsOff: undefined, questionEdits: undefined, questionRoles: undefined, blueprints: undefined, questionsAdded: undefined });
                 hallActions.resetExams();
-                logAs(user, { action: "إعادة الامتحانات وبنك الأسئلة وقواعد النجاح إلى الأصل", target: "موسم 1448", system: "exams", important: true });
-                toast({ title: "أُعيد كل شيء إلى الأصل", body: "الامتحانات ومواعيدها، والأسئلة، وقواعد النجاح كما تطلقها المنصة.", tone: "info", icon: "↩️" });
+                logAs(user, { action: "إعادة الاختبارات وبنك الأسئلة إلى الأصل", target: "موسم 1448", system: "exams", important: true });
+                toast({ title: "أُعيد كل شيء إلى الأصل", body: "الاختبارات وأقسامها ومواعيدها، والأسئلة، كما تطلقها المنصة.", tone: "info", icon: "↩️" });
               }}
             >
               <RotateCcw className="size-4" /> إعادة إلى الأصل

@@ -14,8 +14,7 @@ import { fullName, getPerson } from "@/lib/registry";
 import { evaluate, type EligibilityResult, type Member } from "@/lib/rules";
 import { useSeason } from "@/lib/season-live";
 import { setState, useStore, type AdminProfile, type AuditEvent, type Review, type Ticket } from "@/lib/store";
-import { effectiveRole, positionLabelOf, resultOf } from "@/app/administrator/_lib/admin";
-import type { ExamNumbers } from "@/lib/data/admin-exam";
+import { effectiveRole, positionLabelOf } from "@/app/administrator/_lib/admin";
 
 // ───────────────────────── Reviews ─────────────────────────
 
@@ -211,16 +210,6 @@ export function roleLabel(r: AdminRow) {
   if (r.profile.cluster) return `${label} — ${r.profile.cluster.name}`;
   if (r.profile.deputyOf) return `${label} — ${r.profile.deputyOf.clusterName}`;
   return label;
-}
-
-/**
- * Waiting for the committee: reached the season's written minimum (or was exempt from the written,
- * renewing in another role) and has no oral mark yet. Below the minimum nobody is called to the oral.
- */
-export function awaitsOral(r: AdminRow, rules: ExamNumbers) {
-  // Both exams of a role that sits two must be marked and passed
-  const res = resultOf(r.profile, rules);
-  return !r.profile.examExempt && !r.profile.oral && (res.written !== undefined ? res.writtenPassed : !!r.previous);
 }
 
 /** Patch an administrator; seeded candidates are written to the store in full the first time */

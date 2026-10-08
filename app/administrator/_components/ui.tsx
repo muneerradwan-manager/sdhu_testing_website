@@ -129,7 +129,7 @@ const NAV: NavItem[] = [
   // Registering a pilgrim on the Hajj never puts him in a group
   { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
   { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
-  { href: "/administrator/exam", label: "الامتحانات", icon: GraduationCap, ops: ["admin-exams"] },
+  { href: "/administrator/exam", label: "الاختبار المؤتمت", icon: GraduationCap, ops: ["admin-exams"] },
   { href: "/administrator/group", label: "تشكيل المجموعات", icon: FileSignature, ops: ["group-formation"], show: (c) => c.head },
   // A group head files a request or answers the invitations to his group; the others answer theirs
   { href: "/administrator/cluster", label: "تشكيل التكتلات", icon: Building2, ops: ["cluster-formation"], show: (c) => c.role },
