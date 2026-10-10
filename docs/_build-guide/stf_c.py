@@ -102,7 +102,7 @@ if ONLY == "k":
     c.shot("emp-summary", "تركيب السجل، وحسابات البوابة، والمشاركة في الموسم", section=S)
     c.goto("/staff/employees/manage", wait=2000)
     c.shot("emp-register", "سجل الموظفين: أولى عمليات إدارة الموظفين في القائمة الجانبية", hl=[("aside a[href$='/staff/employees/manage']", "")], section=S)
-    p.locator("input[aria-label='بحث في الموظفين']").first.fill("وسام"); c.settle(900)
+    p.locator("input[aria-label='بحث في الموظفين']").first.fill("ليلى"); c.settle(900)
     c.shot("emp-search", "البحث عن موظف", section=S)
     p.locator("main tbody tr").first.click(); c.settle(1200)
     c.shot("emp-drawer", "ملف الموظف: البيانات والمواقع والرحلتان والحساب، وسجلّه", section=S)

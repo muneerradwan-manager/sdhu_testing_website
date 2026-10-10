@@ -228,7 +228,7 @@ if ONLY in (None, "letters"):
     c.shot("letters-sent", "أُرسلت الرسالة برقمها: يصلك الرد في سياقها", section=S)
     # the administration answers it from the staff portal (same browser, its own session)
     c.goto("/staff/login", wait=1500)
-    p.locator("label:has-text('اسم المستخدم') input").first.fill("maher")
+    p.locator("label:has-text('اسم المستخدم') input").first.fill("mazen")
     p.locator("label:has-text('كلمة المرور') input").first.fill("1448")
     p.locator("main button:text-is('دخول')").first.click(); c.settle(3000)
     c.goto("/staff/admins/manage/letters", wait=1800)

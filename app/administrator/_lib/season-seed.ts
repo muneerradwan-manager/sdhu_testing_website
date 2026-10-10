@@ -124,7 +124,6 @@ type Plan = {
   cats: number[];
   status: ClusterStatus;
   note?: string;
-  reviewer?: string;
   /** Seats and lists still waiting for an answer, as in a draft */
   unfinished?: boolean;
   /** One group head serves as an assistant this season: his first-category group merged with another */
@@ -144,8 +143,8 @@ const PLANS: Plan[] = [
   { id: "as-sanabel", name: "تكتل السنابل", branch: "دير الزور", extra: ["الرقة"], tier: "eco", cats: [2, 1, 1, 2, 1, 1, 3], status: "approved" },
   { id: "al-ahd", name: "تكتل العهد", branch: "اسطنبول", extra: ["غازي عنتاب", "مصر"], tier: "five", cats: [2, 1, 2, 1, 1, 2], status: "approved" },
   { id: "al-fajr", name: "تكتل الفجر", branch: "حمص", extra: ["حماة"], tier: "eco", cats: [3, 2, 1, 1, 2, 1, 2], status: "pending" },
-  { id: "al-wafaa", name: "تكتل الوفاء", branch: "حماة", tier: "eco-plus", cats: [2, 1, 2, 1, 1, 2], status: "reviewing", reviewer: "رهف الخطيب" },
-  { id: "al-ishraq", name: "تكتل الإشراق", branch: "دمشق", tier: "eco", cats: [2, 2, 1, 1, 3, 1, 2, 1], status: "rejected", reviewer: "ماهر عيسى", note: "النظام الإداري يشترط تفرّغ المنسق التقني في مراحل العمل الأساسية، وأحد منسقيكم موظف بدوام كامل في الموسم. استبدله بمنسق متفرّغ ثم أعد الإرسال قبل الموعد النهائي." },
+  { id: "al-wafaa", name: "تكتل الوفاء", branch: "حماة", tier: "eco-plus", cats: [2, 1, 2, 1, 1, 2], status: "reviewing" },
+  { id: "al-ishraq", name: "تكتل الإشراق", branch: "دمشق", tier: "eco", cats: [2, 2, 1, 1, 3, 1, 2, 1], status: "rejected", note: "النظام الإداري يشترط تفرّغ المنسق التقني في مراحل العمل الأساسية، وأحد منسقيكم موظف بدوام كامل في الموسم. استبدله بمنسق متفرّغ ثم أعد الإرسال قبل الموعد النهائي." },
   { id: "al-asala", name: "تكتل الأصالة", branch: "اللاذقية", tier: "eco", cats: [2, 1, 1, 2, 1], status: "draft", unfinished: true },
 ];
 
@@ -165,7 +164,8 @@ function build(plan: Plan) {
   GEN_PEOPLE[headGroup.id].seasonal = {
     role: "cluster-head",
     reason: pick([`رئيس مجموعة ${headGroup.seasons} مواسم بتقييم ${headGroup.rating}`, "للزيادة العددية: تكتل إضافي لحجاج الفرع", `رئيس تكتل في 1447 وتقييمه ${headGroup.rating}`]),
-    by: pick(["مازن الحلبي", "ماهر عيسى", "رهف الخطيب"]),
+    // «إدارة الإداريين» has one holder; the draw stays so every later draw of the season keeps its value
+    by: pick(["مازن الحلبي"]),
     at: Date.UTC(2026, 9, between(20, 30), 10),
   };
   GEN_PEOPLE[headGroup.id].extra = plan.extra;
@@ -195,7 +195,7 @@ function build(plan: Plan) {
     const guideRole = () => (rnd() < 0.2 ? "murshid" : "guide-m");
     const assistantRole = () => (rnd() < 0.22 ? "assistant-tech" : "group-deputy");
     for (let i = 0; i < r.guides; i++) {
-      const p = person(guideRole(), h.branch, rnd() < 0.06 ? { role: "guide-m", label: pick(GUIDE_LABELS), reason: "مكلّف بمجموعتين صغيرتين في الدروس", by: "ماهر عيسى", at: Date.UTC(2026, 10, 3, 9) } : undefined);
+      const p = person(guideRole(), h.branch, rnd() < 0.06 ? { role: "guide-m", label: pick(GUIDE_LABELS), reason: "مكلّف بمجموعتين صغيرتين في الدروس", by: "مازن الحلبي", at: Date.UTC(2026, 10, 3, 9) } : undefined);
       list.push({ kind: "guide", who: answer(p, n++) });
     }
     for (let i = 0; i < r.assistants; i++) {
@@ -213,7 +213,7 @@ function build(plan: Plan) {
   const comp = DEFAULT_COMPOSITION[plan.tier];
   const assistants: ClusterInvite[] = [
     ...Array.from({ length: comp.assistants }, (_, i) => {
-      const p = person("group-deputy", plan.branch, i === 0 && rnd() < 0.4 ? { role: "group-deputy", label: "معاون - مكتب سياحي", reason: "يتابع حجوزات التكتل مع المكتب السياحي", by: "رهف الخطيب", at: Date.UTC(2026, 10, 4, 10) } : undefined);
+      const p = person("group-deputy", plan.branch, i === 0 && rnd() < 0.4 ? { role: "group-deputy", label: "معاون - مكتب سياحي", reason: "يتابع حجوزات التكتل مع المكتب السياحي", by: "مازن الحلبي", at: Date.UTC(2026, 10, 4, 10) } : undefined);
       return answer(p, n++);
     }),
     ...Array.from({ length: plan.counted ?? 0 }, () => answer(person("assistant-count", plan.branch), n++)),
@@ -240,9 +240,9 @@ function build(plan: Plan) {
     tier: plan.tier,
     status: plan.status,
     ...(plan.status !== "draft" && { firstSentAt: sent, sentAt: sent }),
-    ...((plan.status === "approved" || plan.status === "rejected" || plan.status === "reviewing") && { review: { at: sent + 20 * 3_600_000, by: plan.reviewer ?? "مازن الحلبي" } }),
-    ...(plan.status === "approved" && { decision: { status: "approved" as const, at: sent + 2 * 86_400_000, by: plan.reviewer ?? "مازن الحلبي" }, feePaidAt: sent + 3 * 86_400_000 }),
-    ...(plan.status === "rejected" && { decision: { status: "rejected" as const, at: sent + 86_400_000, by: plan.reviewer ?? "ماهر عيسى", note: plan.note } }),
+    ...((plan.status === "approved" || plan.status === "rejected" || plan.status === "reviewing") && { review: { at: sent + 20 * 3_600_000, by: "مازن الحلبي" } }),
+    ...(plan.status === "approved" && { decision: { status: "approved" as const, at: sent + 2 * 86_400_000, by: "مازن الحلبي" }, feePaidAt: sent + 3 * 86_400_000 }),
+    ...(plan.status === "rejected" && { decision: { status: "rejected" as const, at: sent + 86_400_000, by: "مازن الحلبي", note: plan.note } }),
     deputy,
     accountant,
     groups: Object.fromEntries(groups.map((g) => [g.number, g])),

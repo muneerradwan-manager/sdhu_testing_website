@@ -38,7 +38,7 @@ export const EXAM_CENTERS: ExamCenter[] = [
 ];
 
 /** The supervisors the season opens with; the owner assigns the other centres */
-export const DEFAULT_SUPERVISORS: Record<string, string> = { damascus: "nisreen", aleppo: "hiba", homs: "rima" };
+export const DEFAULT_SUPERVISORS: Record<string, string> = { damascus: "nisreen" };
 
 /** The demo supervisors' confirmation PIN until each sets his own on his panel (the demo's usual code) */
 export const DEFAULT_PINS: Record<string, string> = Object.fromEntries(Object.values(DEFAULT_SUPERVISORS).map((s) => [s, "1448"]));

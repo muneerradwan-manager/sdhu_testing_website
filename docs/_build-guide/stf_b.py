@@ -130,10 +130,10 @@ if ONLY in (None, "e"):
     c.shot("ex-records", "سجل الجلسات: كل فتح وحضور ودخول وتأكيد، ومن أجراه ومتى", section=S)
     s.close()
 
-# ───────── F. «إدارة الإداريين» (maher): the summary, the rules, the reference lists and references, the cadre, the applicants, evaluation, grading ─────────
+# ───────── F. «إدارة الإداريين» (mazen): the summary, the rules, the reference lists and references, the cadre, the applicants, evaluation, grading ─────────
 if ONLY in (None, "f"):
     s = Staff(); c, p = s.c, s.p; S = "F"
-    s.login("maher")
+    s.login("mazen")
     c.goto("/staff/admins", wait=2000)
     c.shot("adm-top", "ملخص الإداريين: أرقامهم، وما ينتظرك الآن، وعمليات الملف في القائمة الجانبية", hl=[("aside a[href$='/staff/admins']", "1"), ("aside a[href$='/staff/admins/manage/cadre']", "2")], section=S)
     c.scroll_to("main h2:has-text('الكادر الإداري والمراجع')", 120)
@@ -183,7 +183,7 @@ if ONLY in (None, "f"):
     s.close()
     # the cadre across the seasons
     s = Staff(); c, p = s.c, s.p
-    s.login("maher")
+    s.login("mazen")
     c.goto("/staff/admins/manage/cadre", wait=2400)
     c.shot("cadre-roster", "الكادر الإداري: كل فرد بصفته الأساسية ومكانه في تكتله وفرعه وهاتفه وتيليجرامه وحضوره", hl=[("main button:has-text('إضافة كادر')", "1"), ("main button:has-text('الأعمدة')", "2")], section=S)
     s.btn("الأعمدة", 700)

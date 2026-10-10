@@ -172,7 +172,7 @@ export function AdminRegisterFlow() {
                     <div className="mt-8 flex flex-wrap justify-between gap-3">
                       <Button
                         variant="outline"
-                        onClick={() => toast({ title: "سيتم التحقق يدوياً", body: "ترفع وثيقة تثبت البيانات الصحيحة، ويراجعها ماهر عيسى من شؤون الإداريين.", tone: "info", icon: "📝" })}
+                        onClick={() => toast({ title: "سيتم التحقق يدوياً", body: "ترفع وثيقة تثبت البيانات الصحيحة، ويراجعها مازن الحلبي من شؤون الإداريين.", tone: "info", icon: "📝" })}
                       >
                         <PencilLine className="size-4" /> البيانات غير صحيحة
                       </Button>

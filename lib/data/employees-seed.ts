@@ -1,51 +1,54 @@
 import type { Employee, Mission } from "../ops";
+import { getStaff } from "../staff";
 import { seeded } from "../utils";
 
 /**
  * The directorate's employees for the demo — the same shape as the operations app's profile
  * (hajjoperations_app, profiles): name in three parts, job title, governorate, mission, permanent or
  * delegated by another body, both phone numbers, and the seasons he travelled with the mission.
- * The first 21 staff-portal accounts (lib/staff.ts) come first and carry their staffId; the rest are
- * generated from a fixed seed so the list is identical on every load. Accounts opened later (one per
- * permission) come after everyone generated, with their own seed, so no earlier employee changes.
+ * The people the demo names come first, each under his handle: his email, and his staff-portal account
+ * (lib/staff.ts) while one is open under it — an account closed leaves him an employee without one. The
+ * rest are generated from a fixed seed so the list is identical on every load. People named later come
+ * after everyone generated, with their own seed, so no earlier employee changes.
  */
 
 type Base = Omit<Employee, "id" | "languages" | "nationalId" | "phoneSy"> & { languages?: string[] };
+type Named = Base & { handle: string };
 
-const STAFF_PEOPLE: (Base & { staffId: string })[] = [
-  { staffId: "suha", firstName: "سهى", fatherName: "عبد الكريم", surname: "مراد", gender: "female", birthYear: 1978, city: "دمشق", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1445, 1446, 1447] },
-  { staffId: "rana", firstName: "رنا", fatherName: "جورج", surname: "حداد", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "maher", firstName: "ماهر", fatherName: "سليم", surname: "عيسى", gender: "male", birthYear: 1980, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447] },
-  { staffId: "mazen", firstName: "مازن", fatherName: "محمود", surname: "الحلبي", gender: "male", birthYear: 1975, city: "حلب", jobTitle: "مدير مكتب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1447] },
-  { staffId: "fadi", firstName: "فادي", fatherName: "نبيل", surname: "سلوم", gender: "male", birthYear: 1983, city: "دمشق", jobTitle: "مسؤول تخطيط ومتابعة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 55 310 4418" },
-  { staffId: "layla", firstName: "ليلى", fatherName: "عادل", surname: "شمس", gender: "female", birthYear: 1981, city: "دمشق", jobTitle: "طبيب", mission: "البعثة الصحية", kind: "permanent", seasons: [1445, 1446, 1447, 1448], phoneSa: "+966 55 870 2231", notes: "رئيسة الفريق الطبي في مكة المكرمة" },
-  { staffId: "haitham", firstName: "هيثم", fatherName: "فايز", surname: "زيدان", gender: "male", birthYear: 1979, city: "ريف دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 50 214 9087" },
-  { staffId: "tarek", firstName: "طارق", fatherName: "حسين", surname: "مصطفى", gender: "male", birthYear: 1984, city: "حماة", jobTitle: "مدقق حسابات", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "abusami", firstName: "سامي", fatherName: "راتب", surname: "حلاق", gender: "male", birthYear: 1970, city: "دمشق", jobTitle: "مسؤول موارد بشرية", mission: "البعثة الإدارية", kind: "permanent", seasons: [1443, 1444], notes: "يُعرف بأبي سامي" },
-  { staffId: "nour", firstName: "نور", fatherName: "هشام", surname: "العابد", gender: "female", birthYear: 1992, city: "دمشق", jobTitle: "مسؤول إعلام وعلاقات عامة", mission: "البعثة الإعلامية", kind: "permanent", seasons: [] },
-  { staffId: "bilal", firstName: "بلال", fatherName: "أحمد", surname: "قاسم", gender: "male", birthYear: 1988, city: "درعا", jobTitle: "مسؤول إعلام وعلاقات عامة", mission: "البعثة الإعلامية", kind: "permanent", seasons: [1447] },
-  { staffId: "hiba", firstName: "هبة", fatherName: "منير", surname: "الأيوبي", gender: "female", birthYear: 1990, city: "حلب", jobTitle: "موظف خدمة جمهور", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "osama", firstName: "أسامة", fatherName: "خليل", surname: "الدالاتي", gender: "male", birthYear: 1985, city: "إدلب", jobTitle: "موظف خدمة جمهور", mission: "البعثة الإدارية", kind: "permanent", seasons: [1447], languages: ["العربية", "التركية"] },
-  { staffId: "dana", firstName: "دانة", fatherName: "وليد", surname: "العظمة", gender: "female", birthYear: 1991, city: "درعا", jobTitle: "موظف خدمة جمهور", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "rima", firstName: "ريما", fatherName: "جميل", surname: "الجندي", gender: "female", birthYear: 1982, city: "حمص", jobTitle: "مدير مكتب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446] },
-  { staffId: "adnan", firstName: "عدنان", fatherName: "صالح", surname: "سليمان", gender: "male", birthYear: 1977, city: "اللاذقية", jobTitle: "محاسب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1445, 1447] },
-  { staffId: "samira", firstName: "سميرة", fatherName: "إلياس", surname: "الخوري", gender: "female", birthYear: 1980, city: "حمص", jobTitle: "طبيب", mission: "البعثة الصحية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 56 402 7719" },
-  { staffId: "wissam", firstName: "وسام", fatherName: "نزار", surname: "خوري", gender: "male", birthYear: 1984, city: "دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 54 118 3302" },
-  { staffId: "nader", firstName: "نادر", fatherName: "يوسف", surname: "قاسم", gender: "male", birthYear: 1976, city: "ريف دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1446, 1447, 1448], phoneSa: "+966 50 667 1245" },
-  { staffId: "lubna", firstName: "لبنى", fatherName: "مروان", surname: "الشهابي", gender: "female", birthYear: 1987, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "ghassan", firstName: "غسان", fatherName: "عبد الرزاق", surname: "العمر", gender: "male", birthYear: 1974, city: "حماة", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1446, 1447, 1448], phoneSa: "+966 55 902 6610", notes: "مدير شؤون البعثة — يعدّ الملفات التشغيلية" },
+const STAFF_PEOPLE: Named[] = [
+  { handle: "suha", firstName: "سهى", fatherName: "عبد الكريم", surname: "مراد", gender: "female", birthYear: 1978, city: "دمشق", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1445, 1446, 1447] },
+  { handle: "rana", firstName: "رنا", fatherName: "جورج", surname: "حداد", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "maher", firstName: "ماهر", fatherName: "سليم", surname: "عيسى", gender: "male", birthYear: 1980, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447] },
+  { handle: "mazen", firstName: "مازن", fatherName: "محمود", surname: "الحلبي", gender: "male", birthYear: 1975, city: "حلب", jobTitle: "مدير مكتب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1447] },
+  { handle: "fadi", firstName: "فادي", fatherName: "نبيل", surname: "سلوم", gender: "male", birthYear: 1983, city: "دمشق", jobTitle: "مسؤول تخطيط ومتابعة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 55 310 4418" },
+  { handle: "layla", firstName: "ليلى", fatherName: "عادل", surname: "شمس", gender: "female", birthYear: 1981, city: "دمشق", jobTitle: "طبيب", mission: "البعثة الصحية", kind: "permanent", seasons: [1445, 1446, 1447, 1448], phoneSa: "+966 55 870 2231", notes: "رئيسة الفريق الطبي في مكة المكرمة" },
+  { handle: "haitham", firstName: "هيثم", fatherName: "فايز", surname: "زيدان", gender: "male", birthYear: 1979, city: "ريف دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 50 214 9087" },
+  { handle: "tarek", firstName: "طارق", fatherName: "حسين", surname: "مصطفى", gender: "male", birthYear: 1984, city: "حماة", jobTitle: "مدقق حسابات", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "abusami", firstName: "سامي", fatherName: "راتب", surname: "حلاق", gender: "male", birthYear: 1970, city: "دمشق", jobTitle: "مسؤول موارد بشرية", mission: "البعثة الإدارية", kind: "permanent", seasons: [1443, 1444], notes: "يُعرف بأبي سامي" },
+  { handle: "nour", firstName: "نور", fatherName: "هشام", surname: "العابد", gender: "female", birthYear: 1992, city: "دمشق", jobTitle: "مسؤول إعلام وعلاقات عامة", mission: "البعثة الإعلامية", kind: "permanent", seasons: [] },
+  { handle: "bilal", firstName: "بلال", fatherName: "أحمد", surname: "قاسم", gender: "male", birthYear: 1988, city: "درعا", jobTitle: "مسؤول إعلام وعلاقات عامة", mission: "البعثة الإعلامية", kind: "permanent", seasons: [1447] },
+  { handle: "hiba", firstName: "هبة", fatherName: "منير", surname: "الأيوبي", gender: "female", birthYear: 1990, city: "حلب", jobTitle: "موظف خدمة جمهور", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "osama", firstName: "أسامة", fatherName: "خليل", surname: "الدالاتي", gender: "male", birthYear: 1985, city: "إدلب", jobTitle: "موظف خدمة جمهور", mission: "البعثة الإدارية", kind: "permanent", seasons: [1447], languages: ["العربية", "التركية"] },
+  { handle: "dana", firstName: "دانة", fatherName: "وليد", surname: "العظمة", gender: "female", birthYear: 1991, city: "درعا", jobTitle: "موظف خدمة جمهور", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "rima", firstName: "ريما", fatherName: "جميل", surname: "الجندي", gender: "female", birthYear: 1982, city: "حمص", jobTitle: "مدير مكتب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446] },
+  { handle: "adnan", firstName: "عدنان", fatherName: "صالح", surname: "سليمان", gender: "male", birthYear: 1977, city: "اللاذقية", jobTitle: "محاسب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1445, 1447] },
+  { handle: "samira", firstName: "سميرة", fatherName: "إلياس", surname: "الخوري", gender: "female", birthYear: 1980, city: "حمص", jobTitle: "طبيب", mission: "البعثة الصحية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 56 402 7719" },
+  { handle: "wissam", firstName: "وسام", fatherName: "نزار", surname: "خوري", gender: "male", birthYear: 1984, city: "دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 54 118 3302" },
+  { handle: "nader", firstName: "نادر", fatherName: "يوسف", surname: "قاسم", gender: "male", birthYear: 1976, city: "ريف دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1446, 1447, 1448], phoneSa: "+966 50 667 1245" },
+  { handle: "lubna", firstName: "لبنى", fatherName: "مروان", surname: "الشهابي", gender: "female", birthYear: 1987, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "ghassan", firstName: "غسان", fatherName: "عبد الرزاق", surname: "العمر", gender: "male", birthYear: 1974, city: "حماة", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1446, 1447, 1448], phoneSa: "+966 55 902 6610", notes: "مدير شؤون البعثة — يعدّ الملفات التشغيلية" },
 ];
 
-/** Portal accounts opened after the list was generated: appended at its end */
-const LATE_STAFF_PEOPLE: (Base & { staffId: string })[] = [
-  { staffId: "kinan", firstName: "كنان", fatherName: "سمير", surname: "الأحمد", gender: "male", birthYear: 1989, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "yousef", firstName: "يوسف", fatherName: "عبد الكريم", surname: "الزعبي", gender: "male", birthYear: 1972, city: "درعا", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "rahaf", firstName: "رهف", fatherName: "منير", surname: "الخطيب", gender: "female", birthYear: 1991, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "omar", firstName: "عمر", fatherName: "فايز", surname: "الشامي", gender: "male", birthYear: 1987, city: "دمشق", jobTitle: "مسؤول تخطيط ومتابعة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "bassel", firstName: "باسل", fatherName: "رياض", surname: "النوري", gender: "male", birthYear: 1983, city: "ريف دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 56 220 4471" },
+/** People named after the list was generated: appended at its end */
+const LATE_STAFF_PEOPLE: Named[] = [
+  { handle: "kinan", firstName: "كنان", fatherName: "سمير", surname: "الأحمد", gender: "male", birthYear: 1989, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "yousef", firstName: "يوسف", fatherName: "عبد الكريم", surname: "الزعبي", gender: "male", birthYear: 1972, city: "درعا", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "rahaf", firstName: "رهف", fatherName: "منير", surname: "الخطيب", gender: "female", birthYear: 1991, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "omar", firstName: "عمر", fatherName: "فايز", surname: "الشامي", gender: "male", birthYear: 1987, city: "دمشق", jobTitle: "مسؤول تخطيط ومتابعة", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "bassel", firstName: "باسل", fatherName: "رياض", surname: "النوري", gender: "male", birthYear: 1983, city: "ريف دمشق", jobTitle: "مسؤول لوجستي", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447, 1448], phoneSa: "+966 56 220 4471" },
   // The holder of «إدارة الامتحانات» and the Damascus hall supervisor: their work is in Syria, before the season travels
-  { staffId: "munir", firstName: "منير", fatherName: "عادل", surname: "السيد", gender: "male", birthYear: 1982, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
-  { staffId: "nisreen", firstName: "نسرين", fatherName: "توفيق", surname: "الحكيم", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "munir", firstName: "منير", fatherName: "عادل", surname: "السيد", gender: "male", birthYear: 1982, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  { handle: "nisreen", firstName: "نسرين", fatherName: "توفيق", surname: "الحكيم", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
 ];
 
 const MALE = ["أحمد", "محمد", "محمود", "خالد", "عمر", "علي", "حسن", "يوسف", "إبراهيم", "عبد الله", "عبد الرحمن", "سامر", "باسل", "مهند", "وائل", "زياد", "رامي", "معاذ", "أنس", "بشار", "فراس", "هشام", "نزار", "ياسر", "مصطفى", "حمزة", "طلال", "عماد", "قصي", "أيمن", "لؤي", "صهيب", "مؤيد", "ماجد", "جهاد", "نضال", "عبد الحكيم", "مالك", "ثائر", "حسام"];
@@ -88,23 +91,20 @@ function contact(rnd: () => number, city: string, travelled: boolean) {
   };
 }
 
-function build(): Employee[] {
+function build() {
   const rnd = seeded("sdhu-employees-1448");
   const out: Employee[] = [];
   const names = new Set<string>();
+  const named: Record<string, string> = {};
+  const add = ({ handle, ...p }: Named, id: string, c: ReturnType<typeof contact>, languages: string[]) => {
+    named[handle] = id;
+    out.push({ ...p, id, ...(getStaff(handle) && { staffId: handle }), nationalId: c.nationalId, phoneSy: c.phoneSy, phoneSa: p.phoneSa, email: `${handle}@hajj.gov.sy`, languages });
+  };
 
   STAFF_PEOPLE.forEach((p, i) => {
     const c = contact(rnd, p.city, p.seasons.length > 0);
     names.add(`${p.firstName} ${p.fatherName} ${p.surname}`);
-    out.push({
-      ...p,
-      id: `E-${String(i + 1).padStart(3, "0")}`,
-      nationalId: c.nationalId,
-      phoneSy: c.phoneSy,
-      phoneSa: p.phoneSa,
-      email: `${p.staffId}@hajj.gov.sy`,
-      languages: p.languages ?? ["العربية", ...(rnd() < 0.5 ? ["الإنكليزية"] : [])],
-    });
+    add(p, `E-${String(i + 1).padStart(3, "0")}`, c, p.languages ?? ["العربية", ...(rnd() < 0.5 ? ["الإنكليزية"] : [])]);
   });
 
   let n = out.length;
@@ -160,9 +160,12 @@ function build(): Employee[] {
   LATE_STAFF_PEOPLE.forEach((p) => {
     const c = contact(late, p.city, p.seasons.length > 0);
     n += 1;
-    out.push({ ...p, id: `E-${String(n).padStart(3, "0")}`, nationalId: c.nationalId, phoneSy: c.phoneSy, phoneSa: p.phoneSa, email: `${p.staffId}@hajj.gov.sy`, languages: p.languages ?? ["العربية"] });
+    add(p, `E-${String(n).padStart(3, "0")}`, c, p.languages ?? ["العربية"]);
   });
-  return out;
+  return { employees: out, named };
 }
 
-export const EMPLOYEES_SEED: Employee[] = build();
+const BUILT = build();
+export const EMPLOYEES_SEED: Employee[] = BUILT.employees;
+/** The employee id of each person the demo names, by his handle — whether or not he has an account */
+export const NAMED_EMPLOYEES: Record<string, string> = BUILT.named;

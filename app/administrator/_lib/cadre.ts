@@ -39,12 +39,12 @@ export const eventLabel = (t: CadreEventType) => `${EVENT_TYPES[t].icon} ${EVENT
 /** What the season's own records hold from before this demo (season 1447 and the start of 1448), all invented */
 const SEED_EVENTS: CadreEvent[] = [
   { id: "se-1", personId: "01033300941", name: "عماد الشامي", type: "branch", season: 1447, date: "2025-11-03", change: "حمص ← دمشق", note: "انتقل سكنه إلى دمشق — بطلبه", by: "مازن الحلبي", at: Date.UTC(2025, 10, 3, 9) },
-  { id: "se-2", personId: "seed-02", name: "فراس البيطار", type: "category", season: 1447, date: "2025-11-20", change: "الفئة الأولى ← الفئة الثانية", note: "تقييم الموسم 1446 فوق 4.2", by: "رهف الخطيب", at: Date.UTC(2025, 10, 20, 10) },
+  { id: "se-2", personId: "seed-02", name: "فراس البيطار", type: "category", season: 1447, date: "2025-11-20", change: "الفئة الأولى ← الفئة الثانية", note: "تقييم الموسم 1446 فوق 4.2", by: "مازن الحلبي", at: Date.UTC(2025, 10, 20, 10) },
   { id: "se-3", personId: "01033300953", name: "الشيخ وائل الحافظ", type: "role", season: 1447, date: "2025-10-28", change: "موجّه ديني ب ← موجّه ديني أ", note: "أربعة مواسم بتقييم 4.8 — ترقية بقرار لجنة الشؤون الدينية", by: "مازن الحلبي", at: Date.UTC(2025, 9, 28, 11) },
-  { id: "se-4", personId: "01033300976", name: "هاني الطويل", type: "added", season: 1447, date: "2025-10-15", change: "معاون بعدد — فرع حماة", note: "أُضيف بكتاب فرع حماة", by: "ماهر عيسى", at: Date.UTC(2025, 9, 15, 12) },
-  { id: "se-5", personId: "seed-05", name: "صالح العلي", type: "note", season: 1447, date: "2026-01-12", note: "شكر من بعثة المدينة على تنظيم تفويج مجموعته", by: "رهف الخطيب", at: Date.UTC(2026, 0, 12, 13) },
+  { id: "se-4", personId: "01033300976", name: "هاني الطويل", type: "added", season: 1447, date: "2025-10-15", change: "معاون بعدد — فرع حماة", note: "أُضيف بكتاب فرع حماة", by: "مازن الحلبي", at: Date.UTC(2025, 9, 15, 12) },
+  { id: "se-5", personId: "seed-05", name: "صالح العلي", type: "note", season: 1447, date: "2026-01-12", note: "شكر من بعثة المدينة على تنظيم تفويج مجموعته", by: "مازن الحلبي", at: Date.UTC(2026, 0, 12, 13) },
   { id: "se-6", personId: "01033300958", name: "الشيخ يوسف المحمد", type: "exceptional", season: 1447, date: "2025-12-02", change: "نُقل من مقعد الموجّه في مجموعة إلى المقعد الحر في أخرى", note: "اتحاد مجموعتين في تكتل الساحل", by: "مازن الحلبي", at: Date.UTC(2025, 11, 2, 9) },
-  { id: "se-7", personId: "01033300964", name: "سيف الدين حلاق", type: "note", season: 1447, date: "2026-02-08", note: "تأخر عن موعد التجمّع في مطار دمشق — تنبيه أول", by: "ماهر عيسى", at: Date.UTC(2026, 1, 8, 15) },
+  { id: "se-7", personId: "01033300964", name: "سيف الدين حلاق", type: "note", season: 1447, date: "2026-02-08", note: "تأخر عن موعد التجمّع في مطار دمشق — تنبيه أول", by: "مازن الحلبي", at: Date.UTC(2026, 1, 8, 15) },
   { id: "se-8", personId: "seed-01", name: "عبد الرحمن القباني", type: "role", season: 1448, date: "2026-09-02", change: "رئيس مجموعة ← رئيس تكتل", note: "أربعة مواسم رئيس مجموعة بتقييم 4.7: ثبّتته الإدارة رئيس تكتل صفةً أساسية", by: "مازن الحلبي", at: Date.UTC(2026, 8, 2, 10) },
   { id: "se-9", personId: "seed-04", name: "حسام الساعاتي", type: "role", season: 1448, date: "2026-09-02", change: "رئيس مجموعة ← رئيس تكتل", note: "خمسة مواسم بتقييم 4.6: ثبّتته الإدارة رئيس تكتل صفةً أساسية", by: "مازن الحلبي", at: Date.UTC(2026, 8, 2, 10, 5) },
 ];

@@ -71,7 +71,7 @@ if ONLY in (None, "a"):
     c.shot("logout", "بعد تسجيل الخروج تعود صفحة الدخول", section=S)
     s.close()
     s = Staff(); c, p = s.c, s.p
-    s.login("wissam")
+    s.login("layla")
     c.goto("/staff/my-files", wait=1800)
     c.shot("myfiles", "ملفاتي التشغيلية: أين أكون ومتى في الموسم", section=S)
     c.scroll_by(650)

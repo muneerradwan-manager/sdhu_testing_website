@@ -1,6 +1,6 @@
 import type { Assignment, Camp, Center, Employee, Hotel, InnerNode, Mashaer, OpFile, OuterNode, Sector } from "../ops";
 import { seeded } from "../utils";
-import { EMPLOYEES_SEED } from "./employees-seed";
+import { EMPLOYEES_SEED, NAMED_EMPLOYEES } from "./employees-seed";
 
 /**
  * Reference data and the operational files for two seasons, so the demo shows what changes from one
@@ -122,7 +122,9 @@ type SectorSpec = {
   towers: TowerSpec[];
 };
 
-const byStaff = (staffId: string) => EMPLOYEES_SEED.find((e) => e.staffId === staffId)!.id;
+const byHandle = (handle: string) => NAMED_EMPLOYEES[handle];
+/** The people the demo names hold only the posts it gives them: never drawn at random */
+const NAMED_IDS = new Set(Object.values(NAMED_EMPLOYEES));
 
 /**
  * Staffs a file from the people who travelled that season. Heads and supervisors come from the
@@ -132,7 +134,7 @@ const byStaff = (staffId: string) => EMPLOYEES_SEED.find((e) => e.staffId === st
 function buildHousing(season: number, spec: SectorSpec[], sectorIds: string[], fixed: Record<string, string>): OuterNode[] {
   const rnd = seeded(`housing-${season}`);
   const used = new Set<string>(Object.values(fixed));
-  const pool = EMPLOYEES_SEED.filter((e) => e.seasons.includes(season) && !e.suspended && !e.staffId)
+  const pool = EMPLOYEES_SEED.filter((e) => e.seasons.includes(season) && !e.suspended && !NAMED_IDS.has(e.id))
     .map((e) => ({ e, r: rnd() }))
     .sort((a, b) => a.r - b.r)
     .map((x) => x.e);
@@ -371,7 +373,7 @@ const SPEC_1448: SectorSpec[] = [
   },
 ];
 
-const FIXED = { nader: byStaff("nader"), wissam: byStaff("wissam") };
+const FIXED = { nader: byHandle("nader"), wissam: byHandle("wissam") };
 
 const HOUSING_FILES: OpFile[] = [
   {
@@ -654,7 +656,7 @@ const BODIES: Record<number, string> = {
 function buildCamps(season: number, mashaer: Mashaer, spec: CenterSpec[], opts: { emptyCenters?: number[]; emptyCamps?: number[]; coasters?: number }) {
   const rnd = seeded(`camps-${mashaer}-${season}`);
   const used = new Set<string>();
-  const pool = EMPLOYEES_SEED.filter((e) => e.seasons.includes(season) && !e.suspended && !e.staffId)
+  const pool = EMPLOYEES_SEED.filter((e) => e.seasons.includes(season) && !e.suspended && !NAMED_IDS.has(e.id))
     .map((e) => ({ e, r: rnd() }))
     .sort((a, b) => a.r - b.r)
     .map((x) => x.e);
@@ -762,13 +764,13 @@ const CAMP_FILES: OpFile[] = [
 ];
 
 /**
- * The staff-portal accounts in the camps, so the people who can sign in to the demo have posts to
- * see on their own page: the tower supervisor of أبراج النور and the doctor go with تكتل النور to its
- * camps (42 in Mina, 110 in Arafat), the sector head supervises centre 10, and the transport lead
- * runs the coaster team.
+ * The people the demo names, in the camps: the tower supervisor of أبراج النور and the doctor go with
+ * تكتل النور to its camps (42 in Mina, 110 in Arafat), the sector head supervises centre 10, and the
+ * transport lead runs the coaster team. The doctor and the transport lead sign in to the demo and see
+ * their posts on their own page.
  */
-function place(file: OpFile, at: { center?: number; camp?: number; file?: true }, role: string, staffId: string, replace = false) {
-  const seat = { role, employeeId: byStaff(staffId) };
+function place(file: OpFile, at: { center?: number; camp?: number; file?: true }, role: string, handle: string, replace = false) {
+  const seat = { role, employeeId: byHandle(handle) };
   const put = (ms: Assignment[]) => {
     const last = ms.map((m) => m.role).lastIndexOf(role);
     return replace && last >= 0 ? ms.map((m, i) => (i === last ? seat : m)) : [...ms, seat];

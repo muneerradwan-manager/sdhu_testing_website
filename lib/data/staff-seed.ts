@@ -547,14 +547,13 @@ export const SEED_TASKS: { id: string; title: string; by: string; to: string; co
 // ───────────────────────── Audit trail (historic) ─────────────────────────
 
 export const SEED_EVENTS: AuditEvent[] = [
-  { id: "h-01", at: at(2026, 8, 1, 9, 12), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "إنشاء حساب موظف", target: "نادر قاسم", detail: "بالرقم الوطني ورقم الهاتف — كلمة مرور مؤقتة" },
-  { id: "h-02", at: at(2026, 8, 1, 9, 15), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "نادر قاسم", after: "الإسكان — نطاق القطاع" },
-  { id: "h-03", at: at(2026, 8, 1, 9, 16), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "نادر قاسم", after: "إدارة المهام" },
+  { id: "h-01", at: at(2026, 8, 1, 9, 12), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "إنشاء حساب موظف", target: "فادي سلوم", detail: "بالرقم الوطني ورقم الهاتف — كلمة مرور مؤقتة" },
+  { id: "h-02", at: at(2026, 8, 1, 9, 15), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "فادي سلوم", after: "غرفة العمليات" },
   { id: "h-04", at: at(2026, 8, 3, 11, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "تعديل إعدادات الموسم", target: "الحصة الإجمالية", before: "21,000", after: "22,500", detail: "قرار لجنة الخطة التشغيلية 14/1448" },
   { id: "h-05", at: at(2026, 8, 3, 11, 4), actor: "سهى مراد", role: "مديرة الموسم", action: "تعديل إعدادات الموسم", target: "نسبة القبول المباشر", before: "60%", after: "65%" },
   // The exam system: assigned whole to one employee, who runs it from there
   { id: "h-04a", at: at(2026, 8, 1, 9, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "سامي حلاق (أبو سامي)", after: "إدارة الموظفين", system: "staff", important: true },
-  { id: "h-04b", at: at(2026, 8, 1, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "ماهر عيسى، رهف الخطيب، مازن الحلبي، ريما الجندي", after: "إدارة الإداريين", system: "admins", important: true },
+  { id: "h-04b", at: at(2026, 8, 1, 9, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "مازن الحلبي", after: "إدارة الإداريين", system: "admins", important: true },
   { id: "h-05a", at: at(2026, 8, 5, 10, 0), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "منير السيد", after: "إدارة الامتحانات", system: "exams", important: true },
   { id: "h-05a2", at: at(2026, 8, 5, 10, 5), actor: "سهى مراد", role: "مديرة الموسم", action: "منح صلاحية", target: "هيثم زيدان", after: "إدارة الطيران", system: "flights", important: true },
   { id: "h-05b", at: at(2026, 9, 8, 12, 30), actor: "منير السيد", role: "مسؤول الامتحانات", action: "نشر الاختبارات الأساسية", target: "5 اختبارات", detail: "جلساتها من 23 إلى 27 ربيع الآخر 1448، في 9 قاعات", system: "exams", area: "exams", important: true },

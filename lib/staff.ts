@@ -5,8 +5,9 @@
  * الامتحانات», «إدارة الطيران» — rather than
  * one task: whoever holds one runs that file entirely, from its summary and its management page, and the
  * director grants it and follows it (lib/systems.ts). The other permissions open one task each.
- * In the demo every account holds exactly one permission, so a permission is seen by signing in as its
- * holder; the season director holds all of them but the management of the files, which she grants.
+ * In the demo every account holds exactly one permission, and no two accounts the same one, so a permission
+ * is seen by signing in as its holder; the season director holds all of them but the management of the
+ * files, which she grants. The two accounts with none differ by their assignment: a hall, an airport.
  * Demo login: username + password "1448".
  */
 
@@ -71,9 +72,7 @@ export const STAFF: StaffUser[] = [
   { id: "razan", username: "razan", name: "رزان الحسن", title: "إدخال بيانات — التسجيل على الحج", travels: false, initials: "ر", permissions: ["pilgrims.register"] },
   { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", permissions: ["lottery.import"] },
   { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", permissions: ["lottery.approve"] },
-  { id: "maher", username: "maher", name: "ماهر عيسى", title: "شؤون الإداريين", travels: false, initials: "م", permissions: ["admins.manage"] },
   { id: "munir", username: "munir", name: "منير السيد", title: "مسؤول الامتحانات", travels: false, initials: "م", permissions: ["exams.manage"] },
-  { id: "rahaf", username: "rahaf", name: "رهف الخطيب", title: "شؤون الإداريين", travels: false, initials: "ر", permissions: ["admins.manage"] },
   { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", permissions: ["admins.manage"] },
   { id: "fadi", username: "fadi", name: "فادي سلوم", title: "غرفة العمليات — مكة", travels: true, initials: "ف", permissions: ["operations.room"] },
   // No permission: the holder of «إدارة الطيران» made him the representative of Damascus airport (lib/flights.ts)
@@ -84,16 +83,6 @@ export const STAFF: StaffUser[] = [
   { id: "tarek", username: "tarek", name: "طارق مصطفى", title: "التدقيق", travels: false, initials: "ط", permissions: ["audit.read"] },
   { id: "abusami", username: "abusami", name: "سامي حلاق (أبو سامي)", title: "الموارد البشرية", travels: false, initials: "س", permissions: ["staff.manage"] },
   { id: "nour", username: "nour", name: "نور العابد", title: "محرّرة محتوى المنصة", travels: false, initials: "ن", permissions: ["content.manage"] },
-  { id: "bilal", username: "bilal", name: "بلال قاسم", title: "الإعلام والمحتوى", travels: false, initials: "ب", permissions: ["content.manage"] },
-  // ── موظفون إضافيون: مكاتب أخرى (داخل سوريا والخارج) وفرق الميدان ──
-  { id: "hiba", username: "hiba", name: "هبة الأيوبي", title: "إدارة التسجيل — مكتب حلب", travels: false, initials: "ه", permissions: ["registration.review"] },
-  { id: "osama", username: "osama", name: "أسامة الدالاتي", title: "إدارة التسجيل — مكتب تركيا", travels: false, initials: "أ", permissions: ["registration.review"] },
-  { id: "dana", username: "dana", name: "دانة العظمة", title: "إدارة التسجيل — مكتب الأردن", travels: false, initials: "د", permissions: ["registration.review"] },
-  { id: "rima", username: "rima", name: "ريما الجندي", title: "مديرة مكتب حمص", travels: false, initials: "ر", permissions: ["admins.manage"] },
-  { id: "adnan", username: "adnan", name: "عدنان سليمان", title: "المالية — مطابقة شام كاش وإشعارات المصرف", travels: false, initials: "ع", permissions: ["registration.review"] },
-  { id: "samira", username: "samira", name: "د. سميرة الخوري", title: "الفريق الطبي — المدينة المنورة", travels: true, initials: "س", permissions: ["medical"] },
-  { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف الإسكان — البرج (ب)", travels: true, initials: "و", permissions: ["operations.room"] },
-  { id: "nader", username: "nader", name: "نادر قاسم", title: "الإسكان — نطاق القطاع", travels: true, initials: "ن", permissions: ["operations.room"] },
   { id: "ghassan", username: "ghassan", name: "غسان العمر", title: "مدير شؤون البعثة — الملفات التشغيلية", travels: true, initials: "غ", permissions: ["ops.files"] },
   { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مديرة موسم مساعدة — لا تملك صلاحية النشر", travels: false, initials: "ل", permissions: ["season.settings"] },
   // No permission: her hall comes from the holder of «إدارة الامتحانات» assigning her to a centre (app/administrator/_lib/halls.ts)
