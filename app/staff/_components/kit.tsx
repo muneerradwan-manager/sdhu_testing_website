@@ -286,7 +286,7 @@ export function Tabs<T extends string>({
             onClick={() => onChange(t.value)}
             className={cn(
               "relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition",
-              active ? (dark ? "text-ink" : "text-white") : dark ? "text-white/85 hover:text-white" : "text-ink-soft hover:text-green-dark",
+              active ? (dark ? "on-light text-ink" : "text-white") : dark ? "text-white/85 hover:text-white" : "text-ink-soft hover:text-green-dark",
             )}
           >
             {active && (

@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { RulesTab } from "../_components/rules";
 
 export const metadata: Metadata = { title: "القواعد — إدارة الإداريين" };
 
-/** The management page opens on the rules, set before anyone applies */
+/** Its section is in the address (`?s=`): read on the client, under its own boundary */
 export default function Page() {
-  return <RulesTab />;
+  return (
+    <Suspense>
+      <RulesTab />
+    </Suspense>
+  );
 }

@@ -1,48 +1,24 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  AlertTriangle,
-  BadgeCheck,
-  Ban,
-  CheckCircle2,
-  ChevronLeft,
-  CircleDashed,
-  ClipboardCheck,
-  FileText,
-  Link2,
-  MapPin,
-  Search,
-  ShieldQuestion,
-  UsersRound,
-  Wallet,
-  XCircle,
-} from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { AlertTriangle, Ban, CheckCircle2, CircleDashed, ClipboardCheck, Link2, Search, ShieldQuestion, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { REG_STATS } from "@/lib/data/staff-seed";
 import { ageOf, relationLabel } from "@/lib/registry";
 import type { CheckStatus } from "@/lib/rules";
-import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
-import { cn, formatNumber, maskNationalId } from "@/lib/utils";
+import { cn, maskNationalId } from "@/lib/utils";
 import { useReviewQueue, type ReviewItem } from "../_components/data";
-import { BarList, Donut, Drawer, Empty, fmtDateTime, Gate, Kpi, Legend, logAs, PageHeader, Panel, Tabs, textareaClass, useStaffUser } from "../_components/kit";
-import { ContractsPanel } from "./contracts";
+import { fmtDateTime, Gate, logAs, PageHeader, textareaClass, useStaffUser } from "../_components/kit";
+import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
+import { Segments } from "../exam/_components/ui";
+import { ContractsScreen } from "./contracts";
 
 type Filter = "pending" | "approved" | "rejected" | "all";
 
-/** Chips tuned for the dark staff cards (the shared Badge is written for white surfaces) */
-const CHIP = {
-  green: "bg-green-light/25 text-white ring-green-light/40",
-  gold: "bg-gold/20 text-gold ring-gold/40",
-  maroon: "bg-maroon/70 text-white ring-maroon",
-} as const;
-
-function Chip({ tone, children }: { tone: keyof typeof CHIP; children: React.ReactNode }) {
-  return <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ring-1", CHIP[tone])}>{children}</span>;
-}
+const BASE = "/staff/reviews";
 
 export function ReviewsView() {
   return (
@@ -52,17 +28,51 @@ export function ReviewsView() {
   );
 }
 
+/**
+ * Two lists, as a site's admin: the applications the platform could not decide alone, each reviewed on its
+ * own screen (`?id=`), and the pilgrims attached to the groups (`?view=groups`). Their numbers are on «لوحتي».
+ */
 function Reviews() {
+  const params = useSearchParams();
+  const router = useRouter();
   const queue = useReviewQueue();
-  const season = useSeason();
-  const applications = useStore((s) => s.applications);
+  const post = useStore((s) => s.post);
+  const id = params.get("id");
+  const view = params.get("view") === "groups" ? "groups" : "reviews";
+
+  if (id) return <ReviewScreen key={id} id={id} />;
+
+  const pending = queue.filter((q) => !q.review).length;
+  const contracts = Object.values(post).filter((p) => p.contract?.status === "pending").length;
+
+  return (
+    <div className="space-y-5">
+      <PageHeader title="مراجعة الطلبات" icon={<ClipboardCheck />} description="ما لم تحسمه المنصة وحدها يحتاج قرارك مع سبب مكتوب، والإلحاق بالمجموعات يجري من هنا." />
+      <Segments
+        value={view}
+        onChange={(v) => router.replace(v === "groups" ? `${BASE}?view=groups` : BASE, { scroll: false })}
+        label="الأقسام"
+        items={[
+          { value: "reviews", label: "طلبات تحتاج قراراً", count: pending, tone: "maroon" },
+          { value: "groups", label: "الإلحاق بالمجموعات", count: contracts, tone: "maroon" },
+        ]}
+      />
+      {view === "groups" ? <ContractsScreen /> : <ReviewList queue={queue} />}
+    </div>
+  );
+}
+
+// ───────────────────────── The list ─────────────────────────
+
+function statusOf(item: ReviewItem) {
+  if (item.review?.status === "approved") return <Tag tone="green">معتمد</Tag>;
+  if (item.review?.status === "rejected") return <Tag tone="maroon">مرفوض</Tag>;
+  return item.flags.some((f) => f.tone === "maroon") ? <Tag tone="maroon">بانتظار القرار</Tag> : <Tag tone="gold">بانتظار القرار</Tag>;
+}
+
+function ReviewList({ queue }: { queue: ReviewItem[] }) {
   const [filter, setFilter] = useState<Filter>("pending");
   const [query, setQuery] = useState("");
-  const [openKey, setOpenKey] = useState<string | null>(null);
-
-  const realApps = Object.values(applications);
-  const realPersons = realApps.reduce((a, x) => a + x.members.length, 0);
-  const realPaid = realApps.reduce((a, x) => a + (x.paid || 0), 0);
 
   const counts = useMemo(
     () => ({
@@ -85,154 +95,113 @@ function Reviews() {
     });
   }, [queue, filter, query]);
 
-  const open = queue.find((q) => q.key === openKey) ?? null;
-  const close = useCallback(() => setOpenKey(null), []);
-
   return (
-    <div>
-      <PageHeader
-        eyebrow="المرحلة 3 — تدقيق البيانات والتحقق من الأهلية"
-        title="طلبات تحتاج مراجعة"
-        icon={<ClipboardCheck />}
-        description="طبّقت المنصة شروط الموسم على كل فرد في كل طلب. ما استوفى الشروط اعتُمد تلقائياً، وما يلي يحتاج قراراً بشرياً مع سبب مكتوب."
-      />
-
-      <ContractsPanel />
-
-      {/* Registration overview */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="الطلبات المقدّمة" value={REG_STATS.applications + realApps.length} icon={<FileText />} hint={realApps.length ? `+${realApps.length} من جلسة العرض` : "التسجيل على القبول المباشر 1448"} />
-        <Kpi label="الأفراد في الطلبات" value={REG_STATS.persons + realPersons} icon={<UsersRound />} tone="teal" delay={0.05} />
-        <Kpi label="رسوم التسجيل المحصّلة" value={REG_STATS.persons * season.fees.registrationPerPerson + realPaid} suffix=" $" icon={<Wallet />} tone="gold" delay={0.1} hint={`${season.fees.registrationPerPerson} $ للفرد`} />
-        <Kpi label="بانتظار المراجعة" value={counts.pending} icon={<ShieldQuestion />} tone="maroon" delay={0.15} pulse={counts.pending > 0} hint={`من أصل ${formatNumber(REG_STATS.needsReview)} حالة في الموسم`} />
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.3fr]">
-        <Panel title="نتيجة التدقيق الآلي" icon={<BadgeCheck />} delay={0.1}>
-          <div className="flex flex-col items-center gap-6 sm:flex-row">
-            <Donut
-              size={150}
-              thickness={20}
-              segments={[
-                { value: REG_STATS.autoApproved, color: "#289E92", label: "auto" },
-                { value: REG_STATS.needsReview, color: "#AD9E6E", label: "review" },
-                { value: REG_STATS.rejected, color: "#672146", label: "rejected" },
-              ]}
-            >
-              <div>
-                <p className="font-display text-xl font-bold text-white">85%</p>
-                <p className="text-[11px] text-white/75">مؤهل تلقائياً</p>
-              </div>
-            </Donut>
-            <div className="w-full flex-1">
-              <Legend
-                items={[
-                  { label: "مؤهل تلقائياً", color: "#289E92", value: formatNumber(REG_STATS.autoApproved) },
-                  { label: "يحتاج مراجعة بشرية", color: "#AD9E6E", value: formatNumber(REG_STATS.needsReview) },
-                  { label: "غير مؤهل بسبب واضح", color: "#672146", value: formatNumber(REG_STATS.rejected) },
-                ]}
-              />
-            </div>
-          </div>
-        </Panel>
-        <Panel title="الطلبات حسب المحافظة" icon={<MapPin />} delay={0.15}>
-          <div className="grid gap-x-8 sm:grid-cols-2">
-            <BarList items={REG_STATS.byGovernorate.slice(0, 5).map((g) => ({ label: g.name, value: g.value, key: g.name }))} max={REG_STATS.byGovernorate[0].value} color="bg-gold" />
-            <div className="mt-3 sm:mt-0">
-              <BarList items={REG_STATS.byGovernorate.slice(5).map((g) => ({ label: g.name, value: g.value, key: g.name }))} max={REG_STATS.byGovernorate[0].value} color="bg-green-light" />
-            </div>
-          </div>
-        </Panel>
-      </div>
-
-      {/* Queue */}
-      <Panel className="mt-6" delay={0.2}>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Tabs
-            id="reviews"
-            value={filter}
-            onChange={setFilter}
-            tabs={[
-              { value: "pending", label: "بانتظار القرار", count: counts.pending },
-              { value: "approved", label: "معتمدة", count: counts.approved },
-              { value: "rejected", label: "مرفوضة", count: counts.rejected },
-              { value: "all", label: "الكل", count: counts.all },
-            ]}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segments
+          value={filter}
+          onChange={setFilter}
+          label="تصفية الطلبات"
+          items={[
+            { value: "pending", label: "بانتظار القرار", count: counts.pending },
+            { value: "approved", label: "معتمدة", count: counts.approved },
+            { value: "rejected", label: "مرفوضة", count: counts.rejected },
+            { value: "all", label: "الكل", count: counts.all },
+          ]}
+        />
+        <label className="relative w-full sm:w-72">
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/70" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="رقم الطلب، الاسم، الرقم الوطني..."
+            aria-label="بحث في الطلبات"
+            className="h-10 w-full rounded-xl border-2 border-white/15 bg-white/10 pr-9 pl-3 text-sm text-white outline-none transition placeholder:text-white/50 focus:border-gold"
           />
-          <label className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/70" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="رقم الطلب، الاسم، الرقم الوطني..."
-              aria-label="بحث في الطلبات"
-              className="h-11 w-full rounded-2xl border-2 border-white/15 bg-white/10 pr-9 pl-3 text-sm text-white outline-none transition placeholder:text-white/50 focus:border-gold"
-            />
-          </label>
-        </div>
+        </label>
+      </div>
 
-        {list.length === 0 ? (
-          <Empty icon={<CheckCircle2 />} title="لا توجد طلبات هنا" text="جرّب تبويباً آخر أو امسح البحث." />
-        ) : (
-          <motion.ul layout className="grid gap-3 lg:grid-cols-2">
-            <AnimatePresence initial={false}>
-              {list.map((item, i) => (
-                <motion.li key={item.key} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i, 10) * 0.03 } }} exit={{ opacity: 0, scale: 0.97 }}>
-                  <QueueCard item={item} onOpen={() => setOpenKey(item.key)} />
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </motion.ul>
-        )}
-      </Panel>
-
-      <Drawer
-        open={!!open}
-        onClose={close}
-        title={open ? `الطلب رقم ${open.number} — ${open.name}` : ""}
-        footer={open && <ReviewDecision key={open.key} item={open} onDone={close} />}
-      >
-        {open && <ReviewDetail key={open.key} item={open} />}
-      </Drawer>
+      <ListTable head={["الطلب", "الحالة", "المكتب", "الأفراد", "قُدِّم"]}>
+        {list.length === 0 && <EmptyRow cols={5}>لا طلبات هنا. جرّب تصفية أخرى أو امسح البحث.</EmptyRow>}
+        {list.map((item) => {
+          const href = `${BASE}?id=${encodeURIComponent(item.key)}`;
+          return (
+            <tr key={item.key} className="align-top">
+              <td className="p-3">
+                <RowLink href={href}>
+                  <span className="font-bold text-white hover:text-gold">
+                    #{item.number} — {item.name}
+                  </span>
+                </RowLink>
+                <p className="text-xs font-bold text-gold">{item.caseLabel}</p>
+                {item.source === "real" && <p className="text-[11px] text-white/55">طلب من جلسة العرض</p>}
+                <RowActions>
+                  <RowLink href={href}>{item.review ? "عرض القرار" : "مراجعة"}</RowLink>
+                </RowActions>
+              </td>
+              <td className="p-3">{statusOf(item)}</td>
+              <td className="p-3 text-white/80">{item.office}</td>
+              <td className="p-3 text-white/80">
+                {item.members.length} · <span className="text-xs">{item.mode}</span>
+              </td>
+              <td className="p-3 text-xs text-white/70">{fmtDateTime(item.submittedAt)}</td>
+            </tr>
+          );
+        })}
+      </ListTable>
     </div>
   );
 }
 
-function QueueCard({ item, onOpen }: { item: ReviewItem; onOpen: () => void }) {
-  const severe = item.flags.some((f) => f.tone === "maroon");
-  return (
-    <button
-      onClick={onOpen}
-      className={cn(
-        "group relative flex w-full items-start gap-3 overflow-hidden rounded-2xl bg-white/[.06] p-4 text-right ring-1 transition hover:-translate-y-0.5 hover:bg-white/10 hover:shadow-lg hover:ring-gold/40",
-        severe && !item.review ? "ring-maroon/80" : "ring-white/10",
-      )}
-    >
-      <span className={cn("absolute inset-y-0 right-0 w-1", item.review?.status === "approved" ? "bg-green-light" : item.review?.status === "rejected" ? "bg-maroon" : severe ? "bg-maroon" : "bg-gold")} />
-      <span
-        className={cn(
-          "grid size-11 shrink-0 place-items-center rounded-xl",
-          item.review?.status === "approved" ? "bg-green-light/25 text-white" : item.review?.status === "rejected" || severe ? "bg-maroon/70 text-white" : "bg-gold/20 text-gold",
-        )}
-      >
-        {item.review?.status === "approved" ? <CheckCircle2 className="size-5" /> : item.review?.status === "rejected" ? <Ban className="size-5" /> : <AlertTriangle className="size-5" />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-white/75">#{item.number}</span>
-          <span className="font-bold text-white">{item.name}</span>
-          {item.source === "real" && <Chip tone="gold">طلب من جلسة العرض</Chip>}
-        </div>
-        <p className="mt-1 text-sm font-bold text-gold">{item.caseLabel}</p>
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/75">
-          <span>{item.office}</span>
-          <span>{item.members.length} أفراد</span>
-          <span>{item.mode}</span>
-          <span>{fmtDateTime(item.submittedAt)}</span>
-        </p>
+// ───────────────────────── One application ─────────────────────────
+
+function ReviewScreen({ id }: { id: string }) {
+  const queue = useReviewQueue();
+  const router = useRouter();
+  const item = queue.find((q) => q.key === id);
+
+  if (!item) {
+    return (
+      <div>
+        <EditHeader back={BASE} backLabel="كل الطلبات" title="الطلب غير موجود" />
+        <p className="text-white/70">لم يعد هذا الطلب في قائمة المراجعة.</p>
       </div>
-      <ChevronLeft className="mt-3 size-5 shrink-0 text-gold transition group-hover:-translate-x-1" />
-    </button>
+    );
+  }
+
+  return (
+    <div>
+      <EditHeader back={BASE} backLabel="كل الطلبات" title={`الطلب رقم ${item.number} — ${item.name}`}>
+        {item.caseLabel}
+      </EditHeader>
+      <EditLayout
+        main={<ReviewDetail item={item} />}
+        side={
+          <>
+            <Box title="القرار">
+              <ReviewDecision key={item.key} item={item} onDone={() => router.push(BASE)} />
+            </Box>
+            <Box title="عن الطلب">
+              <dl className="space-y-1.5">
+                {[
+                  ["المكتب", item.office],
+                  ["المحافظة", item.governorate],
+                  ["طريقة الإضافة", item.mode],
+                  ["الأفراد", String(item.members.length)],
+                  ["قُدِّم", fmtDateTime(item.submittedAt)],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3">
+                    <dt className="text-white/60">{k}</dt>
+                    <dd className="text-left font-bold text-white">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {item.source === "real" && <Tag tone="gold">طلب من جلسة العرض</Tag>}
+            </Box>
+          </>
+        }
+      />
+    </div>
   );
 }
 
@@ -244,11 +213,13 @@ const STATUS_ICON: Record<CheckStatus, { icon: typeof CheckCircle2; cls: string 
   na: { icon: CircleDashed, cls: "text-white/70" },
 };
 
+const section = "rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10";
+
 function ReviewDetail({ item }: { item: ReviewItem }) {
   const [expanded, setExpanded] = useState<string | null>(item.members[0]?.person.id ?? null);
 
   return (
-    <div className="space-y-5">
+    <>
       {item.review && (
         <div className={cn("rounded-2xl p-4 ring-1", item.review.status === "approved" ? "bg-green-light/20 ring-green-light/50" : "bg-maroon/50 ring-maroon")}>
           <p className="flex items-center gap-2 font-bold text-white">
@@ -259,25 +230,22 @@ function ReviewDetail({ item }: { item: ReviewItem }) {
         </div>
       )}
 
-      <section>
-        <h3 className="mb-2 font-display font-bold text-gold">لماذا يحتاج مراجعة؟</h3>
+      <section className={section}>
+        <h2 className="mb-2 font-display text-lg font-bold text-gold">لماذا يحتاج مراجعة؟</h2>
         <ul className="space-y-2">
           {item.flags.map((f, i) => (
-            <motion.li key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className={cn("rounded-2xl p-3 ring-1", f.tone === "maroon" ? "bg-maroon/50 ring-maroon" : "bg-gold/10 ring-gold/35")}>
+            <li key={i} className={cn("rounded-xl p-3 ring-1", f.tone === "maroon" ? "bg-maroon/50 ring-maroon" : "bg-gold/10 ring-gold/35")}>
               <p className={cn("flex items-center gap-2 font-bold", f.tone === "maroon" ? "text-white" : "text-gold")}>
                 <AlertTriangle className="size-4 text-gold" /> {f.title}
               </p>
               <p className="mt-1 text-sm leading-6 text-white/90">{f.detail}</p>
-            </motion.li>
+            </li>
           ))}
         </ul>
       </section>
 
-      <section>
-        <h3 className="mb-2 flex items-center justify-between gap-2 font-display font-bold text-gold">
-          أفراد الطلب وشروط الموسم
-          <span className="text-xs font-normal text-white/75">{item.office} · {item.mode}</span>
-        </h3>
+      <section className={section}>
+        <h2 className="mb-2 font-display text-lg font-bold text-gold">أفراد الطلب وشروط الموسم</h2>
         <ul className="space-y-2">
           {item.result.members.map((mr) => {
             const m = item.members.find((x) => x.person.id === mr.id)!;
@@ -285,24 +253,26 @@ function ReviewDetail({ item }: { item: ReviewItem }) {
             const bad = mr.checks.filter((c) => c.status === "fail").length;
             const warn = mr.checks.filter((c) => c.status === "warn").length;
             return (
-              <li key={mr.id} className={cn("overflow-hidden rounded-2xl ring-1 transition", isOpen ? "bg-white/10 ring-gold/40" : "bg-white/[.06] ring-white/10 hover:ring-gold/40")}>
+              <li key={mr.id} className={cn("overflow-hidden rounded-xl ring-1 transition", isOpen ? "bg-white/10 ring-gold/40" : "bg-white/[.06] ring-white/10 hover:ring-gold/40")}>
                 <button onClick={() => setExpanded(isOpen ? null : mr.id)} className="flex w-full items-center gap-3 p-3 text-right" aria-expanded={isOpen}>
-                  <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl font-display font-bold text-white", m.person.gender === "F" ? "bg-maroon/70" : "bg-green-light/25")}>
-                    {m.person.firstName[0]}
-                  </span>
+                  <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl font-display font-bold text-white", m.person.gender === "F" ? "bg-maroon/70" : "bg-green-light/25")}>{m.person.firstName[0]}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-white">{mr.name}</p>
                     <p className="flex flex-wrap items-center gap-2 text-xs text-white/75">
                       {relationLabel(m.relation, m.person.gender)} · {ageOf(m.person)} عاماً · <span dir="ltr">{maskNationalId(m.person.id)}</span>
                       {m.relation !== "self" &&
                         (m.relationVerified ? (
-                          <span className="flex items-center gap-1 font-semibold text-white"><Link2 className="size-3 text-gold" /> صلة مؤكدة</span>
+                          <span className="flex items-center gap-1 font-semibold text-white">
+                            <Link2 className="size-3 text-gold" /> صلة مؤكدة
+                          </span>
                         ) : (
-                          <span className="flex items-center gap-1 font-semibold text-gold"><ShieldQuestion className="size-3" /> صلة مصرّح بها</span>
+                          <span className="flex items-center gap-1 font-semibold text-gold">
+                            <ShieldQuestion className="size-3" /> صلة مصرّح بها
+                          </span>
                         ))}
                     </p>
                   </div>
-                  {bad > 0 ? <Chip tone="maroon">{bad} غير مستوفى</Chip> : warn > 0 ? <Chip tone="gold">{warn} تنبيه</Chip> : <Chip tone="green">مستوفٍ</Chip>}
+                  {bad > 0 ? <Tag tone="maroon">{bad} غير مستوفى</Tag> : warn > 0 ? <Tag tone="gold">{warn} تنبيه</Tag> : <Tag tone="green">مستوفٍ</Tag>}
                 </button>
                 <AnimatePresence initial={false}>
                   {isOpen && (
@@ -339,8 +309,8 @@ function ReviewDetail({ item }: { item: ReviewItem }) {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <section className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-          <h3 className="mb-2 font-display font-bold text-gold">الوثائق</h3>
+        <section className={section}>
+          <h2 className="mb-2 font-display font-bold text-gold">الوثائق</h2>
           <ul className="space-y-1.5 text-sm">
             {item.documents.map((d) => (
               <li key={d.name} className="flex items-start gap-2">
@@ -359,20 +329,18 @@ function ReviewDetail({ item }: { item: ReviewItem }) {
             ))}
           </ul>
         </section>
-        <section className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-          <h3 className="mb-2 flex items-center gap-2 font-display font-bold text-gold">
+        <section className={section}>
+          <h2 className="mb-2 flex items-center gap-2 font-display font-bold text-gold">
             <Link2 className="size-4" /> دليل صلة القرابة
-          </h3>
+          </h2>
           <p className="text-sm leading-6 text-white/90">{item.evidence}</p>
         </section>
       </div>
-    </div>
+    </>
   );
 }
 
-/**
- * شريط القرار. يعيش في تذييل اللوحة لا داخل منطقة التمرير، فلا يغطي بيانات الطلب خلفه.
- */
+/** The decision, in the side box: a reason the applicant reads, then approve or reject */
 function ReviewDecision({ item, onDone }: { item: ReviewItem; onDone: () => void }) {
   const user = useStaffUser()!;
   const toast = useToast();
@@ -401,30 +369,30 @@ function ReviewDecision({ item, onDone }: { item: ReviewItem; onDone: () => void
   };
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end">
-      <label className="block min-w-0 flex-1">
-        <span className="mb-1.5 flex flex-wrap items-center gap-2 text-sm font-bold text-white">
-          سبب القرار <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[11px] font-bold text-gold">إلزامي</span>
-          <span className="text-xs font-normal text-white/60">يراه المتقدم ويُحفظ في السجل</span>
+    <div className="space-y-3">
+      {item.review && <p className="text-xs text-white/60">قرار جديد يحل محل القرار الحالي، ويُسجَّل الاثنان.</p>}
+      <label className="block">
+        <span className="mb-1.5 block font-bold text-white">
+          سبب القرار <span className="text-xs font-normal text-white/60">(إلزامي — يراه المتقدم)</span>
         </span>
         <textarea
-          rows={2}
+          rows={4}
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="مثال: خطأ كتابي في اسم الأم مؤكد من بيان القيد المرفوع"
-          className={cn(textareaClass, "resize-none", tried && !valid && "border-gold! bg-maroon/40!")}
+          className={cn(textareaClass, "resize-none text-sm", tried && !valid && "border-gold! bg-maroon/40!")}
         />
         {tried && !valid && (
-          <span className="mt-1 flex items-center gap-1.5 text-sm font-bold text-gold">
+          <span className="mt-1 flex items-center gap-1.5 text-xs font-bold text-gold">
             <AlertTriangle className="size-4 shrink-0" /> اكتب سبباً واضحاً (8 أحرف على الأقل)
           </span>
         )}
       </label>
-      <div className="flex shrink-0 gap-2">
-        <Button variant="gold" onClick={() => decide("approved")}>
+      <div className="flex gap-2">
+        <Button variant="gold" className="flex-1" onClick={() => decide("approved")}>
           <CheckCircle2 className="size-4" /> اعتماد
         </Button>
-        <Button variant="maroon" onClick={() => decide("rejected")}>
+        <Button variant="maroon" className="flex-1" onClick={() => decide("rejected")}>
           <Ban className="size-4" /> رفض
         </Button>
       </div>

@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import type { ScheduleLine } from "./installments";
+import { resolveSchedule } from "./registration/engine";
+import { useLiveVersion } from "./registration/client";
+import type { PaymentsConfig } from "./registration/types";
 import type { RoomPrices } from "./rooms";
 import type { SeasonRules } from "./rules";
 import { SEASON } from "./season";
@@ -13,7 +17,21 @@ export type LiveSeason = {
   directSeats: number;
   lotterySeats: number;
   acceptedDirectAge: number;
-  fees: { registrationPerPerson: number; hajjCost: number; firstInstallment: number; installmentCount: 1 | 2; hady: number; roomExample: RoomPrices; administratorRegistration: number; groupFormation: number; clusterFormation: number };
+  fees: {
+    registrationPerPerson: number;
+    hajjCost: number;
+    firstInstallment: number;
+    installmentCount: 1 | 2;
+    /** The installments as the published registration version sets them, per person (1 to 4) */
+    schedule: ScheduleLine[];
+    /** The post-acceptance step the sacrifice and private rooms are paid at */
+    extrasStep: string;
+    hady: number;
+    roomExample: RoomPrices;
+    administratorRegistration: number;
+    groupFormation: number;
+    clusterFormation: number;
+  };
   administrators: { keepRoleMinRating: number };
   documents: Record<string, number>;
   /** End-of-season classification: the shares that move between tiers, and how many are honoured */
@@ -21,9 +39,18 @@ export type LiveSeason = {
   overridden: (keyof SeasonOverrides)[];
 };
 
-/** Pure merge — usable outside React (e.g. to evaluate seeded applications) */
-export function mergeSeason(o: SeasonOverrides): LiveSeason {
+/**
+ * Pure merge — usable outside React (e.g. to evaluate seeded applications). `payments`: the published
+ * registration version's installments; without it, the season's two default installments.
+ */
+export function mergeSeason(o: SeasonOverrides, payments?: PaymentsConfig): LiveSeason {
   const quota = o.quota ?? SEASON.quota;
+  const hajjCost = o.hajjCost ?? SEASON.fees.hajjCost;
+  const schedule: ScheduleLine[] = payments
+    ? resolveSchedule(payments.installments, hajjCost).map((i) => ({ key: i.key, label: i.label, perPerson: i.perPerson, dueLabel: i.dueLabel, dueStep: i.dueStep }))
+    : [];
+  const firstInstallment = schedule.length ? schedule[0].perPerson : Math.min(o.firstInstallment ?? SEASON.fees.firstInstallment, hajjCost);
+  const installmentCount: 1 | 2 = schedule.length ? (schedule.length === 1 ? 1 : 2) : (o.installmentCount ?? SEASON.installments.count) === 1 ? 1 : 2;
   const directShare = o.directShare ?? SEASON.directShare;
   const directSeats = Math.round(quota * directShare);
   return {
@@ -43,9 +70,11 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
     fees: {
       ...SEASON.fees,
       registrationPerPerson: o.registrationPerPerson ?? SEASON.fees.registrationPerPerson,
-      hajjCost: o.hajjCost ?? SEASON.fees.hajjCost,
-      firstInstallment: Math.min(o.firstInstallment ?? SEASON.fees.firstInstallment, o.hajjCost ?? SEASON.fees.hajjCost),
-      installmentCount: (o.installmentCount ?? SEASON.installments.count) === 1 ? 1 : 2,
+      hajjCost,
+      firstInstallment,
+      installmentCount,
+      schedule,
+      extrasStep: payments?.extrasStep ?? "payment",
       hady: o.hady ?? SEASON.fees.hady,
       administratorRegistration: o.administratorRegistration ?? SEASON.fees.administratorRegistration,
       groupFormation: o.groupFormation ?? SEASON.fees.groupFormation,
@@ -74,5 +103,6 @@ export function mergeSeason(o: SeasonOverrides): LiveSeason {
 /** Season settings as currently configured by the season director (defaults from SEASON) */
 export function useSeason(): LiveSeason {
   const overrides = useStore((s) => s.season);
-  return useMemo(() => mergeSeason(overrides), [overrides]);
+  const payments = useLiveVersion().config.payments;
+  return useMemo(() => mergeSeason(overrides, payments), [overrides, payments]);
 }

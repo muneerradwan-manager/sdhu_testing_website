@@ -1,39 +1,37 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { motion } from "motion/react";
-import { Building2, FileCheck2, FolderLock, Funnel as FunnelIcon, Languages, Sparkles, UsersRound } from "lucide-react";
+import { Building2, FileCheck2, Languages, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { groupName } from "@/lib/groups";
 import { matches } from "@/lib/ops";
 import { cn, formatNumber, maskNationalId } from "@/lib/utils";
 import { docState, resultOf } from "@/app/administrator/_lib/admin";
 import { useDocTypes, useSkills } from "@/app/administrator/_lib/admin-rules";
 import { roleLabel } from "../../_components/data";
-import { Drawer, Empty, fmtDateTime, Panel } from "../../_components/kit";
+import { fmtDateTime } from "../../_components/kit";
 import { Chip, InfoGrid, SearchBox } from "../../_components/ops-ui";
-import { RecordHistory, SystemRecords } from "../../_components/system";
+import { RecordHistory } from "../../_components/system";
+import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, SettingsSection, Tag, Title } from "../../_components/wp";
 import { useAdminsDesk, type AdminsDesk, type FileState, type Funnel } from "../desk";
 import { PersonCadre } from "./cadre";
+import { Filters, Help, Lead, NotFound, TitleCell, useHrefWith, useOpenId } from "./ui";
 
 /**
- * Who applied this season and how far each got, role by role — from the choice of a role to the
- * qualification the exam file announces — and every applicant's permanent file: his documents and whether
- * each is still valid, what his role requires and his file lacks, his languages and skills. The exam
- * itself is «إدارة الامتحانات»'s: its results are read here, never entered.
+ * «المتقدمون» — every applicant's permanent file, as a site's list: one table (those that fall short under
+ * their own filter), each opening on its own screen with his documents and whether each is still valid, what
+ * his role requires and his file lacks, his languages and skills. How many applied, role by role, is on the
+ * file's summary (`FunnelTable` below). The exam itself is «إدارة الامتحانات»'s: its results are read here.
  */
 export function ApplicantsTab() {
   const desk = useAdminsDesk();
+  const id = useOpenId();
+  if (id) return <FileScreen id={id} desk={desk} />;
   return (
     <div className="space-y-6">
-      <Panel icon={<FunnelIcon />} title="المتقدمون صفةً صفة" action={<Chip tone="gold">{formatNumber(desk.totals.applied)} متقدماً</Chip>} bodyClass="-mx-5 md:-mx-6">
-        <FunnelTable funnel={desk.funnel} totals={desk.totals} />
-        <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">
-          {desk.noRole ? `و${desk.noRole} حسابات إدارية لم تختر صفة بعد. ` : ""}يُدفع الرسم بعد ثبوت الأهلية فقط. «تأهّلوا»: من جدّدوا صفتهم معفين، ومن نجحوا في كل أقسام الاختبار المؤتمت وأكّد مشرف القاعة تسليمهم — وهم وحدهم من يشكّل مجموعة أو ينضم إلى فريق.
-        </p>
-      </Panel>
       <Files desk={desk} />
-      <SystemRecords system="admins" area="applicants" title="سجل المتقدمين وملفاتهم" />
+      <RecordsBox system="admins" area="applicants" title="سجل المتقدمين وملفاتهم" />
     </div>
   );
 }
@@ -94,72 +92,111 @@ export function FunnelTable({ funnel, totals }: { funnel: Funnel[]; totals: Reco
 
 /**
  * The administrator is told his documents are reviewed by the administrators' affairs desk, so the desk
- * sees them: every file with its documents, their issuing season and whether each is still valid under
- * this season's lists, and what his role requires that the file does not have. Opened from the summary
- * on the files that fall short (`?f=docs`).
+ * sees them: every file in one table, those that fall short under their own filter (`?f=docs`, the summary's
+ * link), each opening on its own screen (`?id=`).
  */
 function Files({ desk }: { desk: AdminsDesk }) {
   const params = useSearchParams();
-  const [only, setOnly] = useState(params.get("f") === "docs");
+  const hrefWith = useHrefWith();
+  const [only, setOnly] = useState<"all" | "docs">(params.get("f") === "docs" ? "docs" : "all");
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
-  const shown = (only ? desk.flaggedFiles : desk.files).filter((f) => matches(q, [f.row.name, f.row.id, roleLabel(f.row)]));
-  const file = desk.files.find((f) => f.row.id === open);
+  const [shown, setShown] = useState(60);
+  const list = (only === "docs" ? desk.flaggedFiles : desk.files).filter((f) => matches(q, [f.row.name, f.row.id, roleLabel(f.row)]));
 
   return (
-    <Panel icon={<FolderLock />} title="الملفات الدائمة" bodyClass="space-y-3">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+    <div className="space-y-4">
+      <Title>ملفات المتقدمين</Title>
+      <Lead>من تقدّم هذا الموسم وملفه الدائم: وثائقه وصلاحيتها، وما تطلبه صفته وينقصه. افتح الملف لتراه كاملاً.</Lead>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Filters
+          label="الملفات المعروضة"
+          value={only}
+          onChange={setOnly}
+          items={[
+            { key: "all", label: "الكل", count: desk.files.length },
+            { key: "docs", label: "ناقصة أو منتهية", count: desk.flaggedFiles.length },
+          ]}
+        />
         <SearchBox className="md:w-80" value={q} onChange={setQ} label="بحث في ملفات الإداريين" placeholder="اسم، أو آخر أرقام الرقم الوطني، أو صفة..." />
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="الملفات المعروضة">
-          {[
-            { on: !only, label: `الكل (${desk.files.length})`, set: false },
-            { on: only, label: `ناقصة أو منتهية (${desk.flaggedFiles.length})`, set: true },
-          ].map((b) => (
-            <button
-              key={String(b.set)}
-              type="button"
-              role="radio"
-              aria-checked={b.on}
-              onClick={() => setOnly(b.set)}
-              className={cn("rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition", b.on ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white/85 ring-white/15 hover:bg-white/10")}
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
       </div>
-      {shown.length === 0 ? (
-        <Empty icon={<UsersRound />} title="لا ملفات هنا" text={only ? "كل من سدد الرسم ملفه مستوفٍ لما تطلبه صفته." : "غيّر البحث أو امسحه."} />
-      ) : (
-        <ul className="grid gap-2 lg:grid-cols-2">
-          {shown.map((f, i) => (
-            <motion.li key={f.row.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
-              <button
-                type="button"
-                onClick={() => setOpen(f.row.id)}
-                className={cn("flex w-full flex-wrap items-center gap-3 rounded-2xl p-3 text-right ring-1 transition hover:ring-gold/50", f.flagged ? "bg-maroon/15 ring-maroon/40" : "bg-white/[.06] ring-white/10")}
-              >
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 font-display font-bold text-gold ring-1 ring-gold/40">{f.row.name.replace("الشيخ ", "")[0]}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-bold text-white">{f.row.name}</span>
-                  <span className="block truncate text-xs text-white/65">
-                    {roleLabel(f.row)} · <span dir="ltr">{maskNationalId(f.row.id)}</span>
-                  </span>
+      <ListTable head={["الإداري", "الصفة", "الوثائق", "الرسم", "الحالة"]}>
+        {list.length === 0 && <EmptyRow cols={5}>{only === "docs" ? "كل من سدد الرسم ملفه مستوفٍ لما تطلبه صفته." : "لا ملفات بهذا البحث."}</EmptyRow>}
+        {list.slice(0, shown).map((f) => {
+          const href = hrefWith({ id: f.row.id });
+          return (
+            <tr key={f.row.id}>
+              <TitleCell
+                title={f.row.name}
+                href={href}
+                sub={<span dir="ltr">{maskNationalId(f.row.id)}</span>}
+                actions={
+                  <RowActions>
+                    <RowLink href={href}>فتح الملف</RowLink>
+                  </RowActions>
+                }
+              />
+              <td className="p-3 align-top text-white/80">{roleLabel(f.row)}</td>
+              <td className="p-3 align-top tabular-nums text-white/80">{f.record.documents.length}</td>
+              <td className="p-3 align-top">{f.row.profile.feePaidAt ? <Tag tone="green">مسدَّد</Tag> : <Tag>لم يُسدَّد</Tag>}</td>
+              <td className="p-3 align-top">
+                <span className="flex flex-wrap gap-1">
+                  {f.expired.length > 0 && <Tag tone="maroon">{f.expired.length} منتهية</Tag>}
+                  {f.missing.length > 0 && <Tag tone="gold">ينقصه {f.missing.length}</Tag>}
+                  {!f.expired.length && !f.missing.length && <Tag tone="green">مستوفٍ</Tag>}
                 </span>
-                <span className="flex flex-wrap gap-1.5">
-                  <Chip>{f.record.documents.length} وثائق</Chip>
-                  {f.expired.length > 0 && <Chip tone="maroon">{f.expired.length} منتهية</Chip>}
-                  {f.missing.length > 0 && <Chip tone="gold">ينقصه {f.missing.length}</Chip>}
-                </span>
-              </button>
-            </motion.li>
-          ))}
-        </ul>
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
+      {list.length > shown && (
+        <Button size="sm" variant="glass" onClick={() => setShown(shown + 100)}>
+          عرض المزيد ({list.length - shown})
+        </Button>
       )}
-      <Drawer open={!!file} onClose={() => setOpen(null)} title={file ? `الملف الدائم — ${file.row.name}` : ""}>
-        {file && <FileSheet f={file} />}
-      </Drawer>
-    </Panel>
+      <Help>
+        <p>يُدفع الرسم بعد ثبوت الأهلية فقط. «تأهّلوا»: من جدّدوا صفتهم معفين، ومن نجحوا في كل أقسام الاختبار المؤتمت وأكّد مشرف القاعة تسليمهم — وهم وحدهم من يشكّل مجموعة أو ينضم إلى فريق.</p>
+        <p>الاختبار نفسه في «إدارة الامتحانات»: نتائجه تُقرأ هنا ولا تُدخل. وأعداد المتقدمين صفةً صفة في «ملخص الإداريين».</p>
+      </Help>
+    </div>
+  );
+}
+
+/** One administrator's file on its own screen: where his application stands and his documents in the middle; his role, category and branches below; his record on the side */
+function FileScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
+  const hrefWith = useHrefWith();
+  const f = desk.files.find((x) => x.row.id === id);
+  const back = hrefWith({ id: null });
+  if (!f) return <NotFound back={back} backLabel="ملفات المتقدمين" what="هذا الملف" />;
+  return (
+    <div>
+      <EditHeader back={back} backLabel="ملفات المتقدمين" title={`الملف الدائم — ${f.row.name}`}>
+        {roleLabel(f.row)}
+      </EditHeader>
+      <EditLayout
+        main={
+          <>
+            <FileSheet f={f} />
+            <SettingsSection title="صفته الموسمية وفئته وفروعه">
+              <div className="py-4">
+                <PersonCadre id={f.row.id} name={f.row.name} applied={f.row.profile.positions[0]} history={false} area="applicants" />
+              </div>
+            </SettingsSection>
+          </>
+        }
+        side={
+          <>
+            <Box title="حال الملف">
+              {f.flagged ? <Tag tone="maroon">ينقصه ما تطلبه صفته</Tag> : <Tag tone="green">مستوفٍ لما تطلبه صفته</Tag>}
+              <p className="text-xs leading-6 text-white/60">الحساب دائم، فتبقى وثائقه بين المواسم وتُرفق بطلبه ما دامت سارية؛ وما انتهى يحدّثه وحده من بوابته.</p>
+            </Box>
+            <Box title="سجلّه" open={false}>
+              <RecordHistory system="admins" refId={f.row.id} bare />
+            </Box>
+          </>
+        }
+      />
+    </div>
   );
 }
 
@@ -216,7 +253,6 @@ function FileSheet({ f }: { f: FileState }) {
           })}
         </ul>
         {f.missing.length > 0 && <p className="mt-3 rounded-2xl bg-gold/15 p-3 text-sm text-gold ring-1 ring-gold/30">ينقص ملفه مما تطلبه صفته: {f.missing.map((d) => d.label).join("، ")}</p>}
-        <p className="mt-2 text-xs leading-6 text-white/55">الحساب دائم، فتبقى وثائقه بين المواسم وتُرفق بطلبه ما دامت سارية؛ وما انتهى يحدّثه وحده من بوابته.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -257,14 +293,6 @@ function FileSheet({ f }: { f: FileState }) {
         </p>
       )}
 
-      <details className="rounded-2xl bg-white/[.04] p-3 ring-1 ring-gold/25">
-        <summary className="cursor-pointer text-sm font-bold text-gold">صفته الموسمية وفئته وفروعه</summary>
-        <div className="mt-3">
-          <PersonCadre id={f.row.id} name={f.row.name} applied={f.row.profile.positions[0]} history={false} area="applicants" />
-        </div>
-      </details>
-
-      <RecordHistory system="admins" refId={f.row.id} />
     </div>
   );
 }

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --no-warnings --import ./tests/register.mjs --test tests/*.test.ts"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

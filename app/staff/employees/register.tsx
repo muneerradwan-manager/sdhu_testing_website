@@ -1,207 +1,173 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { motion } from "motion/react";
-import { ChevronLeft, FilterX, IdCard, UserPlus, UserX } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { CURRENT_SEASON, GOVERNORATES, JOB_TITLES, MISSIONS, employeeHaystack, fullName, inSeason, matches } from "@/lib/ops";
-import { cn, formatNumber } from "@/lib/utils";
-import { Empty, Panel, Tabs } from "../_components/kit";
-import { Avatar, Chip, FilterSelect, SearchBox } from "../_components/ops-ui";
-import { SystemRecords } from "../_components/system";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FilterX, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CURRENT_SEASON, GOVERNORATES, JOB_TITLES, MISSIONS, employeeHaystack, fullName, inSeason, matches, type Employee } from "@/lib/ops";
+import { cn } from "@/lib/utils";
+import { Avatar, FilterSelect, SearchBox } from "../_components/ops-ui";
+import { AddButton, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../_components/wp";
 import { missingOf, useEmployeesDesk } from "./desk";
-import { useEmployeePanels } from "./sheet";
+import { FilterLinks, HowTo, ListToolbar, MoreRows } from "./list-ui";
+import { useSuspend } from "./sheet";
 
-type Kind = "all" | "permanent" | "external";
+type View = "all" | "active" | "suspended" | "incomplete";
 const PAGE = 40;
+const inView = (v: View, e: Employee) => (v === "all" ? true : v === "suspended" ? !!e.suspended : v === "incomplete" ? missingOf(e).length > 0 : !e.suspended);
 
 /**
- * The register, the first tab of the employees file: the directorate's own staff and those other bodies
- * delegate for the season, searched by any part of a name, title, governorate, phone or the last digits of
- * a national number, each opening his sheet. A link from the summary opens one sheet (`?e=`) or the
- * incomplete records (`?f=incomplete`). The tab's records are under the list.
+ * The register, the first operation of the employees file, as a site's users list: its views with their
+ * counts, a search, and a table whose rows open each employee's own screen (`/manage/edit?id=`), with
+ * «تعديل | إيقاف» under his name. A link from the summary may ask for a view (`?f=incomplete`); an older
+ * link to one employee (`?e=`) goes on to his screen. The records of this part wait closed at the end.
  */
 export function Register() {
   const params = useSearchParams();
+  const router = useRouter();
   const desk = useEmployeesDesk();
-  const panels = useEmployeePanels(params.get("e"));
+  const suspend = useSuspend();
   const { employees, postings } = desk;
+  const asked = params.get("e");
+  useEffect(() => {
+    if (asked) router.replace(`/staff/employees/manage/edit?id=${asked}`);
+  }, [asked, router]);
 
-  const [kind, setKind] = useState<Kind>("all");
+  const [view, setView] = useState<View>(params.get("f") === "incomplete" ? "incomplete" : "all");
   const [q, setQ] = useState("");
+  const [kind, setKind] = useState("");
   const [mission, setMission] = useState("");
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
   const [gender, setGender] = useState("");
-  const [status, setStatus] = useState(params.get("f") === "incomplete" ? "incomplete" : "");
   const [shown, setShown] = useState(PAGE);
 
-  const filtersOn = [mission, title, city, gender, status].some(Boolean);
-  const clear = () => {
-    [setMission, setTitle, setCity, setGender, setStatus].forEach((f) => f(""));
-    setQ("");
-  };
+  const filtersOn = [kind, mission, title, city, gender, q].some(Boolean);
+  const clear = () => [setKind, setMission, setTitle, setCity, setGender, setQ].forEach((f) => f(""));
 
   const rows = useMemo(
     () =>
       employees
-        .filter((e) => kind === "all" || e.kind === kind)
+        .filter((e) => inView(view, e))
+        .filter((e) => !kind || e.kind === kind)
         .filter((e) => !mission || e.mission === mission)
         .filter((e) => !title || e.jobTitle === title)
         .filter((e) => !city || e.city === city)
         .filter((e) => !gender || e.gender === gender)
-        .filter((e) => !status || (status === "incomplete" ? missingOf(e).length > 0 : status === "suspended" ? e.suspended : !e.suspended))
         .filter((e) => matches(q, employeeHaystack(e)))
         .sort((a, b) => fullName(a).localeCompare(fullName(b), "ar")),
-    [employees, kind, mission, title, city, gender, status, q],
+    [employees, view, kind, mission, title, city, gender, q],
   );
 
   const usedTitles = JOB_TITLES.filter((t) => employees.some((e) => e.jobTitle === t));
   const usedCities = GOVERNORATES.filter((t) => employees.some((e) => e.city === t));
+  const pick = (f: (v: string) => void) => (v: string) => {
+    f(v);
+    setShown(PAGE);
+  };
 
   return (
-    <div className="space-y-6">
-      <Panel
-        icon={<IdCard />}
-        title="سجل الموظفين"
-        bodyClass="space-y-3"
+    <div className="space-y-4">
+      <Title
         action={
-          <Button size="sm" variant="gold" onClick={panels.create}>
+          <AddButton href="/staff/employees/manage/edit">
             <UserPlus className="size-4" /> إضافة موظف
-          </Button>
+          </AddButton>
+        }
+      />
+
+      <ListToolbar
+        filters={
+          <FilterLinks<View>
+            label="عرض السجل"
+            value={view}
+            onChange={(v) => {
+              setView(v);
+              setShown(PAGE);
+            }}
+            items={[
+              { value: "all", label: "الكل", count: employees.length },
+              { value: "active", label: "على رأس العمل", count: employees.length - desk.suspended.length },
+              { value: "suspended", label: "موقوفون", count: desk.suspended.length },
+              { value: "incomplete", label: "سجلات ناقصة", count: desk.incomplete.length, alert: true },
+            ]}
+          />
         }
       >
-        <p className="text-sm leading-7 text-white/70">موظفو الإدارة الدائمون ومن تنتدبهم الجهات الأخرى للموسم. ابحث بأي جزء من الاسم أو المسمى أو المحافظة أو الهاتف أو آخر أرقام الرقم الوطني. ومن المشاركين منهم في الموسم يُختار من يُسند إلى الملفات التشغيلية.</p>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <Tabs<Kind>
-            id="emp-kind"
-            value={kind}
-            onChange={(v) => {
-              setKind(v);
-              setShown(PAGE);
-            }}
-            tabs={[
-              { value: "all", label: "الكل", count: employees.length },
-              { value: "permanent", label: "الدائمون", count: desk.permanent },
-              { value: "external", label: "المنتدبون", count: desk.external },
-            ]}
-          />
-          <SearchBox
-            className="flex-1"
-            value={q}
-            onChange={(v) => {
-              setQ(v);
-              setShown(PAGE);
-            }}
-            label="بحث في الموظفين"
-            placeholder="اسم، مسمى وظيفي، محافظة، هاتف، رقم وطني..."
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
-          <FilterSelect label="البعثة" all="كل البعثات" value={mission} onChange={setMission} options={MISSIONS} />
-          <FilterSelect label="المسمى الوظيفي" all="كل المسميات" value={title} onChange={setTitle} options={usedTitles} />
-          <FilterSelect label="المحافظة" all="كل المحافظات" value={city} onChange={setCity} options={usedCities} />
-          <FilterSelect label="الجنس" all="الجنسان" value={gender} onChange={setGender} options={[{ value: "male", label: "ذكور" }, { value: "female", label: "إناث" }]} />
-          <FilterSelect
-            label="الحالة"
-            all="الحالة: الكل"
-            value={status}
-            onChange={setStatus}
-            options={[
-              { value: "active", label: "على رأس العمل" },
-              { value: "suspended", label: "موقوفون" },
-              { value: "incomplete", label: "سجلات ناقصة" },
-            ]}
-          />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <p className="text-white/75">
-            <span className="font-bold text-white tabular-nums">{formatNumber(rows.length)}</span> موظفاً
-            {(q || filtersOn) && " يطابقون البحث"}
-          </p>
-          {(q || filtersOn) && (
-            <button onClick={clear} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-gold hover:bg-white/10">
-              <FilterX className="size-3.5" /> مسح البحث والتصفية
-            </button>
-          )}
-        </div>
-      </Panel>
+        <SearchBox className="flex-1" value={q} onChange={pick(setQ)} label="بحث في الموظفين" placeholder="اسم، مسمى، محافظة، هاتف، رقم وطني..." />
+      </ListToolbar>
 
-      <Panel bodyClass="-mx-5 md:-mx-6" delay={0.05}>
-        {rows.length === 0 ? (
-          <div className="px-5 md:px-6">
-            <Empty icon={<UserX />} title="لا أحد يطابق هذا البحث" text="جرّب كلمة أقصر، أو امسح التصفية. البحث يتجاهل الهمزات والتشكيل." />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[48rem] text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-right text-xs text-gold">
-                  <th className="px-5 pb-3 font-bold md:px-6">الموظف</th>
-                  <th className="pb-3 font-bold">المحافظة</th>
-                  <th className="pb-3 font-bold">البعثة</th>
-                  <th className="pb-3 font-bold">الهاتف</th>
-                  <th className="pb-3 font-bold">موسم {CURRENT_SEASON}</th>
-                  <th className="w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {rows.slice(0, shown).map((e, i) => {
-                  const missing = missingOf(e);
-                  return (
-                    <motion.tr
-                      key={e.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: Math.min(i, 20) * 0.015 }}
-                      onClick={() => panels.open(e.id)}
-                      className={cn("cursor-pointer transition hover:bg-white/[.05]", e.suspended && "opacity-60")}
-                    >
-                      <td className="px-5 py-2.5 md:px-6">
-                        <div className="flex items-center gap-3">
-                          <Avatar e={e} />
-                          <div className="min-w-0">
-                            <p className="flex flex-wrap items-center gap-1.5 font-bold text-white">
-                              {fullName(e)}
-                              {e.staffId && <Chip tone="gold">حساب بوابة</Chip>}
-                              {e.suspended && <Chip tone="maroon">موقوف</Chip>}
-                              {missing.length > 0 && <Chip tone="maroon">ناقص: {missing.join("، ")}</Chip>}
-                            </p>
-                            <p className="text-xs text-white/65">
-                              {e.jobTitle}
-                              {e.kind === "external" && <span className="text-gold/90"> · منتدب من {e.organization}</span>}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-white/85">{e.city}</td>
-                      <td className="py-2.5 text-white/85">{e.mission.replace("البعثة ", "")}</td>
-                      <td className="py-2.5 tabular-nums text-white/85" dir="ltr">
-                        <span className="block text-right">{e.phoneSy || "—"}</span>
-                      </td>
-                      <td className="py-2.5">{postings.has(e.id) ? <Chip tone="gold">مُسند</Chip> : inSeason(e) ? <Chip tone="green">مشارك</Chip> : <span className="text-xs text-white/45">غير مشارك</span>}</td>
-                      <td className="py-2.5 pl-4 text-white/40">
-                        <ChevronLeft className="size-4" />
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {rows.length > shown && (
-              <div className="mt-4 text-center">
-                <Button variant="glass" size="sm" onClick={() => setShown((s) => s + PAGE)}>
-                  عرض {Math.min(PAGE, rows.length - shown)} آخرين — بقي {rows.length - shown}
-                </Button>
-              </div>
-            )}
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-5">
+          <FilterSelect label="نوع الموظف" all="الدائمون والمنتدبون" value={kind} onChange={pick(setKind)} options={[{ value: "permanent", label: `الدائمون (${desk.permanent})` }, { value: "external", label: `المنتدبون (${desk.external})` }]} />
+          <FilterSelect label="البعثة" all="كل البعثات" value={mission} onChange={pick(setMission)} options={MISSIONS} />
+          <FilterSelect label="المسمى الوظيفي" all="كل المسميات" value={title} onChange={pick(setTitle)} options={usedTitles} />
+          <FilterSelect label="المحافظة" all="كل المحافظات" value={city} onChange={pick(setCity)} options={usedCities} />
+          <FilterSelect label="الجنس" all="الجنسان" value={gender} onChange={pick(setGender)} options={[{ value: "male", label: "ذكور" }, { value: "female", label: "إناث" }]} />
+        </div>
+        {filtersOn && (
+          <button onClick={clear} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-gold hover:bg-white/10">
+            <FilterX className="size-3.5" /> مسح ({rows.length})
+          </button>
         )}
-      </Panel>
+      </div>
 
-      <SystemRecords system="staff" area="register" title="سجل الإضافة والتعديل والإيقاف" />
-      {panels.node}
+      <ListTable head={["الموظف", "المحافظة", "البعثة", "الهاتف", `موسم ${CURRENT_SEASON}`]} minWidth="48rem">
+        {rows.length === 0 ? (
+          <EmptyRow cols={5}>لا أحد يطابق هذا البحث. جرّب كلمة أقصر، أو امسح التصفية.</EmptyRow>
+        ) : (
+          rows.slice(0, shown).map((e) => {
+            const missing = missingOf(e);
+            const href = `/staff/employees/manage/edit?id=${e.id}`;
+            return (
+              <tr key={e.id} className={cn("align-top", e.suspended && "opacity-60")}>
+                <td className="p-3">
+                  <div className="flex items-start gap-3">
+                    <Avatar e={e} size="sm" />
+                    <div className="min-w-0">
+                      <Link href={href} className="font-bold text-white hover:text-gold">
+                        {fullName(e)}
+                      </Link>
+                      <p className="text-xs text-white/65">
+                        {e.jobTitle}
+                        {e.kind === "external" && <span className="text-gold/90"> · منتدب من {e.organization}</span>}
+                      </p>
+                      {(e.staffId || e.suspended || missing.length > 0) && (
+                        <p className="mt-1 flex flex-wrap gap-1">
+                          {e.staffId && <Tag tone="gold">حساب بوابة</Tag>}
+                          {e.suspended && <Tag tone="maroon">موقوف</Tag>}
+                          {missing.length > 0 && <Tag tone="maroon">ناقص: {missing.join("، ")}</Tag>}
+                        </p>
+                      )}
+                      <RowActions>
+                        <RowLink href={href}>{missing.length ? "أكمل سجله" : "تعديل"}</RowLink>
+                        <RowLink danger={!e.suspended} onClick={() => suspend.toggle(e)}>
+                          {e.suspended ? "إعادته إلى العمل" : "إيقاف"}
+                        </RowLink>
+                      </RowActions>
+                    </div>
+                  </div>
+                </td>
+                <td className="p-3 text-white/85">{e.city}</td>
+                <td className="p-3 text-white/85">{e.mission.replace("البعثة ", "")}</td>
+                <td className="p-3 tabular-nums text-white/85" dir="ltr">
+                  <span className="block text-right">{e.phoneSy || "—"}</span>
+                </td>
+                <td className="p-3">{postings.has(e.id) ? <Tag tone="gold">مُسند</Tag> : inSeason(e) ? <Tag tone="green">مشارك</Tag> : <span className="text-xs text-white/45">غير مشارك</span>}</td>
+              </tr>
+            );
+          })
+        )}
+      </ListTable>
+      <MoreRows left={rows.length - shown} step={PAGE} onMore={() => setShown((s) => s + PAGE)} />
+
+      <HowTo>
+        <p>موظفو الإدارة الدائمون ومن تنتدبهم الجهات الأخرى للموسم. افتح أي موظف باسمه لتعديل سجله، أو أضف موظفاً من الزر في الأعلى.</p>
+        <p>البحث بأي جزء من الاسم أو المسمى أو المحافظة أو الهاتف أو آخر أرقام الرقم الوطني، ويتجاهل الهمزات والتشكيل.</p>
+        <p>من المشاركين في الموسم وحدهم يُختار من يُسند إلى الملفات التشغيلية. وإيقاف من له موقع يصل إلى مديرة الموسم.</p>
+      </HowTo>
+      <RecordsBox system="staff" area="register" title="سجل الإضافة والتعديل والإيقاف" />
+      {suspend.node}
     </div>
   );
 }

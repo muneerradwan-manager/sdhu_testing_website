@@ -206,7 +206,7 @@ export function AdminSidebar() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-bold transition",
-                  active ? "text-ink" : open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand",
+                  active ? "on-light text-ink" : open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand",
                 )}
               >
                 {active && <motion.span layoutId="admin-nav" className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light" transition={{ type: "spring", damping: 30, stiffness: 350 }} />}

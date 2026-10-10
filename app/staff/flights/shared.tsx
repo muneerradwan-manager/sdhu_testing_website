@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { STATUS_LABEL, seatStats, type Flight, type FlightAssignment, type FlightStatus } from "@/lib/flights";
 import { cn, formatNumber } from "@/lib/utils";
 import { Chip, type ChipTone } from "../_components/ops-ui";
@@ -49,16 +48,6 @@ export function SeatBar({ f, assignments, compact = false }: { f: Flight; assign
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-export function Stat({ label, value, tone = "white" }: { label: string; value: ReactNode; tone?: "white" | "gold" | "green" | "maroon" }) {
-  const c = { white: "text-white", gold: "text-gold", green: "text-green-light", maroon: "text-maroon-light" }[tone];
-  return (
-    <div className="rounded-2xl bg-white/8 px-3 py-2 ring-1 ring-white/10">
-      <p className="text-[11px] text-white/60">{label}</p>
-      <p className={cn("font-display text-xl font-bold tabular-nums", c)}>{value}</p>
     </div>
   );
 }

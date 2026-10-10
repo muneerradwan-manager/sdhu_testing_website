@@ -6,7 +6,7 @@ import { ArrowLeft, BadgeCheck, Check, Loader2, Lock, MessageSquareText, Smartph
 import { useState } from "react";
 import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button } from "@/components/ui/button";
-import { ageOf, fullName } from "@/lib/registry";
+import { fullName } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import type { Consent } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
@@ -14,10 +14,9 @@ import { PersonChip, Question } from "./ui";
 
 // ───────────────────────── Consents ─────────────────────────
 
-/** Who must approve: every adult in the application except the person filing it (the applicant too, when the application moved to an older relative) */
-export function consentPeople(members: Member[], filerId: string) {
-  return members.filter((m) => m.person.id !== filerId && ageOf(m.person) >= 17);
-}
+/** Who must approve: every adult in the application except the person filing it (the applicant too, when the application moved to an older relative) — the service's own rule */
+import { consentPeople } from "@/lib/registration/service";
+export { consentPeople };
 
 const fmtTime = (at: number) => new Intl.DateTimeFormat("ar-SY-u-nu-latn", { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(at);
 
@@ -150,15 +149,28 @@ export function Consents({
 /** What is paid at registration: the fee, plus the first installment of the Hajj cost on direct acceptance */
 export type PayLine = { label: string; amount: number };
 
-export function Payment({ lines, receipt, onPaid }: { lines: PayLine[]; receipt: string; onPaid: (method: PayMethod) => void }) {
+/**
+ * `onConfirmed`: the provider confirmed the payment (ShamCash, or the bank slip matched) — the moment it is
+ * recorded, before the receipt shows; an error keeps the receipt from showing. `methods`: those the
+ * season's registration allows.
+ */
+export function Payment({ lines, receipt, onPaid, onConfirmed, methods }: { lines: PayLine[]; receipt: string; onPaid: (method: PayMethod) => void; onConfirmed?: (method: PayMethod) => string | null; methods?: PayMethod[] }) {
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const [method, setMethod] = useState<PayMethod | null>(null);
   const [phase, setPhase] = useState<"form" | "processing" | "done">("form");
+  const [error, setError] = useState("");
 
   const pay = (m: PayMethod) => {
     setMethod(m);
+    setError("");
     setPhase("processing");
-    setTimeout(() => setPhase("done"), 2600);
+    setTimeout(() => {
+      const e = onConfirmed?.(m) ?? null;
+      if (e) {
+        setError(e);
+        setPhase("form");
+      } else setPhase("done");
+    }, 2600);
   };
 
   if (phase === "processing") {
@@ -228,7 +240,8 @@ export function Payment({ lines, receipt, onPaid }: { lines: PayLine[]; receipt:
           <span>{formatUSD(total)}</span>
         </li>
       </ul>
-      <PayMethods amount={total} reference={receipt} bankReference={receipt.replace("R", "BANK")} onConfirm={pay} />
+      {error && <p className="mb-4 rounded-2xl bg-maroon/8 p-4 font-bold text-maroon">{error}</p>}
+      <PayMethods amount={total} reference={receipt} bankReference={receipt.replace("R", "BANK")} onConfirm={pay} methods={methods} />
     </Question>
   );
 }

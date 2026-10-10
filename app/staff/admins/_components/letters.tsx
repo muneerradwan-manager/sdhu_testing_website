@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, LockOpen, Mails, Paperclip, Printer, Send } from "lucide-react";
+import { Lock, LockOpen, Paperclip, Printer, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
@@ -8,85 +8,95 @@ import { useToast } from "@/components/ui/widgets";
 import type { Letter } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
 import { LETTER_KINDS, LETTER_STATE, lastAt, letterState, putLetter, useLetters, type LetterState } from "@/app/administrator/_lib/letters";
-import { Drawer, Empty, Panel, fmtDateTime, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip, FilterSelect, SearchBox } from "../../_components/ops-ui";
-import { SystemRecords } from "../../_components/system";
+import { EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
+import { Filters, Lead, TitleCell } from "./ui";
 import { logAdmins } from "../desk";
 
 /**
- * «المراسلات» — what the administrators wrote to the administration, as its platform keeps them: each letter with
- * its subject, kind, attachment and thread. Opening one marks it read; the holder answers in its thread, closes
- * it when it is done (or opens it again), and prints it on one sheet. Its state is read from its thread.
+ * «المراسلات» — what the administrators wrote to the administration, as a site's inbox: one table filtered by
+ * state (with its counts), each letter opening in a side sheet with its thread. Opening one marks it read; the
+ * holder answers in its thread, closes it when it is done (or opens it again), and prints it on one sheet.
  */
 export function LettersTab() {
+  const user = useStaffUser()!;
   const letters = useLetters();
-  const [state, setState] = useState<"" | LetterState>("");
+  const [state, setState] = useState<"all" | LetterState>("all");
   const [kind, setKind] = useState("");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const count = (k: LetterState) => letters.filter((l) => letterState(l) === k).length;
   const list = letters
-    .filter((l) => !state || letterState(l) === state)
+    .filter((l) => state === "all" || letterState(l) === state)
     .filter((l) => !kind || l.kind === kind)
     .filter((l) => !q.trim() || [l.subject, l.adminName, l.number, ...l.messages.map((m) => m.text)].some((t) => t.includes(q.trim())));
   const sheet = letters.find((l) => l.id === open);
+  const close = (l: Letter, on: boolean) => {
+    putLetter({ ...l, closed: on ? { at: nowMs(), by: user.name } : undefined });
+    logAdmins(user, "letters", { action: on ? "إغلاق مراسلة" : "إعادة فتح مراسلة", target: `${l.number} — ${l.adminName}`, ref: l.id });
+  };
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {(
-          [
-            ["", "الكل", letters.length],
-            ["unread", LETTER_STATE.unread.label, count("unread")],
-            ["waiting", LETTER_STATE.waiting.label, count("waiting")],
-            ["answered", LETTER_STATE.answered.label, count("answered")],
-            ["closed", LETTER_STATE.closed.label, count("closed")],
-          ] as const
-        ).map(([k, label, n]) => (
-          <button key={label} type="button" onClick={() => setState(k)} aria-pressed={state === k} className={cn("rounded-2xl p-3 text-right ring-1 transition", state === k ? "bg-gold/20 ring-gold/60" : "bg-white/5 ring-white/10 hover:ring-gold/40")}>
-            <p className="text-xs text-white/60">{label}</p>
-            <p className="font-display text-2xl font-bold text-gold">{n}</p>
-          </button>
-        ))}
+    <div className="space-y-4">
+      <Title>المراسلات</Title>
+      <Lead>يكتبها الإداري من «المراسلات» في حسابه. افتح المراسلة تُعَدّ مقروءة، وردّ في سياقها، وأغلقها حين تنتهي.</Lead>
+      <Filters
+        label="حال المراسلات"
+        value={state}
+        onChange={setState}
+        items={[
+          { key: "all", label: "الكل", count: letters.length },
+          { key: "unread", label: LETTER_STATE.unread.label, count: count("unread") },
+          { key: "waiting", label: LETTER_STATE.waiting.label, count: count("waiting") },
+          { key: "answered", label: LETTER_STATE.answered.label, count: count("answered") },
+          { key: "closed", label: LETTER_STATE.closed.label, count: count("closed") },
+        ]}
+      />
+      <div className="grid gap-2 md:grid-cols-[2fr_1fr]">
+        <SearchBox value={q} onChange={setQ} placeholder="الموضوع، المرسل، الرقم، النص" label="بحث في المراسلات" />
+        <FilterSelect label="النوع" all="كل الأنواع" value={kind} onChange={setKind} options={[...LETTER_KINDS]} />
       </div>
-      <Panel icon={<Mails />} title="المراسلات">
-        <p className="mb-3 text-sm leading-7 text-white/70">يكتبها الإداري من «المراسلات» في حسابه. افتح المراسلة تُعَدّ مقروءة، وردّ في سياقها فيصله الرد في حسابه، وأغلقها حين تنتهي.</p>
-        <div className="grid gap-2 md:grid-cols-[2fr_1fr]">
-          <SearchBox value={q} onChange={setQ} placeholder="الموضوع، المرسل، الرقم، النص" label="بحث في المراسلات" />
-          <FilterSelect label="النوع" all="كل الأنواع" value={kind} onChange={setKind} options={[...LETTER_KINDS]} />
-        </div>
-        {list.length === 0 ? (
-          <Empty icon={<Mails />} title="لا مراسلات" text="تصل هنا رسائل الإداريين إلى الإدارة." />
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {list.map((l) => {
-              const st = letterState(l);
-              return (
-                <li key={l.id}>
-                  <button type="button" onClick={() => setOpen(l.id)} className={cn("flex w-full flex-wrap items-start gap-3 rounded-2xl p-3 text-right ring-1 transition hover:ring-gold/50", st === "unread" ? "bg-white/[.09] ring-gold/40" : "bg-white/5 ring-white/10")}>
-                    <span className="min-w-0 flex-1">
-                      <span className={cn("block text-white", st === "unread" ? "font-bold" : "font-semibold")}>{l.subject}</span>
-                      <span className="block text-xs text-white/60">
-                        {l.adminName} · {l.kind} · {l.number} · {fmtDateTime(lastAt(l))}
-                        {l.messages.some((m) => m.file) && (
-                          <>
-                            {" "}
-                            · <Paperclip className="inline size-3" /> مرفق
-                          </>
-                        )}
-                      </span>
-                    </span>
-                    <Chip tone={LETTER_STATE[st].tone}>{LETTER_STATE[st].label}</Chip>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Panel>
+      <ListTable head={["الموضوع", "المرسل", "النوع", "آخر نشاط", "الحالة"]}>
+        {list.length === 0 && <EmptyRow cols={5}>{letters.length ? "لا مراسلات بهذا البحث." : "تصل هنا رسائل الإداريين إلى الإدارة."}</EmptyRow>}
+        {list.map((l) => {
+          const st = letterState(l);
+          return (
+            <tr key={l.id} className={cn(st === "unread" && "bg-white/[.05]")}>
+              <TitleCell
+                title={<span className={st === "unread" ? "font-bold" : "font-semibold"}>{l.subject}</span>}
+                onOpen={() => setOpen(l.id)}
+                sub={
+                  <>
+                    {l.number}
+                    {l.messages.some((m) => m.file) && (
+                      <>
+                        {" "}
+                        · <Paperclip className="inline size-3" /> مرفق
+                      </>
+                    )}
+                  </>
+                }
+                actions={
+                  <RowActions>
+                    <RowLink onClick={() => setOpen(l.id)}>{l.closed ? "فتح" : "قراءة والرد"}</RowLink>
+                    <RowLink onClick={() => close(l, !l.closed)}>{l.closed ? "إعادة فتحها" : "إغلاق"}</RowLink>
+                  </RowActions>
+                }
+              />
+              <td className="p-3 align-top text-white/80">{l.adminName}</td>
+              <td className="p-3 align-top text-white/80">{l.kind}</td>
+              <td className="whitespace-nowrap p-3 align-top text-xs text-white/60">{fmtDateTime(lastAt(l))}</td>
+              <td className="p-3 align-top">
+                <Tag tone={LETTER_STATE[st].tone}>{LETTER_STATE[st].label}</Tag>
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
       <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet ? `${sheet.number} — ${sheet.subject}` : ""}>
         {sheet && <Thread l={sheet} />}
       </Drawer>
-      <SystemRecords system="admins" area="letters" title="سجل المراسلات" />
+      <RecordsBox system="admins" area="letters" title="سجل المراسلات" />
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { logPilgrim, useNow, type StepProps } from "./shared";
 const PER_MEMBER = 1300;
 const LEAD = 2600;
 
-export function StepVisa({ app, sessionId }: StepProps) {
+export function StepVisa({ app, sessionId, stepLabel }: StepProps) {
   const toast = useToast();
   const now = useNow(150);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -49,7 +49,7 @@ export function StepVisa({ app, sessionId }: StepProps) {
 
   return (
     <Question
-      step="الخطوة 7 من 7"
+      step={stepLabel ?? "الخطوة 7 من 7"}
       title="التأشيرة والرحلة"
       hint="بعد التسديد يرسل المكتب قوائمكم، فتصدر التأشيرات ثم تُحدَّد الرحلات والفنادق والمخيمات وبطاقات الحج."
       speak="التأشيرة والرحلة. اضغط الزر لمتابعة حالة التأشيرة لكل فرد."

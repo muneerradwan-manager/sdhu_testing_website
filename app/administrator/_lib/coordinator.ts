@@ -14,8 +14,11 @@ import { firstPayment, planLabel, seasonPlan, type Plan } from "@/lib/installmen
 import { applicationNumberFor } from "@/lib/journey";
 import { fullName, getPerson, type Person } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
-import { actions, type Application } from "@/lib/store";
+import { actions, getState, type Application } from "@/lib/store";
 import { officeFor } from "@/lib/season";
+import { ACTIVE_SEASON } from "@/lib/registration/defaults";
+import { liveVersion, nowKey, regOf } from "@/lib/registration/engine";
+import { policyFor } from "@/lib/registration/service";
 import { POSITIONS, TECH_POSTING } from "./admin";
 
 /** لماذا لا يمكن تسجيل هذا المواطن */
@@ -89,8 +92,13 @@ export function fileApplication(opts: {
   /** لحظة التقديم — تُمرَّر من معالج الحدث */
   at: number;
 }): FiledApplication {
-  const { citizen, phone, members, payMethod, feePerPerson, track, plan, coordinator, at } = opts;
-  const first = track === "direct" && plan ? firstPayment(plan, members.length) : 0;
+  const { citizen, phone, members, payMethod, feePerPerson, track, coordinator, at } = opts;
+  // The season's terms in force and the published registration version: frozen on the application, as online
+  const state = getState();
+  const version = liveVersion(regOf(state), ACTIVE_SEASON, nowKey(state.clock, new Date(at)));
+  const policy = policyFor(state, version);
+  const plan = opts.plan ? policy.fees.installmentCount : undefined;
+  const first = track === "direct" && plan ? firstPayment(plan, members.length, policy.fees) : 0;
   const posting = coordinatorPosting();
   const applicant = members.find((m) => m.relation === "self")?.person ?? citizen;
   const number = applicationNumberFor(citizen.id);
@@ -121,6 +129,9 @@ export function fileApplication(opts: {
     payMethod,
     ratings: {},
     submittedBy: { id: coordinator.id, name: coordinator.name, position: coordinator.position },
+    season: ACTIVE_SEASON,
+    configVersion: version.id,
+    policy,
   });
 
   actions.logEvent({
@@ -128,7 +139,7 @@ export function fileApplication(opts: {
     role: coordinator.role ?? `إداري — ${positionLabel(coordinator.position)}`,
     action: "تسجيل طلب حج عن مواطن",
     target: `طلب ${number} — ${fullName(applicant)}`,
-    detail: `${members.length} أفراد — ${track === "direct" ? `القبول المباشر — رسم التسجيل + الدفعة الأولى (${planLabel(plan ?? seasonPlan())})` : "القرعة — رسم التسجيل"} — بموافقة المواطن برمز تحقق — ${posting.office} — لا يضعه في أي مجموعة — الإيصال ${receipt}`,
+    detail: `${members.length} أفراد — ${track === "direct" ? `القبول المباشر — رسم التسجيل + الدفعة الأولى (${planLabel(plan ?? seasonPlan(policy.fees), policy.fees)})` : "القرعة — رسم التسجيل"} — بموافقة المواطن برمز تحقق — ${posting.office} — لا يضعه في أي مجموعة — الإيصال ${receipt}`,
   });
 
   return { number, receipt };

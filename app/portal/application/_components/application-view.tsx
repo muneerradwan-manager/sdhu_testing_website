@@ -52,7 +52,9 @@ import { groupInfo } from "@/lib/assignment";
 import { groupName } from "@/lib/groups";
 import { FamilyDocuments } from "./documents";
 import { PostChecklist } from "./post/checklist";
-import { EMPTY_POST, RESET_POST, STEPS, clearJoinDecisions, costLines, paidAt, stepsDone, useRoomCost } from "./post/model";
+import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, paidAt, stepsDone, useRoomCost } from "./post/model";
+import { usePinnedVersion } from "@/lib/registration/client";
+import { postStepsOf } from "@/lib/registration/engine";
 import { ReviewBanner } from "./review-banner";
 import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageNotAccepted, StageSubmitted } from "./stages";
 import { PilgrimLocked, PilgrimShell } from "../../_components/pilgrim-shell";
@@ -400,7 +402,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
             </section>
             )}
 
-            {view === "visa" && <VisaPanel app={app} post={post} done={stepsDone(post, app, lines)} />}
+            {view === "visa" && <VisaPanel app={app} post={post} lines={lines} />}
 
             {view === "hotels" && post.groupApprovedAt && (
               <p className="flex items-start gap-2 rounded-2xl bg-white p-4 text-sm leading-7 text-ink-soft ring-1 ring-gold/30">
@@ -746,8 +748,11 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
  * The visa: once issued, one for every member of the application; until then, the steps it waits for — the
  * passport (after the second payment) and the medical file among them.
  */
-function VisaPanel({ app, post, done }: { app: Application; post: PostAcceptance; done: Record<string, boolean> }) {
-  const before = STEPS.filter((st) => st.key !== "visa");
+function VisaPanel({ app, post, lines }: { app: Application; post: PostAcceptance; lines: ReturnType<typeof costLines> }) {
+  // The steps before the visa, as the application's version sets them
+  const steps = postStepsOf(usePinnedVersion(app.configVersion, app.season).config);
+  const done = stepsDone(post, app, lines, steps);
+  const before = steps.filter((st) => st.system !== "visa");
   return (
     <div className="space-y-6">
       {post.visaAt ? (
@@ -766,8 +771,8 @@ function VisaPanel({ app, post, done }: { app: Application; post: PostAcceptance
           <p className="mt-2 leading-8 text-ink-soft">تُطلب التأشيرة لأفراد طلبكم كلهم بعد اكتمال هذه الخطوات، وتظهر هنا حين تصدر.</p>
           <ul className="mt-5 grid gap-2 md:grid-cols-2">
             {before.map((st) => (
-              <li key={st.key} className={cn("flex items-center gap-3 rounded-2xl p-3 text-sm font-bold", done[st.key] ? "bg-green-light/10 text-green" : "bg-sand text-ink-soft")}>
-                <span className="text-lg">{done[st.key] ? "✓" : st.emoji}</span> {st.title}
+              <li key={st.id} className={cn("flex items-center gap-3 rounded-2xl p-3 text-sm font-bold", done[st.id] ? "bg-green-light/10 text-green" : "bg-sand text-ink-soft")}>
+                <span className="text-lg">{done[st.id] ? "✓" : st.emoji}</span> {st.title}
               </li>
             ))}
           </ul>

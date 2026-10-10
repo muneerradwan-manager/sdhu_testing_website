@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
-import { Check, Lock, PlaneLanding, PlaneTakeoff, Search, TowerControl, UserX } from "lucide-react";
+import { Lock, PlaneLanding, PlaneTakeoff, Search, TowerControl, UserX } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -23,48 +22,49 @@ import {
 } from "@/lib/flights";
 import { groupName } from "@/lib/groups";
 import { cn, formatNumber } from "@/lib/utils";
-import { Empty, fmtDateTime, Kpi, PageHeader, Panel, useStaffUser } from "../_components/kit";
+import { Empty, fmtDateTime, PageHeader, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
+import { Box, EmptyRow, ListTable, Tag } from "../_components/wp";
+import { Segments } from "../exam/_components/ui";
 import { StatusChip } from "../flights/shared";
 
 /**
  * «رحلات مطاري»: the page of an airport's representative. The flights system's owner assigns him an
- * airport, and the page appears in his menu whatever his permissions. He records the take-off of every
- * flight leaving it — who boarded, who did not (each no-show opens a transport ticket) — and the landing
- * of every flight arriving at it. Nothing else of the flights opens to him.
+ * airport, and the page appears in his menu whatever his permissions. One list of the flights leaving it and
+ * arriving at it — filtered by what waits for him, beside its counts — where he records each take-off (who
+ * boarded, who did not: each no-show opens a transport ticket) and each landing. Nothing else opens to him.
  */
+type Show = "all" | "waiting" | "departures" | "arrivals";
+type Row = { f: Flight; kind: "departure" | "arrival"; when: number };
+
 export function AirportView() {
   const user = useStaffUser()!;
   const { airportsOf } = useAirportReps();
   const mine = airportsOf(user.id);
   const data = useFlightsData();
   const [picked, setPicked] = useState<string | null>(null);
-  const airportId = picked && mine.includes(picked) ? picked : mine[0];
-  const airport = airportOf(data, airportId);
+  const [show, setShow] = useState<Show>("all");
+  const airport = airportOf(data, picked && mine.includes(picked) ? picked : mine[0]);
 
   if (!airport) {
     return (
       <div>
         <PageHeader eyebrow="الطيران" title="رحلات مطاري" icon={<TowerControl />} description="تظهر هذه الصفحة لمن يسنده صاحب صلاحية «إدارة الطيران» مندوباً لمطار." />
-        <Empty icon={<Lock />} title="لست مندوب مطار" text="يسند صاحب صلاحية «إدارة الطيران» مندوبي المطارات من «إدارة الطيران» ← «المطارات والناقلون»." />
+        <Empty icon={<Lock />} title="لست مندوب مطار" text="يسند صاحب صلاحية «إدارة الطيران» مندوبي المطارات من «إدارة الطيران»، في قائمة المطارات." />
       </div>
     );
   }
 
   const shown = (f: Flight) => !["draft", "cancelled"].includes(f.status);
-  const departures = data.flights.filter((f) => f.fromId === airport.id && shown(f)).sort((a, b) => a.departAt - b.departAt);
-  const arrivals = data.flights.filter((f) => (f.divertedToId ?? f.toId) === airport.id && shown(f)).sort((a, b) => a.arriveAt - b.arriveAt);
-  const toDepart = departures.filter((f) => f.status === "locked").length;
-  const toLand = arrivals.filter((f) => f.status === "departed").length;
+  const departures: Row[] = data.flights.filter((f) => f.fromId === airport.id && shown(f)).map((f) => ({ f, kind: "departure", when: f.departAt }));
+  const arrivals: Row[] = data.flights.filter((f) => (f.divertedToId ?? f.toId) === airport.id && shown(f)).map((f) => ({ f, kind: "arrival", when: f.arriveAt }));
+  const waits = (r: Row) => (r.kind === "departure" ? r.f.status === "locked" : r.f.status === "departed");
+  const all = [...departures, ...arrivals].sort((a, b) => a.when - b.when);
+  const rows = all.filter((r) => (show === "waiting" ? waits(r) : show === "departures" ? r.kind === "departure" : show === "arrivals" ? r.kind === "arrival" : true));
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={`مندوب ${airport.name}`}
-        title="رحلات مطاري"
-        icon={<TowerControl />}
-        description={`تسجّل هنا إقلاع كل رحلة تغادر ${airport.city}: من صعد ومن تخلّف — ولكل متخلف تُفتح تذكرة نقل ليُسند إلى رحلة أخرى — وهبوط كل رحلة تصل إليها. يُقفل مسؤول الطيران الرحلة ويصدر كشفها قبل الإقلاع.`}
-      />
+    <div className="space-y-5">
+      <PageHeader eyebrow={`مندوب ${airport.name}`} title="رحلات مطاري" icon={<TowerControl />} description={`تسجّل هنا إقلاع الرحلات من ${airport.city} ومن تخلّف عنها، وهبوط الرحلات فيها.`} />
       {mine.length > 1 && (
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="المطار">
           {mine.map((id) => (
@@ -75,19 +75,30 @@ export function AirportView() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="تغادر من مطارك" value={departures.length} icon={<PlaneTakeoff />} hint={`أقلع منها ${departures.filter((f) => f.status === "departed" || f.status === "arrived").length}`} />
-        <Kpi label="بانتظار تسجيل الإقلاع" value={toDepart} icon={<Check />} tone="gold" delay={0.05} pulse={toDepart > 0} hint="مقفلة وكشفها صادر" />
-        <Kpi label="تصل إلى مطارك" value={arrivals.length} icon={<PlaneLanding />} tone="teal" delay={0.1} hint={`هبط منها ${arrivals.filter((f) => f.status === "arrived").length}`} />
-        <Kpi label="في الجو إليك الآن" value={toLand} icon={<PlaneLanding />} tone="maroon" delay={0.15} pulse={toLand > 0} hint="سجّل هبوطها حين تصل" />
-      </div>
+      <Segments<Show>
+        value={show}
+        onChange={setShow}
+        label="الرحلات"
+        items={[
+          { value: "all", label: "الكل", count: all.length },
+          { value: "waiting", label: "بانتظار تسجيلك", count: all.filter(waits).length, tone: "maroon" },
+          { value: "departures", label: `المغادرة من ${airport.city}`, count: departures.length },
+          { value: "arrivals", label: `الوصول إلى ${airport.city}`, count: arrivals.length },
+        ]}
+      />
 
-      <Panel icon={<PlaneTakeoff />} title={`المغادرة من ${airport.city}`} bodyClass="space-y-2">
-        {departures.length === 0 ? <Empty icon={<PlaneTakeoff />} title="لا رحلات تغادر من مطارك" /> : departures.map((f) => <FlightRow key={f.id} f={f} kind="departure" />)}
-      </Panel>
-      <Panel icon={<PlaneLanding />} title={`الوصول إلى ${airport.city}`} bodyClass="space-y-2">
-        {arrivals.length === 0 ? <Empty icon={<PlaneLanding />} title="لا رحلات تصل إلى مطارك" /> : arrivals.map((f) => <FlightRow key={f.id} f={f} kind="arrival" />)}
-      </Panel>
+      <ListTable head={["الرحلة", "الموعد", "المسافرون", "الحالة", ""]} minWidth="46rem">
+        {rows.map((r) => (
+          <FlightRow key={`${r.kind}-${r.f.id}`} f={r.f} kind={r.kind} />
+        ))}
+        {rows.length === 0 && <EmptyRow cols={5}>{show === "waiting" ? "لا شيء بانتظارك الآن." : "لا رحلات هنا."}</EmptyRow>}
+      </ListTable>
+
+      <Box title="كيف تعمل؟" open={false}>
+        <p>يُقفل مسؤول الطيران الرحلة ويصدر كشف ركابها قبل الإقلاع، فيظهر لك زر «تسجيل الإقلاع».</p>
+        <p>عند الإقلاع: الجميع صعدوا ما لم تعلّم أحداً. من تعلّمه يُسجَّل «تخلّف» وتُفتح له تذكرة نقل ليُسند إلى رحلة أخرى.</p>
+        <p>عند الوصول: «تسجيل الهبوط» ثم «تأكيد الهبوط»، فتتقدم حالة المسافرين إلى «وصل».</p>
+      </Box>
     </div>
   );
 }
@@ -105,66 +116,81 @@ function FlightRow({ f, kind }: { f: Flight; kind: "departure" | "arrival" }) {
   const when = kind === "departure" ? f.departAt : f.arriveAt;
 
   return (
-    <motion.div layout className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-      <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", kind === "departure" ? "bg-green-light/20 text-green-light" : "bg-gold/20 text-gold")}>{kind === "departure" ? <PlaneTakeoff className="size-5" /> : <PlaneLanding className="size-5" />}</span>
-      <div className="min-w-0 flex-1 basis-60">
+    <tr className="align-top">
+      <td className="p-3">
         <p className="flex flex-wrap items-center gap-2 font-bold text-white">
+          <span className={cn("grid size-8 shrink-0 place-items-center rounded-xl", kind === "departure" ? "bg-green-light/20 text-green-light" : "bg-gold/20 text-gold")} aria-hidden>
+            {kind === "departure" ? <PlaneTakeoff className="size-4" /> : <PlaneLanding className="size-4" />}
+          </span>
           <span className="font-mono" dir="ltr">
             {f.flightNo}
           </span>
-          <span className="text-sm font-normal text-white/70">{routeLabel(data, f)}</span>
-          <StatusChip f={f} />
+          <Tag tone={kind === "departure" ? "green" : "gold"}>{kind === "departure" ? "مغادرة" : "وصول"}</Tag>
         </p>
-        <p className="text-xs text-white/65">
-          {fmtHijriShort(when)} ({fmtGregShort(when)}) — {kind === "departure" ? "المغادرة" : "الوصول"} {fmtClock(when)} · {carrierOf(data, f.carrierId)?.name} · {formatNumber(seated.length)} مسافراً
+        <p className="mt-1 text-xs text-white/65">
+          {routeLabel(data, f)} · {carrierOf(data, f.carrierId)?.name}
           {kind === "departure" && f.gate ? ` · ${f.gate}` : ""}
         </p>
-      </div>
-      {kind === "departure" ? (
-        f.status === "locked" ? (
-          <Button size="sm" variant="gold" onClick={() => setDeparting(true)}>
-            <PlaneTakeoff className="size-4" /> تسجيل الإقلاع
-          </Button>
-        ) : f.status === "departed" || f.status === "arrived" ? (
-          <Chip tone="green">
-            أقلعت {f.departedAt ? fmtDateTime(f.departedAt) : ""} — صعد {boarded}
-            {noShow ? `، تخلّف ${noShow}` : ""}
-          </Chip>
-        ) : f.status === "postponed" ? (
-          <Chip tone="maroon">مؤجلة: {f.postponeReason}</Chip>
-        ) : (
-          <span className="text-xs text-white/60">بانتظار إقفالها وإصدار كشفها من مسؤول الطيران</span>
-        )
-      ) : f.status === "departed" ? (
-        landing ? (
-          <span className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="gold"
-              onClick={() => {
-                const r = flightsActions.arrive(f.id, actor);
-                toast(r.ok ? { title: `سُجّل هبوط ${f.flightNo}`, body: "تقدمت حالة مسافريها إلى «وصل».", tone: "success", icon: "🛬" } : { title: "لم يُنفَّذ", body: r.error, tone: "warning", icon: "⚠️" });
-                setLanding(false);
-              }}
-            >
-              تأكيد الهبوط
+      </td>
+      <td className="p-3 text-white/85">
+        <span className="block">
+          {fmtHijriShort(when)} ({fmtGregShort(when)})
+        </span>
+        <span className="block text-xs text-white/60">
+          {kind === "departure" ? "المغادرة" : "الوصول"} {fmtClock(when)}
+        </span>
+      </td>
+      <td className="p-3 tabular-nums text-white/85">{formatNumber(seated.length)}</td>
+      <td className="p-3">
+        <StatusChip f={f} />
+      </td>
+      <td className="p-3">
+        {kind === "departure" ? (
+          f.status === "locked" ? (
+            <Button size="sm" variant="gold" onClick={() => setDeparting(true)}>
+              <PlaneTakeoff className="size-4" /> تسجيل الإقلاع
             </Button>
-            <Button size="sm" variant="ghost" className="text-white" onClick={() => setLanding(false)}>
-              تراجع
+          ) : f.status === "departed" || f.status === "arrived" ? (
+            <Chip tone="green">
+              أقلعت {f.departedAt ? fmtDateTime(f.departedAt) : ""} — صعد {boarded}
+              {noShow ? `، تخلّف ${noShow}` : ""}
+            </Chip>
+          ) : f.status === "postponed" ? (
+            <Chip tone="maroon">مؤجلة: {f.postponeReason}</Chip>
+          ) : (
+            <span className="text-xs text-white/60">بانتظار إقفالها وإصدار كشفها من مسؤول الطيران</span>
+          )
+        ) : f.status === "departed" ? (
+          landing ? (
+            <span className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="gold"
+                onClick={() => {
+                  const r = flightsActions.arrive(f.id, actor);
+                  toast(r.ok ? { title: `سُجّل هبوط ${f.flightNo}`, body: "تقدمت حالة مسافريها إلى «وصل».", tone: "success", icon: "🛬" } : { title: "لم يُنفَّذ", body: r.error, tone: "warning", icon: "⚠️" });
+                  setLanding(false);
+                }}
+              >
+                تأكيد الهبوط
+              </Button>
+              <Button size="sm" variant="ghost" className="text-white" onClick={() => setLanding(false)}>
+                تراجع
+              </Button>
+            </span>
+          ) : (
+            <Button size="sm" variant="gold" onClick={() => setLanding(true)}>
+              <PlaneLanding className="size-4" /> تسجيل الهبوط
             </Button>
-          </span>
+          )
+        ) : f.status === "arrived" ? (
+          <Chip tone="green">هبطت {f.arrivedAt ? fmtDateTime(f.arrivedAt) : ""}</Chip>
         ) : (
-          <Button size="sm" variant="gold" onClick={() => setLanding(true)}>
-            <PlaneLanding className="size-4" /> تسجيل الهبوط
-          </Button>
-        )
-      ) : f.status === "arrived" ? (
-        <Chip tone="green">هبطت {f.arrivedAt ? fmtDateTime(f.arrivedAt) : ""}</Chip>
-      ) : (
-        <span className="text-xs text-white/60">لم تقلع بعد</span>
-      )}
-      {departing && <DepartDialog f={f} actor={actor} onClose={() => setDeparting(false)} />}
-    </motion.div>
+          <span className="text-xs text-white/60">لم تقلع بعد</span>
+        )}
+        {departing && <DepartDialog f={f} actor={actor} onClose={() => setDeparting(false)} />}
+      </td>
+    </tr>
   );
 }
 

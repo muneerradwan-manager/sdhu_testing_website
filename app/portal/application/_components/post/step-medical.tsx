@@ -21,7 +21,7 @@ const REVIEW_MS = 3500;
  * جزآن: المعلومات الصحية التي يسجّلها منسق المجموعة (ويؤكدها الحاج)، والوثائق الطبية التي يرفعها
  * الحاج لكل فرد وفق القائمة التي تحددها الإدارة، ويراجعها الفريق الطبي.
  */
-export function StepMedical({ app, post, sessionId }: StepProps) {
+export function StepMedical({ app, post, sessionId, stepLabel }: StepProps) {
   const toast = useToast();
   const info = groupInfo(post.clusterId, post.groupNumber);
   const coordinator = coordinatorOf(info);
@@ -47,12 +47,13 @@ export function StepMedical({ app, post, sessionId }: StepProps) {
   };
 
   const allKeys = app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => medicalKey(m, d)));
-  const missing = allKeys.filter((k) => !medical[k]);
+  // A document the medical team sent back is uploaded again
+  const missing = allKeys.filter((k) => !medical[k] || medical[k] === "rejected");
   const reviewing = allKeys.some((k) => medical[k] === "uploaded");
 
   return (
     <Question
-      step="الخطوة 6 من 7"
+      step={stepLabel ?? "الخطوة 6 من 7"}
       title="الملف الطبي"
       hint="انضممت إلى مجموعة ودفعت ما استحق عندها، فحان وقت الوثائق الطبية — ولم يُطلب أي منها قبل ذلك. ترفع شهادات اللقاحات والوثائق التي تطلبها الإدارة لكل فرد، ويسجّل منسق مجموعتك المعلومات الصحية."
       speak="اكتمل الدفع. الآن الملف الطبي: يسجّل منسق مجموعتك المعلومات الصحية، وترفع الوثائق الطبية لكل فرد."
@@ -172,7 +173,7 @@ export function StepMedical({ app, post, sessionId }: StepProps) {
                     <li key={d.key} className={cn("flex items-center gap-3 rounded-xl border-2 bg-white p-3", s === "approved" ? "border-green-light/50" : s === "uploaded" ? "border-gold-dark/50" : "border-dashed border-gold/60")}>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold">{d.label}</p>
-                        <p className="text-xs text-ink-soft">{s === "approved" ? "✓ معتمد — د. ليلى شمس" : s === "uploaded" ? "الفريق الطبي يراجع الوثيقة..." : d.hint}</p>
+                        <p className={cn("text-xs", s === "rejected" ? "font-bold text-maroon" : "text-ink-soft")}>{s === "approved" ? "✓ معتمد — الفريق الطبي" : s === "uploaded" ? "الفريق الطبي يراجع الوثيقة..." : s === "rejected" ? `أعادها الفريق الطبي: ${post.medicalNotes?.[k] ?? "ارفعها مرة أخرى"}` : d.hint}</p>
                       </div>
                       {s === "approved" ? (
                         <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}>
@@ -182,7 +183,7 @@ export function StepMedical({ app, post, sessionId }: StepProps) {
                         <Loader2 className="size-6 animate-spin text-gold-dark" />
                       ) : (
                         <Button size="sm" onClick={() => upload([k])}>
-                          رفع
+                          {s === "rejected" ? "رفع من جديد" : "رفع"}
                         </Button>
                       )}
                     </li>

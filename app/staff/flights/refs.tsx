@@ -1,159 +1,200 @@
 "use client";
 
-import { Archive, ArchiveRestore, Building2, Plane, Plus, Save, UserRoundCheck } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Building2, Plus, Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Modal, useToast } from "@/components/ui/widgets";
-import { flightsActions, newFlightId, useAirportReps, type Airport, type Carrier, type FlightsData } from "@/lib/flights";
+import { useToast } from "@/components/ui/widgets";
+import { flightsActions, newFlightId, useAirportReps, useFlightsData, type Airport, type Carrier } from "@/lib/flights";
 import { getStaff, STAFF } from "@/lib/staff";
-import { Panel, logAs, useStaffUser } from "../_components/kit";
-import { Chip } from "../_components/ops-ui";
+import { cn } from "@/lib/utils";
+import { Drawer, logAs, useStaffUser } from "../_components/kit";
+import { Field, fieldClass, selectClass } from "../_components/ops-ui";
+import { OperationHeader } from "../_components/system";
+import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../_components/wp";
+import { Segments } from "../exam/_components/ui";
 
-const INPUT = "h-11 w-full rounded-2xl border-2 border-gold/40 bg-white px-3 text-base text-ink outline-none transition focus:border-green-dark";
+const AIRPORTS = "/staff/flights/manage";
+const CARRIERS = "/staff/flights/manage/carriers";
 
-/** Airports and carriers: the two reference lists the flights choose from */
-export function FlightRefs({ data, canEdit }: { data: FlightsData; canEdit: boolean }) {
+/** What the flights are built from, in two lists: the airports (with who represents each) and the carriers */
+function RefsSwitch() {
+  const path = usePathname().replace(/\/+$/, "");
+  const data = useFlightsData();
+  const items = [
+    { href: AIRPORTS, label: "المطارات ومندوبوها", n: data.airports.filter((a) => !a.archived).length },
+    { href: CARRIERS, label: "الناقلون الجويون", n: data.carriers.filter((c) => !c.archived).length },
+  ];
+  return (
+    <nav aria-label="المطارات والناقلون" className="flex flex-wrap gap-1 rounded-2xl bg-white/[.06] p-1 ring-1 ring-white/10 sm:w-fit">
+      {items.map((x) => (
+        <Link key={x.href} href={x.href} aria-current={path === x.href ? "page" : undefined} className={cn("rounded-xl px-4 py-2 text-sm font-bold transition", path === x.href ? "bg-gold text-ink" : "text-white/80 hover:text-white")}>
+          {x.label} <span className="tabular-nums opacity-70">({x.n})</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+// ───────────────────────── Airports ─────────────────────────
+
+type AirportFilter = "all" | "norep" | "archived";
+
+/**
+ * «المطارات ومندوبوها»: every airport in a list — its representative beside it — opening in one side sheet
+ * where its details and its representative are saved together. The representative records, from «رحلات مطاري»,
+ * the take-offs from his airport and the landings at it; the assignment gives him that page and nothing else.
+ */
+export function AirportsPage() {
+  const data = useFlightsData();
   const user = useStaffUser()!;
   const toast = useToast();
-  const [airport, setAirport] = useState<Partial<Airport> | null>(null);
-  const [carrier, setCarrier] = useState<Partial<Carrier> | null>(null);
-  const used = (airportId: string) => data.flights.some((f) => f.fromId === airportId || f.toId === airportId || f.divertedToId === airportId);
-  const usedCarrier = (id: string) => data.flights.some((f) => f.carrierId === id);
+  const { reps } = useAirportReps();
+  const params = useSearchParams();
+  const [filter, setFilter] = useState<AirportFilter>(() => (params.get("filter") === "norep" ? "norep" : "all"));
+  const [editing, setEditing] = useState<Partial<Airport> | null>(null);
+  const live = data.flights.filter((f) => !["draft", "cancelled"].includes(f.status));
+  const used = (id: string) => data.flights.some((f) => f.fromId === id || f.toId === id || f.divertedToId === id);
+  const dep = (id: string) => live.filter((f) => f.fromId === id).length;
+  const arr = (id: string) => live.filter((f) => (f.divertedToId ?? f.toId) === id).length;
+  const noRep = (a: Airport) => !a.archived && !reps[a.id] && dep(a.id) + arr(a.id) > 0;
+  const rows = data.airports.filter((a) => (filter === "archived" ? a.archived : filter === "norep" ? noRep(a) : !a.archived));
 
-  const saveAirport = () => {
-    if (!airport?.code || !airport.name || !airport.city) return;
-    const a: Airport = { id: airport.id ?? newFlightId("ap"), code: airport.code.toUpperCase().trim(), name: airport.name.trim(), city: airport.city.trim(), country: (airport.country ?? "").trim(), archived: airport.archived };
-    flightsActions.saveAirport(a);
-    logAs(user, { action: airport.id ? "تعديل مطار" : "إضافة مطار", target: `${a.city} (${a.code})`, system: "flights", area: "refs", ref: a.id });
-    toast({ title: airport.id ? "حُفظ المطار" : "أُضيف المطار", body: a.name, tone: "success", icon: "✈️" });
-    setAirport(null);
-  };
-  const saveCarrier = () => {
-    if (!carrier?.code || !carrier.name) return;
-    const c: Carrier = { id: carrier.id ?? newFlightId("ca"), code: carrier.code.toUpperCase().trim(), name: carrier.name.trim(), phone: carrier.phone?.trim() || undefined, archived: carrier.archived };
-    flightsActions.saveCarrier(c);
-    logAs(user, { action: carrier.id ? "تعديل ناقل جوي" : "إضافة ناقل جوي", target: `${c.name} (${c.code})`, system: "flights", area: "refs", ref: c.id });
-    toast({ title: carrier.id ? "حُفظ الناقل" : "أُضيف الناقل", body: c.name, tone: "success", icon: "✈️" });
-    setCarrier(null);
-  };
-  const toggleAirport = (a: Airport) => {
+  const toggle = (a: Airport) => {
     if (!a.archived && used(a.id)) return toast({ title: "المطار مستعمل في رحلة", body: "لا يُؤرشف مطار عليه رحلات هذا الموسم.", tone: "warning", icon: "⚠️" });
     flightsActions.saveAirport({ ...a, archived: !a.archived });
     logAs(user, { action: a.archived ? "استعادة مطار" : "أرشفة مطار", target: `${a.city} (${a.code})`, system: "flights", area: "refs", ref: a.id });
   };
-  const toggleCarrier = (c: Carrier) => {
-    if (!c.archived && usedCarrier(c.id)) return toast({ title: "الناقل مستعمل في رحلة", tone: "warning", icon: "⚠️" });
-    flightsActions.saveCarrier({ ...c, archived: !c.archived });
-    logAs(user, { action: c.archived ? "استعادة ناقل" : "أرشفة ناقل", target: c.name, system: "flights", area: "refs", ref: c.id });
-  };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Panel title="المطارات" icon={<Building2 />} action={canEdit && <Button size="sm" variant="gold" onClick={() => setAirport({ country: "سوريا" })}><Plus className="size-4" /> مطار</Button>}>
-        <ul className="divide-y divide-white/10">
-          {data.airports.map((a) => (
-            <li key={a.id} className="flex items-center gap-3 py-2.5">
-              <span className="w-14 shrink-0 rounded-lg bg-white/10 px-2 py-0.5 text-center font-mono text-sm font-bold text-gold" dir="ltr">{a.code}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold text-white">{a.city} <span className="font-normal text-white/60">— {a.country}</span></span>
-                <span className="block truncate text-xs text-white/60">{a.name}</span>
-              </span>
-              {a.archived ? <Chip tone="muted">مؤرشف</Chip> : used(a.id) ? <Chip tone="green">مستعمل</Chip> : null}
-              {canEdit && (
-                <span className="flex gap-1">
-                  <button type="button" className="rounded-lg px-2 py-1 text-xs font-bold text-gold hover:bg-white/10" onClick={() => setAirport(a)}>تعديل</button>
-                  <button type="button" className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label={a.archived ? "استعادة" : "أرشفة"} onClick={() => toggleAirport(a)}>{a.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}</button>
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </Panel>
-      <Panel title="الناقلون الجويون" icon={<Plane />} action={canEdit && <Button size="sm" variant="gold" onClick={() => setCarrier({})}><Plus className="size-4" /> ناقل</Button>}>
-        <ul className="divide-y divide-white/10">
-          {data.carriers.map((c) => (
-            <li key={c.id} className="flex items-center gap-3 py-2.5">
-              <span className="w-14 shrink-0 rounded-lg bg-white/10 px-2 py-0.5 text-center font-mono text-sm font-bold text-gold" dir="ltr">{c.code}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold text-white">{c.name}</span>
-                <span className="block truncate text-xs text-white/60" dir="ltr">{c.phone ?? ""}</span>
-              </span>
-              {c.archived ? <Chip tone="muted">مؤرشف</Chip> : usedCarrier(c.id) ? <Chip tone="green">{data.flights.filter((f) => f.carrierId === c.id).length} رحلات</Chip> : null}
-              {canEdit && (
-                <span className="flex gap-1">
-                  <button type="button" className="rounded-lg px-2 py-1 text-xs font-bold text-gold hover:bg-white/10" onClick={() => setCarrier(c)}>تعديل</button>
-                  <button type="button" className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label={c.archived ? "استعادة" : "أرشفة"} onClick={() => toggleCarrier(c)}>{c.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}</button>
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </Panel>
+    <div className="space-y-5">
+      <OperationHeader system="flights" icon={<Building2 />} />
+      <RefsSwitch />
+      <Title
+        action={
+          <AddButton onClick={() => setEditing({ country: "سوريا" })}>
+            <Plus className="size-4" /> إضافة مطار
+          </AddButton>
+        }
+      />
+      <Segments<AirportFilter>
+        value={filter}
+        onChange={setFilter}
+        label="تصفية المطارات"
+        items={[
+          { value: "all", label: "الكل", count: data.airports.filter((a) => !a.archived).length },
+          { value: "norep", label: "عليها رحلات بلا مندوب", count: data.airports.filter(noRep).length, tone: "maroon" },
+          { value: "archived", label: "مؤرشفة", count: data.airports.filter((a) => a.archived).length },
+        ]}
+      />
+      <ListTable head={["المطار", "الدولة", "المندوب", "رحلات الموسم", "الحالة"]}>
+        {rows.map((a) => {
+          const rep = reps[a.id] ? getStaff(reps[a.id]) : null;
+          return (
+            <tr key={a.id} className={cn("align-top", a.archived && "opacity-60")}>
+              <td className="p-3">
+                <button type="button" onClick={() => setEditing(a)} className="flex items-center gap-2 text-right font-bold text-white hover:text-gold">
+                  <span className="rounded-lg bg-white/10 px-2 py-0.5 font-mono text-xs text-gold" dir="ltr">
+                    {a.code}
+                  </span>
+                  {a.city}
+                </button>
+                <span className="block text-xs text-white/55">{a.name}</span>
+                <RowActions>
+                  <RowLink onClick={() => setEditing(a)}>تعديل</RowLink>
+                  {!a.archived && <RowLink onClick={() => setEditing(a)}>{rep ? "تغيير المندوب" : "إسناد مندوب"}</RowLink>}
+                  <RowLink danger={!a.archived} onClick={() => toggle(a)}>
+                    {a.archived ? "استعادة" : "أرشفة"}
+                  </RowLink>
+                </RowActions>
+              </td>
+              <td className="p-3 text-white/80">{a.country}</td>
+              <td className="p-3">{rep ? <span className="text-white">{rep.name}</span> : a.archived ? <span className="text-white/40">—</span> : <Tag tone={noRep(a) ? "maroon" : "muted"}>بلا مندوب</Tag>}</td>
+              <td className="p-3 text-white/80">
+                {dep(a.id)} مغادرة · {arr(a.id)} وصول
+              </td>
+              <td className="p-3">{a.archived ? <Tag>مؤرشف</Tag> : used(a.id) ? <Tag tone="green">مستعمل</Tag> : <Tag>غير مستعمل</Tag>}</td>
+            </tr>
+          );
+        })}
+        {rows.length === 0 && <EmptyRow cols={5}>{filter === "norep" ? "لكل مطار عليه رحلات مندوبه." : filter === "archived" ? "لا مطارات مؤرشفة." : "لا مطارات بعد."}</EmptyRow>}
+      </ListTable>
 
-      <Modal open={!!airport} onClose={() => setAirport(null)}>
-        <h2 className="font-display text-xl font-bold text-green-dark">{airport?.id ? "تعديل مطار" : "مطار جديد"}</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="block"><span className="mb-1 block text-xs font-bold text-ink-soft">الرمز (IATA)</span><input className={INPUT} dir="ltr" value={airport?.code ?? ""} onChange={(e) => setAirport({ ...airport, code: e.target.value })} placeholder="DAM" /></label>
-          <label className="block"><span className="mb-1 block text-xs font-bold text-ink-soft">المدينة</span><input className={INPUT} value={airport?.city ?? ""} onChange={(e) => setAirport({ ...airport, city: e.target.value })} /></label>
-          <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-bold text-ink-soft">اسم المطار</span><input className={INPUT} value={airport?.name ?? ""} onChange={(e) => setAirport({ ...airport, name: e.target.value })} /></label>
-          <label className="block"><span className="mb-1 block text-xs font-bold text-ink-soft">الدولة</span><input className={INPUT} value={airport?.country ?? ""} onChange={(e) => setAirport({ ...airport, country: e.target.value })} /></label>
-        </div>
-        <div className="mt-5 flex justify-end gap-2"><Button variant="outline" onClick={() => setAirport(null)}>إلغاء</Button><Button onClick={saveAirport} disabled={!airport?.code || !airport?.name || !airport?.city}><Save className="size-4" /> حفظ</Button></div>
-      </Modal>
-      <Modal open={!!carrier} onClose={() => setCarrier(null)}>
-        <h2 className="font-display text-xl font-bold text-green-dark">{carrier?.id ? "تعديل ناقل" : "ناقل جديد"}</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="block"><span className="mb-1 block text-xs font-bold text-ink-soft">الرمز</span><input className={INPUT} dir="ltr" value={carrier?.code ?? ""} onChange={(e) => setCarrier({ ...carrier, code: e.target.value })} placeholder="RB" /></label>
-          <label className="block"><span className="mb-1 block text-xs font-bold text-ink-soft">الاسم</span><input className={INPUT} value={carrier?.name ?? ""} onChange={(e) => setCarrier({ ...carrier, name: e.target.value })} /></label>
-          <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-bold text-ink-soft">هاتف التنسيق</span><input className={INPUT} dir="ltr" value={carrier?.phone ?? ""} onChange={(e) => setCarrier({ ...carrier, phone: e.target.value })} /></label>
-        </div>
-        <div className="mt-5 flex justify-end gap-2"><Button variant="outline" onClick={() => setCarrier(null)}>إلغاء</Button><Button onClick={saveCarrier} disabled={!carrier?.code || !carrier?.name}><Save className="size-4" /> حفظ</Button></div>
-      </Modal>
+      <Box title="كيف تعمل؟" open={false}>
+        <p>مندوب المطار يسجل إقلاع الرحلات من مطاره ومن صعد ومن تخلّف، وهبوط الرحلات فيه. تظهر له «رحلات مطاري» في قائمته، ولا يمنحه الإسناد شيئاً آخر.</p>
+        <p>مطار بلا مندوب: تسجّل أنت إقلاع رحلاته وهبوطها من صفحة الرحلة. ولا يُؤرشف مطار عليه رحلات هذا الموسم.</p>
+      </Box>
+
+      <RecordsBox system="flights" area="refs" title="سجل المطارات والناقلين" />
+
+      {editing && <AirportSheet key={editing.id ?? "new"} initial={editing} rep={editing.id ? (reps[editing.id] ?? "") : ""} onClose={() => setEditing(null)} />}
     </div>
   );
 }
 
-/**
- * Each airport's representative: an employee the owner assigns, who records from «رحلات مطاري» the
- * take-offs from his airport (who boarded, who did not) and the landings at it. The assignment gives him
- * that page and nothing else; without one, the owner records them himself from the flight's sheet.
- */
-export function AirportReps({ data }: { data: FlightsData }) {
+/** One airport in a side sheet: its details and its representative, saved once */
+function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<Airport>; rep: string; onClose: () => void }) {
   const user = useStaffUser()!;
   const toast = useToast();
-  const { reps } = useAirportReps();
-  const live = data.flights.filter((f) => !["draft", "cancelled"].includes(f.status));
-  const airports = data.airports.filter((a) => !a.archived);
+  const [a, setA] = useState(initial);
+  const [rep, setRep] = useState(initialRep);
+  const valid = !!(a.code && a.name && a.city);
 
-  const assign = (a: Airport, staffId: string) => {
-    const before = getStaff(reps[a.id]);
-    flightsActions.setRep(a.id, staffId);
-    const who = getStaff(staffId);
-    logAs(user, { action: staffId ? "إسناد مندوب مطار" : "إلغاء إسناد مندوب مطار", target: a.name, before: before?.name, after: who?.name ?? "—", system: "flights", area: "refs", ref: a.id });
-    toast({ title: who ? `${who.name} مندوب ${a.city}` : `${a.city} بلا مندوب`, body: who ? "تظهر له «رحلات مطاري» في قائمته." : undefined, tone: "success", icon: "🛫" });
+  const save = () => {
+    if (!valid) return;
+    const saved: Airport = { id: a.id ?? newFlightId("ap"), code: a.code!.toUpperCase().trim(), name: a.name!.trim(), city: a.city!.trim(), country: (a.country ?? "").trim(), archived: a.archived };
+    const changed = !initial.id || (["code", "name", "city", "country"] as const).some((k) => (initial[k] ?? "") !== saved[k]);
+    if (changed) {
+      flightsActions.saveAirport(saved);
+      logAs(user, { action: initial.id ? "تعديل مطار" : "إضافة مطار", target: `${saved.city} (${saved.code})`, system: "flights", area: "refs", ref: saved.id });
+      toast({ title: initial.id ? "حُفظ المطار" : "أُضيف المطار", body: saved.name, tone: "success", icon: "✈️" });
+    }
+    if (rep !== initialRep) {
+      const before = getStaff(initialRep);
+      flightsActions.setRep(saved.id, rep);
+      const who = getStaff(rep);
+      logAs(user, { action: rep ? "إسناد مندوب مطار" : "إلغاء إسناد مندوب مطار", target: saved.name, before: before?.name, after: who?.name ?? "—", system: "flights", area: "refs", ref: saved.id });
+      toast({ title: who ? `${who.name} مندوب ${saved.city}` : `${saved.city} بلا مندوب`, body: who ? "تظهر له «رحلات مطاري» في قائمته." : undefined, tone: "success", icon: "🛫" });
+    }
+    onClose();
   };
 
   return (
-    <Panel title="مندوبو المطارات" icon={<UserRoundCheck />}>
-      <p className="mb-3 text-sm leading-7 text-white/70">
-        مندوب المطار يسجل إقلاع الرحلات من مطاره ومن صعد ومن تخلّف، وهبوط الرحلات فيه. تظهر له «رحلات مطاري» في قائمته، ولا يمنحه الإسناد شيئاً آخر.
-      </p>
-      <ul className="grid gap-2 md:grid-cols-2">
-        {airports.map((a) => {
-          const dep = live.filter((f) => f.fromId === a.id).length;
-          const arr = live.filter((f) => (f.divertedToId ?? f.toId) === a.id).length;
-          const rep = reps[a.id] ?? "";
-          return (
-            <li key={a.id} className={`rounded-2xl p-3 ring-1 ${!rep && dep + arr ? "bg-maroon/15 ring-maroon/40" : "bg-white/[.06] ring-white/10"}`}>
-              <p className="flex items-center justify-between gap-2">
-                <span className="font-bold text-white">
-                  {a.city} <span className="font-mono text-xs text-gold" dir="ltr">{a.code}</span>
-                </span>
-                <span className="text-xs text-white/60">
-                  {dep} مغادرة · {arr} وصول
-                </span>
-              </p>
-              <select value={rep} onChange={(e) => assign(a, e.target.value)} aria-label={`مندوب ${a.name}`} className="mt-2 h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 px-3 text-base text-white outline-none focus:border-gold [&>option]:text-ink">
+    <Drawer
+      open
+      onClose={onClose}
+      title={initial.id ? `تعديل مطار ${initial.city ?? ""}` : "إضافة مطار"}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="glass" onClick={onClose}>
+            إلغاء
+          </Button>
+          <Button variant="gold" onClick={save} disabled={!valid}>
+            <Save className="size-4" /> {initial.id ? "حفظ" : "إضافة المطار"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="الرمز (IATA)">
+            <input className={fieldClass} dir="ltr" value={a.code ?? ""} onChange={(e) => setA({ ...a, code: e.target.value })} placeholder="DAM" />
+          </Field>
+          <Field label="المدينة">
+            <input className={fieldClass} value={a.city ?? ""} onChange={(e) => setA({ ...a, city: e.target.value })} />
+          </Field>
+          <Field label="اسم المطار" className="sm:col-span-2">
+            <input className={fieldClass} value={a.name ?? ""} onChange={(e) => setA({ ...a, name: e.target.value })} />
+          </Field>
+          <Field label="الدولة">
+            <input className={fieldClass} value={a.country ?? ""} onChange={(e) => setA({ ...a, country: e.target.value })} />
+          </Field>
+        </div>
+        {!a.archived && (
+          <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+            <Field label="مندوب المطار" hint="يسجّل إقلاع الرحلات من هذا المطار ومن تخلّف عنها، وهبوط الرحلات فيه، من صفحة «رحلات مطاري».">
+              <select value={rep} onChange={(e) => setRep(e.target.value)} aria-label={`مندوب ${a.name ?? "المطار"}`} className={selectClass}>
                 <option value="">— بلا مندوب —</option>
                 {STAFF.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -161,10 +202,126 @@ export function AirportReps({ data }: { data: FlightsData }) {
                   </option>
                 ))}
               </select>
-            </li>
-          );
-        })}
-      </ul>
-    </Panel>
+            </Field>
+          </div>
+        )}
+      </div>
+    </Drawer>
+  );
+}
+
+// ───────────────────────── Carriers ─────────────────────────
+
+/** «الناقلون الجويون»: the carriers the flights choose from, each edited in one side sheet */
+export function CarriersPage() {
+  const data = useFlightsData();
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const [archived, setArchived] = useState<"all" | "archived">("all");
+  const [editing, setEditing] = useState<Partial<Carrier> | null>(null);
+  const flightsOf = (id: string) => data.flights.filter((f) => f.carrierId === id).length;
+  const rows = data.carriers.filter((c) => (archived === "archived" ? c.archived : !c.archived));
+
+  const toggle = (c: Carrier) => {
+    if (!c.archived && flightsOf(c.id)) return toast({ title: "الناقل مستعمل في رحلة", tone: "warning", icon: "⚠️" });
+    flightsActions.saveCarrier({ ...c, archived: !c.archived });
+    logAs(user, { action: c.archived ? "استعادة ناقل" : "أرشفة ناقل", target: c.name, system: "flights", area: "refs", ref: c.id });
+  };
+
+  return (
+    <div className="space-y-5">
+      <OperationHeader system="flights" icon={<Building2 />} />
+      <RefsSwitch />
+      <Title
+        action={
+          <AddButton onClick={() => setEditing({})}>
+            <Plus className="size-4" /> إضافة ناقل
+          </AddButton>
+        }
+      />
+      <Segments<"all" | "archived">
+        value={archived}
+        onChange={setArchived}
+        label="تصفية الناقلين"
+        items={[
+          { value: "all", label: "الكل", count: data.carriers.filter((c) => !c.archived).length },
+          { value: "archived", label: "مؤرشفون", count: data.carriers.filter((c) => c.archived).length },
+        ]}
+      />
+      <ListTable head={["الناقل", "هاتف التنسيق", "رحلاته", "الحالة"]} minWidth="34rem">
+        {rows.map((c) => (
+          <tr key={c.id} className={cn("align-top", c.archived && "opacity-60")}>
+            <td className="p-3">
+              <button type="button" onClick={() => setEditing(c)} className="flex items-center gap-2 text-right font-bold text-white hover:text-gold">
+                <span className="rounded-lg bg-white/10 px-2 py-0.5 font-mono text-xs text-gold" dir="ltr">
+                  {c.code}
+                </span>
+                {c.name}
+              </button>
+              <RowActions>
+                <RowLink onClick={() => setEditing(c)}>تعديل</RowLink>
+                <RowLink danger={!c.archived} onClick={() => toggle(c)}>
+                  {c.archived ? "استعادة" : "أرشفة"}
+                </RowLink>
+              </RowActions>
+            </td>
+            <td className="p-3 text-white/80" dir="ltr">
+              {c.phone ?? "—"}
+            </td>
+            <td className="p-3 text-white/80">{flightsOf(c.id)}</td>
+            <td className="p-3">{c.archived ? <Tag>مؤرشف</Tag> : flightsOf(c.id) ? <Tag tone="green">مستعمل</Tag> : <Tag>غير مستعمل</Tag>}</td>
+          </tr>
+        ))}
+        {rows.length === 0 && <EmptyRow cols={4}>{archived === "archived" ? "لا ناقلين مؤرشفين." : "لا ناقلين بعد."}</EmptyRow>}
+      </ListTable>
+
+      <RecordsBox system="flights" area="refs" title="سجل المطارات والناقلين" />
+
+      {editing && <CarrierSheet key={editing.id ?? "new"} initial={editing} onClose={() => setEditing(null)} />}
+    </div>
+  );
+}
+
+function CarrierSheet({ initial, onClose }: { initial: Partial<Carrier>; onClose: () => void }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const [c, setC] = useState(initial);
+  const valid = !!(c.code && c.name);
+  const save = () => {
+    if (!valid) return;
+    const saved: Carrier = { id: c.id ?? newFlightId("ca"), code: c.code!.toUpperCase().trim(), name: c.name!.trim(), phone: c.phone?.trim() || undefined, archived: c.archived };
+    flightsActions.saveCarrier(saved);
+    logAs(user, { action: c.id ? "تعديل ناقل جوي" : "إضافة ناقل جوي", target: `${saved.name} (${saved.code})`, system: "flights", area: "refs", ref: saved.id });
+    toast({ title: c.id ? "حُفظ الناقل" : "أُضيف الناقل", body: saved.name, tone: "success", icon: "✈️" });
+    onClose();
+  };
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      title={initial.id ? `تعديل ${initial.name ?? "الناقل"}` : "إضافة ناقل"}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="glass" onClick={onClose}>
+            إلغاء
+          </Button>
+          <Button variant="gold" onClick={save} disabled={!valid}>
+            <Save className="size-4" /> {initial.id ? "حفظ" : "إضافة الناقل"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="الرمز">
+          <input className={fieldClass} dir="ltr" value={c.code ?? ""} onChange={(e) => setC({ ...c, code: e.target.value })} placeholder="RB" />
+        </Field>
+        <Field label="الاسم">
+          <input className={fieldClass} value={c.name ?? ""} onChange={(e) => setC({ ...c, name: e.target.value })} />
+        </Field>
+        <Field label="هاتف التنسيق" className="sm:col-span-2">
+          <input className={fieldClass} dir="ltr" value={c.phone ?? ""} onChange={(e) => setC({ ...c, phone: e.target.value })} />
+        </Field>
+      </div>
+    </Drawer>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { RecordHistory as SystemRecordHistory, SystemRecords } from "../../_components/system";
+import { RecordHistory as SystemRecordHistory } from "../../_components/system";
+import { RecordsBox } from "../../_components/wp";
 
-/** The parts of the exam system, each a tab of its management page */
+/** The parts of the exam system, each one operation of its own in the menu */
 export type Area = "centers" | "people" | "exams" | "bank" | "sittings" | "live" | "review" | "results" | "stats";
 
 const TITLE: Record<Area, string> = {
@@ -17,12 +18,12 @@ const TITLE: Record<Area, string> = {
   stats: "سجل الإحصائيات",
 };
 
-/** A tab's records, where that part of the exam is worked on */
+/** What was done in one part of the exam file: closed at the end of its page until it is wanted */
 export function Records({ area }: { area: Area }) {
-  return <SystemRecords system="exams" area={area} title={TITLE[area]} />;
+  return <RecordsBox system="exams" area={area} title={TITLE[area]} />;
 }
 
-/** One centre's, exam's or applicant's own history, inside its form */
-export function RecordHistory({ refId }: { refId: string }) {
-  return <SystemRecordHistory system="exams" refId={refId} />;
+/** One centre's, exam's or applicant's own history, inside its edit screen or sheet */
+export function RecordHistory({ refId, bare }: { refId: string; bare?: boolean }) {
+  return <SystemRecordHistory system="exams" refId={refId} bare={bare} />;
 }

@@ -13,10 +13,14 @@ import {
   CalendarCheck,
   CalendarClock,
   ChevronDown,
+  CircleDollarSign,
+  ClipboardList,
   ClipboardCheck,
   Contact,
   Database,
   Dices,
+  FilePlus2,
+  History,
   DoorOpen,
   FileQuestion,
   FileStack,
@@ -38,12 +42,17 @@ import {
   Plane,
   RadioTower,
   Route,
+  Scale,
   ScrollText,
   Star,
+  Ticket,
   TowerControl,
   Settings2,
   ShieldCheck,
+  UserPlus,
   UserRoundPlus,
+  Bus,
+  HeartPulse,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -59,6 +68,7 @@ import { useAdminsDesk } from "../admins/desk";
 import { useEmployeesDesk } from "../employees/desk";
 import { useExamDesk } from "../exam/_components/desk";
 import { useFlightsDesk } from "../flights/desk";
+import { useRegistrationDesk } from "../hajj/desk";
 import { useSystemsUnseen } from "./system";
 import { useReviewQueue, useTicketQueue } from "./data";
 import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
@@ -90,8 +100,16 @@ type NavItem = {
 /** Each operation's icon in the menu */
 const OPERATION_ICONS: Record<string, ReactNode> = {
   "/staff/employees/manage": <IdCard />,
+  "/staff/employees/manage/edit": <UserPlus />,
   "/staff/employees/manage/accounts": <KeyRound />,
   "/staff/employees/manage/season": <CalendarCheck />,
+  "/staff/hajj/manage": <ListTree />,
+  "/staff/hajj/manage/edit": <FilePlus2 />,
+  "/staff/hajj/manage/steps": <Route />,
+  "/staff/hajj/manage/rules": <Scale />,
+  "/staff/hajj/manage/payments": <CircleDollarSign />,
+  "/staff/hajj/manage/applications": <ClipboardList />,
+  "/staff/hajj/manage/history": <History />,
   "/staff/admins/manage": <ScrollText />,
   "/staff/admins/manage/reference": <ListTree />,
   "/staff/admins/manage/references": <BookOpenText />,
@@ -104,6 +122,7 @@ const OPERATION_ICONS: Record<string, ReactNode> = {
   "/staff/admins/manage/evaluation": <Star />,
   "/staff/admins/manage/grading": <Layers />,
   "/staff/exam/manage": <Landmark />,
+  "/staff/exam/manage/edit": <FilePlus2 />,
   "/staff/exam/manage/exams": <CalendarClock />,
   "/staff/exam/manage/bank": <FileQuestion />,
   "/staff/exam/manage/people": <UsersRound />,
@@ -113,6 +132,7 @@ const OPERATION_ICONS: Record<string, ReactNode> = {
   "/staff/exam/manage/review": <ClipboardCheck />,
   "/staff/exam/manage/stats": <ChartColumn />,
   "/staff/flights/manage": <Building2 />,
+  "/staff/flights/manage/carriers": <Ticket />,
   "/staff/flights/manage/flights": <Plane />,
   "/staff/flights/manage/dispatch": <Route />,
 };
@@ -133,6 +153,7 @@ export const STAFF_NAV: NavItem[] = [
   // The management of whole files, in the season's order: each file's summary and its operations
   ...SYSTEM_KEYS.flatMap(systemEntries),
   // The employee's own place, and the field posts a file's holder gives
+  // Every employee: where he is housed, his flight, his place in Mina and Arafat
   { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
   { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: [], hall: true, badge: "hall" },
   { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: [], airport: true, badge: "airport" },
@@ -145,6 +166,8 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
   { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
   { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
+  { href: "/staff/medical", label: "الفريق الطبي", icon: <HeartPulse />, perms: ["medical"] },
+  { href: "/staff/transport", label: "المواصلات", icon: <Bus />, perms: ["transport"] },
   { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
   { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: ["season.settings", "audit.read"] },
 ];
@@ -164,7 +187,7 @@ export function StaffFrame({ children }: { children: ReactNode }) {
   if (isPublic) return children;
   if (!hydrated || !user) {
     return (
-      <div data-dark-page className="grid min-h-[calc(100dvh/var(--zoom))] place-items-center bg-green-dark">
+      <div data-dark-page className="grid min-h-[calc(100dvh/var(--zoom))] place-items-center bg-green-dark dark:bg-[#0b1614]">
         <Emblem className="size-20 animate-pulse" animated />
       </div>
     );
@@ -172,14 +195,15 @@ export function StaffFrame({ children }: { children: ReactNode }) {
   return <Shell user={user}>{children}</Shell>;
 }
 
+/** Deep green with the Haram behind it; in the dark theme the same, near black like the rest of the site */
 function Backdrop() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[#003d36]">
-      <Image src="/images/haram-2022.jpg" alt="" fill sizes="100vw" quality={70} className="object-cover opacity-[.07]" />
-      <div className="bg-pattern absolute inset-0 opacity-[.07]" />
-      <div className="absolute -right-40 -top-40 size-[34rem] rounded-full bg-green-light/20 blur-3xl" />
-      <div className="absolute -left-32 top-1/3 size-[28rem] rounded-full bg-gold/10 blur-3xl" />
-      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#002a25] to-transparent" />
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden bg-[#003d36] dark:bg-[#0b1614]">
+      <Image src="/images/haram-2022.jpg" alt="" fill sizes="100vw" quality={70} className="object-cover opacity-[.07] dark:opacity-[.04]" />
+      <div className="bg-pattern absolute inset-0 opacity-[.07] dark:opacity-[.04]" />
+      <div className="absolute -right-40 -top-40 size-[34rem] rounded-full bg-green-light/20 blur-3xl dark:bg-green-light/[.07]" />
+      <div className="absolute -left-32 top-1/3 size-[28rem] rounded-full bg-gold/10 blur-3xl dark:bg-gold/[.04]" />
+      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#002a25] to-transparent dark:from-[#070f0d]" />
     </div>
   );
 }
@@ -255,6 +279,7 @@ function Sidebar({ user }: { user: StaffUser }) {
       // What the director has not read yet; what waits for a system's owner is counted by its own badge
       systems: unseen,
       staff: 0,
+      registration: 0,
       admins: 0,
       exams: 0,
       flights: 0,
@@ -368,7 +393,7 @@ function Sidebar({ user }: { user: StaffUser }) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]",
-                  active ? "text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white",
+                  active ? "on-light text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white",
                 )}
               >
                 {active && (
@@ -382,6 +407,8 @@ function Sidebar({ user }: { user: StaffUser }) {
                 <span className="relative whitespace-nowrap">{n.label}</span>
                 {n.badge === "staff" ? (
                   <EmployeesCount active={active} />
+                ) : n.badge === "registration" ? (
+                  <RegistrationCount active={active} />
                 ) : n.badge === "admins" ? (
                   <AdminsCount active={active} />
                 ) : n.badge === "exams" ? (
@@ -422,6 +449,11 @@ function EmployeesCount({ active }: { active: boolean }) {
   return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
 }
 
+function RegistrationCount({ active }: { active: boolean }) {
+  const desk = useRegistrationDesk();
+  return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
+}
+
 function AdminsCount({ active }: { active: boolean }) {
   const desk = useAdminsDesk();
   return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
@@ -440,6 +472,7 @@ function FlightsCount({ active }: { active: boolean }) {
 /** What waits in one operation of a file, by its desk's part: each file's desk is read only by its own entries */
 function OperationCount({ system, area, active }: { system: SystemKey; area: string; active: boolean }) {
   if (system === "admins") return <AdminsArea area={area} active={active} />;
+  if (system === "registration") return <RegistrationArea area={area} active={active} />;
   if (system === "exams") return <ExamArea area={area} active={active} />;
   if (system === "flights") return <FlightsArea area={area} active={active} />;
   return <EmployeesArea area={area} active={active} />;
@@ -447,6 +480,11 @@ function OperationCount({ system, area, active }: { system: SystemKey; area: str
 
 function AdminsArea({ area, active }: { area: string; active: boolean }) {
   const desk = useAdminsDesk();
+  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+}
+
+function RegistrationArea({ area, active }: { area: string; active: boolean }) {
+  const desk = useRegistrationDesk();
   return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
 }
 

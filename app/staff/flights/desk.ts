@@ -132,17 +132,17 @@ export function useFlightsDesk() {
     const alerts: Alert[] = [
       ...postponed.map((f) => ({ id: `post-${f.id}`, level: "high" as const, title: `الرحلة ${f.flightNo} مؤجلة بلا موعد جديد`, hint: `${f.postponeReason ?? ""} — ينتظر مسافروها موعدها.`, href: `/staff/flights/manage/flights?f=${f.id}`, action: "حدّد الموعد" })),
       ...(flightAlerts.length
-        ? [{ id: "warn", level: "high" as const, title: `${flightAlerts.length} تنبيهات على الرحلات`, hint: flightAlerts.slice(0, 2).map((x) => `${x.f.flightNo}: ${x.w}`).join(" · "), href: "/staff/flights/manage/dispatch#alerts", action: "راجعها" }]
+        ? [{ id: "warn", level: "high" as const, title: `${flightAlerts.length} تنبيهات على الرحلات`, hint: flightAlerts.slice(0, 2).map((x) => `${x.f.flightNo}: ${x.w}`).join(" · "), href: "/staff/flights/manage/dispatch?view=alerts", action: "راجعها" }]
         : []),
       ...(needsFlight.length
-        ? [{ id: "lost", level: "high" as const, title: `${needsFlight.length} مسافرين فقدوا مقاعدهم`, hint: "أُلغي إسنادهم أو تخلّفوا أو أُلغيت رحلتهم، ولا رحلة لهم الآن.", href: "/staff/flights/manage/dispatch#needs", action: "أسندهم" }]
+        ? [{ id: "lost", level: "high" as const, title: `${needsFlight.length} مسافرين فقدوا مقاعدهم`, hint: "أُلغي إسنادهم أو تخلّفوا أو أُلغيت رحلتهم، ولا رحلة لهم الآن.", href: "/staff/flights/manage/dispatch?view=needs", action: "أسندهم" }]
         : []),
-      ...noRep.map((x) => ({ id: `rep-${x.a.id}`, level: "work" as const, title: `${x.a.name} بلا مندوب`, hint: `${x.departures} رحلات تغادر منه و${x.arrivals} تصل إليه، ولا أحد هناك يسجل إقلاعها وهبوطها غيرك.`, href: "/staff/flights/manage", action: "أسند مندوباً" })),
+      ...noRep.map((x) => ({ id: `rep-${x.a.id}`, level: "work" as const, title: `${x.a.name} بلا مندوب`, hint: `${x.departures} رحلات تغادر منه و${x.arrivals} تصل إليه، ولا أحد هناك يسجل إقلاعها وهبوطها غيرك.`, href: "/staff/flights/manage?filter=norep", action: "أسند مندوباً" })),
       ...(drafts.length ? [{ id: "drafts", level: "work" as const, title: `${drafts.length} رحلات مسودة لم تُنشر`, hint: drafts.map((f) => f.flightNo).join("، "), href: "/staff/flights/manage/flights", action: "راجعها" }] : []),
       ...stale.map((f) => ({ id: `stale-${f.id}`, level: "work" as const, title: `كشف ركاب ${f.flightNo} تغيّر بعد إصداره`, hint: "أُسند أحد أو أُلغي إسناده بعد إقفال الرحلة.", href: `/staff/flights/manage/flights?f=${f.id}`, action: "أصدر كشفاً جديداً" })),
-      ...(noOut.length ? [{ id: "no-out", level: "work" as const, title: `${noOut.length} مجموعات بلا رحلة ذهاب`, hint: `${noOut.reduce((n, r) => n + r.total, 0)} مسافراً، بعد التنسيق مع رؤساء تكتلاتها.`, href: "/staff/flights/manage/dispatch", action: "أسندها" }] : []),
-      ...(noBack.length ? [{ id: "no-back", level: "work" as const, title: `${noBack.length} مجموعات بلا رحلة عودة`, hint: `${noBack.reduce((n, r) => n + r.total, 0)} مسافراً.`, href: "/staff/flights/manage/dispatch", action: "أسندها" }] : []),
-      ...(staffNoFlight.length ? [{ id: "staff", level: "work" as const, title: `${staffNoFlight.length} موظفين بلا رحلة ذهاب`, hint: "مشاركون في الموسم ولهم منصب في ملف تشغيلي.", href: "/staff/flights/manage/dispatch#staff", action: "أسندهم" }] : []),
+      ...(noOut.length ? [{ id: "no-out", level: "work" as const, title: `${noOut.length} مجموعات بلا رحلة ذهاب`, hint: `${noOut.reduce((n, r) => n + r.total, 0)} مسافراً، بعد التنسيق مع رؤساء تكتلاتها.`, href: "/staff/flights/manage/dispatch?state=noOut", action: "أسندها" }] : []),
+      ...(noBack.length ? [{ id: "no-back", level: "work" as const, title: `${noBack.length} مجموعات بلا رحلة عودة`, hint: `${noBack.reduce((n, r) => n + r.total, 0)} مسافراً.`, href: "/staff/flights/manage/dispatch?state=noBack", action: "أسندها" }] : []),
+      ...(staffNoFlight.length ? [{ id: "staff", level: "work" as const, title: `${staffNoFlight.length} موظفين بلا رحلة ذهاب`, hint: "مشاركون في الموسم ولهم منصب في ملف تشغيلي.", href: "/staff/flights/manage/dispatch?view=staff", action: "أسندهم" }] : []),
     ];
 
     return {

@@ -1,29 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
-import {
-  AlertTriangle,
-  BedDouble,
-  CalendarRange,
-  CheckCircle2,
-  ChevronDown,
-  CopyPlus,
-  Download,
-  FilePlus2,
-  FileStack,
-  FileText,
-  Hotel as HotelIcon,
-  Lock,
-  MapPinned,
-  Pencil,
-  Plus,
-  Power,
-  Save,
-  Tent,
-  Trash2,
-  UsersRound,
-} from "lucide-react";
+import { AlertTriangle, CopyPlus, FilePlus2, FileStack, FileText, Hotel as HotelIcon, Lock, MapPinned, Plus, Power, Save, Tent, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -59,8 +38,10 @@ import {
 } from "@/lib/ops";
 import { can } from "@/lib/staff";
 import { cn, formatNumber } from "@/lib/utils";
-import { Empty, Gate, Kpi, PageHeader, Panel, Tabs, fmtDate, fmtDateTime, logAs, textareaClass, useStaffUser } from "../_components/kit";
-import { Chip, Field, SearchBox, fieldClass, selectClass, type ChipTone } from "../_components/ops-ui";
+import { Empty, Gate, PageHeader, Panel, fmtDate, fmtDateTime, logAs, textareaClass, useStaffUser } from "../_components/kit";
+import { Chip, Field, SearchBox, fieldClass, selectClass } from "../_components/ops-ui";
+import { AddButton, Box, EditHeader, EditLayout, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
+import { FilterLinks, HowTo, ListToolbar } from "../employees/list-ui";
 import { InnerDrawer, Occupancy, RoleBlock } from "./inner";
 import { assign, download, membersAt, setHousing, toCsv, unassign, type Target } from "./model";
 import { EmployeePicker } from "./picker";
@@ -73,7 +54,7 @@ export function OperationalFilesView() {
   );
 }
 
-const STATE_TONE: Record<string, ChipTone> = {
+const STATE_TONE: Record<string, "gold" | "green" | "muted"> = {
   draft: "gold",
   active: "green",
   ended: "muted",
@@ -86,139 +67,161 @@ const TYPE_ICON: Record<FileTypeCode, typeof HotelIcon> = {
 };
 /** "القطاع" → "قطاع", for "إضافة قطاع" */
 const bare = (s: string) => s.split(" ")[0].replace(/^ال/, "");
+const SEASONS = [CURRENT_SEASON, CURRENT_SEASON - 1];
+/** A file's own screen: its type and season in the address */
+const fileHref = (code: FileTypeCode, season: number) => `/staff/operational-files?type=${code}&season=${season}`;
 
+/**
+ * The operational files as a site's admin lists its items: the season's files in a table — one per type,
+ * each opening its own screen (`?type=&season=`) on its name — and on that screen the file itself: its
+ * sectors / centres and their towers / camps in the middle, who holds each post, and on the side the file's
+ * state, its decision and dates, activating it, and what its type is.
+ */
 function OperationalFiles() {
+  const params = useSearchParams();
+  const code = FILE_TYPES.find((t) => t.code === params.get("type"))?.code;
+  const asked = Number(params.get("season"));
+  const season = SEASONS.includes(asked) ? asked : CURRENT_SEASON;
+  return code ? <FileScreen key={`${code}-${season}`} type={fileTypeOf(code)} season={season} /> : <FilesList />;
+}
+
+// ───────────────────────── The season's files ─────────────────────────
+
+function FilesList() {
   const user = useStaffUser()!;
   const files = useOpFiles();
+  const employees = useEmployees();
+  const refs = useRefs();
   const [season, setSeason] = useState(CURRENT_SEASON);
-  const [typeCode, setTypeCode] = useState<FileTypeCode>("makkah-housing");
-  const type = fileTypeOf(typeCode);
-  const file = files.find((f) => f.type === typeCode && f.season === season);
-  const previous = files.find((f) => f.type === typeCode && f.season === season - 1);
+  const ofSeason = (y: number) => files.filter((f) => f.season === y);
+  const exportFile = (f: OpFile) => {
+    const t = fileTypeOf(f.type);
+    const opts = optionsFor(t, f.season, refs);
+    download(`${t.short.replace(/ /g, "-")}-${f.season}.csv`, toCsv(f, employees, new Map([...opts.outer, ...opts.inner].map((p) => [p.id, p]))));
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="بناء العمل للموسم"
-        icon={<FileStack />}
-        title="الملفات التشغيلية"
-        description="الملف التشغيلي يحدد هيكل العمل الميداني وتوزيع الموظفين عليه. يُفتح لكل نوع ملف واحد في كل موسم، ويُختار كل مكان فيه من البيانات المرجعية للموسم، ثم يُسند كل منصب إلى موظف."
-        actions={
-          <Tabs
-            id="files-season"
+    <div className="space-y-5">
+      <PageHeader eyebrow="بناء العمل للموسم" icon={<FileStack />} title="الملفات التشغيلية" description="ملف لكل نوع في كل موسم: أماكنه من البيانات المرجعية، ومن يشغل كل منصب فيه." />
+
+      <ListToolbar
+        filters={
+          <FilterLinks<string>
+            label="الموسم"
             value={String(season)}
             onChange={(v) => setSeason(Number(v))}
-            tabs={[CURRENT_SEASON, CURRENT_SEASON - 1].map((y) => ({
-              value: String(y),
-              label: `موسم ${y}`,
-            }))}
+            items={SEASONS.map((y) => ({ value: String(y), label: y === CURRENT_SEASON ? `موسم ${y}` : `موسم ${y} — منتهٍ`, count: ofSeason(y).length }))}
           />
         }
       />
 
-      {/* The season's files at a glance — one card per type */}
-      <div className="grid gap-3 md:grid-cols-3">
-        {FILE_TYPES.map((t, i) => {
+      <ListTable head={["الملف", "الحالة", "القرار", "فترة العمل", "المناصب الإلزامية"]} minWidth="50rem">
+        {FILE_TYPES.map((t) => {
           const f = files.find((x) => x.type === t.code && x.season === season);
           const st = f ? fileStats(f) : undefined;
+          const state = f ? fileState(f) : undefined;
           const Icon = TYPE_ICON[t.code];
-          const active = t.code === typeCode;
+          const href = fileHref(t.code, season);
+          const canCreate = can(user, "ops.files") && season === CURRENT_SEASON;
           return (
-            <motion.button
-              key={t.code}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => setTypeCode(t.code)}
-              aria-pressed={active}
-              className={cn(
-                "rounded-3xl border p-4 text-right transition",
-                active ? "border-gold bg-gradient-to-br from-gold/25 to-gold/5 shadow-[0_18px_40px_-24px_rgba(217,200,158,.7)]" : "border-white/15 bg-white/[.05] hover:border-gold/50",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className={cn("grid size-10 place-items-center rounded-2xl", active ? "bg-gold text-ink" : "bg-white/10 text-gold")}>
-                  <Icon className="size-5" />
-                </span>
-                {f ? <Chip tone={STATE_TONE[fileState(f)]}>{FILE_STATE_LABEL[fileState(f)]}</Chip> : <Chip tone="maroon">لم يُنشأ</Chip>}
-              </div>
-              <p className="mt-3 font-display text-lg font-bold text-white">{t.short}</p>
-              <p className="mt-0.5 text-xs text-white/65">{st ? `${st.outer} ${t.outer.plural} · ${st.inner} ${t.inner.plural} · ${st.people} موظفاً` : `لا ملف لموسم ${season} بعد`}</p>
-              {f && st && st.gaps > 0 && fileState(f) !== "ended" && <p className="mt-1 text-xs font-bold text-[#ffc9d8]">{st.gaps} مناصب إلزامية شاغرة</p>}
-              {st && st.gaps === 0 && <p className="mt-1 text-xs font-bold text-green-light">كل المناصب الإلزامية مشغولة</p>}
-            </motion.button>
+            <tr key={t.code} className="align-top">
+              <td className="p-3">
+                <div className="flex items-start gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 text-gold">
+                    <Icon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <Link href={href} className="font-bold text-white hover:text-gold">
+                      {t.short}
+                    </Link>
+                    <p className="text-xs text-white/60">{st ? `${st.outer} ${t.outer.plural} · ${st.inner} ${t.inner.plural} · ${st.people} موظفاً · ${formatNumber(st.pilgrims)} حاجاً` : `لا ملف لموسم ${season} بعد`}</p>
+                    <RowActions>
+                      {f ? <RowLink href={href}>{can(user, "ops.files") && state !== "ended" ? "تعديل" : "عرض"}</RowLink> : canCreate ? <RowLink href={href}>إنشاء</RowLink> : <RowLink href={href}>عن هذا النوع</RowLink>}
+                      {f && <RowLink onClick={() => exportFile(f)}>تصدير Excel</RowLink>}
+                    </RowActions>
+                  </div>
+                </div>
+              </td>
+              <td className="p-3">{f && state ? <Tag tone={STATE_TONE[state]}>{FILE_STATE_LABEL[state]}</Tag> : <Tag tone="maroon">لم يُنشأ</Tag>}</td>
+              <td className="p-3 tabular-nums text-white/85">{f ? f.decisionNumber || <span className="text-xs text-[#ffb4c8]">بلا رقم</span> : "—"}</td>
+              <td className="p-3 text-xs text-white/80">{f ? `${dateOf(f.startsOn)} ← ${dateOf(f.endsOn)}` : "—"}</td>
+              <td className="p-3">{!f || !st ? "—" : st.gaps > 0 && state !== "ended" ? <Tag tone="maroon">{st.gaps} شاغرة</Tag> : st.gaps === 0 ? <Tag tone="green">مكتملة</Tag> : <span className="text-xs text-white/50">{st.gaps} شاغرة</span>}</td>
+            </tr>
           );
         })}
-      </div>
+      </ListTable>
 
-      <TypeCard key={type.code} type={type} />
-
-      {file ? <FileView key={file.id} file={file} /> : <CreateFile type={type} season={season} previous={previous} canCreate={can(user, "ops.files") && season === CURRENT_SEASON} />}
+      <HowTo>
+        <p>الملف التشغيلي يحدد هيكل العمل الميداني وتوزيع الموظفين عليه. يُفتح لكل نوع ملف واحد في كل موسم.</p>
+        <p>افتح الملف باسمه: أضف {FILE_TYPES[0].outer.plural} ثم {FILE_TYPES[0].inner.plural} من البيانات المرجعية للموسم، ثم أسند كل منصب إلى موظف من المشاركين في الموسم، ثم أدخل رقم القرار وفعّل الملف.</p>
+        <p>لا يُفعَّل ملف قبل شغل كل منصب إلزامي فيه. وبعد تفعيله يصل إشعار كل تغيير في الإسناد إلى الموظف المعني.</p>
+      </HowTo>
     </div>
   );
 }
 
+// ───────────────────────── One file's screen ─────────────────────────
+
 /** What the file type is: its levels, roles and job descriptions — the same for every season */
-function TypeCard({ type }: { type: FileType }) {
-  const [open, setOpen] = useState(false);
+function TypeBox({ type, open = false }: { type: FileType; open?: boolean }) {
   return (
-    <Panel>
-      <button onClick={() => setOpen((v) => !v)} className="flex w-full items-start justify-between gap-4 text-right" aria-expanded={open}>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-gold">نوع الملف</p>
-          <p className="font-display text-xl font-bold text-white">{type.name}</p>
-          <p className="mt-1 max-w-3xl text-sm leading-7 text-white/70">{type.description}</p>
-        </div>
-        <span className="mt-1 flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white/85">
-          الأدوار والوصف الوظيفي <ChevronDown className={cn("size-4 transition", open && "rotate-180")} />
-        </span>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="mt-5 grid gap-4 lg:grid-cols-[14rem_1fr]">
-              <div className="space-y-2 text-sm">
-                <p className="text-xs font-bold text-gold">الهيكل</p>
-                <div className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-                  {type.team && (
-                    <p className="mb-2 flex items-center gap-2 font-bold text-white">
-                      <UsersRound className="size-4 text-gold" /> {type.team} <span className="text-xs font-normal text-white/55">(على الملف)</span>
-                    </p>
-                  )}
-                  <p className="flex items-center gap-2 font-bold text-white">
-                    <MapPinned className="size-4 text-gold" /> {type.outer.name}
-                  </p>
-                  <p className="mr-6 mt-2 flex items-center gap-2 border-r-2 border-gold/40 pr-3 font-bold text-white">
-                    {type.inner.ref === "camps" ? <Tent className="size-4 text-gold" /> : <HotelIcon className="size-4 text-gold" />} {type.inner.name}
-                  </p>
-                </div>
-                <p className="text-xs leading-6 text-white/65">
-                  <span className="font-bold text-white/85">بداية العمل: </span>
-                  {type.startCondition}
-                </p>
-                <p className="text-xs leading-6 text-white/65">
-                  <span className="font-bold text-white/85">نهاية العمل: </span>
-                  {type.endCondition}
-                </p>
-              </div>
-              <ul className="grid gap-2 md:grid-cols-2">
-                {type.roles.map((r) => (
-                  <li key={r.code} className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="font-bold text-white">{r.name}</p>
-                      <Chip>{r.level === "file" ? (type.team ?? "على الملف") : r.level === "outer" ? `على ${type.outer.name}` : `في ${type.inner.name}`}</Chip>
-                      {r.required && <Chip tone="maroon">إلزامي</Chip>}
-                      {r.multiple && <Chip tone="gold">{r.max ? `حتى ${r.max}` : "أكثر من شخص"}</Chip>}
-                    </div>
-                    <p className="mt-1.5 text-xs leading-6 text-white/70">{r.description}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
+    <Box title="نوع الملف وأدواره" open={open}>
+      <p className="font-bold text-white">{type.name}</p>
+      <p className="text-xs leading-6 text-white/70">{type.description}</p>
+      <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+        {type.team && (
+          <p className="mb-2 flex items-center gap-2 font-bold text-white">
+            <UsersRound className="size-4 text-gold" /> {type.team} <span className="text-xs font-normal text-white/55">(على الملف)</span>
+          </p>
         )}
-      </AnimatePresence>
-    </Panel>
+        <p className="flex items-center gap-2 font-bold text-white">
+          <MapPinned className="size-4 text-gold" /> {type.outer.name}
+        </p>
+        <p className="mr-6 mt-2 flex items-center gap-2 border-r-2 border-gold/40 pr-3 font-bold text-white">
+          {type.inner.ref === "camps" ? <Tent className="size-4 text-gold" /> : <HotelIcon className="size-4 text-gold" />} {type.inner.name}
+        </p>
+      </div>
+      <p className="text-xs leading-6 text-white/65">
+        <span className="font-bold text-white/85">بداية العمل: </span>
+        {type.startCondition}
+      </p>
+      <p className="text-xs leading-6 text-white/65">
+        <span className="font-bold text-white/85">نهاية العمل: </span>
+        {type.endCondition}
+      </p>
+      <ul className="space-y-2">
+        {type.roles.map((r) => (
+          <li key={r.code} className="rounded-xl bg-white/5 p-2.5 ring-1 ring-white/10">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="font-bold text-white">{r.name}</p>
+              <Chip>{r.level === "file" ? (type.team ?? "على الملف") : r.level === "outer" ? `على ${type.outer.name}` : `في ${type.inner.name}`}</Chip>
+              {r.required && <Chip tone="maroon">إلزامي</Chip>}
+              {r.multiple && <Chip tone="gold">{r.max ? `حتى ${r.max}` : "أكثر من شخص"}</Chip>}
+            </div>
+            <p className="mt-1 text-xs leading-6 text-white/70">{r.description}</p>
+          </li>
+        ))}
+      </ul>
+    </Box>
+  );
+}
+
+function FileScreen({ type, season }: { type: FileType; season: number }) {
+  const user = useStaffUser()!;
+  const files = useOpFiles();
+  const file = files.find((f) => f.type === type.code && f.season === season);
+  const previous = files.find((f) => f.type === type.code && f.season === season - 1);
+  return (
+    <div>
+      <EditHeader back="/staff/operational-files" backLabel="كل الملفات التشغيلية" title={`${type.short} — موسم ${season}`}>
+        {type.name}
+      </EditHeader>
+      {file ? (
+        <FileView key={file.id} file={file} />
+      ) : (
+        <EditLayout main={<CreateFile type={type} season={season} previous={previous} canCreate={can(user, "ops.files") && season === CURRENT_SEASON} />} side={<TypeBox type={type} open />} />
+      )}
+    </div>
   );
 }
 
@@ -412,6 +415,25 @@ function FileView({ file }: { file: OpFile }) {
       ),
     });
 
+  /** A tower / camp out of the file: it is offered again, and whoever slept in it no longer has a bed */
+  const removeInner = (outer: string, inner: InnerNode) =>
+    save(
+      {
+        ...file,
+        nodes: file.nodes.map((o) =>
+          o.id !== outer
+            ? o
+            : {
+                ...o,
+                children: o.children.filter((c) => c.id !== inner.id),
+                members: o.members.map((m) => (m.housingHotelId === inner.refId ? { ...m, housingHotelId: undefined } : m)),
+              },
+        ),
+      },
+      "إزالة من ملف تشغيلي",
+      name(inner.refId),
+    );
+
   const activate = () => {
     if (!file.decisionNumber.trim()) {
       toast({
@@ -486,87 +508,20 @@ function FileView({ file }: { file: OpFile }) {
   const openInner = openOuter?.children.find((c) => c.id === innerOpen?.inner);
   const fileRoles = rolesAt(type, "file");
 
-  return (
+  const main = (
     <>
-      {/* ── File header ── */}
-      <Panel>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Chip tone={STATE_TONE[state]}>{FILE_STATE_LABEL[state]}</Chip>
-              <Chip>موسم {file.season}</Chip>
-              {file.decisionNumber ? <Chip>القرار رقم {file.decisionNumber}</Chip> : <Chip tone="maroon">بلا رقم قرار</Chip>}
-              <Chip>{CADENCE_LABEL[file.reportCadence]}</Chip>
-            </div>
-            <p className="mt-2 font-display text-2xl font-bold text-white">{type.short}</p>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-white/75">
-              <CalendarRange className="size-4 text-gold" /> من {dateOf(file.startsOn)} إلى {dateOf(file.endsOn)}
-            </p>
-            {file.startNote && <p className="mt-2 max-w-3xl text-xs leading-6 text-white/65">بداية العمل: {file.startNote}</p>}
-            {file.endNote && <p className="max-w-3xl text-xs leading-6 text-white/65">نهاية العمل: {file.endNote}</p>}
-            <p className="mt-2 text-[11px] text-white/45">
-              أنشأه {file.createdBy} — {fmtDateTime(file.createdAt)}
-              {file.activatedAt && ` · فعّله ${file.activatedBy} — ${fmtDateTime(file.activatedAt)}`}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="glass" onClick={() => download(`${type.short.replace(/ /g, "-")}-${file.season}.csv`, toCsv(file, employees, index))}>
-              <Download className="size-4" /> تصدير Excel
-            </Button>
-            {editable && (
-              <>
-                <Button size="sm" variant="glass" onClick={() => setEditInfo(true)}>
-                  <Pencil className="size-4" /> معلومات الملف
-                </Button>
-                {state === "draft" ? (
-                  <Button size="sm" variant="gold" onClick={activate}>
-                    <Power className="size-4" /> تفعيل الملف
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="glass" onClick={deactivate}>
-                    إعادته مسودة
-                  </Button>
-                )}
-                {state === "draft" && (
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    className="grid size-9 place-items-center rounded-xl text-white/60 hover:bg-maroon/40 hover:text-white"
-                    aria-label="حذف المسودة"
-                    title="حذف المسودة"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-        {state === "ended" && (
-          <p className="mt-4 flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/80 ring-1 ring-white/15">
-            <Lock className="size-4 shrink-0 text-gold" /> انتهى هذا الملف ({type.endCondition.replace("ينتهي العمل ", "").replace(/\.$/, "")}). يبقى للرجوع إليه، ويُبنى عليه ملف الموسم التالي.
-          </p>
-        )}
-        {state === "active" && editable && <p className="mt-4 text-xs leading-6 text-white/60">الملف مفعّل: كل تغيير في الإسناد يصل إشعاره إلى الموظف المعني ويُسجَّل في سجل الأحداث.</p>}
-      </Panel>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Kpi label={type.outer.plural} value={stats.outer} icon={<MapPinned />} />
-        <Kpi label={type.inner.plural} value={stats.inner} icon={type.inner.ref === "camps" ? <Tent /> : <HotelIcon />} tone="teal" delay={0.04} />
-        <Kpi label="موظفون مُسندون" value={stats.people} icon={<UsersRound />} tone="gold" delay={0.08} />
-        <Kpi label={`حجاج ${type.inner.plural}`} value={stats.pilgrims} icon={<BedDouble />} delay={0.12} />
-        <Kpi
-          label="مناصب إلزامية شاغرة"
-          value={stats.gaps}
-          icon={stats.gaps ? <AlertTriangle /> : <CheckCircle2 />}
-          tone={stats.gaps ? "maroon" : "teal"}
-          pulse={stats.gaps > 0}
-          delay={0.16}
-          hint={stats.gaps ? "تمنع تفعيل الملف" : "الملف مكتمل"}
-        />
-      </div>
+      {state === "ended" && (
+        <p className="flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/80 ring-1 ring-white/15">
+          <Lock className="size-4 shrink-0 text-gold" /> انتهى هذا الملف ({type.endCondition.replace("ينتهي العمل ", "").replace(/\.$/, "")}). يبقى للرجوع إليه، ويُبنى عليه ملف الموسم التالي.
+        </p>
+      )}
+      {!editable && state !== "ended" && <p className="rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/80 ring-1 ring-white/15">للاطلاع فقط: التعديل يحتاج صلاحية الملفات التشغيلية.</p>}
 
       {gaps.length > 0 && state !== "ended" && (
-        <Panel icon={<AlertTriangle />} title="مناصب إلزامية شاغرة" className="border-maroon/60">
+        <section className="rounded-2xl bg-maroon/15 p-4 ring-1 ring-maroon/50">
+          <h2 className="mb-3 flex items-center gap-2 font-bold text-white">
+            <AlertTriangle className="size-4 text-gold" /> مناصب إلزامية شاغرة ({gaps.length})
+          </h2>
           <ul className="flex flex-wrap gap-2">
             {gaps.map((g, i) => {
               const o = g.outerId ? file.nodes.find((x) => x.refId === g.outerId) : undefined;
@@ -574,11 +529,7 @@ function FileView({ file }: { file: OpFile }) {
               const target: Target = { outer: o?.id, inner: c?.id };
               return (
                 <li key={i}>
-                  <button
-                    disabled={!editable}
-                    onClick={() => openPicker(target, g.role)}
-                    className="flex items-center gap-2 rounded-2xl bg-maroon/30 px-3 py-2 text-sm text-white ring-1 ring-maroon/60 transition enabled:hover:bg-maroon/50"
-                  >
+                  <button disabled={!editable} onClick={() => openPicker(target, g.role)} className="flex items-center gap-2 rounded-xl bg-maroon/30 px-3 py-1.5 text-sm text-white ring-1 ring-maroon/60 transition enabled:hover:bg-maroon/50">
                     <span className="font-bold">{g.role.name}</span>
                     <span className="text-white/70">— {targetName(target)}</span>
                     {editable && <span className="text-xs font-bold text-gold">إسناد ←</span>}
@@ -587,71 +538,133 @@ function FileView({ file }: { file: OpFile }) {
               );
             })}
           </ul>
-        </Panel>
+        </section>
       )}
 
       {fileRoles.length > 0 && (
-        <Panel
-          icon={<UsersRound />}
-          title={type.team ?? "فريق الملف"}
-          action={
-            <span className="text-xs text-white/60">
-              لا يتبع {bare(type.outer.name)}اً بعينه — يخدم {type.outer.plural} كلها
-            </span>
-          }
-        >
+        <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+          <h2 className="font-display text-lg font-bold text-white">{type.team ?? "فريق الملف"}</h2>
+          <p className="mb-3 text-xs text-white/60">
+            لا يتبع {bare(type.outer.name)}اً بعينه — يخدم {type.outer.plural} كلها.
+          </p>
           <div className="grid gap-2.5 md:grid-cols-2">
             {fileRoles.map((r) => (
               <RoleBlock key={r.code} role={r} holders={file.members.filter((m) => m.role === r.code)} editable={editable} onAdd={() => openPicker({}, r)} onRemove={(id) => remove({}, r, id)} />
             ))}
           </div>
-        </Panel>
+        </section>
       )}
 
       {/* ── Outer nodes ── */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <SearchBox className="flex-1" value={q} onChange={setQ} label="بحث داخل الملف" placeholder={`ابحث عن موظف أو ${bare(type.inner.name)} أو ${bare(type.outer.name)} داخل الملف...`} />
-        {editable && (
-          <Button variant="gold" onClick={() => setAddOuter(true)}>
-            <Plus className="size-4" /> إضافة {bare(type.outer.name)}
-          </Button>
+      <div>
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <h2 className="font-display text-2xl font-bold text-white">{type.outer.plural}</h2>
+          {editable && (
+            <AddButton onClick={() => setAddOuter(true)}>
+              <Plus className="size-4" /> إضافة {bare(type.outer.name)}
+            </AddButton>
+          )}
+        </div>
+        <ListToolbar
+          filters={
+            <p className="text-sm text-white/65">
+              {stats.outer} {type.outer.plural} · {stats.inner} {type.inner.plural} · {stats.people} موظفاً · {formatNumber(stats.pilgrims)} حاجاً
+            </p>
+          }
+        >
+          <SearchBox className="flex-1" value={q} onChange={setQ} label="بحث داخل الملف" placeholder={`موظف أو ${bare(type.inner.name)} أو ${bare(type.outer.name)}...`} />
+        </ListToolbar>
+
+        {file.nodes.length === 0 ? (
+          <Empty icon={<MapPinned />} title={`الملف بلا ${type.outer.plural} بعد`} text={`ابدأ بإضافة ${bare(type.outer.name)} من ${type.outer.plural} الموسم في البيانات المرجعية.`} />
+        ) : view.length === 0 ? (
+          <Empty icon={<MapPinned />} title="لا شيء في الملف يطابق البحث" />
+        ) : (
+          <div className="space-y-5">
+            {view.map(({ o, children }) => (
+              <OuterSection
+                key={o.id}
+                type={type}
+                file={file}
+                node={o}
+                shown={children}
+                editable={editable}
+                placeOf={placeOf}
+                onPick={(role, inner) => openPicker({ outer: o.id, inner }, role)}
+                onRemove={(role, id, inner) => remove({ outer: o.id, inner }, role, id)}
+                onHousing={(employeeId, hotelId) => save(setHousing(file, o.id, employeeId, hotelId), "تغيير سكن موظف", name(o.refId), `${empName(employeeId)} ← ${name(hotelId)}`)}
+                onOpenInner={(inner) => setInnerOpen({ outer: o.id, inner })}
+                onRemoveInner={(inner) => removeInner(o.id, inner)}
+                onAddInner={() => setAddInnerTo(o.id)}
+                onRemoveOuter={() => {
+                  save({ ...file, nodes: file.nodes.filter((x) => x.id !== o.id) }, "إزالة من ملف تشغيلي", name(o.refId));
+                  toast({
+                    title: `أُزيل ${name(o.refId)}`,
+                    body: `مع ${type.inner.plural} التابعة له — صار موظفوه غير مُسندين.`,
+                    tone: "info",
+                    icon: "🗑️",
+                  });
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
+    </>
+  );
 
-      {file.nodes.length === 0 ? (
-        <Empty icon={<MapPinned />} title={`الملف بلا ${type.outer.plural} بعد`} text={`ابدأ بإضافة ${bare(type.outer.name)} من ${type.outer.plural} الموسم في البيانات المرجعية.`} />
-      ) : view.length === 0 ? (
-        <Empty icon={<MapPinned />} title="لا شيء في الملف يطابق البحث" />
-      ) : (
-        <div className="space-y-6">
-          {view.map(({ o, children }, i) => (
-            <OuterCard
-              key={o.id}
-              type={type}
-              file={file}
-              node={o}
-              shown={children}
-              index={i}
-              editable={editable}
-              placeOf={placeOf}
-              onPick={(role, inner) => openPicker({ outer: o.id, inner }, role)}
-              onRemove={(role, id, inner) => remove({ outer: o.id, inner }, role, id)}
-              onHousing={(employeeId, hotelId) => save(setHousing(file, o.id, employeeId, hotelId), "تغيير سكن موظف", name(o.refId), `${empName(employeeId)} ← ${name(hotelId)}`)}
-              onOpenInner={(inner) => setInnerOpen({ outer: o.id, inner })}
-              onAddInner={() => setAddInnerTo(o.id)}
-              onRemoveOuter={() => {
-                save({ ...file, nodes: file.nodes.filter((x) => x.id !== o.id) }, "إزالة من ملف تشغيلي", name(o.refId));
-                toast({
-                  title: `أُزيل ${name(o.refId)}`,
-                  body: `مع ${type.inner.plural} التابعة له — صار موظفوه غير مُسندين.`,
-                  tone: "info",
-                  icon: "🗑️",
-                });
-              }}
-            />
-          ))}
+  const side = (
+    <>
+      <Box title="الملف">
+        <div className="flex flex-wrap gap-1.5">
+          <Tag tone={STATE_TONE[state]}>{FILE_STATE_LABEL[state]}</Tag>
+          {file.decisionNumber ? <Tag>القرار رقم {file.decisionNumber}</Tag> : <Tag tone="maroon">بلا رقم قرار</Tag>}
+          <Tag>{CADENCE_LABEL[file.reportCadence]}</Tag>
         </div>
-      )}
+        <p className="text-white/80">
+          من {dateOf(file.startsOn)} إلى {dateOf(file.endsOn)}
+        </p>
+        {file.startNote && <p className="text-xs leading-6 text-white/65">بداية العمل: {file.startNote}</p>}
+        {file.endNote && <p className="text-xs leading-6 text-white/65">نهاية العمل: {file.endNote}</p>}
+        {editable &&
+          (state === "draft" ? (
+            <Button variant="gold" className="w-full" onClick={activate}>
+              <Power className="size-4" /> تفعيل الملف
+            </Button>
+          ) : (
+            <Button variant="glass" className="w-full" onClick={deactivate}>
+              إعادته مسودة
+            </Button>
+          ))}
+        {editable && state === "draft" && <p className="text-xs leading-5 text-white/55">يُفعَّل بعد إدخال رقم القرار وشغل كل منصب إلزامي، فيصل إلى كل موظف إشعار بموقعه.</p>}
+        {state === "active" && editable && <p className="text-xs leading-5 text-white/55">الملف مفعّل: كل تغيير في الإسناد يصل إشعاره إلى الموظف المعني.</p>}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
+          {editable && (
+            <button type="button" onClick={() => setEditInfo(true)} className="text-gold hover:underline">
+              معلومات الملف
+            </button>
+          )}
+          <button type="button" onClick={() => download(`${type.short.replace(/ /g, "-")}-${file.season}.csv`, toCsv(file, employees, index))} className="text-gold hover:underline">
+            تصدير Excel
+          </button>
+          {editable && state === "draft" && (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="text-[#ffb4c8] hover:underline">
+              حذف المسودة
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] leading-5 text-white/45">
+          أنشأه {file.createdBy} — {fmtDateTime(file.createdAt)}
+          {file.activatedAt && ` · فعّله ${file.activatedBy} — ${fmtDateTime(file.activatedAt)}`}
+        </p>
+      </Box>
+      <TypeBox type={type} />
+    </>
+  );
+
+  return (
+    <>
+      <EditLayout main={main} side={side} />
 
       {/* ── Sheets ── */}
       <InnerDrawer
@@ -668,22 +681,7 @@ function FileView({ file }: { file: OpFile }) {
         onRemove={(role, id) => innerOpen && remove({ outer: innerOpen.outer, inner: innerOpen.inner }, role, id)}
         onDelete={() => {
           if (!innerOpen || !openInner) return;
-          save(
-            {
-              ...file,
-              nodes: file.nodes.map((o) =>
-                o.id !== innerOpen.outer
-                  ? o
-                  : {
-                      ...o,
-                      children: o.children.filter((c) => c.id !== innerOpen.inner),
-                      members: o.members.map((m) => (m.housingHotelId === openInner.refId ? { ...m, housingHotelId: undefined } : m)),
-                    },
-              ),
-            },
-            "إزالة من ملف تشغيلي",
-            name(openInner.refId),
-          );
+          removeInner(innerOpen.outer, openInner);
           setInnerOpen(null);
         }}
       />
@@ -778,18 +776,22 @@ function FileView({ file }: { file: OpFile }) {
   );
 }
 
-function OuterCard({
+/**
+ * One sector / centre: its name with «إضافة برج | إزالة» under it, its own posts, then its towers / camps
+ * as a table whose rows open their sheet on the name, with «تعديل | إزالة» under it.
+ */
+function OuterSection({
   type,
   file,
   node,
   shown,
-  index,
   editable,
   placeOf,
   onPick,
   onRemove,
   onHousing,
   onOpenInner,
+  onRemoveInner,
   onAddInner,
   onRemoveOuter,
 }: {
@@ -798,13 +800,13 @@ function OuterCard({
   node: OuterNode;
   /** The inner nodes to show (all of them, or those matching the search) */
   shown: InnerNode[];
-  index: number;
   editable: boolean;
   placeOf: (id?: string) => Place | undefined;
   onPick: (role: Role, inner?: string) => void;
   onRemove: (role: Role, employeeId: string, inner?: string) => void;
   onHousing: (employeeId: string, hotelId: string) => void;
   onOpenInner: (inner: string) => void;
+  onRemoveInner: (inner: InnerNode) => void;
   onAddInner: () => void;
   onRemoveOuter: () => void;
 }) {
@@ -816,6 +818,7 @@ function OuterCard({
   const people = new Set([...node.members, ...node.children.flatMap((t) => t.members)].map((m) => m.employeeId)).size;
   const housingOptions = node.children.map((t) => placeOf(t.refId)).filter((p): p is Place => !!p);
   const isCamp = type.inner.ref === "camps";
+  const innerWord = isCamp ? "مخيم" : "برج";
   const lead = rolesAt(type, "inner").find((r) => r.required);
   const name = (id?: string) => {
     const e = employees.find((x) => x.id === id);
@@ -823,32 +826,23 @@ function OuterCard({
   };
 
   return (
-    <Panel delay={Math.min(index, 4) * 0.05}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gold font-display text-xl font-bold text-ink">{outer?.order ?? "؟"}</span>
-          <div>
-            <p className="font-display text-2xl font-bold text-white">{outer?.name}</p>
-            <p className="text-xs text-white/65">
-              {outer?.sub} · {node.children.length} {type.inner.plural} · {formatNumber(pilgrims)} حاجاً · {people} موظفاً
-            </p>
-          </div>
+    <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+      <div className="flex items-start gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold font-display text-lg font-bold text-ink">{outer?.order ?? "؟"}</span>
+        <div className="min-w-0">
+          <h3 className="font-display text-xl font-bold text-white">{outer?.name}</h3>
+          <p className="text-xs text-white/65">
+            {outer?.sub} · {node.children.length} {type.inner.plural} · {formatNumber(pilgrims)} حاجاً · {people} موظفاً
+          </p>
+          {editable && (
+            <RowActions>
+              <RowLink onClick={onAddInner}>إضافة {innerWord}</RowLink>
+              <RowLink danger onClick={onRemoveOuter}>
+                إزالة من الملف
+              </RowLink>
+            </RowActions>
+          )}
         </div>
-        {editable && (
-          <div className="flex gap-2">
-            <Button size="sm" variant="glass" onClick={onAddInner}>
-              <Plus className="size-4" /> إضافة {isCamp ? "مخيم" : "برج"}
-            </Button>
-            <button
-              onClick={onRemoveOuter}
-              className="grid size-9 place-items-center rounded-xl text-white/50 hover:bg-maroon/40 hover:text-white"
-              aria-label={`إزالة ${outer?.name}`}
-              title="إزالة من الملف"
-            >
-              <Trash2 className="size-4" />
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="mt-4 grid gap-2.5 md:grid-cols-2">
@@ -866,11 +860,7 @@ function OuterCard({
                     editable && housingOptions.length ? (
                       <label className="mt-1 flex items-center gap-1.5 text-[11px] text-white/60">
                         يسكن في
-                        <select
-                          value={m.housingHotelId ?? ""}
-                          onChange={(e) => onHousing(m.employeeId, e.target.value)}
-                          className="rounded-lg bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none ring-1 ring-white/15 [&>option]:text-ink"
-                        >
+                        <select value={m.housingHotelId ?? ""} onChange={(e) => onHousing(m.employeeId, e.target.value)} className="rounded-lg bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none ring-1 ring-white/15 [&>option]:text-ink">
                           {!m.housingHotelId && <option value="">— اختر —</option>}
                           {housingOptions.map((h) => (
                             <option key={h.id} value={h.id}>
@@ -888,46 +878,46 @@ function OuterCard({
         ))}
       </div>
 
-      {shown.length === 0 ? (
-        <p className="mt-4 rounded-2xl border border-dashed border-white/20 p-4 text-center text-sm text-white/55">لا {type.inner.plural} هنا بعد.</p>
-      ) : (
-        <ul className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-          {shown.map((c) => {
-            const p = placeOf(c.refId);
-            if (!p) return null;
-            const leadHolders = lead ? c.members.filter((m) => m.role === lead.code) : c.members;
-            const ok = leadHolders.length > 0;
-            const Icon = isCamp ? Tent : HotelIcon;
-            return (
-              <li key={c.id}>
-                <button
-                  onClick={() => onOpenInner(c.id)}
-                  className={cn(
-                    "block h-full w-full rounded-2xl p-4 text-right ring-1 transition hover:-translate-y-0.5",
-                    ok ? "bg-white/[.06] ring-white/15 hover:ring-gold/50" : "bg-maroon/20 ring-maroon/60 hover:ring-maroon",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-bold text-white">{p.name}</p>
-                      <p className="text-[11px] text-white/60">{p.sub}</p>
-                    </div>
-                    <Icon className="size-5 shrink-0 text-gold/70" />
-                  </div>
-                  {(c.clusters.length > 0 || c.tent) && (
-                    <p className="mt-2 flex flex-wrap gap-1">
-                      {c.clusters.map((s) => (
-                        <Chip key={s} tone="gold">
-                          {clusterName(s)}
-                        </Chip>
-                      ))}
-                      {c.tent && <Chip>{c.tent}</Chip>}
-                    </p>
-                  )}
-                  {isCamp ? (
-                    <p className="mt-3 text-xs text-white/70">
-                      أعضاء المخيم:{" "}
-                      {ok ? (
+      <div className="mt-4">
+        <ListTable head={[type.inner.name, isCamp ? "أعضاء المخيم" : roleIn(type, "tower-supervisor").name, "الحجاج والإشغال"]} minWidth="40rem">
+          {shown.length === 0 ? (
+            <EmptyRow cols={3}>لا {type.inner.plural} هنا بعد.</EmptyRow>
+          ) : (
+            shown.map((c) => {
+              const p = placeOf(c.refId);
+              if (!p) return null;
+              const leadHolders = lead ? c.members.filter((m) => m.role === lead.code) : c.members;
+              const ok = leadHolders.length > 0;
+              return (
+                <tr key={c.id} className={cn("align-top", !ok && "bg-maroon/10")}>
+                  <td className="p-3">
+                    <button type="button" onClick={() => onOpenInner(c.id)} className="text-right font-bold text-white hover:text-gold">
+                      {p.name}
+                    </button>
+                    <p className="text-[11px] text-white/60">{p.sub}</p>
+                    {(c.clusters.length > 0 || c.tent || c.bodies) && (
+                      <p className="mt-1 flex flex-wrap gap-1">
+                        {c.clusters.map((s) => (
+                          <Tag key={s} tone="gold">
+                            {clusterName(s)}
+                          </Tag>
+                        ))}
+                        {c.tent && <Tag>{c.tent}</Tag>}
+                        {c.bodies && <Tag>جهات: {c.bodies}</Tag>}
+                      </p>
+                    )}
+                    <RowActions>
+                      <RowLink onClick={() => onOpenInner(c.id)}>{editable ? "تعديل" : "عرض"}</RowLink>
+                      {editable && (
+                        <RowLink danger onClick={() => onRemoveInner(c)}>
+                          إزالة
+                        </RowLink>
+                      )}
+                    </RowActions>
+                  </td>
+                  <td className="p-3 text-xs">
+                    {isCamp ? (
+                      ok ? (
                         <span className="font-bold text-white">
                           {leadHolders
                             .slice(0, 2)
@@ -937,30 +927,26 @@ function OuterCard({
                         </span>
                       ) : (
                         <span className="font-bold text-[#ffc9d8]">لا أحد بعد</span>
-                      )}
-                    </p>
-                  ) : (
-                    <>
-                      <p className="mt-3 text-xs text-white/70">
-                        {roleIn(type, "tower-supervisor").name}:{" "}
+                      )
+                    ) : (
+                      <>
                         {ok ? <span className="font-bold text-white">{name(leadHolders[0].employeeId)}</span> : <span className="font-bold text-[#ffc9d8]">شاغر</span>}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/60">
-                        المعاونون: {c.members.filter((m) => m.role === "tower-deputy").length} · أعضاء البعثة: {c.members.filter((m) => m.role === "mission-member").length}
-                      </p>
-                    </>
-                  )}
-                  {c.bodies && <p className="mt-1 text-[11px] text-white/55">جهات مخصّصة: {c.bodies}</p>}
-                  <div className="mt-3">
+                        <p className="mt-0.5 text-white/60">
+                          المعاونون: {c.members.filter((m) => m.role === "tower-deputy").length} · أعضاء البعثة: {c.members.filter((m) => m.role === "mission-member").length}
+                        </p>
+                      </>
+                    )}
+                  </td>
+                  <td className="w-64 p-3">
                     <Occupancy file={file} node={c} place={p} />
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Panel>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </ListTable>
+      </div>
+    </section>
   );
 }
 

@@ -4,7 +4,7 @@ import { ApplicantsTab } from "../../_components/applicants";
 
 export const metadata: Metadata = { title: "المتقدمون — إدارة الإداريين" };
 
-/** The files open filtered by `?f=docs` (those that fall short): read on the client, under its own boundary */
+/** A file opens from `?id=`, those that fall short from `?f=docs`: read on the client, under its own boundary */
 export default function Page() {
   return (
     <Suspense>

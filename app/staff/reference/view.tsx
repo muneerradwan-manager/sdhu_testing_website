@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
-import { Archive, ArchiveRestore, CopyPlus, Database, Hotel as HotelIcon, Lock, MapPinned, Plus, Save, Tent } from "lucide-react";
+import { CopyPlus, Database, Lock, Plus, Save } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -31,8 +30,10 @@ import {
 } from "@/lib/ops";
 import { can } from "@/lib/staff";
 import { cn, digitsOnly, formatNumber } from "@/lib/utils";
-import { Drawer, Empty, Gate, Kpi, PageHeader, Panel, Tabs, logAs, useStaffUser } from "../_components/kit";
-import { Chip, Field, FilterSelect, SearchBox, fieldClass, selectClass } from "../_components/ops-ui";
+import { Drawer, Gate, PageHeader, Tabs, logAs, useStaffUser } from "../_components/kit";
+import { Field, SearchBox, fieldClass, selectClass } from "../_components/ops-ui";
+import { AddButton, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
+import { FilterLinks, HowTo, ListToolbar, type FilterItem } from "../employees/list-ui";
 
 export function ReferenceView() {
   return (
@@ -43,6 +44,9 @@ export function ReferenceView() {
 }
 
 type Tab = "hotels" | "sectors" | "centers" | "camps";
+/** The views of a list: all its live entries, those of one city or holy site, or the archived ones */
+type View = "all" | City | Mashaer | "archived";
+type Item = Hotel | Sector | Center | Camp;
 const SEASONS = [CURRENT_SEASON, CURRENT_SEASON - 1];
 const KIND: Record<Tab, RefKind> = {
   hotels: "hotel",
@@ -68,8 +72,10 @@ type Use = {
 /**
  * البيانات المرجعية: the season's lists that operational files choose from instead of typing — the
  * hotels and sectors of Makkah for the housing file, the centres and camps of Mina and Arafat for the
- * camp files. Each season has its own lists (contracts are renewed yearly); last season's stay as a
- * read-only archive and anything in them can be carried into this season in one step.
+ * camp files — each a list as a site's admin shows one: its views with their counts, a search, a table
+ * whose rows open their side sheet on the name, with «تعديل | أرشفة» under it. Each season has its own
+ * lists (contracts are renewed yearly); last season's stay as a read-only archive and anything in them
+ * can be carried into this season in one step.
  */
 function Reference() {
   const user = useStaffUser()!;
@@ -80,9 +86,8 @@ function Reference() {
 
   const [season, setSeason] = useState(CURRENT_SEASON);
   const [tab, setTab] = useState<Tab>("hotels");
-  const [group, setGroup] = useState("");
+  const [view, setView] = useState<View>("all");
   const [q, setQ] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
   const [editHotel, setEditHotel] = useState<Hotel | null>(null);
   const [editSector, setEditSector] = useState<Sector | null>(null);
   const [editCenter, setEditCenter] = useState<Center | null>(null);
@@ -124,33 +129,48 @@ function Reference() {
     return m;
   }, [files, season, employees, places]);
 
-  const ofSeason = <T extends { season: number; archived?: boolean }>(l: T[]) => l.filter((x) => x.season === season && (showArchived || !x.archived));
   const live = <T extends { season: number; archived?: boolean }>(l: T[]) => l.filter((x) => x.season === season && !x.archived);
-  const hotels = ofSeason(refs.hotels).filter((h) => !group || h.city === group);
-  const sectors = ofSeason(refs.sectors).sort((a, b) => a.order - b.order);
-  const centers = ofSeason(refs.centers)
-    .filter((c) => !group || c.mashaer === group)
-    .sort((a, b) => Number(a.mashaer !== "mina") - Number(b.mashaer !== "mina") || a.order - b.order);
-  const camps = ofSeason(refs.camps)
-    .filter((c) => !group || c.mashaer === group)
-    .sort((a, b) => Number(a.mashaer !== "mina") - Number(b.mashaer !== "mina") || Number(a.number) - Number(b.number));
+  const archivedOf = <T extends { season: number; archived?: boolean }>(l: T[]) => l.filter((x) => x.season === season && x.archived);
+  /** The entries of the view chosen: the archived ones, or the live ones of a city / holy site (or all) */
+  const shownOf = <T extends { season: number; archived?: boolean }>(l: T[], groupOf?: (x: T) => string) => (view === "archived" ? archivedOf(l) : live(l).filter((x) => view === "all" || !groupOf || groupOf(x) === view));
 
   const hit = (id: string, extra: (string | number | undefined)[]) => matches(q, [places.get(id)?.name, places.get(id)?.sub, use.get(id)?.parent, use.get(id)?.lead, ...extra]);
+  const byMina = (a: { mashaer: Mashaer }, b: { mashaer: Mashaer }) => Number(a.mashaer !== "mina") - Number(b.mashaer !== "mina");
   const rows = {
-    hotels: hotels
+    hotels: shownOf(refs.hotels, (h) => h.city)
       .filter((h) => hit(h.id, [h.licence, CITY_LABEL[h.city]]))
       .sort((a, b) => Number(a.city !== "makkah") - Number(b.city !== "makkah") || Number(!use.has(a.id)) - Number(!use.has(b.id)) || a.name.localeCompare(b.name, "ar")),
-    sectors: sectors.filter((s) => hit(s.id, [])),
-    centers: centers.filter((c) => hit(c.id, [MASHAER_LABEL[c.mashaer]])),
-    camps: camps.filter((c) => hit(c.id, [c.number, MASHAER_LABEL[c.mashaer]])),
+    sectors: shownOf(refs.sectors)
+      .filter((s) => hit(s.id, [s.zone]))
+      .sort((a, b) => a.order - b.order),
+    centers: shownOf(refs.centers, (c) => c.mashaer)
+      .filter((c) => hit(c.id, [MASHAER_LABEL[c.mashaer], c.company]))
+      .sort((a, b) => byMina(a, b) || a.order - b.order),
+    camps: shownOf(refs.camps, (c) => c.mashaer)
+      .filter((c) => hit(c.id, [c.number, MASHAER_LABEL[c.mashaer]]))
+      .sort((a, b) => byMina(a, b) || Number(a.number) - Number(b.number)),
   };
 
-  const makkahBeds = live(refs.hotels)
-    .filter((h) => h.city === "makkah")
-    .reduce((a, h) => a + h.capacity, 0);
+  // The counts beside the views, and the contracted capacity they add up to
+  const liveHotels = live(refs.hotels);
+  const makkahBeds = liveHotels.filter((h) => h.city === "makkah").reduce((a, h) => a + h.capacity, 0);
   const campSeats = live(refs.camps).reduce((a, c) => a + c.capacity, 0);
+  const list: { season: number; archived?: boolean }[] = { hotels: refs.hotels, sectors: refs.sectors, centers: refs.centers, camps: refs.camps }[tab];
+  const sites: { season: number; archived?: boolean; mashaer: Mashaer }[] = tab === "centers" ? refs.centers : refs.camps;
+  const views: FilterItem<View>[] = [
+    { value: "all", label: "الكل", count: live(list).length },
+    ...(tab === "hotels"
+      ? [
+          { value: "makkah" as const, label: "مكة المكرمة", count: liveHotels.filter((h) => h.city === "makkah").length },
+          { value: "madinah" as const, label: "المدينة المنورة", count: liveHotels.filter((h) => h.city === "madinah").length },
+        ]
+      : tab === "centers" || tab === "camps"
+        ? (["mina", "arafat"] as const).map((m) => ({ value: m, label: MASHAER_LABEL[m], count: live(sites).filter((c) => c.mashaer === m).length }))
+        : []),
+    { value: "archived", label: "المؤرشف", count: archivedOf(list).length },
+  ];
 
-  const archive = (tab: Tab, item: Hotel | Sector | Center | Camp) => {
+  const archive = (tab: Tab, item: Item) => {
     const label = places.get(item.id)?.name ?? "";
     if (!item.archived && use.get(item.id)) {
       toast({
@@ -187,6 +207,8 @@ function Reference() {
     });
   };
 
+  // A new entry starts in the city / holy site of the view chosen
+  const group = view === "all" || view === "archived" ? "" : view;
   const addNew = () => {
     if (tab === "hotels")
       setEditHotel({
@@ -235,15 +257,26 @@ function Reference() {
       });
   };
 
-  const archiveBtn = (item: Hotel | Sector | Center | Camp) => (
-    <button
-      onClick={() => archive(tab, item)}
-      className="grid size-9 place-items-center rounded-xl text-white/60 hover:bg-white/10 hover:text-white"
-      title={item.archived ? "إعادة من الأرشيف" : "أرشفة"}
-      aria-label={item.archived ? "إعادة من الأرشيف" : "أرشفة"}
-    >
-      {item.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
-    </button>
+  /** The entry's name — a link to its sheet when it can be edited — and «تعديل | أرشفة» under it */
+  const title = (item: Item, name: string, sub: ReactNode, onEdit: () => void) => (
+    <>
+      {editable ? (
+        <button type="button" onClick={onEdit} className="text-right font-bold text-white hover:text-gold">
+          {name}
+        </button>
+      ) : (
+        <p className="font-bold text-white">{name}</p>
+      )}
+      <p className="text-xs text-white/55">{sub}</p>
+      {editable && (
+        <RowActions>
+          <RowLink onClick={onEdit}>تعديل</RowLink>
+          <RowLink danger={!item.archived} onClick={() => archive(tab, item)}>
+            {item.archived ? "إعادة من الأرشيف" : "أرشفة"}
+          </RowLink>
+        </RowActions>
+      )}
+    </>
   );
 
   const usageCell = (id: string, archived: boolean | undefined, offered: boolean) => {
@@ -251,48 +284,13 @@ function Reference() {
     if (u)
       return (
         <>
-          <Chip tone="gold">{u.parent ?? u.file}</Chip>
+          <Tag tone="gold">{u.parent ?? u.file}</Tag>
           <p className="mt-1 text-[11px] text-white/60">{u.lead ? u.lead : "بلا مسؤول بعد"}</p>
         </>
       );
-    if (archived) return <Chip>مؤرشف</Chip>;
+    if (archived) return <Tag>مؤرشف</Tag>;
     return offered ? <span className="text-xs font-bold text-white/85">متاح للإضافة</span> : <span className="text-xs text-white/40">—</span>;
   };
-
-  const table = (head: string[], empty: boolean, children: ReactNode) =>
-    empty ? (
-      <Panel>
-        <Empty icon={<Database />} title="لا شيء يطابق البحث" />
-      </Panel>
-    ) : (
-      <Panel bodyClass="-mx-5 md:-mx-6" delay={0.05}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[54rem] text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-right text-xs text-gold">
-                {head.map((h, i) => (
-                  <th key={i} className={cn("pb-3 font-bold", i === 0 && "px-5 md:px-6")}>
-                    {h}
-                  </th>
-                ))}
-                <th className="px-5 pb-3 md:px-6" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/10">{children}</tbody>
-          </table>
-        </div>
-      </Panel>
-    );
-
-  const actionsFor = (item: Hotel | Sector | Center | Camp, onEdit: () => void) =>
-    editable ? (
-      <div className="flex justify-end gap-1">
-        <Button size="sm" variant="glass" onClick={onEdit}>
-          تعديل
-        </Button>
-        {archiveBtn(item)}
-      </div>
-    ) : null;
 
   const capacityCell = (id: string, capacity: number) => {
     const u = use.get(id);
@@ -305,13 +303,32 @@ function Reference() {
     );
   };
 
+  /** What a sector / centre holds in the season's file, and who leads it */
+  const nodeCells = (id: string, children: string, leadRole: string) => {
+    const u = use.get(id);
+    return u ? (
+      <>
+        <td className="p-3 text-white/85">
+          <span className="font-bold tabular-nums text-white">{u.staff}</span> {children} · <span className="font-bold tabular-nums text-white">{formatNumber(u.pilgrims)}</span> حاجاً
+        </td>
+        <td className="p-3">{u.lead ? <span className="font-bold text-gold">{u.lead}</span> : <span className="text-xs font-bold text-[#ffb4c8]">{leadRole}: لم يُحدَّد بعد</span>}</td>
+      </>
+    ) : (
+      <td colSpan={2} className="p-3 text-xs text-white/50">
+        غير مستخدم في ملفات هذا الموسم.
+      </td>
+    );
+  };
+
+  const empty = q ? "لا شيء يطابق البحث." : view === "archived" ? "لا شيء مؤرشف." : `لا ${NOUN[tab].many} في هذه القائمة بعد.`;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         eyebrow="الملفات التشغيلية"
         icon={<Database />}
         title="البيانات المرجعية"
-        description="قوائم الموسم التي تختار منها الملفات التشغيلية بدل كتابتها يدوياً: فنادق مكة المكرمة والمدينة المنورة وقطاعات مكة لملف التسكين، ومراكز منى وعرفات ومخيماتهما لملفَي المخيمات. لكل موسم قوائمه، لأن العقود تتغير من عام إلى عام."
+        description="قوائم الموسم التي تختار منها الملفات التشغيلية: الفنادق والقطاعات والمراكز والمخيمات."
         actions={
           <Tabs
             id="ref-season"
@@ -334,52 +351,44 @@ function Reference() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="فنادق مكة المكرمة" value={live(refs.hotels).filter((h) => h.city === "makkah").length} icon={<HotelIcon />} hint={`${formatNumber(makkahBeds)} سرير متعاقد عليه`} />
-        <Kpi label="قطاعات مكة" value={live(refs.sectors).length} icon={<MapPinned />} tone="teal" delay={0.05} />
-        <Kpi
-          label="مراكز منى وعرفات"
-          value={live(refs.centers).length}
-          icon={<MapPinned />}
-          tone="gold"
-          delay={0.1}
-          hint={`منى ${live(refs.centers).filter((c) => c.mashaer === "mina").length} · عرفات ${live(refs.centers).filter((c) => c.mashaer === "arafat").length}`}
+      {/* The four lists, and «إضافة …» to the one open */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Tabs<Tab>
+          id="ref-tab"
+          value={tab}
+          onChange={(v) => {
+            setTab(v);
+            setView("all");
+          }}
+          tabs={[
+            { value: "hotels", label: "الفنادق", count: live(refs.hotels).length },
+            { value: "sectors", label: "القطاعات", count: live(refs.sectors).length },
+            { value: "centers", label: "المراكز", count: live(refs.centers).length },
+            { value: "camps", label: "المخيمات", count: live(refs.camps).length },
+          ]}
         />
-        <Kpi label="مخيمات المشاعر" value={live(refs.camps).length} icon={<Tent />} tone="maroon" delay={0.15} hint={`طاقة ${formatNumber(campSeats)} حاج`} />
+        {editable && (
+          <>
+            <AddButton onClick={addNew}>
+              <Plus className="size-4" /> إضافة {NOUN[tab].one}
+            </AddButton>
+            <button type="button" onClick={() => setImporting(true)} className="inline-flex items-center gap-1.5 text-sm font-bold text-white/70 hover:text-white hover:underline">
+              <CopyPlus className="size-4" /> نقل من موسم {CURRENT_SEASON - 1}
+            </button>
+          </>
+        )}
       </div>
 
-      <Panel bodyClass="space-y-3">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <Tabs<Tab>
-            id="ref-tab"
-            value={tab}
-            onChange={(v) => {
-              setTab(v);
-              setGroup("");
-            }}
-            tabs={[
-              {
-                value: "hotels",
-                label: "الفنادق",
-                count: live(refs.hotels).length,
-              },
-              {
-                value: "sectors",
-                label: "القطاعات",
-                count: live(refs.sectors).length,
-              },
-              {
-                value: "centers",
-                label: "المراكز",
-                count: live(refs.centers).length,
-              },
-              {
-                value: "camps",
-                label: "المخيمات",
-                count: live(refs.camps).length,
-              },
-            ]}
-          />
+      <div>
+        <ListToolbar
+          filters={
+            <>
+              <FilterLinks<View> label={`عرض ${NOUN[tab].many}`} value={view} onChange={setView} items={views} />
+              {tab === "hotels" && <p className="mt-1 text-xs text-white/55">فنادق مكة المكرمة: {formatNumber(makkahBeds)} سرير متعاقد عليه.</p>}
+              {tab === "camps" && <p className="mt-1 text-xs text-white/55">طاقة المخيمات: {formatNumber(campSeats)} حاج.</p>}
+            </>
+          }
+        >
           <SearchBox
             className="flex-1"
             value={q}
@@ -387,146 +396,94 @@ function Reference() {
             label="بحث"
             placeholder={tab === "camps" ? "رقم المخيم، الموقع، المركز..." : tab === "hotels" ? "اسم الفندق، الحي، رقم الترخيص، القطاع..." : "الاسم، المسؤول..."}
           />
-          {tab !== "sectors" && (
-            <div className="w-full xl:w-44">
-              {tab === "hotels" ? (
-                <FilterSelect
-                  label="المدينة"
-                  all="المدينتان"
-                  value={group}
-                  onChange={setGroup}
-                  options={[
-                    { value: "makkah", label: "مكة المكرمة" },
-                    { value: "madinah", label: "المدينة المنورة" },
-                  ]}
-                />
-              ) : (
-                <FilterSelect
-                  label="المشعر"
-                  all="منى وعرفات"
-                  value={group}
-                  onChange={setGroup}
-                  options={[
-                    { value: "mina", label: "منى" },
-                    { value: "arafat", label: "عرفات" },
-                  ]}
-                />
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
-            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} className="size-4 accent-[#D9C89E]" />
-            إظهار المؤرشف
-          </label>
-          {editable && (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="glass" onClick={() => setImporting(true)}>
-                <CopyPlus className="size-4" /> نقل من موسم {CURRENT_SEASON - 1}
-              </Button>
-              <Button size="sm" variant="gold" onClick={addNew}>
-                <Plus className="size-4" /> إضافة {NOUN[tab].one}
-              </Button>
-            </div>
-          )}
-        </div>
-      </Panel>
+        </ListToolbar>
 
-      {tab === "hotels" &&
-        table(
-          ["الفندق", "الموقع", "عن الحرم", "الطاقة", "في ملف التسكين"],
-          rows.hotels.length === 0,
-          <>
-            {rows.hotels.map((h, i) => (
-              <motion.tr key={h.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }} className={cn(h.archived && "opacity-50")}>
-                <td className="px-5 py-3 md:px-6">
-                  <p className="font-bold text-white">{h.name}</p>
-                  <p className="text-xs tabular-nums text-white/55">
-                    ترخيص {h.licence || "—"}
-                    {h.floors ? ` · ${h.floors} طابقاً` : ""}
-                  </p>
-                </td>
-                <td className="py-3">
-                  <p className="text-white/90">{h.area}</p>
-                  <p className="text-xs text-white/55">{CITY_LABEL[h.city]}</p>
-                </td>
-                <td className="py-3 text-white/85">{h.distance}</td>
-                <td className="py-3">{capacityCell(h.id, h.capacity)}</td>
-                <td className="py-3">{usageCell(h.id, h.archived, h.city === "makkah")}</td>
-                <td className="px-5 py-3 md:px-6">{actionsFor(h, () => setEditHotel(h))}</td>
-              </motion.tr>
-            ))}
-          </>,
+        {tab === "hotels" && (
+          <ListTable head={["الفندق", "الموقع", "عن الحرم", "الطاقة", "في ملف التسكين"]} minWidth="52rem">
+            {rows.hotels.length === 0 ? (
+              <EmptyRow cols={5}>{empty}</EmptyRow>
+            ) : (
+              rows.hotels.map((h) => (
+                <tr key={h.id} className={cn("align-top", h.archived && "opacity-60")}>
+                  <td className="p-3">
+                    {title(
+                      h,
+                      h.name,
+                      <span className="tabular-nums">
+                        ترخيص {h.licence || "—"}
+                        {h.floors ? ` · ${h.floors} طابقاً` : ""}
+                      </span>,
+                      () => setEditHotel(h),
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <p className="text-white/90">{h.area}</p>
+                    <p className="text-xs text-white/55">{CITY_LABEL[h.city]}</p>
+                  </td>
+                  <td className="p-3 text-white/85">{h.distance}</td>
+                  <td className="p-3">{capacityCell(h.id, h.capacity)}</td>
+                  <td className="p-3">{usageCell(h.id, h.archived, h.city === "makkah")}</td>
+                </tr>
+              ))
+            )}
+          </ListTable>
         )}
 
-      {tab === "camps" &&
-        table(
-          ["المخيم", "الموقع", "الطاقة", "المركز في الملف"],
-          rows.camps.length === 0,
-          <>
-            {rows.camps.map((c, i) => (
-              <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }} className={cn(c.archived && "opacity-50")}>
-                <td className="px-5 py-3 md:px-6">
-                  <p className="font-bold text-white">{campName(c)}</p>
-                  <p className="text-xs text-white/55">{MASHAER_LABEL[c.mashaer]}</p>
-                </td>
-                <td className="py-3 text-white/85">{c.location}</td>
-                <td className="py-3">{capacityCell(c.id, c.capacity)}</td>
-                <td className="py-3">{usageCell(c.id, c.archived, true)}</td>
-                <td className="px-5 py-3 md:px-6">{actionsFor(c, () => setEditCamp(c))}</td>
-              </motion.tr>
-            ))}
-          </>,
+        {tab === "sectors" && (
+          <ListTable head={["القطاع", "الترتيب", "في ملف التسكين", "رئيس القطاع"]}>
+            {rows.sectors.length === 0 ? (
+              <EmptyRow cols={4}>{empty}</EmptyRow>
+            ) : (
+              rows.sectors.map((s) => (
+                <tr key={s.id} className={cn("align-top", s.archived && "opacity-60")}>
+                  <td className="p-3">{title(s, s.name, s.zone || "—", () => setEditSector(s))}</td>
+                  <td className="p-3 font-display font-bold tabular-nums text-gold">{s.order}</td>
+                  {nodeCells(s.id, "أبراج", "رئيس القطاع")}
+                </tr>
+              ))
+            )}
+          </ListTable>
         )}
 
-      {(tab === "sectors" || tab === "centers") && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {(tab === "sectors" ? rows.sectors : rows.centers).map((s, i) => {
-            const u = use.get(s.id);
-            const center = "mashaer" in s ? s : undefined;
-            return (
-              <Panel key={s.id} delay={Math.min(i, 8) * 0.04} className={cn(s.archived && "opacity-50")}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-display text-xl font-bold text-white">{s.name}</p>
-                    <p className="mt-1 text-sm leading-6 text-white/70">{center ? `${MASHAER_LABEL[center.mashaer]}${center.company ? ` · ${center.company}` : ""}` : (s as Sector).zone || "—"}</p>
-                  </div>
-                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gold/15 font-display text-lg font-bold text-gold ring-1 ring-gold/30">{s.order}</span>
-                </div>
-                <div className="mt-4 space-y-1.5 rounded-2xl bg-white/5 p-3 text-sm ring-1 ring-white/10">
-                  {u ? (
-                    <>
-                      <p className="text-white/85">
-                        <span className="font-bold tabular-nums text-white">{u.staff}</span> {center ? "مخيمات" : "أبراج"} ·{" "}
-                        <span className="font-bold tabular-nums text-white">{formatNumber(u.pilgrims)}</span> حاجاً
-                      </p>
-                      <p className="text-white/70">
-                        {center ? "المشرف" : "رئيس القطاع"}: {u.lead ? <span className="font-bold text-gold">{u.lead}</span> : <span className="font-bold text-[#ffb4c8]">لم يُحدَّد بعد</span>}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-white/55">غير مستخدم في ملفات هذا الموسم.</p>
-                  )}
-                </div>
-                {editable && (
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="glass" onClick={() => (center ? setEditCenter(center) : setEditSector(s as Sector))}>
-                      تعديل
-                    </Button>
-                    <Button size="sm" variant="glass" onClick={() => archive(tab, s)}>
-                      {s.archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />} {s.archived ? "إعادة" : "أرشفة"}
-                    </Button>
-                  </div>
-                )}
-              </Panel>
-            );
-          })}
-          {(tab === "sectors" ? rows.sectors : rows.centers).length === 0 && <Empty icon={<MapPinned />} title="لا شيء يطابق" />}
-        </div>
-      )}
+        {tab === "centers" && (
+          <ListTable head={["المركز", "الترتيب", "في ملف المخيمات", "المشرف"]}>
+            {rows.centers.length === 0 ? (
+              <EmptyRow cols={4}>{empty}</EmptyRow>
+            ) : (
+              rows.centers.map((c) => (
+                <tr key={c.id} className={cn("align-top", c.archived && "opacity-60")}>
+                  <td className="p-3">{title(c, c.name, `${MASHAER_LABEL[c.mashaer]}${c.company ? ` · ${c.company}` : ""}`, () => setEditCenter(c))}</td>
+                  <td className="p-3 font-display font-bold tabular-nums text-gold">{c.order}</td>
+                  {nodeCells(c.id, "مخيمات", "المشرف")}
+                </tr>
+              ))
+            )}
+          </ListTable>
+        )}
 
-      <p className="text-center text-xs leading-6 text-white/45">الأرشفة تُخفي العنصر من قوائم الاختيار دون أن تمسّ الملفات القديمة التي استعملته.</p>
+        {tab === "camps" && (
+          <ListTable head={["المخيم", "الموقع", "الطاقة", "المركز في الملف"]}>
+            {rows.camps.length === 0 ? (
+              <EmptyRow cols={4}>{empty}</EmptyRow>
+            ) : (
+              rows.camps.map((c) => (
+                <tr key={c.id} className={cn("align-top", c.archived && "opacity-60")}>
+                  <td className="p-3">{title(c, campName(c), MASHAER_LABEL[c.mashaer], () => setEditCamp(c))}</td>
+                  <td className="p-3 text-white/85">{c.location}</td>
+                  <td className="p-3">{capacityCell(c.id, c.capacity)}</td>
+                  <td className="p-3">{usageCell(c.id, c.archived, true)}</td>
+                </tr>
+              ))
+            )}
+          </ListTable>
+        )}
+      </div>
+
+      <HowTo>
+        <p>فنادق مكة المكرمة والمدينة المنورة وقطاعات مكة لملف التسكين، ومراكز منى وعرفات ومخيماتهما لملفَي المخيمات. تختار منها الملفات التشغيلية بدل كتابتها يدوياً.</p>
+        <p>لكل موسم قوائمه، لأن العقود تتغير من عام إلى عام. «نقل من موسم {CURRENT_SEASON - 1}» ينسخ ما جدّدتم التعاقد عليه إلى قائمة هذا الموسم.</p>
+        <p>الأرشفة تُخفي العنصر من قوائم الاختيار دون أن تمسّ الملفات القديمة التي استعملته. ولا يُؤرشف عنصر ما زال في ملف تشغيلي.</p>
+      </HowTo>
 
       <Drawer open={!!editHotel} onClose={() => setEditHotel(null)} title={editHotel?.id ? `تعديل: ${editHotel.name}` : "إضافة فندق"}>
         {editHotel && (

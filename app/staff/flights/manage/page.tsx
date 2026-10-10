@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { RefsTab } from "../manage-tabs";
+import { Suspense } from "react";
+import { AirportsPage } from "../refs";
 
-export const metadata: Metadata = { title: "المطارات والناقلون — إدارة الطيران" };
+export const metadata: Metadata = { title: "المطارات ومندوبوها — إدارة الطيران" };
 
-/** The management page opens on what the flights are built from: airports, carriers and their representatives */
+/** The management opens on what the flights are built from: the airports and who represents each (`?filter=norep`: those without one) */
 export default function Page() {
-  return <RefsTab />;
+  return (
+    <Suspense>
+      <AirportsPage />
+    </Suspense>
+  );
 }

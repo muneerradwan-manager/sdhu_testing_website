@@ -6,16 +6,29 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { fullName } from "@/lib/registry";
-import { actions } from "@/lib/store";
+import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
 import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { SeasonPlanNote } from "@/components/payment/plan-picker";
 import { firstPayment, planLabel, seasonPlan } from "@/lib/installments";
-import { useSeason } from "@/lib/season-live";
+import { mergeSeason } from "@/lib/season-live";
+import { usePinnedVersion } from "@/lib/registration/client";
+import { run } from "@/lib/registration/run";
+import { payFirstInstallment } from "@/lib/registration/service";
 import { formatUSD } from "@/lib/utils";
 import { initialDocuments, receiptBase } from "./model";
 import { applicantOf, logPilgrim, type StepProps } from "./shared";
+
+/** Stands in the instructions for the sentence on the installments, written from the application's own schedule */
+const PLAN_LINE = "{plan}";
+
+/** The installments as the instructions say them: the season's two by default, or the schedule the application keeps */
+function planLine(schedule: { label: string; dueLabel: string }[] | undefined) {
+  if (!schedule || schedule.length === 2) return "تكلفة الحج هذا الموسم على دفعتين كما حددت الإدارة: الأولى مع التسجيل على القبول المباشر أو عند تثبيت التسجيل لمن قُبل بالقرعة، والثانية بعد اعتماد عقدك مع المجموعة.";
+  if (schedule.length === 1) return "تكلفة الحج هذا الموسم دفعة واحدة كاملة كما حددت الإدارة: مع التسجيل على القبول المباشر أو عند تثبيت التسجيل لمن قُبل بالقرعة.";
+  return `تكلفة الحج هذا الموسم على ${schedule.length} دفعات كما حددت الإدارة: ${schedule[0].label} مع التسجيل على القبول المباشر أو عند تثبيت التسجيل لمن قُبل بالقرعة، ثم ${schedule.slice(1).map((l) => `${l.label} (${l.dueLabel})`).join("، ثم ")}.`;
+}
 
 const INSTRUCTIONS: { title: string; items: string[] }[] = [
   {
@@ -23,7 +36,7 @@ const INSTRUCTIONS: { title: string; items: string[] }[] = [
     items: [
       "تأكيد القبول ورفع الصورة الشخصية: حتى 27 تشرين الأول (16 جمادى الأولى 1448). والمقبول بالقرعة يثبّت تسجيله بدفع الدفعة الأولى مع التأكيد.",
       "إلحاقك بمجموعة: 12 تشرين الثاني – 15 كانون الثاني (موعد تقديري). تتفق مع المجموعة، وتوقّع عقدك معها في المكتب، فيلحقك موظف المكتب بها.",
-      "تكلفة الحج هذا الموسم على دفعتين كما حددت الإدارة: الأولى مع التسجيل على القبول المباشر أو عند تثبيت التسجيل لمن قُبل بالقرعة، والثانية بعد اعتماد عقدك مع المجموعة.",
+      PLAN_LINE,
       "من لا يؤكد أو لا يسدد في المهلة يسقط قبوله، ويعود مقعده إلى الإدارة.",
     ],
   },
@@ -56,7 +69,7 @@ const INSTRUCTIONS: { title: string; items: string[] }[] = [
   },
 ];
 
-export function StepConfirm({ app, post, sessionId }: StepProps) {
+export function StepConfirm({ app, post, sessionId, stepLabel }: StepProps) {
   const toast = useToast();
   const [progress, setProgress] = useState(0);
   const [agree, setAgree] = useState(false);
@@ -64,7 +77,7 @@ export function StepConfirm({ app, post, sessionId }: StepProps) {
   const readAll = progress >= 0.98;
   const applicant = applicantOf(app);
 
-  if (post.confirmedAt && !app.firstPaid) return <FirstInstallment app={app} />;
+  if (post.confirmedAt && !app.firstPaid) return <FirstInstallment app={app} stepLabel={stepLabel} />;
 
   const confirm = () => {
     setSigning(true);
@@ -77,7 +90,7 @@ export function StepConfirm({ app, post, sessionId }: StepProps) {
 
   return (
     <Question
-      step="الخطوة 1 من 7"
+      step={stepLabel ?? "الخطوة 1 من 7"}
       title="أكّد قبول الحج لجميع أفراد الطلب"
       hint="اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً."
       speak="أكّد قبول الحج لجميع أفراد الطلب. اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً. إذا لم تؤكد في المهلة يسقط قبولك."
@@ -110,7 +123,7 @@ export function StepConfirm({ app, post, sessionId }: StepProps) {
           <p className="mt-2 text-center text-ink-soft">
             إلى الحاج {fullName(applicant.person)} وأفراد الطلب رقم {app.number}
           </p>
-          {INSTRUCTIONS.map((s) => (
+          {INSTRUCTIONS.map((sec) => ({ ...sec, items: sec.items.map((it) => (it === PLAN_LINE ? planLine(app.policy?.fees.schedule) : it)) })).map((s) => (
             <div key={s.title} className="mt-5">
               <p className="font-bold text-gold-dark">{s.title}</p>
               <ol className="mt-1 list-inside list-decimal space-y-1 text-ink">
@@ -176,31 +189,38 @@ export function StepConfirm({ app, post, sessionId }: StepProps) {
  * تحددها الإدارة للموسم ولا يختارها الحاج. من نقل طلبه من القبول المباشر إلى القرعة تكون دفعته
  * الأولى مدفوعة مسبقاً (رصيد)، فلا يصل إلى هنا.
  */
-function FirstInstallment({ app }: { app: StepProps["app"] }) {
+function FirstInstallment({ app, stepLabel }: { app: StepProps["app"]; stepLabel?: string }) {
   const toast = useToast();
-  const season = useSeason();
-  const plan = seasonPlan(season.fees);
+  // The installments of the application's own version, at the season's cost in force when it confirms
+  const version = usePinnedVersion(app.configVersion, app.season);
+  const overrides = useStore((s) => s.season);
+  const fees = app.policy?.fees ?? mergeSeason(overrides, version.config.payments).fees;
+  const plan = seasonPlan(fees);
   const n = app.members.length;
-  const amount = firstPayment(plan, n, season.fees);
+  const amount = firstPayment(plan, n, fees);
   const receipt = `${receiptBase(app)}-1`;
 
   const pay = (m: PayMethod) => {
-    const at = Date.now();
-    actions.saveApplication({ ...app, plan, firstPaid: { amount, at, receipt }, paid: app.paid + amount });
-    logPilgrim(app, "دفع الدفعة الأولى بعد القبول بالقرعة", `${planLabel(plan, season.fees)} — ${formatUSD(amount)} — ${payMethodLabel(m)} — الإيصال ${receipt}`);
+    // The service computes the amount itself from the application's terms and records the payment
+    const r = run((s) => payFirstInstallment(s, app.applicantId, m, Date.now()));
+    if (!r.ok) {
+      toast({ title: "لم يُسجَّل الدفع", body: r.errors[0].message, icon: "⚠️", tone: "gold" });
+      return;
+    }
+    logPilgrim(app, "دفع الدفعة الأولى بعد القبول بالقرعة", `${planLabel(plan, fees)} — ${formatUSD(r.value.firstPaid!.amount)} — ${payMethodLabel(m)} — الإيصال ${receipt}`);
     toast({ title: "تم دفع الدفعة الأولى", body: `الإيصال ${receipt}. ارفع الآن الصورة الشخصية لكل فرد؛ الجواز بعد الدفعة الثانية.`, icon: "🧾", tone: "success" });
   };
 
   return (
     <Question
-      step="الخطوة 1 من 7"
+      step={stepLabel ?? "الخطوة 1 من 7"}
       title={plan === 1 ? "ادفع تكلفة الحج كاملة" : "ادفع الدفعة الأولى"}
       hint={plan === 1 ? "قُبلت بالقرعة. ثبّت تسجيلك: حددت الإدارة لهذا الموسم دفعة واحدة، فتُدفع تكلفة الحج كاملة الآن." : "قُبلت بالقرعة، فثبّت تسجيلك بالدفعة الأولى من تكلفة الحج قبل 27 تشرين الأول. الدفعة الثانية بعد اعتماد عقدك مع المجموعة."}
       speak="قُبلت بالقرعة. ثبّت تسجيلك بدفع الدفعة الأولى من تكلفة الحج."
     >
-      <SeasonPlanNote people={n} fees={season.fees} dueNowLabel="الآن" />
+      <SeasonPlanNote people={n} fees={fees} dueNowLabel="الآن" />
       <div className="mt-6">
-        <PayMethods amount={amount} reference={receipt} bankReference={receipt.replace("-P-", "-BANK-")} cta={plan === 1 ? "ادفع التكلفة كاملة —" : "ادفع الدفعة الأولى —"} onConfirm={pay} />
+        <PayMethods amount={amount} reference={receipt} bankReference={receipt.replace("-P-", "-BANK-")} cta={plan === 1 ? "ادفع التكلفة كاملة —" : "ادفع الدفعة الأولى —"} onConfirm={pay} methods={(["shamcash", "bank"] as const).filter((x) => version.config.payments.methods[x])} />
       </div>
     </Question>
   );

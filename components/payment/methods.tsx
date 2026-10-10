@@ -20,11 +20,12 @@ export function payMethodLabel(m: PayMethod | "card" | undefined) {
   return m === "bank" ? "المصرف المعتمد — إشعار مرفوع" : "شام كاش";
 }
 
-export function PayMethodChoice({ value, onChange, bankFirst = false }: { value: PayMethod | null; onChange: (m: PayMethod) => void; bankFirst?: boolean }) {
-  const items = [
+export function PayMethodChoice({ value, onChange, bankFirst = false, only }: { value: PayMethod | null; onChange: (m: PayMethod) => void; bankFirst?: boolean; /** The methods the season's registration allows (both when absent) */ only?: PayMethod[] }) {
+  const all = [
     { k: "shamcash" as const, icon: <Wallet className="size-7 text-green-dark" />, label: "شام كاش", description: "من تطبيق شام كاش على هاتفك — فوري" },
     { k: "bank" as const, icon: <Landmark className="size-7 text-green-dark" />, label: "المصرف المعتمد", description: "ادفع بالرقم المرجعي ثم ارفع إشعار الدفع" },
   ];
+  const items = all.filter((m) => !only || only.includes(m.k));
   const ordered = bankFirst ? [...items].reverse() : items;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -113,11 +114,11 @@ export function BankSlipPanel({ amount, reference, onConfirm }: { amount: number
 }
 
 /** Choice + the matching panel — the whole payment form used across the platform */
-export function PayMethods({ amount, reference, bankReference, onConfirm, cta }: { amount: number; reference: string; bankReference: string; onConfirm: (m: PayMethod) => void; cta?: string }) {
+export function PayMethods({ amount, reference, bankReference, onConfirm, cta, methods }: { amount: number; reference: string; bankReference: string; onConfirm: (m: PayMethod) => void; cta?: string; methods?: PayMethod[] }) {
   const [method, setMethod] = useState<PayMethod | null>(null);
   return (
     <div>
-      <PayMethodChoice value={method} onChange={setMethod} />
+      <PayMethodChoice value={method} onChange={setMethod} only={methods} />
       <AnimatePresence mode="wait">
         {method === "shamcash" && <ShamCashPanel amount={amount} reference={reference} cta={cta} onConfirm={() => onConfirm("shamcash")} />}
         {method === "bank" && <BankSlipPanel amount={amount} reference={bankReference} onConfirm={() => onConfirm("bank")} />}

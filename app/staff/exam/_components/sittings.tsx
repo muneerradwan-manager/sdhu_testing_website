@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
-import { CalendarClock, Eye, ShieldCheck, UsersRound } from "lucide-react";
+import { ShieldCheck, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { PAIRING, type ExamCenter, type ExamDef } from "@/lib/data/admin-exam";
 import { dayTimeLabel } from "@/lib/operations";
 import type { StaffUser } from "@/lib/staff";
@@ -28,10 +26,11 @@ import {
   type HallStage,
 } from "@/app/administrator/_lib/halls";
 import type { AdminRow } from "../../_components/data";
-import { Drawer, Empty, Panel, Tabs, fmtTime } from "../../_components/kit";
+import { Drawer, Empty, Tabs, fmtTime } from "../../_components/kit";
+import { Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../../_components/wp";
 import { useExamDesk, type AttemptRow, type ExamDesk } from "./desk";
 import { Records } from "./records";
-import { ATTEMPT_TONE, Chip, Switch, alertParts, pct, type ChipTone } from "./ui";
+import { ATTEMPT_TONE, Chip, Segments, alertParts, pct, type ChipTone } from "./ui";
 
 /** The tests one applicant sits this season: his role's, or both of «معاون ومنسق تقني»'s */
 export function examRolesOfRow(r: AdminRow) {
@@ -127,37 +126,73 @@ export function TimingChip({ s, now }: { s: SittingRow; now: number }) {
 }
 
 /**
- * The sittings: one row per test in a hall, with its time, how many it lists, its supervisor, how far it went
- * and when it can be opened. Applicants are put in a hall from «المتقدمون» and the supervisor from «القاعات
- * والمحافظات»; the supervisor opens the sitting from his panel. Each sitting opens read-only on its applicants
- * and its attempts.
+ * The sittings as a list: one line per test in a hall, with its time, how many it lists, its supervisor, how far
+ * it went and when it can be opened. Each opens read-only in a side sheet on its applicants and its attempts.
  */
 export function Sittings() {
   const desk = useExamDesk();
   const rows = useSittingRows(desk);
   const now = useDemoNow();
-  const [showClosed, setShowClosed] = useState(false);
+  const [view, setView] = useState<"current" | "closed" | "all">("current");
   const [open, setOpen] = useState<string | null>(null);
   const closed = rows.filter((s) => s.stage === "closed").length;
   const shown = rows
-    .filter((s) => showClosed || s.stage !== "closed")
+    .filter((s) => view === "all" || (view === "closed") === (s.stage === "closed"))
     .sort((a, b) => STAGE_RANK[a.stage] - STAGE_RANK[b.stage] || (a.stage === "idle" ? WINDOW_RANK[openWindow(a.at, now)] - WINDOW_RANK[openWindow(b.at, now)] : 0) || (a.at ?? Infinity) - (b.at ?? Infinity) || a.center.name.localeCompare(b.center.name, "ar"));
   const current = rows.find((s) => s.key === open);
 
   return (
-    <div className="space-y-4">
-      <Panel
-        icon={<CalendarClock />}
-        title="جلسات الاختبار"
-        action={
-          <label className="flex items-center gap-2 text-xs font-bold text-white/80">
-            إظهار المنتهية ({closed})
-            <Switch on={showClosed} onChange={setShowClosed} label="إظهار الجلسات المنتهية" />
-          </label>
-        }
-      >
-        <p className="text-sm leading-7 text-white/70">
-          الجلسة = اختبار في قاعة بموعد. أسند لها متقدمين ومشرفاً، ثم يفتحها المشرف من لوحته. يُسند المتقدمون إلى القاعات من{" "}
+    <div className="space-y-5">
+      <Segments
+        value={view}
+        onChange={setView}
+        label="تصفية الجلسات"
+        items={[
+          { value: "current", label: "القادمة والجارية", count: rows.length - closed },
+          { value: "closed", label: "المنتهية", count: closed },
+          { value: "all", label: "الكل", count: rows.length },
+        ]}
+      />
+      <ListTable head={["الجلسة", "الموعد", "المسندون", "مشرف القاعة", "الحالة"]} minWidth="52rem">
+        {shown.length === 0 && <EmptyRow cols={5}>{view === "current" ? (closed ? "كل الجلسات منتهية: اعرضها من «المنتهية»." : "انشر اختباراً ليصير له جلسة في كل قاعة يُجلس له فيها.") : "لا جلسات هنا."}</EmptyRow>}
+        {shown.map((s) => (
+          <tr key={s.key} className="align-top">
+            <td className="p-3">
+              <button type="button" onClick={() => setOpen(s.key)} className="text-right font-bold text-white hover:text-gold">
+                {s.exam.name}
+              </button>
+              <p className="text-xs text-white/55">
+                {s.center.name}
+                {s.exam.status === "archived" && " · مؤرشف"}
+              </p>
+              <RowActions>
+                <RowLink onClick={() => setOpen(s.key)}>عرض</RowLink>
+                <RowLink href={`/staff/exam/manage/people?c=${s.center.id}`}>متقدمو القاعة</RowLink>
+                {s.attempts.length > 0 && <RowLink href={`/staff/exam/manage/results?s=${s.key}`}>النتائج</RowLink>}
+              </RowActions>
+            </td>
+            <td className="p-3 text-white/80">
+              {dayTimeLabel(s.exam.day, s.exam.time) || "بلا موعد"}
+              {s.exam.date && <span className="block text-[11px] text-white/50">{s.exam.date}</span>}
+            </td>
+            <td className="p-3 tabular-nums">
+              {s.listed.length}
+              {s.run && <span className="block text-[11px] text-white/55">حضر {Object.keys(s.run.present).length}</span>}
+            </td>
+            <td className="p-3">{s.supervisor ? s.supervisor.name : <Tag tone="gold">بلا مشرف</Tag>}</td>
+            <td className="p-3">
+              <span className="flex flex-wrap gap-1">
+                <Chip tone={STAGE_TONE[s.stage]}>{STAGE_LABEL[s.stage]}</Chip>
+                <TimingChip s={s} now={now} />
+              </span>
+            </td>
+          </tr>
+        ))}
+      </ListTable>
+
+      <Box title="كيف تعمل الجلسات؟" open={false}>
+        <p className="leading-7">
+          الجلسة = اختبار منشور أو مؤرشف في قاعة بموعده، وتظهر هنا وحدها حين يُنشر الاختبار. يُسند المتقدمون إلى القاعات من{" "}
           <Link href="/staff/exam/manage/people" className="font-bold text-gold hover:underline">
             «المتقدمون»
           </Link>
@@ -165,63 +200,9 @@ export function Sittings() {
           <Link href="/staff/exam/manage" className="font-bold text-gold hover:underline">
             «القاعات والمحافظات»
           </Link>
-          . تُفتح القاعة من قبل موعدها بساعة إلى آخر يومه، وتظهر هنا كل جلسة لاختبار منشور أو مؤرشف في كل قاعة يُجلس له فيها.
+          . يفتحها المشرف من لوحته «قاعتي الامتحانية» من قبل موعدها بساعة إلى آخر يومه.
         </p>
-      </Panel>
-
-      <Panel bodyClass="-mx-5 md:-mx-6">
-        {shown.length === 0 ? (
-          <div className="px-5 md:px-6">
-            <Empty icon={<CalendarClock />} title="لا جلسات قادمة أو جارية" text={closed ? "كل الجلسات منتهية: اعرضها من «إظهار المنتهية»." : "انشر اختباراً ليصير له جلسة في كل قاعة يُجلس له فيها."} />
-          </div>
-        ) : (
-          <div className="overflow-x-auto px-5 md:px-6">
-            <table className="w-full min-w-[58rem] text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-right text-xs text-gold">
-                  {["الاختبار", "القاعة", "الموعد", "المسندون", "المشرف", "الحالة", "التوقيت", ""].map((h, i) => (
-                    <th key={i} className="pb-2 font-bold">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {shown.map((s, i) => (
-                  <motion.tr key={s.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 15) * 0.02 }} className="text-white">
-                    <td className="py-2.5 font-bold">
-                      {s.exam.name}
-                      {s.exam.status === "archived" && <span className="ms-1 text-[11px] font-normal text-white/55">(مؤرشف)</span>}
-                    </td>
-                    <td className="py-2.5">{s.center.name}</td>
-                    <td className="py-2.5 text-white/80">
-                      {dayTimeLabel(s.exam.day, s.exam.time) || "بلا موعد"}
-                      {s.exam.date && <span className="block text-[11px] text-white/50">{s.exam.date}</span>}
-                    </td>
-                    <td className="py-2.5 tabular-nums">
-                      {s.listed.length}
-                      {s.run && <span className="block text-[11px] text-white/55">حضر {Object.keys(s.run.present).length}</span>}
-                    </td>
-                    <td className="py-2.5">{s.supervisor ? s.supervisor.name : <span className="font-bold text-gold">بلا مشرف</span>}</td>
-                    <td className="py-2.5">
-                      <Chip tone={STAGE_TONE[s.stage]}>{STAGE_LABEL[s.stage]}</Chip>
-                    </td>
-                    <td className="py-2.5">
-                      <TimingChip s={s} now={now} />
-                    </td>
-                    <td className="py-2.5 text-left">
-                      <Button size="sm" variant="glass" onClick={() => setOpen(s.key)}>
-                        <Eye className="size-4" /> فتح
-                      </Button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-
+      </Box>
       <Records area="sittings" />
 
       <Drawer open={!!current} onClose={() => setOpen(null)} title={current ? `${current.exam.name} — ${current.center.name}` : ""} width="max-w-3xl">

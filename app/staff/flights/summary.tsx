@@ -4,20 +4,21 @@ import Link from "next/link";
 import { ArrowLeft, Building2, CalendarRange, Gauge, Megaphone, PlaneLanding, PlaneTakeoff, Users, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { fmtClock, fmtGregShort, fmtHijriShort, routeLabel } from "@/lib/flights";
+import { fmtClock, fmtGregShort, fmtHijriShort, isActive, routeLabel } from "@/lib/flights";
 import { SYSTEMS, useHolders } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
 import { fmtDate, Kpi, PageHeader, Panel, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
 import { Escalate, Raised, Todo } from "../_components/system";
+import { Box, HowItWorks } from "../_components/wp";
 import { useFlightsDesk } from "./desk";
+import { flightHref } from "./flight-screen";
 import { SeatBar, StatusChip } from "./shared";
 
 /**
- * The dashboard of whoever holds «إدارة الطيران», in place of a general «لوحتي»: the season in numbers, what
- * waits for him — each item one click from the tab or the flight it is done on — then, in the order the work
- * is done, the airports and who stands at each, the flights coming next, and how far each cluster is seated.
- * The records stay in the management tabs.
+ * The file's dashboard: numbers only — the season's flights, seats and travellers, the airports and who stands
+ * at each, the flights coming next, how far each cluster is seated — with how the work goes and what waits,
+ * each one click from where it is done. Nothing is edited here; the records stay with each operation.
  */
 export function FlightsSummary() {
   const user = useStaffUser()!;
@@ -27,6 +28,7 @@ export function FlightsSummary() {
   const [escalating, setEscalating] = useState(false);
   const { data } = desk;
   const pct = desk.seats ? Math.round((desk.seated / desk.seats) * 100) : 0;
+  const assignments = data.assignments.filter(isActive).length;
   const next = data.flights.filter((f) => !["arrived", "cancelled"].includes(f.status)).sort((a, b) => a.departAt - b.departAt).slice(0, 8);
 
   return (
@@ -35,7 +37,7 @@ export function FlightsSummary() {
         eyebrow={`صلاحيتك: ${SYSTEMS.flights.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.flights.summary.label}
         icon={<Gauge />}
-        description="حال رحلات الموسم الآن، وما ينتظرك فيها. العمل نفسه وسجلّ كل جزء في «إدارة الطيران». ولا يصل إلى مديرة الموسم إلا ما يعطّل سفر أحد، ونشر الرحلات وتغيير مواعيدها وإلغاؤها، والإقلاع والهبوط، وما ترفعه إليها."
+        description="أرقام رحلات الموسم الآن، وما ينتظرك. العمل نفسه من القائمة الجانبية."
         actions={
           <>
             <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
@@ -48,20 +50,29 @@ export function FlightsSummary() {
         }
       />
 
+      <HowItWorks
+        steps={[
+          { title: "جهّز", text: "المطارات والناقلون، ومندوب لكل مطار يسجّل الإقلاع منه والهبوط فيه.", href: "/staff/flights/manage", link: "المطارات" },
+          { title: "أنشئ وانشر", text: "رحلة ذهاب وعودة معاً تُحفظ مسودة، ثم تُنشر من صفحتها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
+          { title: "فوّج", text: "كل مجموعة على رحلتيها في خطوة، والموظفون على رحلاتهم، ومن فقد مقعده.", href: "/staff/flights/manage/dispatch", link: "التفويج" },
+          { title: "أقفل وسافر", text: "إقفال الرحلة يصدر كشف ركابها، ثم يسجّل مندوب المطار إقلاعها وهبوطها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
+        ]}
+      />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="رحلات الموسم" value={desk.live.length} icon={<CalendarRange />} hint={`${desk.live.filter((f) => f.direction === "outbound").length} ذهاب · ${desk.live.filter((f) => f.direction === "return").length} عودة · ${desk.drafts.length} مسودة`} />
-        <Kpi label="مقاعد الحجاج المسندة" value={desk.seated} icon={<Users />} tone="teal" delay={0.05} hint={`من ${formatNumber(desk.seats)} مقعداً — ${pct}%`} />
-        <Kpi label="بلا رحلة ذهاب" value={desk.travellers - desk.withOut} icon={<PlaneTakeoff />} tone="maroon" delay={0.1} pulse={desk.needsFlight.length > 0} hint={`من ${formatNumber(desk.travellers)} حاجاً وإدارياً في المجموعات`} />
+        <Kpi label="مقاعد الحجاج المسندة" value={desk.seated} icon={<Users />} tone="teal" delay={0.05} hint={`من ${formatNumber(desk.seats)} مقعداً — ${pct}% · ${formatNumber(assignments)} إسناداً نشطاً`} />
+        <Kpi label="بلا رحلة ذهاب" value={desk.travellers - desk.withOut} icon={<PlaneTakeoff />} tone="maroon" delay={0.1} pulse={desk.needsFlight.length > 0} hint={`من ${formatNumber(desk.travellers)} حاجاً وإدارياً في المجموعات · على العودة ${formatNumber(desk.withBack)}`} />
         <Kpi label="أقلعت" value={desk.done.length} icon={<PlaneLanding />} tone="gold" delay={0.15} hint={desk.inAir.length ? `في الجو الآن ${desk.inAir.length}` : "لا رحلة في الجو الآن"} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Todo alerts={desk.alerts} empty="كل مجموعة على رحلتيها، ولا أحد فقد مقعده، ولكل مطار مندوبه." />
-        <Raised system="flights" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — رحلة ألغاها الناقل ولا بديل، أو مقاعد لا تكفي، أو قرار خارج النظام — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
+        <Raised system="flights" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — رحلة ألغاها الناقل ولا بديل، أو مقاعد لا تكفي — ارفعه إلى مديرة الموسم." />
       </div>
 
       {/* In the order the work is done: the airports and who stands at each, the flights, who goes on them */}
-      <Panel icon={<Building2 />} title="المطارات ومندوبوها" action={<Link href="/staff/flights/manage" className="text-sm font-bold text-gold hover:underline">إدارتها</Link>}>
+      <Panel icon={<Building2 />} title="المطارات ومندوبوها" action={<Link href="/staff/flights/manage" className="text-sm font-bold text-gold hover:underline">المطارات</Link>}>
         <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {desk.airports.map((x) => (
             <li key={x.a.id} className={cn("flex flex-wrap items-center gap-2 rounded-2xl p-3 ring-1", x.rep ? "bg-white/[.06] ring-white/10" : "bg-maroon/15 ring-maroon/40")}>
@@ -95,7 +106,7 @@ export function FlightsSummary() {
               {next.map((f) => (
                 <tr key={f.id} className="text-white">
                   <td className="py-2.5">
-                    <Link href={`/staff/flights/manage/flights?f=${f.id}`} className="font-mono font-bold text-gold hover:underline" dir="ltr">
+                    <Link href={flightHref(f.id)} className="font-mono font-bold text-gold hover:underline" dir="ltr">
                       {f.flightNo}
                     </Link>
                     {f.audience === "staff" && <span className="mr-1 text-xs text-white/60">موظفون</span>}
@@ -140,9 +151,22 @@ export function FlightsSummary() {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-white/20 font-bold text-white">
+                <td className="py-2.5">المجموع</td>
+                <td className="py-2.5 tabular-nums">{desk.groups.length}</td>
+                <td className="py-2.5 tabular-nums">{formatNumber(desk.travellers)}</td>
+                <td className="py-2.5 tabular-nums">{formatNumber(desk.withOut)}</td>
+                <td className="py-2.5 tabular-nums">{formatNumber(desk.withBack)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </Panel>
+
+      <Box title="ما يصل إلى مديرة الموسم" open={false}>
+        <p>لا يصلها من عملك إلا ما يعطّل سفر أحد، ونشر الرحلات وتغيير مواعيدها وإلغاؤها، والإقلاع والهبوط، وما ترفعه إليها بزر «رفع أمر إلى المدير». وسجلّ كل جزء مع عمليته في «إدارة الطيران».</p>
+      </Box>
 
       <Escalate system="flights" open={escalating} onClose={() => setEscalating(false)} example="مثال: ألغت الخطوط السعودية الرحلة SV 3427، ولا مقاعد بديلة لـ 290 مسافراً قبل 5 أيار." />
     </div>

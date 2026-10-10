@@ -70,7 +70,7 @@ export function PilgrimSidebar() {
                 key={n.href}
                 href={n.href}
                 aria-current={on ? "page" : undefined}
-                className={cn("relative flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-bold transition", on ? "text-ink" : n.open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand")}
+                className={cn("relative flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-bold transition", on ? "on-light text-ink" : n.open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand")}
               >
                 {on && <motion.span layoutId="pilgrim-nav" className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light" transition={{ type: "spring", damping: 30, stiffness: 350 }} />}
                 <span className={cn("relative", on ? "text-green-dark" : n.open ? "text-gold-dark" : "text-hint")}>{n.open ? <n.icon className="size-[18px]" /> : <Lock className="size-[18px]" />}</span>

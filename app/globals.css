@@ -58,6 +58,8 @@
     @slot;
   }
 }
+/* dark: follows the site's own switch (<html data-theme>, lib/theme.ts), not only the device's setting */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ───────────────────────── Base ───────────────────────── */
 :root {
@@ -180,6 +182,108 @@ body {
 /* Full-height dark pages (staff portal) run straight into the dark footer — no light strip between them */
 main:has([data-dark-page]) + footer {
   margin-top: 0;
+}
+
+/* ───────────────────────── Dark theme (lib/theme.ts) ─────────────────────────
+   The light pages turn dark by their light surfaces and the dark text written on them: white cards become a
+   deep green-grey, the sand page becomes near-black, and ink, grey, green and maroon text become their light
+   counterparts. What is already dark or coloured keeps its colours — the green bands, the gold buttons, the
+   photographs — and inside a gold or light element the text stays dark (it is reset there), so a gold button
+   stays readable. The staff portal turns with the rest: its glass and green stay, its cream and white panels
+   go dark. Printed sheets stay on paper. The overrides sit in the utilities layer with the same specificity as the classes they
+   replace, so state variants (hover:, focus:) written after them still win. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-sand: #0b1614;
+  --surface: #13241f;
+  --tx-ink: #e8eeea;
+  --tx-soft: #b9c5c0;
+  --tx-hint: #8ea29f;
+  --tx-green: #79d4c7;
+  --tx-maroon: #f3a9c6;
+  --tx-golddark: #d9c89e;
+}
+html[data-theme="dark"] body {
+  background: var(--color-sand);
+  color: var(--tx-ink);
+}
+/* Always light: the original colours come back inside them. .on-light marks an element whose light background
+   is a sibling rather than its own (a sliding gold pill behind the selected menu item or tab) */
+html[data-theme="dark"] :where(.print-sheet, .bg-gold, .bg-gold-light, .from-gold, .on-light) {
+  --tx-ink: #021526;
+  --tx-soft: #4a4a4a;
+  --tx-hint: #62748e;
+  --tx-green: #00594f;
+  --tx-maroon: #672146;
+  --tx-golddark: #ad9e6e;
+}
+html[data-theme="dark"] .print-sheet {
+  --color-sand: #f7f4ef;
+  --surface: #ffffff;
+}
+@layer utilities {
+  :where(html[data-theme="dark"]) .bg-white {
+    background-color: var(--surface);
+  }
+  :where(html[data-theme="dark"]) .bg-white\/95,
+  :where(html[data-theme="dark"]) .bg-white\/90,
+  :where(html[data-theme="dark"]) .bg-white\/85,
+  :where(html[data-theme="dark"]) .bg-white\/80 {
+    background-color: color-mix(in oklab, var(--surface) 90%, transparent);
+  }
+  :where(html[data-theme="dark"]) .bg-white\/70,
+  :where(html[data-theme="dark"]) .bg-white\/60,
+  :where(html[data-theme="dark"]) .bg-white\/50 {
+    background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  }
+  :where(html[data-theme="dark"]) .text-ink {
+    color: var(--tx-ink);
+  }
+  :where(html[data-theme="dark"]) .text-ink-soft {
+    color: var(--tx-soft);
+  }
+  :where(html[data-theme="dark"]) .text-hint {
+    color: var(--tx-hint);
+  }
+  :where(html[data-theme="dark"]) .text-green-dark,
+  :where(html[data-theme="dark"]) .text-green {
+    color: var(--tx-green);
+  }
+  :where(html[data-theme="dark"]) .text-maroon {
+    color: var(--tx-maroon);
+  }
+  :where(html[data-theme="dark"]) .text-gold-dark {
+    color: var(--tx-golddark);
+  }
+  :where(html[data-theme="dark"]) .border-green-dark {
+    border-color: var(--color-green-light);
+  }
+  :where(html[data-theme="dark"]) .from-white {
+    --tw-gradient-from: var(--surface);
+  }
+  :where(html[data-theme="dark"]) .to-white {
+    --tw-gradient-to: var(--surface);
+  }
+  /* State variants written with the light colours: a card turning white on hover stays a dark card a shade
+     lighter, and text turning ink or green on hover takes the light counterpart (dark again inside gold) */
+  html[data-theme="dark"] .hover\:bg-white:hover,
+  html[data-theme="dark"] .hover\:bg-white\/60:hover,
+  html[data-theme="dark"] .group:hover .group-hover\:bg-white {
+    background-color: color-mix(in oklab, var(--surface) 82%, white);
+  }
+  html[data-theme="dark"] .focus\:bg-white:focus {
+    background-color: var(--surface);
+  }
+  html[data-theme="dark"] .hover\:text-ink:hover {
+    color: var(--tx-ink);
+  }
+  html[data-theme="dark"] .hover\:text-green-dark:hover {
+    color: var(--tx-green);
+  }
+  html[data-theme="dark"] .skeleton,
+  :where(html[data-theme="dark"]) .skeleton {
+    background-image: linear-gradient(90deg, #13241f 25%, #1b3029 50%, #13241f 75%);
+  }
 }
 
 /* ───────────────────────── Utilities ───────────────────────── */

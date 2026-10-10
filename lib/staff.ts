@@ -1,8 +1,8 @@
 /**
  * Permanent staff (الموظفون) from the operating document. Staff accounts are never self-created;
  * permissions are granted one by one, and field scope comes from operational files.
- * Some permissions are the management of a whole file — «إدارة الموظفين», «إدارة الإداريين», «إدارة
- * الامتحانات», «إدارة الطيران» — rather than
+ * Some permissions are the management of a whole file — «إدارة الموظفين», «إدارة التسجيل على الحج»,
+ * «إدارة الإداريين», «إدارة الامتحانات», «إدارة الطيران» — rather than
  * one task: whoever holds one runs that file entirely, from its summary and its management page, and the
  * director grants it and follows it (lib/systems.ts). The other permissions open one task each.
  * In the demo every account holds exactly one permission, and no two accounts the same one, so a permission
@@ -17,6 +17,7 @@ export type Permission =
   | "admins.manage" // إدارة الإداريين: الملف كله، من قواعد الصفات إلى المجموعات وطلبات التكتلات واعتمادها وتقييمها وتصنيفها
   | "exams.manage" // إدارة الامتحانات: الملف كله، من المراكز إلى إعلان النتائج
   | "flights.manage" // إدارة الطيران: الملف كله، من الرحلات إلى الإقلاع والهبوط
+  | "registration.manage" // إدارة التسجيل على الحج: الملف كله، من مراحل التسجيل وأسئلته وقواعده ودفعاته إلى نشر إصداراته ومتابعة الطلبات
   | "pilgrims.register" // التسجيل على الحج: تسجيل أي حاج في مدة التسجيل — لا يضعه في مجموعة ولا يمنح أي صلاحية في المجموعات
   | "registration.review" // مراجعة الطلبات والوثائق
   | "season.settings" // إعدادات الموسم والاعتماد
@@ -40,12 +41,13 @@ export type StaffUser = {
 };
 
 /** The permissions that are the management of a whole file: each opens its summary and its management page */
-export const MANAGEMENT_PERMISSIONS: Permission[] = ["staff.manage", "admins.manage", "exams.manage", "flights.manage"];
+export const MANAGEMENT_PERMISSIONS: Permission[] = ["staff.manage", "registration.manage", "admins.manage", "exams.manage", "flights.manage"];
 
 /** Every permission, in the order the portal lists them */
 export const ALL_PERMISSIONS: Permission[] = [
   "systems.assign",
   "staff.manage",
+  "registration.manage",
   "admins.manage",
   "exams.manage",
   "flights.manage",
@@ -70,6 +72,8 @@ export const STAFF: StaffUser[] = [
   { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", permissions: ["registration.review"] },
   // Data entry: this one permission and nothing else — no group, no cluster, no administrator
   { id: "razan", username: "razan", name: "رزان الحسن", title: "إدخال بيانات — التسجيل على الحج", travels: false, initials: "ر", permissions: ["pilgrims.register"] },
+  // The registration as configuration: its stages, questions, rules, installments and steps, published per season — nothing else
+  { id: "hiba", username: "hiba", name: "هبة القدسي", title: "مسؤولة إدارة التسجيل على الحج", travels: false, initials: "ه", permissions: ["registration.manage"] },
   { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", permissions: ["lottery.import"] },
   { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", permissions: ["lottery.approve"] },
   { id: "munir", username: "munir", name: "منير السيد", title: "مسؤول الامتحانات", travels: false, initials: "م", permissions: ["exams.manage"] },
@@ -97,6 +101,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "admins.manage": "إدارة الإداريين",
   "exams.manage": "إدارة الامتحانات",
   "flights.manage": "إدارة الطيران",
+  "registration.manage": "إدارة التسجيل على الحج",
   "pilgrims.register": "التسجيل على الحج",
   "registration.review": "مراجعة الطلبات والوثائق",
   "season.settings": "إعدادات الموسم",

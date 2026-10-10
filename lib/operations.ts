@@ -53,8 +53,8 @@ export type OperationDef = {
  * not announced yet (`estimate`) follows last season's pattern, and says so on the screens.
  */
 export const OPERATIONS: OperationDef[] = [
-  { key: "hajj-direct", label: "التسجيل على الحج — القبول المباشر", desc: "لمواليد 1958 فما قبل ومرافقيهم. يسجّل الحاج نفسه، أو يسجّله من يملك صلاحية التسجيل. لا يضعه في أي مجموعة.", start: "2026-08-12", end: "2026-08-25", control: "season.settings" },
-  { key: "hajj-lottery", label: "التسجيل على الحج — التسجيل الأولي على القرعة", desc: "طلب مستقل بعد القبول المباشر، برسم التسجيل فقط. لا يضع أحداً في مجموعة.", start: "2026-08-26", end: "2026-09-10", control: "season.settings" },
+  { key: "hajj-direct", label: "التسجيل على الحج — القبول المباشر", desc: "لمواليد 1958 فما قبل ومرافقيهم. يسجّل الحاج نفسه، أو يسجّله من يملك صلاحية التسجيل. لا يضعه في أي مجموعة.", start: "2026-08-12", end: "2026-08-25", control: "registration.manage" },
+  { key: "hajj-lottery", label: "التسجيل على الحج — التسجيل الأولي على القرعة", desc: "طلب مستقل بعد القبول المباشر، برسم التسجيل فقط. لا يضع أحداً في مجموعة.", start: "2026-08-26", end: "2026-09-10", control: "registration.manage" },
   { key: "admin-registration", label: "التسجيل كإداري", desc: "طلب المشاركة في الموسم لصفة واحدة من الصفات المفتوحة للتقدم: رئيس مجموعة، أو موجّه ديني بدرجته (أ، ب، ج)، أو معاون، أو منسق تقني، أو موجّهة دينية بدرجتها…", start: "2026-09-20", end: "2026-09-24", control: "admins.manage" },
   { key: "admin-exams", label: "الاختبارات", desc: "الاختبار المؤتمت لكل صفة في قاعات المراكز الامتحانية، بإشراف مشرفي القاعات، قبل تشكيل المجموعات.", start: "2026-09-27", end: "2026-10-25", control: "exams.manage", estimate: true },
   { key: "group-formation", label: "تشكيل المجموعات", desc: "يراجع الناجح في التأهيل المكتب باسم مجموعته ورسمها، فيشكّلها موظف إدارة الإداريين بفئته: عدد حجاجها ومقاعد فريقها. دون فريق: مقاعدها يملؤها رئيس التكتل.", start: "2026-11-01", end: "2026-11-10", control: "admins.manage", estimate: true },

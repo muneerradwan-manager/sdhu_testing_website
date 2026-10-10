@@ -33,7 +33,7 @@ const TEXT = {
   },
 };
 
-export function StepDocuments({ app, post, sessionId, which = "documents" }: StepProps & { which?: "documents" | "passport" }) {
+export function StepDocuments({ app, post, sessionId, which = "documents", stepLabel }: StepProps & { which?: "documents" | "passport" }) {
   const toast = useToast();
   const now = useNow(120);
   const keys = STEP_DOCS[which];
@@ -127,7 +127,7 @@ export function StepDocuments({ app, post, sessionId, which = "documents" }: Ste
   const doneCount = app.members.filter((m) => memberDocsDone(post, m, keys)).length;
 
   return (
-    <Question step={text.step} title={text.title} hint={text.hint} speak={text.speak}>
+    <Question step={stepLabel ?? text.step} title={text.title} hint={text.hint} speak={text.speak}>
       {/* Member tabs */}
       <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
         {app.members.map((m) => {

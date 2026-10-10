@@ -3,9 +3,10 @@
 import { Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AUDIENCE_LABEL, FLIGHT_SEASON, at, isoDate, isoTime, newFlightId, type Audience, type Direction, type Flight, type FlightsData } from "@/lib/flights";
+import { useToast } from "@/components/ui/widgets";
+import { AUDIENCE_LABEL, DIRECTION_LABEL, FLIGHT_SEASON, at, flightsActions, isActive, isoDate, isoTime, newFlightId, seatStats, useFlightsData, type Actor, type Audience, type Direction, type Flight, type FlightsData } from "@/lib/flights";
 import { cn } from "@/lib/utils";
-import { Drawer } from "../_components/kit";
+import { Drawer, useStaffUser } from "../_components/kit";
 import { Field, fieldClass, selectClass } from "../_components/ops-ui";
 
 /** One way (outbound or return) or both at once: a round trip creates two flights that point at each other */
@@ -195,4 +196,35 @@ export function FlightForm({ open, onClose, initial, data, onSave, assigned, not
       </div>
     </Drawer>
   );
+}
+
+/**
+ * The flight's form in one side sheet, for the list («إضافة رحلة», «تعديل البيانات») and the flight's own
+ * screen alike. `onSaved` receives the saved flight's id (the outbound of a round trip).
+ */
+export function useFlightForm(onSaved?: (id: string, created: boolean) => void) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const data = useFlightsData();
+  const actor: Actor = { name: user.name, role: user.title };
+  const [form, setForm] = useState<FlightDraft | null>(null);
+
+  const save = (d: FlightDraft) => {
+    const existing = d.id ? data.flights.find((f) => f.id === d.id) : undefined;
+    const { main: f, back } = toFlights(d, existing, user.name);
+    flightsActions.saveFlight(f, actor, existing, back);
+    toast({ title: existing ? "حُفظت التعديلات" : back ? "حُفظت الرحلتان" : "حُفظت المسودة", body: back ? `${f.flightNo} ذهاباً و${back.flightNo} عودة — مرتبطتان` : `${f.flightNo} — ${DIRECTION_LABEL[f.direction]}`, tone: "success", icon: "✈️" });
+    setForm(null);
+    onSaved?.(f.id, !existing);
+  };
+  const assignedOn = (d: FlightDraft) => {
+    const f = d.id ? data.flights.find((x) => x.id === d.id) : undefined;
+    if (!f) return { pilgrims: 0, staff: 0 };
+    const s = seatStats(f, data.assignments);
+    return { pilgrims: s.assignedPilgrims, staff: s.assignedStaff };
+  };
+
+  const node = form && <FlightForm open onClose={() => setForm(null)} initial={form} data={data} onSave={save} assigned={assignedOn(form)} notifyCount={form.id ? data.assignments.filter((a) => a.flightId === form.id && isActive(a)).length : 0} />;
+
+  return { create: () => setForm(emptyFlight()), edit: (f: Flight) => setForm(draftOf(f)), node, actor };
 }

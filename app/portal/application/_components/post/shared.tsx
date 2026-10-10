@@ -8,13 +8,19 @@ import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { fullName } from "@/lib/registry";
 import { actions, type Application, type PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { CostLine, StepKey } from "./model";
+import type { PostStepDef } from "@/lib/registration/types";
+import type { CostLine } from "./model";
 
 export type StepProps = {
   app: Application;
   post: PostAcceptance;
   sessionId: string;
   lines: CostLine[];
+  /** «الخطوة 4 من 7», by the application's version */
+  stepLabel?: string;
+  /** The step as the application's version defines it, and every step of it */
+  def?: PostStepDef;
+  steps?: PostStepDef[];
 };
 
 /** Ticking clock for countdowns and simulated progress (never Date.now() during render) */
@@ -37,7 +43,7 @@ export function logPilgrim(app: Application, action: string, detail?: string) {
 }
 
 /** The rating question shown after a stage is complete (spec «⭐ تقييم المرحلة») */
-export function StepRating({ stepKey, question, post, sessionId, app }: { stepKey: StepKey; question: string; post: PostAcceptance; sessionId: string; app: Application }) {
+export function StepRating({ stepKey, question, post, sessionId, app }: { stepKey: string; question: string; post: PostAcceptance; sessionId: string; app: Application }) {
   const toast = useToast();
   const value = post.ratings[stepKey] ?? 0;
   return (

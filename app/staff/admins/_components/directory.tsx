@@ -1,7 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
-import { CalendarPlus, Download, Network, NotebookPen, RotateCcw, UsersRound } from "lucide-react";
+import { CalendarPlus, Download, RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -13,50 +12,51 @@ import { cn, nowMs } from "@/lib/utils";
 import { nameOf, placesOf } from "@/app/administrator/_lib/cadre";
 import { useFormingSeason, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { categoryOf, categoryOfId, useCadre, useStructure } from "@/app/administrator/_lib/structure";
-import { Drawer, Empty, Panel, Tabs, fmtDate, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
-import { Chip, FilterSelect, SearchBox } from "../../_components/ops-ui";
-import { SystemRecords } from "../../_components/system";
+import { Drawer, fmtDate, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { FilterSelect, SearchBox } from "../../_components/ops-ui";
+import { Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
+import { Filters, Help, Lead, TitleCell, Tool, Views, useView } from "./ui";
 import { logAdmins, useAdminsDesk } from "../desk";
 
 /**
- * «التكتلات والمجموعات» — what the approved formations produced, as the administration's platform computes it:
- * every cluster and every group with its season, its head's category, its numbers and the date it was formed,
- * the archived ones too. Nothing here is edited but the administration's own note on each; who is in a cluster
- * changes only by an exceptional edit on its request. Each list exports to Excel, and the season ends here:
- * «بدء موسم جديد» sets the season's approved formations in the archive and stamps new ones with the next.
+ * «التكتلات والمجموعات» — what the approved formations produced, as two lists (`?v=`): every cluster and every
+ * group with its season, its head's category, its numbers and the date it was formed, the archived ones too.
+ * Nothing here is edited but the administration's own note on each; who is in a cluster changes only by an
+ * exceptional edit on its request. Each list exports to Excel. The season's end («بدء موسم جديد») waits closed.
  */
 export function DirectoryTab() {
   const desk = useAdminsDesk();
-  const [tab, setTab] = useState<"clusters" | "groups">("clusters");
+  const view = useView("v", ["clusters", "groups"] as const);
   const formed = useMemo(() => desk.requests.filter((r) => r.status === "approved"), [desk.requests]);
   const groups = useMemo(() => formed.flatMap((r) => r.groups.map((g) => ({ r, g }))), [formed]);
   return (
-    <div className="space-y-6">
-      <Tabs
-        id="admin-directory"
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: "clusters", label: "التكتلات", count: formed.length },
-          { value: "groups", label: "المجموعات", count: groups.length },
+    <div className="space-y-5">
+      <Views
+        param="v"
+        value={view}
+        label="التكتلات والمجموعات"
+        items={[
+          { key: "clusters", label: "التكتلات", count: formed.length },
+          { key: "groups", label: "المجموعات", count: groups.length },
         ]}
       />
-      <AnimatePresence mode="wait">
-        <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
-          {tab === "clusters" ? <Clusters formed={formed} /> : <Groups rows={groups} />}
-        </motion.div>
-      </AnimatePresence>
-      <Season formed={formed} />
-      <SystemRecords system="admins" area="directory" title="سجل التكتلات والمجموعات" />
+      {view === "clusters" ? <Clusters formed={formed} /> : <Groups rows={groups} />}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Season formed={formed} />
+        <Help>
+          <p>من التشكيلات المعتمدة، والمؤرشفة منها بموسمها. لا يُعدَّل هنا إلا ملاحظة الإدارة؛ أعضاء التكتل يتغيرون بتعديل استثنائي في «طلبات التكتلات».</p>
+          <p>يُختم كل تشكيل جديد بموسمه الهجري. وفي ختام الموسم «بدء موسم جديد» يؤرشف تشكيلات الموسم المعتمدة.</p>
+        </Help>
+      </div>
+      <RecordsBox system="admins" area="directory" title="سجل التكتلات والمجموعات" />
     </div>
   );
 }
 
-/** The administration's free note on a cluster or a group: the only thing written here */
-function Note({ k, target }: { k: string; target: string }) {
+/** The administration's free note on a cluster or a group: the only thing written here, in a small side sheet */
+function NoteSheet({ k, target, onClose }: { k: string; target: string; onClose: () => void }) {
   const user = useStaffUser()!;
   const note = useStore((s) => s.formation.notes[k]) ?? "";
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState(note);
   const save = () => {
     actions.setFormation((f) => {
@@ -66,19 +66,16 @@ function Note({ k, target }: { k: string; target: string }) {
       return { ...f, notes };
     });
     logAdmins(user, "directory", { action: "ملاحظة على تشكيل", target, before: note || "—", after: text.trim() || "—", ref: k });
-    setOpen(false);
+    onClose();
   };
-  if (!open)
-    return (
-      <button type="button" onClick={(e) => { e.stopPropagation(); setText(note); setOpen(true); }} className="flex max-w-56 items-start gap-1 text-right text-xs text-white/70 hover:text-gold">
-        <NotebookPen className="mt-0.5 size-3.5 shrink-0 text-gold" /> {note || <span className="text-white/35">أضف ملاحظة</span>}
-      </button>
-    );
   return (
-    <div className="flex min-w-56 gap-1" onClick={(e) => e.stopPropagation()}>
-      <input value={text} onChange={(e) => setText(e.target.value)} autoFocus className={cn(smallInputClass, "h-9 text-xs")} aria-label={`ملاحظة على ${target}`} onKeyDown={(e) => e.key === "Enter" && save()} />
-      <Button size="sm" variant="gold" onClick={save}>
-        حفظ
+    <div className="space-y-3 text-sm">
+      <label className="block">
+        <span className="mb-1 block text-xs text-white/60">ملاحظة الإدارة على {target}</span>
+        <textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} className={textareaClass} />
+      </label>
+      <Button variant="gold" disabled={text.trim() === note} onClick={save}>
+        حفظ الملاحظة
       </Button>
     </div>
   );
@@ -95,14 +92,15 @@ function Clusters({ formed }: { formed: ClusterRequest[] }) {
   const [q, setQ] = useState("");
   const [season, setSeason] = useState("");
   const [branch, setBranch] = useState("");
-  const [shelf, setShelf] = useState("");
+  const [shelf, setShelf] = useState<"all" | "live" | "archived">("all");
   const [open, setOpen] = useState<string | null>(null);
+  const [noting, setNoting] = useState<ClusterRequest | null>(null);
   const cat = (id: string) => categoryOfId(s, categoryOf(id, cadre))?.name ?? "—";
-  const list = formed
+  const base = formed
     .filter((r) => !season || r.season === Number(season))
     .filter((r) => !branch || r.branches.includes(branch))
-    .filter((r) => !shelf || (shelf === "archived" ? !!r.archived : !r.archived))
     .filter((r) => !q.trim() || [r.cluster.name, r.headName].some((t) => t.includes(q.trim())));
+  const list = base.filter((r) => shelf === "all" || (shelf === "archived" ? !!r.archived : !r.archived));
   const sheet = formed.find((r) => r.cluster.id === open);
   const notes = useStore((x) => x.formation.notes);
   const exportAll = () =>
@@ -111,67 +109,65 @@ function Clusters({ formed }: { formed: ClusterRequest[] }) {
       ...list.map((r) => [r.headName, r.cluster.name, r.season, cat(r.headId), r.groups.length, r.weight, r.pilgrims, r.cluster.decision ? fmtDate(r.cluster.decision.at) : "", r.archived ? "مؤرشف" : "نشط", notes[`c:${r.cluster.id}`] ?? ""]),
     ]);
   return (
-    <Panel
-      icon={<Network />}
-      title="التكتلات"
-      action={
-        <Button size="sm" variant="ghost" className="text-white" onClick={exportAll}>
-          <Download className="size-4" /> Excel
-        </Button>
-      }
-    >
-      <p className="mb-3 text-sm leading-7 text-white/70">من التشكيلات المعتمدة، والمؤرشفة منها بموسمها. لا يُعدَّل هنا إلا ملاحظة الإدارة؛ أعضاء التكتل يتغيرون بتعديل استثنائي في «طلبات التكتلات».</p>
-      <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_1fr]">
+    <div className="space-y-4">
+      <Title>التكتلات</Title>
+      <Lead>كل تكتل معتمد بموسمه وأرقامه. افتحه لترى أعضاءه بمواقعهم.</Lead>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Filters
+          label="النشطة والمؤرشفة"
+          value={shelf}
+          onChange={setShelf}
+          items={[
+            { key: "all", label: "الكل", count: base.length },
+            { key: "live", label: "النشطة", count: base.filter((r) => !r.archived).length },
+            { key: "archived", label: "المؤرشفة", count: base.filter((r) => r.archived).length },
+          ]}
+        />
+        <Tool onClick={exportAll}>
+          <Download /> Excel
+        </Tool>
+      </div>
+      <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr]">
         <SearchBox value={q} onChange={setQ} placeholder="اسم التكتل أو رئيسه" label="بحث في التكتلات" />
         <FilterSelect label="الموسم" all="كل المواسم" value={season} onChange={setSeason} options={seasons.map((y) => ({ value: String(y), label: `موسم ${y}` }))} />
         <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
-        <FilterSelect label="الحالة" all="النشطة والمؤرشفة" value={shelf} onChange={setShelf} options={[{ value: "live", label: "النشطة" }, { value: "archived", label: "المؤرشفة" }]} />
       </div>
-      {list.length === 0 ? (
-        <Empty icon={<Network />} title="لا تكتلات" text="تظهر هنا التكتلات حين تُعتمد طلباتها." />
-      ) : (
-        <div className="mt-3 overflow-x-auto rounded-2xl ring-1 ring-white/10">
-          <table className="w-full min-w-[980px] text-right text-sm">
-            <thead className="bg-white/[.07] text-xs text-gold">
-              <tr>
-                {["رئيس التكتل", "اسم التكتل", "الموسم", "فئة الرئيس", "عدد المجموعات", "عدد الفئات", "عدد الحجاج", "تاريخ التشكيل", "ملاحظات", "الأعضاء"].map((h) => (
-                  <th key={h} className="whitespace-nowrap px-3 py-2.5 font-bold">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((r) => (
-                <tr key={r.cluster.id} className="border-t border-white/5 align-top">
-                  <td className="px-3 py-2.5 font-bold text-white">{r.headName}</td>
-                  <td className="px-3 py-2.5 text-white">
-                    {r.cluster.name} {r.archived && <Chip>مؤرشف</Chip>}
-                  </td>
-                  <td className="px-3 py-2.5 text-white/80">{r.season}</td>
-                  <td className="px-3 py-2.5 text-white/80">{cat(r.headId)}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-white/80">{r.groups.length}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-white/80">{r.weight}</td>
-                  <td className="px-3 py-2.5 tabular-nums text-white/80">{r.pilgrims}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-white/70">{r.cluster.decision ? fmtDate(r.cluster.decision.at) : "—"}</td>
-                  <td className="px-3 py-2.5">
-                    <Note k={`c:${r.cluster.id}`} target={r.cluster.name} />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Button size="sm" variant="glass" onClick={() => setOpen(r.cluster.id)}>
-                      <UsersRound className="size-4" /> {r.cadre}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ListTable head={["التكتل", "الموسم", "فئة الرئيس", "المجموعات", "الفئات", "الحجاج", "تاريخ التشكيل", "ملاحظة الإدارة"]} minWidth="64rem">
+        {list.length === 0 && <EmptyRow cols={8}>لا تكتلات هنا. تظهر حين تُعتمد طلباتها.</EmptyRow>}
+        {list.map((r) => (
+          <tr key={r.cluster.id}>
+            <TitleCell
+              title={r.cluster.name}
+              onOpen={() => setOpen(r.cluster.id)}
+              sub={
+                <>
+                  رئيسه {r.headName} {r.archived && <Tag>مؤرشف</Tag>}
+                </>
+              }
+              actions={
+                <RowActions>
+                  <RowLink onClick={() => setOpen(r.cluster.id)}>الأعضاء ({r.cadre})</RowLink>
+                  <RowLink onClick={() => setNoting(r)}>ملاحظة</RowLink>
+                </RowActions>
+              }
+            />
+            <td className="p-3 align-top text-white/80">{r.season}</td>
+            <td className="p-3 align-top text-white/80">{cat(r.headId)}</td>
+            <td className="p-3 align-top tabular-nums text-white/80">{r.groups.length}</td>
+            <td className="p-3 align-top tabular-nums text-white/80">{r.weight}</td>
+            <td className="p-3 align-top tabular-nums text-white/80">{r.pilgrims}</td>
+            <td className="whitespace-nowrap p-3 align-top text-white/70">{r.cluster.decision ? fmtDate(r.cluster.decision.at) : "—"}</td>
+            <td className="max-w-56 p-3 align-top text-xs text-white/70">{notes[`c:${r.cluster.id}`] ?? <span className="text-white/30">—</span>}</td>
+          </tr>
+        ))}
+      </ListTable>
       <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet ? `أعضاء ${sheet.cluster.name}` : ""}>
         {sheet && <Members r={sheet} />}
       </Drawer>
-    </Panel>
+      <Drawer open={!!noting} onClose={() => setNoting(null)} title={noting ? `ملاحظة على ${noting.cluster.name}` : ""} width="max-w-md">
+        {noting && <NoteSheet key={noting.cluster.id} k={`c:${noting.cluster.id}`} target={noting.cluster.name} onClose={() => setNoting(null)} />}
+      </Drawer>
+    </div>
   );
 }
 
@@ -183,17 +179,17 @@ function Members({ r }: { r: ClusterRequest }) {
       <p className="rounded-2xl bg-white/5 p-3 text-xs leading-6 text-white/70 ring-1 ring-white/10">
         {places.length} من الكادر في {r.groups.length} مجموعات — موسم {r.season}. لتغيير أحد: «طلبات التكتلات» ← {r.cluster.name} ← تعديل استثنائي بسببه، فيُكتب في أحداث ملفه.
       </p>
-      <ul className="space-y-1.5">
+      <ListTable head={["الاسم", "موقعه"]} minWidth="20rem">
         {places.map(([id, p]) => (
-          <li key={id} className="flex flex-wrap items-center gap-2 rounded-xl bg-white/[.06] px-3 py-2 ring-1 ring-white/10">
-            <span className="min-w-0 flex-1 font-bold text-white">{nameOf(id, r)}</span>
-            <span className="text-xs text-white/70">
+          <tr key={id}>
+            <td className="p-3 font-bold text-white">{nameOf(id, r)}</td>
+            <td className="p-3 text-xs text-white/70">
               {p.posts.join("، ")}
               {p.group !== undefined ? ` — ${groupName(p.group)}` : ""}
-            </span>
-          </li>
+            </td>
+          </tr>
         ))}
-      </ul>
+      </ListTable>
     </div>
   );
 }
@@ -206,6 +202,7 @@ function Groups({ rows }: { rows: { r: ClusterRequest; g: ClusterRequest["groups
   const [season, setSeason] = useState("");
   const [branch, setBranch] = useState("");
   const [category, setCategory] = useState("");
+  const [noting, setNoting] = useState<number | null>(null);
   const list = rows
     .filter((x) => !season || x.r.season === Number(season))
     .filter((x) => !branch || x.g.branch === branch)
@@ -217,54 +214,44 @@ function Groups({ rows }: { rows: { r: ClusterRequest; g: ClusterRequest["groups
       ...list.map(({ r, g }) => [g.head, groupName(g.number), r.cluster.name, r.season, g.categoryName, g.pilgrims, g.branch, r.cluster.decision ? fmtDate(r.cluster.decision.at) : "", notes[`g:${g.number}`] ?? ""]),
     ]);
   return (
-    <Panel
-      icon={<UsersRound />}
-      title="المجموعات"
-      action={
-        <Button size="sm" variant="ghost" className="text-white" onClick={exportAll}>
-          <Download className="size-4" /> Excel
-        </Button>
-      }
-    >
+    <div className="space-y-4">
+      <Title action={<Tool onClick={exportAll}><Download /> Excel</Tool>}>المجموعات</Title>
+      <Lead>كل مجموعة في تكتل معتمد، بموسمها وفئة رئيسها وحجاجها.</Lead>
       <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_1fr]">
         <SearchBox value={q} onChange={setQ} placeholder="المجموعة، رئيسها، تكتلها" label="بحث في المجموعات" />
         <FilterSelect label="الموسم" all="كل المواسم" value={season} onChange={setSeason} options={seasons.map((y) => ({ value: String(y), label: `موسم ${y}` }))} />
         <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
         <FilterSelect label="الفئة" all="كل الفئات" value={category} onChange={setCategory} options={s.categories.map((c) => ({ value: c.id, label: c.name }))} />
       </div>
-      <div className="mt-3 overflow-x-auto rounded-2xl ring-1 ring-white/10">
-        <table className="w-full min-w-[900px] text-right text-sm">
-          <thead className="bg-white/[.07] text-xs text-gold">
-            <tr>
-              {["رئيس المجموعة", "اسم المجموعة", "التكتل", "الموسم", "فئة الرئيس", "عدد الحجاج", "الفرع", "تاريخ التشكيل", "ملاحظات"].map((h) => (
-                <th key={h} className="whitespace-nowrap px-3 py-2.5 font-bold">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {list.map(({ r, g }) => (
-              <tr key={`${r.cluster.id}-${g.number}`} className="border-t border-white/5 align-top">
-                <td className="px-3 py-2.5 font-bold text-white">{g.head}</td>
-                <td className="px-3 py-2.5 text-white">{groupName(g.number)}</td>
-                <td className="px-3 py-2.5 text-white/80">
-                  {r.cluster.name} {r.archived && <Chip>مؤرشف</Chip>}
-                </td>
-                <td className="px-3 py-2.5 text-white/80">{r.season}</td>
-                <td className="px-3 py-2.5 text-white/80">{g.categoryName}</td>
-                <td className="px-3 py-2.5 tabular-nums text-white/80">{g.pilgrims}</td>
-                <td className="px-3 py-2.5 text-white/80">{g.branch}</td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-white/70">{r.cluster.decision ? fmtDate(r.cluster.decision.at) : "—"}</td>
-                <td className="px-3 py-2.5">
-                  <Note k={`g:${g.number}`} target={groupName(g.number)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
+      <ListTable head={["المجموعة", "التكتل", "الموسم", "فئة الرئيس", "الحجاج", "الفرع", "تاريخ التشكيل", "ملاحظة الإدارة"]} minWidth="60rem">
+        {list.length === 0 && <EmptyRow cols={8}>لا مجموعات بهذا البحث.</EmptyRow>}
+        {list.map(({ r, g }) => (
+          <tr key={`${r.cluster.id}-${g.number}`}>
+            <TitleCell
+              title={groupName(g.number)}
+              sub={`رئيسها ${g.head}`}
+              actions={
+                <RowActions>
+                  <RowLink onClick={() => setNoting(g.number)}>ملاحظة</RowLink>
+                </RowActions>
+              }
+            />
+            <td className="p-3 align-top text-white/80">
+              {r.cluster.name} {r.archived && <Tag>مؤرشف</Tag>}
+            </td>
+            <td className="p-3 align-top text-white/80">{r.season}</td>
+            <td className="p-3 align-top text-white/80">{g.categoryName}</td>
+            <td className="p-3 align-top tabular-nums text-white/80">{g.pilgrims}</td>
+            <td className="p-3 align-top text-white/80">{g.branch}</td>
+            <td className="whitespace-nowrap p-3 align-top text-white/70">{r.cluster.decision ? fmtDate(r.cluster.decision.at) : "—"}</td>
+            <td className="max-w-56 p-3 align-top text-xs text-white/70">{notes[`g:${g.number}`] ?? <span className="text-white/30">—</span>}</td>
+          </tr>
+        ))}
+      </ListTable>
+      <Drawer open={noting !== null} onClose={() => setNoting(null)} title={noting !== null ? `ملاحظة على ${groupName(noting)}` : ""} width="max-w-md">
+        {noting !== null && <NoteSheet key={noting} k={`g:${noting}`} target={groupName(noting)} onClose={() => setNoting(null)} />}
+      </Drawer>
+    </div>
   );
 }
 
@@ -306,12 +293,12 @@ function Season({ formed }: { formed: ClusterRequest[] }) {
     toast({ title: `عاد موسم ${started.from}`, body: "استُعيدت تشكيلاته من الأرشيف.", tone: "info", icon: "↩️" });
   };
   return (
-    <Panel icon={<CalendarPlus />} title={`الموسم الحالي: ${season}`}>
-      <p className="text-sm leading-7 text-white/75">
+    <Box title={`بدء موسم جديد (الموسم الحالي: ${season})`} open={false}>
+      <p className="leading-7 text-white/75">
         يُختم كل تشكيل جديد بموسمه الهجري. في ختام الموسم، «بدء موسم جديد» يؤرشف تشكيلات الموسم المعتمدة ({toArchive.length} الآن) فتبقى هنا بموسمها، وتُختم الطلبات بعده بموسم {season + 1}. ما لم يُعتمد يبقى كما هو. لا يُغيّر شيئاً في ملف أي فرد.
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button size="sm" variant="gold" onClick={() => setOpen(true)}>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="glass" onClick={() => setOpen(true)}>
           <CalendarPlus className="size-4" /> بدء موسم جديد
         </Button>
         {started && (
@@ -321,7 +308,7 @@ function Season({ formed }: { formed: ClusterRequest[] }) {
         )}
       </div>
       {started && (
-        <p className="mt-3 text-xs text-white/55">
+        <p className="text-xs text-white/55">
           بدأه {started.by} — {fmtDate(started.at)} — أُرشف {started.archived.length} تشكيلاً من موسم {started.from}.
         </p>
       )}
@@ -342,6 +329,6 @@ function Season({ formed }: { formed: ClusterRequest[] }) {
           </Button>
         </div>
       </Modal>
-    </Panel>
+    </Box>
   );
 }

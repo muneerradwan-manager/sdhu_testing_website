@@ -49,7 +49,7 @@ export function PrayerWidget({ className }: { className?: string }) {
                 <button
                   key={s}
                   onClick={() => setSlug(s)}
-                  className={cn("relative rounded-xl px-3 py-1.5 text-xs font-bold transition", slug === s ? "text-ink" : "text-white/75 hover:text-white")}
+                  className={cn("relative rounded-xl px-3 py-1.5 text-xs font-bold transition", slug === s ? "on-light text-ink" : "text-white/75 hover:text-white")}
                 >
                   {slug === s && <motion.span layoutId="home-city" className="absolute inset-0 -z-10 rounded-xl bg-gold" />}
                   {c.name.replace(" المكرمة", "").replace(" المنورة", "")}

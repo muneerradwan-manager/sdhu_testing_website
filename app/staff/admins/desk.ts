@@ -220,7 +220,7 @@ export function useAdminsDesk() {
         : [],
       reference: openRoles.length
         ? []
-        : [{ id: "no-role", level: "high", title: "لا صفة مفتوحة للتقدم هذا الموسم", hint: "عُطّلت الصفات كلها، فلا يستطيع أحد تقديم طلب المشاركة.", href: `${M}/reference`, action: "فعّل صفة" }],
+        : [{ id: "no-role", level: "high", title: "لا صفة مفتوحة للتقدم هذا الموسم", hint: "عُطّلت الصفات كلها، فلا يستطيع أحد تقديم طلب المشاركة.", href: `${M}/reference?s=roles`, action: "فعّل صفة" }],
       applicants: flaggedFiles.length
         ? [{ id: "files", level: "work", title: `${flaggedFiles.length} إداريين في ملفاتهم وثائق مطلوبة ناقصة أو منتهية`, hint: "سددوا رسم التسجيل، وما تطلبه صفاتهم ليس كله سارياً في ملفاتهم.", href: `${M}/applicants?f=docs`, action: "راجع ملفاتهم" }]
         : [],
@@ -229,16 +229,16 @@ export function useAdminsDesk() {
         : [],
       clusters: [
         ...(sent.length
-          ? [{ id: "sent", level: (deadlinePassed ? "high" : "work") as Alert["level"], title: `${sent.length} طلبات تكتل أُرسلت للمراجعة`, hint: `ابدأ مراجعة كل طلب، ثم اعتمده أو أعده إلى رئيسه بملاحظات${deadlinePassed ? " — انتهى الموعد النهائي، فلا تعديل بعد إعادته" : ""}.`, href: `${M}/clusters#requests`, action: "راجعها" }]
+          ? [{ id: "sent", level: (deadlinePassed ? "high" : "work") as Alert["level"], title: `${sent.length} طلبات تكتل أُرسلت للمراجعة`, hint: `ابدأ مراجعة كل طلب، ثم اعتمده أو أعده إلى رئيسه بملاحظات${deadlinePassed ? " — انتهى الموعد النهائي، فلا تعديل بعد إعادته" : ""}.`, href: `${M}/clusters`, action: "راجعها" }]
           : []),
         ...(reviewing.length
-          ? [{ id: "reviewing", level: "work" as const, title: `${reviewing.length} طلبات قيد مراجعتك`, hint: "اعتمد الطلب أو أعده بملاحظات يصلحها رئيسه ويعيد إرساله.", href: `${M}/clusters#requests`, action: "أكمل المراجعة" }]
+          ? [{ id: "reviewing", level: "work" as const, title: `${reviewing.length} طلبات قيد مراجعتك`, hint: "اعتمد الطلب أو أعده بملاحظات يصلحها رئيسه ويعيد إرساله.", href: `${M}/clusters`, action: "أكمل المراجعة" }]
           : []),
         ...(deadlinePassed && outside.length
-          ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات معتمدة خارج كل تكتل`, hint: "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضفها إلى تكتل بتعديل استثنائي بسببه.", href: `${M}/clusters#outside`, action: "أضفها" }]
+          ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات معتمدة خارج كل تكتل`, hint: "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضفها إلى تكتل بتعديل استثنائي بسببه.", href: `${M}/clusters?v=outside`, action: "أضفها" }]
           : []),
         ...(pendingProgrammes.length
-          ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في دليل الخدمات قبل أن يُعتمد.", href: `${M}/clusters#programmes`, action: "راجعها" }]
+          ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في دليل الخدمات قبل أن يُعتمد.", href: `${M}/clusters?v=programmes`, action: "راجعها" }]
           : []),
       ],
       evaluation: behind.length

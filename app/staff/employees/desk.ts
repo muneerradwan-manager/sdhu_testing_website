@@ -115,8 +115,8 @@ export function useEmployeesDesk() {
         level: "high" as const,
         title: `${fullName(e)} موقوف وما زال مُسنداً`,
         hint: `${postsOf(e.id).map((p) => postingLabel(p, true)).join("، ")}: موقع ميداني يشغله من لا يعمل. أعده إلى العمل، أو يستبدله صاحب «الملفات التشغيلية».`,
-        href: `/staff/employees/manage?e=${e.id}`,
-        action: "افتح ملفه",
+        href: `/staff/employees/manage/edit?id=${e.id}`,
+        action: "افتح سجله",
       })),
       ...(incomplete.length
         ? [{ id: "incomplete", level: "work" as const, title: `${incomplete.length} سجلات ناقصة البيانات`, hint: incomplete.slice(0, 3).map((e) => `${shortName(e)}: ${missingOf(e).join("، ")}`).join(" · "), href: "/staff/employees/manage?f=incomplete", action: "أكملها" }]

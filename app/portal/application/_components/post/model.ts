@@ -13,13 +13,36 @@
  *    then, only once that second payment is in, uploads the passport of every member;
  * 5) only after joining a group: the medical file — vaccination certificates and the other medical
  *    documents (the list the administration sets), and the health information the group's coordinator records; 6) visa.
- */import { ageOf, fullName } from "@/lib/registry";
+ *
+ * The steps themselves, their order and their words are the published registration version's
+ * (lib/registration); what decides that a step is complete is lib/registration/post.ts, shared with the
+ * services that record it.
+ */
+import { ageOf, fullName } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { useClusterDirectory } from "@/lib/cluster-profile";
-import { installmentsOf, seasonPlan } from "@/lib/installments";
-import { accommodationCost, costBreakdown, describeRooms } from "@/lib/rooms";
-import { SEASON } from "@/lib/season";
+import { accommodationCost } from "@/lib/rooms";
+import { DEFAULT_POST_STEPS } from "@/lib/registration/defaults";
+import { DOCS, docKey } from "@/lib/registration/post";
 import { actions, type AdminProfile, type Application, type DocStatus, type HealthFile, type PostAcceptance } from "@/lib/store";
+
+export {
+  DOCS,
+  STEP_DOCS,
+  costLines,
+  docKey,
+  docStatus,
+  medicalDocsFor,
+  medicalDone,
+  medicalKey,
+  memberDocsDone,
+  paidAt,
+  receiptBase,
+  stepsDone,
+  type CostLine,
+  type DocKey,
+  type MedicalDoc,
+} from "@/lib/registration/post";
 
 /** The leader of مجموعة اللطيف (key 27) in the administrator portal (lib/registry: أحمد سليمان الحمصي) */
 export const LEADER_ID = "01033300871";
@@ -54,33 +77,13 @@ export const RESET_POST: Partial<PostAcceptance> = {
   contractSignedAt: undefined,
   visaAt: undefined,
   ratings: {},
+  custom: {},
 };
 
 export type StepKey = "confirm" | "documents" | "group" | "payment" | "passport" | "medical" | "visa";
 
-export const STEPS: { key: StepKey; title: string; short: string; emoji: string; question: string; unlocks: string }[] = [
-  { key: "confirm", title: "تأكيد القبول", short: "وتثبيت التسجيل بالدفعة الأولى للمقبولين بالقرعة", emoji: "✍️", question: "هل وصلتك النتيجة بوضوح وفي الوقت المناسب؟", unlocks: "الصورة الشخصية" },
-  { key: "documents", title: "الصورة الشخصية", short: "بعد الدفعة الأولى: الصورة وحدها", emoji: "🖼️", question: "كيف تقيّم وضوح مواصفات الصورة وسرعة مراجعتها؟", unlocks: "الإلحاق بمجموعة" },
-  { key: "group", title: "الإلحاق بمجموعة", short: "بعقد يوقَّع في المكتب ويلحقكم موظفه", emoji: "🧭", question: "كيف تقيّم وضوح الإلحاق بالمجموعة في المكتب؟", unlocks: "«مجموعتي وعقدي»" },
-  { key: "payment", title: "الدفعة الثانية", short: "بعد اعتماد عقد المجموعة", emoji: "🧾", question: "كيف تقيّم وضوح التكاليف والدفعات والإيصالات؟", unlocks: "جواز السفر" },
-  { key: "passport", title: "جواز السفر", short: "بعد اكتمال الدفعة الثانية حصراً", emoji: "🛂", question: "كيف تقيّم وضوح شروط الجواز وسرعة مراجعته؟", unlocks: "الملف الطبي" },
-  { key: "medical", title: "الملف الطبي", short: "اللقاحات والوثائق الطبية بعد الانضمام", emoji: "🩺", question: "كيف تقيّم وضوح الوثائق الطبية وتواصل منسق المجموعة؟", unlocks: "التأشيرة والرحلة" },
-  { key: "visa", title: "التأشيرة والرحلة", short: "التأشيرة والطيران والسكن", emoji: "🛂", question: "كيف تقيّم وضوح معلومات السفر والتحضير قبل الرحلة؟", unlocks: "الرحلات والفنادق والمخيمات والبطاقات" },
-];
-export type DocKey = "photo" | "passport";
-
-/**
- * The identity documents, each in its own step: the personal photo after the first payment, the passport only
- * after the second. Every medical document (vaccines included) waits until the pilgrim has joined a group.
- */
-export const DOCS: { key: DocKey; label: string; emoji: string; reviewer: string; reviewMs: number; hint: string }[] = [
-  { key: "photo", label: "الصورة الشخصية", emoji: "🖼️", reviewer: "رنا حداد", reviewMs: 2200, hint: "خلفية بيضاء، حديثة، دون نظارات" },
-  { key: "passport", label: "جواز السفر", emoji: "🛂", reviewer: "رنا حداد", reviewMs: 3200, hint: "صفحة البيانات كاملة وواضحة" },
-];
-export const docKey = (m: Member, d: DocKey) => `${m.person.id}-${d}`;
-
-/** Which documents each step asks for */
-export const STEP_DOCS: Record<"documents" | "passport", DocKey[]> = { documents: ["photo"], passport: ["passport"] };
+/** The platform's seven steps as shipped; what a pilgrim sees is his application's version (useApplicationSteps) */
+export const STEPS = DEFAULT_POST_STEPS.map((s) => ({ key: s.system as StepKey, title: s.title, short: s.short, emoji: s.emoji, question: s.question }));
 
 /** 69+ need a dedicated companion — the oldest one gets the spec's expired-passport case */
 export function elderlyMembers(members: Member[]) {
@@ -98,15 +101,6 @@ export function initialDocuments(members: Member[]): Record<string, DocStatus> {
   return out;
 }
 
-export function docStatus(post: PostAcceptance, m: Member, d: DocKey): DocStatus {
-  return post.documents[docKey(m, d)] ?? "missing";
-}
-
-/** Every document of these kinds (all of them unless told) approved for this member */
-export function memberDocsDone(post: PostAcceptance, m: Member, keys: DocKey[] = DOCS.map((d) => d.key)) {
-  return keys.every((k) => docStatus(post, m, k) === "approved");
-}
-
 // ───────────────────────── Health file ─────────────────────────
 
 export const CONDITIONS = ["سكري", "ضغط الدم", "أمراض القلب", "ربو أو أمراض تنفسية", "أمراض الكلى", "حساسية دوائية"] as const;
@@ -122,16 +116,6 @@ export function useRoomCost(app: Application | null | undefined, post: PostAccep
   return app && cluster ? accommodationCost(post?.accommodation, cluster.rooms) : null;
 }
 
-export type MedicalDoc = (typeof SEASON.medicalDocuments)[number];
-
-/** The medical documents this member must upload (the administration's list: vaccines, report; flu for 60+, a prescription only if on medication) */
-export function medicalDocsFor(m: Member, health?: HealthFile): MedicalDoc[] {
-  const rec = health?.members[m.person.id];
-  return SEASON.medicalDocuments.filter(
-    (d) => (!("onlyIfMedications" in d && d.onlyIfMedications) || !!rec?.medications.trim()) && (!("minAge" in d && d.minAge) || ageOf(m.person) >= d.minAge),
-  );
-}
-
 /** Needs recorded in the health file flow back into the application (rooms, meals, costs, roster) */
 export function membersWithHealth(members: Member[], health: HealthFile): Member[] {
   return members.map((m) => {
@@ -140,13 +124,6 @@ export function membersWithHealth(members: Member[], health: HealthFile): Member
   });
 }
 
-export const medicalKey = (m: Member, d: MedicalDoc) => `${m.person.id}-${d.key}`;
-
-export function medicalDone(post: PostAcceptance, app: Application) {
-  const h = post.health;
-  if (!h?.confirmedAt) return false;
-  return app.members.every((m) => !!h.members[m.person.id] && medicalDocsFor(m, h).every((d) => post.medical?.[medicalKey(m, d)] === "approved"));
-}
 /**
  * The coordinator saves a family's health file: stored on the pilgrim's post-acceptance record, and the
  * needs flow into the application so rooms, meals, costs and the group roster follow them.
@@ -179,59 +156,6 @@ export function demoHealth(members: Member[], by: { id: string; name: string }, 
   return { by, at, members: recs };
 }
 
-// ───────────────────────── Costs ─────────────────────────
-
-export function receiptBase(app: Application) {
-  return `1448-P-${app.number.padStart(6, "0")}`;
-}
-
-export type CostLine = { key: string; title: string; detail: string; amount: number; receipt: string; due: string; installment?: number };
-
-/**
- * The Hajj cost by the chosen plan (the first installment is already paid at registration or at the
- * lottery result), then the sacrifice and, when the request asked for private rooms, their price — with the
- * last installment.
- */
-export function costLines(app: Application, fees: { hajjCost: number; firstInstallment: number; installmentCount?: 1 | 2; hady: number }, room?: ReturnType<typeof accommodationCost>): CostLine[] {
-  const n = app.members.length;
-  const base = receiptBase(app);
-  const plan = app.plan ?? seasonPlan(fees);
-  const inst = installmentsOf(plan, n, app.number, fees);
-  const lastDue = inst[inst.length - 1].due;
-  const lines: CostLine[] = inst.map((i) => ({
-    key: i.key,
-    title: i.title,
-    detail: `${n} × ${i.perPerson.toLocaleString("en-US")} $`,
-    amount: i.amount,
-    receipt: i.receipt,
-    due: i.due,
-    installment: i.index + 1,
-  }));
-  const tail = plan === 1 ? SEASON.installments.windows[1] : lastDue;
-  lines.push({ key: "hady", title: "الهدي", detail: `${n} × ${fees.hady.toLocaleString("en-US")} $`, amount: n * fees.hady, receipt: `${base}-H`, due: tail });
-  if (room) {
-    lines.push({ key: "room", title: "السكن الخاص", detail: `${describeRooms(room.rooms)} — ${costBreakdown(room.parts)}`, amount: room.amount, receipt: `${base}-R`, due: tail });
-  }
-  return lines;
-}
-
-/** When a line was paid: the first installment comes from the application (paid at registration or at the draw) */
-export function paidAt(line: CostLine, app: Application, post: PostAcceptance) {
-  if (line.key === "i1") return app.firstPaid?.at;
-  return post.payments[line.key];
-}
-
-export function stepsDone(post: PostAcceptance, app: Application, lines: CostLine[]): Record<StepKey, boolean> {
-  return {
-    confirm: !!post.confirmedAt && !!app.firstPaid,
-    documents: !!post.confirmedAt && app.members.every((m) => memberDocsDone(post, m, STEP_DOCS.documents)),
-    group: !!post.groupApprovedAt && !!post.contractSignedAt,
-    payment: lines.every((l) => !!paidAt(l, app, post)),
-    passport: app.members.every((m) => memberDocsDone(post, m, STEP_DOCS.passport)),
-    medical: medicalDone(post, app),
-    visa: !!post.visaAt,
-  };
-}
 /** The person each elderly member leans on (the spec's transfer warning) */
 export function companionOf(members: Member[], m: Member) {
   return members.filter((e) => e.companionId === m.person.id);

@@ -16,7 +16,7 @@ export function MyFilesView() {
         eyebrow={user.title}
         icon={<BriefcaseBusiness />}
         title="ملفاتي التشغيلية"
-        description="أين تعمل هذا الموسم ومتى: البرج أو المخيم، ومنصبك ووصفه الوظيفي، ومسؤولك المباشر، وفريقك وأرقام التواصل معهم. تُحدَّث الصفحة وحدها كلما غيّرت إدارة شؤون البعثة إسنادك."
+        description="أين تعمل هذا الموسم ومتى، ومع من، ورحلتاك."
       />
       {employee ? (
         <div className="space-y-6">

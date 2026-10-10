@@ -1,8 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, CalendarRange, CheckCircle2, Dices, Download, Keyboard, Loader2, Lock, Megaphone, Pencil, Plus, RotateCcw, Send, ShieldCheck, Tv, Users, X } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { motion } from "motion/react";
+import { BadgeCheck, CheckCircle2, Dices, Download, Loader2, Lock, Megaphone, Pencil, Plus, RotateCcw, Send, X } from "lucide-react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { AGE_BUCKETS, LOTTERY } from "@/lib/data/staff-seed";
@@ -13,7 +14,8 @@ import { can } from "@/lib/staff";
 import { actions, useStore, type AuditEvent } from "@/lib/store";
 import { cn, formatNumber, nowMs, sleep } from "@/lib/utils";
 import { lastEvent } from "../_components/data";
-import { fmtDateTime, Gate, Kpi, logAs, PageHeader, Panel, useStaffUser } from "../_components/kit";
+import { fmtDateTime, Gate, logAs, PageHeader, useStaffUser } from "../_components/kit";
+import { Box, EditHeader, EditLayout, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 
 const A = {
   issue: "إصدار الأعمار المقبولة",
@@ -24,6 +26,8 @@ const A = {
   publish: "اعتماد ونشر نتائج القرعة",
   reset: "إعادة تجربة القرعة (بيئة العرض)",
 };
+
+const BASE = "/staff/lottery";
 
 function cutAge(directSeats: number) {
   let cum = 0;
@@ -46,6 +50,9 @@ function pickList(picks: DrawPick[]) {
     .join("، ");
 }
 
+type Step = "ages" | "pool" | "entry" | "publish";
+const STEPS: Step[] = ["ages", "pool", "entry", "publish"];
+
 export function LotteryView() {
   return (
     <Gate perms={["lottery.import", "lottery.approve"]}>
@@ -54,35 +61,179 @@ export function LotteryView() {
   );
 }
 
-function Lottery() {
-  const user = useStaffUser()!;
-  const toast = useToast();
-  const season = useSeason();
+/** Where the season's lottery stands: what each step is, whether it is done, and by whom */
+function useLotteryState() {
   const lottery = useStore((s) => s.lottery);
   const events = useStore((s) => s.events);
   const published = usePublishedDraw();
-
-  const canImport = can(user, "lottery.import");
-  const canApprove = can(user, "lottery.approve");
-
   // The demo opens after the 1448 results were published; «إعادة التجربة» walks every step again
   const seeded = !lottery.cleared && !lottery.published && !lottery.entry;
   const resetAt = lastEvent(events, (e) => e.action === A.reset)?.at ?? 0;
   const since = (action: string) => lastEvent(events, (e) => e.action === action && e.at > resetAt);
-  const issued = since(A.issue);
-  const agesApproved = since(A.approveAges);
-  const exported = since(A.export);
+  return { lottery, published, seeded, issued: since(A.issue), agesApproved: since(A.approveAges), exported: since(A.export) };
+}
 
-  const cut = useMemo(() => cutAge(season.directSeats), [season.directSeats]);
-  const [exporting, setExporting] = useState(false);
+/**
+ * The lottery as four steps, done in order and each on its own screen (`?step=`): the list says where each
+ * stands and opens it; the screen shows what the step is about in the middle and its decision on the side.
+ * Its numbers are on «لوحتي».
+ */
+function Lottery() {
+  const params = useSearchParams();
+  const step = params.get("step") as Step | null;
+  if (step && STEPS.includes(step)) return <StepScreen key={step} step={step} />;
+  return <StepsList />;
+}
 
-  const steps = [
-    { label: "القبول المباشر: الأعمار المقبولة", done: seeded || !!agesApproved },
-    { label: "إحصاء التسجيل الأولي على القرعة", done: seeded || !!exported },
-    { label: "إدخال نتائج البث", done: seeded || !!lottery.sent },
-    { label: "الاعتماد والنشر", done: !!published },
+function StepsList() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const season = useSeason();
+  const st = useLotteryState();
+  const { lottery, published, seeded, issued, agesApproved, exported } = st;
+  const canImport = can(user, "lottery.import");
+  const canApprove = can(user, "lottery.approve");
+
+  const resetDemo = () => {
+    actions.setLottery({ entry: undefined, sent: undefined, published: undefined, cleared: true });
+    logAs(user, { action: A.reset, target: "القبول والقرعة", detail: "إعادة الخطوات لتجربة العرض من جديد" });
+    toast({ title: "أُعيدت خطوات القرعة", body: "سُحبت النتائج المنشورة من العرض: لا يرى الحجاج نتيجة حتى تُنشر من جديد.", tone: "info", icon: "↩️" });
+  };
+
+  const sentEvent = lottery.sent ? { actor: lottery.sent.by, at: lottery.sent.at } : undefined;
+  const rows: { step: Step; title: string; text: string; status: ReactNode; last?: { actor: string; at: number }; who: string; action: string }[] = [
+    {
+      step: "ages",
+      title: "١. القبول المباشر: الأعمار المقبولة",
+      text: `تُرتَّب طلبات التسجيل المباشر من الأكبر سناً حتى ${Math.round(season.directShare * 100)}% من الحصة، وتُعلن الأعمار المقبولة.`,
+      status: seeded || agesApproved ? <Tag tone="green">أُعلنت</Tag> : issued ? <Tag tone="gold">بانتظار الاعتماد</Tag> : <Tag>لم تبدأ</Tag>,
+      last: agesApproved ?? issued,
+      who: "ترسلها إدارة التسجيل، وتعتمدها لجنة الاعتماد",
+      action: canApprove && issued && !agesApproved ? "اعتماد وإعلان" : canImport && !issued && !seeded ? "إرسال للاعتماد" : "فتح",
+    },
+    {
+      step: "pool",
+      title: "٢. إحصاء التسجيل الأولي على القرعة",
+      text: "المسجّلون بحسب سنة ميلاد صاحب الطلب وشهره، يُصدَّر للجنة تنظيم القرعة.",
+      status: seeded || exported ? <Tag tone="green">صُدِّر</Tag> : <Tag>لم يُصدَّر</Tag>,
+      last: exported,
+      who: "إدارة التسجيل",
+      action: canImport && !exported && !seeded ? "تصدير" : "فتح",
+    },
+    {
+      step: "entry",
+      title: "٣. إدخال نتائج البث",
+      text: "ما سُحب في البث المباشر: سنوات الميلاد، ولبعضها أشهر.",
+      status: published && !lottery.sent ? <Tag tone="green">أُدخلت ونُشرت</Tag> : lottery.sent ? <Tag tone="gold">أُرسلت للاعتماد</Tag> : <Tag>لم تُدخل</Tag>,
+      last: sentEvent,
+      who: "صاحب صلاحية «إدخال نتائج القرعة»",
+      action: canImport && !lottery.sent && !published ? "إدخال النتائج" : "فتح",
+    },
+    {
+      step: "publish",
+      title: "٤. الاعتماد والنشر",
+      text: "بعد النشر يعرف كل مسجّل نتيجته، ويبدأ المقبولون تثبيت تسجيلهم.",
+      status: published ? <Tag tone="green">نُشرت</Tag> : lottery.sent ? <Tag tone="maroon">بانتظار الاعتماد</Tag> : <Tag>بانتظار الإدخال</Tag>,
+      last: published?.at ? { actor: published.by, at: published.at } : undefined,
+      who: "صاحب صلاحية «اعتماد ونشر النتائج»",
+      action: canApprove && lottery.sent && !published ? "اعتماد ونشر" : "فتح",
+    },
   ];
-  const progress = steps.filter((s) => s.done).length;
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="القبول المباشر والقرعة"
+        icon={<Dices />}
+        description="أربع خطوات بالترتيب: افتح الخطوة لتنجزها أو ترى ما جرى فيها."
+        actions={
+          (!lottery.cleared || lottery.entry || issued || exported) && (
+            <Button variant="glass" size="sm" onClick={resetDemo}>
+              <RotateCcw className="size-4" /> إعادة التجربة
+            </Button>
+          )
+        }
+      />
+
+      <ListTable head={["الخطوة", "الحالة", "آخر إجراء", "من يقوم بها"]}>
+        {rows.map((r) => (
+          <tr key={r.step} className="align-top">
+            <td className="p-3">
+              <RowLink href={`${BASE}?step=${r.step}`}>
+                <span className="font-bold text-white hover:text-gold">{r.title}</span>
+              </RowLink>
+              <p className="text-xs leading-5 text-white/60">{r.text}</p>
+              <RowActions>
+                <RowLink href={`${BASE}?step=${r.step}`}>{r.action}</RowLink>
+              </RowActions>
+            </td>
+            <td className="p-3">{r.status}</td>
+            <td className="p-3 text-xs text-white/70">{r.last ? `${r.last.actor} — ${fmtDateTime(r.last.at)}` : seeded ? "بث 1448" : "—"}</td>
+            <td className="p-3 text-xs text-white/70">{r.who}</td>
+          </tr>
+        ))}
+      </ListTable>
+
+      <Box title="كيف تعمل؟" open={false}>
+        <p>القبول المباشر والقرعة تسجيلان منفصلان، لكلٍّ منهما طلب مستقل.</p>
+        <p>
+          <b className="text-gold">القبول المباشر:</b> تُرتَّب طلبات التسجيل المباشر ({W.direct.hijri}) من الأكبر سناً حتى {Math.round(season.directShare * 100)}% من الحصة، وتُعلن الأعمار المقبولة في {W.direct.announce}.
+        </p>
+        <p>
+          <b className="text-gold">القرعة:</b> يُفتح بعد الإعلان التسجيل الأولي عليها ({W.lottery.hijri}) بطلب جديد. تُجرى القرعة خارج المنصة ({W.lottery.draw}) ببث مباشر على التلفاز بإشراف لجنة تنظيم قرعة الحج، تُسحب فيه سنوات ميلاد، ولبعضها أشهر، حتى تكتمل المقاعد. لا تُسحب أسماء، ولا يستطيع أحد تغيير أي طلب في المنصة أثناء البث.
+        </p>
+        <p>بعد البث يُدخل صاحب صلاحية «إدخال نتائج القرعة» ما سُحب سنةً سنة، ثم يعتمده صاحب صلاحية «اعتماد ونشر النتائج»، فيُقبل كل طلب وُلد صاحبه في سنة وشهر مسحوبين. فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.</p>
+      </Box>
+    </div>
+  );
+}
+
+const TITLES: Record<Step, string> = {
+  ages: "القبول المباشر: الأعمار المقبولة",
+  pool: "إحصاء التسجيل الأولي على القرعة",
+  entry: "إدخال نتائج البث",
+  publish: "اعتماد ونشر نتائج القرعة",
+};
+
+function StepScreen({ step }: { step: Step }) {
+  return (
+    <div>
+      <EditHeader back={BASE} backLabel="كل الخطوات" title={TITLES[step]} />
+      {step === "ages" && <AgesStep />}
+      {step === "pool" && <PoolStep />}
+      {step === "entry" && <EntryStep />}
+      {step === "publish" && <PublishStep />}
+    </div>
+  );
+}
+
+function StepLine({ done, label, event }: { done: boolean; label: string; event?: AuditEvent }) {
+  return (
+    <li className="flex items-start gap-2">
+      {done ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-light" /> : <span className="mt-1 size-3 shrink-0 rounded-full border-2 border-gold" />}
+      <span>
+        <span className={cn(done ? "font-semibold text-white" : "text-white/85")}>{label}</span>
+        {event && (
+          <span className="block text-xs text-white/60">
+            {event.actor} — {fmtDateTime(event.at)}
+          </span>
+        )}
+      </span>
+    </li>
+  );
+}
+
+// ───────────────────────── 1. Ages ─────────────────────────
+
+function AgesStep() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const season = useSeason();
+  const { issued, agesApproved } = useLotteryState();
+  const canImport = can(user, "lottery.import");
+  const canApprove = can(user, "lottery.approve");
+  const cut = useMemo(() => cutAge(season.directSeats), [season.directSeats]);
+  const rows = AGE_BUCKETS.reduce<{ b: (typeof AGE_BUCKETS)[number]; cum: number }[]>((acc, b) => [...acc, { b, cum: (acc.at(-1)?.cum ?? 0) + b.seats }], []);
 
   const issueAges = () => {
     logAs(user, { action: A.issue, target: "القبول المباشر", after: `${cut.age} عاماً فأكثر — ${formatNumber(season.directSeats)} مقعداً`, detail: `ترتيب ${formatNumber(LOTTERY.directEligible)} طلباً مؤهلاً من التسجيل على القبول المباشر، من الأكبر سناً` });
@@ -98,6 +249,72 @@ function Lottery() {
     toast({ title: "أُعلنت الأعمار المقبولة", body: `كل من بلغ ${cut.age} عاماً فأكثر مقبول مباشرة — وصل إشعار لكل مقبول. التسجيل الأولي على القرعة طلب مستقل: ${W.lottery.hijri}.`, tone: "success", icon: "📣" });
   };
 
+  return (
+    <EditLayout
+      main={
+        <>
+          <div className="rounded-2xl bg-white/[.06] p-5 text-center ring-1 ring-gold/40">
+            <p className="text-sm text-white/85">كل من بلغ</p>
+            <p className="font-display text-6xl font-bold text-gold">{cut.age}</p>
+            <p className="text-sm text-white/85">عاماً فأكثر — مقبول مباشرة</p>
+            <p className="mt-2 text-xs text-white/65">
+              تكتمل {formatNumber(season.directSeats)} مقعداً عند {formatNumber(cut.seats)} — الإعلان في {W.direct.announce}. من لم يُقبل مباشرة يسجّل على القرعة بطلب جديد: {W.lottery.hijri}.
+            </p>
+          </div>
+          <p className="text-sm text-white/70">
+            الطلبات المؤهلة من التسجيل على القبول المباشر ({W.direct.hijri}) مرتّبة من الأكبر سناً بعمر صاحب الطلب، مع أفراد الطلب العائلي معاً:
+          </p>
+          <ListTable head={["العمر", "المقاعد", "من الأكبر سناً حتى هنا", ""]} minWidth="28rem">
+            {rows.map(({ b, cum }) => {
+              const inside = b.minAge >= cut.age;
+              return (
+                <tr key={b.label} className={cn(inside && "bg-gold/[.07]")}>
+                  <td className="p-3 font-bold tabular-nums" dir="ltr">
+                    {b.label}
+                  </td>
+                  <td className="p-3 tabular-nums text-white/80">{formatNumber(b.seats)}</td>
+                  <td className="p-3 tabular-nums text-white/80">{formatNumber(cum)}</td>
+                  <td className="p-3">{inside ? <Tag tone="gold">مقبول مباشرة</Tag> : <Tag>إلى القرعة</Tag>}</td>
+                </tr>
+              );
+            })}
+          </ListTable>
+        </>
+      }
+      side={
+        <Box title="الإعلان">
+          <ol className="space-y-2">
+            <StepLine done={!!issued} label="إدارة التسجيل تراجع القائمة وترسلها للاعتماد" event={issued} />
+            <StepLine done={!!agesApproved} label="لجنة الاعتماد تعتمد وتعلن" event={agesApproved} />
+          </ol>
+          {canImport && (
+            <Button size="sm" variant="glass" className="w-full" onClick={issueAges} disabled={!!issued}>
+              <Send className="size-4" /> إرسال للاعتماد
+            </Button>
+          )}
+          {canApprove && (
+            <Button size="sm" variant="gold" className="w-full" onClick={approveAges} disabled={!!agesApproved || !issued}>
+              <Megaphone className="size-4" /> اعتماد وإعلان الأعمار
+            </Button>
+          )}
+          {canApprove && !issued && <p className="text-xs text-white/60">بانتظار إرسال القائمة من صاحب صلاحية «إدخال نتائج القرعة».</p>}
+          {!canApprove && issued && !agesApproved && <p className="text-xs text-white/60">أُرسلت — الاعتماد من صلاحية «اعتماد ونشر النتائج».</p>}
+        </Box>
+      }
+    />
+  );
+}
+
+// ───────────────────────── 2. The pool ─────────────────────────
+
+function PoolStep() {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const { exported } = useLotteryState();
+  const canImport = can(user, "lottery.import");
+  const [exporting, setExporting] = useState(false);
+  const [open, setOpen] = useState<number | null>(null);
+
   const exportPool = async () => {
     setExporting(true);
     await sleep(1600);
@@ -106,240 +323,94 @@ function Lottery() {
     toast({ title: "صُدّر إحصاء التسجيل الأولي", body: "إحصاء-التسجيل-الأولي-على-القرعة-1448.xlsx — سُجّل التصدير باسمك ووقته.", tone: "success", icon: "📥" });
   };
 
-  const resetDemo = () => {
-    actions.setLottery({ entry: undefined, sent: undefined, published: undefined, cleared: true });
-    logAs(user, { action: A.reset, target: "القبول والقرعة", detail: "إعادة الخطوات لتجربة العرض من جديد" });
-    toast({ title: "أُعيدت خطوات القرعة", body: "سُحبت النتائج المنشورة من العرض: لا يرى الحجاج نتيجة حتى تُنشر من جديد.", tone: "info", icon: "↩️" });
-  };
-
   return (
-    <div>
-      <PageHeader
-        eyebrow="المرحلة 4 — تسجيلان منفصلان"
-        title="القبول المباشر والقرعة"
-        icon={<Dices />}
-        description={`القبول المباشر والقرعة تسجيلان منفصلان، لكلٍّ منهما طلب مستقل. القبول المباشر: تُرتَّب طلبات التسجيل المباشر (${W.direct.hijri}) من الأكبر سناً حتى ${Math.round(season.directShare * 100)}% من الحصة، وتُعلن الأعمار المقبولة في ${W.direct.announce}. القرعة: يُفتح بعد الإعلان التسجيل الأولي عليها (${W.lottery.hijri}) بطلب جديد. تُجرى القرعة خارج المنصة ببث مباشر تُسحب فيه سنوات ميلاد، ولبعضها أشهر؛ والمنصة تُدخل ما سُحب وتعتمده وتنشره، فيُقبل كل طلب وُلد صاحبه في سنة وشهر مسحوبين.`}
-        actions={
-          (!lottery.cleared || lottery.entry || issued || exported) && (
-            <Button variant="glass" size="sm" onClick={resetDemo}>
-              <RotateCcw className="size-4" /> إعادة التجربة
-            </Button>
-          )
-        }
-      />
-
-      {/* Stepper */}
-      <div className="mb-6 rounded-3xl border border-white/10 bg-white/[.06] p-4">
-        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-          <motion.div className="h-full rounded-full bg-gradient-to-l from-gold to-green-light" animate={{ width: `${(progress / steps.length) * 100}%` }} transition={{ duration: 0.8 }} />
-        </div>
-        <ol className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-          {steps.map((s, i) => (
-            <li key={s.label} className={cn("flex items-center gap-2 rounded-xl px-2 py-1.5", s.done ? "text-gold" : "text-white/80")}>
-              <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold", s.done ? "bg-gold text-ink" : "bg-white/10")}>
-                {s.done ? <CheckCircle2 className="size-4" /> : i + 1}
-              </span>
-              {s.label}
-            </li>
-          ))}
-        </ol>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="طلبات القبول المباشر المؤهلة" value={LOTTERY.directEligible} icon={<Users />} hint={`التسجيل: ${W.direct.hijri}`} />
-        <Kpi label="مقاعد القبول المباشر" value={season.directSeats} icon={<BadgeCheck />} tone="gold" delay={0.05} hint={`${Math.round(season.directShare * 100)}% من ${formatNumber(season.quota)}`} />
-        <Kpi label="طلبات التسجيل الأولي على القرعة" value={POOL.poolApps} icon={<Users />} tone="maroon" delay={0.1} hint={`${formatNumber(POOL.poolSeats)} شخصاً — ${W.lottery.hijri}`} />
-        <Kpi label="مقاعد القرعة" value={season.lotterySeats} icon={<Dices />} tone="teal" delay={0.15} hint="تُملأ بسنوات الميلاد وأشهرها المسحوبة" />
-      </div>
-
-      {/* 1. Direct acceptance */}
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Panel title="1. القبول المباشر: ترتيب طلبات التسجيل المباشر بالعمر" icon={<BadgeCheck />} delay={0.1}>
-          <p className="mb-4 text-sm leading-6 text-white/90">
-            تُرتَّب الطلبات المؤهلة من التسجيل على القبول المباشر ({W.direct.hijri}) من الأكبر سناً إلى الأصغر بعمر صاحب الطلب، مع احتساب أفراد الطلب العائلي معاً، حتى تكتمل مقاعد القبول المباشر.
+    <EditLayout
+      main={
+        <>
+          <p className="text-sm leading-6 text-white/70">
+            بعد إغلاق التسجيل الأولي ({W.lottery.hijri}): {formatNumber(POOL.poolApps)} طلباً تضم {formatNumber(POOL.poolSeats)} شخصاً، بحسب سنة ميلاد صاحب الطلب وشهره. فتعرف اللجنة كم مقعداً تشغل كل سنة وكل شهر، وتتوقف عن السحب حين تكتمل المقاعد.
           </p>
-          <ul className="space-y-1.5">
-            {AGE_BUCKETS.reduce<{ b: (typeof AGE_BUCKETS)[number]; cum: number }[]>((acc, b) => [...acc, { b, cum: (acc.at(-1)?.cum ?? 0) + b.seats }], []).map(({ b, cum }, i) => {
-              const inside = b.minAge >= cut.age;
-              return (
-                <li key={b.label} className="grid grid-cols-[3.5rem_1fr_4.5rem] items-center gap-2 text-xs">
-                  <span className={cn("font-bold tabular-nums", inside ? "text-gold" : "text-white/75")} dir="ltr">
-                    {b.label}
-                  </span>
-                  <div className="h-4 overflow-hidden rounded-md bg-white/10">
-                    <motion.div
-                      className={cn("h-full rounded-md", inside ? "bg-gradient-to-l from-gold to-gold-dark" : "bg-green-light/70")}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(b.seats / 19_800) * 100}%` }}
-                      transition={{ duration: 0.7, delay: i * 0.03 }}
-                    />
-                  </div>
-                  <span className={cn("text-left tabular-nums", inside ? "font-bold text-white" : "text-white/75")}>{formatNumber(cum)}</span>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-2 text-xs text-white/75">الرقم على اليسار: المقاعد التراكمية من الأكبر سناً.</p>
-        </Panel>
-
-        <Panel title="إعلان الأعمار المقبولة" icon={<Megaphone />} delay={0.15}>
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green to-[#00352f] p-6 text-center text-white ring-1 ring-gold/40">
-            <div className="bg-pattern absolute inset-0 opacity-10" />
-            <p className="relative text-sm text-white/90">كل من بلغ</p>
-            <motion.p key={cut.age} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", damping: 12 }} className="relative font-display text-7xl font-bold text-gold">
-              {cut.age}
-            </motion.p>
-            <p className="relative text-sm text-white/90">عاماً فأكثر — مقبول مباشرة</p>
-            <p className="relative mt-3 text-xs text-white/80">
-              تكتمل {formatNumber(season.directSeats)} مقعداً عند {formatNumber(cut.seats)} — الإعلان في {W.direct.announce}
-            </p>
-            <p className="relative mt-1 text-xs text-white/80">من لم يُقبل مباشرة يسجّل تسجيلاً أولياً على القرعة بطلب جديد: {W.lottery.hijri}</p>
-          </div>
-          <ol className="mt-4 space-y-2 text-sm">
-            <StepLine done={!!issued} label="إدارة التسجيل تراجع القائمة وترسلها للاعتماد" event={issued} />
-            <StepLine done={!!agesApproved} label="لجنة الاعتماد تعتمد وتعلن" event={agesApproved} />
-          </ol>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {canImport && (
-              <Button size="sm" variant="glass" onClick={issueAges} disabled={!!issued}>
-                إرسال للاعتماد
-              </Button>
-            )}
-            {canApprove && (
-              <Button size="sm" variant="gold" onClick={approveAges} disabled={!!agesApproved || !issued}>
-                <Megaphone className="size-4" /> اعتماد وإعلان الأعمار
-              </Button>
-            )}
-          </div>
-          {canApprove && !issued && <p className="mt-2 text-xs text-white/75">بانتظار إرسال القائمة من صاحب صلاحية «إدخال نتائج القرعة».</p>}
-          {!canApprove && issued && !agesApproved && <p className="mt-2 text-xs text-white/75">أُرسلت — الاعتماد من صلاحية «اعتماد ونشر النتائج».</p>}
-        </Panel>
-      </div>
-
-      {/* 2. The pool by birth year and month + the broadcast */}
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <PoolPanel>
+          <ListTable head={["سنة الميلاد", "الأشخاص", "الطلبات"]} minWidth="24rem">
+            {YEARS.map((y) => (
+              <Fragment key={y.year}>
+                <tr>
+                  <td className="p-3">
+                    <span className="font-bold tabular-nums text-white">{y.year}</span>
+                    <RowActions>
+                      <RowLink onClick={() => setOpen((o) => (o === y.year ? null : y.year))}>{open === y.year ? "إخفاء الأشهر" : "الأشهر"}</RowLink>
+                    </RowActions>
+                  </td>
+                  <td className="p-3 tabular-nums text-white/80">{formatNumber(y.seats)}</td>
+                  <td className="p-3 tabular-nums text-white/80">{formatNumber(y.apps)}</td>
+                </tr>
+                {open === y.year && (
+                  <tr className="bg-black/15">
+                    <td colSpan={3} className="p-3">
+                      <ul className="grid grid-cols-3 gap-1.5 text-xs sm:grid-cols-4 lg:grid-cols-6">
+                        {y.cells.map((c) => (
+                          <li key={c.month} className="rounded-lg bg-white/[.06] px-2 py-1.5 text-white/90">
+                            <span className="block font-semibold">{MONTHS[c.month - 1]}</span>
+                            <span className="tabular-nums text-white/70">{formatNumber(c.seats)} شخصاً</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </ListTable>
+        </>
+      }
+      side={
+        <Box title="التصدير">
           {exported ? (
-            <p className="mt-4 flex items-center gap-2 rounded-2xl bg-green-light/20 p-3 text-sm text-white ring-1 ring-green-light/40">
-              <CheckCircle2 className="size-4 shrink-0 text-gold" /> صُدّر بواسطة {exported.actor} — {fmtDateTime(exported.at)}
+            <p className="flex items-start gap-2 text-white">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-gold" /> صُدّر بواسطة {exported.actor} — {fmtDateTime(exported.at)}
             </p>
           ) : (
-            <Button variant="gold" className="mt-4 w-full" onClick={exportPool} disabled={!canImport || exporting}>
-              {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-              {exporting ? "جارٍ تجهيز الملف..." : "تصدير الإحصاء للجنة تنظيم القرعة"}
-            </Button>
+            <>
+              <Button variant="gold" className="w-full" onClick={exportPool} disabled={!canImport || exporting}>
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+                {exporting ? "جارٍ تجهيز الملف..." : "تصدير الإحصاء للجنة تنظيم القرعة"}
+              </Button>
+              {!canImport && <p className="text-xs text-white/60">التصدير من صلاحية «إدخال نتائج القرعة».</p>}
+            </>
           )}
-          {!canImport && !exported && <p className="mt-2 text-xs text-white/75">التصدير من صلاحية «إدخال نتائج القرعة».</p>}
-        </PoolPanel>
-
-        <Panel title="القرعة تجري خارج المنصة" icon={<Tv />} delay={0.15} className="!from-maroon-dark/95 !via-maroon-dark/90 !to-maroon/80">
-          <div className="flex items-start gap-4">
-            <span className="relative grid size-14 shrink-0 place-items-center rounded-2xl bg-white/10">
-              <Tv className="size-7 text-gold" />
-              <span className="absolute -left-1 -top-1 flex items-center gap-1 rounded-full bg-maroon px-1.5 py-0.5 text-[9px] font-bold">
-                <span className="size-1.5 animate-pulse rounded-full bg-white" /> LIVE
-              </span>
-            </span>
-            <div className="space-y-2 text-sm leading-7 text-white/90">
-              <p>
-                <b className="text-gold">{W.lottery.draw}</b> بث مباشر على التلفاز بإشراف <b>لجنة تنظيم قرعة الحج</b>.
-              </p>
-              <p>تُسحب سنوات ميلاد، ولبعضها أشهر محددة، حتى تكتمل مقاعد القرعة. لا تُسحب أسماء، ولا يستطيع أحد تغيير أي طلب في المنصة أثناء البث.</p>
-              <p>بعد البث يُدخل صاحب صلاحية «إدخال نتائج القرعة» ما سُحب هنا سنةً سنة، ثم يعتمده صاحب صلاحية «اعتماد ونشر النتائج».</p>
-            </div>
-          </div>
-        </Panel>
-      </div>
-
-      {/* 3. Entry */}
-      <EntryPanel canImport={canImport} seeded={seeded} />
-
-      {/* 4. Publish */}
-      <PublishPanel canApprove={canApprove} />
-    </div>
+        </Box>
+      }
+    />
   );
 }
 
-function StepLine({ done, label, event }: { done: boolean; label: string; event?: AuditEvent }) {
-  return (
-    <li className={cn("flex items-start gap-2 rounded-xl p-2", done ? "bg-green-light/15 ring-1 ring-green-light/35" : "bg-white/[.06] ring-1 ring-white/10")}>
-      {done ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-light" /> : <span className="mt-1 size-3 shrink-0 rounded-full border-2 border-gold" />}
-      <span>
-        <span className={cn(done ? "font-semibold text-white" : "text-white/90")}>{label}</span>
-        {event && <span className="block text-xs text-white/75">{event.actor} — {fmtDateTime(event.at)}</span>}
-      </span>
-    </li>
-  );
-}
-
-/** Who registered, by the main applicant's birth year — open a year to see its months */
-function PoolPanel({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState<number | null>(null);
-  const max = Math.max(...YEARS.map((y) => y.seats));
-  const year = YEARS.find((y) => y.year === open);
-  return (
-    <Panel title="2. إحصاء التسجيل الأولي على القرعة" icon={<CalendarRange />} delay={0.1}>
-      <p className="mb-4 text-sm leading-6 text-white/90">
-        بعد إغلاق التسجيل الأولي ({W.lottery.hijri}) تُحصي المنصة المسجّلين بحسب سنة ميلاد صاحب الطلب وشهره: {formatNumber(POOL.poolApps)} طلباً تضم {formatNumber(POOL.poolSeats)} شخصاً. فتعرف اللجنة كم مقعداً تشغل كل سنة وكل شهر، وتتوقف عن السحب حين تكتمل المقاعد. اضغط سنة لترى أشهرها.
-      </p>
-      <ul className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
-        {YEARS.map((y) => (
-          <li key={y.year}>
-            <button
-              type="button"
-              onClick={() => setOpen((o) => (o === y.year ? null : y.year))}
-              aria-pressed={open === y.year}
-              className={cn("relative w-full overflow-hidden rounded-lg px-1 py-1.5 text-center ring-1 transition", open === y.year ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white ring-white/10 hover:bg-white/15")}
-            >
-              <span className={cn("absolute inset-x-0 bottom-0 bg-green-light/35", open === y.year && "bg-ink/10")} style={{ height: `${(y.seats / max) * 100}%` }} aria-hidden />
-              <span className="relative block text-xs font-bold tabular-nums">{y.year}</span>
-              <span className="relative block text-[10px] tabular-nums opacity-80">{formatNumber(y.seats)}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <AnimatePresence>
-        {year && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="mt-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-              <p className="mb-2 text-sm font-bold text-gold">
-                مواليد {year.year}: {formatNumber(year.seats)} شخصاً في {formatNumber(year.apps)} طلباً
-              </p>
-              <ul className="grid grid-cols-3 gap-1.5 text-xs sm:grid-cols-4 lg:grid-cols-6">
-                {year.cells.map((c) => (
-                  <li key={c.month} className="rounded-lg bg-white/[.06] px-2 py-1.5 text-white/90">
-                    <span className="block font-semibold">{MONTHS[c.month - 1]}</span>
-                    <span className="tabular-nums text-white/75">{formatNumber(c.seats)} شخصاً</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {children}
-    </Panel>
-  );
-}
+// ───────────────────────── 3. Entry ─────────────────────────
 
 /** The drawn lines with the seats each one accepts */
 function DrawLines({ picks, onRemove }: { picks: DrawPick[]; onRemove?: (year: number) => void }) {
   return (
-    <ul className="divide-y divide-white/10 overflow-hidden rounded-2xl bg-white/[.06] ring-1 ring-white/10">
+    <ListTable head={["السنة", "ما سُحب", "الأشخاص", ...(onRemove ? [""] : [])]} minWidth="24rem">
       {sortPicks(picks).map((p) => (
-        <motion.li key={p.year} layout initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3 px-4 py-2.5">
-          <span className="w-14 font-display text-xl font-bold tabular-nums text-gold">{p.year}</span>
-          <span className={cn("flex-1 text-sm font-semibold", p.months === "all" ? "text-white" : "text-gold-light")}>{describePick(p)}</span>
-          <span className="text-xs tabular-nums text-white/75">{formatNumber(pickSeats(p))} شخصاً</span>
+        <tr key={p.year}>
+          <td className="w-20 p-3 font-display text-lg font-bold tabular-nums text-gold">{p.year}</td>
+          <td className={cn("p-3 font-semibold", p.months === "all" ? "text-white" : "text-gold-light")}>{describePick(p)}</td>
+          <td className="p-3 text-xs tabular-nums text-white/75">{formatNumber(pickSeats(p))}</td>
           {onRemove && (
-            <button type="button" onClick={() => onRemove(p.year)} aria-label={`حذف ${p.year}`} className="grid size-7 place-items-center rounded-lg bg-white/10 text-white/80 transition hover:bg-maroon hover:text-white">
-              <X className="size-4" />
-            </button>
+            <td className="w-12 p-3">
+              <button type="button" onClick={() => onRemove(p.year)} aria-label={`حذف ${p.year}`} className="grid size-7 place-items-center rounded-lg bg-white/10 text-white/80 transition hover:bg-maroon hover:text-white">
+                <X className="size-4" />
+              </button>
+            </td>
           )}
-        </motion.li>
+        </tr>
       ))}
-      {picks.length === 0 && <li className="px-4 py-6 text-center text-sm text-white/75">لم يُدخل شيء بعد.</li>}
-    </ul>
+      {picks.length === 0 && (
+        <tr>
+          <td colSpan={onRemove ? 4 : 3} className="p-6 text-center text-white/60">
+            لم يُدخل شيء بعد.
+          </td>
+        </tr>
+      )}
+    </ListTable>
   );
 }
 
@@ -358,18 +429,18 @@ function SeatsBar({ picks }: { picks: DrawPick[] }) {
           {diff === 0 ? "اكتملت مقاعد القرعة" : diff > 0 ? `تزيد ${formatNumber(diff)} مقعداً — راجع ما أُدخل` : `بقي ${formatNumber(-diff)} مقعداً`}
         </span>
       </div>
-      <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
         <motion.div className={cn("h-full rounded-full", diff > 0 ? "bg-gold" : "bg-gradient-to-l from-gold to-green-light")} animate={{ width: `${Math.min(100, (t.seats / season.lotterySeats) * 100)}%` }} transition={{ duration: 0.5 }} />
       </div>
     </div>
   );
 }
 
-function EntryPanel({ canImport, seeded }: { canImport: boolean; seeded: boolean }) {
+function EntryStep() {
   const user = useStaffUser()!;
   const toast = useToast();
-  const lottery = useStore((s) => s.lottery);
-  const published = usePublishedDraw();
+  const { lottery, published, seeded } = useLotteryState();
+  const canImport = can(user, "lottery.import");
   const [picks, setPicks] = useState<DrawPick[]>(() => lottery.entry?.picks ?? []);
   const [year, setYear] = useState<number | "">("");
   const [mode, setMode] = useState<"all" | "months">("all");
@@ -401,39 +472,57 @@ function EntryPanel({ canImport, seeded }: { canImport: boolean; seeded: boolean
     toast({ title: "أُعيدت النتائج للتعديل", tone: "info", icon: "✏️" });
   };
 
+  // Already published, or sent and waiting: what was entered, read only
+  if (locked || !canImport) {
+    const shown = published && !lottery.sent ? published.picks : (lottery.entry?.picks ?? []);
+    return (
+      <EditLayout
+        main={
+          <>
+            <DrawLines picks={shown} />
+            <SeatsBar picks={shown} />
+          </>
+        }
+        side={
+          <Box title="الحالة">
+            {published && !lottery.sent ? (
+              <p>{seeded ? `أُدخلت نتائج بث ${W.lottery.draw} واعتُمدت ونُشرت.` : "أُدخلت النتائج واعتُمدت ونُشرت."} لتجربة الخطوات من البداية: «إعادة التجربة» في صفحة الخطوات.</p>
+            ) : lottery.sent ? (
+              <>
+                <p className="flex items-start gap-2 text-white">
+                  <Send className="mt-0.5 size-4 shrink-0 text-gold" /> أُرسلت للاعتماد: {lottery.sent.by} — {fmtDateTime(lottery.sent.at)}
+                </p>
+                {canImport && !published && (
+                  <Button variant="glass" size="sm" className="w-full" onClick={unsend}>
+                    <Pencil className="size-4" /> تعديل قبل الاعتماد
+                  </Button>
+                )}
+              </>
+            ) : (
+              <p className="flex items-start gap-2">
+                <Lock className="mt-0.5 size-4 shrink-0" /> بانتظار إدخال نتائج البث من صاحب صلاحية «إدخال نتائج القرعة».
+              </p>
+            )}
+          </Box>
+        }
+      />
+    );
+  }
+
   return (
-    <Panel title="3. إدخال نتائج البث" icon={<Keyboard />} className="mt-6" delay={0.1}>
-      {published && !lottery.sent ? (
-        <div className="space-y-3">
-          <p className="text-sm leading-6 text-white/90">
-            {seeded ? `أُدخلت نتائج بث ${W.lottery.draw} واعتُمدت ونُشرت.` : "أُدخلت النتائج واعتُمدت ونُشرت."} لتجربة الخطوات من البداية اضغط «إعادة التجربة» في أعلى الصفحة.
-          </p>
-          <DrawLines picks={published.picks} />
-          <SeatsBar picks={published.picks} />
-        </div>
-      ) : locked ? (
-        <div className="space-y-3">
-          <p className="flex items-center gap-2 rounded-2xl bg-gold/15 p-3 text-sm text-white ring-1 ring-gold/40">
-            <Send className="size-4 shrink-0 text-gold" /> أُرسلت للاعتماد: {lottery.sent?.by} — {lottery.sent ? fmtDateTime(lottery.sent.at) : ""}
-          </p>
-          <DrawLines picks={lottery.entry?.picks ?? []} />
-          <SeatsBar picks={lottery.entry?.picks ?? []} />
-          {canImport && !published && (
-            <Button variant="glass" size="sm" onClick={unsend}>
-              <Pencil className="size-4" /> تعديل قبل الاعتماد
-            </Button>
-          )}
-        </div>
-      ) : !canImport ? (
-        <p className="flex items-start gap-2 rounded-2xl bg-white/[.06] p-4 text-sm text-white/90 ring-1 ring-white/10">
-          <Lock className="mt-0.5 size-4 shrink-0" /> بانتظار إدخال نتائج البث من صاحب صلاحية «إدخال نتائج القرعة».
-        </p>
-      ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          <div className="space-y-3">
-            <p className="text-sm leading-6 text-white/90">أدخل ما أُعلن في البث سطراً سطراً: السنة، ثم «جميع الأشهر» أو الأشهر التي سُحبت منها.</p>
+    <EditLayout
+      main={
+        <>
+          <p className="text-sm text-white/70">أدخل ما أُعلن في البث سطراً سطراً: السنة، ثم «جميع الأشهر» أو الأشهر التي سُحبت منها.</p>
+          <DrawLines picks={picks} onRemove={(y) => setPicks((ps) => ps.filter((p) => p.year !== y))} />
+          <SeatsBar picks={picks} />
+        </>
+      }
+      side={
+        <>
+          <Box title="إضافة سطر">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-white">سنة الميلاد</span>
+              <span className="mb-1 block font-bold text-white">سنة الميلاد</span>
               <select value={year} onChange={(e) => setYear(e.target.value ? Number(e.target.value) : "")} className="h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 px-3 text-base text-white outline-none focus:border-gold [&>option]:text-ink">
                 <option value="">اختر السنة</option>
                 {free.map((y) => (
@@ -443,9 +532,9 @@ function EntryPanel({ canImport, seeded }: { canImport: boolean; seeded: boolean
                 ))}
               </select>
             </label>
-            <div role="radiogroup" aria-label="الأشهر" className="grid grid-cols-2 gap-1.5 rounded-2xl bg-white/[.06] p-1.5">
+            <div role="radiogroup" aria-label="الأشهر" className="grid grid-cols-2 gap-1.5 rounded-xl bg-black/20 p-1">
               {(["all", "months"] as const).map((m) => (
-                <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className={cn("rounded-xl py-2 text-sm font-bold transition", mode === m ? "bg-gold text-ink" : "text-white/80 hover:text-white")}>
+                <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)} className={cn("rounded-lg py-2 text-sm font-bold transition", mode === m ? "bg-gold text-ink" : "text-white/80 hover:text-white")}>
                   {m === "all" ? "جميع الأشهر" : "أشهر محددة"}
                 </button>
               ))}
@@ -460,7 +549,7 @@ function EntryPanel({ canImport, seeded }: { canImport: boolean; seeded: boolean
                       type="button"
                       aria-pressed={on}
                       onClick={() => setMonths((ms) => (on ? ms.filter((x) => x !== i + 1) : [...ms, i + 1]))}
-                      className={cn("rounded-lg px-2 py-1.5 text-xs font-semibold ring-1 transition", on ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white/90 ring-white/10 hover:bg-white/15")}
+                      className={cn("rounded-lg px-1 py-1.5 text-xs font-semibold ring-1 transition", on ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white/90 ring-white/10 hover:bg-white/15")}
                     >
                       {name}
                     </button>
@@ -468,31 +557,32 @@ function EntryPanel({ canImport, seeded }: { canImport: boolean; seeded: boolean
                 })}
               </div>
             )}
-            <Button variant="gold" className="w-full" onClick={add} disabled={!ready}>
+            <Button variant="glass" className="w-full" onClick={add} disabled={!ready}>
               <Plus className="size-4" /> إضافة السطر
             </Button>
             <button type="button" onClick={() => setPicks(OFFICIAL_DRAW)} className="w-full text-center text-xs font-semibold text-gold underline-offset-4 hover:underline">
               في بيئة العرض: تعبئة ما أُعلن في بث 1448
             </button>
-          </div>
-          <div className="space-y-3">
-            <DrawLines picks={picks} onRemove={(y) => setPicks((ps) => ps.filter((p) => p.year !== y))} />
-            <SeatsBar picks={picks} />
+          </Box>
+          <Box title="الإرسال">
+            <p className="text-xs text-white/60">لا يرى الحجاج شيئاً قبل الاعتماد والنشر.</p>
             <Button variant="gold" className="w-full" onClick={send} disabled={!picks.length}>
               <Send className="size-4" /> حفظ وإرسال للاعتماد
             </Button>
-          </div>
-        </div>
-      )}
-    </Panel>
+          </Box>
+        </>
+      }
+    />
   );
 }
 
-function PublishPanel({ canApprove }: { canApprove: boolean }) {
+// ───────────────────────── 4. Publish ─────────────────────────
+
+function PublishStep() {
   const user = useStaffUser()!;
   const toast = useToast();
-  const lottery = useStore((s) => s.lottery);
-  const published = usePublishedDraw();
+  const { lottery, published } = useLotteryState();
+  const canApprove = can(user, "lottery.approve");
   const [confirm, setConfirm] = useState(false);
   const entry = lottery.entry;
   const t = entry ? drawTotals(entry.picks) : null;
@@ -507,49 +597,59 @@ function PublishPanel({ canApprove }: { canApprove: boolean }) {
     confetti({ particleCount: 140, spread: 80, origin: { y: 0.7 }, colors: ["#00594F", "#D9C89E", "#AD9E6E", "#672146"] });
   };
 
+  const shown = published && !lottery.sent ? published.picks : (entry?.picks ?? []);
+
   return (
     <>
-      <Panel title="4. الاعتماد والنشر" icon={<ShieldCheck />} className="mt-6" delay={0.15}>
-        {published ? (
-          <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-wrap items-center gap-4 rounded-3xl bg-gradient-to-l from-green to-green-light/80 p-5 text-white ring-1 ring-gold/40">
-            <span className="grid size-14 place-items-center rounded-2xl bg-white/15">
-              <BadgeCheck className="size-8 text-gold" />
-            </span>
-            <div>
-              <p className="font-display text-xl font-bold">نُشرت نتائج القرعة</p>
-              <p className="text-sm text-white/90">
-                اعتمدها ونشرها: {published.by} — {published.at ? fmtDateTime(published.at) : published.label}
-              </p>
-              <p className="text-sm text-white/90">
-                {published.picks.length} سنوات ميلاد — يُقبل بها {formatNumber(drawTotals(published.picks).apps)} طلباً تضم {formatNumber(drawTotals(published.picks).seats)} شخصاً.
-              </p>
-            </div>
-          </motion.div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-            <div className="text-sm leading-7 text-white/90">
-              <p>لا تظهر أي نتيجة للحجاج قبل هذه اللحظة. بعد النشر يعرف كل مسجّل نتيجته في حسابه، ويظهر جدول السنوات والأشهر على صفحة النتائج، ويبدأ المقبولون تثبيت تسجيلهم ({W.lottery.confirm}).</p>
-              {!lottery.sent && <p className="font-bold text-gold">بانتظار إدخال نتائج البث وإرسالها للاعتماد.</p>}
-              {lottery.sent && entry && t && (
-                <p className="font-bold text-gold">
-                  وصلت للاعتماد: {entry.picks.length} سنوات ميلاد، {formatNumber(t.seats)} مقعداً — أدخلها {entry.by}.
+      <EditLayout
+        main={
+          <>
+            <p className="text-sm leading-6 text-white/70">لا تظهر أي نتيجة للحجاج قبل النشر. بعده يعرف كل مسجّل نتيجته في حسابه، ويظهر جدول السنوات والأشهر على صفحة النتائج، ويبدأ المقبولون تثبيت تسجيلهم ({W.lottery.confirm}).</p>
+            {shown.length > 0 ? (
+              <>
+                <DrawLines picks={shown} />
+                <SeatsBar picks={shown} />
+              </>
+            ) : (
+              <p className="rounded-2xl bg-white/[.06] p-6 text-center text-sm text-white/60 ring-1 ring-white/10">بانتظار إدخال نتائج البث وإرسالها للاعتماد.</p>
+            )}
+          </>
+        }
+        side={
+          <Box title="الاعتماد والنشر">
+            {published ? (
+              <div className="space-y-1 text-white">
+                <p className="flex items-center gap-2 font-bold">
+                  <BadgeCheck className="size-5 text-gold" /> نُشرت نتائج القرعة
                 </p>
-              )}
-              {!canApprove && (
-                <p className="mt-2 flex items-start gap-2 rounded-2xl bg-maroon/75 p-3 text-white ring-1 ring-maroon-light/50">
-                  <Lock className="mt-1 size-4 shrink-0" />
-                  <span>
-                    هذا الزر يتطلب صلاحية <b>اعتماد ونشر النتائج</b>. فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.
-                  </span>
+                <p className="text-xs text-white/70">
+                  اعتمدها ونشرها: {published.by} — {published.at ? fmtDateTime(published.at) : published.label}
                 </p>
-              )}
-            </div>
-            <Button size="lg" variant="gold" disabled={!canApprove || !lottery.sent} onClick={() => setConfirm(true)}>
-              <Megaphone className="size-5" /> اعتماد ونشر النتائج
-            </Button>
-          </div>
-        )}
-      </Panel>
+                <p className="text-xs text-white/70">
+                  {published.picks.length} سنوات ميلاد — يُقبل بها {formatNumber(drawTotals(published.picks).apps)} طلباً تضم {formatNumber(drawTotals(published.picks).seats)} شخصاً.
+                </p>
+              </div>
+            ) : (
+              <>
+                {!lottery.sent && <p className="font-bold text-gold">بانتظار إدخال نتائج البث وإرسالها للاعتماد.</p>}
+                {lottery.sent && entry && t && (
+                  <p className="font-bold text-gold">
+                    وصلت للاعتماد: {entry.picks.length} سنوات ميلاد، {formatNumber(t.seats)} مقعداً — أدخلها {entry.by}.
+                  </p>
+                )}
+                <Button variant="gold" className="w-full" disabled={!canApprove || !lottery.sent} onClick={() => setConfirm(true)}>
+                  <Megaphone className="size-4" /> اعتماد ونشر النتائج
+                </Button>
+                {!canApprove && (
+                  <p className="flex items-start gap-2 text-xs text-white/70">
+                    <Lock className="mt-0.5 size-3.5 shrink-0" /> يتطلب صلاحية «اعتماد ونشر النتائج». فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.
+                  </p>
+                )}
+              </>
+            )}
+          </Box>
+        }
+      />
 
       <Modal open={confirm} onClose={() => setConfirm(false)}>
         <h3 className="font-display text-xl font-bold text-green-dark">اعتماد ونشر نتائج القرعة؟</h3>

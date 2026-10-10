@@ -4,6 +4,7 @@ import { Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CURRENT_SEASON, GOVERNORATES, JOB_TITLES, MISSIONS, fold, type Employee, type Mission } from "@/lib/ops";
+import { SEASON } from "@/lib/season";
 import { cn, digitsOnly } from "@/lib/utils";
 import { textareaClass } from "../_components/kit";
 import { Field, fieldClass, selectClass } from "../_components/ops-ui";
@@ -34,8 +35,9 @@ export const emptyDraft = (): Draft => ({
  * birth year, national number, governorate, job title, mission, permanent or delegated (and by whom),
  * the Syrian and Saudi numbers, and languages. Registration for this season is a switch here too, under
  * the season tab's guard: `lock` says why he cannot leave the season (he holds a post in it), and keeps it on.
+ * On the edit screen the form has no buttons of its own: the save button in the side box submits it by its `id`.
  */
-export function EmployeeForm({ initial, all, lock, onSave, onCancel }: { initial: Draft; all: Employee[]; lock: string | null; onSave: (d: Draft) => void; onCancel: () => void }) {
+export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?: string; initial: Draft; all: Employee[]; lock: string | null; onSave: (d: Draft) => void; onCancel?: () => void }) {
   const [d, setD] = useState<Draft>(initial);
   const [tried, setTried] = useState(false);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
@@ -59,6 +61,7 @@ export function EmployeeForm({ initial, all, lock, onSave, onCancel }: { initial
 
   return (
     <form
+      id={id}
       onSubmit={(e) => {
         e.preventDefault();
         setTried(true);
@@ -89,7 +92,7 @@ export function EmployeeForm({ initial, all, lock, onSave, onCancel }: { initial
             <option value="female">أنثى</option>
           </select>
         </Field>
-        <Field label="سنة الميلاد">
+        <Field label="سنة الميلاد" hint={d.birthYear ? `${SEASON.gregorianYear - d.birthYear} سنة في موسم الحج` : undefined}>
           <input type="number" min={1950} max={2005} value={d.birthYear} onChange={(e) => set("birthYear", Number(e.target.value))} className={fieldClass} dir="ltr" />
         </Field>
         <Field label="الرقم الوطني">
@@ -193,15 +196,17 @@ export function EmployeeForm({ initial, all, lock, onSave, onCancel }: { initial
         <textarea rows={2} value={d.notes ?? ""} onChange={(e) => set("notes", e.target.value || undefined)} className={textareaClass} />
       </Field>
 
-      <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
-        <Button type="button" variant="glass" onClick={onCancel}>
-          إلغاء
-        </Button>
-        <Button type="submit" variant="gold">
-          <Save className="size-4" /> {d.id ? "حفظ التعديلات" : "إضافة الموظف"}
-        </Button>
-      </div>
-      {tried && !valid && <p className="text-left text-xs font-bold text-[#ffb4c8]">راجع الحقول المعلّمة بالأحمر.</p>}
+      {onCancel && (
+        <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
+          <Button type="button" variant="glass" onClick={onCancel}>
+            إلغاء
+          </Button>
+          <Button type="submit" variant="gold">
+            <Save className="size-4" /> {d.id ? "حفظ التعديلات" : "إضافة الموظف"}
+          </Button>
+        </div>
+      )}
+      {tried && !valid && <p className="rounded-xl bg-maroon/25 px-3 py-2 text-xs font-bold text-[#ffb4c8] ring-1 ring-maroon/50">لم يُحفظ: راجع الحقول المعلّمة بالأحمر.</p>}
     </form>
   );
 }

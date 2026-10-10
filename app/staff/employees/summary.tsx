@@ -1,22 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Briefcase, CalendarCheck, Gauge, IdCard, KeyRound, Megaphone, UsersRound } from "lucide-react";
+import { Briefcase, CalendarCheck, Gauge, IdCard, KeyRound, Megaphone, UsersRound } from "lucide-react";
 import { useState } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { CURRENT_SEASON } from "@/lib/ops";
 import { SYSTEMS, useHolders } from "@/lib/systems";
 import { cn } from "@/lib/utils";
 import { BarList, fmtDate, Kpi, PageHeader, Panel, useStaffUser } from "../_components/kit";
-import { Chip } from "../_components/ops-ui";
 import { Escalate, Raised, Todo } from "../_components/system";
+import { Box, HowItWorks } from "../_components/wp";
 import { useEmployeesDesk } from "./desk";
 
 /**
- * The dashboard of whoever holds «إدارة الموظفين», in place of a general «لوحتي»: the file in numbers, what
- * waits for him — each item one click from the tab or the sheet it is done in — then, in the order the work
- * is done, what the register is made of, whose accounts are tied to their records, and how the season's
- * participants stand. The records stay in the management tabs.
+ * The dashboard of whoever holds «إدارة الموظفين»: numbers only — the register, the accounts tied to it and
+ * the season's participants, in the order the work is done — how the work goes in four steps, and what
+ * waits for him, each one click from where it is done. Nothing is edited here: the work and each part's
+ * records are in the operations of the menu.
  */
 export function EmployeesSummary() {
   const user = useStaffUser()!;
@@ -32,17 +31,21 @@ export function EmployeesSummary() {
         eyebrow={`صلاحيتك: ${SYSTEMS.staff.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.staff.summary.label}
         icon={<Gauge />}
-        description="حال موظفي البعثة الآن، وما ينتظرك فيهم. العمل نفسه وسجلّ كل جزء في «إدارة الموظفين». ولا يصل إلى مديرة الموسم إلا إيقاف موظف مُسند إلى موقع أو إعادته إلى العمل، وإلغاء مشاركة أحد في الموسم، وما ترفعه إليها."
+        description="أرقام موظفي البعثة الآن. للعمل استعمل القائمة الجانبية."
         actions={
-          <>
-            <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
-              <Megaphone className="size-4" /> رفع أمر إلى المدير
-            </Button>
-            <ButtonLink href={SYSTEMS.staff.manage.href} size="sm" variant="gold">
-              {SYSTEMS.staff.manage.label} <ArrowLeft className="size-4" />
-            </ButtonLink>
-          </>
+          <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
+            <Megaphone className="size-4" /> رفع أمر إلى المدير
+          </Button>
         }
+      />
+
+      <HowItWorks
+        steps={[
+          { title: "السجل", text: "أضف الموظفين الدائمين والمنتدبين، وأكمل ما ينقص سجلاتهم.", href: "/staff/employees/manage", link: "سجل الموظفين" },
+          { title: "الحسابات", text: "اربط كل حساب في البوابة بسجل صاحبه، فإليه تصل كلمة المرور.", href: "/staff/employees/manage/accounts", link: "حسابات البوابة" },
+          { title: "الموسم", text: `سجّل في موسم ${CURRENT_SEASON} من سيسافر مع البعثة.`, href: "/staff/employees/manage/season", link: "المشاركون في الموسم" },
+          { title: "الإسناد", text: "يسند صاحب «الملفات التشغيلية» المشاركين إلى مواقعهم. تابع من بقي بلا موقع.", href: "/staff/employees/manage/season?f=free", link: "المتاحون للإسناد" },
+        ]}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -52,13 +55,10 @@ export function EmployeesSummary() {
         <Kpi label="مُسندون في الملفات" value={desk.posted.length} icon={<Briefcase />} tone="gold" delay={0.15} pulse={desk.high.length > 0} hint={`${desk.free.length} متاحون للإسناد`} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Todo alerts={desk.alerts} empty="كل سجل مكتمل، وكل حساب مربوط بسجل صاحبه، وكل مشارك في الموسم له موقعه." />
-        <Raised system="staff" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — جهة لم ترسل منتدبيها، أو موقع لا بديل لمن أُوقف فيه، أو حساب يحتاج صلاحية — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
-      </div>
+      <Todo alerts={desk.alerts} empty="كل سجل مكتمل، وكل حساب مربوط بسجل صاحبه، وكل مشارك في الموسم له موقعه." />
 
       {/* In the order the work is done: the register, the accounts tied to it, the season's participants */}
-      <Panel icon={<IdCard />} title="تركيب السجل" action={<Link href="/staff/employees/manage" className="text-sm font-bold text-gold hover:underline">السجل</Link>}>
+      <Panel icon={<IdCard />} title="تركيب السجل">
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             <p className="mb-3 text-sm font-bold text-white/85">حسب البعثة</p>
@@ -69,43 +69,29 @@ export function EmployeesSummary() {
             <BarList color="bg-gold-dark" items={desk.titles.slice(0, 5).map((t) => ({ key: t.title, label: t.title, value: t.n }))} />
           </div>
         </div>
-        <p className="mt-4 flex flex-wrap gap-1.5">
-          <Chip tone={desk.suspended.length ? "maroon" : "muted"}>{desk.suspended.length} موقوفون</Chip>
-          <Chip tone={desk.incomplete.length ? "maroon" : "muted"}>{desk.incomplete.length} سجلات ناقصة</Chip>
-        </p>
+        <Figures
+          items={[
+            { k: "على رأس العمل", v: desk.employees.length - desk.suspended.length },
+            { k: "موقوفون", v: desk.suspended.length, alert: true },
+            { k: "سجلات ناقصة", v: desk.incomplete.length, alert: true },
+            { k: "بلا حساب بوابة", v: desk.withoutAccount.length },
+          ]}
+        />
       </Panel>
 
-      <Panel icon={<KeyRound />} title="حسابات البوابة" action={<Link href="/staff/employees/manage/accounts" className="text-sm font-bold text-gold hover:underline">الحسابات</Link>}>
-        <dl className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-          {[
+      <Panel icon={<KeyRound />} title="حسابات البوابة">
+        <Figures
+          items={[
             { k: "الحسابات", v: desk.accounts.length },
             { k: "مربوطة بسجل", v: desk.linked.length },
+            { k: "بلا سجل موظف", v: desk.unlinked.length, alert: true },
             { k: "بصلاحية إدارة ملف", v: desk.accounts.filter((r) => r.managed.length).length },
             { k: "بموقع ميداني", v: field.length },
-          ].map((x) => (
-            <div key={x.k} className="rounded-xl bg-black/15 p-2">
-              <dt className="text-[11px] text-white/60">{x.k}</dt>
-              <dd className="font-display text-xl font-bold tabular-nums text-white">{x.v}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-4 text-sm leading-7 text-white/75">
-          {desk.unlinked.length ? (
-            <>
-              بلا سجل موظف:{" "}
-              {desk.unlinked.map((r) => (
-                <Link key={r.account.id} href={`/staff/employees/manage/accounts?a=${r.account.id}`} className="ml-1.5 inline-block">
-                  <Chip tone="maroon">{r.account.name}</Chip>
-                </Link>
-              ))}
-            </>
-          ) : (
-            "كل حساب مربوط بسجل صاحبه."
-          )}
-        </p>
+          ]}
+        />
       </Panel>
 
-      <Panel icon={<CalendarCheck />} title={`المشاركة في موسم ${CURRENT_SEASON}`} action={<Link href="/staff/employees/manage/season" className="text-sm font-bold text-gold hover:underline">المشاركون في الموسم</Link>} bodyClass="-mx-5 md:-mx-6">
+      <Panel icon={<CalendarCheck />} title={`المشاركة في موسم ${CURRENT_SEASON} حسب البعثة`} bodyClass="-mx-5 md:-mx-6">
         <div className="overflow-x-auto px-5 md:px-6">
           <table className="w-full min-w-[36rem] text-sm">
             <thead>
@@ -133,7 +119,26 @@ export function EmployeesSummary() {
         </div>
       </Panel>
 
+      <Box title="ما رفعته إلى المدير" open={false}>
+        <Raised system="staff" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — جهة لم ترسل منتدبيها، أو موقع لا بديل لمن أُوقف فيه، أو حساب يحتاج صلاحية — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
+        <p className="text-xs leading-5 text-white/55">يصل إلى مديرة الموسم وحده: إيقاف موظف مُسند إلى موقع أو إعادته إلى العمل، وإلغاء مشاركة أحد في الموسم، وما ترفعه إليها.</p>
+      </Box>
+
       <Escalate system="staff" open={escalating} onClose={() => setEscalating(false)} example={`مثال: لم ترسل وزارة الصحة بعد أسماء الأطباء المنتدبين لموسم ${CURRENT_SEASON}، ومخيمات منى تنتظرهم.`} />
     </div>
+  );
+}
+
+/** A row of small figures under a chart */
+function Figures({ items }: { items: { k: string; v: number; alert?: boolean }[] }) {
+  return (
+    <dl className={cn("mt-4 grid grid-cols-2 gap-2 text-center", items.length > 4 ? "sm:grid-cols-5" : "sm:grid-cols-4")}>
+      {items.map((x) => (
+        <div key={x.k} className="rounded-xl bg-black/15 p-2">
+          <dt className="text-[11px] text-white/60">{x.k}</dt>
+          <dd className={cn("font-display text-xl font-bold tabular-nums", x.alert && x.v ? "text-[#ffb4c8]" : "text-white")}>{x.v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

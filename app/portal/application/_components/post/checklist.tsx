@@ -10,9 +10,14 @@ import { FLIGHTS, GROUP } from "@/lib/journey";
 import { actions, type Application, type PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { attachByContract, coordinatorOf, groupInfo } from "@/lib/assignment";
-import { COORDINATOR_ID, DOCS, STEPS, demoHealth, docKey, medicalDocsFor, medicalKey, recordHealth, stepsDone, type CostLine, type StepKey } from "./model";
+import { usePinnedVersion } from "@/lib/registration/client";
+import { postStepsOf } from "@/lib/registration/engine";
+import { linesUpTo } from "@/lib/registration/post";
+import type { PostStepDef } from "@/lib/registration/types";
+import { COORDINATOR_ID, DOCS, demoHealth, docKey, medicalDocsFor, medicalKey, recordHealth, stepsDone, type CostLine } from "./model";
 import { Pill, StepDone, StepRating, logPilgrim } from "./shared";
 import { StepConfirm } from "./step-confirm";
+import { StepCustom } from "./step-custom";
 import { StepDocuments } from "./step-documents";
 import { MyGroup, StepGroup } from "./step-group";
 import { StepMedical } from "./step-medical";
@@ -21,10 +26,16 @@ import { StepVisa } from "./step-visa";
 
 const fmt = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(at) : "");
 
+/**
+ * The steps after acceptance, as the application's version sets them: their order, words and the steps the
+ * administration added. Each opens only when everything before it is complete (lib/registration/post).
+ */
 export function PostChecklist({ app, post, sessionId, lines }: { app: Application; post: PostAcceptance; sessionId: string; lines: CostLine[] }) {
   const toast = useToast();
+  const version = usePinnedVersion(app.configVersion, app.season);
+  const STEPS = postStepsOf(version.config);
   const [view, setView] = useState<number | null>(null);
-  const [dismissed, setDismissed] = useState<StepKey[]>([]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [demoRunning, setDemoRunning] = useState(false);
 
   const approvedRef = useRef(post.groupApprovedAt);
@@ -44,24 +55,24 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
     approvedRef.current = post.groupApprovedAt;
     groupRef.current = post.groupNumber;
   }, [post.groupApprovedAt, post.groupNumber, post.clusterId, post.enrolledBy?.name, toast]);
-  const done = stepsDone(post, app, lines);
-  const firstOpen = STEPS.findIndex((s) => !done[s.key]);
-  const auto = STEPS.findIndex((s) => !done[s.key] || (post.ratings[s.key] === undefined && !dismissed.includes(s.key)));
+  const done = stepsDone(post, app, lines, STEPS);
+  const firstOpen = STEPS.findIndex((s) => !done[s.id]);
+  const auto = STEPS.findIndex((s) => !done[s.id] || (post.ratings[s.id] === undefined && !dismissed.includes(s.id)));
   const shown = view ?? (auto === -1 ? STEPS.length - 1 : auto);
   const step = STEPS[shown];
   const reachable = (i: number) => firstOpen === -1 || i <= firstOpen;
-  const doneCount = STEPS.filter((s) => done[s.key]).length;
-  const props = { app, post, sessionId, lines };
+  const doneCount = STEPS.filter((s) => done[s.id]).length;
+  const props = { app, post, sessionId, lines, def: step, steps: STEPS, stepLabel: `الخطوة ${shown + 1} من ${STEPS.length}` };
 
   const next = () => {
-    setDismissed((d) => (d.includes(step.key) ? d : [...d, step.key]));
+    setDismissed((d) => (d.includes(step.id) ? d : [...d, step.id]));
     setView(null);
   };
 
   const runDemo = () => {
     setDemoRunning(true);
     setView(null);
-    setDismissed(STEPS.slice(0, -1).map((s) => s.key));
+    setDismissed(STEPS.slice(0, -1).map((s) => s.id));
     const base = Date.now();
     const documents = Object.fromEntries(app.members.flatMap((m) => DOCS.map((d) => [docKey(m, d.key), "approved" as const])));
     // Demo: the family joins مجموعة اللطيف (key 27) of Al-Nour through its coordinator سامر نجار
@@ -78,6 +89,8 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
       // The family signs its contract at the office, and the office attaches it to the group
       [1400, () => attachByContract({ sessionId, app: paidApp, post, group: { clusterId: info.clusterId, number: info.number }, at: base + 1400 })],
       [2100, () => actions.setPost(sessionId, { payments: Object.fromEntries(payable.map((l) => [l.key, base + 2100])) })],
+      // The steps the administration added: done as the demo goes (an acknowledgement, a form left unanswered)
+      [2400, () => actions.setPost(sessionId, { custom: Object.fromEntries(STEPS.filter((x) => x.kind === "acknowledge" || x.kind === "form").map((x) => [x.id, { at: base + 2400 }])) })],
       [2800, () => recordHealth(sessionId, paidApp, { ...health, confirmedAt: base + 2800 })],
       [3200, () => actions.setPost(sessionId, { medical: Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const]))) })],
       [4200, () => actions.setPost(sessionId, { visaAt: base + 4200 })],
@@ -100,7 +113,7 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
             <p className="font-display text-2xl font-bold md:text-3xl">
               أكملت {doneCount} من {STEPS.length} خطوات
             </p>
-            <p className="mt-1 text-sm text-white/70">التأكيد والصورة الشخصية حتى 27 تشرين الأول — الإلحاق بمجموعة في المكتب حتى 15 كانون الثاني — الدفعة الثانية بعده — ثم جواز السفر فالملف الطبي</p>
+            <p className="mt-1 text-sm text-white/70">{version.config.messages.postHeader}</p>
           </div>
           {firstOpen !== -1 && (
             <button
@@ -115,15 +128,15 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
         </div>
 
         {/* Stepper */}
-        <ol className="relative mt-6 grid grid-cols-6 gap-1">
+        <ol className="relative mt-6 grid gap-1" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}>
           <div className="absolute right-[8%] left-[8%] top-6 h-1 rounded-full bg-white/15" />
           <motion.div className="absolute right-[8%] top-6 h-1 rounded-full bg-gold" animate={{ width: `${(Math.max(0, (firstOpen === -1 ? STEPS.length - 1 : firstOpen)) / (STEPS.length - 1)) * 84}%` }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} />
           {STEPS.map((s, i) => {
-            const ok = done[s.key];
+            const ok = done[s.id];
             const current = i === shown;
             const canOpen = reachable(i);
             return (
-              <li key={s.key} className="relative flex flex-col items-center text-center">
+              <li key={s.id} className="relative flex flex-col items-center text-center">
                 <button
                   type="button"
                   disabled={!canOpen}
@@ -149,20 +162,27 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
       {/* Panel */}
       <div className="p-5 md:p-10">
         <AnimatePresence mode="wait">
-          <motion.div key={`${step.key}-${done[step.key]}`} initial={{ opacity: 0, y: 20, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
-            {done[step.key] ? (
-              <DoneScreen stepKey={step.key} {...props} onNext={shown < STEPS.length - 1 ? next : undefined} />
-            ) : step.key === "confirm" ? (
-              <StepConfirm {...props} />
-            ) : step.key === "documents" ? (
-              <StepDocuments {...props} />
-            ) : step.key === "group" ? (
-              <StepGroup {...props} />
-            ) : step.key === "medical" ? (
-              <StepMedical {...props} />
-            ) : step.key === "payment" ? (
+          <motion.div key={`${step.id}-${done[step.id]}`} initial={{ opacity: 0, y: 20, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+            {step.instructions && step.kind === "system" && !done[step.id] && (
+              <p className="mb-6 rounded-2xl bg-green-light/10 p-4 leading-7 text-green-dark whitespace-pre-line">{step.instructions}</p>
+            )}
+            {done[step.id] ? (
+              <DoneScreen {...props} step={step} steps={STEPS} onNext={shown < STEPS.length - 1 ? next : undefined} />
+            ) : step.kind === "acknowledge" || step.kind === "form" ? (
+              <StepCustom {...props} />
+            ) : step.kind === "installment" ? (
               <StepPayment {...props} />
-            ) : step.key === "passport" ? (
+            ) : step.system === "confirm" ? (
+              <StepConfirm {...props} />
+            ) : step.system === "documents" ? (
+              <StepDocuments {...props} />
+            ) : step.system === "group" ? (
+              <StepGroup {...props} />
+            ) : step.system === "medical" ? (
+              <StepMedical {...props} />
+            ) : step.system === "payment" ? (
+              <StepPayment {...props} />
+            ) : step.system === "passport" ? (
               <StepDocuments {...props} which="passport" />
             ) : (
               <StepVisa {...props} />
@@ -174,13 +194,30 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
   );
 }
 
-function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey: StepKey; app: Application; post: PostAcceptance; sessionId: string; lines: CostLine[]; onNext?: () => void }) {
-  const idx = STEPS.findIndex((s) => s.key === stepKey);
-  const s = STEPS[idx];
-  const nextStep = STEPS[idx + 1];
-  const rating = <StepRating stepKey={stepKey} question={s.question} post={post} sessionId={sessionId} app={app} />;
+function DoneScreen({ step, steps, app, post, sessionId, lines, onNext }: { step: PostStepDef; steps: PostStepDef[]; app: Application; post: PostAcceptance; sessionId: string; lines: CostLine[]; onNext?: () => void }) {
+  const idx = steps.findIndex((s) => s.id === step.id);
+  const s = step;
+  const nextStep = steps[idx + 1];
+  const rating = <StepRating stepKey={s.id} question={s.question} post={post} sessionId={sessionId} app={app} />;
 
-  switch (stepKey) {
+  if (s.kind !== "system") {
+    const paid = s.kind === "installment" ? lines.filter((l) => l.dueStep === s.id) : [];
+    return (
+      <StepDone title={`اكتملت خطوة «${s.title}»`} body={post.custom?.[s.id] ? `سُجّلت ${fmt(post.custom[s.id].at)}.` : (s.short ?? "")} rating={rating} next={nextStep?.title} onNext={onNext}>
+        {paid.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2">
+            {paid.map((l) => (
+              <Pill key={l.key} className="text-base">
+                ✓ {l.title}
+              </Pill>
+            ))}
+          </div>
+        )}
+      </StepDone>
+    );
+  }
+
+  switch (s.system) {
     case "confirm":
       return (
         <StepDone title="تم تأكيد قبولك" body={`حالة الطلب: مؤكَّد. وقّعت على التعليمات الرسمية الساعة ${fmt(post.confirmedAt)}.`} rating={rating} next={nextStep?.title} onNext={onNext} />
@@ -212,9 +249,9 @@ function DoneScreen({ stepKey, app, post, sessionId, lines, onNext }: { stepKey:
       );
     case "payment":
       return (
-        <StepDone title="اكتمل دفع المبلغ كاملاً" body="لكل دفعة إيصال مستقل في خزنة الوثائق. التالي: جواز السفر لكل فرد." rating={rating} next={nextStep?.title} onNext={onNext}>
+        <StepDone title={steps.some((x, i) => i > idx && x.kind === "installment") ? "اكتمل ما يستحق في هذه الخطوة" : "اكتمل دفع المبلغ كاملاً"} body={`لكل دفعة إيصال مستقل في خزنة الوثائق.${nextStep ? ` التالي: ${nextStep.title}.` : ""}`} rating={rating} next={nextStep?.title} onNext={onNext}>
           <div className="flex flex-wrap justify-center gap-2">
-            {lines.map((l) => (
+            {linesUpTo(s.id, steps, lines).map((l) => (
               <Pill key={l.key} className="text-base">
                 ✓ {l.title}
               </Pill>

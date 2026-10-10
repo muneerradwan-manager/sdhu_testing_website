@@ -1,14 +1,16 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Download, Eye, Fingerprint, Lock, Scale, ScrollText, Search, SearchCheck, UserRound, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, Download, ScrollText, Search, SearchCheck, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { OBJECTION_APP } from "@/lib/data/staff-seed";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
-import { fmtDate, fmtTime, Gate, Kpi, logAs, PageHeader, Panel, Tabs, useStaffUser } from "../_components/kit";
+import { fmtDate, fmtTime, Gate, logAs, PageHeader, useStaffUser } from "../_components/kit";
+import { FilterSelect } from "../_components/ops-ui";
+import { AddButton, Box, EmptyRow, ListTable, Tag } from "../_components/wp";
+import { Segments } from "../exam/_components/ui";
 
 type Scope = "all" | "live" | "archive";
 
@@ -20,19 +22,10 @@ export function AuditView() {
   );
 }
 
-const inputBase = "h-11 w-full rounded-2xl border-2 border-white/15 bg-white/10 text-sm text-white outline-none transition placeholder:text-white/50 focus:border-gold";
-const selectClass = cn(inputBase, "px-3 [&>option]:text-ink");
-
-const chipTones = {
-  green: "bg-green-light/25 text-white ring-green-light/40",
-  maroon: "bg-maroon/70 text-white ring-maroon-light/60",
-  gold: "bg-gold/20 text-gold ring-gold/40",
-} as const;
-
-function Chip({ tone, children }: { tone: keyof typeof chipTones; children: ReactNode }) {
-  return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ring-1", chipTones[tone])}>{children}</span>;
-}
-
+/**
+ * The events log, read only: one table of who did what, when, and the value before and after — filtered
+ * from the line above it. Its numbers are on «لوحتي».
+ */
 function Audit() {
   const user = useStaffUser()!;
   const toast = useToast();
@@ -56,6 +49,7 @@ function Audit() {
   const actors = useMemo(() => [...new Set(events.map((e) => e.actor))], [events]);
   const roles = useMemo(() => [...new Set(events.map((e) => e.role))], [events]);
   const actionsList = useMemo(() => [...new Set(events.map((e) => e.action))], [events]);
+  const live = events.filter((e) => e.live).length;
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -109,177 +103,114 @@ function Audit() {
     setDiffOnly(false);
   };
 
-  // group by day
   const visible = filtered.slice(0, limit);
-  const groups = visible.reduce<{ day: string; items: typeof visible }[]>((acc, e) => {
-    const day = fmtDate(e.at);
-    const last = acc.at(-1);
-    if (last && last.day === day) last.items.push(e);
-    else acc.push({ day, items: [e] });
-    return acc;
-  }, []);
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
-        eyebrow="التدقيق — قراءة فقط"
         title="سجل الأحداث"
         icon={<ScrollText />}
-        description="كل إجراء في المنصة يُسجَّل هنا: من فعل، ومتى، وما القيمة قبل التعديل وبعده، ولماذا."
+        description="كل إجراء في المنصة: من فعل، ومتى، والقيمة قبل التعديل وبعده. للقراءة فقط — لا يُعدَّل حدث ولا يُحذف."
         actions={
-          <>
-            <span className="flex items-center gap-2 rounded-full border border-gold/40 bg-gold/15 px-3 py-1.5 text-sm font-bold text-gold">
-              <Lock className="size-4" /> للإضافة فقط — لا يمكن التعديل
-            </span>
-            <Button variant="glass" size="sm" onClick={exportCsv}>
-              <Download className="size-4" /> تصدير
-            </Button>
-          </>
+          <AddButton onClick={exportCsv}>
+            <Download className="size-4" /> تصدير ما يظهر (CSV)
+          </AddButton>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="إجمالي الأحداث" value={events.length} icon={<ScrollText />} />
-        <Kpi label="من جلسة العرض" value={events.filter((e) => e.live).length} icon={<Eye />} tone="teal" delay={0.05} />
-        <Kpi label="الموظفون في السجل" value={actors.length} icon={<UserRound />} tone="gold" delay={0.1} />
-        <Kpi label="تعديلات بقيمة قبل/بعد" value={events.filter((e) => e.before !== undefined).length} icon={<Scale />} tone="maroon" delay={0.15} />
+      <Box title="مثال: اعتراض على نتيجة القرعة" open={false}>
+        <p>«أنا من مواليد شباط 1972، وشباط مسحوب في القرعة، ولم يُقبل طلبي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من أدخل نتائج البث، ومن اعتمدها ونشرها، ومتى.</p>
+        <Button size="sm" variant={tracing ? "glass" : "gold"} onClick={trace} disabled={tracing}>
+          <SearchCheck className="size-4" /> تتبّع الطلب {OBJECTION_APP}
+        </Button>
+      </Box>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segments
+          value={scope}
+          onChange={setScope}
+          label="النطاق"
+          items={[
+            { value: "all", label: "الكل", count: events.length },
+            { value: "live", label: "جلسة العرض", count: live },
+            { value: "archive", label: "أرشيف الموسم", count: events.length - live },
+          ]}
+        />
+        <label className="relative w-full md:w-80">
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/60" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="رقم طلب، اسم، قيمة..." aria-label="بحث في السجل" className="h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 pr-9 pl-3 text-sm text-white outline-none transition placeholder:text-white/50 focus:border-gold" />
+        </label>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
+        <FilterSelect value={actor} onChange={setActor} label="الموظف" all="كل الموظفين" options={actors} />
+        <FilterSelect value={role} onChange={setRole} label="الصفة" all="كل الصفات" options={roles} />
+        <FilterSelect value={action} onChange={setAction} label="الإجراء" all="كل الإجراءات" options={actionsList} />
+        <label className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border-2 border-white/15 bg-white/10 px-3 text-sm text-white">
+          <input type="checkbox" checked={diffOnly} onChange={(e) => setDiffOnly(e.target.checked)} className="size-4 accent-[#D9C89E]" />
+          تعديلات فقط
+        </label>
+        {hasFilters && (
+          <Button variant="glass" size="sm" className="h-11" onClick={clear}>
+            <X className="size-4" /> مسح
+          </Button>
+        )}
       </div>
 
-      {/* Objection example */}
-      <Panel className="mt-6" delay={0.1}>
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-maroon/70 text-white ring-1 ring-gold/30">
-            <Fingerprint className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-bold text-white">مثال: اعتراض على نتيجة القرعة</p>
-            <p className="text-sm leading-6 text-white/90">«أنا من مواليد شباط 1972، وشباط مسحوب في القرعة، ولم يُقبل طلبي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من أدخل نتائج البث، ومن اعتمدها ونشرها، ومتى.</p>
-          </div>
-          <Button variant={tracing ? "glass" : "gold"} onClick={trace} disabled={tracing}>
-            <SearchCheck className="size-4" /> تتبّع الطلب {OBJECTION_APP}
+      {tracing && (
+        <div className="rounded-2xl border-r-4 border-gold bg-green-light/15 p-4 text-sm leading-7 ring-1 ring-green-light/40">
+          <p className="font-bold text-gold">النتيجة: الطلب {OBJECTION_APP} غير مقبول، والنتيجة صحيحة.</p>
+          <p className="text-white/90">
+            أُدخلت نتائج البث كما أُعلنت واعتُمدت ولم تُعدَّل بعد النشر. صاحب الطلب {OBJECTION_APP} هو والد المعترض، الأكبر سناً فيه، من مواليد 1969، والقرعة تُطابَق بميلاد صاحب الطلب لا بميلاد كل فرد. لو كان هناك تلاعب لظهر هنا: من عدّل، ومتى، ولماذا.
+          </p>
+        </div>
+      )}
+
+      <p className="text-xs text-white/65">
+        {formatNumber(filtered.length)} حدثاً مطابقاً {tracing && "— مرتبة زمنياً من الأقدم"}
+      </p>
+
+      <ListTable head={["الوقت", "الموظف", "الإجراء", "الهدف والتفاصيل"]} minWidth="48rem">
+        {filtered.length === 0 && <EmptyRow cols={4}>لا توجد أحداث مطابقة.</EmptyRow>}
+        {visible.map((e) => (
+          <tr key={e.id} className={cn("align-top", tracing && e.target?.includes(OBJECTION_APP) && "bg-gold/10")}>
+            <td className="whitespace-nowrap p-3 text-xs text-white/70">
+              <span className="block font-mono font-bold tabular-nums text-gold">{fmtTime(e.at)}</span>
+              {fmtDate(e.at)}
+            </td>
+            <td className="p-3">
+              <p className="font-bold text-white">{e.actor}</p>
+              <p className="text-xs text-white/60">{e.role}</p>
+            </td>
+            <td className="p-3">
+              <Tag tone={e.before !== undefined ? "maroon" : "green"}>{e.action}</Tag>
+              {e.live && (
+                <span className="mt-1 block">
+                  <Tag tone="gold">جلسة العرض</Tag>
+                </span>
+              )}
+            </td>
+            <td className="p-3">
+              {e.target && <p className="font-semibold text-gold">{e.target}</p>}
+              {(e.before !== undefined || e.after !== undefined) && (
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  {e.before !== undefined && <span className="rounded-md bg-maroon/60 px-1.5 py-0.5 text-white line-through decoration-white/60">{e.before}</span>}
+                  {e.before !== undefined && <ArrowLeft className="size-3.5 text-white/70" />}
+                  {e.after !== undefined && <span className="rounded-md bg-green-light/25 px-1.5 py-0.5 font-bold text-white">{e.after}</span>}
+                </p>
+              )}
+              {e.detail && <p className="mt-1 text-xs leading-5 text-white/75">{e.detail}</p>}
+            </td>
+          </tr>
+        ))}
+      </ListTable>
+      {filtered.length > limit && (
+        <div className="text-center">
+          <Button variant="glass" onClick={() => setLimit((l) => l + 40)}>
+            عرض المزيد ({formatNumber(filtered.length - limit)})
           </Button>
         </div>
-        <AnimatePresence>
-          {tracing && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-              <div className="mt-4 rounded-2xl bg-green-light/15 p-4 text-sm leading-7 ring-1 ring-green-light/40">
-                <p className="font-bold text-gold">النتيجة: الطلب {OBJECTION_APP} غير مقبول، والنتيجة صحيحة.</p>
-                <p className="text-white/90">
-                  أُدخلت نتائج البث كما أُعلنت واعتُمدت ولم تُعدَّل بعد النشر. صاحب الطلب {OBJECTION_APP} هو والد المعترض، الأكبر سناً فيه، من مواليد 1969، والقرعة تُطابَق بميلاد صاحب الطلب لا بميلاد كل فرد. لو كان هناك تلاعب لظهر هنا: من عدّل، ومتى، ولماذا.
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Panel>
+      )}
 
-      {/* Filters */}
-      <Panel className="mt-6" delay={0.15}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Tabs
-            id="audit-scope"
-            value={scope}
-            onChange={setScope}
-            tabs={[
-              { value: "all", label: "الكل" },
-              { value: "live", label: "جلسة العرض", count: events.filter((e) => e.live).length },
-              { value: "archive", label: "أرشيف الموسم" },
-            ]}
-          />
-          <label className="relative w-full md:w-80">
-            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/60" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="رقم طلب، اسم، قيمة..." aria-label="بحث في السجل" className={cn(inputBase, "pr-9 pl-3")} />
-          </label>
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto]">
-          <select value={actor} onChange={(e) => setActor(e.target.value)} className={selectClass} aria-label="الموظف">
-            <option value="">كل الموظفين</option>
-            {actors.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </select>
-          <select value={role} onChange={(e) => setRole(e.target.value)} className={selectClass} aria-label="الصفة">
-            <option value="">كل الصفات</option>
-            {roles.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </select>
-          <select value={action} onChange={(e) => setAction(e.target.value)} className={selectClass} aria-label="الإجراء">
-            <option value="">كل الإجراءات</option>
-            {actionsList.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </select>
-          <label className="flex h-11 cursor-pointer items-center gap-2 rounded-2xl border-2 border-white/15 bg-white/10 px-3 text-sm text-white">
-            <input type="checkbox" checked={diffOnly} onChange={(e) => setDiffOnly(e.target.checked)} className="size-4 accent-[#D9C89E]" />
-            تعديلات فقط
-          </label>
-          {hasFilters && (
-            <Button variant="glass" size="sm" className="h-11" onClick={clear}>
-              <X className="size-4" /> مسح
-            </Button>
-          )}
-        </div>
-        <p className="mt-3 text-xs text-white/75">
-          {formatNumber(filtered.length)} حدثاً مطابقاً {tracing && "— مرتبة زمنياً من الأقدم"}
-        </p>
-
-        {/* Timeline */}
-        <div className="mt-4 space-y-6">
-          {groups.map((g) => (
-            <section key={g.day + g.items[0].id}>
-              <h3 className="mb-2 inline-flex rounded-full bg-gold px-3 py-1 text-xs font-bold text-ink shadow">{g.day}</h3>
-              <ol className="relative space-y-2 border-r-2 border-gold/40 pr-5">
-                {g.items.map((e, i) => (
-                  <motion.li key={e.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 12) * 0.025 }} className="group relative">
-                    <span className={cn("absolute -right-[27px] top-4 size-3.5 rounded-full border-2 border-green-dark ring-1 ring-white/40", e.live ? "bg-green-light" : "bg-gold")} />
-                    <div className={cn("rounded-2xl p-3 ring-1 transition", tracing && e.target?.includes(OBJECTION_APP) ? "bg-gold/15 ring-gold/50" : "bg-white/[.06] ring-white/10 group-hover:ring-gold/40")}>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span className="font-mono text-xs font-bold tabular-nums text-gold">{fmtTime(e.at)}</span>
-                        <span className="grid size-6 place-items-center rounded-lg bg-white/15 text-[11px] font-bold text-white ring-1 ring-white/15">{e.actor.replace("د. ", "")[0]}</span>
-                        <span className="font-bold text-white">{e.actor}</span>
-                        <span className="text-xs text-white/75">{e.role}</span>
-                        <Chip tone={e.before !== undefined ? "maroon" : "green"}>{e.action}</Chip>
-                        {e.live && <Chip tone="gold">جلسة العرض</Chip>}
-                        <span className="mr-auto opacity-0 transition group-hover:opacity-100" title="لا يمكن حذف أو تعديل أي حدث، حتى من أصحاب أعلى الصلاحيات">
-                          <Lock className="size-3.5 text-white/70" />
-                        </span>
-                      </div>
-                      {e.target && <p className="mt-1 text-sm font-semibold text-gold">{e.target}</p>}
-                      {(e.before !== undefined || e.after !== undefined) && (
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                          {e.before !== undefined && (
-                            <span className="rounded-lg bg-maroon/60 px-2 py-1 text-white ring-1 ring-maroon-light/50">
-                              <span className="font-bold">قبل: </span>
-                              <span className="line-through decoration-white/60">{e.before}</span>
-                            </span>
-                          )}
-                          {e.before !== undefined && <ArrowLeft className="size-3.5 text-white/70" />}
-                          {e.after !== undefined && (
-                            <span className="rounded-lg bg-green-light/25 px-2 py-1 text-white ring-1 ring-green-light/40">
-                              <span className="font-bold">بعد: </span>
-                              {e.after}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {e.detail && <p className="mt-1.5 text-xs leading-5 text-white/85">{e.detail}</p>}
-                    </div>
-                  </motion.li>
-                ))}
-              </ol>
-            </section>
-          ))}
-          {filtered.length === 0 && <p className="rounded-2xl bg-white/[.06] p-6 text-center text-sm text-white/75 ring-1 ring-white/10">لا توجد أحداث مطابقة.</p>}
-          {filtered.length > limit && (
-            <div className="text-center">
-              <Button variant="glass" onClick={() => setLimit((l) => l + 40)}>
-                عرض المزيد ({formatNumber(filtered.length - limit)})
-              </Button>
-            </div>
-          )}
-        </div>
-      </Panel>
     </div>
   );
 }

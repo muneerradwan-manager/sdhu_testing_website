@@ -1,54 +1,52 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { motion } from "motion/react";
-import { CheckCircle2, ClipboardList, Download, Eye, Gavel, ShieldAlert, UserCheck, CircleX } from "lucide-react";
+import { CheckCircle2, CircleX } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
-import { cn } from "@/lib/utils";
 import { ATTEMPT_LABEL, STAGE_LABEL, hallActions, roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
-import { Empty, Panel, Tabs, fmtDateTime, logAs, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, logAs, textareaClass, useStaffUser } from "../../_components/kit";
+import { EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk, type AttemptRow } from "./desk";
 import { Records } from "./records";
 import { AnswersDrawer, logAnswers } from "./results";
 import { examOfAttempt, seatOf, useSittingRows, type SittingRow } from "./sittings";
-import { ATTEMPT_TONE, Chip, SectionChips, alertParts, downloadCsv, pct } from "./ui";
+import { ATTEMPT_TONE, Chip, SectionChips, Segments, alertParts, downloadCsv, pct } from "./ui";
 
-type Tab = "review" | "attendance" | "suspicious";
-const TABS: Tab[] = ["review", "attendance", "suspicious"];
+type View = "review" | "attendance" | "suspicious";
+const VIEWS: View[] = ["review", "attendance", "suspicious"];
 
 /**
- * The administration's review of the sittings: the attempts it has to decide (not confirmed by the supervisor, or
- * sent in a sitting that ended without its confirmation), who came to each sitting and who did not, and the
- * attempts the devices raised signals on. Opens on one of its tabs by `?t=`.
+ * The administration's review of the sittings, three lists on one page: the attempts it has to decide, who came to
+ * each sitting and who did not, and the attempts the devices raised signals on. Opens on one of them by `?t=`.
  */
 export function Review() {
   const params = useSearchParams();
   const start = params.get("t");
-  // A new `?t=` (a link from the summary) opens its tab even when the page is already open
-  return <ReviewTabs key={start ?? ""} start={TABS.includes(start as Tab) ? (start as Tab) : "review"} />;
+  // A new `?t=` (a link from the summary) opens its list even when the page is already open
+  return <ReviewViews key={start ?? ""} start={VIEWS.includes(start as View) ? (start as View) : "review"} />;
 }
 
-function ReviewTabs({ start }: { start: Tab }) {
+function ReviewViews({ start }: { start: View }) {
   const desk = useExamDesk();
   const sittings = useSittingRows(desk);
-  const [tab, setTab] = useState<Tab>(start);
+  const [view, setView] = useState<View>(start);
   const held = sittings.filter((s) => s.stage !== "idle");
 
   return (
-    <div className="space-y-4">
-      <Tabs
-        id="exam-review"
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: "review", label: "المراجعة", count: desk.decisions.length },
+    <div className="space-y-5">
+      <Segments
+        value={view}
+        onChange={setView}
+        label="القائمة"
+        items={[
+          { value: "review", label: "تحتاج قراراً", count: desk.decisions.length, tone: "maroon" },
           { value: "attendance", label: "الحضور والغياب", count: held.length },
           { value: "suspicious", label: "الحالات المشتبه بها", count: desk.suspicious.length },
         ]}
       />
-      {tab === "review" ? <Decisions rows={desk.decisions} /> : tab === "attendance" ? <Attendance sittings={held} /> : <Suspicious rows={desk.suspicious} />}
+      {view === "review" ? <Decisions rows={desk.decisions} /> : view === "attendance" ? <Attendance sittings={held} /> : <Suspicious rows={desk.suspicious} />}
       <Records area="review" />
     </div>
   );
@@ -60,7 +58,21 @@ function useWhere() {
   return (a: AttemptRow) => ({ exam: halls.examById(examOfAttempt(a))?.name ?? `الاختبار المؤتمت لصفة ${roleLabelOf(a.role)}`, hall: halls.centerById(a.centerId)?.name ?? "—" });
 }
 
-// ───────────────────────── المراجعة ─────────────────────────
+function Signals({ a }: { a: AttemptRow }) {
+  const parts = alertParts(a.attempt);
+  if (!parts.length) return <span className="text-xs text-white/50">بلا تنبيهات</span>;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {parts.map((p) => (
+        <Tag key={p} tone="gold">
+          {p}
+        </Tag>
+      ))}
+    </span>
+  );
+}
+
+// ───────────────────────── تحتاج قراراً ─────────────────────────
 
 function Decisions({ rows }: { rows: AttemptRow[] }) {
   const user = useStaffUser()!;
@@ -69,6 +81,10 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
   const [viewing, setViewing] = useState<AttemptRow | null>(null);
   const [deciding, setDeciding] = useState<{ a: AttemptRow; kind: "approve" | "void" } | null>(null);
   const [note, setNote] = useState("");
+  const view = (a: AttemptRow) => {
+    setViewing(a);
+    logAnswers(user, a, "review", where(a).exam);
+  };
 
   const decide = () => {
     if (!deciding || note.trim().length < 3) return;
@@ -97,71 +113,51 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
   };
 
   return (
-    <Panel icon={<Gavel />} title="محاولات تحتاج قراراً">
-      <p className="text-sm leading-7 text-white/70">
-        ما لم يؤكده مشرف القاعة («لا أؤكد»)، وما سُلّم في جلسة انتهت دون تأكيده. راجع إجاباته وتنبيهاته، ثم اعتمده فيصير مؤكَّداً ويدخل النتائج، أو ألغه. لكل قرار ملاحظته، ويُسجَّل باسمك ويصل إلى مديرة الموسم.
-      </p>
-      {rows.length === 0 ? (
-        <div className="mt-4">
-          <Empty icon={<CheckCircle2 />} title="لا محاولات تحتاج قراراً." text="كل محاولة سُلّمت أكّدها مشرف قاعتها، أو قررت فيها الإدارة." />
-        </div>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {rows.map((a, i) => {
-            const w = where(a);
-            const parts = alertParts(a.attempt);
-            return (
-              <motion.li key={`${a.row.id}-${a.role}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="rounded-2xl bg-maroon/15 p-3 ring-1 ring-maroon/40">
-                <div className="flex flex-wrap items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-bold text-white">
-                      {a.row.name} <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip>
-                    </p>
-                    <p className="text-xs text-white/65">
-                      <span dir="ltr">{a.row.id}</span> · {w.exam} · {w.hall}
-                      {a.attempt.submittedAt ? ` · سلّم ${fmtDateTime(a.attempt.submittedAt)}` : ""}
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-gold">{a.attempt.unconfirmedReason ? `لم يؤكده المشرف: ${a.attempt.unconfirmedReason}` : "انتهت الجلسة دون تأكيد"}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="font-bold text-white">{pct(a.attempt.score)}</span>
-                      <SectionChips sections={a.sections} />
-                    </div>
-                    <p className="mt-1 flex flex-wrap gap-1">
-                      {parts.length ? (
-                        parts.map((p) => (
-                          <Chip key={p} tone="gold">
-                            {p}
-                          </Chip>
-                        ))
-                      ) : (
-                        <span className="text-xs text-white/55">بلا تنبيهات من الجهاز</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="glass"
-                      onClick={() => {
-                        setViewing(a);
-                        logAnswers(user, a, "review", w.exam);
-                      }}
-                    >
-                      <Eye className="size-4" /> مراجعة الإجابات
-                    </Button>
-                    <Button size="sm" variant="gold" onClick={() => setDeciding({ a, kind: "approve" })}>
-                      <CheckCircle2 className="size-4" /> اعتماد إداري
-                    </Button>
-                    <Button size="sm" variant="maroon" onClick={() => setDeciding({ a, kind: "void" })}>
-                      <CircleX className="size-4" /> إلغاء إداري
-                    </Button>
-                  </div>
-                </div>
-              </motion.li>
-            );
-          })}
-        </ul>
-      )}
+    <>
+      <p className="text-sm text-white/70">ما لم يؤكده مشرف القاعة، وما سُلّم في جلسة انتهت دون تأكيده: راجع إجاباته، ثم اعتمده أو ألغه بملاحظة. يصل كل قرار إلى مديرة الموسم.</p>
+      <ListTable head={["المتقدم", "الاختبار والقاعة", "لماذا", "النسبة والأقسام", "التنبيهات"]} minWidth="60rem">
+        {rows.length === 0 && <EmptyRow cols={5}>لا محاولات تحتاج قراراً: كل محاولة سُلّمت أكّدها مشرف قاعتها، أو قررت فيها الإدارة.</EmptyRow>}
+        {rows.map((a) => {
+          const w = where(a);
+          return (
+            <tr key={`${a.row.id}-${a.role}`} className="align-top">
+              <td className="p-3">
+                <button type="button" onClick={() => view(a)} className="text-right font-bold text-white hover:text-gold">
+                  {a.row.name}
+                </button>
+                <p className="text-xs text-white/55" dir="ltr">
+                  {a.row.id}
+                </p>
+                <RowActions>
+                  <RowLink onClick={() => view(a)}>مراجعة الإجابات</RowLink>
+                  <RowLink onClick={() => setDeciding({ a, kind: "approve" })}>اعتماد إداري</RowLink>
+                  <RowLink danger onClick={() => setDeciding({ a, kind: "void" })}>
+                    إلغاء إداري
+                  </RowLink>
+                </RowActions>
+              </td>
+              <td className="p-3 text-white/80">
+                {w.exam}
+                <span className="block text-xs text-white/55">
+                  {w.hall}
+                  {a.attempt.submittedAt ? ` · سلّم ${fmtDateTime(a.attempt.submittedAt)}` : ""}
+                </span>
+              </td>
+              <td className="p-3">
+                <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip>
+                <span className="mt-1 block text-xs font-bold text-gold">{a.attempt.unconfirmedReason ? `لم يؤكده المشرف: ${a.attempt.unconfirmedReason}` : "انتهت الجلسة دون تأكيد"}</span>
+              </td>
+              <td className="p-3">
+                <span className="mb-1 block font-bold text-white">{pct(a.attempt.score)}</span>
+                <SectionChips sections={a.sections} />
+              </td>
+              <td className="p-3">
+                <Signals a={a} />
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
 
       <AnswersDrawer a={viewing} onClose={() => setViewing(null)} />
       <Modal
@@ -187,6 +183,7 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
             </label>
             <div className="mt-4 flex gap-2">
               <Button variant={deciding.kind === "approve" ? "gold" : "maroon"} disabled={note.trim().length < 3} onClick={decide}>
+                {deciding.kind === "approve" ? <CheckCircle2 className="size-4" /> : <CircleX className="size-4" />}
                 {deciding.kind === "approve" ? "اعتماد" : "إلغاء المحاولة"}
               </Button>
               <Button
@@ -202,7 +199,7 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
           </>
         )}
       </Modal>
-    </Panel>
+    </>
   );
 }
 
@@ -210,6 +207,8 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
 
 function Attendance({ sittings }: { sittings: SittingRow[] }) {
   const user = useStaffUser()!;
+  const [open, setOpen] = useState<string | null>(null);
+  const current = sittings.find((s) => s.key === open);
   const download = () => {
     downloadCsv("الحضور-والغياب-1448.csv", [
       ["الاختبار", "القاعة", "حالة الجلسة", "الاسم", "الرقم الوطني", "الحال"],
@@ -218,77 +217,84 @@ function Attendance({ sittings }: { sittings: SittingRow[] }) {
     logAs(user, { action: "تصدير الحضور والغياب", target: `${sittings.length} جلسات`, system: "exams", area: "review" });
   };
   return (
-    <Panel
-      icon={<UserCheck />}
-      title="الحضور والغياب"
-      action={
-        sittings.length > 0 && (
-          <Button size="sm" variant="glass" onClick={download}>
-            <Download className="size-4" /> تصدير Excel
-          </Button>
-        )
-      }
-    >
-      <p className="text-sm leading-7 text-white/70">لكل جلسة فُتحت قاعتها: من أُدرج فيها، ومن حضر، ومن غاب. الغائب عن جلسة انتهت يُحسب راسباً فيها حين تختار «اعتبار الغائبين راسبين» في النتائج والإحصائيات.</p>
-      {sittings.length === 0 ? (
-        <div className="mt-4">
-          <Empty icon={<ClipboardList />} title="لم تُفتح أي قاعة بعد" text="يظهر هنا حضور كل جلسة منذ يفتح المشرف قاعتها." />
-        </div>
+    <>
+      <Title
+        action={
+          sittings.length > 0 && (
+            <span className="text-sm font-bold">
+              <RowLink onClick={download}>تصدير Excel</RowLink>
+            </span>
+          )
+        }
+      />
+      <p className="-mt-2 text-sm text-white/70">لكل جلسة فُتحت قاعتها: من أُدرج فيها، ومن حضر، ومن غاب. الغائب عن جلسة انتهت يُحسب راسباً حين تختار «اعتبار الغائبين راسبين» في النتائج والإحصائيات.</p>
+      <ListTable head={["الجلسة", "الحالة", "المدرجون", "الحاضرون", "الغائبون"]} minWidth="44rem">
+        {sittings.length === 0 && <EmptyRow cols={5}>لم تُفتح أي قاعة بعد: يظهر هنا حضور كل جلسة منذ يفتح المشرف قاعتها.</EmptyRow>}
+        {sittings.map((s) => {
+          const present = s.listed.filter((r) => seatOf(s, r.id).present).length;
+          const away = s.listed.length - present;
+          const closed = s.stage === "closed";
+          return (
+            <tr key={s.key} className="align-top">
+              <td className="p-3">
+                <button type="button" onClick={() => setOpen(s.key)} className="text-right font-bold text-white hover:text-gold">
+                  {s.exam.name}
+                </button>
+                <p className="text-xs text-white/55">{s.center.name}</p>
+                <RowActions>
+                  <RowLink onClick={() => setOpen(s.key)}>الأسماء</RowLink>
+                </RowActions>
+              </td>
+              <td className="p-3">
+                <Tag tone={closed ? "muted" : "green"}>{STAGE_LABEL[s.stage]}</Tag>
+              </td>
+              <td className="p-3 tabular-nums">{s.listed.length}</td>
+              <td className="p-3 tabular-nums">{present}</td>
+              <td className="p-3 tabular-nums">
+                <span className={closed && away ? "font-bold text-gold" : ""}>{away}</span>
+                {!closed && <span className="block text-[11px] text-white/50">لم يحضروا بعد</span>}
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
+      <Drawer open={!!current} onClose={() => setOpen(null)} title={current ? `${current.exam.name} — ${current.center.name}` : ""} width="max-w-xl">
+        {current && <SittingNames s={current} />}
+      </Drawer>
+    </>
+  );
+}
+
+/** Who came to a sitting and who did not, by name */
+function SittingNames({ s }: { s: SittingRow }) {
+  const seats = s.listed.map((r) => ({ r, seat: seatOf(s, r.id) }));
+  const present = seats.filter((x) => x.seat.present);
+  const away = seats.filter((x) => !x.seat.present);
+  const closed = s.stage === "closed";
+  const group = (title: string, list: typeof seats, tone: "green" | "maroon" | "muted") => (
+    <section>
+      <p className="mb-2 text-sm font-bold text-white">
+        {title} ({list.length})
+      </p>
+      {list.length === 0 ? (
+        <p className="text-xs text-white/55">لا أحد.</p>
       ) : (
-        <ul className="mt-4 space-y-3">
-          {sittings.map((s) => {
-            const seats = s.listed.map((r) => ({ r, seat: seatOf(s, r.id) }));
-            const present = seats.filter((x) => x.seat.present);
-            const away = seats.filter((x) => !x.seat.present);
-            const closed = s.stage === "closed";
-            return (
-              <li key={s.key} className="rounded-2xl bg-white/[.05] p-3 ring-1 ring-white/10">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-bold text-white">
-                    {s.exam.name} — {s.center.name}
-                  </p>
-                  <Chip tone={closed ? "muted" : "green"}>{STAGE_LABEL[s.stage]}</Chip>
-                </div>
-                <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
-                  {(
-                    [
-                      ["المدرجون", s.listed.length],
-                      ["الحاضرون", present.length],
-                      [closed ? "الغائبون" : "لم يحضروا بعد", away.length],
-                    ] as const
-                  ).map(([k, v]) => (
-                    <div key={k} className="rounded-xl bg-black/15 p-2">
-                      <dt className="text-[11px] text-white/60">{k}</dt>
-                      <dd className={cn("font-display text-xl font-bold tabular-nums", k === "الغائبون" && v ? "text-gold" : "text-white")}>{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-                {present.length > 0 && (
-                  <p className="mt-2 flex flex-wrap items-center gap-1 text-xs">
-                    <span className="text-white/60">حضروا:</span>
-                    {present.map(({ r }) => (
-                      <Chip key={r.id} tone="green">
-                        {r.name}
-                      </Chip>
-                    ))}
-                  </p>
-                )}
-                {away.length > 0 && (
-                  <p className="mt-2 flex flex-wrap items-center gap-1 text-xs">
-                    <span className="text-white/60">{closed ? "غابوا:" : "لم يحضروا بعد:"}</span>
-                    {away.map(({ r }) => (
-                      <Chip key={r.id} tone={closed ? "maroon" : "muted"}>
-                        {r.name}
-                      </Chip>
-                    ))}
-                  </p>
-                )}
-              </li>
-            );
-          })}
+        <ul className="space-y-1">
+          {list.map(({ r }) => (
+            <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl bg-white/[.05] px-3 py-1.5 text-sm ring-1 ring-white/10">
+              <span className="font-bold text-white">{r.name}</span>
+              <Chip tone={tone}>{tone === "green" ? "حضر" : closed ? "غاب" : "لم يحضر بعد"}</Chip>
+            </li>
+          ))}
         </ul>
       )}
-    </Panel>
+    </section>
+  );
+  return (
+    <div className="space-y-5">
+      {group("حضروا", present, "green")}
+      {group(closed ? "غابوا" : "لم يحضروا بعد", away, closed ? "maroon" : "muted")}
+    </div>
   );
 }
 
@@ -298,6 +304,10 @@ function Suspicious({ rows }: { rows: AttemptRow[] }) {
   const user = useStaffUser()!;
   const where = useWhere();
   const [viewing, setViewing] = useState<AttemptRow | null>(null);
+  const view = (a: AttemptRow) => {
+    setViewing(a);
+    logAnswers(user, a, "review", where(a).exam);
+  };
   const download = () => {
     downloadCsv("الحالات-المشتبه-بها-1448.csv", [
       ["الاسم", "الرقم الوطني", "الاختبار", "القاعة", "الحالة", "النسبة", "التنبيهات", "عددها"],
@@ -309,64 +319,58 @@ function Suspicious({ rows }: { rows: AttemptRow[] }) {
     logAs(user, { action: "تصدير الحالات المشتبه بها", target: `${rows.length} محاولات`, system: "exams", area: "review" });
   };
   return (
-    <Panel
-      icon={<ShieldAlert />}
-      title={`الحالات المشتبه بها (${rows.length})`}
-      action={
-        rows.length > 0 && (
-          <Button size="sm" variant="glass" onClick={download}>
-            <Download className="size-4" /> تصدير Excel
-          </Button>
-        )
-      }
-    >
-      <p className="rounded-2xl bg-gold/10 p-3 text-sm leading-7 text-gold ring-1 ring-gold/40">إشارات آلية تدعم القرار وليست إثباتاً: قد تظهر بسبب انقطاع شبكة أو تبديل تطبيق.</p>
-      {rows.length === 0 ? (
-        <div className="mt-4">
-          <Empty icon={<ShieldAlert />} title="لا محاولات بتنبيهات" text="لم يرفع أي جهاز إشارة أثناء الاختبار." />
-        </div>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {[...rows]
-            .sort((x, y) => y.alerts - x.alerts)
-            .map((a) => {
-              const w = where(a);
-              return (
-                <li key={`${a.row.id}-${a.role}`} className="flex flex-wrap items-start gap-3 rounded-2xl bg-white/[.05] p-3 ring-1 ring-white/10">
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-bold text-white">
-                      {a.row.name} <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip>
-                    </p>
-                    <p className="text-xs text-white/65">
-                      <span dir="ltr">{a.row.id}</span> · {w.exam} · {w.hall}
-                      {a.attempt.submittedAt ? ` · ${pct(a.attempt.score)}` : ""}
-                    </p>
-                    <p className="mt-1.5 flex flex-wrap gap-1">
-                      {alertParts(a.attempt).map((p) => (
-                        <Chip key={p} tone="gold">
-                          {p}
-                        </Chip>
-                      ))}
-                    </p>
-                  </div>
-                  {a.attempt.paper && (
-                    <Button
-                      size="sm"
-                      variant="glass"
-                      onClick={() => {
-                        setViewing(a);
-                        logAnswers(user, a, "review", w.exam);
-                      }}
-                    >
-                      <Eye className="size-4" /> مراجعة الإجابات
-                    </Button>
+    <>
+      <Title
+        action={
+          rows.length > 0 && (
+            <span className="text-sm font-bold">
+              <RowLink onClick={download}>تصدير Excel</RowLink>
+            </span>
+          )
+        }
+      />
+      <p className="-mt-2 text-sm text-gold">إشارات آلية تدعم القرار وليست إثباتاً: قد تظهر بسبب انقطاع شبكة أو تبديل تطبيق.</p>
+      <ListTable head={["المتقدم", "الاختبار والقاعة", "الحالة", "التنبيهات"]} minWidth="48rem">
+        {rows.length === 0 && <EmptyRow cols={4}>لا محاولات بتنبيهات: لم يرفع أي جهاز إشارة أثناء الاختبار.</EmptyRow>}
+        {[...rows]
+          .sort((x, y) => y.alerts - x.alerts)
+          .map((a) => {
+            const w = where(a);
+            return (
+              <tr key={`${a.row.id}-${a.role}`} className="align-top">
+                <td className="p-3">
+                  {a.attempt.paper ? (
+                    <button type="button" onClick={() => view(a)} className="text-right font-bold text-white hover:text-gold">
+                      {a.row.name}
+                    </button>
+                  ) : (
+                    <p className="font-bold text-white">{a.row.name}</p>
                   )}
-                </li>
-              );
-            })}
-        </ul>
-      )}
+                  <p className="text-xs text-white/55" dir="ltr">
+                    {a.row.id}
+                  </p>
+                  {a.attempt.paper && (
+                    <RowActions>
+                      <RowLink onClick={() => view(a)}>مراجعة الإجابات</RowLink>
+                    </RowActions>
+                  )}
+                </td>
+                <td className="p-3 text-white/80">
+                  {w.exam}
+                  <span className="block text-xs text-white/55">{w.hall}</span>
+                </td>
+                <td className="p-3">
+                  <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip>
+                  {a.attempt.submittedAt && <span className="mt-1 block text-xs text-white/70">{pct(a.attempt.score)}</span>}
+                </td>
+                <td className="p-3">
+                  <Signals a={a} />
+                </td>
+              </tr>
+            );
+          })}
+      </ListTable>
       <AnswersDrawer a={viewing} onClose={() => setViewing(null)} />
-    </Panel>
+    </>
   );
 }

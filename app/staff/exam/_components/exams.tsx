@@ -1,10 +1,11 @@
 "use client";
 
-import { motion } from "motion/react";
-import { AlertTriangle, Archive, CalendarClock, Check, CheckCircle2, Pencil, Plus, RotateCcw, Send, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/widgets";
+import { Modal, useToast } from "@/components/ui/widgets";
 import {
   DEFAULT_INSTRUCTIONS,
   EXAM_CATEGORIES,
@@ -28,14 +29,29 @@ import { cn } from "@/lib/utils";
 import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
 import { useExamBank } from "@/app/administrator/_lib/admin-rules";
 import { hallActions, roleLabelOf, runKey, stageOf, useHalls, type Halls } from "@/app/administrator/_lib/halls";
-import { Drawer, Panel, logAs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { logAs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { OperationsPanel } from "../../_components/operations";
+import { AddButton, Box, EditHeader, EditLayout, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk, useExamProgress } from "./desk";
 import { RecordHistory, Records } from "./records";
+import { ResetToOriginal } from "./shell";
 import { examOfAttempt } from "./sittings";
-import { Chip, Field, Pick, Switch, selectClass, type ChipTone } from "./ui";
+import { Chip, Field, Pick, Segments, Switch, selectClass } from "./ui";
 
-const STATUS_TONE: Record<ExamStatus, ChipTone> = { draft: "gold", published: "green", archived: "muted" };
+const LIST = "/staff/exam/manage/exams";
+const EDIT = "/staff/exam/manage/exams/edit";
+const STATUS_TONE: Record<ExamStatus, "gold" | "green" | "muted"> = { draft: "gold", published: "green", archived: "muted" };
+const DARK_MODAL = "max-w-md border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white";
+
+/** A new test's screen, shaped for a role and a kind, in the halls given (a make-up test: where its absentees are) */
+const newHref = (role?: string, kind?: ExamDef["kind"], centers?: string[]) => {
+  const q = new URLSearchParams();
+  if (role) q.set("role", role);
+  if (kind) q.set("kind", kind);
+  if (centers?.length) q.set("centers", centers.join(","));
+  const s = q.toString();
+  return s ? `${EDIT}?${s}` : EDIT;
+};
 
 /**
  * Each section's ready questions for a test: its pool in the role's bank, less what the sections before it draw
@@ -62,53 +78,21 @@ function shortList(sections: Pick<ExamSection, "name" | "draw">[], ready: number
 /** Is a sitting of the test open or under way in any hall now? */
 const isLive = (halls: Halls, id: string) => halls.centers.some((c) => ["open", "running"].includes(stageOf(halls.runs[runKey(id, c.id)])));
 
-type Editing = { exam: ExamDef; isNew: boolean } | null;
+/** What a test allows: a test created this season and never sat can be deleted; the roles' own tests never */
+function useExamRules() {
+  const halls = useHalls();
+  const desk = useExamDesk();
+  const sat = (e: ExamDef) => halls.centers.some((c) => halls.runs[runKey(e.id, c.id)]) || desk.attempts.some((a) => examOfAttempt(a) === e.id);
+  const created = (e: ExamDef) => !APPLIED_ROLES.some((r) => r.key === e.id);
+  return { deletable: (e: ExamDef) => created(e) && !sat(e) };
+}
 
-/**
- * The tests as the administration's platform lists them: one automated test per role («الاختبار المؤتمت لصفة …»)
- * and the make-up tests created for whoever missed it. Each card says the test's status, whether the applicant sees
- * his result, its time, its halls and its sections — each drawing so many questions from its ready pool, with its
- * own pass mark. Passing the test is passing every section. A test is published to be sat and archived once done.
- */
-export function Exams() {
+/** Published to be sat, or archived once done — never while a hall sits it — and deleted when allowed */
+function useExamActions() {
   const user = useStaffUser()!;
   const toast = useToast();
   const halls = useHalls();
-  const desk = useExamDesk();
   const bank = useExamBank();
-  const progress = useExamProgress();
-  const [editing, setEditing] = useState<Editing>(null);
-  const [removing, setRemoving] = useState<string | null>(null);
-
-  /** A new test for a role, built like its main test, in the halls where its absentees are */
-  const create = (role: string, kind: ExamDef["kind"], centers?: string[]) => {
-    const main = halls.examById(role);
-    setEditing({
-      isNew: true,
-      exam: {
-        id: `x-${Date.now().toString(36)}`,
-        name: `الاختبار ${kind === "makeup" ? "الاستدراكي" : "المؤتمت"} لصفة ${roleLabelOf(role)}`,
-        role,
-        kind,
-        day: "",
-        date: "",
-        time: main?.time ?? "09:00",
-        minutes: main?.minutes ?? 25,
-        sections: main?.sections ?? [],
-        centers,
-        status: "draft",
-        showResult: main?.showResult ?? true,
-        instructions: main?.instructions ?? DEFAULT_INSTRUCTIONS,
-        pairing: main?.pairing ?? "manual",
-        network: main?.network ?? true,
-      },
-    });
-  };
-
-  const sat = (e: ExamDef) => halls.centers.some((c) => halls.runs[runKey(e.id, c.id)]) || desk.attempts.some((a) => examOfAttempt(a) === e.id);
-  const created = (e: ExamDef) => !APPLIED_ROLES.some((r) => r.key === e.id);
-
-  /** Published to be sat, or archived once done — never while a hall sits it */
   const setStatus = (e: ExamDef, status: ExamStatus) => {
     if (status !== "published" && isLive(halls, e.id)) {
       toast({ title: "الاختبار جارٍ في قاعة الآن", body: "لا يُؤرشف حتى ينهي مشرفو القاعات جلساته.", tone: "warning", icon: "⏸️" });
@@ -134,13 +118,61 @@ export function Exams() {
       icon: status === "published" ? "📣" : "🗄️",
     });
   };
-
   const remove = (e: ExamDef) => {
     hallActions.deleteExam(e.id);
     logAs(user, { action: "حذف اختبار", target: e.name, detail: dayTimeLabel(e.day, e.time), system: "exams", area: "exams", ref: e.id, important: true });
     toast({ title: `حُذف ${e.name}`, tone: "info", icon: "🗑️" });
-    setRemoving(null);
   };
+  return { setStatus, remove };
+}
+
+function DeleteDialog({ exam, onClose, onDone }: { exam: ExamDef | null; onClose: () => void; onDone?: () => void }) {
+  const { remove } = useExamActions();
+  return (
+    <Modal open={!!exam} onClose={onClose} className={DARK_MODAL}>
+      {exam && (
+        <div>
+          <p className="font-display text-xl font-bold">حذف «{exam.name}» نهائياً؟</p>
+          <p className="mt-2 text-sm leading-7 text-white/75">لم يُجلس له بعد، فلا تضيع محاولة ولا نتيجة.</p>
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant="maroon"
+              onClick={() => {
+                remove(exam);
+                onClose();
+                onDone?.();
+              }}
+            >
+              <Trash2 className="size-4" /> حذف
+            </Button>
+            <Button variant="glass" onClick={onClose}>
+              تراجع
+            </Button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ───────────────────────── All tests ─────────────────────────
+
+/**
+ * The tests as a list: one automated test per role and the make-up tests created for whoever missed it. Each opens
+ * on its name to its own edit screen; publishing and archiving are under its name. How many sat and passed each is
+ * on the file's dashboard.
+ */
+export function Exams() {
+  const halls = useHalls();
+  const desk = useExamDesk();
+  const bank = useExamBank();
+  const progress = useExamProgress();
+  const { setStatus } = useExamActions();
+  const { deletable } = useExamRules();
+  const [filter, setFilter] = useState<"all" | ExamStatus>("all");
+  const [removing, setRemoving] = useState<ExamDef | null>(null);
+  const shown = halls.exams.filter((e) => filter === "all" || e.status === filter);
+  const count = (s: ExamStatus) => halls.exams.filter((e) => e.status === s).length;
 
   // Absent from their role's test with nothing left to sit: grouped by role, to create its make-up
   const missed = APPLIED_ROLES.map((r) => {
@@ -149,153 +181,97 @@ export function Exams() {
   }).filter((x) => x.n > 0);
 
   return (
-    <div className="space-y-4">
-      <OperationsPanel keys={["admin-exams"]} system="exams" area="exams" title="مدة الاختبارات وتفعيلها" />
-      <Panel
-        icon={<CalendarClock />}
-        title="الاختبارات"
+    <div className="space-y-5">
+      <Title
         action={
-          <Button size="sm" variant="gold" onClick={() => create(APPLIED_ROLES[0].key, "makeup")}>
-            <Plus className="size-4" /> اختبار جديد
-          </Button>
+          <AddButton href={newHref()}>
+            <Plus className="size-4" /> إضافة اختبار
+          </AddButton>
         }
-      >
-        <p className="text-sm leading-7 text-white/70">
-          لكل صفة اختبارها المؤتمت، مبنياً من أقسام: يُسحب لكل متقدم من كل قسم عدد من أسئلته الجاهزة، ولكل قسم نسبة نجاحه. الناجح من نجح في كل الأقسام، لا بمجموع يبلغه. لا يُجلس إلا لاختبار منشور، والمؤرشف يحفظ محاولاته ونتائجه. ومن غاب عن اختباره يؤدي اختباراً استدراكياً حين تنشئه.
+      />
+      {missed.length > 0 && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-gold/10 p-3 text-sm ring-1 ring-gold/40">
+          <span className="font-bold text-gold">غائبون لا اختبار باقٍ لهم:</span>
+          {missed.map((m) => (
+            <Link key={m.role.key} href={newHref(m.role.key, "makeup", m.centers)} className="font-bold text-white underline-offset-4 hover:text-gold hover:underline">
+              + استدراكي {m.role.label} ({m.n})
+            </Link>
+          ))}
         </p>
-        {missed.length > 0 && (
-          <div className="mt-3 rounded-2xl bg-gold/10 p-3 ring-1 ring-gold/40">
-            <p className="text-sm font-bold text-gold">غائبون لا اختبار باقٍ لهم:</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {missed.map((m) => (
-                <Button key={m.role.key} size="sm" variant="glass" onClick={() => create(m.role.key, "makeup", m.centers)}>
-                  <Plus className="size-4" /> استدراكي {m.role.label} ({m.n})
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-      </Panel>
-
-      <ul className="grid gap-3 xl:grid-cols-2">
-        {halls.exams.map((e, i) => {
+      )}
+      <Segments
+        value={filter}
+        onChange={setFilter}
+        label="تصفية الاختبارات"
+        items={[
+          { value: "all", label: "الكل", count: halls.exams.length },
+          { value: "published", label: EXAM_STATUS.published, count: count("published") },
+          { value: "draft", label: EXAM_STATUS.draft, count: count("draft") },
+          { value: "archived", label: EXAM_STATUS.archived, count: count("archived") },
+        ]}
+      />
+      <ListTable head={["الاختبار", "الموعد", "الأسئلة", "القاعات", "الحالة"]} minWidth="52rem">
+        {shown.map((e) => {
           const p = progress(e);
-          const ready = readyOf(bank, e.role, e.sections);
           const missing = shortageOf(bank, e);
           return (
-            <motion.li
-              key={e.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className={cn("rounded-3xl p-4 ring-1", e.status === "archived" ? "bg-black/20 ring-white/10" : missing ? "bg-maroon/15 ring-maroon/40" : "bg-white/[.06] ring-white/10")}
-            >
-              <div className="min-w-0">
-                <p className={cn("font-display text-lg font-bold", e.status === "archived" ? "text-white/60" : "text-white")}>{e.name}</p>
-                <p className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <Chip tone={STATUS_TONE[e.status]}>{EXAM_STATUS[e.status]}</Chip>
-                  <Chip tone={e.kind === "makeup" ? "gold" : "muted"}>{EXAM_KINDS[e.kind]}</Chip>
-                  {e.showResult && <Chip tone="green">النتيجة تظهر للمتقدم</Chip>}
-                  <span className="text-xs text-white/65">لصفة {roleLabelOf(e.role)}</span>
+            <tr key={e.id} className={cn("align-top", e.status === "archived" && "opacity-60")}>
+              <td className="p-3">
+                <Link href={`${EDIT}?id=${e.id}`} className="font-bold text-white hover:text-gold">
+                  {e.name}
+                </Link>
+                <p className="text-xs text-white/55">
+                  {EXAM_KINDS[e.kind]} لصفة {roleLabelOf(e.role)}
                 </p>
-              </div>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                {[
-                  ["الموعد", dayTimeLabel(e.day, e.time) || "لم يُحدَّد", e.day ? e.date : undefined],
-                  ["المدة", `${e.minutes} دقيقة`],
-                  ["أسئلة المحاولة", `${questionCount(e)} في ${e.sections.length} أقسام`],
-                  ["القاعات", e.centers?.length ? e.centers.map((c) => halls.centerById(c)?.name).filter(Boolean).join("، ") : `كلها (${halls.live.length})`],
-                ].map(([k, v, sub]) => (
-                  <div key={k} className="rounded-xl bg-black/15 p-2">
-                    <dt className="text-[11px] text-white/60">{k}</dt>
-                    <dd className="font-bold leading-6 text-white">{v}</dd>
-                    {sub && <dd className="text-[11px] text-white/55">{sub}</dd>}
-                  </div>
-                ))}
-              </dl>
-              <ul className="mt-3 space-y-1">
-                {e.sections.map((s, j) => {
-                  const short = s.draw > ready[j];
-                  return (
-                    <li key={s.id} className={cn("rounded-xl px-2.5 py-1.5 text-xs leading-5 ring-1", short ? "bg-maroon/25 text-white ring-maroon/50" : "bg-white/[.04] text-white/85 ring-white/10")}>
-                      <b className="text-white">{s.name}</b> · يُسحب {s.draw} من {ready[j]} جاهز · نجاح {s.pass}% · {SECTION_ORDERS[s.order]}
-                      {short && <span className="font-bold text-gold"> — ينقص {s.draw - ready[j]}</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-              <p className="mt-3 flex flex-wrap gap-1.5">
-                <Chip tone={p.tone}>{p.label}</Chip>
-                <Chip tone="muted">ينتظرونه {p.expected}</Chip>
-                {p.present > 0 && <Chip tone="muted">حضروا {p.present}</Chip>}
-                {p.sat > 0 && <Chip tone="muted">سلّموا {p.sat}</Chip>}
-                {p.confirmed > 0 && <Chip tone="green">مؤكَّدة {p.confirmed} · ناجحون {p.passed}</Chip>}
-                {missing ? (
-                  <Chip tone="maroon">
-                    <AlertTriangle className="size-3" /> ينقص البنك {missing} أسئلة
-                  </Chip>
-                ) : (
-                  <Chip tone="green">
-                    <CheckCircle2 className="size-3" /> أسئلة البنك تكفيه
-                  </Chip>
-                )}
-              </p>
-              <p className="mt-2 text-xs text-white/60">
-                الدخول: {PAIRING[e.pairing].label}
-                {e.network ? " · شبكة القاعة مطلوبة" : ""}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="glass" onClick={() => setEditing({ exam: e, isNew: false })}>
-                  <Pencil className="size-4" /> تعديل
-                </Button>
-                {e.status === "draft" && (
-                  <Button size="sm" variant="gold" onClick={() => setStatus(e, "published")}>
-                    <Send className="size-4" /> نشر
-                  </Button>
-                )}
-                {e.status === "published" && (
-                  <Button size="sm" variant="ghost" className="text-white hover:bg-white/10" onClick={() => setStatus(e, "archived")}>
-                    <Archive className="size-4" /> أرشفة
-                  </Button>
-                )}
-                {e.status === "archived" && (
-                  <Button size="sm" variant="ghost" className="text-white hover:bg-white/10" onClick={() => setStatus(e, "published")}>
-                    <RotateCcw className="size-4" /> إعادة نشره
-                  </Button>
-                )}
-                {created(e) &&
-                  !sat(e) &&
-                  (removing === e.id ? (
-                    <span className="flex items-center gap-2 text-xs text-white/80">
-                      حذفه نهائياً؟
-                      <Button size="sm" variant="maroon" onClick={() => remove(e)}>
-                        حذف
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-white" onClick={() => setRemoving(null)}>
-                        تراجع
-                      </Button>
-                    </span>
-                  ) : (
-                    <Button size="sm" variant="ghost" className="text-white hover:bg-maroon/40" onClick={() => setRemoving(e.id)}>
-                      <Trash2 className="size-4" /> حذف
-                    </Button>
-                  ))}
-              </div>
-            </motion.li>
+                <RowActions>
+                  <RowLink href={`${EDIT}?id=${e.id}`}>تعديل</RowLink>
+                  {e.status === "draft" && <RowLink onClick={() => setStatus(e, "published")}>نشر</RowLink>}
+                  {e.status === "published" && <RowLink onClick={() => setStatus(e, "archived")}>أرشفة</RowLink>}
+                  {e.status === "archived" && <RowLink onClick={() => setStatus(e, "published")}>إعادة نشره</RowLink>}
+                  {e.status !== "draft" && <RowLink href={`/staff/exam/manage/results?s=${e.id}`}>النتائج</RowLink>}
+                  {deletable(e) && (
+                    <RowLink danger onClick={() => setRemoving(e)}>
+                      حذف
+                    </RowLink>
+                  )}
+                </RowActions>
+              </td>
+              <td className="p-3 text-white/80">
+                {dayTimeLabel(e.day, e.time) || <span className="font-bold text-gold">لم يُحدَّد</span>}
+                <span className="block text-[11px] text-white/50">
+                  {e.day && e.date ? `${e.date} · ` : ""}
+                  {e.minutes} دقيقة
+                </span>
+              </td>
+              <td className="p-3">
+                <span className="block text-white/80">
+                  {questionCount(e)} في {e.sections.length} أقسام
+                </span>
+                {missing ? <Tag tone="maroon">ينقص البنك {missing}</Tag> : <Tag tone="green">البنك يكفيه</Tag>}
+              </td>
+              <td className="p-3 text-white/80">{e.centers?.length ? e.centers.map((c) => halls.centerById(c)?.name).filter(Boolean).join("، ") : `كلها (${halls.live.length})`}</td>
+              <td className="p-3">
+                <span className="flex flex-wrap gap-1">
+                  <Tag tone={STATUS_TONE[e.status]}>{EXAM_STATUS[e.status]}</Tag>
+                  {e.status === "published" && <Tag tone={p.tone === "green" ? "green" : p.tone === "gold" ? "gold" : "muted"}>{p.label}</Tag>}
+                </span>
+              </td>
+            </tr>
           );
         })}
-      </ul>
+      </ListTable>
 
+      <Box title="مواعيد فتح الاختبار للإداريين" open={false}>
+        <OperationsPanel keys={["admin-exams"]} system="exams" area="exams" title="مدة الاختبارات وتفعيلها" />
+      </Box>
+      <ResetToOriginal />
       <Records area="exams" />
-
-      <Drawer open={!!editing} onClose={() => setEditing(null)} title={editing?.isNew ? "اختبار جديد" : `تعديل ${editing?.exam.name ?? ""}`} width="max-w-3xl">
-        {editing && <ExamForm key={editing.exam.id} start={editing.exam} isNew={editing.isNew} onClose={() => setEditing(null)} />}
-      </Drawer>
+      <DeleteDialog exam={removing} onClose={() => setRemoving(null)} />
     </div>
   );
 }
 
-// ───────────────────────── The form ─────────────────────────
+// ───────────────────────── Edit one test ─────────────────────────
 
 type SectionDraft = { id: string; name: string; categories: ExamCategory[]; draw: string; pass: string; order: SectionOrder };
 type Draft = {
@@ -359,12 +335,67 @@ function problemOf(d: Draft, ready: number[]) {
   return "";
 }
 
-function ExamForm({ start, isNew, onClose }: { start: ExamDef; isNew: boolean; onClose: () => void }) {
+/** A new test for a role, built like its main test, in the halls given */
+function blankExam(halls: Halls, role: string, kind: ExamDef["kind"], centers?: string[]): ExamDef {
+  const main = halls.examById(role);
+  return {
+    id: `x-${Date.now().toString(36)}`,
+    name: `الاختبار ${kind === "makeup" ? "الاستدراكي" : "المؤتمت"} لصفة ${roleLabelOf(role)}`,
+    role,
+    kind,
+    day: "",
+    date: "",
+    time: main?.time ?? "09:00",
+    minutes: main?.minutes ?? 25,
+    sections: main?.sections ?? [],
+    centers,
+    status: "draft",
+    showResult: main?.showResult ?? true,
+    instructions: main?.instructions ?? DEFAULT_INSTRUCTIONS,
+    pairing: main?.pairing ?? "manual",
+    network: main?.network ?? true,
+  };
+}
+
+/** One test on its own screen (`?id=`; none: a new one, shaped by `?role=`, `?kind=` and `?centers=`) */
+export function ExamEditor() {
+  const params = useSearchParams();
+  const halls = useHalls();
+  const id = params.get("id");
+  const stored = id ? halls.examById(id) : undefined;
+  const roleParam = params.get("role") ?? "";
+  const role = APPLIED_ROLES.some((r) => r.key === roleParam) ? roleParam : APPLIED_ROLES[0].key;
+  const kind: ExamDef["kind"] = params.get("kind") === "main" ? "main" : "makeup";
+  const centers = (params.get("centers") ?? "").split(",").filter((c) => halls.centerById(c));
+  if (id && !stored)
+    return (
+      <div>
+        <EditHeader back={LIST} backLabel="كل الاختبارات" title="لم يُعثر على هذا الاختبار" />
+        <p className="text-white/70">ربما حُذف. ارجع إلى الاختبارات وافتحه من القائمة.</p>
+      </div>
+    );
+  return <ExamForm key={stored?.id ?? `new-${role}-${kind}-${centers.join(",")}`} stored={stored} fresh={{ role, kind, centers: centers.length ? centers : undefined }} />;
+}
+
+/**
+ * As a site's edit screen: the title, the sections and the hall screen's instructions in the middle; on the side
+ * its status and saving, its time, its role, its halls, how applicants enter and see their result, and its history.
+ */
+function ExamForm({ stored: opened, fresh }: { stored?: ExamDef; fresh: { role: string; kind: ExamDef["kind"]; centers?: string[] } }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const router = useRouter();
   const halls = useHalls();
+  // What this screen opened on: the stored test, or a new one shaped once (its id kept until it is saved)
+  const [start] = useState<ExamDef>(() => opened ?? blankExam(halls, fresh.role, fresh.kind, fresh.centers));
   const bank = useExamBank();
+  const { deletable } = useExamRules();
+  const stored = halls.examById(start.id);
+  const isNew = !stored;
   const [d, setD] = useState<Draft>(() => toDraft(start));
+  const [saved, setSaved] = useState<Draft>(() => toDraft(start));
+  const [removing, setRemoving] = useState(false);
+  const dirty = isNew || JSON.stringify(d) !== JSON.stringify(saved);
   const draws = d.sections.map((s) => ({ categories: s.categories, draw: whole(s.draw) || 0 }));
   const ready = readyOf(bank, d.role, draws);
   const total = draws.reduce((a, s) => a + s.draw, 0);
@@ -384,17 +415,19 @@ function ExamForm({ start, isNew, onClose }: { start: ExamDef; isNew: boolean; o
       toast({ title: "لم يُحفظ الاختبار", body: problem, tone: "warning", icon: "✍️" });
       return;
     }
-    if (start.status === "published" && d.status !== "published" && isLive(halls, start.id)) {
+    // Compared with what is stored now: the list may have published or archived it since this screen opened
+    const prev = stored ?? start;
+    if (prev.status === "published" && d.status !== "published" && isLive(halls, prev.id)) {
       toast({ title: "الاختبار جارٍ في قاعة الآن", body: "يبقى منشوراً حتى ينهي مشرفو القاعات جلساته.", tone: "warning", icon: "⏸️" });
       return;
     }
     const next: ExamDef = {
-      ...start,
+      ...prev,
       name: d.name.trim(),
       role: d.role,
       kind: d.kind,
       day: d.day,
-      date: d.day !== start.day || !start.date ? dayHijri(d.day) : start.date,
+      date: d.day !== prev.day || !prev.date ? dayHijri(d.day) : prev.date,
       time: d.time.slice(0, 5),
       minutes: whole(d.minutes),
       status: d.status,
@@ -416,11 +449,11 @@ function ExamForm({ start, isNew, onClose }: { start: ExamDef; isNew: boolean; o
     if (isNew) {
       logAs(user, { action: "إنشاء اختبار", target: next.name, after: `${EXAM_STATUS[next.status]} — ${when}`, detail: `${EXAM_KINDS[next.kind]} لصفة ${roleLabelOf(next.role)} — ${shape}`, system: "exams", area: "exams", ref: next.id, important: true });
     } else {
-      if (start.status !== next.status)
-        logAs(user, { action: next.status === "published" ? "نشر اختبار" : next.status === "archived" ? "أرشفة اختبار" : "إعادة اختبار إلى المسودة", target: next.name, before: EXAM_STATUS[start.status], after: EXAM_STATUS[next.status], system: "exams", area: "exams", ref: next.id, important: true });
-      const moved = start.day !== next.day || start.time !== next.time;
-      if (JSON.stringify({ ...start, status: 0, off: undefined }) !== JSON.stringify({ ...next, status: 0 }))
-        logAs(user, { action: "تعديل اختبار", target: next.name, before: moved ? dayTimeLabel(start.day, start.time) || "بلا موعد" : undefined, after: moved ? when : undefined, detail: shape, system: "exams", area: "exams", ref: next.id, important: moved });
+      if (prev.status !== next.status)
+        logAs(user, { action: next.status === "published" ? "نشر اختبار" : next.status === "archived" ? "أرشفة اختبار" : "إعادة اختبار إلى المسودة", target: next.name, before: EXAM_STATUS[prev.status], after: EXAM_STATUS[next.status], system: "exams", area: "exams", ref: next.id, important: true });
+      const moved = prev.day !== next.day || prev.time !== next.time;
+      if (JSON.stringify({ ...prev, status: 0, off: undefined }) !== JSON.stringify({ ...next, status: 0 }))
+        logAs(user, { action: "تعديل اختبار", target: next.name, before: moved ? dayTimeLabel(prev.day, prev.time) || "بلا موعد" : undefined, after: moved ? when : undefined, detail: shape, system: "exams", area: "exams", ref: next.id, important: moved });
     }
     toast({
       title: isNew ? `أُنشئ ${next.name}` : `حُفظ ${next.name}`,
@@ -428,206 +461,235 @@ function ExamForm({ start, isNew, onClose }: { start: ExamDef; isNew: boolean; o
       tone: "success",
       icon: "💾",
     });
-    onClose();
+    setSaved(d);
+    if (isNew) router.replace(`${EDIT}?id=${next.id}`);
   };
 
   return (
-    <div className="space-y-5">
-      <Field label="عنوان الاختبار">
-        <input value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} className={smallInputClass} />
-      </Field>
+    <div>
+      <EditHeader back={LIST} backLabel="كل الاختبارات" title={isNew ? "إضافة اختبار" : `تعديل ${start.name}`}>
+        أقسامه وما يُسحب من كل قسم ونسبة نجاحه، وموعده وقاعاته. الناجح من نجح في كل الأقسام.
+      </EditHeader>
+      <EditLayout
+        main={
+          <>
+            <input
+              value={d.name}
+              onChange={(e) => setD({ ...d, name: e.target.value })}
+              placeholder="عنوان الاختبار"
+              aria-label="عنوان الاختبار"
+              className="h-16 w-full rounded-2xl border-2 border-white/15 bg-white/10 px-5 font-display text-2xl font-bold text-white outline-none placeholder:text-white/35 focus:border-gold"
+            />
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="الصفة">
-          {isNew ? (
-            <select value={d.role} onChange={(e) => pickRole(e.target.value)} className={selectClass}>
-              {APPLIED_ROLES.map((r) => (
-                <option key={r.key} value={r.key}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="flex h-11 items-center font-bold text-white">{roleLabelOf(d.role)}</p>
-          )}
-        </Field>
-        <Field label="النوع" hint={d.kind === "main" ? "اختبار الصفة، يؤديه كل متقدميها." : "يؤديه من غاب عن اختبار صفته."}>
-          {main ? (
-            <p className="flex h-11 items-center">
-              <Chip tone="muted">{EXAM_KINDS.main}</Chip>
-            </p>
-          ) : (
-            <select value={d.kind} onChange={(e) => setD({ ...d, kind: e.target.value as ExamDef["kind"] })} className={selectClass}>
-              {(Object.keys(EXAM_KINDS) as ExamDef["kind"][]).map((k) => (
-                <option key={k} value={k}>
-                  {EXAM_KINDS[k]}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field label="الحالة" hint={d.status === "published" ? "يُجلس له في موعده." : d.status === "draft" ? "لا تُفتح له جلسة." : "يحفظ محاولاته ونتائجه، ولا تُفتح له جلسة."}>
-          <select value={d.status} onChange={(e) => setD({ ...d, status: e.target.value as ExamStatus })} className={selectClass}>
-            {(Object.keys(EXAM_STATUS) as ExamStatus[]).map((k) => (
-              <option key={k} value={k}>
-                {EXAM_STATUS[k]}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
+            <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <h2 className="font-bold text-white">الأقسام</h2>
+                <Chip tone="green">{total} سؤالاً في المحاولة</Chip>
+                {lacks > 0 && <Chip tone="maroon">ينقص البنك {lacks} أسئلة</Chip>}
+              </div>
+              <p className="mb-3 text-xs leading-5 text-white/60">لكل قسم فئاته، وكم سؤالاً يُسحب لكل متقدم من أسئلة صفته الجاهزة، ونسبة نجاحه. «عشوائي» يرتّب الأسئلة لكل متقدم ترتيباً خاصاً، والخيارات تُخلط دائماً.</p>
+              <ul className="space-y-3">
+                {d.sections.map((s, i) => {
+                  const draw = whole(s.draw) || 0;
+                  const short = draw > ready[i];
+                  return (
+                    <li key={s.id} className={cn("rounded-2xl p-3 ring-1", short ? "bg-maroon/15 ring-maroon/40" : "bg-white/[.06] ring-white/10")}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input value={s.name} onChange={(e) => setSection(i, { name: e.target.value })} className={cn(smallInputClass, "min-w-0 flex-1 font-bold")} aria-label="اسم القسم" placeholder="اسم القسم" />
+                        <span className="w-28 shrink-0">
+                          <select value={s.order} onChange={(e) => setSection(i, { order: e.target.value as SectionOrder })} className={selectClass} aria-label={`ترتيب ${s.name}`}>
+                            {(Object.keys(SECTION_ORDERS) as SectionOrder[]).map((o) => (
+                              <option key={o} value={o}>
+                                {SECTION_ORDERS[o]}
+                              </option>
+                            ))}
+                          </select>
+                        </span>
+                        {d.sections.length > 1 && (
+                          <Button size="sm" variant="ghost" className="text-white hover:bg-maroon/40" onClick={() => setD({ ...d, sections: d.sections.filter((_, j) => j !== i) })} aria-label={`حذف ${s.name}`}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="text-white/55">يُسحب من:</span>
+                        {EXAM_CATEGORIES.map((c) => (
+                          <Pick key={c} on={s.categories.includes(c)} onClick={() => setSection(i, { categories: s.categories.includes(c) ? s.categories.filter((y) => y !== c) : [...s.categories, c] })}>
+                            {c}
+                          </Pick>
+                        ))}
+                      </p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <label className="flex items-center justify-between gap-2 rounded-xl bg-white/[.05] px-3 py-2 ring-1 ring-white/10">
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold text-white">يُسحب</span>
+                            <span className={cn("block text-[11px]", short ? "font-bold text-gold" : "text-white/55")}>
+                              {draw} من {ready[i]} جاهز{short ? ` — ينقص ${draw - ready[i]}` : ""}
+                            </span>
+                          </span>
+                          <span className="w-20 shrink-0">
+                            <input inputMode="numeric" value={s.draw} onChange={(e) => setSection(i, { draw: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" aria-label={`ما يُسحب من ${s.name}`} />
+                          </span>
+                        </label>
+                        <label className="flex items-center justify-between gap-2 rounded-xl bg-white/[.05] px-3 py-2 ring-1 ring-white/10">
+                          <span className="min-w-0">
+                            <span className="block text-sm font-bold text-white">نسبة النجاح</span>
+                            <span className="block text-[11px] text-white/55">من 0 إلى 100%</span>
+                          </span>
+                          <span className="flex w-24 shrink-0 items-center gap-1">
+                            <input inputMode="numeric" value={s.pass} onChange={(e) => setSection(i, { pass: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" aria-label={`نسبة النجاح في ${s.name}`} />
+                            <span className="text-sm text-white/70">%</span>
+                          </span>
+                        </label>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <button
+                type="button"
+                className="mt-3 text-sm font-bold text-gold hover:underline"
+                onClick={() => setD({ ...d, sections: [...d.sections, { id: `s${Date.now().toString(36)}`, name: `القسم ${d.sections.length + 1}`, categories: [], draw: "1", pass: "50", order: "random" }] })}
+              >
+                + إضافة قسم
+              </button>
+            </section>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="اليوم" hint={d.day ? dayHijri(d.day) : "تُفتح القاعة من قبل موعده بساعة إلى آخر يومه."}>
-          <input type="date" value={d.day} onChange={(e) => setD({ ...d, day: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" />
-        </Field>
-        <Field label="الساعة">
-          <input type="time" value={d.time} onChange={(e) => setD({ ...d, time: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" />
-        </Field>
-        <Field label="المدة (دقيقة)" hint="من 5 إلى 480">
-          <input inputMode="numeric" value={d.minutes} onChange={(e) => setD({ ...d, minutes: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" />
-        </Field>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex items-start justify-between gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-          <span>
-            <span className="block text-sm font-bold text-white">النتيجة تظهر للمتقدم</span>
-            <span className="block text-xs leading-5 text-white/60">يرى نتيجته، قسماً قسماً، لحظة تأكيد تسليمه.</span>
-          </span>
-          <Switch on={d.showResult} onChange={(showResult) => setD({ ...d, showResult })} label="النتيجة تظهر للمتقدم" />
-        </div>
-        <div className="flex items-start justify-between gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-          <span>
-            <span className="block text-sm font-bold text-white">شبكة القاعة مطلوبة</span>
-            <span className="block text-xs leading-5 text-white/60">طلب الدخول من خارج شبكة القاعة يوافق عليه المشرف ويكتب سببه.</span>
-          </span>
-          <Switch on={d.network} onChange={(network) => setD({ ...d, network })} label="شبكة القاعة مطلوبة" />
-        </div>
-      </div>
-
-      <Field label="وضع الدخول" hint={PAIRING[d.pairing].hint}>
-        <select value={d.pairing} onChange={(e) => setD({ ...d, pairing: e.target.value as Pairing })} className={selectClass}>
-          {(Object.keys(PAIRING) as Pairing[]).map((k) => (
-            <option key={k} value={k}>
-              {PAIRING[k].label}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <div>
-        <p className="mb-2 text-sm font-bold text-white">القاعات</p>
-        <div className="flex flex-wrap gap-1.5">
-          <Pick on={!d.centers} onClick={() => setD({ ...d, centers: undefined })}>
-            كل القاعات الفعّالة ({halls.live.length})
-          </Pick>
-          {halls.live.map((c) => {
-            const on = !!d.centers?.includes(c.id);
-            return (
-              <Pick key={c.id} on={on} onClick={() => setD({ ...d, centers: on ? d.centers!.filter((x) => x !== c.id) : [...(d.centers ?? []), c.id] })}>
-                {c.name}
-              </Pick>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-bold text-white">تعليمات شاشة القاعة</p>
-          <Button size="sm" variant="ghost" className="text-gold hover:bg-white/10" onClick={() => setD({ ...d, instructions: DEFAULT_INSTRUCTIONS.join("\n") })}>
-            التعليمات الافتراضية
-          </Button>
-        </div>
-        <textarea rows={5} value={d.instructions} onChange={(e) => setD({ ...d, instructions: e.target.value })} className={textareaClass} aria-label="تعليمات شاشة القاعة" />
-        <p className="mt-1 text-xs leading-5 text-white/60">سطر لكل نقطة. تظهر على شاشة عرض القاعة أثناء الاختبار.</p>
-      </div>
-
-      <div>
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <p className="text-sm font-bold text-white">الأقسام</p>
-          <Chip tone="green">{total} سؤالاً في المحاولة</Chip>
-          {lacks > 0 && <Chip tone="maroon">ينقص البنك {lacks} أسئلة</Chip>}
-        </div>
-        <p className="mb-3 text-xs leading-5 text-white/60">لكل قسم اسم لا يتكرر، والفئات التي تُسحب منها أسئلته، وكم سؤالاً يُسحب لكل متقدم من أسئلته الجاهزة في بنك الصفة، ونسبة النجاح فيه. «عشوائي» يرتّب الأسئلة لكل متقدم ترتيباً خاصاً به، و«مرتّب» بترتيب البنك؛ والخيارات تُخلط دائماً. الناجح من بلغ نسبة كل قسم.</p>
-        <ul className="space-y-3">
-          {d.sections.map((s, i) => {
-            const draw = whole(s.draw) || 0;
-            const short = draw > ready[i];
-            return (
-              <li key={s.id} className={cn("rounded-2xl p-3 ring-1", short ? "bg-maroon/15 ring-maroon/40" : "bg-white/[.06] ring-white/10")}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input value={s.name} onChange={(e) => setSection(i, { name: e.target.value })} className={cn(smallInputClass, "min-w-0 flex-1 font-bold")} aria-label="اسم القسم" placeholder="اسم القسم" />
-                  <span className="w-28 shrink-0">
-                    <select value={s.order} onChange={(e) => setSection(i, { order: e.target.value as SectionOrder })} className={selectClass} aria-label={`ترتيب ${s.name}`}>
-                      {(Object.keys(SECTION_ORDERS) as SectionOrder[]).map((o) => (
-                        <option key={o} value={o}>
-                          {SECTION_ORDERS[o]}
-                        </option>
-                      ))}
-                    </select>
-                  </span>
-                  {d.sections.length > 1 && (
-                    <Button size="sm" variant="ghost" className="text-white hover:bg-maroon/40" onClick={() => setD({ ...d, sections: d.sections.filter((_, j) => j !== i) })} aria-label={`حذف ${s.name}`}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
-                </div>
-                <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="text-white/55">يُسحب من:</span>
-                  {EXAM_CATEGORIES.map((c) => (
-                    <Pick key={c} on={s.categories.includes(c)} onClick={() => setSection(i, { categories: s.categories.includes(c) ? s.categories.filter((y) => y !== c) : [...s.categories, c] })}>
-                      {c}
-                    </Pick>
+            <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-bold text-white">تعليمات شاشة القاعة</h2>
+                <button type="button" className="text-xs font-bold text-gold hover:underline" onClick={() => setD({ ...d, instructions: DEFAULT_INSTRUCTIONS.join("\n") })}>
+                  التعليمات الافتراضية
+                </button>
+              </div>
+              <textarea rows={5} value={d.instructions} onChange={(e) => setD({ ...d, instructions: e.target.value })} className={textareaClass} aria-label="تعليمات شاشة القاعة" />
+              <p className="mt-1 text-xs text-white/60">سطر لكل نقطة. تظهر على شاشة عرض القاعة أثناء الاختبار.</p>
+            </section>
+          </>
+        }
+        side={
+          <>
+            <Box title="الحالة والحفظ">
+              <Field label="الحالة" hint={d.status === "published" ? "يُجلس له في موعده." : d.status === "draft" ? "لا تُفتح له جلسة." : "يحفظ محاولاته ونتائجه، ولا تُفتح له جلسة."}>
+                <select value={d.status} onChange={(e) => setD({ ...d, status: e.target.value as ExamStatus })} className={selectClass}>
+                  {(Object.keys(EXAM_STATUS) as ExamStatus[]).map((k) => (
+                    <option key={k} value={k}>
+                      {EXAM_STATUS[k]}
+                    </option>
                   ))}
+                </select>
+              </Field>
+              <Button variant="gold" className="w-full" onClick={save} disabled={!dirty}>
+                <Save className="size-4" /> {isNew ? "إنشاء الاختبار" : "حفظ الاختبار"}
+              </Button>
+              <p className="text-xs text-white/55">{dirty ? "لديك تعديلات لم تُحفظ." : "محفوظ."}</p>
+              {stored && (
+                <p className="flex flex-wrap gap-x-3 text-xs font-bold">
+                  <Tag tone={STATUS_TONE[stored.status]}>{EXAM_STATUS[stored.status]} الآن</Tag>
+                  {stored.status !== "draft" && <RowLink href={`/staff/exam/manage/results?s=${stored.id}`}>نتائجه</RowLink>}
+                  {deletable(stored) && (
+                    <RowLink danger onClick={() => setRemoving(true)}>
+                      حذف الاختبار
+                    </RowLink>
+                  )}
                 </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <label className="flex items-center justify-between gap-2 rounded-xl bg-white/[.05] px-3 py-2 ring-1 ring-white/10">
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold text-white">يُسحب</span>
-                      <span className={cn("block text-[11px]", short ? "font-bold text-gold" : "text-white/55")}>
-                        يُسحب {draw} من {ready[i]} جاهز{short ? ` — ينقص ${draw - ready[i]}` : ""}
-                      </span>
-                    </span>
-                    <span className="w-20 shrink-0">
-                      <input inputMode="numeric" value={s.draw} onChange={(e) => setSection(i, { draw: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" aria-label={`ما يُسحب من ${s.name}`} />
-                    </span>
-                  </label>
-                  <label className="flex items-center justify-between gap-2 rounded-xl bg-white/[.05] px-3 py-2 ring-1 ring-white/10">
-                    <span className="min-w-0">
-                      <span className="block text-sm font-bold text-white">نسبة النجاح</span>
-                      <span className="block text-[11px] text-white/55">من 0 إلى 100%</span>
-                    </span>
-                    <span className="flex w-24 shrink-0 items-center gap-1">
-                      <input inputMode="numeric" value={s.pass} onChange={(e) => setSection(i, { pass: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" aria-label={`نسبة النجاح في ${s.name}`} />
-                      <span className="text-sm text-white/70">%</span>
-                    </span>
-                  </label>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-        <Button
-          size="sm"
-          variant="glass"
-          className="mt-3"
-          onClick={() => setD({ ...d, sections: [...d.sections, { id: `s${Date.now().toString(36)}`, name: `القسم ${d.sections.length + 1}`, categories: [], draw: "1", pass: "50", order: "random" }] })}
-        >
-          <Plus className="size-4" /> قسم جديد
-        </Button>
-      </div>
+              )}
+            </Box>
 
-      <div className="flex gap-2 border-t border-white/10 pt-4">
-        <Button variant="gold" onClick={save}>
-          <Check className="size-4" /> {isNew ? "إنشاء الاختبار" : "حفظ الاختبار"}
-        </Button>
-        <Button variant="glass" onClick={onClose}>
-          إلغاء
-        </Button>
-      </div>
-      {!isNew && <RecordHistory refId={start.id} />}
+            <Box title="الموعد والمدة">
+              <Field label="اليوم" hint={d.day ? dayHijri(d.day) : "تُفتح القاعة من قبل موعده بساعة إلى آخر يومه."}>
+                <input type="date" value={d.day} onChange={(e) => setD({ ...d, day: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" />
+              </Field>
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="الساعة">
+                  <input type="time" value={d.time} onChange={(e) => setD({ ...d, time: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" />
+                </Field>
+                <Field label="المدة (دقيقة)" hint="من 5 إلى 480">
+                  <input inputMode="numeric" value={d.minutes} onChange={(e) => setD({ ...d, minutes: e.target.value })} className={cn(smallInputClass, "text-center")} dir="ltr" />
+                </Field>
+              </div>
+            </Box>
+
+            <Box title="الصفة والنوع">
+              <Field label="الصفة">
+                {isNew ? (
+                  <select value={d.role} onChange={(e) => pickRole(e.target.value)} className={selectClass}>
+                    {APPLIED_ROLES.map((r) => (
+                      <option key={r.key} value={r.key}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="font-bold text-white">{roleLabelOf(d.role)}</p>
+                )}
+              </Field>
+              <Field label="النوع" hint={d.kind === "main" ? "اختبار الصفة، يؤديه كل متقدميها." : "يؤديه من غاب عن اختبار صفته."}>
+                {main ? (
+                  <Chip tone="muted">{EXAM_KINDS.main}</Chip>
+                ) : (
+                  <select value={d.kind} onChange={(e) => setD({ ...d, kind: e.target.value as ExamDef["kind"] })} className={selectClass}>
+                    {(Object.keys(EXAM_KINDS) as ExamDef["kind"][]).map((k) => (
+                      <option key={k} value={k}>
+                        {EXAM_KINDS[k]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+            </Box>
+
+            <Box title="القاعات">
+              <div className="flex flex-wrap gap-1.5">
+                <Pick on={!d.centers} onClick={() => setD({ ...d, centers: undefined })}>
+                  كل القاعات الفعّالة ({halls.live.length})
+                </Pick>
+                {halls.live.map((c) => {
+                  const on = !!d.centers?.includes(c.id);
+                  return (
+                    <Pick key={c.id} on={on} onClick={() => setD({ ...d, centers: on ? d.centers!.filter((x) => x !== c.id) : [...(d.centers ?? []), c.id] })}>
+                      {c.name}
+                    </Pick>
+                  );
+                })}
+              </div>
+            </Box>
+
+            <Box title="الدخول والنتيجة">
+              <Field label="وضع الدخول" hint={PAIRING[d.pairing].hint}>
+                <select value={d.pairing} onChange={(e) => setD({ ...d, pairing: e.target.value as Pairing })} className={selectClass}>
+                  {(Object.keys(PAIRING) as Pairing[]).map((k) => (
+                    <option key={k} value={k}>
+                      {PAIRING[k].label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <div className="flex items-start justify-between gap-3">
+                <span>
+                  <span className="block font-bold text-white">شبكة القاعة مطلوبة</span>
+                  <span className="block text-xs leading-5 text-white/60">طلب الدخول من خارجها يوافق عليه المشرف بسبب.</span>
+                </span>
+                <Switch on={d.network} onChange={(network) => setD({ ...d, network })} label="شبكة القاعة مطلوبة" />
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <span>
+                  <span className="block font-bold text-white">النتيجة تظهر للمتقدم</span>
+                  <span className="block text-xs leading-5 text-white/60">يراها قسماً قسماً لحظة تأكيد تسليمه.</span>
+                </span>
+                <Switch on={d.showResult} onChange={(showResult) => setD({ ...d, showResult })} label="النتيجة تظهر للمتقدم" />
+              </div>
+            </Box>
+
+            {stored && (
+              <Box title="سجلّه" open={false}>
+                <RecordHistory refId={stored.id} bare />
+              </Box>
+            )}
+          </>
+        }
+      />
+      <DeleteDialog exam={removing ? (stored ?? null) : null} onClose={() => setRemoving(false)} onDone={() => router.push(LIST)} />
     </div>
   );
 }

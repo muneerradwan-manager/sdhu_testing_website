@@ -1,8 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, CheckCircle2, ClipboardList, CornerDownLeft, Layers, Receipt, Send, UserPlus } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CheckCircle2, CornerDownLeft } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -16,16 +15,18 @@ import { adminReceipt } from "@/app/administrator/_lib/admin";
 import { nextGroupNumber } from "@/app/administrator/_lib/capacity";
 import { DemoJump } from "@/components/app/operation-closed";
 import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
-import { STATUS, useClusterRequests } from "@/app/administrator/_lib/formation";
+import { STATUS, useClusterRequests, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { patchAdmin } from "../../_components/data";
-import { Drawer, Empty, fmtDateTime, Panel, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
+import { RecordHistory } from "../../_components/system";
+import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
+import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow, type GroupState } from "../desk";
+import { Filters, Help, Lead, TitleCell } from "./ui";
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
-import { Chip, FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
-import { RecordHistory, SystemRecords } from "../../_components/system";
-import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow } from "../desk";
 
 /** The cluster a group is in: a request filed this season, or one of the season's directory */
 function useClusterName() {
@@ -34,65 +35,45 @@ function useClusterName() {
   return (id?: string) => (id ? (requests.find((r) => r.cluster.id === id)?.cluster.name ?? directory.find((c) => c.slug === id)?.name ?? id) : undefined);
 }
 
+/** One line of the season's groups: a group on this device (with its request), or one of the season's records */
+type Line = { key: string; number: number; head: string; branch: string; category?: string; pilgrims: number; capacity: number; cluster?: ClusterRequest; state: GroupState; x?: GroupRow; by?: string };
+type View = "all" | "waiting" | "heads" | "approved" | "outside";
+
 /**
- * The groups, formed at the office: a qualified group head comes in the formation's dates with the name he
- * chose and pays its fee there, and the holder forms his group at once with its head's category (the group's:
- * its pilgrims and its seats under the cluster's tier, «القوائم المرجعية»); its number is the next of the
- * season. A request filed on the platform before still waits here for its decision. The group has no team of
- * its own: the head of the cluster it enters fills its seats.
+ * «تشكيل المجموعات» — the season's groups as one list: those waiting for a decision, those back with their heads,
+ * and every approved group with its head, branch, category, pilgrims and cluster. «تشكيل مجموعة» beside the
+ * title forms a qualified head's group at the office (in the formation's dates); a group on this device opens in
+ * a side sheet with its conditions, its decision and its history. The group has no team of its own: the head of
+ * the cluster it enters fills its seats.
  */
 export function GroupsTab() {
   const desk = useAdminsDesk();
   const clusterName = useClusterName();
   const [open, setOpen] = useState<number | null>(null);
   const [returning, setReturning] = useState<GroupRow | null>(null);
+  const [forming, setForming] = useState(false);
   const decide = useDecision();
   const sheet = desk.groups.find((x) => x.g.number === open);
-  const pending = desk.groups.filter((x) => x.state === "unpaid" || x.state === "returned");
 
   return (
-    <div className="space-y-6">
-      <CategoriesPanel />
+    <div className="space-y-5">
+      <Title action={<AddButton onClick={() => setForming(true)}>تشكيل مجموعة</AddButton>}>مجموعات الموسم</Title>
+      <Lead>يأتي رئيس المجموعة المؤهل إلى المكتب باسم مجموعته ويسدد رسمها، فتشكّلها بفئته. افتح أي مجموعة لترى شروطها وسجلّها.</Lead>
+      <GroupsList desk={desk} onOpen={setOpen} onReturn={setReturning} />
 
-      <FormAtOffice desk={desk} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <CategoriesBox />
+        <Help>
+          <p>لا يختار رئيس المجموعة سعتها: فئته تحددها الإدارة وتثبّتها عند تشكيل مجموعته أو اعتمادها، وهي فئة المجموعة. منها عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله.</p>
+          <p>تدخل المجموعة التكتلَ بدعوة يقبلها رئيسها في مدة تشكيل التكتلات. وما بقي خارجها بعد الموعد النهائي تضيفه إلى تكتل بتعديل استثنائي من «طلبات التكتلات».</p>
+          <p>طلب تشكيل قُدّم على المنصة من قبل ينتظر قرارك هنا: اعتمده بفئة رئيسه، أو أعده إليه بما ينقصه.</p>
+        </Help>
+      </div>
+      <RecordsBox system="admins" area="groups" title="سجل المجموعات" />
 
-      {desk.waiting.length > 0 && (
-      <Panel icon={<ClipboardList />} title="طلبات تشكيل سابقة تنتظر قرارك" action={<Chip tone="gold">{desk.waiting.length}</Chip>}>
-        {(
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            {desk.waiting.map((x, i) => (
-              <RequestCard key={x.g.number} x={x} delay={i * 0.05} onApprove={(cat) => decide.approve(x, cat)} onReturn={() => setReturning(x)} onOpen={() => setOpen(x.g.number)} />
-            ))}
-          </div>
-        )}
-      </Panel>
-      )}
-
-      {pending.length > 0 && (
-        <Panel icon={<Send />} title="عند رؤسائها" action={<Chip>{pending.length}</Chip>}>
-          <ul className="space-y-2">
-            {pending.map((x) => (
-              <li key={x.g.number}>
-                <button type="button" onClick={() => setOpen(x.g.number)} className="flex w-full flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 text-right ring-1 ring-white/10 transition hover:ring-gold/50">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-bold text-white">
-                      {groupName(x.g.number)} — {x.row.name}
-                    </span>
-                    <span className="block text-xs leading-5 text-white/65">{x.g.returned ? `أعادها ${x.g.returned.by}: ${x.g.returned.note}` : `قُدّم ${fmtDateTime(x.g.requestedAt)} — لم يُسدَّد رسم التشكيل بعد`}</span>
-                  </span>
-                  <Chip tone={GROUP_STATE[x.state].tone}>{GROUP_STATE[x.state].label}</Chip>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
-      <SeasonGroups desk={desk} onOpen={setOpen} />
-
-      <SystemRecords system="admins" area="groups" title="سجل المجموعات" />
-
+      <Drawer open={forming} onClose={() => setForming(false)} title="تشكيل مجموعة في المكتب" width="max-w-xl">
+        <FormAtOffice desk={desk} onDone={() => setForming(false)} />
+      </Drawer>
       <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet ? groupName(sheet.g.number) : ""}>
         {sheet && <GroupSheet x={sheet} clusterName={clusterName(sheet.g.clusterId)} onApprove={(cat) => decide.approve(sheet, cat)} onReturn={() => setReturning(sheet)} />}
       </Drawer>
@@ -113,6 +94,124 @@ export function GroupsTab() {
   );
 }
 
+// ───────────────────────── The season's groups ─────────────────────────
+
+/**
+ * Every group of the season in one table — waiting, back with its head, approved here or already in the
+ * season's records — filtered by its state (with its count), category and branch.
+ */
+function GroupsList({ desk, onOpen, onReturn }: { desk: AdminsDesk; onOpen: (n: number) => void; onReturn: (x: GroupRow) => void }) {
+  const s = useStructure();
+  const cadre = useCadre();
+  const [view, setView] = useState<View>(desk.waiting.length ? "waiting" : "all");
+  const [q, setQ] = useState("");
+  const [category, setCategory] = useState("");
+  const [branch, setBranch] = useState("");
+  const [shown, setShown] = useState(40);
+  const lines = useMemo<Line[]>(() => {
+    const inCluster = new Map(desk.requests.flatMap((r) => r.groups.map((g) => [g.number, r] as const)));
+    const device = desk.groups.map((x) => ({ key: `d-${x.g.number}`, number: x.g.number, head: x.row.name, branch: branchOf(x.row.id, cadre), category: x.category, pilgrims: 0, state: x.state, x, by: x.g.approvedBy }));
+    const seeded = HEADS_POOL.filter((h) => !desk.approved.some((l) => l.g.number === h.group)).map((h) => ({ key: `s-${h.group}`, number: h.group, head: h.name, branch: branchOf(h.id, cadre), category: categoryOf(h.id, cadre), pilgrims: h.pilgrims, state: "approved" as GroupState, x: undefined, by: undefined }));
+    return [...device, ...seeded]
+      .map((g) => {
+        const r = g.state === "approved" ? inCluster.get(g.number) : undefined;
+        return { ...g, cluster: r, capacity: seatsOf(s, r?.cluster.tier ?? DEFAULT_TIER, g.category).pilgrims, pilgrims: r?.groups.find((y) => y.number === g.number)?.pilgrims ?? g.pilgrims };
+      })
+      .sort((a, b) => a.number - b.number);
+  }, [desk.groups, desk.approved, desk.requests, cadre, s]);
+
+  const inView = (g: Line, v: View) => (v === "all" ? true : v === "waiting" ? g.state === "waiting" : v === "heads" ? g.state === "unpaid" || g.state === "returned" : v === "approved" ? g.state === "approved" : g.state === "approved" && !g.cluster);
+  const list = lines
+    .filter((g) => (!category || g.category === category) && (!branch || g.branch === branch))
+    .filter((g) => !q.trim() || [groupShort(g.number), g.head, g.cluster?.cluster.name ?? ""].some((t) => t.includes(q.trim())))
+    .filter((g) => inView(g, view));
+  const count = (v: View) => lines.filter((g) => inView(g, v)).length;
+
+  return (
+    <div className="space-y-4">
+      <Filters
+        label="حال المجموعات"
+        value={view}
+        onChange={setView}
+        items={[
+          { key: "all", label: "الكل", count: count("all") },
+          { key: "waiting", label: "تنتظر قرارك", count: count("waiting") },
+          { key: "heads", label: "عند رؤسائها", count: count("heads") },
+          { key: "approved", label: "معتمدة", count: count("approved") },
+          { key: "outside", label: "خارج التكتلات", count: count("outside") },
+        ]}
+      />
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+        <SearchBox value={q} onChange={setQ} placeholder="المجموعة أو رئيسها أو تكتلها" label="بحث في المجموعات" />
+        <FilterSelect label="الفئة" all="كل الفئات" value={category} onChange={setCategory} options={s.categories.map((c) => ({ value: c.id, label: `${c.name} (${lines.filter((g) => g.category === c.id).length})` }))} />
+        <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
+      </div>
+      <ListTable head={["المجموعة", "رئيسها", "الفرع", "الفئة", "حجاجها", "التكتل", "الحالة"]} minWidth="52rem">
+        {list.length === 0 && <EmptyRow cols={7}>لا مجموعة هنا.</EmptyRow>}
+        {list.slice(0, shown).map((g) => (
+          <tr key={g.key}>
+            <TitleCell
+              title={groupShort(g.number)}
+              onOpen={g.x ? () => onOpen(g.number) : undefined}
+              sub={
+                g.x
+                  ? g.state === "returned" && g.x.g.returned
+                    ? `أعادها ${g.x.g.returned.by}: ${g.x.g.returned.note}`
+                    : g.state === "unpaid"
+                      ? `قُدّم ${fmtDateTime(g.x.g.requestedAt)} — لم يُسدَّد رسم التشكيل`
+                      : g.by
+                        ? `اعتمدها ${g.by}`
+                        : undefined
+                  : "من سجل الموسم"
+              }
+              actions={
+                g.x && (
+                  <RowActions>
+                    <RowLink onClick={() => onOpen(g.number)}>{g.state === "waiting" ? "مراجعة واعتماد" : "فتح"}</RowLink>
+                    {g.state === "waiting" && (
+                      <RowLink danger onClick={() => onReturn(g.x!)}>
+                        إعادة إلى رئيسها
+                      </RowLink>
+                    )}
+                  </RowActions>
+                )
+              }
+            />
+            <td className="p-3 align-top">{g.head}</td>
+            <td className="p-3 align-top text-white/80">{g.branch}</td>
+            <td className="p-3 align-top">{categoryOfId(s, g.category)?.name ?? <span className="text-gold">—</span>}</td>
+            <td className="p-3 align-top tabular-nums">
+              {g.pilgrims} <span className="text-xs text-white/55">/ {g.capacity}</span>
+            </td>
+            <td className="p-3 align-top">
+              {g.state !== "approved" ? (
+                <span className="text-white/40">—</span>
+              ) : g.cluster ? (
+                <span>
+                  {g.cluster.cluster.name} <span className="text-xs text-white/55">({STATUS[g.cluster.status].label})</span>
+                </span>
+              ) : (
+                <span className="font-bold text-gold">خارج التكتلات</span>
+              )}
+            </td>
+            <td className="p-3 align-top">
+              <span className="flex flex-wrap gap-1">
+                <Tag tone={GROUP_STATE[g.state].tone}>{GROUP_STATE[g.state].label}</Tag>
+                {g.x && g.state === "waiting" && <Tag tone={g.x.complete ? "green" : "gold"}>{g.x.complete ? "مكتملة الشروط" : "ناقصة"}</Tag>}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </ListTable>
+      {list.length > shown && (
+        <Button size="sm" variant="glass" onClick={() => setShown(shown + 60)}>
+          عرض المزيد ({list.length - shown})
+        </Button>
+      )}
+    </div>
+  );
+}
+
 // ───────────────────────── Forming a group at the office ─────────────────────────
 
 /**
@@ -120,7 +219,7 @@ export function GroupsTab() {
  * holds this season), confirms his category, takes the fee and forms the group — approved at once, its number
  * the next of the season. Only in the formation's dates.
  */
-function FormAtOffice({ desk }: { desk: AdminsDesk }) {
+function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const season = useSeason();
@@ -160,25 +259,24 @@ function FormAtOffice({ desk }: { desk: AdminsDesk }) {
     setName("");
     setCategory("");
     setPaid(false);
+    onDone();
   };
 
   return (
-    <Panel icon={<UserPlus />} title="تشكيل مجموعة في المكتب" action={<Chip tone={desk.toForm.length ? "gold" : "green"}>{desk.toForm.length} رئيس مجموعة بلا مجموعة</Chip>}>
-      <p className="text-sm leading-7 text-white/70">
-        يأتي رئيس المجموعة الناجح في التأهيل إلى المكتب في مدة تشكيل المجموعات ({rangeLabel(op.start, op.end)}) باسم مجموعته، ويسدد رسمها، فتشكّلها هنا بفئته. لا طلب له على المنصة: يرى مجموعته في بوابته فور تشكيلها، ثم حجاجها حين يلحقهم المكتب بها.
-      </p>
+    <div className="space-y-4 text-sm">
+      <p className="leading-7 text-white/70">في مدة تشكيل المجموعات ({rangeLabel(op.start, op.end)}). لا طلب له على المنصة: يرى مجموعته في بوابته فور تشكيلها، ثم حجاجها حين يلحقهم المكتب بها.</p>
       {!op.open ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 text-sm text-white/80 ring-1 ring-white/10">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 text-white/80 ring-1 ring-white/10">
           <span>تُشكَّل المجموعات في مدتها وحدها.</span>
           <DemoJump state={op} />
         </div>
       ) : desk.toForm.length === 0 ? (
-        <Empty icon={<CheckCircle2 />} title="لا رئيس مجموعة ينتظر" text="كل رئيس مجموعة مؤهل له مجموعة. يظهر هنا من ينجح أو يجدد صفته." />
+        <p className="rounded-2xl bg-white/[.06] p-4 text-white/75 ring-1 ring-white/10">لا رئيس مجموعة ينتظر: كل رئيس مجموعة مؤهل له مجموعة. يظهر هنا من ينجح أو يجدد صفته.</p>
       ) : (
-        <div className="mt-4 grid gap-3 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10 md:grid-cols-2">
-          <label className="block md:col-span-2">
-            <span className="mb-1 block text-xs font-bold text-white/80">رئيس المجموعة</span>
-            <select value={headId} onChange={(e) => pick(e.target.value)} className={cn(smallInputClass, "[&_option]:text-ink")} aria-label="رئيس المجموعة">
+        <>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-white/80">رئيس المجموعة ({desk.toForm.length} بلا مجموعة)</span>
+            <select value={headId} onChange={(e) => pick(e.target.value)} className={cn(smallInputClass, "[&_option]:text-ink")}>
               <option value="">اختر رئيس المجموعة الذي راجع المكتب...</option>
               {desk.toForm.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -193,14 +291,14 @@ function FormAtOffice({ desk }: { desk: AdminsDesk }) {
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-white/80">اسم المجموعة كما اختاره رئيسها</span>
                 <span className="flex items-center gap-2">
-                  <span className="text-sm text-white/70">مجموعة</span>
+                  <span className="text-white/70">مجموعة</span>
                   <input value={bare} onChange={(e) => setName(e.target.value)} className={cn(sizedInput, "min-w-0 flex-1")} aria-label="اسم المجموعة" />
                 </span>
                 <span className={cn("mt-1 block text-xs", problem ? "text-gold" : "text-green-light")}>{problem ?? "متاح هذا الموسم"}</span>
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold text-white/80">فئته (فئة المجموعة)</span>
-                <select value={cat} onChange={(e) => setCategory(e.target.value)} className={cn(smallInputClass, "[&_option]:text-ink")} aria-label="الفئة">
+                <select value={cat} onChange={(e) => setCategory(e.target.value)} className={cn(smallInputClass, "[&_option]:text-ink")}>
                   <option value="">اختر الفئة...</option>
                   {s.categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -209,160 +307,53 @@ function FormAtOffice({ desk }: { desk: AdminsDesk }) {
                   ))}
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-sm text-white/85 md:col-span-2">
+              <label className="flex items-center gap-2 text-white/85">
                 <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="size-4 accent-[#D9C89E]" />
                 سدّد رسم التشكيل {season.fees.groupFormation} $ في المكتب — الإيصال {adminReceipt(head.id, "G", number)}
               </label>
-              <div className="md:col-span-2">
-                <Button size="sm" variant="gold" disabled={!!problem || !cat || !paid} onClick={form}>
-                  <BadgeCheck className="size-4" /> تشكيل مجموعة {bare || "…"}
-                </Button>
-              </div>
+              <Button variant="gold" disabled={!!problem || !cat || !paid} onClick={form}>
+                <BadgeCheck className="size-4" /> تشكيل مجموعة {bare || "…"}
+              </Button>
             </>
           )}
-        </div>
+        </>
       )}
-    </Panel>
-  );
-}
-
-// ───────────────────────── The season's groups ─────────────────────────
-
-/**
- * Every approved group of the season — those approved here and those the season already had — with its head,
- * branch, category, pilgrims (by its category under its cluster's tier) and its cluster, filtered by category,
- * branch and whether a cluster holds it. A group approved here opens its sheet.
- */
-function SeasonGroups({ desk, onOpen }: { desk: AdminsDesk; onOpen: (n: number) => void }) {
-  const s = useStructure();
-  const cadre = useCadre();
-  const [q, setQ] = useState("");
-  const [category, setCategory] = useState("");
-  const [branch, setBranch] = useState("");
-  const [held, setHeld] = useState("");
-  const [shown, setShown] = useState(40);
-  const rows = useMemo(() => {
-    const inCluster = new Map(desk.requests.flatMap((r) => r.groups.map((g) => [g.number, r] as const)));
-    const live = desk.approved.map((x) => ({ number: x.g.number, head: x.row.name, branch: branchOf(x.row.id, cadre), category: x.category, pilgrims: 0, device: true, by: x.g.approvedBy }));
-    const seeded = HEADS_POOL.filter((h) => !live.some((l) => l.number === h.group)).map((h) => ({ number: h.group, head: h.name, branch: branchOf(h.id, cadre), category: categoryOf(h.id, cadre), pilgrims: h.pilgrims, device: false, by: undefined as string | undefined }));
-    return [...live, ...seeded].map((g) => {
-      const r = inCluster.get(g.number);
-      return { ...g, cluster: r, capacity: seatsOf(s, r?.cluster.tier ?? DEFAULT_TIER, g.category).pilgrims, pilgrims: r?.groups.find((x) => x.number === g.number)?.pilgrims ?? g.pilgrims };
-    });
-  }, [desk.approved, desk.requests, cadre, s]);
-  const list = rows
-    .filter((g) => (!category || g.category === category) && (!branch || g.branch === branch) && (!held || (held === "in" ? !!g.cluster : !g.cluster)))
-    .filter((g) => !q.trim() || [groupShort(g.number), g.head, g.cluster?.cluster.name ?? ""].some((x) => x.includes(q.trim())));
-  const byCategory = s.categories.map((c) => ({ c, n: rows.filter((g) => g.category === c.id).length }));
-  return (
-    <div id="approved" className="scroll-mt-24">
-      <Panel
-        icon={<BadgeCheck />}
-        title="مجموعات الموسم المعتمدة"
-        action={
-          <span className="flex flex-wrap gap-2">
-            <Chip tone="green">{rows.length}</Chip>
-            {byCategory.map(({ c, n }) => (
-              <Chip key={c.id}>
-                {c.name}: {n}
-              </Chip>
-            ))}
-            {desk.outside.length > 0 && <Chip tone="gold">{desk.outside.length} خارج التكتلات</Chip>}
-          </span>
-        }
-        bodyClass="-mx-5 md:-mx-6"
-      >
-        <div className="grid gap-2 px-5 sm:grid-cols-2 md:px-6 lg:grid-cols-4">
-          <SearchBox value={q} onChange={setQ} placeholder="المجموعة أو رئيسها أو تكتلها" label="بحث في المجموعات" />
-          <FilterSelect label="الفئة" all="كل الفئات" value={category} onChange={setCategory} options={s.categories.map((c) => ({ value: c.id, label: c.name }))} />
-          <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
-          <FilterSelect label="التكتل" all="في تكتل وخارجه" value={held} onChange={setHeld} options={[{ value: "in", label: "في طلب تكتل" }, { value: "out", label: "خارج التكتلات" }]} />
-        </div>
-        <div className="mt-3 overflow-x-auto px-5 md:px-6">
-          <table className="w-full min-w-[48rem] text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-right text-xs text-gold">
-                {["المجموعة", "رئيسها", "الفرع", "الفئة", "حجاجها", "التكتل", "اعتمدها"].map((h) => (
-                  <th key={h} className="pb-2 font-bold">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/10">
-              {list.slice(0, shown).map((g) => (
-                <tr key={g.number} className="text-white">
-                  <td className="py-2.5">
-                    {g.device ? (
-                      <button type="button" onClick={() => onOpen(g.number)} className="font-bold text-gold hover:underline">
-                        {groupShort(g.number)}
-                      </button>
-                    ) : (
-                      <span className="font-bold">{groupShort(g.number)}</span>
-                    )}
-                  </td>
-                  <td className="py-2.5">{g.head}</td>
-                  <td className="py-2.5 text-white/80">{g.branch}</td>
-                  <td className="py-2.5">{categoryOfId(s, g.category)?.name ?? <span className="text-gold">—</span>}</td>
-                  <td className="py-2.5 tabular-nums">
-                    {g.pilgrims} <span className="text-xs text-white/55">/ {g.capacity}</span>
-                  </td>
-                  <td className="py-2.5">{g.cluster ? <span>{g.cluster.cluster.name} <span className="text-xs text-white/55">({STATUS[g.cluster.status].label})</span></span> : <span className="font-bold text-gold">خارج التكتلات</span>}</td>
-                  <td className="py-2.5 text-xs text-white/60">{g.by ?? "سجل الموسم"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {list.length === 0 && <p className="py-6 text-center text-sm text-white/60">لا مجموعة بهذا البحث.</p>}
-          {list.length > shown && (
-            <Button size="sm" variant="glass" className="mt-3" onClick={() => setShown(shown + 60)}>
-              عرض المزيد ({list.length - shown})
-            </Button>
-          )}
-        </div>
-        <p className="mt-3 px-5 text-xs leading-6 text-white/55 md:px-6">تدخل المجموعة التكتلَ بدعوة يقبلها رئيسها في مدة تشكيل التكتلات. وما بقي خارجها بعد الموعد النهائي تضيفه إلى تكتل بتعديل استثنائي من «طلبات التكتلات».</p>
-      </Panel>
     </div>
   );
 }
 
 // ───────────────────────── Categories ─────────────────────────
 
-/** The category's name, as the structure has it */
-function useCategoryName() {
-  const s = useStructure();
-  return (id?: string) => categoryOfId(s, id)?.name;
-}
-
-/**
- * The groups' categories under the default tier, as «القوائم المرجعية» left them: a head's category is the
- * administration's, given on approval, and gives his group its pilgrims and its seats in the cluster's tier
- */
-function CategoriesPanel() {
+/** The groups' categories under the default tier, as «القوائم المرجعية» left them — for reference, closed */
+function CategoriesBox() {
   const s = useStructure();
   const tier = s.tiers.find((x) => x.id === DEFAULT_TIER) ?? s.tiers[0];
   return (
-    <Panel icon={<Layers />} title="فئات المجموعات" action={<Link href="/staff/admins/manage/reference" className="text-sm font-bold text-gold hover:underline">تعديلها في «القوائم المرجعية»</Link>}>
-      <p className="mb-3 text-sm leading-7 text-white/70">
-        لا يختار رئيس المجموعة سعتها: فئته (الأولى… الرابعة) تحددها الإدارة وتثبّتها عند اعتماد مجموعته، وهي فئة المجموعة. منها عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله — هنا في المستوى {tier?.name}. ومجموع فئات مجموعات التكتل يحدد عدد منسقيه وموجّهاته.
-      </p>
-      <ol className="grid gap-2 md:grid-cols-4">
+    <Box title={`فئات المجموعات وأعدادها (${tier?.name ?? ""})`} open={false}>
+      <ul className="space-y-1.5">
         {s.categories.map((c) => {
           const n = seatsOf(s, tier?.id, c.id);
           return (
-            <li key={c.id} className="rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-              <span className="block font-bold text-white">{c.name}</span>
-              <span className="block text-xs text-white/60">وزنها {c.weight} — {seatsLabel(n)}</span>
-              <span className="mt-1 block font-display text-2xl font-bold tabular-nums text-gold">
-                {n.pilgrims} <span className="text-xs font-normal text-white/60">حاجاً</span>
+            <li key={c.id} className="flex flex-wrap justify-between gap-2">
+              <span>
+                <b className="text-white">{c.name}</b>{" "}
+                <span className="text-xs text-white/55">
+                  — وزنها {c.weight} — {seatsLabel(n)}
+                </span>
               </span>
+              <b className="tabular-nums text-gold">{n.pilgrims} حاجاً</b>
             </li>
           );
         })}
-      </ol>
-    </Panel>
+      </ul>
+      <Link href="/staff/admins/manage/reference?s=categories" className="text-sm font-bold text-gold hover:underline">
+        تعديلها في «القوائم المرجعية» ←
+      </Link>
+    </Box>
   );
 }
+
+// ───────────────────────── One group ─────────────────────────
 
 /** The holder's one decision on a request: approve it, or send it back to its head with what to fix */
 function useDecision() {
@@ -407,10 +398,11 @@ function Decision({ x, onApprove, onReturn }: { x: GroupRow; onApprove: (categor
   const s = useStructure();
   const [category, setCategory] = useState(x.category ?? s.categories[0]?.id ?? "");
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <label className="flex items-center gap-2 text-xs text-white/70">
+    <div className="space-y-3 rounded-2xl bg-white/[.06] p-4 ring-1 ring-gold/30">
+      <p className="font-bold text-gold">القرار</p>
+      <label className="flex flex-wrap items-center gap-2 text-sm text-white/80">
         فئة رئيسها
-        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={`فئة رئيس ${groupName(x.g.number)}`} className={cn(sizedInput, "h-9 w-36 [&>option]:text-ink")}>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label={`فئة رئيس ${groupName(x.g.number)}`} className={cn(sizedInput, "h-9 w-40 [&>option]:text-ink")}>
           {s.categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -418,49 +410,20 @@ function Decision({ x, onApprove, onReturn }: { x: GroupRow; onApprove: (categor
           ))}
         </select>
       </label>
-      <Button size="sm" variant="gold" disabled={!x.complete || !category} onClick={() => onApprove(category)}>
-        <BadgeCheck className="size-4" /> اعتماد المجموعة
-      </Button>
-      <Button size="sm" variant="glass" onClick={onReturn}>
-        <CornerDownLeft className="size-4" /> إعادة إلى رئيسها
-      </Button>
-      {!x.complete && <span className="text-xs font-bold text-gold">لا تُعتمد قبل اكتمال شروطها: أعدها إلى رئيسها بما ينقصها.</span>}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="gold" disabled={!x.complete || !category} onClick={() => onApprove(category)}>
+          <BadgeCheck className="size-4" /> اعتماد المجموعة
+        </Button>
+        <Button size="sm" variant="glass" onClick={onReturn}>
+          <CornerDownLeft className="size-4" /> إعادة إلى رئيسها
+        </Button>
+      </div>
+      {!x.complete && <p className="text-xs font-bold text-gold">لا تُعتمد قبل اكتمال شروطها: أعدها إلى رئيسها بما ينقصها.</p>}
     </div>
   );
 }
 
-function RequestCard({ x, delay, onApprove, onReturn, onOpen }: { x: GroupRow; delay: number; onApprove: (category: string) => void; onReturn: () => void; onOpen: () => void }) {
-  const categoryName = useCategoryName();
-  return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="space-y-4 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-display text-2xl font-bold text-white">{groupName(x.g.number)}</h3>
-          <p className="text-sm text-white/85">
-            رئيسها: {x.row.name}
-            {x.category && <> · {categoryName(x.category)}</>}
-          </p>
-        </div>
-        <Chip tone={x.complete ? "green" : "gold"}>{x.complete ? "مكتملة الشروط" : "ناقصة"}</Chip>
-      </div>
-      <Checks x={x} />
-      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/70">
-        <span>قُدّم {fmtDateTime(x.g.requestedAt)}</span>
-        {x.g.feePaidAt && (
-          <span className="flex items-center gap-1">
-            <Receipt className="size-3" /> {adminReceipt(x.row.id, "G", x.g.number)}
-          </span>
-        )}
-        <button type="button" onClick={onOpen} className="font-bold text-gold hover:underline">
-          ورقتها وسجلّها
-        </button>
-      </p>
-      <Decision x={x} onApprove={onApprove} onReturn={onReturn} />
-    </motion.div>
-  );
-}
-
-/** One group whole: its request, its conditions, its team, the decision on it and its history */
+/** One group whole: its request, its conditions, the decision on it and its history */
 function GroupSheet({ x, clusterName, onApprove, onReturn }: { x: GroupRow; clusterName?: string; onApprove: (category: string) => void; onReturn: () => void }) {
   const g = x.g;
   const s = useStructure();
@@ -468,9 +431,10 @@ function GroupSheet({ x, clusterName, onApprove, onReturn }: { x: GroupRow; clus
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Chip tone={GROUP_STATE[x.state].tone}>{GROUP_STATE[x.state].label}</Chip>
-        {clusterName && <Chip tone="green">{clusterName}</Chip>}
+        <Tag tone={GROUP_STATE[x.state].tone}>{GROUP_STATE[x.state].label}</Tag>
+        {clusterName && <Tag tone="green">{clusterName}</Tag>}
       </div>
+      {x.state === "waiting" && <Decision x={x} onApprove={onApprove} onReturn={onReturn} />}
       <InfoGrid
         rows={[
           ["رئيسها", x.row.name],
@@ -486,7 +450,6 @@ function GroupSheet({ x, clusterName, onApprove, onReturn }: { x: GroupRow; clus
           أعادها {g.returned.by} — {fmtDateTime(g.returned.at)}: {g.returned.note}
         </p>
       )}
-      {x.state === "waiting" && <Decision x={x} onApprove={onApprove} onReturn={onReturn} />}
       <RecordHistory system="admins" refId={String(g.number)} />
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import { BedDouble, BriefcaseBusiness, CalendarRange, ChevronDown, Clock, FileText, Hotel as HotelIcon, MapPin, Phone, Tent, UserRound, UsersRound } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { BedDouble, BriefcaseBusiness, CalendarRange, Clock, FileText, Hotel as HotelIcon, MapPin, Phone, Tent, UserRound, UsersRound } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
 import { useClusters } from "@/lib/cms/content";
 import {
   CADENCE_LABEL,
@@ -27,6 +27,7 @@ import {
 import { cn, formatNumber } from "@/lib/utils";
 import { Empty, Panel, fmtDate, useNow } from "../_components/kit";
 import { Avatar, Chip } from "../_components/ops-ui";
+import { Box } from "../_components/wp";
 
 /** One post a person holds, with the nodes around it */
 type Seat = { file: OpFile; type: FileType; role: Role; assignment: Assignment; outer?: OuterNode; inner?: InnerNode };
@@ -62,14 +63,13 @@ const STATE: Record<FileState, { label: string; tone: "gold" | "green" | "muted"
  * What an employee sees about his own field work: every post he holds in the season's operational
  * files — the tower or camp, the role and its job description, whom he reports to, who works beside
  * him (with their numbers), where he sleeps and whose pilgrims he serves — plus a timeline of where
- * he will be and when. Past seasons are kept below.
+ * he will be and when. Past seasons wait closed at the end.
  */
 export function MyFiles({ employee }: { employee: Employee }) {
   const files = useOpFiles();
   const seats = useMemo(() => seatsOf(employee.id, files), [employee.id, files]);
   const current = seats.filter((s) => s.file.season === CURRENT_SEASON);
   const past = seats.filter((s) => s.file.season < CURRENT_SEASON);
-  const [showPast, setShowPast] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -91,21 +91,13 @@ export function MyFiles({ employee }: { employee: Employee }) {
       )}
 
       {past.length > 0 && (
-        <Panel>
-          <button onClick={() => setShowPast((v) => !v)} className="flex w-full items-center justify-between gap-3 text-right" aria-expanded={showPast}>
-            <span className="font-display text-lg font-bold text-white">مواقعك في المواسم السابقة</span>
-            <span className="flex items-center gap-1 text-xs font-bold text-gold">
-              {past.length} <ChevronDown className={cn("size-4 transition", showPast && "rotate-180")} />
-            </span>
-          </button>
-          {showPast && (
-            <div className="mt-4 space-y-4">
-              {past.map((s, i) => (
-                <SeatCard key={`${s.file.id}-${s.role.code}-${s.inner?.id ?? s.outer?.id ?? "file"}`} seat={s} self={employee.id} index={i} compact />
-              ))}
-            </div>
-          )}
-        </Panel>
+        <Box title={`مواقعك في المواسم السابقة (${past.length})`} open={false}>
+          <div className="space-y-4">
+            {past.map((s, i) => (
+              <SeatCard key={`${s.file.id}-${s.role.code}-${s.inner?.id ?? s.outer?.id ?? "file"}`} seat={s} self={employee.id} index={i} compact />
+            ))}
+          </div>
+        </Box>
       )}
     </div>
   );

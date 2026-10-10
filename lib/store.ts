@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import type { Member } from "./rules";
 import type { DrawPick } from "./lottery";
 import type { Accommodation } from "./rooms";
+import type { Answers, AppPolicy, RegState } from "./registration/types";
 
 export type Account = {
   nationalId: string;
@@ -57,6 +58,17 @@ export type Application = {
    * pilgrims in the coordinator's group — groups are joined only in the assignment window.
    */
   submittedBy?: { id: string; name: string; position: string };
+  /** The Hijri season it was filed in (1448 when absent: applications from before seasons were kept) */
+  season?: number;
+  /** The registration version it was started on (lib/registration): its stages, questions and steps */
+  configVersion?: string;
+  /** The season's terms frozen at submission: what it owes and what decided it never move afterwards */
+  policy?: AppPolicy;
+  /** Answers to the version's own questions, by question key; per member by national id */
+  answers?: Answers;
+  memberAnswers?: Record<string, Answers>;
+  /** The confirmed payment it was submitted against (lib/registration: the ledger) */
+  paymentRef?: string;
 };
 
 // ───────────── Staff, administrators, operations (phase 2) ─────────────
@@ -260,6 +272,8 @@ export type PostAcceptance = {
   health?: HealthFile;
   /** Medical documents — asked only after the full amount is paid. key: `${nationalId}-${doc}` */
   medical?: Record<string, DocStatus>;
+  /** Why the medical team sent a document back, by the same key, for the pilgrim to fix and upload again */
+  medicalNotes?: Record<string, string>;
   /**
    * Where the request sleeps: the shared accommodation (men and women apart, no extra cost), or one private
    * room for the whole request with as many beds as people, priced per person by the group's cluster
@@ -270,6 +284,8 @@ export type PostAcceptance = {
   contractSignedAt?: number;
   visaAt?: number;
   ratings: Record<string, number>;
+  /** Steps the administration added (an acknowledgement, questions): when done, and what was answered */
+  custom?: Record<string, { at: number; answers?: Answers; memberAnswers?: Record<string, Answers> }>;
 };
 
 /** Seasonal administrator journey (الجزء الثاني), keyed by national id */
@@ -550,6 +566,12 @@ export type ApplyDraft = {
   maxPhase: number;
   /** key: companion national id */
   consents: Record<string, Consent>;
+  /** The registration version this application was started on: it keeps it until it is submitted */
+  configVersion?: string;
+  answers?: Answers;
+  memberAnswers?: Record<string, Answers>;
+  /** Filing for someone else: his consent by the code sent to his phone, as the service recorded it */
+  applicantConsent?: { personId: string; at: number; via: "sms" };
 };
 
 /** Simulated in-season position for the pilgrim "حالتي الآن" mode */
@@ -656,6 +678,11 @@ export type State = {
    * and when she last looked at each file's important events. A missing list means the accounts as opened.
    */
   systems: { grants?: Record<string, { staffId: string; at?: number; by?: string }[]>; seen?: Record<string, number> };
+  /**
+   * The Hajj registration as configuration (lib/registration): the seasons, each one's working draft, the
+   * versions published, and the payments the providers confirmed
+   */
+  registration: RegState;
   tourSeen: boolean;
 };
 
@@ -777,6 +804,7 @@ const initial: State = {
   flights: {},
   examHalls: { runs: {} },
   systems: {},
+  registration: { drafts: {}, versions: [], ledger: {} },
   tourSeen: false,
 };
 
@@ -840,6 +868,12 @@ function normalize(s: State): State {
     adminRefs: obj(s.adminRefs) as AdminRefs,
     clock: obj(s.clock) as State["clock"],
     operations: obj(s.operations) as State["operations"],
+    registration: {
+      seasons: Array.isArray(obj(s.registration).seasons) ? (obj(s.registration).seasons as RegState["seasons"]) : undefined,
+      drafts: obj(obj(s.registration).drafts) as RegState["drafts"],
+      versions: list(obj(s.registration).versions) as RegState["versions"],
+      ledger: obj(obj(s.registration).ledger) as RegState["ledger"],
+    },
   };
 }
 
@@ -969,8 +1003,12 @@ export const actions = {
     });
   },
   /** Autosave of the application being filled in. Approvals are kept as they are: companions answer from outside the page */
-  saveDraft(sessionId: string, draft: Omit<ApplyDraft, "updatedAt" | "consents">, at: number) {
-    setState((s) => ({ ...s, drafts: { ...s.drafts, [sessionId]: { ...draft, consents: s.drafts[sessionId]?.consents ?? {}, updatedAt: at } } }));
+  saveDraft(sessionId: string, draft: Omit<ApplyDraft, "updatedAt" | "consents" | "applicantConsent">, at: number) {
+    // The approvals are the service's to record: what the page sends never touches them
+    setState((s) => {
+      const prev = s.drafts[sessionId];
+      return { ...s, drafts: { ...s.drafts, [sessionId]: { ...draft, consents: prev?.consents ?? {}, applicantConsent: prev?.applicantConsent, configVersion: prev?.configVersion ?? draft.configVersion, updatedAt: at } } };
+    });
   },
   /** Send (or resend, or withdraw with null) one companion's approval request */
   setConsent(ownerId: string, personId: string, consent: Consent | null) {

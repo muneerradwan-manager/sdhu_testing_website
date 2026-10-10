@@ -11,18 +11,29 @@ import { Modal, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
 import { GROUP } from "@/lib/journey";
 import { fullName } from "@/lib/registry";
-import { actions } from "@/lib/store";
+import { usePinnedVersion } from "@/lib/registration/client";
+import { linesUpTo } from "@/lib/registration/post";
+import { run } from "@/lib/registration/run";
+import { payPostLines } from "@/lib/registration/service";
 import { cn, formatUSD } from "@/lib/utils";
 import { Question } from "../../../apply/_components/ui";
-import { paidAt, type CostLine } from "./model";
+import { paidAt, useRoomCost, type CostLine } from "./model";
 import { AccommodationChoice } from "./step-group";
 import { applicantOf, logPilgrim, type StepProps } from "./shared";
 
 const hijriPaid = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit" }).format(at) : "");
 
-export function StepPayment({ app, post, sessionId, lines }: StepProps) {
+export function StepPayment({ app, post, sessionId, lines: all, stepLabel, def, steps }: StepProps) {
   const toast = useToast();
   const [paying, setPaying] = useState<CostLine[] | null>(null);
+  const room = useRoomCost(app, post);
+  // What this step takes: everything due at it or before it, by the application's version
+  const lines = def && steps ? linesUpTo(def.id, steps, all) : all;
+  const fees = app.policy?.fees;
+  const plan = app.plan ?? seasonPlan(fees);
+  const extrasHere = !def || (fees?.extrasStep ?? "payment") === def.id;
+  const version = usePinnedVersion(app.configVersion, app.season);
+  const methods = (["shamcash", "bank"] as const).filter((m) => version.config.payments.methods[m]);
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const open = lines.filter((l) => !paidAt(l, app, post));
   const remaining = open.reduce((a, l) => a + l.amount, 0);
@@ -30,15 +41,21 @@ export function StepPayment({ app, post, sessionId, lines }: StepProps) {
 
   return (
     <Question
-      step="الخطوة 4 من 7"
+      step={stepLabel ?? "الخطوة 4 من 7"}
       title={`بقي عليك: ${formatUSD(remaining)}`}
-      hint={`حددت الإدارة لهذا الموسم: ${planLabel(app.plan ?? seasonPlan())}. انضممتم إلى مجموعة، فحان موعد ${(app.plan ?? seasonPlan()) === 1 ? "الهدي والسكن الخاص إن اخترتموه" : "الدفعة الثانية مع الهدي والسكن الخاص إن اخترتموه"}. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
+      hint={
+        def?.kind === "installment"
+          ? `حددت الإدارة لهذا الموسم: ${planLabel(plan, fees)}. حان موعد ${lines.filter((l) => l.dueStep === def.id).map((l) => l.title).join(" و") || "الدفعة"}.`
+          : `حددت الإدارة لهذا الموسم: ${planLabel(plan, fees)}. انضممتم إلى مجموعة، فحان موعد ${plan === 1 ? "الهدي والسكن الخاص إن اخترتموه" : "الدفعة الثانية مع الهدي والسكن الخاص إن اخترتموه"}. بعد اكتمال الدفع تُطلب الوثائق الطبية.`
+      }
       speak={`بقي عليك ${remaining} دولاراً، تُدفع الآن بعد انضمامك إلى المجموعة. بعد اكتمال الدفع تُطلب الوثائق الطبية.`}
     >
       {/* Where the family sleeps decides the last line of the statement: chosen here, before paying */}
-      <div className="mb-5">
-        <AccommodationChoice app={app} post={post} sessionId={sessionId} />
-      </div>
+      {extrasHere && (
+        <div className="mb-5">
+          <AccommodationChoice app={app} post={post} sessionId={sessionId} />
+        </div>
+      )}
 
       {/* Statement */}
       <div className="overflow-hidden rounded-3xl border border-gold/40 bg-white">
@@ -123,9 +140,15 @@ export function StepPayment({ app, post, sessionId, lines }: StepProps) {
         {paying && (
           <PayFlow
             items={paying}
+            methods={[...methods]}
             onPaid={(method) => {
-              const at = Date.now();
-              actions.setPost(sessionId, { payments: { ...post.payments, ...Object.fromEntries(paying.map((l) => [l.key, at])) } });
+              // The service checks each line is owed and due at a step reached, and records the payment
+              const r = run((s) => payPostLines(s, sessionId, paying.map((l) => l.key), method, room, Date.now()));
+              if (!r.ok) {
+                toast({ title: "لم يُسجَّل الدفع", body: r.errors[0].message, icon: "⚠️", tone: "gold" });
+                setPaying(null);
+                return;
+              }
               logPilgrim(app, `تسديد ${paying.map((l) => l.title).join(" + ")}`, `${formatUSD(paying.reduce((a, l) => a + l.amount, 0))} — ${payMethodLabel(method)} — ${paying.map((l) => l.receipt).join("، ")}`);
               if (paying.length === open.length) toast({ title: "اكتمل دفع المبلغ كاملاً", body: "التالي: جواز السفر لكل فرد.", icon: "🎉", tone: "gold" });
               setPaying(null);
@@ -136,7 +159,7 @@ export function StepPayment({ app, post, sessionId, lines }: StepProps) {
     </Question>
   );
 }
-function PayFlow({ items, onPaid }: { items: CostLine[]; onPaid: (m: PayMethod) => void }) {
+function PayFlow({ items, onPaid, methods }: { items: CostLine[]; onPaid: (m: PayMethod) => void; methods?: PayMethod[] }) {
   const line = items.length === 1 ? items[0] : { ...items[0], title: "المتبقي كله", detail: items.map((l) => l.title).join(" + "), amount: items.reduce((a, l) => a + l.amount, 0) };
   const toast = useToast();
   const [method, setMethod] = useState<PayMethod | null>(null);
@@ -175,7 +198,7 @@ function PayFlow({ items, onPaid }: { items: CostLine[]; onPaid: (m: PayMethod) 
         {line.title}: {formatUSD(line.amount)}
       </p>
       <p className="mb-5 text-ink-soft">{line.detail}</p>
-      <PayMethods amount={line.amount} reference={line.receipt} bankReference={line.receipt.replace("-P-", "-BANK-")} onConfirm={pay} />
+      <PayMethods amount={line.amount} reference={line.receipt} bankReference={line.receipt.replace("-P-", "-BANK-")} onConfirm={pay} methods={methods} />
     </div>
   );
 }

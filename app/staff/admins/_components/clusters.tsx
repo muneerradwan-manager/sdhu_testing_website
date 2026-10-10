@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
-import { Archive, ArchiveRestore, BadgeCheck, Building2, CalendarClock, Check, CircleDashed, Download, ExternalLink, Eye, Inbox, PencilRuler, Plus, Printer, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus, UsersRound, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Archive, ArchiveRestore, BadgeCheck, Check, CircleDashed, Download, ExternalLink, Eye, Plus, Printer, RotateCcw, Send, UserMinus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
@@ -19,46 +19,62 @@ import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
 import { DEPUTY_TITLE, ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, newCluster, reviewCluster, roleOfPerson, useFormingSeason, useGroupPool, usePicks, writeCluster, type Cluster, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { categoryOf, categoryOfId, does, roleName, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useCadreRows } from "./cadre";
-import { Drawer, Empty, Panel, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { RecordHistory } from "../../_components/system";
+import { AddButton, Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
+import { Filters, Help, Lead, NotFound, SaveLine, TitleCell, Views, useHrefWith, useOpenId, useView } from "./ui";
+import { logAdmins, useAdminsDesk, type AdminsDesk, type OutsideGroup } from "../desk";
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
-import { Chip } from "../../_components/ops-ui";
-import { RecordHistory, SystemRecords } from "../../_components/system";
-import { logAdmins, useAdminsDesk, type AdminsDesk, type OutsideGroup } from "../desk";
+const CLUSTERS = "/staff/admins/manage/clusters";
+
+const VIEWS = ["requests", "outside", "programmes", "archived"] as const;
 
 /**
- * The clusters, as the administration's platform runs them. Whoever holds a role that leads a cluster files
- * a request in its dates — alongside the pilgrims joining the groups — fills it in its order and sends it
- * once complete. The holder opens its review («جاري المراجعة»), then approves it or sends it back with notes
- * its head fixes and sends again before the final deadline; an approved one can be opened again for its head.
- * Outside the rules he edits a request himself («تعديل استثنائي»), always with its reason — that is how a
- * group left outside every cluster is added to one. Then each head writes his cluster's programme, which
- * reaches the pilgrims only once the holder approves it.
+ * «طلبات التكتلات» — the cluster requests as a site's list, each opening on its own review screen (`?id=`): its
+ * report, its checks and the exceptional edits in the middle; the decision, printing and the archive on the side.
+ * The page's other views (`?v=`) are the approved groups left outside every cluster, the clusters' programmes
+ * waiting for approval, and the archive. The requests' dates wait closed at the end of the page.
  */
 export function ClustersTab() {
   const desk = useAdminsDesk();
-  const [open, setOpen] = useState<string | null>(null);
-  const sheet = desk.requests.find((x) => x.cluster.id === open);
-
+  const id = useOpenId();
+  const view = useView("v", VIEWS);
+  if (id) return <RequestScreen id={id} desk={desk} />;
   return (
-    <div className="space-y-6">
-      <WindowPanel desk={desk} />
-      <Requests desk={desk} onOpen={setOpen} />
-      <Outside desk={desk} />
-      <Programmes desk={desk} />
-      <SystemRecords system="admins" area="clusters" title="سجل التكتلات" />
-      <Drawer open={!!sheet} onClose={() => setOpen(null)} title={sheet?.cluster.name ?? ""} width="max-w-3xl">
-        {sheet && <RequestSheet x={sheet} />}
-      </Drawer>
+    <div className="space-y-5">
+      <Views
+        param="v"
+        value={view}
+        label="طلبات التكتلات"
+        items={[
+          { key: "requests", label: "الطلبات", count: desk.live.length },
+          { key: "outside", label: "مجموعات خارج التكتلات", count: desk.outside.length },
+          { key: "programmes", label: "برامج التكتلات", count: desk.pendingProgrammes.length },
+          { key: "archived", label: "المؤرشفة", count: desk.archivedClusters.length },
+        ]}
+      />
+      {(view === "requests" || view === "archived") && <Requests key={view} desk={desk} shelf={view === "archived" ? "archived" : "live"} />}
+      {view === "outside" && <Outside desk={desk} />}
+      {view === "programmes" && <Programmes desk={desk} />}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <WindowBox desk={desk} />
+        <Help>
+          <p>لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات ومقاعدها، معاون التكتل، المنسقون والموجّهات، النائب، المحاسب — ويرسله بعد اكتماله.</p>
+          <p>تبدأ مراجعة الطلب، ثم تعتمده أو تعيده بملاحظات يصلحها رئيسه ويعيد إرساله قبل الموعد النهائي. وخارج الضوابط تعدّله بنفسك «تعديلاً استثنائياً» بسبب يُكتب في سجله وسجل الشخص.</p>
+          <p>ثم يكتب كل رئيس برنامج تكتله، ولا يصل إلى الحجاج قبل أن تعتمده.</p>
+        </Help>
+      </div>
+      <RecordsBox system="admins" area="clusters" title="سجل التكتلات" />
     </div>
   );
 }
 
 // ───────────────────────── The window ─────────────────────────
 
-/** The requests' dates — the opening, the early deadline that earns the timeliness badge, the final one — and where they stand */
-function WindowPanel({ desk }: { desk: AdminsDesk }) {
+/** The requests' dates — the opening, the early deadline that earns the timeliness badge, the final one — and the early one set here */
+function WindowBox({ desk }: { desk: AdminsDesk }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const s = useStructure();
@@ -71,50 +87,37 @@ function WindowPanel({ desk }: { desk: AdminsDesk }) {
     toast({ title: "حُفظ الموعد الأول", body: `ما يُرسل حتى ${dayTimeLabel(early, earlyTime, true)} ينال شارة الالتزام بالمواعيد.`, tone: "success", icon: "💾" });
   };
   return (
-    <Panel icon={<CalendarClock />} title="مواعيد الاستقبال" action={<Chip tone={w.state === "closed" ? "gold" : w.state === "before" ? "muted" : "green"}>{w.state === "before" ? `تفتح ${dayTimeLabel(w.op.start, w.op.startTime)}` : w.state === "closed" ? `انتهت ${dayTimeLabel(w.op.end, w.op.endTime)}` : `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime)}`}</Chip>}>
-      <p className="text-sm leading-7 text-white/75">
-        لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات ومقاعدها، معاون التكتل، المنسقون والموجّهات، النائب، المحاسب — ويرسله بعد اكتماله. لا يُرسل شيء قبل ساعة البدء ولا بعد ساعة الموعد النهائي، وما يُرسل حتى الموعد الأول ينال «شارة الالتزام بالمواعيد». البدء والنهائي من عملية «تشكيل التكتلات» في «قواعد الإداريين»؛ والموعد الأول هنا.
+    <Box title="مواعيد الاستقبال" open={false}>
+      <p>
+        <Tag tone={w.state === "closed" ? "gold" : w.state === "before" ? "muted" : "green"}>{w.state === "before" ? `تفتح ${dayTimeLabel(w.op.start, w.op.startTime)}` : w.state === "closed" ? `انتهت ${dayTimeLabel(w.op.end, w.op.endTime)}` : `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime)}`}</Tag>
       </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-5">
-        {[
-          ["الطلبات", desk.live.length],
-          ["مسودات", desk.drafts.length],
-          ["قيد المراجعة", desk.sent.length + desk.reviewing.length],
-          ["معتمدة", desk.approvedClusters.length],
-          ["أُعيدت بملاحظات", desk.rejected.length],
-        ].map(([k, v]) => (
-          <div key={k} className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-            <p className="text-xs text-white/60">{k}</p>
-            <p className="font-display text-2xl font-bold text-gold">{v}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
+      <ul className="space-y-1">
         {[
           ["البدء", dayTimeLabel(w.op.start, w.op.startTime ?? "00:00", true)],
           ["الموعد الأول (شارة الالتزام)", dayTimeLabel(s.earlyDeadline, s.earlyTime, true)],
           ["الموعد النهائي", dayTimeLabel(w.op.end, w.op.endTime ?? "23:59", true)],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-xl bg-black/20 px-3 py-2">
-            <p className="text-white/55">{k}</p>
-            <p className="font-bold text-white">{v}</p>
-          </div>
+          <li key={k} className="flex flex-wrap justify-between gap-2">
+            <span className="text-white/60">{k}</span>
+            <b className="text-white">{v}</b>
+          </li>
         ))}
-      </div>
-      <div className="mt-4 flex flex-wrap items-end gap-3">
+      </ul>
+      <p className="text-xs leading-6 text-white/55">
+        البدء والنهائي من عملية «تشكيل التكتلات» في <Link href="/staff/admins/manage" className="font-bold text-gold hover:underline">«قواعد الإداريين»</Link>. والموعد الأول هنا: ما يُرسل حتى ساعته ينال «شارة الالتزام بالمواعيد».
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
         <label className="block">
           <span className="mb-1 block text-xs text-white/60">الموعد الأول: اليوم</span>
-          <input type="date" value={early} onChange={(e) => setEarly(e.target.value)} className={cn(sizedInput, "w-44 [color-scheme:dark]")} dir="ltr" />
+          <input type="date" value={early} onChange={(e) => setEarly(e.target.value)} className={cn(sizedInput, "w-40 [color-scheme:dark]")} dir="ltr" />
         </label>
         <label className="block">
           <span className="mb-1 block text-xs text-white/60">والساعة</span>
           <input type="time" value={earlyTime} onChange={(e) => setEarlyTime(e.target.value || "23:59")} className={cn(sizedInput, "w-28 [color-scheme:dark]")} dir="ltr" />
         </label>
-        <Button size="sm" variant="glass" disabled={early === s.earlyDeadline && earlyTime === s.earlyTime} onClick={save}>
-          حفظ
-        </Button>
       </div>
-    </Panel>
+      <SaveLine dirty={early !== s.earlyDeadline || earlyTime !== s.earlyTime} onSave={save} label="حفظ الموعد الأول" />
+    </Box>
   );
 }
 
@@ -131,93 +134,75 @@ const FILTERS: { key: "all" | Cluster["status"]; label: string }[] = [
 
 const TONE: Record<Cluster["status"], "green" | "gold" | "maroon" | "muted"> = { draft: "muted", pending: "gold", reviewing: "gold", approved: "green", rejected: "maroon" };
 
-function Requests({ desk, onOpen }: { desk: AdminsDesk; onOpen: (id: string) => void }) {
+function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived" }) {
   const s = useStructure();
+  const router = useRouter();
+  const hrefWith = useHrefWith();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
-  const [shelf, setShelf] = useState<"live" | "archived">("live");
   const [tier, setTier] = useState("");
   const [creating, setCreating] = useState(false);
   const pool = shelf === "live" ? desk.live : desk.archivedClusters;
   const inTier = pool.filter((r) => !tier || r.cluster.tier === tier);
   const list = inTier.filter((r) => filter === "all" || r.status === filter);
   return (
-    <div id="requests" className="scroll-mt-24">
-      <Panel
-        icon={<Building2 />}
-        title="التكتلات المُرسلة"
-        action={
-          <span className="flex flex-wrap items-center gap-2">
-            <Chip tone="gold">{desk.live.length}</Chip>
-            <Button size="sm" variant="gold" onClick={() => setCreating(true)}>
-              <UserPlus className="size-4" /> إنشاء تشكيل نيابة عن قائد
-            </Button>
-          </span>
-        }
-      >
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex rounded-xl bg-black/20 p-1" role="group" aria-label="النشطة والمؤرشفة">
-            {(
-              [
-                ["live", `النشطة (${desk.live.length})`],
-                ["archived", `المؤرشفة (${desk.archivedClusters.length})`],
-              ] as const
-            ).map(([k, l]) => (
-              <button key={k} type="button" aria-pressed={shelf === k} onClick={() => setShelf(k)} className={cn("rounded-lg px-3 py-1.5 text-xs font-bold", shelf === k ? "bg-gold text-ink" : "text-white/75 hover:text-white")}>
-                {l}
-              </button>
-            ))}
-          </div>
-          <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="المستوى" className={cn(sizedInput, "h-9 w-44 text-sm [&>option]:text-ink")}>
-            <option value="">كل المستويات</option>
-            {s.tiers.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} ({pool.filter((r) => r.cluster.tier === t.id).length})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="mb-4 flex flex-wrap gap-2">
-          {FILTERS.map((f) => (
-            <button key={f.key} type="button" onClick={() => setFilter(f.key)} className={cn("rounded-full px-3 py-1.5 text-xs font-bold ring-1", filter === f.key ? "bg-gold text-green-dark ring-gold" : "bg-white/5 text-white/80 ring-white/15")}>
-              {f.label} ({f.key === "all" ? inTier.length : inTier.filter((r) => r.status === f.key).length})
-            </button>
+    <div className="space-y-4">
+      <Title action={shelf === "live" && <AddButton onClick={() => setCreating(true)}>إنشاء تشكيل نيابة عن قائد</AddButton>}>{shelf === "live" ? "طلبات تشكيل التكتلات" : "التشكيلات المؤرشفة"}</Title>
+      <Lead>{shelf === "live" ? "افتح الطلب لمراجعته: ابدأ المراجعة، ثم اعتمده أو أعده إلى رئيسه بملاحظات." : "تشكيلات أُرشفت واحداً واحداً، أو كلها عند «بدء موسم جديد» في «التكتلات والمجموعات»."}</Lead>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Filters label="حال الطلبات" value={filter} onChange={setFilter} items={FILTERS.map((f) => ({ ...f, count: f.key === "all" ? inTier.length : inTier.filter((r) => r.status === f.key).length }))} />
+        <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="المستوى" className={cn(sizedInput, "h-9 w-44 text-sm [&>option]:text-ink")}>
+          <option value="">كل المستويات</option>
+          {s.tiers.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name} ({pool.filter((r) => r.cluster.tier === t.id).length})
+            </option>
           ))}
-        </div>
-        {list.length === 0 ? (
-          <Empty icon={<Inbox />} title={shelf === "archived" ? "لا تشكيلات مؤرشفة" : "لا طلبات"} text={shelf === "archived" ? "تُؤرشف التشكيلات المعتمدة واحداً واحداً من الطلب نفسه، أو كلها معاً عند «بدء موسم جديد» في «التكتلات والمجموعات»." : "يقدّمها من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية في مدة تشكيل التكتلات، أو تنشئها الإدارة نيابة عنه."} />
-        ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
-            {list.map((r) => (
-              <li key={r.cluster.id}>
-                <button type="button" onClick={() => onOpen(r.cluster.id)} className={cn("w-full rounded-2xl p-4 text-right ring-1 transition hover:ring-gold/50", r.status === "rejected" ? "bg-maroon/15 ring-maroon/40" : "bg-white/5 ring-white/10")}>
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-display text-xl font-bold text-gold">{r.cluster.name}</p>
-                    <span className="flex flex-wrap justify-end gap-1">
-                      <Chip tone={TONE[r.status]}>{STATUS[r.status].label}</Chip>
-                      {r.archived && <Chip>مؤرشف — {r.archived.season}</Chip>}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-white/85">
-                    الرئيس: {r.headName} — {s.tiers.find((t) => t.id === r.cluster.tier)?.name ?? "بلا مستوى"} — {r.branches.join("، ")} — موسم {r.season}
-                  </p>
-                  <p className="text-sm text-white/85">
-                    {DEPUTY_TITLE}: {r.cluster.deputy?.status === "accepted" ? r.cluster.deputy.name : <b className="text-gold">لم يقبل أحد بعد</b>}
-                  </p>
-                  <p className="mt-2 text-xs text-white/60">{requestLine(r)}</p>
-                  <p className="mt-1 flex flex-wrap gap-1.5 text-xs">
-                    {r.complete ? <Chip tone="green">مكتمل الشروط</Chip> : <Chip tone="gold">ناقص: {r.checks.filter((c) => !c.ok && !c.warn).length}</Chip>}
-                    {r.cluster.byAdministration && <Chip tone="gold">🛠️ أُنشئ من الإدارة</Chip>}
-                    {r.badges.timeliness && <Chip>⏱️ ملتزم بالمواعيد</Chip>}
-                    {r.badges.guidance && <Chip>🧭 التميّز في التوجيه</Chip>}
-                    {r.badges.age && <Chip>🌟 العمر</Chip>}
-                  </p>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-      <OnBehalf open={creating} onClose={() => setCreating(false)} desk={desk} onCreated={onOpen} />
+        </select>
+      </div>
+      <ListTable head={["التكتل", "رئيسه", "المستوى", "الفروع", "الشروط", "الحالة"]} minWidth="52rem">
+        {list.length === 0 && <EmptyRow cols={6}>{shelf === "archived" ? "لا تشكيلات مؤرشفة." : "لا طلبات هنا. يقدّمها من يحمل صفة «رئيس تكتل» في مدة تشكيل التكتلات، أو تنشئها الإدارة نيابة عنه."}</EmptyRow>}
+        {list.map((r) => {
+          const href = hrefWith({ id: r.cluster.id });
+          return (
+            <tr key={r.cluster.id} className={cn(r.status === "rejected" && "bg-maroon/10")}>
+              <TitleCell
+                title={r.cluster.name}
+                href={href}
+                sub={
+                  <>
+                    {requestLine(r)}
+                    {(r.cluster.byAdministration || r.badges.timeliness || r.badges.guidance || r.badges.age) && (
+                      <span className="block text-white/45">{[r.cluster.byAdministration && "🛠️ أُنشئ من الإدارة", r.badges.timeliness && "⏱️ ملتزم بالمواعيد", r.badges.guidance && "🧭 التميّز في التوجيه", r.badges.age && "🌟 العمر"].filter(Boolean).join(" · ")}</span>
+                    )}
+                  </>
+                }
+                actions={
+                  <RowActions>
+                    <RowLink href={href}>{r.status === "pending" || r.status === "reviewing" ? "مراجعة" : "فتح"}</RowLink>
+                    <RowLink onClick={() => exportCluster(r)}>Excel</RowLink>
+                  </RowActions>
+                }
+              />
+              <td className="p-3 align-top">
+                {r.headName}
+                <span className="block text-xs text-white/55">
+                  {DEPUTY_TITLE}: {r.cluster.deputy?.status === "accepted" ? r.cluster.deputy.name : <b className="text-gold">لم يقبل أحد</b>}
+                </span>
+              </td>
+              <td className="p-3 align-top text-white/80">{s.tiers.find((t) => t.id === r.cluster.tier)?.name ?? "بلا مستوى"}</td>
+              <td className="p-3 align-top text-white/80">{r.branches.join("، ")}</td>
+              <td className="p-3 align-top">{r.complete ? <Tag tone="green">مكتمل</Tag> : <Tag tone="gold">ناقص: {r.checks.filter((c) => !c.ok && !c.warn).length}</Tag>}</td>
+              <td className="p-3 align-top">
+                <span className="flex flex-wrap gap-1">
+                  <Tag tone={TONE[r.status]}>{STATUS[r.status].label}</Tag>
+                  {r.archived && <Tag>مؤرشف — {r.archived.season}</Tag>}
+                </span>
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
+      <OnBehalf open={creating} onClose={() => setCreating(false)} desk={desk} onCreated={(id) => router.push(`${CLUSTERS}?id=${id}`)} />
     </div>
   );
 }
@@ -265,48 +250,74 @@ function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: 
     setReason("");
   };
   return (
-    <Modal open={open} onClose={onClose} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
-      <p className="text-xs font-bold text-gold">إنشاء تشكيل نيابة عن قائد</p>
-      <h3 className="mt-1 font-display text-xl font-bold">طلب تكتل باسم رئيسه</h3>
-      <p className="mt-1 text-sm leading-7 text-white/70">لمن يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ولم يقدّم طلباً. يبدأ مسودة فيها مجموعته، وتحمل شارة «أُنشئ من الإدارة».</p>
-      <div className="mt-4 space-y-3 text-sm">
-        <select value={who} onChange={(e) => { setWho(e.target.value); const l = leaders.find((x) => x.id === e.target.value); if (l && !name) setName(`تكتل ${l.name.split(" ")[0] === "الشيخ" ? l.name.split(" ")[1] : l.name.split(" ")[0]}`); }} aria-label="القائد" className={cn(smallInputClass, "[&>option]:text-ink")}>
-          <option value="">— اختر القائد ({leaders.length}) —</option>
-          {leaders.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name} — {l.seasonal ? `${roleName(l.seasonal.role, s)} موسمية` : roleName(l.primary, s)} — {l.branch}
-            </option>
-          ))}
-        </select>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم التكتل" aria-label="اسم التكتل" className={smallInputClass} />
-        <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="المستوى" className={cn(smallInputClass, "[&>option]:text-ink")}>
-          {s.tiers.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="السبب (إلزامي) — مثال: القائد خارج البلاد، وفوّض الإدارة بكتاب" aria-label="السبب" />
-      </div>
-      <div className="mt-4 flex gap-2">
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title="إنشاء تشكيل نيابة عن قائد"
+      width="max-w-lg"
+      footer={
         <Button variant="gold" disabled={!leader || name.trim().length < 3 || reason.trim().length < 3} onClick={create}>
           إنشاء المسودة
         </Button>
-        <Button variant="glass" onClick={onClose}>
-          إلغاء
-        </Button>
+      }
+    >
+      <p className="mb-4 text-sm leading-7 text-white/70">لمن يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ولم يقدّم طلباً. يبدأ مسودة فيها مجموعته، ويحمل شارة «أُنشئ من الإدارة».</p>
+      <div className="space-y-3 text-sm">
+        <label className="block">
+          <span className="mb-1 block text-xs text-white/60">القائد ({leaders.length})</span>
+          <select
+            value={who}
+            onChange={(e) => {
+              setWho(e.target.value);
+              const l = leaders.find((x) => x.id === e.target.value);
+              if (l && !name) setName(`تكتل ${l.name.split(" ")[0] === "الشيخ" ? l.name.split(" ")[1] : l.name.split(" ")[0]}`);
+            }}
+            className={cn(smallInputClass, "[&>option]:text-ink")}
+          >
+            <option value="">— اختر القائد —</option>
+            {leaders.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name} — {l.seasonal ? `${roleName(l.seasonal.role, s)} موسمية` : roleName(l.primary, s)} — {l.branch}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs text-white/60">اسم التكتل</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} className={smallInputClass} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs text-white/60">المستوى</span>
+          <select value={tier} onChange={(e) => setTier(e.target.value)} className={cn(smallInputClass, "[&>option]:text-ink")}>
+            {s.tiers.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs text-white/60">السبب (إلزامي)</span>
+          <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="مثال: القائد خارج البلاد، وفوّض الإدارة بكتاب" />
+        </label>
       </div>
-    </Modal>
+    </Drawer>
   );
 }
 
-/** One request whole: the review's step, its report, its checks, the exceptional edits, and its history */
-function RequestSheet({ x }: { x: ClusterRequest }) {
+// ───────────────────────── One request ─────────────────────────
+
+/** One request on its own screen: its checks, its report and the exceptional edits; the decision, printing and archive on the side */
+function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const hrefWith = useHrefWith();
   const admins = useStore((s) => s.admins);
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
+  const x = desk.requests.find((r) => r.cluster.id === id);
+  const back = hrefWith({ id: null });
+  if (!x) return <NotFound back={back} backLabel="طلبات التكتلات" what="هذا الطلب" />;
   const c = x.cluster;
   const act = (action: "review" | "approve" | "reject" | "reopen", why?: string) => {
     reviewCluster(x, action, user.name, admins, why);
@@ -332,79 +343,113 @@ function RequestSheet({ x }: { x: ClusterRequest }) {
     logAdmins(user, "clusters", { action: on ? "أرشفة تكتل معتمد" : "استعادة تكتل من الأرشيف", target: c.name, detail: `موسم ${x.season}`, ref: c.id, important: true });
     toast({ title: on ? `أُرشف ${c.name}` : `استُعيد ${c.name}`, body: on ? "يبقى في «التكتلات والمجموعات» بموسمه، ويخرج من عمل الموسم." : "عاد إلى التكتلات النشطة.", tone: "info", icon: on ? "🗄️" : "↩️" });
   };
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone={TONE[c.status]}>{STATUS[c.status].label}</Chip>
-        {x.archived && <Chip>مؤرشف — موسم {x.archived.season}</Chip>}
-        {c.byAdministration && <Chip tone="gold">🛠️ أُنشئ من الإدارة: {c.byAdministration.reason}</Chip>}
-        {c.sentAt && <span className="text-xs text-white/60">أُرسل {fmtDateTime(c.sentAt)}</span>}
-        {c.review && c.status !== "pending" && <span className="text-xs text-white/60">راجعه {c.review.by}</span>}
-        {c.decision && <span className="text-xs text-white/60">{c.decision.status === "approved" ? "اعتمده" : "أعاده"} {c.decision.by} — {fmtDateTime(c.decision.at)}</span>}
-      </div>
-      {c.decision?.note && <p className="rounded-2xl bg-maroon/25 p-3 text-sm leading-7 text-white ring-1 ring-maroon/50">ملاحظات الإعادة: {c.decision.note}</p>}
-
-      <div className="flex flex-wrap gap-2">
-        {c.status === "pending" && (
-          <Button size="sm" variant="gold" onClick={() => act("review")}>
-            <Eye className="size-4" /> بدء المراجعة
-          </Button>
-        )}
-        {c.status === "reviewing" && (
+    <div>
+      <EditHeader back={back} backLabel="طلبات التكتلات" title={c.name}>
+        رئيسه {x.headName} — موسم {x.season} — {requestLine(x)}
+      </EditHeader>
+      <EditLayout
+        main={
           <>
-            <Button size="sm" variant="gold" disabled={!x.complete} onClick={() => act("approve")}>
-              <BadgeCheck className="size-4" /> اعتماد
-            </Button>
-            <Button size="sm" variant="glass" onClick={() => setRejecting(true)}>
-              <X className="size-4" /> رفض مع ملاحظات
-            </Button>
+            {c.decision?.note && <p className="rounded-2xl bg-maroon/25 p-3 text-sm leading-7 text-white ring-1 ring-maroon/50">ملاحظات الإعادة: {c.decision.note}</p>}
+            <section className="space-y-2">
+              <h2 className="font-display text-lg font-bold text-gold">الشروط</h2>
+              <ul className="space-y-1.5 text-sm">
+                {x.checks.map((k) => (
+                  <li key={k.key} className={cn("flex items-start gap-2 rounded-xl px-3 py-2 ring-1", k.ok ? "bg-green-light/10 text-white ring-green-light/30" : k.warn ? "bg-gold/15 text-white ring-gold/40" : "bg-maroon/20 text-white ring-maroon/40")}>
+                    {k.ok ? <Check className="mt-0.5 size-4 shrink-0 text-green-light" /> : <CircleDashed className="mt-0.5 size-4 shrink-0 text-gold" />} {k.label}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <ClusterReport req={x} dark />
+            <PrintSheet>
+              <ClusterPrint req={x} />
+            </PrintSheet>
+            <Box title="تعديل استثنائي (خارج الضوابط المعتادة)" open={c.status === "draft" && !!c.byAdministration && !x.complete}>
+              <Exceptional x={x} />
+            </Box>
           </>
-        )}
-        {c.status === "approved" && (
-          <Button size="sm" variant="glass" onClick={() => act("reopen")}>
-            <RotateCcw className="size-4" /> إعادة فتحه لرئيسه للتعديل
-          </Button>
-        )}
-        {c.status === "draft" && c.byAdministration && (
-          <Button size="sm" variant="gold" disabled={!x.complete} onClick={sendForHim}>
-            <Send className="size-4" /> إرساله للمراجعة نيابة عنه
-          </Button>
-        )}
-        <Button size="sm" variant="glass" onClick={() => window.print()}>
-          <Printer className="size-4" /> طباعة التقرير
-        </Button>
-        <Button size="sm" variant="glass" onClick={() => exportCluster(x)}>
-          <Download className="size-4" /> Excel
-        </Button>
-        {c.status === "approved" &&
-          (x.archived ? (
-            <Button size="sm" variant="glass" onClick={() => archive(false)}>
-              <ArchiveRestore className="size-4" /> استعادته من الأرشيف
-            </Button>
-          ) : (
-            <Button size="sm" variant="ghost" className="text-white" onClick={() => archive(true)}>
-              <Archive className="size-4" /> أرشفة
-            </Button>
-          ))}
-        {(c.status === "draft" || c.status === "rejected") && !c.byAdministration && <span className="text-xs text-white/60">عند رئيسه: {c.status === "draft" ? "لم يرسله بعد" : "يصلحه ويعيد إرساله"}.</span>}
-        {c.status === "draft" && c.byAdministration && !x.complete && <span className="self-center text-xs text-gold">أنشأته الإدارة: املأ أماكنه بالتعديل الاستثنائي أدناه حتى يكتمل، ثم أرسله.</span>}
-        {c.status === "reviewing" && !x.complete && <span className="self-center text-xs text-gold">لا يُعتمد ناقصاً: أعده بملاحظات، أو أكمله بتعديل استثنائي.</span>}
-      </div>
-
-      <ul className="space-y-1.5 text-sm">
-        {x.checks.map((k) => (
-          <li key={k.key} className={cn("flex items-start gap-2 rounded-xl px-3 py-2 ring-1", k.ok ? "bg-green-light/10 text-white ring-green-light/30" : k.warn ? "bg-gold/15 text-white ring-gold/40" : "bg-maroon/20 text-white ring-maroon/40")}>
-            {k.ok ? <Check className="mt-0.5 size-4 shrink-0 text-green-light" /> : <CircleDashed className="mt-0.5 size-4 shrink-0 text-gold" />} {k.label}
-          </li>
-        ))}
-      </ul>
-
-      <ClusterReport req={x} dark />
-      <PrintSheet>
-        <ClusterPrint req={x} />
-      </PrintSheet>
-      <Exceptional x={x} />
-      <RecordHistory system="admins" refId={c.id} />
+        }
+        side={
+          <>
+            <Box title="القرار">
+              <p className="flex flex-wrap gap-1">
+                <Tag tone={TONE[c.status]}>{STATUS[c.status].label}</Tag>
+                {x.archived && <Tag>مؤرشف — موسم {x.archived.season}</Tag>}
+              </p>
+              {c.byAdministration && <p className="text-xs text-gold">🛠️ أُنشئ من الإدارة: {c.byAdministration.reason}</p>}
+              <ul className="space-y-0.5 text-xs text-white/60">
+                {c.sentAt && <li>أُرسل {fmtDateTime(c.sentAt)}</li>}
+                {c.review && c.status !== "pending" && <li>راجعه {c.review.by}</li>}
+                {c.decision && (
+                  <li>
+                    {c.decision.status === "approved" ? "اعتمده" : "أعاده"} {c.decision.by} — {fmtDateTime(c.decision.at)}
+                  </li>
+                )}
+              </ul>
+              {c.status === "pending" && (
+                <Button variant="gold" className="w-full" onClick={() => act("review")}>
+                  <Eye className="size-4" /> بدء المراجعة
+                </Button>
+              )}
+              {c.status === "reviewing" && (
+                <div className="flex flex-col gap-2">
+                  <Button variant="gold" disabled={!x.complete} onClick={() => act("approve")}>
+                    <BadgeCheck className="size-4" /> اعتماد
+                  </Button>
+                  <Button variant="glass" onClick={() => setRejecting(true)}>
+                    <X className="size-4" /> رفض مع ملاحظات
+                  </Button>
+                  {!x.complete && <p className="text-xs text-gold">لا يُعتمد ناقصاً: أعده بملاحظات، أو أكمله بتعديل استثنائي.</p>}
+                </div>
+              )}
+              {c.status === "approved" && (
+                <Button variant="glass" className="w-full" onClick={() => act("reopen")}>
+                  <RotateCcw className="size-4" /> إعادة فتحه لرئيسه للتعديل
+                </Button>
+              )}
+              {c.status === "draft" && c.byAdministration && (
+                <>
+                  <Button variant="gold" className="w-full" disabled={!x.complete} onClick={sendForHim}>
+                    <Send className="size-4" /> إرساله للمراجعة نيابة عنه
+                  </Button>
+                  {!x.complete && <p className="text-xs text-gold">أنشأته الإدارة: املأ أماكنه بالتعديل الاستثنائي حتى يكتمل، ثم أرسله.</p>}
+                </>
+              )}
+              {(c.status === "draft" || c.status === "rejected") && !c.byAdministration && <p className="text-xs text-white/60">عند رئيسه: {c.status === "draft" ? "لم يرسله بعد" : "يصلحه ويعيد إرساله"}.</p>}
+            </Box>
+            <Box title="طباعة وتصدير">
+              <RowActions>
+                <RowLink onClick={() => window.print()}>
+                  <Printer className="me-1 inline size-3.5" /> طباعة التقرير
+                </RowLink>
+                <RowLink onClick={() => exportCluster(x)}>
+                  <Download className="me-1 inline size-3.5" /> Excel
+                </RowLink>
+              </RowActions>
+            </Box>
+            {c.status === "approved" && (
+              <Box title="الأرشيف" open={!!x.archived}>
+                <p className="text-xs leading-6 text-white/60">المؤرشف يبقى في «التكتلات والمجموعات» بموسمه، ويخرج من عمل الموسم.</p>
+                {x.archived ? (
+                  <Button size="sm" variant="glass" onClick={() => archive(false)}>
+                    <ArchiveRestore className="size-4" /> استعادته من الأرشيف
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="glass" onClick={() => archive(true)}>
+                    <Archive className="size-4" /> أرشفة
+                  </Button>
+                )}
+              </Box>
+            )}
+            <Box title="سجلّه" open={false}>
+              <RecordHistory system="admins" refId={c.id} bare />
+            </Box>
+          </>
+        }
+      />
 
       <Modal open={rejecting} onClose={() => setRejecting(false)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
         <p className="text-xs font-bold text-gold">رفض مع ملاحظات</p>
@@ -530,12 +575,9 @@ function Exceptional({ x }: { x: ClusterRequest }) {
 
   const candidates = place?.fill && !place.who ? picks(place.fill.behavior).filter((y) => !y.takenBy) : [];
   return (
-    <div className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-gold/25">
-      <p className="flex items-center gap-2 font-bold text-gold">
-        <PencilRuler className="size-4" /> تعديل استثنائي
-      </p>
-      <p className="mt-1 text-xs leading-6 text-white/60">خارج الضوابط المعتادة، بسبب يُكتب في سجل التكتل وسجل الشخص. المُضاف يُعدّ قابلاً دون دعوة.</p>
-      <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+    <div className="space-y-3">
+      <p className="text-xs leading-6 text-white/60">اختر مكاناً: الشاغل يُزال، والشاغر يُملأ. السبب يُكتب في سجل التكتل وسجل الشخص، والمُضاف يُعدّ قابلاً دون دعوة.</p>
+      <ul className="grid gap-1.5 sm:grid-cols-2">
         <li>
           <button type="button" onClick={() => setPlace({ key: "group-new", label: "مجموعة — إضافة", remove: (k) => k })} className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-right text-xs ring-1", place?.key === "group-new" ? "bg-gold/20 ring-gold/60" : "bg-white/5 ring-white/10 hover:ring-gold/40")}>
             <Plus className="size-3.5 shrink-0 text-green-light" />
@@ -558,7 +600,7 @@ function Exceptional({ x }: { x: ClusterRequest }) {
         ))}
       </ul>
       {place && (
-        <div className="mt-4 space-y-3 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+        <div className="space-y-3 rounded-2xl bg-white/5 p-3 ring-1 ring-gold/30">
           <p className="text-sm font-bold text-white">{place.key === "group-new" ? "إضافة مجموعة معتمدة إلى التكتل" : place.who ? `إزالة ${place.who.name} من ${place.label}` : `إضافة إلى ${place.label}`}</p>
           {place.key === "group-new" && (
             <select value={group} onChange={(e) => setGroup(e.target.value)} aria-label="المجموعة" className={cn(smallInputClass, "[&>option]:text-ink")}>
@@ -628,34 +670,31 @@ function Outside({ desk }: { desk: AdminsDesk }) {
   };
 
   return (
-    <div id="outside" className="scroll-mt-24">
-      <Panel icon={<UsersRound />} title="مجموعات معتمدة خارج كل تكتل" action={<Chip tone={desk.outside.length ? "gold" : "green"}>{desk.outside.length ? `${desk.outside.length} خارجها` : "كلها في تكتلات"}</Chip>}>
-        {desk.outside.length === 0 ? (
-          <p className="rounded-2xl bg-white/5 p-4 text-sm text-white/70">كل مجموعة معتمدة في طلب تكتل.</p>
-        ) : (
-          <ul className="space-y-2">
-            {desk.outside.map((g) => {
-              const cat = categoryOfId(s, g.category);
-              return (
-                <li key={g.number} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-                  <span className="min-w-0 flex-1 text-sm">
-                    <span className="block font-bold text-white">
-                      {groupName(g.number)} <span className="font-normal text-white/70">— {g.headName}</span>
-                    </span>
-                    <span className="block text-xs text-white/60">
-                      {g.branch} — {cat?.name ?? "بلا فئة"} ({seatsLabel(seatsOf(s, undefined, g.category))}) — {g.pilgrims} حاجاً {g.from ? `— كانت في ${g.from}` : "— لم يأخذها طلب"}
-                    </span>
-                  </span>
-                  <Button size="sm" variant="glass" disabled={!desk.deadlinePassed || !g.category || !targets.length} onClick={() => setAdding(g)}>
-                    <Plus className="size-4" /> أضفها إلى تكتل
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {!desk.deadlinePassed && desk.outside.length > 0 && <p className="mt-3 text-xs text-white/55">ما دامت الطلبات مفتوحة قد يدعوها رئيس تكتل؛ تُضاف بتعديل استثنائي بعد الموعد النهائي {dayLabel(desk.formationWindow.op.end, true)}.</p>}
-      </Panel>
+    <div className="space-y-4">
+      <Title>مجموعات معتمدة خارج كل تكتل</Title>
+      <Lead>{desk.deadlinePassed ? "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضف كلاً منها إلى تكتل بتعديل استثنائي بسببه." : `ما دامت الطلبات مفتوحة قد يدعوها رئيس تكتل؛ تُضاف بتعديل استثنائي بعد الموعد النهائي ${dayLabel(desk.formationWindow.op.end, true)}.`}</Lead>
+      <ListTable head={["المجموعة", "الفرع", "الفئة", "الحجاج", "كانت في"]}>
+        {desk.outside.length === 0 && <EmptyRow cols={5}>كل مجموعة معتمدة في طلب تكتل.</EmptyRow>}
+        {desk.outside.map((g) => {
+          const cat = categoryOfId(s, g.category);
+          const can = desk.deadlinePassed && !!g.category && targets.length > 0;
+          return (
+            <tr key={g.number}>
+              <TitleCell
+                title={groupName(g.number)}
+                sub={g.headName}
+                actions={<RowActions>{can ? <RowLink onClick={() => setAdding(g)}>أضفها إلى تكتل</RowLink> : <span className="font-normal text-white/45">{!g.category ? "بلا فئة بعد" : !desk.deadlinePassed ? "بعد الموعد النهائي" : "لا تكتل يقبلها"}</span>}</RowActions>}
+              />
+              <td className="p-3 align-top text-white/80">{g.branch}</td>
+              <td className="p-3 align-top text-white/80">
+                {cat?.name ?? "بلا فئة"} <span className="block text-xs text-white/50">{seatsLabel(seatsOf(s, undefined, g.category))}</span>
+              </td>
+              <td className="p-3 align-top tabular-nums">{g.pilgrims}</td>
+              <td className="p-3 align-top text-white/70">{g.from ?? "لم يأخذها طلب"}</td>
+            </tr>
+          );
+        })}
+      </ListTable>
       <Modal open={!!adding} onClose={() => setAdding(null)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
         {adding && (
           <div className="space-y-3">
@@ -690,97 +729,116 @@ function Outside({ desk }: { desk: AdminsDesk }) {
 const REASONS = ["الوصف لا يطابق العقد الموقّع مع الفندق", "المسافة المذكورة غير دقيقة", "خدمة موصوفة دون تعاقد يثبتها", "صياغة دعائية لا تصف خدمة"];
 
 /**
- * A cluster's public page carries the administration's approval, so the head writes his programme and
- * the holder decides: what changed, from what to what, and a decision with a reason. Nothing reaches the
- * pilgrims before it is approved.
+ * A cluster's public page carries the administration's approval, so the head writes his programme and the holder
+ * decides: what changed, from what to what, and a decision with a reason. Nothing reaches the pilgrims before it
+ * is approved. Waiting programmes and published ones are the list's two filters; each opens in a side sheet.
  */
 function Programmes({ desk }: { desk: AdminsDesk }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const [filter, setFilter] = useState<"pending" | "published">(desk.pendingProgrammes.length || !desk.programmes.some((x) => x.state?.approved) ? "pending" : "published");
+  const [open, setOpen] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState(REASONS[0]);
   const published = desk.programmes.filter((x) => x.state?.approved);
+  const list = filter === "pending" ? desk.pendingProgrammes : published;
+  const sheet = desk.programmes.find((x) => x.cluster.slug === open);
 
   const decide = (slug: string, name: string, decision: "approved" | "rejected", why?: string) => {
     actions.decideClusterProfile(slug, decision, user.name, why);
     logAdmins(user, "clusters", { action: decision === "approved" ? "اعتماد برنامج تكتل ونشره للحجاج" : "إعادة برنامج تكتل إلى رئيسه", target: name, detail: why, ref: slug });
-    toast(
-      decision === "approved"
-        ? { title: "اعتُمد البرنامج ونُشر", body: `${name} — يراه الحجاج الآن في دليل الخدمات.`, tone: "success", icon: "✅" }
-        : { title: "أُعيد إلى رئيس التكتل", body: why, tone: "info", icon: "↩️" },
-    );
+    toast(decision === "approved" ? { title: "اعتُمد البرنامج ونُشر", body: `${name} — يراه الحجاج الآن في دليل الخدمات.`, tone: "success", icon: "✅" } : { title: "أُعيد إلى رئيس التكتل", body: why, tone: "info", icon: "↩️" });
     setRejecting(null);
+    setOpen(null);
   };
 
   return (
-    <div id="programmes" className="scroll-mt-24 space-y-6">
-      <Panel icon={<Inbox />} title="برامج تنتظر اعتمادك" action={<Chip tone={desk.pendingProgrammes.length ? "gold" : "green"}>{desk.pendingProgrammes.length}</Chip>}>
-        {desk.pendingProgrammes.length === 0 ? (
-          <Empty icon={<ShieldCheck />} title="لا تعديلات معلّقة" text="حين يعدّل رئيس تكتل صفحته العامة في دليل الخدمات يصل التعديل هنا قبل أن يراه أحد." />
-        ) : (
-          <ul className="space-y-4">
-            {desk.pendingProgrammes.map(({ cluster: c, state }, i) => {
-              const live = state!.approved ? { ...fieldsOf(c), ...state!.approved.fields } : fieldsOf(c);
-              const changes = diffFields(live, state!.pending!.fields);
-              return (
-                <motion.li key={c.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-display text-xl font-bold text-white">{c.name}</p>
-                      <p className="text-xs text-white/65">
-                        أرسله {state!.pending!.by} — {fmtDateTime(state!.pending!.at)} — {changes.length} حقلاً
-                      </p>
-                      {state!.pending!.note && <p className="mt-1 text-sm text-gold">ملاحظته: {state!.pending!.note}</p>}
-                    </div>
-                    <Link href={`/verify/clusters/${c.slug}`} target="_blank" className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-white ring-1 ring-white/20">
-                      <ExternalLink className="size-3.5" /> الصفحة الحالية
-                    </Link>
-                  </div>
-                  <ul className="mt-3 space-y-2">
-                    {changes.map((ch) => (
-                      <li key={ch.key} className="rounded-xl bg-white/5 p-3 text-sm ring-1 ring-white/10">
-                        <p className="font-bold text-gold">{ch.label}</p>
-                        <p className="mt-1 text-white/50 line-through">{ch.before || "—"}</p>
-                        <p className="font-semibold text-white">{ch.after || "—"}</p>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button size="sm" variant="gold" onClick={() => decide(c.slug, c.name, "approved")}>
-                      <BadgeCheck className="size-4" /> اعتماد ونشر
-                    </Button>
-                    <Button size="sm" variant="glass" onClick={() => setRejecting(c.slug)}>
-                      <X className="size-4" /> إعادة مع السبب
-                    </Button>
-                  </div>
-                  <div className="mt-4">
-                    <RecordHistory system="admins" refId={c.slug} />
-                  </div>
-                </motion.li>
-              );
-            })}
-          </ul>
-        )}
-      </Panel>
+    <div className="space-y-4">
+      <Title>برامج التكتلات</Title>
+      <Lead>حين يعدّل رئيس تكتل صفحته العامة في دليل الخدمات يصل التعديل هنا قبل أن يراه أحد.</Lead>
+      <Filters
+        label="البرامج"
+        value={filter}
+        onChange={setFilter}
+        items={[
+          { key: "pending", label: "تنتظر اعتمادك", count: desk.pendingProgrammes.length },
+          { key: "published", label: "المنشورة", count: published.length },
+        ]}
+      />
+      <ListTable head={["التكتل", filter === "pending" ? "أرسله" : "اعتمده", "التاريخ", filter === "pending" ? "الحقول المعدّلة" : "كتبه"]}>
+        {list.length === 0 && <EmptyRow cols={4}>{filter === "pending" ? "لا تعديلات معلّقة." : "لا برامج منشورة بعد."}</EmptyRow>}
+        {list.map(({ cluster: c, state }) => {
+          const pending = filter === "pending" && state?.pending;
+          const live = state?.approved ? { ...fieldsOf(c), ...state.approved.fields } : fieldsOf(c);
+          return (
+            <tr key={c.slug}>
+              <TitleCell
+                title={c.name}
+                onOpen={() => setOpen(c.slug)}
+                sub={pending && state!.pending!.note ? `ملاحظته: ${state!.pending!.note}` : undefined}
+                actions={
+                  <RowActions>
+                    <RowLink onClick={() => setOpen(c.slug)}>{pending ? "مراجعة" : "فتح"}</RowLink>
+                  </RowActions>
+                }
+              />
+              <td className="p-3 align-top text-white/80">{pending ? state!.pending!.by : state?.approved?.approvedBy}</td>
+              <td className="whitespace-nowrap p-3 align-top text-xs text-white/60">{fmtDateTime(pending ? state!.pending!.at : (state?.approved?.approvedAt ?? 0))}</td>
+              <td className="p-3 align-top text-white/80">{pending ? `${diffFields(live, state!.pending!.fields).length} حقلاً` : state?.approved?.by}</td>
+            </tr>
+          );
+        })}
+      </ListTable>
 
-      {published.length > 0 && (
-        <Panel icon={<BadgeCheck />} title="البرامج المنشورة" action={<Chip tone="green">{published.length}</Chip>}>
-          <ul className="grid gap-3 md:grid-cols-2">
-            {published.map(({ cluster: c, state }) => (
-              <li key={c.slug} className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-                <p className="font-bold text-white">{c.name}</p>
-                <p className="mt-1 text-xs text-white/65">
-                  اعتمده {state!.approved!.approvedBy} — {fmtDateTime(state!.approved!.approvedAt)}
+      <Drawer
+        open={!!sheet}
+        onClose={() => setOpen(null)}
+        title={sheet ? `برنامج ${sheet.cluster.name}` : ""}
+        footer={
+          sheet?.state?.pending && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="gold" onClick={() => decide(sheet.cluster.slug, sheet.cluster.name, "approved")}>
+                <BadgeCheck className="size-4" /> اعتماد ونشر
+              </Button>
+              <Button variant="glass" onClick={() => setRejecting(sheet.cluster.slug)}>
+                <X className="size-4" /> إعادة مع السبب
+              </Button>
+            </div>
+          )
+        }
+      >
+        {sheet && (
+          <div className="space-y-4 text-sm">
+            <Link href={`/verify/clusters/${sheet.cluster.slug}`} target="_blank" className="inline-flex items-center gap-1.5 font-bold text-gold hover:underline">
+              <ExternalLink className="size-3.5" /> الصفحة الحالية كما يراها الحاج
+            </Link>
+            {sheet.state?.pending ? (
+              <>
+                <p className="text-xs text-white/65">
+                  أرسله {sheet.state.pending.by} — {fmtDateTime(sheet.state.pending.at)}
                 </p>
-                <p className="mt-1 text-xs text-white/50">كتبه {state!.approved!.by}</p>
-                <Link href={`/verify/clusters/${c.slug}`} target="_blank" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-gold">
-                  <ExternalLink className="size-3.5" /> الصفحة كما يراها الحاج
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
+                {sheet.state.pending.note && <p className="text-gold">ملاحظته: {sheet.state.pending.note}</p>}
+                <ul className="space-y-2">
+                  {diffFields(sheet.state.approved ? { ...fieldsOf(sheet.cluster), ...sheet.state.approved.fields } : fieldsOf(sheet.cluster), sheet.state.pending.fields).map((ch) => (
+                    <li key={ch.key} className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                      <p className="font-bold text-gold">{ch.label}</p>
+                      <p className="mt-1 text-white/50 line-through">{ch.before || "—"}</p>
+                      <p className="font-semibold text-white">{ch.after || "—"}</p>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              sheet.state?.approved && (
+                <p className="text-white/75">
+                  اعتمده {sheet.state.approved.approvedBy} — {fmtDateTime(sheet.state.approved.approvedAt)}. كتبه {sheet.state.approved.by}.
+                </p>
+              )
+            )}
+            <RecordHistory system="admins" refId={sheet.cluster.slug} />
+          </div>
+        )}
+      </Drawer>
 
       <Modal open={!!rejecting} onClose={() => setRejecting(null)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
         {rejecting && (

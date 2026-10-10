@@ -35,7 +35,7 @@ const DEMO_GROUP = { clusterId: "al-nour", number: 27 };
  * مجموعة، ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب بها ويرفع العقد الموقّع. بعدها يظهر للحاج أنه في
  * المجموعة، ومعه عقده. الإداريون لا يلحقون أحداً.
  */
-export function StepGroup({ app, post, sessionId }: StepProps) {
+export function StepGroup({ app, post, sessionId, stepLabel }: StepProps) {
   const toast = useToast();
   const joining = useOperation("group-joining");
   if (post.groupApprovedAt && post.contract?.status !== "pending") return null;
@@ -50,7 +50,7 @@ export function StepGroup({ app, post, sessionId }: StepProps) {
   };
   return (
     <Question
-      step="الخطوة 3 من 7"
+      step={stepLabel ?? "الخطوة 3 من 7"}
       title="الإلحاق بمجموعة: بعقد بينكم وبين المجموعة"
       hint={`لا تختارون المجموعة من المنصة. تتفقون مع مجموعة، وتوقّعون عقدكم معها في المكتب، فيلحقكم موظف المكتب بها، فتظهر لكم هنا مجموعتكم وعقدكم. ${app.members.length > 1 ? `أفراد طلبكم (${app.members.length}) يُلحقون معاً بالمجموعة نفسها.` : ""}`}
       speak="لا تختار المجموعة من المنصة. تتفق مع مجموعة، وتوقّع العقد في المكتب، فيلحقك موظف المكتب بها."

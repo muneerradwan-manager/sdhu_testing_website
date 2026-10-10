@@ -16,6 +16,25 @@ const ICON = {
   na: <CircleMinus className="size-5 text-hint" />,
 };
 
+export type EligibilityFix = "none" | "remove" | "addPerson" | "lottery";
+
+/** The fix the administration set on its own rule: adding someone, or registering for the lottery instead */
+function ConfiguredFix({ fix, onAddPerson, onSwitchToLottery }: { fix?: EligibilityFix | null; onAddPerson: () => void; onSwitchToLottery?: () => void }) {
+  if (fix === "addPerson")
+    return (
+      <Button size="sm" onClick={onAddPerson}>
+        <UserPlus className="size-4" /> إضافة شخص إلى الطلب
+      </Button>
+    );
+  if (fix === "lottery" && onSwitchToLottery)
+    return (
+      <Button size="sm" onClick={onSwitchToLottery}>
+        <Ticket className="size-4" /> التسجيل الأولي على القرعة بدلاً من ذلك
+      </Button>
+    );
+  return null;
+}
+
 /** Conditions a person cannot change — the only way forward is to take them out of the application */
 const FIXED_KEYS = new Set(["muslim", "syrian", "companion-age", "single-application"]);
 
@@ -30,10 +49,13 @@ export function EligibilityCheck({
   onFixCompanion,
   onChangeApplicant,
   onSwitchToLottery,
+  fixOf,
 }: {
   result: EligibilityResult;
   members: Member[];
   rules: SeasonRules;
+  /** The way out the administration set for one of its own rules (a row keyed `cfg:…`) */
+  fixOf?: (key: string) => EligibilityFix | null;
   /** Direct acceptance, applicant below the accepted age: keep everything and register for the lottery instead */
   onSwitchToLottery?: () => void;
   /** Row-by-row reveal on the first check; after a fix the new result shows at once */
@@ -140,6 +162,7 @@ export function EligibilityCheck({
                 onFixCompanion={onFixCompanion}
                 onChangeApplicant={onChangeApplicant}
                 onSwitchToLottery={onSwitchToLottery}
+                fixOf={fixOf}
               />
             )}
           </motion.div>
@@ -162,10 +185,12 @@ function Fixes({
   onFixCompanion,
   onChangeApplicant,
   onSwitchToLottery,
+  fixOf,
 }: {
   result: EligibilityResult;
   members: Member[];
   rules: SeasonRules;
+  fixOf?: (key: string) => EligibilityFix | null;
   onSwitchToLottery?: () => void;
   onRemove: (id: string) => void;
   onAddPerson: () => void;
@@ -260,6 +285,12 @@ function Fixes({
                       <UserPlus className="size-4" /> إضافة والد أو والدة (يصبح صاحب الطلب)
                     </Button>
                   )}
+                  <ConfiguredFix fix={fixOf?.(f.key)} onAddPerson={onAddPerson} onSwitchToLottery={onSwitchToLottery} />
+                  {fixOf?.(f.key) === "remove" && isSelf && (
+                    <Button size="sm" variant="outline" onClick={onChangeApplicant}>
+                      <UserRoundCog className="size-4" /> تقديم الطلب باسم شخص آخر
+                    </Button>
+                  )}
                   {f.key === "hajj-before" && m.person.gender === "M" && (
                     <Button size="sm" onClick={onAddPerson}>
                       <UserPlus className="size-4" /> أضف والدته أو زوجته
@@ -290,6 +321,9 @@ function Fixes({
           <div key={g.key} className="rounded-2xl bg-white p-4 ring-1 ring-maroon/20">
             <p className="font-bold text-maroon">{g.label}</p>
             <p className="mt-1 text-sm text-ink-soft">{g.detail}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ConfiguredFix fix={fixOf?.(g.key)} onAddPerson={onAddPerson} onSwitchToLottery={onSwitchToLottery} />
+            </div>
           </div>
         ))}
     </div>

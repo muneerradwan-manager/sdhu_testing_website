@@ -1,22 +1,21 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { motion } from "motion/react";
-import { Check, Download, Eye, FileText, GraduationCap, UsersRound, X } from "lucide-react";
+import { Check, FileText, X } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { matches } from "@/lib/ops";
 import type { StaffUser } from "@/lib/staff";
 import { cn } from "@/lib/utils";
 import { useAllQuestions } from "@/app/administrator/_lib/admin-rules";
 import { ATTEMPT_LABEL, roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
 import type { AdminRow } from "../../_components/data";
-import { Drawer, Empty, Panel, fmtDateTime, logAs, useStaffUser } from "../../_components/kit";
+import { Drawer, Empty, fmtDateTime, logAs, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
+import { EmptyRow, ListTable, RowActions, RowLink, Title } from "../../_components/wp";
 import { useExamDesk, type AttemptRow } from "./desk";
 import { Records, type Area } from "./records";
 import { examOfAttempt, seatOf, useSittingRows } from "./sittings";
-import { ATTEMPT_TONE, Chip, Figure, SectionChips, Segments, Switch, alertParts, downloadCsv, pct, share } from "./ui";
+import { ATTEMPT_TONE, Chip, SectionChips, Segments, Switch, alertParts, downloadCsv, pct } from "./ui";
 
 /** Who looked at whose answers, and when: every review of a paper is in the record */
 export function logAnswers(user: StaffUser, a: AttemptRow, area: Area, examName?: string) {
@@ -132,9 +131,10 @@ function Answers({ a }: { a: AttemptRow }) {
 type Line = { id: string; row: AdminRow; role: string; examId: string; centerId: string; a?: AttemptRow };
 
 /**
- * The results as the administration's platform judges them: confirmed attempts only by default, each with its
- * share and every section's share against the share it asks — the one who passed every section passed. Absentees
- * can be counted as failed. Any attempt's answers open for review, and every review is recorded.
+ * The results as a list: confirmed attempts only by default, each with its share and every section's share against
+ * the share it asks — the one who passed every section passed. Absentees can be counted as failed. Any attempt's
+ * answers open for review, and every review is recorded. The pass rate and the means are on the dashboard and in
+ * «الإحصائيات».
  */
 export function Results() {
   const params = useSearchParams();
@@ -147,6 +147,7 @@ export function Results() {
   const [center, setCenter] = useState(startHall ?? "");
   const [absentFail, setAbsentFail] = useState(false);
   const [scope, setScope] = useState<"confirmed" | "sent">("confirmed");
+  const [outcome, setOutcome] = useState<"all" | "passed" | "failed">("all");
   const [q, setQ] = useState("");
   const [viewing, setViewing] = useState<AttemptRow | null>(null);
 
@@ -157,12 +158,11 @@ export function Results() {
         .flatMap((s) => s.listed.filter((r) => seatOf(s, r.id).absent).map((r) => ({ id: `${s.key}:${r.id}`, row: r, role: s.exam.role, examId: s.exam.id, centerId: s.center.id })))
     : [];
   const lines: Line[] = [...attempts.map((a) => ({ id: `${a.key}:${a.row.id}:${a.role}`, row: a.row, role: a.role, examId: examOfAttempt(a), centerId: a.centerId, a })), ...absent];
-  const shown = lines.filter((l) => matches(q, [l.row.name, l.row.id]));
-  const confirmed = attempts.filter((a) => a.status === "confirmed");
-  const passed = confirmed.filter((a) => a.passed).length;
-  const failed = confirmed.length - passed + absent.length;
   const examName = (id: string) => halls.examById(id)?.name ?? `الاختبار المؤتمت لصفة ${roleLabelOf(id)}`;
   const resultOfLine = (l: Line) => (!l.a ? "راسب (غائب)" : l.a.status === "voided" ? "—" : l.a.passed ? "ناجح" : "راسب");
+  const isPassed = (l: Line) => resultOfLine(l) === "ناجح";
+  const isFailed = (l: Line) => resultOfLine(l).startsWith("راسب");
+  const shown = lines.filter((l) => (outcome === "all" || (outcome === "passed" ? isPassed(l) : isFailed(l))) && matches(q, [l.row.name, l.row.id]));
 
   const review = (a: AttemptRow) => {
     setViewing(a);
@@ -189,24 +189,31 @@ export function Results() {
   };
 
   return (
-    <div className="space-y-4">
-      <Panel
-        icon={<GraduationCap />}
-        title="النتائج"
+    <div className="space-y-5">
+      <Title
         action={
-          <Button size="sm" variant="glass" onClick={download}>
-            <Download className="size-4" /> تصدير Excel
-          </Button>
+          <span className="text-sm font-bold">
+            <RowLink onClick={download}>تصدير Excel</RowLink>
+          </span>
         }
-        bodyClass="space-y-3"
-      >
-        <p className="text-sm leading-7 text-white/70">الافتراضي: المحاولات المؤكَّدة فقط. الناجح هو من نجح في كل الأقسام: لكل قسم نسبته المطلوبة، ولا مجموع يُبلَغ. المحاولة التي لم تُؤكَّد تنتظر قرار الإدارة في «المراجعة والتقارير».</p>
-        <div className="grid gap-2 md:grid-cols-[1.4fr_1fr_1fr]">
-          <SearchBox value={q} onChange={setQ} label="بحث في النتائج" placeholder="اسم أو رقم وطني..." />
-          <FilterSelect label="الاختبار" all="كل الاختبارات" value={exam} onChange={setExam} options={halls.exams.map((e) => ({ value: e.id, label: e.name }))} />
-          <FilterSelect label="الجلسة (القاعة)" all="كل القاعات" value={center} onChange={setCenter} options={halls.centers.map((c) => ({ value: c.id, label: c.name }))} />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      />
+      <div className="grid gap-2 md:grid-cols-[1.4fr_1fr_1fr]">
+        <SearchBox value={q} onChange={setQ} label="بحث في النتائج" placeholder="اسم أو رقم وطني..." />
+        <FilterSelect label="الاختبار" all="كل الاختبارات" value={exam} onChange={setExam} options={halls.exams.map((e) => ({ value: e.id, label: e.name }))} />
+        <FilterSelect label="الجلسة (القاعة)" all="كل القاعات" value={center} onChange={setCenter} options={halls.centers.map((c) => ({ value: c.id, label: c.name }))} />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segments
+          label="النتيجة"
+          value={outcome}
+          onChange={setOutcome}
+          items={[
+            { value: "all", label: "الكل", count: lines.length },
+            { value: "passed", label: "ناجحون", count: lines.filter(isPassed).length },
+            { value: "failed", label: "راسبون", count: lines.filter(isFailed).length },
+          ]}
+        />
+        <div className="flex flex-wrap items-center gap-3">
           <Segments
             label="المحاولات المعروضة"
             value={scope}
@@ -221,73 +228,51 @@ export function Results() {
             <Switch on={absentFail} onChange={setAbsentFail} label="اعتبار الغائبين راسبين" />
           </label>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Figure label="محاولات مؤكَّدة" value={confirmed.length} />
-          <Figure label="الناجحون" value={passed} tone={passed ? "green" : undefined} />
-          <Figure label="الراسبون" value={failed} hint={absent.length ? `منهم ${absent.length} غائبون` : undefined} />
-          <Figure label="نسبة النجاح" value={pct(share(passed, confirmed.length + absent.length))} tone="gold" />
-        </div>
-      </Panel>
+      </div>
 
-      <Panel bodyClass="-mx-5 md:-mx-6">
-        {shown.length === 0 ? (
-          <div className="px-5 md:px-6">
-            <Empty icon={<UsersRound />} title="لا نتائج هنا" text={lines.length ? "امسح البحث." : "لا محاولات مؤكَّدة لهذا الاختيار بعد: غيّر الاختبار أو القاعة، أو اعرض كل المسلَّمة."} />
-          </div>
-        ) : (
-          <div className="overflow-x-auto px-5 md:px-6">
-            <table className="w-full min-w-[62rem] text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-right text-xs text-gold">
-                  {["المتقدم", "الصفة", "القاعة", "النسبة", "الأقسام", "النتيجة", "الحالة", ""].map((h, i) => (
-                    <th key={i} className="pb-2 font-bold">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {shown.map((l, i) => {
-                  const a = l.a;
-                  const res = resultOfLine(l);
-                  return (
-                    <motion.tr key={l.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 15) * 0.02 }} className="align-top text-white">
-                      <td className="py-2.5">
-                        <p className="font-bold">{l.row.name}</p>
-                        <p className="text-xs text-white/60" dir="ltr">
-                          {l.row.id}
-                        </p>
-                      </td>
-                      <td className="py-2.5">
-                        {roleLabelOf(l.role)}
-                        {!exam && <span className="block text-[11px] text-white/55">{examName(l.examId)}</span>}
-                      </td>
-                      <td className="py-2.5">{halls.centerById(l.centerId)?.name ?? "—"}</td>
-                      <td className="py-2.5 font-display text-lg font-bold tabular-nums">{a ? pct(a.attempt.score) : "—"}</td>
-                      <td className="max-w-[18rem] py-2.5">{a ? <SectionChips sections={a.sections} /> : <span className="text-xs text-white/55">لم يحضر</span>}</td>
-                      <td className="py-2.5">
-                        <Chip tone={res === "ناجح" ? "green" : res === "—" ? "muted" : "maroon"}>{res}</Chip>
-                        {a && a.status !== "confirmed" && a.status !== "voided" && <span className="block text-[11px] text-white/55">غير معتمدة بعد</span>}
-                      </td>
-                      <td className="py-2.5">
-                        {a ? <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip> : <Chip tone="maroon">غائب</Chip>}
-                        {a?.attempt.decision && <span className="block text-[11px] text-gold">{a.attempt.decision.kind === "approve" ? "اعتماد إداري" : "إلغاء إداري"}</span>}
-                      </td>
-                      <td className="py-2.5 text-left">
-                        {a && (
-                          <Button size="sm" variant="glass" onClick={() => review(a)}>
-                            <Eye className="size-4" /> مراجعة
-                          </Button>
-                        )}
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
+      <ListTable head={["المتقدم", "الصفة", "القاعة", "النسبة", "الأقسام", "النتيجة"]} minWidth="60rem">
+        {shown.length === 0 && <EmptyRow cols={6}>{lines.length ? "لا أحد يطابق هذا البحث." : "لا محاولات مؤكَّدة لهذا الاختيار بعد: غيّر الاختبار أو القاعة، أو اعرض كل المسلَّمة."}</EmptyRow>}
+        {shown.map((l) => {
+          const a = l.a;
+          const res = resultOfLine(l);
+          return (
+            <tr key={l.id} className="align-top">
+              <td className="p-3">
+                {a ? (
+                  <button type="button" onClick={() => review(a)} className="text-right font-bold text-white hover:text-gold">
+                    {l.row.name}
+                  </button>
+                ) : (
+                  <p className="font-bold text-white">{l.row.name}</p>
+                )}
+                <p className="text-xs text-white/55" dir="ltr">
+                  {l.row.id}
+                </p>
+                {a && (
+                  <RowActions>
+                    <RowLink onClick={() => review(a)}>مراجعة الإجابات</RowLink>
+                  </RowActions>
+                )}
+              </td>
+              <td className="p-3">
+                {roleLabelOf(l.role)}
+                {!exam && <span className="block text-[11px] text-white/55">{examName(l.examId)}</span>}
+              </td>
+              <td className="p-3">{halls.centerById(l.centerId)?.name ?? "—"}</td>
+              <td className="p-3 font-display text-lg font-bold tabular-nums">{a ? pct(a.attempt.score) : "—"}</td>
+              <td className="max-w-[18rem] p-3">{a ? <SectionChips sections={a.sections} /> : <span className="text-xs text-white/55">لم يحضر</span>}</td>
+              <td className="p-3">
+                <span className="flex flex-wrap gap-1">
+                  <Chip tone={res === "ناجح" ? "green" : res === "—" ? "muted" : "maroon"}>{res}</Chip>
+                  {a ? <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip> : <Chip tone="maroon">غائب</Chip>}
+                </span>
+                {a && a.status !== "confirmed" && a.status !== "voided" && <span className="block text-[11px] text-white/55">غير معتمدة بعد</span>}
+                {a?.attempt.decision && <span className="block text-[11px] text-gold">{a.attempt.decision.kind === "approve" ? "اعتماد إداري" : "إلغاء إداري"}</span>}
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
 
       <Records area="results" />
       <AnswersDrawer a={viewing} onClose={() => setViewing(null)} />

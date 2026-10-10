@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Download, FileQuestion, Plus, Power, PowerOff, Printer, Trash2 } from "lucide-react";
+import { Check, Lock, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,13 @@ import { cn } from "@/lib/utils";
 import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
 import { useAllQuestions, useExamBank } from "@/app/administrator/_lib/admin-rules";
 import { roleLabelOf } from "@/app/administrator/_lib/halls";
-import { Panel, logAs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, logAs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
+import { AddButton, Box, EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk } from "./desk";
-import { Records } from "./records";
-import { Chip, Pick, Segments, downloadCsv } from "./ui";
+import { RecordHistory, Records } from "./records";
+import { ResetToOriginal } from "./shell";
+import { Pick, Segments, downloadCsv } from "./ui";
 
 const TYPES = Object.keys(QUESTION_TYPES) as QuestionType[];
 const LETTERS = ["أ", "ب", "ج", "د", "هـ", "و"];
@@ -135,26 +137,29 @@ function QuestionForm({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d: 
   );
 }
 
+type Sheet = { kind: "new"; replacing: number | null } | { kind: "open"; id: number };
+
 /**
- * The question bank: one bank, its questions by category and type, each saying whose test it belongs to. A role's
- * test draws each section's questions from that role's questions in the section's categories. Every question is
- * chosen from options (2 to 6) and marked by the platform; its options are always shuffled on the paper. A question
- * used in an attempt is never edited: it is disabled, and a replacement is created in its place.
+ * The question bank as a list: each question opens on its wording in a side sheet, to edit it — or, once it was
+ * on a paper, to read it and create its replacement. Under each: disable or enable it. A role's test draws each
+ * section from that role's questions in the section's categories; every question is marked by the platform.
  */
 export function Bank() {
   const user = useStaffUser()!;
   const toast = useToast();
   const desk = useExamDesk();
-  const off = useStore((s) => s.adminRules.questionsOff) ?? [];
-  const edits = useStore((s) => s.adminRules.questionEdits) ?? {};
-  const added = useStore((s) => s.adminRules.questionsAdded) ?? [];
-  const questionRoles = useStore((s) => s.adminRules.questionRoles) ?? {};
+  const storedOff = useStore((s) => s.adminRules.questionsOff);
+  const storedEdits = useStore((s) => s.adminRules.questionEdits);
+  const storedAdded = useStore((s) => s.adminRules.questionsAdded);
+  const storedRoles = useStore((s) => s.adminRules.questionRoles);
+  const off = storedOff ?? [];
+  const edits = storedEdits ?? {};
+  const added = storedAdded ?? [];
+  const questionRoles = storedRoles ?? {};
   const all = useAllQuestions();
   const live = useExamBank();
-  const [open, setOpen] = useState<number | "new" | null>(null);
+  const [sheet, setSheet] = useState<Sheet | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
-  /** The question a new one replaces: disabled when the new one is saved */
-  const [replacing, setReplacing] = useState<number | null>(null);
   const [role, setRole] = useState("");
   const [type, setType] = useState<QuestionType | "all">("all");
   const [category, setCategory] = useState("");
@@ -177,6 +182,7 @@ export function Bank() {
       matches(q, [x.id, x.text, x.scenario, ...x.options]),
   );
   const isAdded = (id: number) => added.some((x) => x.id === id);
+  const opened = sheet?.kind === "open" ? all.find((x) => x.id === sheet.id) : undefined;
 
   /** A question joins or leaves one role's test */
   const toggleRole = (x: ExamQuestion, key: string, label: string) => {
@@ -187,28 +193,43 @@ export function Bank() {
   };
 
   /** Disabled: no paper draws it from now on, and the papers that served it keep it */
-  const toggle = (id: number, text: string, quiet = false) => {
+  const toggle = (id: number, text: string) => {
     const was = off.includes(id);
     actions.setAdminRules({ questionsOff: was ? off.filter((x) => x !== id) : [...off, id] });
     logAs(user, { action: was ? "تفعيل سؤال" : "تعطيل سؤال", target: `سؤال ${id}`, detail: text.slice(0, 60), system: "exams", area: "bank", ref: `q${id}` });
-    if (!quiet) toast({ title: was ? "فُعّل السؤال" : "عُطّل السؤال", body: was ? "يعود إلى أقسام اختبارات صفاته." : "لا يُسحب في أي ورقة بعد الآن، ويبقى في الأوراق التي ظهر فيها. تجده في «المعطّلة».", tone: was ? "success" : "info", icon: was ? "✅" : "⏸️" });
+    toast({ title: was ? "فُعّل السؤال" : "عُطّل السؤال", body: was ? "يعود إلى أقسام اختبارات صفاته." : "لا يُسحب في أي ورقة بعد الآن، ويبقى في الأوراق التي ظهر فيها. تجده في «المعطّلة».", tone: was ? "success" : "info", icon: was ? "✅" : "⏸️" });
   };
 
   const close = () => {
-    setOpen(null);
+    setSheet(null);
     setDraft(null);
-    setReplacing(null);
+  };
+  const openNew = () => {
+    setSheet({ kind: "new", replacing: null });
+    setDraft(blankDraft("choice", role || undefined));
+  };
+  const openOne = (x: ExamQuestion) => {
+    setSheet({ kind: "open", id: x.id });
+    setDraft(draftOf(x));
+  };
+  /** A replacement for a used question: its content to start from, and the original disabled once it is saved */
+  const replace = (x: ExamQuestion) => {
+    setShowOff(false);
+    setSheet({ kind: "new", replacing: x.id });
+    setDraft(draftOf(x));
   };
 
-  const save = (id: number | "new") => {
-    if (!draft) return;
-    const problem = problemOf(draft, id === "new");
+  const save = () => {
+    if (!draft || !sheet) return;
+    const isNew = sheet.kind === "new";
+    const problem = problemOf(draft, isNew);
     if (problem) {
       toast({ title: "لم يُحفظ السؤال", body: problem, tone: "warning", icon: "✍️" });
       return;
     }
     const options = draft.type === "choice" ? draft.options.map((o) => o.trim()) : draft.options;
-    if (id === "new") {
+    if (sheet.kind === "new") {
+      const replacing = sheet.replacing;
       const next = Math.max(999, ...all.map((x) => x.id)) + 1;
       const nq: ExamQuestion = { id: next, category: draft.category, type: draft.type, roles: draft.roles, text: draft.text.trim(), options, answer: draft.answer, explanation: draft.explanation.trim() };
       actions.setAdminRules({ questionsAdded: [...added, nq], ...(replacing !== null && !off.includes(replacing) && { questionsOff: [...off, replacing] }) });
@@ -216,6 +237,7 @@ export function Bank() {
       if (replacing !== null && !off.includes(replacing)) logAs(user, { action: "تعطيل سؤال", target: `سؤال ${replacing}`, detail: `استُبدل بالسؤال ${next}`, system: "exams", area: "bank", ref: `q${replacing}` });
       toast({ title: `أُضيف السؤال ${next}`, body: replacing !== null ? `بديلاً من السؤال ${replacing}، الذي عُطّل ويبقى في الأوراق التي ظهر فيها.` : `${QUESTION_TYPES[draft.type]} في اختبارات ${draft.roles.length} صفات.`, tone: "success", icon: "➕" });
     } else {
+      const id = sheet.id;
       if (used.has(id)) {
         toast({ title: "استُخدم في محاولات: لا يُعدَّل", body: "عطّله وأنشئ بديلاً.", tone: "warning", icon: "🔒" });
         return;
@@ -229,175 +251,176 @@ export function Bank() {
     close();
   };
 
-  /** A replacement for a used question: its content to start from, and the original disabled once it is saved */
-  const replace = (x: ExamQuestion) => {
-    setShowOff(false);
-    setOpen("new");
-    setReplacing(x.id);
-    setDraft(draftOf(x));
-  };
-
   const download = () =>
     downloadCsv("بنك-الأسئلة-1448.csv", [
       ["الرقم", "النوع", "الفئة", "يدخل اختبار", "السؤال", "الخيارات", "الإجابة", "الحالة", "استُخدم في محاولات"],
       ...all.map((x) => [x.id, QUESTION_TYPES[typeOf(x)], x.category, x.roles.map(roleLabelOf).join(" / "), x.text, x.options.join(" | "), x.options[x.answer], off.includes(x.id) ? "معطّل" : "فعّال", used.get(x.id) ?? 0]),
     ]);
 
-  return (
-    <div className="space-y-4">
-      <Panel
-        icon={<FileQuestion />}
-        title="بنك الأسئلة"
-        action={
-          <span className="flex flex-wrap items-center gap-2">
-            <Chip tone="green">{live.length} فعّالاً</Chip>
-            <Button size="sm" variant="glass" onClick={download}>
-              <Download className="size-4" /> تصدير Excel
-            </Button>
-            <Button size="sm" variant="glass" onClick={() => window.print()}>
-              <Printer className="size-4" /> تصدير PDF
-            </Button>
-            <Button
-              size="sm"
-              variant="gold"
-              onClick={() => {
-                setShowOff(false);
-                setOpen("new");
-                setReplacing(null);
-                setDraft(blankDraft("choice", role || undefined));
-              }}
-            >
-              <Plus className="size-4" /> سؤال جديد
-            </Button>
-          </span>
-        }
-      >
-        <p className="text-sm leading-7 text-white/70">
-          بنك واحد للموسم. كل سؤال اختيار من خيارات (من 2 إلى 6) أو صح وخطأ، تصحّحه المنصة فور التسليم، فلا سؤال يكتب المتقدم إجابته. الخيارات تُعرض دائماً بترتيب مختلف في كل ورقة. يُسحب كل قسم من أقسام الاختبار من أسئلة صفته في فئاته، وتحت كل سؤال الصفات التي يدخل اختبارها: اضغط صفة لتُدخله فيها أو تُخرجه. السؤال الذي ظهر في محاولة لا يُعدَّل: عطّله وأنشئ بديلاً.
-        </p>
-        <div className="mt-4 grid gap-2 md:grid-cols-[1.5fr_1fr_1fr]">
-          <SearchBox value={q} onChange={setQ} label="بحث في الأسئلة" placeholder="نص السؤال أو خياراته أو رقمه..." />
-          <FilterSelect label="الصفة" all="كل الصفات" value={role} onChange={setRole} options={APPLIED_ROLES.map((r) => ({ value: r.key, label: `${r.label} (${live.filter((x) => x.roles.includes(r.key)).length})` }))} />
-          <FilterSelect label="الفئة" all="كل الفئات" value={category} onChange={setCategory} options={EXAM_CATEGORIES.map((c) => ({ value: c, label: `${c} (${live.filter((x) => x.category === c).length})` }))} />
-        </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <Segments
-            label="نوع السؤال"
-            value={type}
-            onChange={setType}
-            items={[{ value: "all" as const, label: "كل الأنواع", count: live.length }, ...TYPES.map((t) => ({ value: t, label: QUESTION_TYPES[t], count: live.filter((x) => typeOf(x) === t).length }))]}
-          />
-          <Segments
-            label="حالة السؤال"
-            value={showOff ? "off" : "on"}
-            onChange={(v) => setShowOff(v === "off")}
-            items={[
-              { value: "on", label: "الفعّالة", count: live.length },
-              { value: "off", label: "المعطّلة", count: off.length },
-            ]}
-          />
-        </div>
+  // What the sheet shows: a form to fill (a new question, or one never on a paper), or the question to read
+  const n = opened ? (used.get(opened.id) ?? 0) : 0;
+  const disabledOpen = !!opened && off.includes(opened.id);
+  const editable = sheet?.kind === "new" || (!!opened && n === 0 && !disabledOpen);
 
-        {open === "new" && draft && (
-          <div className="mt-4 rounded-2xl bg-gold/10 p-4 ring-1 ring-gold/40">
-            <p className="mb-3 font-bold text-gold">{replacing !== null ? `سؤال بديل من السؤال ${replacing} — يُعطَّل الأصل حين تحفظه` : "سؤال جديد"}</p>
-            <QuestionForm draft={draft} setDraft={setDraft} isNew />
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="gold" onClick={() => save("new")}>
-                <Plus className="size-4" /> {replacing !== null ? "إضافة البديل وتعطيل الأصل" : "إضافة السؤال"}
+  return (
+    <div className="space-y-5">
+      <Title
+        action={
+          <>
+            <AddButton onClick={openNew}>
+              <Plus className="size-4" /> إضافة سؤال
+            </AddButton>
+            <span className="flex gap-3 text-sm font-bold">
+              <RowLink onClick={download}>تصدير Excel</RowLink>
+              <RowLink onClick={() => window.print()}>تصدير PDF</RowLink>
+            </span>
+          </>
+        }
+      />
+      <div className="grid gap-2 md:grid-cols-[1.5fr_1fr_1fr]">
+        <SearchBox value={q} onChange={setQ} label="بحث في الأسئلة" placeholder="نص السؤال أو خياراته أو رقمه..." />
+        <FilterSelect label="الصفة" all="كل الصفات" value={role} onChange={setRole} options={APPLIED_ROLES.map((r) => ({ value: r.key, label: `${r.label} (${live.filter((x) => x.roles.includes(r.key)).length})` }))} />
+        <FilterSelect label="الفئة" all="كل الفئات" value={category} onChange={setCategory} options={EXAM_CATEGORIES.map((c) => ({ value: c, label: `${c} (${live.filter((x) => x.category === c).length})` }))} />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Segments
+          label="حالة السؤال"
+          value={showOff ? "off" : "on"}
+          onChange={(v) => setShowOff(v === "off")}
+          items={[
+            { value: "on", label: "الفعّالة", count: live.length },
+            { value: "off", label: "المعطّلة", count: off.length },
+          ]}
+        />
+        <Segments
+          label="نوع السؤال"
+          value={type}
+          onChange={setType}
+          items={[{ value: "all" as const, label: "كل الأنواع", count: live.length }, ...TYPES.map((t) => ({ value: t, label: QUESTION_TYPES[t], count: live.filter((x) => typeOf(x) === t).length }))]}
+        />
+      </div>
+
+      <ListTable head={["#", "السؤال", "النوع والفئة", "يدخل اختبار", "الحالة"]} minWidth="54rem">
+        {shown.length === 0 && <EmptyRow cols={5}>لا أسئلة تطابق هذا البحث.</EmptyRow>}
+        {shown.map((x) => {
+          const disabled = off.includes(x.id);
+          const times = used.get(x.id) ?? 0;
+          return (
+            <tr key={x.id} className={cn("align-top", disabled && "opacity-60")}>
+              <td className="w-12 p-3 font-display font-bold text-gold">{x.id}</td>
+              <td className="p-3">
+                <button type="button" onClick={() => openOne(x)} className="text-right font-bold leading-6 text-white hover:text-gold">
+                  {x.text}
+                </button>
+                <p className="text-xs text-white/55">الإجابة: {x.options[x.answer]}</p>
+                <RowActions>
+                  {!disabled && times === 0 ? <RowLink onClick={() => openOne(x)}>تعديل</RowLink> : <RowLink onClick={() => openOne(x)}>عرض</RowLink>}
+                  {!disabled && times > 0 && <RowLink onClick={() => replace(x)}>إنشاء بديل</RowLink>}
+                  {disabled ? (
+                    <RowLink onClick={() => toggle(x.id, x.text)}>تفعيل</RowLink>
+                  ) : (
+                    <RowLink danger onClick={() => toggle(x.id, x.text)}>
+                      تعطيل
+                    </RowLink>
+                  )}
+                </RowActions>
+              </td>
+              <td className="p-3">
+                <span className="flex flex-wrap gap-1">
+                  <Tag>{QUESTION_TYPES[typeOf(x)]}</Tag>
+                  <Tag tone="gold">{x.category}</Tag>
+                </span>
+              </td>
+              <td className="p-3 text-white/80">{x.roles.length ? x.roles.map(roleLabelOf).join("، ") : <span className="text-white/50">لا صفة</span>}</td>
+              <td className="p-3">
+                <span className="flex flex-wrap gap-1">
+                  {disabled ? <Tag tone="maroon">معطّل</Tag> : <Tag tone="green">فعّال</Tag>}
+                  {times > 0 && <Tag>ظهر في {times} محاولات</Tag>}
+                  {(edits[x.id] || isAdded(x.id)) && <Tag tone="gold">{isAdded(x.id) ? "أضفته هذا الموسم" : "معدَّل"}</Tag>}
+                </span>
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
+
+      <Box title="كيف يعمل البنك؟" open={false}>
+        <p className="leading-7">
+          بنك واحد للموسم. كل سؤال اختيار من خيارات (من 2 إلى 6) أو صح وخطأ، تصحّحه المنصة فور التسليم، والخيارات تُعرض بترتيب مختلف في كل ورقة. يُسحب كل قسم من أقسام الاختبار من أسئلة صفته في فئاته. السؤال الذي ظهر في محاولة لا يُعدَّل: عطّله وأنشئ بديلاً.
+        </p>
+      </Box>
+      <ResetToOriginal />
+      <Records area="bank" />
+
+      <Drawer
+        open={!!sheet}
+        onClose={close}
+        title={sheet?.kind === "new" ? (sheet.replacing !== null ? `سؤال بديل من السؤال ${sheet.replacing}` : "سؤال جديد") : opened ? `السؤال ${opened.id}` : ""}
+        footer={
+          editable && (
+            <div className="flex gap-2">
+              <Button variant="gold" onClick={save}>
+                <Check className="size-4" /> {sheet?.kind === "new" ? (sheet.replacing !== null ? "إضافة البديل وتعطيل الأصل" : "إضافة السؤال") : "حفظ السؤال"}
               </Button>
-              <Button size="sm" variant="ghost" className="text-white" onClick={close}>
+              <Button variant="glass" onClick={close}>
                 إلغاء
               </Button>
             </div>
+          )
+        }
+      >
+        {sheet && draft && (
+          <div className="space-y-5">
+            {sheet.kind === "new" && sheet.replacing !== null && <p className="rounded-2xl bg-gold/10 p-3 text-sm text-gold ring-1 ring-gold/40">يُعطَّل السؤال {sheet.replacing} حين تحفظ هذا البديل، ويبقى في الأوراق التي ظهر فيها.</p>}
+            {editable ? (
+              <QuestionForm draft={draft} setDraft={setDraft} isNew={sheet.kind === "new"} />
+            ) : (
+              opened && (
+                <div className="space-y-3">
+                  <p className="rounded-2xl bg-white/[.06] p-3 text-sm text-white/80 ring-1 ring-white/10">
+                    <Lock className="me-1 inline size-3.5 text-gold" />
+                    {disabledOpen ? "سؤال معطّل: لا يُسحب في أي ورقة. فعّله ليعود إلى اختبارات صفاته." : `ظهر في ${n} محاولات: لا يُعدَّل. أنشئ بديلاً منه، فيُعطَّل هو حين تحفظ البديل.`}
+                  </p>
+                  <p className="font-bold leading-7 text-white">{opened.text}</p>
+                  <ul className="space-y-1 text-sm">
+                    {opened.options.map((o, i) => (
+                      <li key={i} className={cn("rounded-xl px-3 py-1.5 ring-1", i === opened.answer ? "bg-green-light/20 font-bold text-white ring-green-light/40" : "text-white/75 ring-white/10")}>
+                        {LETTERS[i]}) {o} {i === opened.answer && "✓"}
+                      </li>
+                    ))}
+                  </ul>
+                  {opened.explanation && <p className="text-xs leading-6 text-white/65">{opened.explanation}</p>}
+                  <p className="flex flex-wrap gap-x-3 text-sm font-bold">
+                    {!disabledOpen && <RowLink onClick={() => replace(opened)}>إنشاء بديل</RowLink>}
+                    <RowLink onClick={() => toggle(opened.id, opened.text)}>{disabledOpen ? "تفعيل السؤال" : "تعطيل السؤال"}</RowLink>
+                  </p>
+                </div>
+              )
+            )}
+            {opened && !disabledOpen && (
+              <section className="border-t border-white/10 pt-4">
+                <p className="mb-2 text-sm font-bold text-white">يدخل اختبار</p>
+                <p className="mb-2 text-xs text-white/55">اضغط صفة لتُدخله في اختبارها أو تُخرجه منه. يُحفظ فوراً.</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {APPLIED_ROLES.map((r) => (
+                    <Pick key={r.key} on={opened.roles.includes(r.key)} onClick={() => toggleRole(opened, r.key, r.label)} label={`السؤال ${opened.id} في اختبار ${r.label}`}>
+                      {r.label}
+                    </Pick>
+                  ))}
+                </div>
+              </section>
+            )}
+            {opened && editable && (
+              <p className="text-xs font-bold">
+                <RowLink danger onClick={() => toggle(opened.id, opened.text)}>
+                  تعطيل السؤال
+                </RowLink>
+              </p>
+            )}
+            {opened && <RecordHistory refId={`q${opened.id}`} />}
           </div>
         )}
-
-        <p className="mt-4 text-xs text-white/60">{shown.length} سؤالاً يطابق</p>
-        <ul className="mt-2 space-y-2">
-          {shown.map((x) => {
-            const t = typeOf(x);
-            const disabled = off.includes(x.id);
-            const editing = open === x.id;
-            const n = used.get(x.id) ?? 0;
-            return (
-              <li key={x.id} className={cn("rounded-2xl p-3 ring-1", disabled ? "bg-black/20 ring-white/10" : "bg-white/[.06] ring-white/10")}>
-                <div className="flex flex-wrap items-start gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 font-display text-sm font-bold text-gold">{x.id}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className={cn("font-bold", disabled ? "text-white/55" : "text-white")}>{x.text}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-white/60">
-                      <Chip tone={disabled ? "maroon" : "green"}>{disabled ? "معطّل" : "فعّال"}</Chip>
-                      <Chip tone="muted">{QUESTION_TYPES[t]}</Chip>
-                      <Chip tone="gold">{x.category}</Chip>
-                      <span>الإجابة: {x.options[x.answer]}</span>
-                      {n > 0 && <Chip tone="muted">ظهر في {n} محاولات</Chip>}
-                      {(edits[x.id] || isAdded(x.id)) && <Chip tone="gold">{isAdded(x.id) ? "أضفته هذا الموسم" : "معدَّل"}</Chip>}
-                    </p>
-                    {!disabled && (
-                      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="text-white/55">يدخل اختبار:</span>
-                        {APPLIED_ROLES.map((r) => (
-                          <Pick key={r.key} on={x.roles.includes(r.key)} onClick={() => toggleRole(x, r.key, r.label)} label={`السؤال ${x.id} في اختبار ${r.label}`}>
-                            {r.label}
-                          </Pick>
-                        ))}
-                      </p>
-                    )}
-                    {n > 0 && !disabled && <p className="mt-1.5 text-[11px] text-white/55">استُخدم في محاولات: لا يُعدَّل. عطّله وأنشئ بديلاً.</p>}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {!disabled && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-white hover:bg-white/10"
-                        disabled={n > 0}
-                        title={n > 0 ? "استُخدم في محاولات: لا يُعدَّل. عطّله وأنشئ بديلاً" : undefined}
-                        onClick={() => {
-                          if (editing) close();
-                          else {
-                            setOpen(x.id);
-                            setReplacing(null);
-                            setDraft(draftOf(x));
-                          }
-                        }}
-                      >
-                        {editing ? "إغلاق" : "تعديل"}
-                      </Button>
-                    )}
-                    {n > 0 && !disabled && (
-                      <Button size="sm" variant="ghost" className="text-gold hover:bg-white/10" onClick={() => replace(x)}>
-                        <Copy className="size-4" /> إنشاء بديل
-                      </Button>
-                    )}
-                    <Button size="sm" variant={disabled ? "primary" : "ghost"} className={disabled ? "" : "text-white hover:bg-maroon/40"} onClick={() => toggle(x.id, x.text)}>
-                      {disabled ? (
-                        <>
-                          <Power className="size-4" /> تفعيل
-                        </>
-                      ) : (
-                        <>
-                          <PowerOff className="size-4" /> تعطيل
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                {editing && draft && (
-                  <div className="mt-3 border-t border-white/10 pt-3">
-                    <QuestionForm draft={draft} setDraft={setDraft} isNew={false} />
-                    <Button size="sm" variant="gold" className="mt-3" onClick={() => save(x.id)}>
-                      حفظ السؤال
-                    </Button>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </Panel>
-      <Records area="bank" />
+      </Drawer>
 
       <PrintSheet>
         <article className="text-[10pt] leading-relaxed text-black">

@@ -1,50 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
-import {
-  Archive,
-  Download,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  FileClock,
-  FileText,
-  ImagePlus,
-  LayoutList,
-  PencilLine,
-  Search,
-  Upload,
-} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Download, ExternalLink, Eye, EyeOff, PencilLine, Search, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/widgets";
-import { CmsIcon } from "@/components/cms/bits";
 import { CMS_COLLECTIONS, getCollectionDef } from "@/lib/cms/collections";
 import { CMS_GROUPS, CMS_PAGES, getPageDef } from "@/lib/cms/schema";
-import {
-  archivedItems,
-  archivedSections,
-  cms,
-  cmsMemo,
-  editedFieldCount,
-  editedItemCount,
-  hasCollectionDraft,
-  hasDraft,
-  pageState,
-  readCollection,
-  useCms,
-  useCmsHydrated,
-} from "@/lib/cms/store";
-import type { CmsState, CollectionDef, PageDef } from "@/lib/cms/types";
+import { cms, editedFieldCount, editedItemCount, hasCollectionDraft, hasDraft, pageState, readCollection, useCms, useCmsHydrated } from "@/lib/cms/store";
+import type { CmsState } from "@/lib/cms/types";
 import { cn } from "@/lib/utils";
-import { Empty, Gate, Kpi, PageHeader, Panel, Tabs, fmtDateTime, useStaffUser } from "../_components/kit";
+import { Gate, PageHeader, Panel, fmtDateTime, useStaffUser } from "../_components/kit";
+import { FilterSelect } from "../_components/ops-ui";
+import { Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
+import { Segments } from "../exam/_components/ui";
 import { ArchiveView } from "./_components/archive";
 import { CollectionEditor } from "./_components/collection";
 import { PageEditor, StatusChip } from "./_components/editor";
 import { MediaLibrary } from "./_components/media";
 import { RevisionsView } from "./_components/revisions";
+import { useContentSummary } from "./_components/summary";
 
 type Tab = "pages" | "media" | "revisions" | "archive";
+const TABS: Tab[] = ["pages", "media", "revisions", "archive"];
+const BASE = "/staff/content";
 
 export function ContentView() {
   return (
@@ -54,39 +33,38 @@ export function ContentView() {
   );
 }
 
+/**
+ * The site's content, as a site's admin: the pages and collections in a list, each edited on its own screen
+ * (`?id=`); the media, the earlier versions and the archive beside it (`?tab=`). Its numbers are on «لوحتي».
+ */
 function Inner() {
   const user = useStaffUser();
   const hydrated = useCmsHydrated();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>("pages");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [focusRevision, setFocusRevision] = useState<string | undefined>();
-
+  const router = useRouter();
+  const params = useSearchParams();
   const preview = useCms((s) => s.preview);
-  const stats = useCms(summarise);
+  const stats = useContentSummary();
+
+  const openId = params.get("id");
+  const tabParam = params.get("tab") as Tab | null;
+  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "pages";
+  const focus = params.get("focus") ?? undefined;
   const page = openId ? getPageDef(openId) : null;
   const collection = openId ? getCollectionDef(openId) : null;
 
   if (!user) return null;
 
-  const goto = (id: string) => {
-    setOpenId(id);
-    setTab("pages");
-  };
-
-  const openRevisions = (id: string) => {
-    setFocusRevision(id);
-    setOpenId(null);
-    setTab("revisions");
-  };
+  const goto = (id: string) => router.push(`${BASE}?id=${encodeURIComponent(id)}`);
+  const back = () => router.push(BASE);
+  const openRevisions = (id: string) => router.push(`${BASE}?tab=revisions&focus=${encodeURIComponent(id)}`);
 
   return (
     <>
       <PageHeader
-        eyebrow="إدارة محتوى الموقع"
-        title="محتوى المنصة"
+        title="محتوى الموقع"
         icon={<PencilLine />}
-        description="عدّل كل ما يظهر للزوار: النصوص والصور والروابط والقوائم، صفحة بصفحة وقسماً بقسم. احفظ مسودة، عاينها، ثم انشرها — ولك أن تخفي أي قسم أو تؤرشفه وتستعيده لاحقاً."
+        description="ما يظهر لزوار الموقع: عدّل، احفظ مسودة، عاين، ثم انشر."
         actions={
           <>
             <button
@@ -99,21 +77,13 @@ function Inner() {
                   icon: preview ? "👁️" : "🔍",
                 });
               }}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition",
-                preview ? "bg-gold text-ink hover:bg-gold-light" : "bg-white/10 text-white hover:bg-white/20",
-              )}
+              className={cn("flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition", preview ? "bg-gold text-ink hover:bg-gold-light" : "bg-white/10 text-white hover:bg-white/20")}
             >
               {preview ? <Eye className="size-4" /> : <EyeOff className="size-4" />} وضع المعاينة
             </button>
-            <Link
-              href="/"
-              target="_blank"
-              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/20"
-            >
+            <Link href="/" target="_blank" className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/20">
               <ExternalLink className="size-4" /> فتح الموقع
             </Link>
-            <BackupButtons />
           </>
         }
       />
@@ -123,37 +93,26 @@ function Inner() {
           <div className="h-40 animate-pulse rounded-2xl bg-white/5" />
         </Panel>
       ) : page ? (
-        <PageEditor page={page} user={user} onBack={() => setOpenId(null)} onOpenRevisions={() => openRevisions(page.id)} />
+        <PageEditor key={page.id} page={page} user={user} onBack={back} onOpenRevisions={() => openRevisions(page.id)} />
       ) : collection ? (
-        <CollectionEditor collection={collection} user={user} onBack={() => setOpenId(null)} onOpenRevisions={() => openRevisions(collection.id)} />
+        <CollectionEditor key={collection.id} collection={collection} user={user} onBack={back} onOpenRevisions={() => openRevisions(collection.id)} />
       ) : (
         <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Kpi label="صفحات منشورة" value={stats.published} icon={<FileText />} tone="green" hint="يراها الزوار الآن" />
-            <Kpi label="مسودات غير منشورة" value={stats.drafts} icon={<FileClock />} tone="gold" hint="صفحات ومجموعات بانتظار النشر" delay={0.05} />
-            <Kpi label="عناصر معدّلة" value={stats.edited} icon={<PencilLine />} tone="teal" hint="حقول وأقسام ومقالات" delay={0.1} />
-            <Kpi label="في الأرشيف" value={stats.archived} icon={<Archive />} tone="maroon" hint="صفحات وأقسام وعناصر قابلة للاستعادة" delay={0.15} />
-          </div>
-
-          <Tabs
-            id="content"
+          <Segments
             value={tab}
-            onChange={(v) => setTab(v)}
-            tabs={[
-              { value: "pages", label: "الصفحات والأقسام", count: CMS_PAGES.length + CMS_COLLECTIONS.length },
+            onChange={(v) => router.replace(v === "pages" ? BASE : `${BASE}?tab=${v}`, { scroll: false })}
+            label="أقسام المحتوى"
+            items={[
+              { value: "pages", label: "الصفحات والمجموعات", count: CMS_PAGES.length + CMS_COLLECTIONS.length },
               { value: "media", label: "مكتبة الوسائط", count: stats.media },
               { value: "revisions", label: "النسخ السابقة", count: stats.revisions },
               { value: "archive", label: "الأرشيف", count: stats.archived },
             ]}
           />
 
-          {tab === "pages" && <PagesList onOpen={goto} />}
-          {tab === "media" && (
-            <Panel title="مكتبة الوسائط" icon={<ImagePlus />}>
-              <MediaLibrary by={user.name} />
-            </Panel>
-          )}
-          {tab === "revisions" && <RevisionsView user={user} focusPage={focusRevision} onOpenPage={goto} />}
+          {tab === "pages" && <PagesList onOpen={goto} onRevisions={openRevisions} />}
+          {tab === "media" && <MediaLibrary by={user.name} />}
+          {tab === "revisions" && <RevisionsView key={focus ?? "all"} user={user} focusPage={focus} onOpenPage={goto} />}
           {tab === "archive" && <ArchiveView user={user} onOpenPage={goto} />}
         </div>
       )}
@@ -163,155 +122,156 @@ function Inner() {
 
 // ───────────────────────── قائمة الصفحات ─────────────────────────
 
-function PagesList({ onOpen }: { onOpen: (id: string) => void }) {
+function PagesList({ onOpen, onRevisions }: { onOpen: (id: string) => void; onRevisions: (id: string) => void }) {
   const [q, setQ] = useState("");
+  const [group, setGroup] = useState("");
+  const [drafts, setDrafts] = useState<"all" | "drafts">("all");
   const state = useCms((s) => s);
-
   const needle = q.trim();
 
-  const matches = useMemo(() => {
-    if (!needle) return CMS_PAGES;
-    return CMS_PAGES.filter(
-      (p) =>
-        p.label.includes(needle) ||
-        (p.description ?? "").includes(needle) ||
-        p.path.includes(needle) ||
-        p.sections.some((s) => s.label.includes(needle) || s.fields.some((f) => f.label.includes(needle))),
-    );
-  }, [needle]);
+  const pages = useMemo(
+    () =>
+      CMS_PAGES.filter(
+        (p) =>
+          (!group || p.group === group) &&
+          (drafts === "all" || hasDraft(state, p.id)) &&
+          (!needle || p.label.includes(needle) || (p.description ?? "").includes(needle) || p.path.includes(needle) || p.sections.some((s) => s.label.includes(needle) || s.fields.some((f) => f.label.includes(needle)))),
+      ),
+    [needle, group, drafts, state],
+  );
 
-  const collectionMatches = useMemo(() => {
-    if (!needle) return CMS_COLLECTIONS;
-    return CMS_COLLECTIONS.filter(
-      (c) =>
-        c.label.includes(needle) ||
-        c.itemName.includes(needle) ||
-        (c.description ?? "").includes(needle) ||
-        c.fields.some((f) => f.label.includes(needle)),
-    );
-  }, [needle]);
+  const collections = useMemo(
+    () =>
+      CMS_COLLECTIONS.filter(
+        (c) =>
+          (drafts === "all" || hasCollectionDraft(state, c.id)) &&
+          (!needle || c.label.includes(needle) || c.itemName.includes(needle) || (c.description ?? "").includes(needle) || c.fields.some((f) => f.label.includes(needle))),
+      ),
+    [needle, drafts, state],
+  );
+
+  const draftCount = CMS_PAGES.filter((p) => hasDraft(state, p.id)).length + CMS_COLLECTIONS.filter((c) => hasCollectionDraft(state, c.id)).length;
 
   return (
     <div className="space-y-4">
-      <label className="relative block">
-        <Search className="absolute right-4 top-1/2 size-4.5 -translate-y-1/2 text-white/50" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="ابحث عن صفحة أو قسم أو مجموعة… مثل «الشريط العاجل» أو «المقالات»"
-          className="h-12 w-full rounded-2xl border-2 border-white/15 bg-white/10 pr-11 text-base text-white outline-none transition placeholder:text-white/40 focus:border-gold focus:ring-4 focus:ring-gold/15"
+      <div className="flex flex-wrap items-center gap-3">
+        <Segments
+          value={drafts}
+          onChange={setDrafts}
+          label="تصفية"
+          items={[
+            { value: "all", label: "الكل", count: CMS_PAGES.length + CMS_COLLECTIONS.length },
+            { value: "drafts", label: "فيها مسودة غير منشورة", count: draftCount },
+          ]}
         />
-      </label>
+        <div className="w-full sm:w-52">
+          <FilterSelect value={group} onChange={setGroup} label="القسم" all="كل أقسام الموقع" options={CMS_GROUPS} />
+        </div>
+        <label className="relative w-full flex-1 sm:min-w-64">
+          <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/50" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="ابحث عن صفحة أو قسم أو حقل… مثل «الشريط العاجل»"
+            aria-label="بحث في الصفحات"
+            className="h-11 w-full rounded-xl border-2 border-white/15 bg-white/10 pr-9 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-gold"
+          />
+        </label>
+      </div>
 
-      {matches.length === 0 && collectionMatches.length === 0 && (
-        <Panel>
-          <Empty icon={<Search />} title="لا نتائج" text="جرّب كلمة أخرى — يبحث الحقل في أسماء الصفحات والأقسام والحقول." />
-        </Panel>
-      )}
+      <ListTable head={["الصفحة", "قسم الموقع", "الحالة", "آخر تعديل"]}>
+        {pages.length === 0 && <EmptyRow cols={4}>لا صفحات مطابقة.</EmptyRow>}
+        {pages.map((p) => (
+          <PageRow key={p.id} id={p.id} state={state} onOpen={onOpen} onRevisions={onRevisions} />
+        ))}
+      </ListTable>
 
-      {CMS_GROUPS.map((group) => {
-        const pages = matches.filter((p) => p.group === group);
-        if (!pages.length) return null;
-        return (
-          <Panel key={group} title={group} icon={<LayoutList />} action={<span className="text-xs text-white/55">{pages.length} صفحة</span>} bodyClass="grid gap-3 md:grid-cols-2">
-            {pages.map((p, i) => (
-              <PageCard key={p.id} page={p} state={state} delay={i * 0.04} onOpen={() => onOpen(p.id)} />
+      {!group && (
+        <>
+          <h2 className="pt-2 font-display text-xl font-bold text-white">مجموعات المحتوى</h2>
+          <ListTable head={["المجموعة", "المنشور", "الحالة", "آخر تعديل"]}>
+            {collections.length === 0 && <EmptyRow cols={4}>لا مجموعات مطابقة.</EmptyRow>}
+            {collections.map((c) => (
+              <CollectionRow key={c.id} id={c.id} state={state} onOpen={onOpen} onRevisions={onRevisions} />
             ))}
-          </Panel>
-        );
-      })}
-
-      {collectionMatches.length > 0 && (
-        <Panel
-          title="مجموعات المحتوى"
-          icon={<LayoutList />}
-          action={<span className="text-xs text-white/55">{collectionMatches.length} مجموعة</span>}
-          bodyClass="grid gap-3 md:grid-cols-2"
-        >
-          {collectionMatches.map((c, i) => (
-            <CollectionCard key={c.id} collection={c} state={state} delay={i * 0.04} onOpen={() => onOpen(c.id)} />
-          ))}
-        </Panel>
+          </ListTable>
+        </>
       )}
+
+      <Box title="خيارات متقدمة: نسخة احتياطية من المحتوى" open={false}>
+        <BackupButtons />
+      </Box>
     </div>
   );
 }
 
-function CollectionCard({ collection, state, delay, onOpen }: { collection: CollectionDef; state: CmsState; delay: number; onOpen: () => void }) {
-  const all = readCollection(state, collection.id);
-  const live = all.filter((i) => !i.archived).length;
-  const created = all.filter((i) => i.isNew).length;
-  const dirty = hasCollectionDraft(state, collection.id);
-  const edited = editedItemCount(state, collection.id);
-  const updatedAt = state.collections[collection.id]?.updatedAt;
-
+function PageRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsState; onOpen: (id: string) => void; onRevisions: (id: string) => void }) {
+  const page = getPageDef(id)!;
+  const p = pageState(state, id);
+  const dirty = hasDraft(state, id);
+  const edited = editedFieldCount(state, id, true);
+  const hidden = Object.values(p.draft ?? p.sections).filter((s) => s.hidden || s.archived).length;
   return (
-    <motion.button
-      type="button"
-      onClick={onOpen}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -3 }}
-      className="group flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[.04] p-4 text-right transition hover:border-gold/50 hover:bg-white/[.08]"
-    >
-      <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-gold transition group-hover:bg-gold group-hover:text-ink">
-        {collection.icon ? <CmsIcon name={collection.icon} className="size-5" /> : <FileText className="size-5" />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-2">
-          <span className="font-display text-base font-bold text-white">{collection.label}</span>
-          <span className="rounded-full bg-green-light/20 px-2 py-0.5 text-[10px] font-bold text-green-light">{live} منشوراً</span>
-          {dirty && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-gold">مسودة غير منشورة</span>}
-        </p>
-        <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/60">{collection.description}</p>
-        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/45">
-          {edited > 0 && <span className="text-gold">{edited} {collection.itemName}اً معدَّلاً</span>}
-          {created > 0 && <span>{created} أُنشئ من اللوحة</span>}
-          {collection.slots && <span>حتى {collection.slots.length} {collection.itemName}اً جديداً</span>}
-          {updatedAt && <span>آخر تعديل {fmtDateTime(updatedAt)}</span>}
-        </p>
-      </div>
-      <span className="shrink-0 self-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white/80 transition group-hover:bg-gold group-hover:text-ink">فتح</span>
-    </motion.button>
+    <tr className="align-top">
+      <td className="p-3">
+        <button type="button" onClick={() => onOpen(id)} className="text-right font-bold text-white hover:text-gold">
+          {page.label}
+        </button>
+        <p className="line-clamp-1 text-xs text-white/55">{page.description}</p>
+        <RowActions>
+          <RowLink onClick={() => onOpen(id)}>تعديل</RowLink>
+          <RowLink href={page.path}>عرض</RowLink>
+          <RowLink onClick={() => onRevisions(id)}>النسخ السابقة</RowLink>
+        </RowActions>
+      </td>
+      <td className="p-3 text-xs text-white/70">{page.group}</td>
+      <td className="p-3">
+        <span className="flex flex-wrap items-center gap-1.5">
+          <StatusChip status={p.status} />
+          {dirty && <Tag tone="gold">مسودة غير منشورة</Tag>}
+        </span>
+        <span className="mt-1 block text-[11px] text-white/50">
+          {page.sections.length} قسماً
+          {edited > 0 && ` · ${edited} حقلاً معدَّلاً`}
+          {hidden > 0 && ` · ${hidden} مخفي/مؤرشف`}
+        </span>
+      </td>
+      <td className="p-3 text-xs text-white/60">{p.updatedAt ? fmtDateTime(p.updatedAt) : "—"}</td>
+    </tr>
   );
 }
 
-function PageCard({ page, state, delay, onOpen }: { page: PageDef; state: CmsState; delay: number; onOpen: () => void }) {
-  const p = pageState(state, page.id);
-  const dirty = hasDraft(state, page.id);
-  const edited = editedFieldCount(state, page.id, true);
-  const hidden = Object.values(p.draft ?? p.sections).filter((s) => s.hidden || s.archived).length;
-
+function CollectionRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsState; onOpen: (id: string) => void; onRevisions: (id: string) => void }) {
+  const collection = getCollectionDef(id)!;
+  const all = readCollection(state, id);
+  const live = all.filter((i) => !i.archived).length;
+  const created = all.filter((i) => i.isNew).length;
+  const dirty = hasCollectionDraft(state, id);
+  const edited = editedItemCount(state, id);
+  const updatedAt = state.collections[id]?.updatedAt;
   return (
-    <motion.button
-      type="button"
-      onClick={onOpen}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -3 }}
-      className="group flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[.04] p-4 text-right transition hover:border-gold/50 hover:bg-white/[.08]"
-    >
-      <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-gold transition group-hover:bg-gold group-hover:text-ink">
-        {page.icon ? <CmsIcon name={page.icon} className="size-5" /> : <FileText className="size-5" />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-2">
-          <span className="font-display text-base font-bold text-white">{page.label}</span>
-          <StatusChip status={p.status} />
-          {dirty && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-gold">مسودة غير منشورة</span>}
-        </p>
-        <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/60">{page.description}</p>
-        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/45">
-          <span>{page.sections.length} قسماً</span>
-          {edited > 0 && <span className="text-gold">{edited} حقلاً معدَّلاً</span>}
-          {hidden > 0 && <span>{hidden} مخفي/مؤرشف</span>}
-          {p.updatedAt && <span>آخر تعديل {fmtDateTime(p.updatedAt)}</span>}
-        </p>
-      </div>
-      <span className="shrink-0 self-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white/80 transition group-hover:bg-gold group-hover:text-ink">تعديل</span>
-    </motion.button>
+    <tr className="align-top">
+      <td className="p-3">
+        <button type="button" onClick={() => onOpen(id)} className="text-right font-bold text-white hover:text-gold">
+          {collection.label}
+        </button>
+        <p className="line-clamp-1 text-xs text-white/55">{collection.description}</p>
+        <RowActions>
+          <RowLink onClick={() => onOpen(id)}>فتح</RowLink>
+          <RowLink onClick={() => onRevisions(id)}>النسخ السابقة</RowLink>
+        </RowActions>
+      </td>
+      <td className="p-3 text-white/80">
+        {live} {collection.itemName}اً
+        <span className="block text-[11px] text-white/50">
+          {edited > 0 && `${edited} معدَّلاً · `}
+          {created > 0 && `${created} أُنشئ من اللوحة · `}
+          {collection.slots && `حتى ${collection.slots.length} جديداً`}
+        </span>
+      </td>
+      <td className="p-3">{dirty ? <Tag tone="gold">مسودة غير منشورة</Tag> : <Tag tone="green">منشورة</Tag>}</td>
+      <td className="p-3 text-xs text-white/60">{updatedAt ? fmtDateTime(updatedAt) : "—"}</td>
+    </tr>
   );
 }
 
@@ -346,12 +306,15 @@ function BackupButtons() {
 
   return (
     <>
-      <button onClick={exportJson} title="تنزيل نسخة من المحتوى" className="grid size-10 place-items-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
-        <Download className="size-4" />
-      </button>
-      <button onClick={() => input.current?.click()} title="استيراد محتوى" className="grid size-10 place-items-center rounded-xl bg-white/10 text-white transition hover:bg-white/20">
-        <Upload className="size-4" />
-      </button>
+      <p className="text-white/65">ملف بنصوص الموقع كلها (دون الصور)، للحفظ أو للنقل إلى جهاز آخر. الاستيراد يستبدل المحتوى الحالي.</p>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={exportJson} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
+          <Download className="size-4" /> تنزيل نسخة من المحتوى
+        </button>
+        <button onClick={() => input.current?.click()} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
+          <Upload className="size-4" /> استيراد محتوى
+        </button>
+      </div>
       <input
         ref={input}
         type="file"
@@ -364,34 +327,4 @@ function BackupButtons() {
       />
     </>
   );
-}
-
-function summarise(s: CmsState) {
-  return cmsMemo("contentSummary", s, () => compute(s));
-}
-
-function compute(s: CmsState) {
-  let published = 0;
-  let drafts = 0;
-  let edited = 0;
-  let archivedPages = 0;
-  for (const p of CMS_PAGES) {
-    const st = pageState(s, p.id);
-    if (st.status === "published") published++;
-    if (st.status === "archived") archivedPages++;
-    if (hasDraft(s, p.id)) drafts++;
-    edited += editedFieldCount(s, p.id, true);
-  }
-  for (const c of CMS_COLLECTIONS) {
-    if (hasCollectionDraft(s, c.id)) drafts++;
-    edited += editedItemCount(s, c.id);
-  }
-  return {
-    published,
-    drafts,
-    edited,
-    archived: archivedPages + archivedSections(s).length + archivedItems(s).length,
-    media: s.media.length,
-    revisions: s.revisions.length,
-  };
 }

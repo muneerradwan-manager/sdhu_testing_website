@@ -111,7 +111,7 @@ export function AgeRuler() {
                 role="radio"
                 aria-checked={gender === g}
                 onClick={() => setGender(g)}
-                className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition", gender === g ? "text-ink" : "text-white/80 hover:text-white")}
+                className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition", gender === g ? "on-light text-ink" : "text-white/80 hover:text-white")}
               >
                 {gender === g && <motion.span layoutId="gender-pill" className="absolute inset-0 rounded-xl bg-gold" transition={{ type: "spring", damping: 24, stiffness: 320 }} />}
                 <Icon className="relative size-4" />

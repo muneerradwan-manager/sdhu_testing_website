@@ -23,10 +23,9 @@ export function RegistrationView() {
   return (
     <Gate perms={["pilgrims.register"]}>
       <PageHeader
-        eyebrow="صلاحية «التسجيل على الحج»"
         title="التسجيل على الحج"
         icon={<UserRoundPlus />}
-        description="تسجّل أي مواطن يراجع المكتب على الحج في مدة التسجيل، بموافقته برمز يصل إلى هاتفه، ويُختم اسمك على الطلب. لا يضعه ذلك في أي مجموعة، ولا تمنحك هذه الصلاحية شيئاً في المجموعات أو التكتلات."
+        description="سجّل من يراجع المكتب على الحج في مدة التسجيل، بموافقته برمز يصل إلى هاتفه. يُختم اسمك على الطلب."
       />
       <div className="rounded-[2rem] bg-sand p-4 text-ink md:p-6">
         <RegistrationDesk

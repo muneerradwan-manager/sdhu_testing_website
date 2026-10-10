@@ -5,7 +5,6 @@ import {
   ArrowRight,
   CalendarClock,
   Check,
-  ChevronLeft,
   ClipboardCheck,
   Copy,
   DoorClosed,
@@ -16,7 +15,6 @@ import {
   KeyRound,
   Lock,
   MonitorPlay,
-  PenLine,
   Play,
   RotateCcw,
   ScanBarcode,
@@ -64,8 +62,10 @@ import {
 } from "@/app/administrator/_lib/halls";
 import { useExamDesk, type AttemptRow } from "../exam/_components/desk";
 import type { AdminRow } from "../_components/data";
-import { Empty, Kpi, PageHeader, Panel, Tabs, fmtTime, logAs, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
+import { Empty, PageHeader, Tabs, fmtTime, logAs, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
 import { SearchBox } from "../_components/ops-ui";
+import { Box, EditLayout, EmptyRow, ListTable, RowActions, RowLink } from "../_components/wp";
+import { Segments } from "../exam/_components/ui";
 
 const CHIP = {
   green: "bg-green-light/25 text-white ring-green-light/50",
@@ -170,45 +170,32 @@ function Hall({ centers }: { centers: ExamCenter[] }) {
   const current = items.find((s) => s.key === openKey);
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="الاختبار المؤتمت — لوحة مشرف القاعة"
-        title="قاعتي الامتحانية"
-        icon={<DoorOpen />}
-        description={`${center.name} — ${center.hall}. الجلسة اختبار في قاعة بموعد: تفتح القاعة، وتسجّل الحضور، وتوافق على دخول كل جهاز بمطابقة رمزه، وتبدأ الاختبار، وتؤكد كل تسليم، ثم تنهي الجلسة.`}
-      />
-      {centers.length > 1 && (
-        <div className="mb-4 flex flex-wrap gap-2" role="radiogroup" aria-label="القاعة">
-          {centers.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              role="radio"
-              aria-checked={c.id === center.id}
-              onClick={() => {
-                setCenterId(c.id);
-                setOpenKey(null);
-              }}
-              className={cn("rounded-full px-3 py-1.5 text-xs font-bold ring-1", c.id === center.id ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white/80 ring-white/15")}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-      )}
-      <AnimatePresence mode="wait">
-        {current ? (
-          <motion.div key={current.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
-            <SittingPage center={current.center} exam={current.exam} onBack={() => setOpenKey(null)} />
-          </motion.div>
-        ) : (
-          <motion.div key={`list-${center.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} className="space-y-4">
+    <AnimatePresence mode="wait">
+      {current ? (
+        <motion.div key={current.key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+          <SittingPage center={current.center} exam={current.exam} onBack={() => setOpenKey(null)} />
+        </motion.div>
+      ) : (
+        <motion.div key={`list-${center.id}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+          <PageHeader eyebrow="الاختبار المؤتمت — لوحة مشرف القاعة" title="قاعتي الامتحانية" icon={<DoorOpen />} description={`${center.name} — ${center.hall}. اختر جلستك لإدارتها.`} />
+          <div className="space-y-5">
+            {centers.length > 1 && (
+              <Segments
+                value={center.id}
+                onChange={(id) => {
+                  setCenterId(id);
+                  setOpenKey(null);
+                }}
+                label="القاعة"
+                items={centers.map((c) => ({ value: c.id, label: c.name, count: sittingsOf(c).length }))}
+              />
+            )}
             <Sittings items={items} onOpen={setOpenKey} />
-            <PinCard />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            <PinBox />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -216,46 +203,42 @@ function Sittings({ items, onOpen }: { items: SittingRef[]; onOpen: (key: string
   const halls = useHalls();
   const demoNow = useDemoNow();
   return (
-    <Panel icon={<CalendarClock />} title="جلساتي">
-      <p className="-mt-2 mb-4 text-sm text-white/70">اختر الجلسة المسندة إليك لإدارتها.</p>
-      {!items.length ? (
-        <Empty icon={<CalendarClock />} title="لا توجد جلسات اختبار مسندة إليك." text="تظهر هنا جلسة كل اختبار منشور في قاعتك حين ينشره صاحب صلاحية «إدارة الامتحانات»." />
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {items.map(({ exam, center, key }) => {
-            const run = halls.runs[key];
-            const stage = stageOf(run);
-            const win = openWindow(scheduledAt(exam), demoNow);
-            const pending = Object.keys(run?.requests ?? {}).length;
-            return (
-              <motion.button
-                key={key}
-                type="button"
-                onClick={() => onOpen(key)}
-                whileHover={{ y: -2 }}
-                className={cn("rounded-2xl p-4 text-right ring-1 transition hover:bg-white/10", stage === "open" || stage === "running" ? "bg-gold/15 ring-gold/60" : "bg-white/[.06] ring-white/10")}
-              >
-                <p className="font-bold text-white">{exam.name}</p>
-                <p className="mt-1 text-xs text-white/70">
-                  {center.name} — {center.hall}
-                </p>
-                <p className="mt-1 text-xs text-white/70">
-                  {whenOf(exam)} · {exam.minutes} دقيقة
-                </p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>
-                  {stage === "idle" && <Chip tone={WINDOW_TONE[win]}>{WINDOW_LABEL[win]}</Chip>}
-                  {pending > 0 && <Chip tone="maroon">{pending} طلبات دخول معلّقة</Chip>}
-                </div>
-                <p className="mt-3 flex items-center gap-1 text-sm font-bold text-gold">
-                  إدارة الجلسة <ChevronLeft className="size-4" />
-                </p>
-              </motion.button>
-            );
-          })}
-        </div>
-      )}
-    </Panel>
+    <ListTable head={["جلساتي", "الموعد", "الحالة"]} minWidth="36rem">
+      {!items.length && <EmptyRow cols={3}>لا توجد جلسات اختبار مسندة إليك. تظهر هنا جلسة كل اختبار منشور في قاعتك حين ينشره صاحب صلاحية «إدارة الامتحانات».</EmptyRow>}
+      {items.map(({ exam, center, key }) => {
+        const run = halls.runs[key];
+        const stage = stageOf(run);
+        const win = openWindow(scheduledAt(exam), demoNow);
+        const pending = Object.keys(run?.requests ?? {}).length;
+        const live = stage === "open" || stage === "running";
+        return (
+          <tr key={key} className={cn("align-top", live && "bg-gold/10")}>
+            <td className="p-3">
+              <button type="button" onClick={() => onOpen(key)} className="text-right font-bold text-white hover:text-gold">
+                {exam.name}
+              </button>
+              <p className="text-xs text-white/55">
+                {center.name} · {exam.minutes} دقيقة
+              </p>
+              <RowActions>
+                <RowLink onClick={() => onOpen(key)}>إدارة الجلسة</RowLink>
+                <a href={asset(`/exam-display/${halls.displayOf(center)}`)} target="_blank" rel="noreferrer" className="text-gold hover:underline">
+                  شاشة القاعة
+                </a>
+              </RowActions>
+            </td>
+            <td className="p-3 text-white/80">{whenOf(exam)}</td>
+            <td className="p-3">
+              <span className="flex flex-wrap gap-1">
+                <Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>
+                {stage === "idle" && <Chip tone={WINDOW_TONE[win]}>{WINDOW_LABEL[win]}</Chip>}
+                {pending > 0 && <Chip tone="maroon">{pending} طلبات دخول معلّقة</Chip>}
+              </span>
+            </td>
+          </tr>
+        );
+      })}
+    </ListTable>
   );
 }
 
@@ -353,126 +336,135 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
   };
 
   const closedAt = run?.closedAt ?? run?.endedAt;
+  const step = stage === "idle" ? 0 : stage === "open" ? 1 : stage === "running" ? 2 : 3;
 
   return (
-    <div className="space-y-4">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-bold text-gold hover:text-white">
-        <ArrowRight className="size-4" /> كل جلساتي
-      </button>
-
-      <Panel icon={<DoorOpen />} title={exam.name} action={<Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>}>
-        <p className="text-sm text-white/75">
-          {center.name} — {center.hall} · {whenOf(exam)} · المدة {exam.minutes} دقيقة
+    <div>
+      <div className="mb-5">
+        <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-bold text-gold hover:underline">
+          <ArrowRight className="size-4" /> كل جلساتي
+        </button>
+        <h1 className="mt-2 font-display text-3xl font-bold text-white">{exam.name}</h1>
+        <p className="mt-1 text-sm text-white/65">
+          {center.name} — {center.hall} · {whenOf(exam)} · {exam.minutes} دقيقة
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Chip tone={run?.network ? "green" : "muted"}>
-            {run?.network ? <Wifi /> : <WifiOff />}
-            {run?.network ? (
-              <>
-                شبكة القاعة محددة <span dir="ltr">{run.network}</span>
-              </>
-            ) : (
-              "شبكة القاعة غير محددة"
-            )}
-          </Chip>
-          {run?.mobileData && (
-            <Chip tone="gold">
-              <Smartphone /> بيانات الجوال مسموحة
-            </Chip>
-          )}
-          <Chip tone={pin ? "green" : "maroon"}>
-            <KeyRound /> {pin ? "PIN التأكيد مضبوط" : "بلا PIN — التأكيد تلقائي"}
-          </Chip>
-          <Chip tone="muted">الدخول: {PAIRING[exam.pairing].label}</Chip>
-          {stage === "idle" && (
-            <Chip tone={WINDOW_TONE[win]}>
-              <CalendarClock /> {WINDOW_LABEL[win]}
-            </Chip>
-          )}
-        </div>
-        {run?.openedAt && (
-          <p className="mt-3 text-xs leading-6 text-white/65">
-            فُتحت {fmtTime(run.openedAt)}
-            {run.openedBy && ` بيد ${run.openedBy}`}
-            {run.openedReason && ` — خارج موعدها: ${run.openedReason}`}
-            {run.startedAt && ` · بدأ الاختبار ${fmtTime(run.startedAt)}`}
-            {closedAt && ` · انتهت ${fmtTime(closedAt)}`}
-          </p>
-        )}
+      </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          {stage === "idle" && (
-            <Button variant="gold" onClick={() => setAsk("open")}>
-              <DoorOpen className="size-4" /> فتح القاعة
-            </Button>
-          )}
-          {stage === "open" && (
-            <Button variant="gold" onClick={() => setAsk("start")}>
-              <Play className="size-4" /> بدء الاختبار
-            </Button>
-          )}
-          {stage === "running" && (
-            <Button variant="maroon" onClick={() => setAsk("end")}>
-              <Square className="size-4" /> إنهاء الاختبار وإغلاق القاعة
-            </Button>
-          )}
-          {(stage === "open" || stage === "running") && (
-            <>
-              <Button variant="glass" size="sm" onClick={pickNetwork}>
-                <Wifi className="size-4" /> تحديد شبكة القاعة
-              </Button>
-              {!run?.mobileData && (
-                <Button variant="glass" size="sm" onClick={() => setAsk("mobile")}>
-                  <Smartphone className="size-4" /> السماح ببيانات الجوال (طوارئ)
-                </Button>
+      <EditLayout
+        main={
+          <>
+            {/* Where the sitting is, in its four steps, and the one thing to do now */}
+            <section className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-gold/30">
+              <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {["فتح القاعة", "الحضور والدخول", "الاختبار جارٍ", "انتهت الجلسة"].map((t, i) => (
+                  <li key={t} className={cn("flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold ring-1", i === step ? "bg-gold text-ink ring-gold" : i < step ? "bg-green-light/15 text-white ring-green-light/30" : "text-white/55 ring-white/10")}>
+                    <span className={cn("grid size-6 shrink-0 place-items-center rounded-full text-xs", i === step ? "bg-ink text-gold" : "bg-white/10")}>{i < step ? <Check className="size-3.5" /> : ["١", "٢", "٣", "٤"][i]}</span>
+                    {t}
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 text-sm leading-7 text-white/80">
+                {stage === "idle" && (outside ? `تُفتح القاعة من ساعة قبل موعدها حتى نهاية يومها${win === "late" ? "، وقد فات موعدها" : ""}: خارج ذلك تكتب سبب الفتح.` : "افتح القاعة الآن، من داخلها وعلى شبكتها.")}
+                {stage === "open" && "سجّل حضور كل متقدم، ثم وافق على طلب دخول جهازه بعد مطابقة الرمز. حين لا يبقى طلب معلّق ابدأ الاختبار."}
+                {stage === "running" && "وقت كل متقدم من لحظة دخوله. من يصل متأخراً: سجّل حضوره ووافق على طلبه. أكّد كل تسليم بكتابة الـ PIN على جهاز صاحبه."}
+                {stage === "closed" && `حضر ${counts.present} وغاب ${counts.absent}. المؤكَّدة ${counts.confirmed}، وبانتظار التأكيد ${counts.submitted}، وغير المؤكَّدة ${counts.unconfirmed}، والملغاة ${counts.voided}.`}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {stage === "idle" && (
+                  <Button variant="gold" onClick={() => setAsk("open")}>
+                    <DoorOpen className="size-4" /> فتح القاعة
+                  </Button>
+                )}
+                {stage === "open" && (
+                  <Button variant="gold" onClick={() => setAsk("start")}>
+                    <Play className="size-4" /> بدء الاختبار
+                  </Button>
+                )}
+                {stage === "running" && (
+                  <Button variant="maroon" onClick={() => setAsk("end")}>
+                    <Square className="size-4" /> إنهاء الاختبار وإغلاق القاعة
+                  </Button>
+                )}
+                {stage === "running" && run?.startedAt && <TimeLeft startedAt={run.startedAt} minutes={exam.minutes} />}
+                {stage === "closed" && (
+                  <Sim onClick={() => hallActions.reset(key)}>
+                    <RotateCcw className="size-4" /> إعادة التجربة: الجلسة من بدايتها
+                  </Sim>
+                )}
+              </div>
+            </section>
+
+            <Tabs
+              id={`hall-${key}`}
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { value: "attendance", label: "الحضور", count: counts.present },
+                { value: "requests", label: "طلبات الدخول", count: counts.pending },
+                { value: "monitor", label: "المراقبة والتأكيد", count: counts.submitted },
+              ]}
+            />
+            {tab === "attendance" && <Attendance s={s} exam={exam} center={center} />}
+            {tab === "requests" && <Requests s={s} exam={exam} center={center} />}
+            {tab === "monitor" && <Monitor s={s} exam={exam} center={center} />}
+          </>
+        }
+        side={
+          <>
+            <Box title="الجلسة">
+              <p className="flex flex-wrap gap-1.5">
+                <Chip tone={STAGE_TONE[stage]}>{STAGE_LABEL[stage]}</Chip>
+                {stage === "idle" && (
+                  <Chip tone={WINDOW_TONE[win]}>
+                    <CalendarClock /> {WINDOW_LABEL[win]}
+                  </Chip>
+                )}
+                <Chip tone="muted">الدخول: {PAIRING[exam.pairing].label}</Chip>
+              </p>
+              {run?.openedAt ? (
+                <p className="text-xs leading-6 text-white/65">
+                  فُتحت {fmtTime(run.openedAt)}
+                  {run.openedBy && ` بيد ${run.openedBy}`}
+                  {run.openedReason && ` — خارج موعدها: ${run.openedReason}`}
+                  {run.startedAt && ` · بدأ الاختبار ${fmtTime(run.startedAt)}`}
+                  {closedAt && ` · انتهت ${fmtTime(closedAt)}`}
+                </p>
+              ) : (
+                <p className="text-xs text-white/55">لم تُفتح القاعة بعد.</p>
               )}
-            </>
-          )}
-          {stage === "running" && run?.startedAt && <TimeLeft startedAt={run.startedAt} minutes={exam.minutes} />}
-        </div>
-        <p className="mt-3 text-sm leading-7 text-white/70">
-          {stage === "idle" && (outside ? `تُفتح القاعة من ساعة قبل موعدها حتى نهاية يومها${win === "late" ? "، وقد فات موعدها" : ""}: خارج ذلك تكتب سبب الفتح.` : "يمكنك فتح القاعة الآن، من داخلها وعلى شبكتها.")}
-          {stage === "open" && "سجّل حضور كل متقدم بالباركود أو الرقم الوطني، ثم يطلب الدخول من جهازه فتطابق رمز الاقتران على شاشته وتوافق. حين لا يبقى طلب معلّق ابدأ الاختبار."}
-          {stage === "running" && "الاختبار جارٍ، ووقت كل متقدم من لحظة دخوله: من يصل متأخراً تسجّل حضوره وتوافق على طلبه فيدخل بوقته كاملاً. أكّد كل تسليم بكتابة الـ PIN على جهاز صاحبه."}
-          {stage === "closed" && `انتهت الجلسة: حضر ${counts.present} وغاب ${counts.absent}. المؤكَّدة ${counts.confirmed}، وبانتظار التأكيد ${counts.submitted}، وغير المؤكَّدة ${counts.unconfirmed}، والملغاة ${counts.voided}.`}
-        </p>
-        {stage === "closed" && (
-          <Sim className="mt-3" onClick={() => hallActions.reset(key)}>
-            <RotateCcw className="size-4" /> إعادة التجربة: الجلسة من بدايتها
-          </Sim>
-        )}
-      </Panel>
+            </Box>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="مدرجون" value={counts.listed} icon={<UsersRound />} />
-        <Kpi label="حاضرون" value={counts.present} icon={<UserCheck />} tone="teal" delay={0.04} />
-        <Kpi label="طلبات معلّقة" value={counts.pending} icon={<Inbox />} tone="gold" delay={0.08} pulse={counts.pending > 0} />
-        <Kpi label="يختبرون" value={counts.active} icon={<PenLine />} tone="teal" delay={0.12} />
-        <Kpi label="بانتظار التأكيد" value={counts.submitted} icon={<Hourglass />} tone="gold" delay={0.16} pulse={counts.submitted > 0} />
-        <Kpi label="مؤكَّدون" value={counts.confirmed} icon={<ShieldCheck />} delay={0.2} />
-      </div>
+            <Box title="شبكة القاعة">
+              <p className="flex flex-wrap gap-1.5">
+                <Chip tone={run?.network ? "green" : "muted"}>
+                  {run?.network ? <Wifi /> : <WifiOff />}
+                  {run?.network ? <span dir="ltr">{run.network}</span> : "غير محددة"}
+                </Chip>
+                {run?.mobileData && (
+                  <Chip tone="gold">
+                    <Smartphone /> بيانات الجوال مسموحة
+                  </Chip>
+                )}
+              </p>
+              {stage === "open" || stage === "running" ? (
+                <div className="flex flex-col items-start gap-2">
+                  <RowLink onClick={pickNetwork}>تحديد شبكة القاعة</RowLink>
+                  {!run?.mobileData && <RowLink onClick={() => setAsk("mobile")}>السماح ببيانات الجوال (طوارئ)</RowLink>}
+                </div>
+              ) : (
+                <p className="text-xs text-white/55">تُسجَّل شبكة القاعة حين تفتحها.</p>
+              )}
+            </Box>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel icon={<MonitorPlay />} title="الروابط" bodyClass="space-y-2">
-          <CopyLink icon={<MonitorPlay />} label="شاشة عرض القاعة" hint="افتحها على شاشة القاعة أو جهاز العرض: رمز الدخول قبل البدء، ثم التعليمات والوقت." path={`/exam-display/${halls.displayOf(center)}`} />
-          <CopyLink icon={<Smartphone />} label="رابط دخول المتقدمين" hint="يفتحه المتقدم على جهازه (أو يمسح رمزه من الشاشة) ويُدخل رقمه الوطني." path="/administrator/exam" />
-        </Panel>
-        <PinCard refKey={key} />
-      </div>
+            <Box title="الروابط">
+              <CopyLink icon={<MonitorPlay />} label="شاشة عرض القاعة" hint="على شاشة القاعة: رمز الدخول قبل البدء، ثم التعليمات والوقت." path={`/exam-display/${halls.displayOf(center)}`} />
+              <CopyLink icon={<Smartphone />} label="رابط دخول المتقدمين" hint="يفتحه المتقدم على جهازه ويُدخل رقمه الوطني." path="/administrator/exam" />
+            </Box>
 
-      <Tabs
-        id={`hall-${key}`}
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: "attendance", label: "الحضور", count: counts.present },
-          { value: "requests", label: "طلبات الدخول", count: counts.pending },
-          { value: "monitor", label: "المراقبة والتأكيد", count: counts.submitted },
-        ]}
+            <PinBox refKey={key} />
+          </>
+        }
       />
-      {tab === "attendance" && <Attendance s={s} exam={exam} center={center} />}
-      {tab === "requests" && <Requests s={s} exam={exam} center={center} />}
-      {tab === "monitor" && <Monitor s={s} exam={exam} center={center} />}
 
       <Ask open={ask === "open"} onClose={close} eyebrow={outside ? "فتح القاعة خارج موعدها" : "فتح القاعة"} title={target} reason={outside ? "required" : undefined} confirm="فتح القاعة" onConfirm={open}>
         <p>سيُسجَّل عنوان شبكتك الحالية كشبكة القاعة. نفّذ هذا من داخل القاعة وعلى شبكتها. بعد الفتح تبدأ بتسجيل الحضور واستقبال طلبات الدخول.</p>
@@ -628,7 +620,7 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
 
   return (
     <div className="space-y-4">
-      <Panel icon={<ScanBarcode />} title="تسجيل الحضور">
+      <Section icon={<ScanBarcode />} title="تسجيل الحضور">
         {live ? (
           <>
             <form
@@ -685,18 +677,9 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
         ) : (
           <p className="text-sm text-white/70">{s.stage === "idle" ? "افتح القاعة أولاً: يبدأ تسجيل الحضور بعد فتحها." : "انتهت الجلسة: لا يُسجَّل حضور بعد إغلاق القاعة."}</p>
         )}
-      </Panel>
+      </Section>
 
-      <Panel
-        icon={<UsersRound />}
-        title="المدرجون في الجلسة"
-        action={
-          <span className="text-sm text-white/70">
-            {s.counts.present} حاضرون من {s.counts.listed}
-          </span>
-        }
-        bodyClass="space-y-3"
-      >
+      <Section icon={<UsersRound />} title="المدرجون في الجلسة" bodyClass="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <SearchBox value={q} onChange={setQ} placeholder="ابحث بالاسم أو الرقم الوطني" label="بحث في المدرجين" className="min-w-[14rem] flex-1" />
           <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="عرض">
@@ -713,44 +696,49 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
             ))}
           </div>
         </div>
-        {!s.sitters.length && <Empty icon={<UsersRound />} title="لا مدرجين في هذه الجلسة" text="يُدرج هنا كل من سدّد رسم التسجيل لصفة هذا الاختبار وقاعته هذه، أو نقله إليها صاحب صلاحية «إدارة الامتحانات»." />}
-        {!!s.sitters.length && !shown.length && <p className="rounded-2xl bg-white/5 p-4 text-center text-sm text-white/65">لا أحد يطابق البحث.</p>}
-        {shown.map((x) => {
-          const present = isPresent(x.id);
-          const why = locked(x);
-          return (
-            <motion.div key={x.id} layout className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gold/20 font-display font-bold text-gold ring-1 ring-gold/40">{x.name.replace("الشيخ ", "")[0]}</span>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-white">{x.name}</p>
-                <p className="text-xs text-white/70">
-                  الرقم الوطني <span dir="ltr">{maskNationalId(x.id)}</span>
-                  {present && ` · حضر ${fmtTime(s.run!.present[x.id])}`}
-                </p>
-              </div>
-              {x.attempt ? (
-                <Chip tone={ATTEMPT_TONE[x.attempt.status]}>{ATTEMPT_LABEL[x.attempt.status]}</Chip>
-              ) : s.run?.requests?.[x.id] ? (
-                <Chip tone="gold">طلب دخول معلّق</Chip>
-              ) : present ? (
-                <Chip tone="green">حاضر</Chip>
-              ) : (
-                <Chip tone={s.stage === "closed" ? "maroon" : "muted"}>{s.stage === "closed" ? "غائب" : "لم يحضر"}</Chip>
-              )}
-              {live && !present && (
-                <Button size="sm" variant="gold" onClick={() => checkIn(x, "يدوياً من القائمة")}>
-                  <UserCheck className="size-4" /> تسجيل حضور
-                </Button>
-              )}
-              {live && present && (
-                <Button size="sm" variant="glass" disabled={!!why} title={why || undefined} onClick={() => setUndo(x)}>
-                  تراجع عن الحضور
-                </Button>
-              )}
-            </motion.div>
-          );
-        })}
-      </Panel>
+        <ListTable head={["المتقدم", "الحال", ""]} minWidth="30rem">
+          {!s.sitters.length && <EmptyRow cols={3}>لا مدرجين في هذه الجلسة: يُدرج هنا كل من سدّد رسم التسجيل لصفة هذا الاختبار وقاعته هذه، أو نقله إليها صاحب صلاحية «إدارة الامتحانات».</EmptyRow>}
+          {!!s.sitters.length && !shown.length && <EmptyRow cols={3}>لا أحد يطابق البحث.</EmptyRow>}
+          {shown.map((x) => {
+            const present = isPresent(x.id);
+            const why = locked(x);
+            return (
+              <tr key={x.id} className="align-middle">
+                <td className="p-3">
+                  <p className="font-bold text-white">{x.name}</p>
+                  <p className="text-xs text-white/60">
+                    <span dir="ltr">{maskNationalId(x.id)}</span>
+                    {present && ` · حضر ${fmtTime(s.run!.present[x.id])}`}
+                  </p>
+                </td>
+                <td className="p-3">
+                  {x.attempt ? (
+                    <Chip tone={ATTEMPT_TONE[x.attempt.status]}>{ATTEMPT_LABEL[x.attempt.status]}</Chip>
+                  ) : s.run?.requests?.[x.id] ? (
+                    <Chip tone="gold">طلب دخول معلّق</Chip>
+                  ) : present ? (
+                    <Chip tone="green">حاضر</Chip>
+                  ) : (
+                    <Chip tone={s.stage === "closed" ? "maroon" : "muted"}>{s.stage === "closed" ? "غائب" : "لم يحضر"}</Chip>
+                  )}
+                </td>
+                <td className="p-3 text-left">
+                  {live && !present && (
+                    <Button size="sm" variant="gold" onClick={() => checkIn(x, "يدوياً من القائمة")}>
+                      <UserCheck className="size-4" /> تسجيل حضور
+                    </Button>
+                  )}
+                  {live && present && (
+                    <Button size="sm" variant="glass" disabled={!!why} title={why || undefined} onClick={() => setUndo(x)}>
+                      تراجع عن الحضور
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </ListTable>
+      </Section>
 
       <Ask
         open={!!undo}
@@ -812,7 +800,7 @@ function Requests({ s, exam, center }: { s: SittingData; exam: ExamDef; center: 
   };
 
   return (
-    <Panel icon={<Inbox />} title="طلبات الدخول" action={<Chip tone={requests.length ? "maroon" : "muted"}>{requests.length} معلّقة</Chip>} bodyClass="space-y-3">
+    <Section icon={<Inbox />} title="طلبات الدخول" action={<Chip tone={requests.length ? "maroon" : "muted"}>{requests.length} معلّقة</Chip>} bodyClass="space-y-3">
       <p className="text-sm leading-7 text-white/75">اذهب إلى مقعد المتقدم وطابق الرمز الظاهر على شاشته مع الرمز في البطاقة، ثم وافق. لا توافق على رمز لا تراه بعينك على جهازه.</p>
       {live ? (
         <Sim disabled={!waiting.length} onClick={simulate}>
@@ -914,7 +902,7 @@ function Requests({ s, exam, center }: { s: SittingData; exam: ExamDef; center: 
           طلب مشبوه (انتحال محتمل)
         </label>
       </Ask>
-    </Panel>
+    </Section>
   );
 }
 
@@ -976,10 +964,8 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
   };
 
   return (
-    <Panel icon={<ClipboardCheck />} title="المراقبة والتأكيد" bodyClass="space-y-3">
-      <p className="rounded-2xl bg-white/5 p-3 text-sm leading-7 text-white/80 ring-1 ring-white/10">
-        الطريقة المعتادة: اكتب الـ PIN على جهاز المتقدم بعد تسليمه فيتأكد التسليم فوراً. التأكيد من هنا بديل (مثلاً إن تعطّل جهازه)، والتأكيد الجماعي يخص المحاولات التي بلا تنبيهات فقط.
-      </p>
+    <Section icon={<ClipboardCheck />} title="المراقبة والتأكيد" bodyClass="space-y-3">
+      <p className="text-sm leading-7 text-white/75">أكّد كل تسليم بكتابة الـ PIN على جهاز صاحبه. التأكيد من هنا بديل إن تعطّل جهازه، والجماعي للمحاولات بلا تنبيهات فقط.</p>
       {!pin && <Warn>بلا PIN — التأكيد تلقائي: كل تسليم يُؤكَّد لحظة إرساله. اضبط الـ PIN لتتحقق من صاحب كل محاولة قبل تأكيدها.</Warn>}
       {s.stage === "closed" && <p className="text-sm text-white/65">{canConfirm ? "انتهت الجلسة: يبقى التأكيد متاحاً 3 ساعات من إغلاقها، ثم تقرر الإدارة في كل تسليم لم يُؤكَّد." : "انتهت الجلسة ومضت مهلة التأكيد: تقرر الإدارة في كل تسليم لم يُؤكَّد."}</p>}
 
@@ -1002,55 +988,61 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
         )}
       </div>
 
-      {!rows.length && <Empty icon={<ClipboardCheck />} title="لا محاولات بعد" text="تظهر هنا محاولة كل من وافقت على دخول جهازه: حالتها ووقتها وتنبيهاتها." />}
-      {rows.map((a) => {
-        const alerts = alertLabels(a.attempt);
-        const selectable = canConfirm && a.status === "submitted" && isClean(a.attempt);
-        const total = a.attempt.paper?.reduce((n, sec) => n + sec.ids.length, 0) ?? 0;
-        const answered = Object.keys(a.attempt.answers ?? {}).length;
-        return (
-          <motion.div key={a.row.id} layout className={cn("flex flex-wrap items-center gap-3 rounded-2xl p-3 ring-1", a.status === "submitted" ? "bg-gold/10 ring-gold/40" : "bg-white/[.06] ring-white/10")}>
-            {selectable ? (
-              <input type="checkbox" aria-label={`تحديد ${a.row.name}`} checked={chosen.includes(a.row.id)} onChange={(e) => setPicked(e.target.checked ? [...picked, a.row.id] : picked.filter((id) => id !== a.row.id))} className="size-4 accent-[#D9C89E]" />
-            ) : (
-              <span className="size-4" aria-hidden />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-white">{a.row.name}</p>
-              <p className="text-xs leading-6 text-white/70">
-                {a.attempt.pairedAt && `اقترن ${fmtTime(a.attempt.pairedAt)}`}
-                {a.attempt.startedAt && ` · بدأ ${fmtTime(a.attempt.startedAt)}`}
-                {a.status === "active" && ` · أجاب ${answered} من ${total}`}
-                {a.attempt.submittedAt && ` · سلّم ${fmtTime(a.attempt.submittedAt)}`}
-                {a.status === "confirmed" && a.attempt.confirmVia && ` · أُكّد ${VIA[a.attempt.confirmVia]}`}
-                {a.status === "unconfirmed" && ` · لم يؤكَّد: ${a.attempt.unconfirmedReason ?? ""} — أُحيل إلى الإدارة`}
-                {a.status === "voided" && (a.attempt.decision ? ` · ألغته الإدارة: ${a.attempt.decision.note}` : " · أُلغيت: اقترن ولم يبدأ قبل إنهاء الجلسة")}
-              </p>
-              {alerts.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {alerts.map((t) => (
-                    <Chip key={t} tone="maroon">
-                      <TriangleAlert /> {t}
-                    </Chip>
-                  ))}
-                </div>
-              )}
-            </div>
-            <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip>
-            {a.status === "active" && a.attempt.startedAt && <Remaining startedAt={a.attempt.startedAt} minutes={a.attempt.minutes ?? exam.minutes} />}
-            {a.status === "submitted" && canConfirm && (
-              <div className="flex gap-2">
-                <Button size="sm" variant="gold" onClick={() => setConfirming(a)}>
-                  <ShieldCheck className="size-4" /> تأكيد
-                </Button>
-                <Button size="sm" variant="glass" onClick={() => setRefusing(a)}>
-                  لا أؤكد
-                </Button>
-              </div>
-            )}
-          </motion.div>
-        );
-      })}
+      <ListTable head={["", "المتقدم", "الحالة", ""]} minWidth="40rem">
+        {!rows.length && <EmptyRow cols={4}>لا محاولات بعد: تظهر هنا محاولة كل من وافقت على دخول جهازه، حالتها ووقتها وتنبيهاتها.</EmptyRow>}
+        {rows.map((a) => {
+          const alerts = alertLabels(a.attempt);
+          const selectable = canConfirm && a.status === "submitted" && isClean(a.attempt);
+          const total = a.attempt.paper?.reduce((n, sec) => n + sec.ids.length, 0) ?? 0;
+          const answered = Object.keys(a.attempt.answers ?? {}).length;
+          return (
+            <tr key={a.row.id} className={cn("align-top", a.status === "submitted" && "bg-gold/10")}>
+              <td className="w-10 p-3">
+                {selectable && <input type="checkbox" aria-label={`تحديد ${a.row.name}`} checked={chosen.includes(a.row.id)} onChange={(e) => setPicked(e.target.checked ? [...picked, a.row.id] : picked.filter((id) => id !== a.row.id))} className="size-4 accent-[#D9C89E]" />}
+              </td>
+              <td className="p-3">
+                <p className="font-bold text-white">{a.row.name}</p>
+                <p className="text-xs leading-6 text-white/70">
+                  {a.attempt.pairedAt && `اقترن ${fmtTime(a.attempt.pairedAt)}`}
+                  {a.attempt.startedAt && ` · بدأ ${fmtTime(a.attempt.startedAt)}`}
+                  {a.status === "active" && ` · أجاب ${answered} من ${total}`}
+                  {a.attempt.submittedAt && ` · سلّم ${fmtTime(a.attempt.submittedAt)}`}
+                  {a.status === "confirmed" && a.attempt.confirmVia && ` · أُكّد ${VIA[a.attempt.confirmVia]}`}
+                  {a.status === "unconfirmed" && ` · لم يؤكَّد: ${a.attempt.unconfirmedReason ?? ""} — أُحيل إلى الإدارة`}
+                  {a.status === "voided" && (a.attempt.decision ? ` · ألغته الإدارة: ${a.attempt.decision.note}` : " · أُلغيت: اقترن ولم يبدأ قبل إنهاء الجلسة")}
+                </p>
+                {alerts.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {alerts.map((t) => (
+                      <Chip key={t} tone="maroon">
+                        <TriangleAlert /> {t}
+                      </Chip>
+                    ))}
+                  </div>
+                )}
+              </td>
+              <td className="p-3">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <Chip tone={ATTEMPT_TONE[a.status]}>{ATTEMPT_LABEL[a.status]}</Chip>
+                  {a.status === "active" && a.attempt.startedAt && <Remaining startedAt={a.attempt.startedAt} minutes={a.attempt.minutes ?? exam.minutes} />}
+                </span>
+              </td>
+              <td className="p-3 text-left">
+                {a.status === "submitted" && canConfirm && (
+                  <span className="inline-flex gap-2">
+                    <Button size="sm" variant="gold" onClick={() => setConfirming(a)}>
+                      <ShieldCheck className="size-4" /> تأكيد
+                    </Button>
+                    <Button size="sm" variant="glass" onClick={() => setRefusing(a)}>
+                      لا أؤكد
+                    </Button>
+                  </span>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </ListTable>
 
       <Ask
         open={!!confirming}
@@ -1091,7 +1083,7 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
       >
         <p>لا تُؤكَّد المحاولة: تُحال إلى الإدارة لتعتمدها أو تلغيها، ويُكتب سببك معها.</p>
       </Ask>
-    </Panel>
+    </Section>
   );
 }
 
@@ -1113,7 +1105,7 @@ function Remaining({ startedAt, minutes }: { startedAt: number; minutes: number 
 
 // ───────────────────────── PIN التأكيد ─────────────────────────
 
-function PinCard({ refKey }: { refKey?: string }) {
+function PinBox({ refKey }: { refKey?: string }) {
   const user = useStaffUser()!;
   const halls = useHalls();
   const toast = useToast();
@@ -1141,11 +1133,16 @@ function PinCard({ refKey }: { refKey?: string }) {
   const digits = (v: string) => v.replace(/\D/g, "").slice(0, 10);
 
   return (
-    <Panel icon={<KeyRound />} title="PIN التأكيد" action={<Chip tone={pin ? "green" : "maroon"}>{pin ? "مضبوط" : "بلا PIN — التأكيد تلقائي"}</Chip>}>
-      {!pin && <Warn>لم تضبط رمز التأكيد بعد، وتحتاجه لتأكيد التسليمات على أجهزة المتقدمين. بلا PIN يُؤكَّد كل تسليم تلقائياً لحظة إرساله دون تحقق منك.</Warn>}
-      <p className="mt-3 text-sm leading-7 text-white/75">تكتب هذا الرقم السري على جهاز المتقدم بعد تسليمه لتأكيد التسليم. لا تُعلِمه لأحد، ويمكنك تغييره في أي وقت؛ التأكيدات السابقة تبقى صحيحة.</p>
-      {pin && pin === DEFAULT_PINS[user.id] && <p className="mt-2 text-xs text-white/55">للتجربة: الرمز الذي يبدأ به حسابك {pin}، وتغييره من هنا.</p>}
-      <Button className="mt-4" size="sm" variant={pin ? "glass" : "gold"} onClick={() => setOpen(true)}>
+    <Box title="PIN التأكيد" open={!pin}>
+      <p>
+        <Chip tone={pin ? "green" : "maroon"}>
+          <KeyRound /> {pin ? "مضبوط" : "بلا PIN — التأكيد تلقائي"}
+        </Chip>
+      </p>
+      {!pin && <Warn>لم تضبط رمز التأكيد بعد. بلا PIN يُؤكَّد كل تسليم تلقائياً لحظة إرساله دون تحقق منك.</Warn>}
+      <p className="text-xs leading-6 text-white/70">تكتب هذا الرقم السري على جهاز المتقدم بعد تسليمه لتأكيده. لا تُعلِمه لأحد؛ وتغييره لا يمسّ ما أُكّد قبله.</p>
+      {pin && pin === DEFAULT_PINS[user.id] && <p className="text-xs text-white/55">للتجربة: الرمز الذي يبدأ به حسابك {pin}.</p>}
+      <Button size="sm" variant={pin ? "glass" : "gold"} onClick={() => setOpen(true)}>
         <KeyRound className="size-4" /> {pin ? "تغيير الـ PIN" : "ضبط الـ PIN"}
       </Button>
       <Modal open={open} onClose={close} className={cn(DARK_MODAL, "max-w-md")}>
@@ -1172,7 +1169,7 @@ function PinCard({ refKey }: { refKey?: string }) {
           </div>
         </form>
       </Modal>
-    </Panel>
+    </Box>
   );
 }
 
@@ -1220,6 +1217,22 @@ function Sim({ children, onClick, disabled, className }: { children: ReactNode; 
     >
       <FlaskConical className="size-4" /> {children}
     </button>
+  );
+}
+
+/** A work area inside a sitting: a light frame under its title */
+function Section({ icon, title, action, children, bodyClass }: { icon?: ReactNode; title: ReactNode; action?: ReactNode; children: ReactNode; bodyClass?: string }) {
+  return (
+    <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 font-bold text-white">
+          {icon && <span className="text-gold [&_svg]:size-4.5">{icon}</span>}
+          {title}
+        </h2>
+        {action}
+      </div>
+      <div className={bodyClass}>{children}</div>
+    </section>
   );
 }
 

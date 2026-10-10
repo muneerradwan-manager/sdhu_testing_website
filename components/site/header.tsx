@@ -16,6 +16,8 @@ import {
   Plus,
   UserRound,
   X,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/logo";
@@ -23,6 +25,7 @@ import { actions, useHydrated, useStore } from "@/lib/store";
 import { CITIES, nextPrayer } from "@/lib/prayer";
 import { getPerson } from "@/lib/registry";
 import { useScrollLock } from "@/lib/scroll-lock";
+import { setTheme, useTheme } from "@/lib/theme";
 import { getStaff } from "@/lib/staff";
 import { useNav } from "@/lib/cms/site";
 import { cn, hijriDate } from "@/lib/utils";
@@ -101,6 +104,7 @@ function TopBar() {
               )}
             </>
           )}
+          <ThemeToggle />
           <div
             className="flex items-center gap-1 rounded-full bg-white/10 p-0.5"
             aria-label="حجم العرض"
@@ -133,6 +137,24 @@ function TopBar() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Light or dark, in the top bar beside the display size */
+function ThemeToggle() {
+  const theme = useTheme();
+  const dark = theme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      className="grid size-7 place-items-center rounded-full bg-white/10 hover:bg-white/20"
+      aria-label={dark ? "الوضع الفاتح" : "الوضع الداكن"}
+      aria-pressed={dark}
+      title={dark ? "الوضع الفاتح" : "الوضع الداكن"}
+    >
+      {dark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+    </button>
   );
 }
 
