@@ -24,7 +24,7 @@ import { CmsIcon } from "@/components/cms/bits";
 import { sectionDefaults } from "@/lib/cms/schema";
 import { cms, hasDraft, pageState, readDraftValues, readOrder, STATUS_LABEL, useCms } from "@/lib/cms/store";
 import type { PageDef, PageStatus, SectionDef } from "@/lib/cms/types";
-import { cn } from "@/lib/utils";
+import { cn, countOf } from "@/lib/utils";
 import type { StaffUser } from "@/lib/staff";
 import { Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
 import { FieldInput, FieldRow, ListField } from "./fields";
@@ -226,7 +226,7 @@ function SectionList({
                   <span className={cn("block truncate text-sm font-bold", active ? "text-green-dark" : "text-white", hidden && "line-through opacity-60")}>
                     {s.label}
                   </span>
-                  {edits > 0 && <span className={cn("text-[10px]", active ? "text-green-dark/70" : "text-gold")}>{edits} حقلاً معدَّلاً</span>}
+                  {edits > 0 && <span className={cn("text-[10px]", active ? "text-green-dark/70" : "text-gold")}>{countOf(edits, { zero: "", one: "حقل واحد معدَّل", two: "حقلان معدَّلان", few: "حقول معدَّلة", many: "حقلاً معدَّلاً" })}</span>}
                 </span>
               </button>
               <div className="flex shrink-0 items-center opacity-70 transition group-hover:opacity-100">

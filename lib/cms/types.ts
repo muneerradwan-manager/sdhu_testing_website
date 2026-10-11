@@ -69,6 +69,8 @@ export type CollectionDef = {
   label: string;
   /** اسم العنصر الواحد، مثل «مقال» */
   itemName: string;
+  /** جمعه معرَّفاً، مثل «المقالات» */
+  itemsName: string;
   icon?: string;
   group: string;
   description?: string;

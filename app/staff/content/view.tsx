@@ -9,7 +9,7 @@ import { CMS_COLLECTIONS, getCollectionDef } from "@/lib/cms/collections";
 import { CMS_GROUPS, CMS_PAGES, getPageDef } from "@/lib/cms/schema";
 import { cms, editedFieldCount, editedItemCount, hasCollectionDraft, hasDraft, pageState, readCollection, useCms, useCmsHydrated } from "@/lib/cms/store";
 import type { CmsState } from "@/lib/cms/types";
-import { cn } from "@/lib/utils";
+import { cn, countOf } from "@/lib/utils";
 import { Gate, PageHeader, Panel, fmtDateTime, useStaffUser } from "../_components/kit";
 import { FilterSelect } from "../_components/ops-ui";
 import { Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
@@ -35,7 +35,8 @@ export function ContentView() {
 
 /**
  * The site's content, as a site's admin: the pages and collections in a list, each edited on its own screen
- * (`?id=`); the media, the earlier versions and the archive beside it (`?tab=`). Its numbers are on «لوحتي».
+ * (`?id=` for a page, `?collection=` for a collection); the media, the earlier versions and the archive beside it
+ * (`?tab=`). Its numbers are on «لوحتي».
  */
 function Inner() {
   const user = useStaffUser();
@@ -50,12 +51,15 @@ function Inner() {
   const tabParam = params.get("tab") as Tab | null;
   const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "pages";
   const focus = params.get("focus") ?? undefined;
+  // A collection opens by its own parameter: a page and a collection may share an id («الأخبار» and its articles)
+  const collectionId = params.get("collection");
   const page = openId ? getPageDef(openId) : null;
-  const collection = openId ? getCollectionDef(openId) : null;
+  const collection = collectionId ? getCollectionDef(collectionId) : openId && !page ? getCollectionDef(openId) : null;
 
   if (!user) return null;
 
   const goto = (id: string) => router.push(`${BASE}?id=${encodeURIComponent(id)}`);
+  const gotoCollection = (id: string) => router.push(`${BASE}?collection=${encodeURIComponent(id)}`);
   const back = () => router.push(BASE);
   const openRevisions = (id: string) => router.push(`${BASE}?tab=revisions&focus=${encodeURIComponent(id)}`);
 
@@ -110,7 +114,7 @@ function Inner() {
             ]}
           />
 
-          {tab === "pages" && <PagesList onOpen={goto} onRevisions={openRevisions} />}
+          {tab === "pages" && <PagesList onOpen={goto} onOpenCollection={gotoCollection} onRevisions={openRevisions} />}
           {tab === "media" && <MediaLibrary by={user.name} />}
           {tab === "revisions" && <RevisionsView key={focus ?? "all"} user={user} focusPage={focus} onOpenPage={goto} />}
           {tab === "archive" && <ArchiveView user={user} onOpenPage={goto} />}
@@ -122,7 +126,7 @@ function Inner() {
 
 // ───────────────────────── قائمة الصفحات ─────────────────────────
 
-function PagesList({ onOpen, onRevisions }: { onOpen: (id: string) => void; onRevisions: (id: string) => void }) {
+function PagesList({ onOpen, onOpenCollection, onRevisions }: { onOpen: (id: string) => void; onOpenCollection: (id: string) => void; onRevisions: (id: string) => void }) {
   const [q, setQ] = useState("");
   const [group, setGroup] = useState("");
   const [drafts, setDrafts] = useState<"all" | "drafts">("all");
@@ -192,7 +196,7 @@ function PagesList({ onOpen, onRevisions }: { onOpen: (id: string) => void; onRe
           <ListTable head={["المجموعة", "المنشور", "الحالة", "آخر تعديل"]}>
             {collections.length === 0 && <EmptyRow cols={4}>لا مجموعات مطابقة.</EmptyRow>}
             {collections.map((c) => (
-              <CollectionRow key={c.id} id={c.id} state={state} onOpen={onOpen} onRevisions={onRevisions} />
+              <CollectionRow key={c.id} id={c.id} state={state} onOpen={onOpenCollection} onRevisions={onRevisions} />
             ))}
           </ListTable>
         </>
@@ -232,7 +236,7 @@ function PageRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsSta
         </span>
         <span className="mt-1 block text-[11px] text-white/50">
           {page.sections.length} قسماً
-          {edited > 0 && ` · ${edited} حقلاً معدَّلاً`}
+          {edited > 0 && ` · ${countOf(edited, { zero: "", one: "حقل واحد معدَّل", two: "حقلان معدَّلان", few: "حقول معدَّلة", many: "حقلاً معدَّلاً" })}`}
           {hidden > 0 && ` · ${hidden} مخفي/مؤرشف`}
         </span>
       </td>
@@ -262,7 +266,7 @@ function CollectionRow({ id, state, onOpen, onRevisions }: { id: string; state: 
         </RowActions>
       </td>
       <td className="p-3 text-white/80">
-        {live} {collection.itemName}اً
+        {collection.itemsName} المنشورة: {live}
         <span className="block text-[11px] text-white/50">
           {edited > 0 && `${edited} معدَّلاً · `}
           {created > 0 && `${created} أُنشئ من اللوحة · `}

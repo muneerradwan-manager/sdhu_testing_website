@@ -48,7 +48,7 @@ if ONLY in (None, "ret"):
         up.first.click(); c.settle(2600)
     btn(p, c, "التالي", 1200); btn(p, c, "التالي", 1200); c.scroll_top()
     c.shot("ret-role", "إداري عائد: آخر موسم شارك فيه وخيار الاستمرار في الصفة نفسها", section="D")
-    p.locator("button[aria-pressed]").first.click(); c.settle(600)
+    p.locator("main button[aria-pressed]").first.click(); c.settle(600)
     c.scroll_to("text=الاستمرار في الصفة نفسها", 150)
     c.shot("ret-role-keep", "الاستمرار في الصفة نفسها: معفى من الاختبار", section="D")
     c.close()

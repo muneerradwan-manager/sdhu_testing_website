@@ -26,6 +26,10 @@ c.shot("home-calendar", "تقويم الموسم في الصفحة الرئيس�
 c.scroll_top()
 # display scale control
 c.shot("home-scale", "التحكم بحجم العرض في الشريط العلوي", hl=[("div[aria-label='حجم العرض']", "تكبير/تصغير")], section="A")
+# dark theme: the moon turns the whole platform dark, then the sun brings it back
+p.locator("header button[aria-label='الوضع الداكن']").first.click(); c.settle(700)
+c.shot("home-theme", "الوضع الداكن: زر الهلال في الشريط العلوي يحوّل المنصة إلى ألوان داكنة", hl=[("header button[aria-label='الوضع الفاتح']", "")], section="A")
+p.locator("header button[aria-label='الوضع الفاتح']").first.click(); c.settle(700)
 # more menu
 p.hover("header button:has-text('المزيد')")
 c.settle(600)

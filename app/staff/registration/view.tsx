@@ -18,6 +18,7 @@ export function RegistrationView() {
     position: user.title,
     label: user.title,
     role: user.title,
+    staff: true,
     log: (action, target, detail) => logAs(user, { action, target, detail }),
   };
   return (

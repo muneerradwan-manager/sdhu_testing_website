@@ -158,7 +158,7 @@ function Docs({ rows }: { rows: DocRow[] }) {
           </tr>
         ))}
       </ListTable>
-      <p className="text-xs text-white/50">في العرض التجريبي تُعتمد الوثائق تلقائياً بعد ثوانٍ إن لم يراجعها أحد (محاكاة).</p>
+      <p className="text-xs text-white/50">في العرض التجريبي تُعتمد الوثائق تلقائياً بعد ثوانٍ إن لم يراجعها أحد وبقي الحاج على صفحة ملفه الطبي (محاكاة).</p>
       <Modal open={!!returning} onClose={() => setReturning(null)} className="max-w-md border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
         {returning && (
           <div>

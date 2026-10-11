@@ -58,7 +58,8 @@ const STEPS: { key: Step; label: string }[] = [
 ];
 
 /** Who files at the desk: an administrator whose role holds the permission, or a staff member who holds it */
-export type Registrar = { id: string; name: string; position: string; label: string; role?: string; log: (action: string, target?: string, detail?: string) => void };
+/** Who registers: an administrator with the permission, or a staff member at the office (`staff`) */
+export type Registrar = { id: string; name: string; position: string; label: string; role?: string; staff?: boolean; log: (action: string, target?: string, detail?: string) => void };
 
 /**
  * التسجيل على الحج من الإداريين: لكل صفة تملك صلاحية «التسجيل على الحج» في جدول صلاحيات الصفات
@@ -226,7 +227,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
     setStep("done");
     toast({
       title: `سُجّل الطلب ${receipt.number}`,
-      body: `${fullName(citizen!)} و${members.length - 1} مرافقين — الإيصال ${receipt.receipt}`,
+      body: `${fullName(citizen!)}${companionsWord(members.length - 1, " و")} — الإيصال ${receipt.receipt}`,
       icon: "📨",
       tone: "success",
     });
@@ -536,7 +537,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                 <Card>
                   <SectionTitle icon={Building2}>نوع التسجيل والدفع</SectionTitle>
                   <p className="mt-2 leading-8 text-ink-soft">
-                    تسجيل عادي على القبول المباشر أو على القرعة، يتبع مكتبك ({posting.office}). التسجيل على الحج لا يضع الحاج في أي مجموعة، ولا في مجموعتك: إلحاقه بمجموعة عملية مستقلة لاحقة، بعقد بينه وبين المجموعة، فإن اختار مجموعتك سجّلته فيها من «حجاج المجموعة».
+                    تسجيل عادي على القبول المباشر أو على القرعة، يتبع مكتبك ({posting.office}). التسجيل على الحج لا يضع الحاج في أي مجموعة{registrar.staff ? "" : "، ولا في مجموعتك"}: إلحاقه بمجموعة عملية مستقلة لاحقة، بعقد بينه وبين المجموعة{registrar.staff ? " يُلحق به في المكتب." : "، فإن اختار مجموعتك سجّلته فيها من «حجاج المجموعة»."}
                   </p>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -585,7 +586,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                       </p>
                     </div>
                     <p className="mt-3 rounded-xl bg-white/10 p-3 text-xs leading-6 text-white/80">
-                      يدفع المواطن بنفسه عبر شام كاش من هاتفه، أو في المصرف المعتمد ويُرفع إشعار الدفع. لا يقبض المنسق أي مبلغ نقداً، ويصدر إيصال رقمي باسم المواطن.
+                      يدفع المواطن بنفسه عبر شام كاش من هاتفه، أو في المصرف المعتمد ويُرفع إشعار الدفع. لا {registrar.staff ? "يقبض المكتب" : "يقبض المنسق"} أي مبلغ نقداً، ويصدر إيصال رقمي باسم المواطن.
                     </p>
                   </div>
 
@@ -622,7 +623,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                   </motion.span>
                   <h2 className="mt-5 font-display text-2xl font-bold text-green-dark md:text-3xl">سُجّل الطلب رقم {filed.number}</h2>
                   <p className="mt-2 leading-8 text-ink-soft">
-                    صاحب الطلب <b className="text-green-dark">{fullName(members[0]?.person ?? citizen)}</b> ومعه {members.length - 1} مرافقين ({members.length} أفراد).
+                    صاحب الطلب <b className="text-green-dark">{fullName(members[0]?.person ?? citizen)}</b> {companionsWord(members.length - 1, " ومعه ") || " وحده"} ({members.length === 1 ? "فرد واحد" : members.length === 2 ? "فردان" : `${members.length} أفراد`}).
                     {members[0] && members[0].person.id !== citizen.id && <> الطلب في حساب <b>{fullName(citizen)}</b> الذي راجع المكتب.</>} صار للمواطن حساب على
                     المنصة يدخل إليه برقمه الوطني ليتابع طلبه بنفسه.
                   </p>
@@ -786,4 +787,9 @@ function FiledList({ mine, onReset, onOpen, viewing }: { mine: ReturnType<typeof
       )}
     </div>
   );
+}
+
+/** «مرافق واحد»، «مرافقان»، «3 مرافقين» — after a joining word; nothing when there is none */
+function companionsWord(n: number, join: string) {
+  return n > 0 ? join + countOf(n, { zero: "", one: "مرافق واحد", two: "مرافقان", few: "مرافقين", many: "مرافقاً" }) : "";
 }

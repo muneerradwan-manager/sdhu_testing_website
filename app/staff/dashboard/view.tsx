@@ -20,7 +20,7 @@ import { useSeason } from "@/lib/season-live";
 import { can, taskPermissions, type StaffUser } from "@/lib/staff";
 import { useStore } from "@/lib/store";
 import { SYSTEMS, useHolders } from "@/lib/systems";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, countOf, formatNumber } from "@/lib/utils";
 import { useAdminsDesk } from "../admins/desk";
 import { useContentSummary } from "../content/_components/summary";
 import { useEmployeesDesk } from "../employees/desk";
@@ -202,18 +202,19 @@ function Dashboard() {
       list.push({ id: "sys-new", text: unseen ? `أحداث مهمة جديدة في ملفات الإدارة (${unseen})` : "لا أحداث مهمة جديدة في ملفات الإدارة", href: "/staff/systems", done: !unseen, tone: "gold" });
     }
     if (can(user, "operations.room")) {
-      list.push({ id: "crit", text: `متابعة ${critical} بلاغات حرجة حتى الإغلاق`, href: "/staff/operations", tone: "maroon", done: critical === 0 });
+      list.push({ id: "crit", text: critical ? `متابعة ${countOf(critical, { zero: "", one: "بلاغ حرج", two: "بلاغين حرجين", few: "بلاغات حرجة", many: "بلاغاً حرجاً" })} حتى الإغلاق` : "لا بلاغات حرجة مفتوحة", href: "/staff/operations", tone: "maroon", done: critical === 0 });
       list.push({ id: "bus", text: busAccepted ? "اعتُمدت الحافلة التاسعة لمزدلفة" : "مراجعة اقتراح الحافلة التاسعة لمزدلفة", href: "/staff/operations", done: busAccepted });
     }
     if (can(user, "content.manage") && contentDrafts) list.push({ id: "drafts", text: `نشر المسودات أو تجاهلها في محتوى الموقع (${contentDrafts})`, href: "/staff/content", tone: "gold" });
     if (can(user, "pilgrims.register")) list.push({ id: "register", text: "تسجيل مواطن يراجع المكتب على الحج", href: "/staff/registration", tone: "gold" });
     if (can(user, "medical")) {
-      list.push({ id: "docs", text: docsWaiting ? `مراجعة ${docsWaiting} وثائق طبية رفعها الحجاج` : "لا وثائق طبية تنتظر المراجعة", href: "/staff/medical", tone: "gold", done: !docsWaiting });
-      list.push({ id: "health", text: health ? `متابعة ${health} بلاغات صحية مفتوحة` : "لا بلاغات صحية مفتوحة", href: "/staff/medical?view=reports", tone: "maroon", done: !health });
+      list.push({ id: "docs", text: docsWaiting ? `مراجعة ${countOf(docsWaiting, { zero: "", one: "وثيقة طبية واحدة", two: "وثيقتين طبيتين", few: "وثائق طبية", many: "وثيقة طبية" })} رفعها الحجاج` : "لا وثائق طبية تنتظر المراجعة", href: "/staff/medical", tone: "gold", done: !docsWaiting });
+      list.push({ id: "health", text: health ? `متابعة ${countOf(health, { zero: "", one: "بلاغ صحي مفتوح", two: "بلاغين صحيين مفتوحين", few: "بلاغات صحية مفتوحة", many: "بلاغاً صحياً مفتوحاً" })}` : "لا بلاغات صحية مفتوحة", href: "/staff/medical?view=reports", tone: "maroon", done: !health });
     }
     if (can(user, "transport")) {
-      list.push({ id: "transport", text: transportOpen ? `متابعة ${transportOpen} بلاغات نقل مفتوحة` : "لا بلاغات نقل مفتوحة", href: "/staff/transport", tone: "maroon", done: !transportOpen });
-      list.push({ id: "bus", text: busAccepted ? "اعتُمدت الحافلة التاسعة لمزدلفة: تجهيزها" : "حافلات مزدلفة المبكرة أقل من المسجّلين: بانتظار غرفة العمليات", href: "/staff/transport?view=buses", done: busAccepted });
+      list.push({ id: "transport", text: transportOpen ? `متابعة ${countOf(transportOpen, { zero: "", one: "بلاغ نقل مفتوح", two: "بلاغَي نقل مفتوحين", few: "بلاغات نقل مفتوحة", many: "بلاغاً مفتوحاً للنقل" })}` : "لا بلاغات نقل مفتوحة", href: "/staff/transport", tone: "maroon", done: !transportOpen });
+      // «bus-ready», not «bus»: one account may hold the operations room and transport both
+      list.push({ id: "bus-ready", text: busAccepted ? "اعتُمدت الحافلة التاسعة لمزدلفة: تجهيزها" : "حافلات مزدلفة المبكرة أقل من المسجّلين: بانتظار غرفة العمليات", href: "/staff/transport?view=buses", done: busAccepted });
     }
     if (can(user, "audit.read")) list.push({ id: "obj", text: "الرد على اعتراض الطلب 51877 مع الدليل", href: "/staff/audit", tone: "gold" });
     if (can(user, "ops.files")) {
@@ -309,7 +310,7 @@ function Dashboard() {
                 items={[
                   { k: "بلاغات نقل مفتوحة", v: transportOpen, tone: transportOpen ? "maroon" : undefined },
                   { k: "حجاج يحتاجون حافلة مجهّزة", v: equipped, hint: "كرسي، صعوبة مشي، أكسجين، أو 75+" },
-                  { k: "حافلات مزدلفة المبكرة", v: busAccepted ? 9 : 8, hint: `${busAccepted ? 450 : 400} مقعداً لـ430 مسجّلاً` },
+                  { k: "حافلات مزدلفة المبكرة", v: busAccepted ? 9 : 8, hint: `${busAccepted ? "450 مقعداً" : "400 مقعد"} لـ430 مسجّلاً` },
                   { k: "حافلة إضافية", v: busAccepted ? "اعتُمدت" : "بانتظار القرار", tone: busAccepted ? undefined : "gold" },
                 ]}
               />

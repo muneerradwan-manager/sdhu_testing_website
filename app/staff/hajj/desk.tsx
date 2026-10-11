@@ -50,8 +50,8 @@ export function useRegistrationDesk() {
 
     const alerts: Alert[] = [
       ...drift.map((d, i) => ({ id: `drift-${i}`, level: "high" as const, title: "الإصدار المعمول به لم يعد يوافق تكلفة الحج", hint: `${d.message}. عدّل الدفعات وانشر إصداراً جديداً؛ الطلبات المقدَّمة تبقى على شروطها.`, href: "/staff/hajj/manage/payments", action: "عدّل الدفعات" })),
-      ...(errors.length ? [{ id: "errors", level: "work" as const, title: `${errors.length} أخطاء في المسودة تمنع نشرها`, hint: errors.slice(0, 2).map((e) => `${e.where}: ${e.message}`).join(" · "), href: "/staff/hajj/manage/publish", action: "راجعها" }] : []),
-      ...(changes.length && !errors.length ? [{ id: "changes", level: "work" as const, title: `${changes.length} تغييرات في المسودة لم تُنشر`, hint: changes.slice(0, 2).map((c) => c.text).join(" · "), href: "/staff/hajj/manage/publish", action: "عاينها وانشرها" }] : []),
+      ...(errors.length ? [{ id: "errors", level: "work" as const, title: `${errors.length} أخطاء في المسودة تمنع نشرها`, hint: errors.slice(0, 2).map((e) => `${e.where}: ${e.message}`).join(" · "), href: "/staff/hajj/manage", action: "راجعها" }] : []),
+      ...(changes.length && !errors.length ? [{ id: "changes", level: "work" as const, title: `${changes.length} تغييرات في المسودة لم تُنشر`, hint: changes.slice(0, 2).map((c) => c.text).join(" · "), href: "/staff/hajj/manage/preview", action: "عاينها وانشرها" }] : []),
       ...scheduled.map((v) => ({ id: `sched-${v.id}`, level: "work" as const, title: `الإصدار ${v.number} مجدول`, hint: `يسري من ${v.effectiveFrom.replace("T", " ")}: ${v.note}`, href: "/staff/hajj/manage", action: "اعرضه" })),
       ...(waiting.length ? [{ id: "consents", level: "work" as const, title: `${waiting.length} طلبات تنتظر موافقات أفرادها`, hint: "محفوظة في حسابات أصحابها حتى يوافق الجميع.", href: "/staff/hajj/manage/applications?f=waiting", action: "تابعها" }] : []),
     ];

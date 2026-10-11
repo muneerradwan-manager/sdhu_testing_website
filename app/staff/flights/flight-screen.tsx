@@ -307,7 +307,7 @@ function Screen({ f }: { f: Flight }) {
                 <button type="button" className="text-white/70 hover:text-white" onClick={() => setSelected([])}>إلغاء التحديد</button>
               </div>
             )}
-            {families.length === 0 && <p className="rounded-2xl bg-white/5 px-4 py-6 text-center text-sm text-white/60">لم يُسند أحد بعد. رؤساء التكتلات يسندون مجموعاتهم من بوابة الإداريين.</p>}
+            {families.length === 0 && <p className="rounded-2xl bg-white/5 px-4 py-6 text-center text-sm text-white/60">لم يُسند أحد بعد. أضف المجموعات من «إضافة مجموعات» أعلاه، أو من «التفويج».</p>}
             {(() => {
               let lastGroup = "";
               return families.map((fam) => {

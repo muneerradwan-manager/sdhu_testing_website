@@ -8,7 +8,7 @@ import { CMS_COLLECTIONS, getCollectionDef } from "@/lib/cms/collections";
 import { getPageDef, CMS_PAGES } from "@/lib/cms/schema";
 import { cms, useCms } from "@/lib/cms/store";
 import type { StaffUser } from "@/lib/staff";
-import { cn } from "@/lib/utils";
+import { cn, countOf } from "@/lib/utils";
 import { Empty, fmtDateTime, logAs, Panel, Tabs } from "../../_components/kit";
 
 /**
@@ -70,8 +70,8 @@ export function RevisionsView({ user, focusPage, onOpenPage }: { user: StaffUser
                         </p>
                         <p className="mt-1 text-[11px] text-white/45">
                           {r.scope === "collection"
-                            ? `${Object.keys(r.itemsSnapshot?.items ?? {}).length} عنصراً محفوظاً في هذه النسخة`
-                            : `${countValues(r.snapshot.sections)} حقلاً محفوظاً في هذه النسخة`}
+                            ? countOf(Object.keys(r.itemsSnapshot?.items ?? {}).length, { zero: "لا عناصر معدَّلة في هذه النسخة: المحتوى الأصلي", one: "عنصر واحد محفوظ في هذه النسخة", two: "عنصران محفوظان في هذه النسخة", few: "عناصر محفوظة في هذه النسخة", many: "عنصراً محفوظاً في هذه النسخة" })
+                            : countOf(countValues(r.snapshot.sections), { zero: "لا حقول معدَّلة في هذه النسخة: المحتوى الأصلي", one: "حقل واحد محفوظ في هذه النسخة", two: "حقلان محفوظان في هذه النسخة", few: "حقول محفوظة في هذه النسخة", many: "حقلاً محفوظاً في هذه النسخة" })}
                         </p>
                       </div>
                       <div className="flex shrink-0 gap-1.5">

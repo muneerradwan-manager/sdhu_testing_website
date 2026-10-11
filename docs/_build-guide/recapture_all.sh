@@ -11,6 +11,7 @@ run() { local dir="$1"; shift; local keep; keep=$( [ "$FIRST" = 1 ] && echo 0 ||
   echo "── CAP_DIR=$dir $1 $keep ${*:2}"; CAP_DIR="$dir" "$PY" "$1" "$keep" "${@:2}" 2>&1 | tail -2; }
 
 # `./recapture_all.sh staff` redoes the staff guide only (it reuses the administrator states in admin/)
+# Each staff run (stf_<part>.py) captures its chapters into its own folder; staff_merge.py joins them.
 WHICH="${1:-all}"
 cp admin/manifest.json admin/manifest.before.json
 cp staff/manifest.json staff/manifest.before.json
@@ -23,11 +24,13 @@ if [ "$WHICH" = all ]; then
   run admin adm_d.py
 fi
 
-FIRST=1; run staff stf_a.py a
-for part in b c d; do run staff stf_a.py "$part"; done
-for part in e f g h; do run staff stf_b.py "$part"; done
-for part in i j k l m; do run staff stf_c.py "$part"; done
-run staff stf_d.py
+# The staff guide: one run per part, each into its own folder, then joined into staff/ in the guide's order
+PARTS_DIR="${PARTS_DIR:-$(mktemp -d)}"
+for part in basics registration exam admins ops mission; do
+  rm -rf "$PARTS_DIR/$part"; echo "── stf_$part.py"
+  CAP_DIR="$PARTS_DIR/$part" "$PY" "stf_$part.py" 2>&1 | tail -2
+done
+"$PY" staff_merge.py "$PARTS_DIR"
 
 "$PY" - <<'EOF'
 import json

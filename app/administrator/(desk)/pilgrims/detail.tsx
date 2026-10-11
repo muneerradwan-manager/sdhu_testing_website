@@ -17,6 +17,7 @@ import { ageOf, fullName, getPerson, relationLabel } from "@/lib/registry";
 import { useSeason } from "@/lib/season-live";
 import { useStore, type DocStatus } from "@/lib/store";
 import { cn, formatUSD, maskNationalId } from "@/lib/utils";
+import { positionLabelOf } from "../../_lib/admin";
 
 const fmt = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { dateStyle: "medium", timeStyle: "short" }).format(at) : "—");
 
@@ -103,7 +104,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
             </p>
             <p>
               <span className="text-hint">سجّله: </span>
-              <b>{app.submittedBy ? `${app.submittedBy.name} — منسق تقني` : "الحاج بنفسه من بوابته"}</b>
+              <b>{app.submittedBy ? `${app.submittedBy.name} — ${positionLabelOf(app.submittedBy.position)}` : "الحاج بنفسه من بوابته"}</b>
             </p>
           </div>
         </div>
@@ -125,7 +126,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
             {applicant && holder && applicant.id !== holder.id && <p className="rounded-xl bg-gold/15 p-2 text-xs leading-5 text-ink">الطلب في حساب {holder.firstName} الذي راجع المكتب ووافق برمز التحقق، وصاحبه {applicant.firstName} لأنه الأكبر سناً.</p>}
             <Row k="أُنشئ الحساب" v={account ? fmt(account.createdAt) : "—"} />
             <Row k="الهاتف المسجّل" v={account?.phone ? `•••• ${account.phone.slice(-3)}` : "—"} />
-            <Row k="موافقة المواطن" v="برمز تحقق إلى هاتفه المسجّل في الشؤون المدنية" />
+            <Row k="موافقة المواطن" v="برمز تحقق إلى الهاتف الذي أعطاه في المكتب، أو هاتف حسابه على المنصة" />
           </dl>
           <p className="mt-3 text-xs leading-5 text-hint">يدخل المواطن حسابه برقمه الوطني ليتابع طلبه بنفسه؛ هذه الصفحة للاطلاع الإداري فقط.</p>
         </Card>

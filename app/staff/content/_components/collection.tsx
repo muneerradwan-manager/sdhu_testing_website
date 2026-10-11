@@ -80,7 +80,7 @@ export function CollectionEditor({
     const seed = Object.fromEntries(collection.fields.map((f) => [f.key, f.def]));
     const id = cms.createItem(collection.id, { ...seed, ...seedExtras(collection) }, author);
     if (!id) {
-      toast({ title: "لا توجد روابط متاحة", body: `الحد الأقصى ${collection.slots?.length ?? 0} ${collection.itemName}اً جديداً`, tone: "warning", icon: "⚠️" });
+      toast({ title: "لا توجد روابط متاحة", body: `لا مكان لـ${collection.itemName} جديد: الحد الأقصى ${collection.slots?.length ?? 0}`, tone: "warning", icon: "⚠️" });
       return;
     }
     logAs(user, { action: `إنشاء ${collection.itemName} جديد`, target: `${collection.label} — ${id}` });
@@ -96,7 +96,7 @@ export function CollectionEditor({
         className="flex flex-wrap items-center gap-2 rounded-3xl border border-gold/30 bg-gradient-to-br from-green-dark/95 to-[#00352f]/95 p-3 shadow-[0_24px_60px_-36px_rgba(0,0,0,.7)] md:p-4"
       >
         <button onClick={open ? () => setOpenId(null) : onBack} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
-          <ArrowRight className="size-4" /> {open ? `كل ال${collection.itemName}ات` : "كل الصفحات"}
+          <ArrowRight className="size-4" /> {open ? `كل ${collection.itemsName}` : "كل الصفحات"}
         </button>
 
         <div className="min-w-0 px-1">
@@ -230,7 +230,7 @@ function ItemList({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={`ابحث في ال${collection.itemName}ات…`}
+            placeholder={`ابحث في ${collection.itemsName}…`}
             className="h-12 w-full rounded-2xl border-2 border-white/15 bg-white/10 pr-11 text-base text-white outline-none transition placeholder:text-white/40 focus:border-gold focus:ring-4 focus:ring-gold/15"
           />
         </label>

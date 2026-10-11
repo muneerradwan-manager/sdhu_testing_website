@@ -39,7 +39,13 @@ class Cap:
     def __init__(self, width=1440, height=900, scale=1.5, storage=None):
         self.p = sync_playwright().start()
         # The written exam is sat on camera: a simulated camera and microphone, already allowed
-        self.browser = self.p.chromium.launch(channel="chrome", headless=True, args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"])
+        args = ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"]
+        try:
+            self.browser = self.p.chromium.launch(channel="chrome", headless=True, args=args)
+        except Exception:
+            # Chrome not installed (or mid-update): Playwright's own Chromium, the same engine
+            # (once: `python -m playwright install chromium`)
+            self.browser = self.p.chromium.launch(headless=True, args=args)
         kw = dict(viewport={"width": width, "height": height}, device_scale_factor=scale, locale="ar-SY", timezone_id="Asia/Damascus", permissions=["camera", "microphone"])
         if storage and Path(storage).exists():
             kw["storage_state"] = storage

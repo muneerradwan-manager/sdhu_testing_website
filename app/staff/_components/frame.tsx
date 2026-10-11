@@ -375,7 +375,8 @@ function Sidebar({ user }: { user: StaffUser }) {
         {/* Navigation — vertical on desktop, a swipeable strip on phones */}
         <nav aria-label="أقسام بوابة الموظفين" className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:block lg:space-y-1 lg:overflow-visible">
           {items.map((n, i) => {
-            const active = n.exact ? samePath(pathname, n.href) : pathname.startsWith(n.href);
+            // «/reference» opens its own pages, not «/references»: a segment of the path, not any prefix
+            const active = n.exact ? samePath(pathname, n.href) : samePath(pathname, n.href) || pathname.startsWith(`${n.href.replace(/\/$/, "")}/`);
             const count = n.badge ? counts[n.badge] : 0;
             // A file's entries sit under its name; what follows the last file is set apart from it
             const heading = n.group ? (
