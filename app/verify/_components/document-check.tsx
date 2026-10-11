@@ -341,7 +341,7 @@ function Scanner({ open, code, onClose, onDetected }: { open: boolean; code: str
 
         {/* the receipt being held up */}
         <motion.div
-          className="absolute left-1/2 top-1/2 w-[62%] rounded-xl bg-[#fbf8f2] p-3 text-ink shadow-2xl"
+          className="on-light absolute left-1/2 top-1/2 w-[62%] rounded-xl bg-[#fbf8f2] p-3 text-ink shadow-2xl"
           initial={{ rotate: -9, scale: 0.85, x: "-50%", y: "-50%", filter: "blur(6px)" }}
           animate={{ rotate: [-9, -4, -6, -3], scale: [0.85, 0.95, 0.93, 0.96], x: ["-50%", "-47%", "-51%", "-50%"], y: ["-50%", "-52%", "-49%", "-50%"], filter: ["blur(6px)", "blur(3px)", "blur(1px)", "blur(0px)"] }}
           transition={{ duration: 2, ease: "easeOut" }}

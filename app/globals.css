@@ -236,6 +236,44 @@ html[data-theme="dark"] .print-sheet {
   :where(html[data-theme="dark"]) .bg-white\/50 {
     background-color: color-mix(in oklab, var(--surface) 70%, transparent);
   }
+  /* A translucent light gold laid over the page is a faint gold tint on the dark one, not a grey veil */
+  :where(html[data-theme="dark"]) .bg-gold-light\/30,
+  :where(html[data-theme="dark"]) .bg-gold-light\/40,
+  :where(html[data-theme="dark"]) .bg-gold-light\/50,
+  :where(html[data-theme="dark"]) .bg-gold-light\/60,
+  :where(html[data-theme="dark"]) .bg-gold-light\/70 {
+    background-color: color-mix(in oklab, var(--color-gold) 9%, transparent);
+  }
+  /* The same light colours at an opacity, and the light rows and stops written with a variant */
+  :where(html[data-theme="dark"]) .text-ink\/90 { color: color-mix(in oklab, var(--tx-ink) 90%, transparent); }
+  :where(html[data-theme="dark"]) .text-ink\/85 { color: color-mix(in oklab, var(--tx-ink) 85%, transparent); }
+  :where(html[data-theme="dark"]) .text-ink\/80 { color: color-mix(in oklab, var(--tx-ink) 80%, transparent); }
+  :where(html[data-theme="dark"]) .text-ink\/70 { color: color-mix(in oklab, var(--tx-ink) 70%, transparent); }
+  :where(html[data-theme="dark"]) .text-ink\/60 { color: color-mix(in oklab, var(--tx-ink) 60%, transparent); }
+  :where(html[data-theme="dark"]) .text-green-dark\/80 { color: color-mix(in oklab, var(--tx-green) 80%, transparent); }
+  :where(html[data-theme="dark"]) .text-green-dark\/70 { color: color-mix(in oklab, var(--tx-green) 70%, transparent); }
+  :where(html[data-theme="dark"]) .text-green-dark\/40 { color: color-mix(in oklab, var(--tx-green) 40%, transparent); }
+  :where(html[data-theme="dark"]) .text-maroon\/80 { color: color-mix(in oklab, var(--tx-maroon) 80%, transparent); }
+  :where(html[data-theme="dark"]) .text-maroon\/60 { color: color-mix(in oklab, var(--tx-maroon) 60%, transparent); }
+  :where(html[data-theme="dark"]) .text-gold-dark\/60 { color: color-mix(in oklab, var(--tx-golddark) 60%, transparent); }
+  :where(html[data-theme="dark"]) .odd\:bg-white:nth-child(odd),
+  :where(html[data-theme="dark"]) .even\:bg-white:nth-child(even) {
+    background-color: var(--surface);
+  }
+  :where(html[data-theme="dark"]) .xl\:bg-white\/90 {
+    background-color: color-mix(in oklab, var(--surface) 90%, transparent);
+  }
+  :where(html[data-theme="dark"]) .via-white,
+  :where(html[data-theme="dark"]) .via-white\/60 {
+    --tw-gradient-via: var(--surface);
+  }
+  :where(html[data-theme="dark"]) .from-gold-light\/60 {
+    --tw-gradient-from: color-mix(in oklab, var(--color-gold) 12%, transparent);
+  }
+  :where(html[data-theme="dark"]) .to-gold-light\/40,
+  :where(html[data-theme="dark"]) .to-gold-light\/60 {
+    --tw-gradient-to: color-mix(in oklab, var(--color-gold) 9%, transparent);
+  }
   :where(html[data-theme="dark"]) .text-ink {
     color: var(--tx-ink);
   }

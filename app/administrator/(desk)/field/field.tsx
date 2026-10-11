@@ -444,7 +444,7 @@ function Channel({ count }: { count: number }) {
         </Button>
       </Card>
 
-      <div className="rounded-[2rem] bg-[#e9e2d6] p-4 md:p-6">
+      <div className="rounded-[2rem] bg-sand p-4 md:p-6">
         <div className="mb-4 flex items-center gap-3 rounded-2xl bg-green-dark px-4 py-3 text-white">
           <span className="grid size-10 place-items-center rounded-xl bg-gold font-display font-bold text-ink">{g.number}</span>
           <div>

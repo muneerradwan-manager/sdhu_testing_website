@@ -10,6 +10,7 @@ import { useArticles } from "@/lib/cms/content";
 import { useSection } from "@/lib/cms/store";
 import { Hero } from "./_home/hero";
 import { Journey } from "./_home/journey";
+import { SeasonDock } from "./_home/season-dock";
 import { AcademyTeaser, PrayerWidget } from "./_home/widgets";
 
 /**
@@ -48,7 +49,8 @@ function Ticker() {
 
   return (
     <CmsSection page="home" section="ticker">
-      <div className="relative z-10 overflow-hidden border-y border-gold/40 bg-gold-light">
+      {/* Gold in the light theme; in the dark one a deep warm strip, its text in the theme's light green */}
+      <div className="relative z-10 overflow-hidden border-y border-gold/40 bg-[var(--color-gold-light)] dark:border-gold/20 dark:bg-[#1c2620]">
         <div className="flex items-stretch">
           <span className="z-10 flex shrink-0 items-center gap-2 bg-maroon px-5 py-3 font-bold text-white shadow-[8px_0_20px_rgba(0,0,0,.15)]">
             <Megaphone className="size-4 text-gold" /> {str(v, "label", "عاجل")}
@@ -117,7 +119,7 @@ function Services() {
         <Reveal delay={0.1} className="mt-5">
           <Link
             href={str(u, "href", "/umrah")}
-            className="group relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl border border-dashed border-gold-dark/60 bg-gold-light/50 p-5 transition duration-500 hover:border-gold-dark hover:bg-gold-light md:flex-row md:items-center md:p-6"
+            className="group relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl border border-dashed border-gold-dark/60 bg-gold-light/50 p-5 transition duration-500 hover:border-gold-dark hover:bg-gold-light dark:border-gold/40 dark:bg-gold/[.07] dark:hover:bg-gold/[.12] md:flex-row md:items-center md:p-6"
           >
             <span className="grid size-13 shrink-0 place-items-center rounded-2xl bg-white text-maroon shadow-sm">
               <CmsIcon name={str(u, "icon")} className="size-6" fallback="Hourglass" />
@@ -307,19 +309,10 @@ function SeasonCalendar() {
         <div className="bg-pattern-dark absolute inset-0" />
         <div className="relative mx-auto max-w-7xl px-4 md:px-8">
           <SectionHeading eyebrow={str(v, "eyebrow")} title={str(v, "title")} description={str(v, "description")} />
-          <div className="scrollbar-none -mx-4 overflow-x-auto px-4 pb-4">
-            <Stagger className="flex w-max gap-4">
-              {dates.map((d, i) => (
-                <StaggerItem key={`${d.title}-${i}`} className="relative w-64 shrink-0 rounded-3xl border border-gold/30 bg-sand p-5">
-                  <span className="font-display text-5xl font-bold text-gold/60">{String(i + 1).padStart(2, "0")}</span>
-                  <p className="mt-2 font-bold text-maroon">{d.hijri}</p>
-                  <p className="text-xs text-hint">{d.gregorian}</p>
-                  <p className="mt-3 font-display text-lg font-bold leading-7 text-green-dark">{d.title}</p>
-                  {d.who && <span className="mt-3 inline-block rounded-full bg-green-dark/8 px-2.5 py-1 text-xs font-bold text-green-dark">{d.who}</span>}
-                </StaggerItem>
-              ))}
-            </Stagger>
-          </div>
+          {/* The dates as the Mac's dock: the one in the middle the largest, moving on by itself */}
+          <Reveal className="mt-4">
+            <SeasonDock dates={dates} />
+          </Reveal>
         </div>
       </section>
     </CmsSection>

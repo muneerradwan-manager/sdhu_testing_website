@@ -43,7 +43,7 @@ function ScanModal({ open, onClose, onResult, sample }: { open: boolean; onClose
           initial={{ rotate: -8, scale: 0.85, opacity: 0 }}
           animate={{ rotate: phase === "aim" ? -4 : 0, scale: phase === "aim" ? 0.9 : 1, opacity: 1 }}
           transition={{ duration: 0.8 }}
-          className="absolute inset-8 rounded-xl bg-[#e9dfc7] p-4 text-ink shadow-2xl"
+          className="on-light absolute inset-8 rounded-xl bg-[#e9dfc7] p-4 text-ink shadow-2xl"
         >
           <div className="flex items-center justify-between border-b border-ink/20 pb-2">
             <span className="font-display text-sm font-bold">الجمهورية العربية السورية</span>

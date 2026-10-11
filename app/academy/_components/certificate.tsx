@@ -120,7 +120,7 @@ export function Certificate({
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="relative rounded-[28px] bg-gradient-to-br from-gold via-gold-dark to-gold p-[3px] shadow-[0_40px_80px_-40px_rgba(173,158,110,.9)]"
         >
-          <div className="relative overflow-hidden rounded-[26px] bg-[#fffdf7] p-3 sm:p-4">
+          <div className="on-light relative overflow-hidden rounded-[26px] bg-[#fffdf7] p-3 sm:p-4">
             <div className="bg-pattern-dark absolute inset-0 opacity-70" />
             <div className="relative rounded-[20px] border-2 border-gold-dark/60 p-1">
               <div className="relative rounded-[16px] border border-gold/70 px-5 py-7 text-center sm:px-10 sm:py-10">
