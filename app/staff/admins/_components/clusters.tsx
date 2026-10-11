@@ -61,7 +61,7 @@ export function ClustersTab() {
       <div className="grid gap-4 lg:grid-cols-2">
         <WindowBox desk={desk} />
         <Help>
-          <p>لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات ومقاعدها، معاون التكتل، المنسقون والموجّهات، النائب، المحاسب — ويرسله بعد اكتماله.</p>
+          <p>لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات برؤسائها، الإداريون (موجّهو المجموعات ومعاونوها، ومعاون التكتل، والمنسقون والموجّهات يوزَّعون على المجموعات)، النائب، المحاسب — ويرسله بعد اكتماله.</p>
           <p>تبدأ مراجعة الطلب، ثم تعتمده أو تعيده بملاحظات يصلحها رئيسه ويعيد إرساله قبل الموعد النهائي. وخارج الضوابط تعدّله بنفسك «تعديلاً استثنائياً» بسبب يُكتب في سجله وسجل الشخص.</p>
           <p>ثم يكتب كل رئيس برنامج تكتله، ولا يصل إلى الحجاج قبل أن تعتمده.</p>
         </Help>
@@ -512,7 +512,7 @@ function Exceptional({ x }: { x: ClusterRequest }) {
       (c.seats[g.number] ?? []).map(
         (seat: Seat, i): Place => ({
           key: `seat-${g.number}-${i}`,
-          label: `${groupName(g.number)} — ${seat.kind === "guide" ? "موجّه أو مرشد" : "معاون"}${seat.free ? " (حر)" : ""}`,
+          label: `${groupName(g.number)} — ${seat.kind === "guide" ? "موجّه المجموعة" : "معاون المجموعة"}${seat.free ? " (حر)" : ""}`,
           who: yes(seat.who) ? seat.who : undefined,
           remove: (k) => ({ ...k, seats: { ...k.seats, [g.number]: (k.seats[g.number] ?? []).map((y, j) => (j === i ? { ...y, who: undefined } : y)) } }),
           fill: { behavior: seat.kind === "guide" ? "guideSeat" : "assistantSeat", put: (k, p) => ({ ...k, seats: { ...k.seats, [g.number]: (k.seats[g.number] ?? []).map((y, j) => (j === i ? { ...y, who: p } : y)) } }) },

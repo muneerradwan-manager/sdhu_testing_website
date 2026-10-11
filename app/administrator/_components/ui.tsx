@@ -19,6 +19,7 @@ import {
   LogOut,
   Mails,
   MapPinned,
+  MessagesSquare,
   Plane,
   ScrollText,
   UserRoundPlus,
@@ -33,6 +34,7 @@ import { statusLabel, useOperations, type OperationKey, type OperationState } fr
 import { actions, useHydrated, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
+import { useClusterChannel } from "../_lib/channel";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -97,7 +99,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
  * dates, or by the staff who control it (lib/operations.ts), and a closed one stays in the menu with when it
  * opens. Stages exist only inside an operation that has several steps.
  */
-type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean };
+type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean; /** Works in a cluster: its channel opens */ inChannel: boolean };
 
 type NavItem = {
   href: string;
@@ -135,29 +137,32 @@ const NAV: NavItem[] = [
   { href: "/administrator/cluster", label: "تشكيل التكتلات", icon: Building2, ops: ["cluster-formation"], show: (c) => c.role },
   { href: "/administrator/groups", label: groupsTab, icon: UsersRound, ops: ["group-management"], show: ownGroups },
   { href: "/administrator/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
+  // Everyone in a cluster reads its channel; who writes is by role, as its head sets it
+  { href: "/administrator/channel", label: "قناة التكتل", icon: MessagesSquare, show: (c) => c.inChannel },
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
 ];
 
-function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Record<AdminPermission, string[]>): NavCtx {
+function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Record<AdminPermission, string[]>, inChannel: boolean): NavCtx {
   const role = p?.positions[0];
   const cluster = isClusterRole(p);
   const head = role === "group-head";
   const tech = isTechCoordinator(p);
   // A head's group counts once it is approved; a guide, an assistant or a coordinator works in the groups assigned to him
   const inGroup = head ? !!p?.group?.approvedAt : !!p?.servesIn || !!p?.coordinatorIn;
-  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id) };
+  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id), inChannel };
 }
 
-export type AdminNavEntry = { href: string; label: string; icon: LucideIcon; open: boolean; shown?: OperationState };
+export type AdminNavEntry = { href: string; label: string; icon: LucideIcon; open: boolean; shown?: OperationState; /** Unread, beside the label */ badge?: number };
 
 /** The operations this administrator sees, each with its state now: the open one, else the next to open, else the last closed */
 export function useAdminNav(): AdminNavEntry[] {
   const admin = useAdmin();
   const ops = useOperations();
   const table = useRolePermissions();
-  const ctx = navCtx(admin?.id, admin?.profile, table);
+  const channel = useClusterChannel(admin?.id, admin?.profile);
+  const ctx = navCtx(admin?.id, admin?.profile, table, !!channel);
   return NAV.filter((n) => !n.show || n.show(ctx)).map((n) => {
     const states = n.ops ? ops.filter((o) => n.ops!.includes(o.key)) : [];
     return {
@@ -166,6 +171,7 @@ export function useAdminNav(): AdminNavEntry[] {
       icon: n.icon,
       open: !states.length || states.some((o) => o.open),
       shown: states.find((o) => o.open) ?? states.find((o) => o.status === "upcoming") ?? states.at(-1),
+      badge: n.href === "/administrator/channel" ? channel?.unread : undefined,
     };
   });
 }
@@ -198,7 +204,7 @@ export function AdminSidebar() {
         <nav aria-label="أقسام حساب الإداري" className="scrollbar-none flex gap-1 overflow-x-auto p-2 lg:block lg:space-y-1 lg:overflow-visible">
           {items.map((n) => {
             const active = pathname.startsWith(n.href) && (n.href !== "/administrator/group" || !pathname.startsWith("/administrator/groups")) && (n.href !== "/administrator/cluster" || !pathname.startsWith("/administrator/clusters"));
-            const { open, shown, label } = n;
+            const { open, shown, label, badge } = n;
             return (
               <Link
                 key={n.href}
@@ -215,6 +221,11 @@ export function AdminSidebar() {
                   <span className="block whitespace-nowrap">{label}</span>
                   {shown && shown.status !== "always" && <span className={cn("hidden whitespace-nowrap text-[11px] font-semibold lg:block", active ? "text-green-dark/80" : shown.open ? "text-green" : "text-hint")}>{statusLabel(shown)}</span>}
                 </span>
+                {!!badge && (
+                  <span className="relative mr-auto grid min-w-5 place-items-center rounded-full bg-maroon px-1.5 text-[11px] font-bold leading-5 text-white" aria-label={`${badge} غير مقروءة`}>
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}

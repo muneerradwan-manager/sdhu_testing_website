@@ -340,6 +340,33 @@ export type ClusterStatus = "draft" | "pending" | "reviewing" | "approved" | "re
  * assistants, coordinators and female guides by the sum of the groups' categories, its deputy (one of its
  * group heads) and its accountant (one of its people). Everyone picked answers his own invitation.
  */
+/**
+ * «قناة التكتل»: the channel of a cluster's administrators. Everyone in the cluster reads it; who writes is
+ * by role, as its head sets it (app/administrator/_lib/channel.ts), and he may stop one member from writing.
+ * A message can be pinned by the head, and taken down by its writer or the head (it stays, marked removed).
+ */
+export type ChannelMessage = {
+  id: string;
+  by: string;
+  name: string;
+  role: string;
+  text: string;
+  at: number;
+  /** The message it answers */
+  replyTo?: string;
+  pinned?: boolean;
+  removed?: { by: string; at: number };
+};
+export type ClusterChannel = {
+  /** The roles that write; absent = the channel's default (the head and his deputy) */
+  writers?: string[];
+  /** Members the head stopped from writing, whatever their role */
+  muted?: Record<string, { by: string; at: number; reason?: string }>;
+  messages?: ChannelMessage[];
+  /** When each member last read the channel */
+  reads?: Record<string, number>;
+};
+
 export type ClusterRecord = {
   id: string;
   name: string;
@@ -644,6 +671,8 @@ export type State = {
   presence: Record<string, number>;
   /** The letters between the administrators and the administration */
   letters: Letter[];
+  /** Each cluster's channel as its members left it, by cluster id; a missing one is the season's story as seeded */
+  channels: Record<string, ClusterChannel>;
   /** Each cluster's operational plan, by cluster id */
   plans: Record<string, OperationalPlan>;
   /** The administration's references for its cadre */
@@ -792,6 +821,7 @@ const initial: State = {
   cadre: { seasonal: {}, category: {}, branches: {}, primary: {}, added: {}, status: {}, contact: {}, events: [], telegram: [] },
   presence: {},
   letters: [],
+  channels: {},
   plans: {},
   adminRefs: {},
   clock: {},
@@ -864,6 +894,7 @@ function normalize(s: State): State {
     },
     presence: obj(s.presence) as State["presence"],
     letters: list(s.letters) as Letter[],
+    channels: obj(s.channels) as State["channels"],
     plans: obj(s.plans) as State["plans"],
     adminRefs: obj(s.adminRefs) as AdminRefs,
     clock: obj(s.clock) as State["clock"],
@@ -1154,6 +1185,10 @@ export const actions = {
   },
   updateLetter(id: string, fn: (l: Letter) => Letter) {
     setState((s) => ({ ...s, letters: s.letters.map((l) => (l.id === id ? fn(l) : l)) }));
+  },
+  /** A cluster's channel changed: `seed` is how it reads before anyone touched it on this device */
+  setChannel(clusterId: string, seed: ClusterChannel, fn: (c: ClusterChannel) => ClusterChannel) {
+    setState((s) => ({ ...s, channels: { ...s.channels, [clusterId]: fn(s.channels[clusterId] ?? seed) } }));
   },
   setPlan(clusterId: string, plan: OperationalPlan | undefined) {
     setState((s) => {

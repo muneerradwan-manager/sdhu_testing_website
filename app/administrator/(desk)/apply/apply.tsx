@@ -445,7 +445,7 @@ function Eligibility({ roleKey, renewal, rec, onEligible }: { roleKey: string | 
             {rows.map((r, i) => {
               const state = i < checked ? "done" : i === checked ? "active" : "idle";
               return (
-                <motion.tr key={r.k} animate={{ opacity: state === "idle" ? 0.35 : 1, backgroundColor: state === "active" ? "rgba(217,200,158,.25)" : "rgba(255,255,255,1)" }} className="border-t border-gold-light">
+                <motion.tr key={r.k} animate={{ opacity: state === "idle" ? 0.35 : 1, backgroundColor: state === "active" ? "rgba(217,200,158,.25)" : "rgba(217,200,158,0)" }} className="border-t border-gold-light">
                   <td className="p-4 font-semibold text-ink">{r.k}</td>
                   <td className="p-4 text-ink-soft">{state === "idle" ? <span className="skeleton inline-block h-3 w-24 rounded" /> : r.v}</td>
                   <td className="p-4 text-center">

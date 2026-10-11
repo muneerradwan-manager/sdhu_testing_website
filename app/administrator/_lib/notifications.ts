@@ -4,7 +4,9 @@ import { useMemo } from "react";
 import { groupName } from "@/lib/groups";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import { useStore } from "@/lib/store";
+import { countOf } from "@/lib/utils";
 import { positionLabelOf, resultOf, useAdmin } from "./admin";
+import { useClusterChannel } from "./channel";
 import { groupsLabel, useCoordinatorPost } from "./coordinators";
 import { inviteWhat, useClusterGroupsOf, useMyInvitations } from "./formation";
 import { useMyHall } from "./halls";
@@ -27,6 +29,7 @@ export function useAdminNotes(): AdminNote[] {
   const telegram = useStore((s) => s.cadre.telegram);
   const letters = useLetters();
   const plans = useStore((s) => s.plans);
+  const channel = useClusterChannel(admin.id, profile);
   return useMemo(() => {
     // What the administration sent him: the bot's messages (newest first), replies he has not read, his cluster's plan
     const fromBot = [...telegram]
@@ -47,7 +50,10 @@ export function useAdminNotes(): AdminNote[] {
         href: "/administrator/cluster",
         urgent: true,
       }));
+    const unread = channel?.unread ?? 0;
+    const channelNote = unread > 0 && { t: `${countOf(unread, { zero: "", one: "رسالة جديدة", two: "رسالتان جديدتان", few: "رسائل جديدة", many: "رسالة جديدة" })} في قناة ${channel!.clusterName}.`, who: "قناة التكتل", href: "/administrator/channel", urgent: true };
     const notes = [
+      channelNote,
       ...replies,
       ...fromBot,
       planNote,
@@ -66,5 +72,5 @@ export function useAdminNotes(): AdminNote[] {
       { t: `التسجيل كإداري لموسم 1448: ${rangeLabel(regOp.start, regOp.end)}.`, who: "الإدارة", href: "/administrator/apply" },
     ];
     return notes.filter(Boolean) as AdminNote[];
-  }, [profile, clusterGroups, inbox, coord, hall.exam, hall.session, hall.center, regOp.start, regOp.end, telegram, letters, plans, admin.id]);
+  }, [profile, clusterGroups, inbox, coord, hall.exam, hall.session, hall.center, regOp.start, regOp.end, telegram, letters, plans, admin.id, channel]);
 }

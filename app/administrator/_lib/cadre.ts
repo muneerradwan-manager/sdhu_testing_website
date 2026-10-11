@@ -64,7 +64,7 @@ export function placesOf(req: Pick<ClusterRequest, "headId" | "season">, c: Clus
   put(req.headId, "رئيس التكتل");
   for (const g of acceptedGroups(c)) {
     put(g.id, "رئيس المجموعة", g.number);
-    for (const seat of c.seats[g.number] ?? []) if (seat.who && yes(seat.who.status)) put(seat.who.id, seat.kind === "guide" ? "موجّه أو مرشد" : "معاون", g.number);
+    for (const seat of c.seats[g.number] ?? []) if (seat.who && yes(seat.who.status)) put(seat.who.id, seat.kind === "guide" ? "موجّه مجموعة" : "معاون مجموعة", g.number);
   }
   for (const x of c.assistants) if (yes(x.status)) put(x.id, "معاون التكتل");
   for (const x of c.coordinators) if (yes(x.status)) put(x.id, "منسق تقني بالتكتل");

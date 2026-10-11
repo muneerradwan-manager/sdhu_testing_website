@@ -155,7 +155,7 @@ function FileRequest() {
     writeCluster({ headId: admin.id, headName: admin.name, headGroup: g?.number, seed: false }, own ? { ...c, seats: { [own.number]: fitSeats(s, undefined, own.category) } } : c, admins);
     logAdmin(admin.id, `بدء طلب تشكيل ${name.trim()}`, g ? groupName(g.number) : undefined, grant ? `بصفة «${roleName(grant.role, s)}» الموسمية — ${grant.reason}` : undefined, { area: "clusters", ref: id });
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F"] });
-    toast({ title: `بدأتَ طلب ${name.trim()}`, body: "اختر مستواه أولاً، ثم مجموعاته ومقاعدها، ثم كادر التكتل.", icon: "🏛️", tone: "success" });
+    toast({ title: `بدأتَ طلب ${name.trim()}`, body: "اختر مستواه أولاً، ثم ادعُ مجموعاته برؤسائها، ثم إدارييه.", icon: "🏛️", tone: "success" });
   };
 
   return (
@@ -370,7 +370,7 @@ function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mod
 
   const tabs: { key: DeskTab; label: string; icon: LucideIcon; done?: boolean; badge?: string }[] =
     mode === "request"
-      ? STEPS.map((st, i) => ({ key: st.key, label: `${i + 1}. ${st.label}`, icon: [Layers, UsersRound, UserCheck, Shuffle, Crown, Calculator, Printer][i], done: req.stepOk[st.key] }))
+      ? STEPS.map((st, i) => ({ key: st.key, label: `${i + 1}. ${st.label}`, icon: [Layers, UsersRound, UserCheck, Crown, Calculator, Printer][i], done: req.stepOk[st.key] }))
       : [
           { key: "groups", label: "المجموعات", icon: UsersRound, badge: String(req.groups.length) },
           { key: "team", label: "كادر التكتل", icon: UserCheck, badge: String(req.cadre) },
@@ -408,13 +408,11 @@ function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mod
             ) : (
               <GroupsStep req={req} editable={editable && mode === "request"} onOpen={mode !== "request" ? setOpened : undefined} />
             ))}
-          {tab === "assistants" && <AssistantsStep req={req} editable={editable} />}
           {tab === "staff" && <StaffStep req={req} editable={editable} sortable={editable || mode === "manage"} />}
           {tab === "deputy" && <DeputyStep req={req} editable={editable} />}
           {tab === "accountant" && <AccountantStep req={req} editable={editable} />}
           {tab === "team" && (
             <div className="space-y-6">
-              <AssistantsStep req={req} editable={false} />
               <StaffStep req={req} editable={false} sortable={mode === "manage"} />
               <div className="grid gap-6 lg:grid-cols-2">
                 <DeputyStep req={req} editable={false} />
@@ -644,11 +642,11 @@ function GroupsStep({ req, editable, onOpen }: { req: ClusterRequest; editable: 
           المطلوب بين {n.min} و{n.max}
         </span>
       </div>
-      {!onOpen && <StepNote title="مجموعات التكتل" desc="أضف المجموعات أولاً: لكل مجموعة رئيسها، وفئتها فئته كما حددتها الإدارة، ومنها عدد حجاجها ومقاعد فريقها في مستوى تكتلك. املأ كل مقعد بدعوة يقبلها صاحبها: الموجّه من الموجّهين أو المرشدين، والمعاون من المعاونين. المقعد الحر تختار له موجّهاً أو معاوناً." />}
+      {!onOpen && <StepNote title="المجموعات" desc="هنا تدعو المجموعات وحدها: كل مجموعة تدخل برئيسها وحجاجها، ويقبل رئيسها الدعوة أو يعتذر. فئتها فئة رئيسها كما حددتها الإدارة، ومنها عدد حجاجها ومقاعد فريقها في مستوى تكتلك. أما فريقها وبقية الإداريين — موجّهو المجموعات ومعاونوها، ومعاون التكتل، والمنسقون والموجّهات — فتدعوهم في الخطوة التالية «الإداريون»." />}
       {list.length === 0 && <p className="rounded-2xl bg-sand p-4 text-sm text-hint">لا مجموعات بعد.</p>}
       <div className="grid gap-4 lg:grid-cols-2">
         {list.map((g) => (
-          <GroupCard key={g.number} req={req} g={g} own={g.id === req.headId} editable={editable} onWithdraw={() => withdraw(g.number)} onOpen={onOpen && req.groups.some((x) => x.number === g.number) ? () => onOpen(g.number) : undefined} />
+          <GroupCard key={g.number} req={req} g={g} own={g.id === req.headId} editable={editable} seatsHere={!!onOpen} onWithdraw={() => withdraw(g.number)} onOpen={onOpen && req.groups.some((x) => x.number === g.number) ? () => onOpen(g.number) : undefined} />
         ))}
       </div>
       {editable && (
@@ -686,17 +684,17 @@ function GroupsStep({ req, editable, onOpen }: { req: ClusterRequest; editable: 
   );
 }
 
-function GroupCard({ req, g, own, editable, onWithdraw, onOpen }: { req: ClusterRequest; g: GroupInvite; own: boolean; editable: boolean; onWithdraw: () => void; onOpen?: () => void }) {
+/**
+ * A group in its cluster: its head, its category and pilgrims, and its team. While the request is filled its
+ * seats are only summed up here (`seatsHere` false) — they are filled in «الإداريون» with the rest of the team.
+ */
+function GroupCard({ req, g, own, editable, onWithdraw, onOpen, seatsHere = true }: { req: ClusterRequest; g: GroupInvite; own: boolean; editable: boolean; onWithdraw: () => void; onOpen?: () => void; seatsHere?: boolean }) {
   const s = useStructure();
-  const toast = useToast();
-  const write = useWrite(req);
-  const picks = usePicks(req);
   const c = req.cluster;
   const cat = categoryOfId(s, g.category);
   const n = seatsOf(s, c.tier, g.category);
   const seats = c.seats[g.number] ?? [];
-  const exclude = new Set([...placedIn(c), req.headId]);
-  const setSeat = (i: number, seat: Seat, action: string, who?: string) => write({ ...c, seats: { ...c.seats, [g.number]: seats.map((x, j) => (j === i ? seat : x)) } }, action, who, groupName(g.number));
+  const filled = seats.filter((x) => x.who?.status === "accepted").length;
 
   return (
     <Card className={cn("md:p-5", onOpen && "transition hover:border-gold-dark hover:shadow-md")}>
@@ -732,19 +730,47 @@ function GroupCard({ req, g, own, editable, onWithdraw, onOpen }: { req: Cluster
       </div>
       {g.byAdministration && <p className="mt-2 rounded-xl bg-gold/15 px-3 py-1.5 text-xs text-maroon">أضافتها الإدارة ({g.byAdministration.by}): {g.byAdministration.reason}</p>}
       <div className="mt-3 space-y-2">
-        <p className="text-xs font-bold text-hint">مقاعدها: {seatsLabel(n)}</p>
+        {seatsHere ? (
+          <GroupSeats req={req} g={g} editable={editable} />
+        ) : (
+          <p className="rounded-xl bg-sand/70 px-3 py-2 text-xs leading-6 text-ink-soft">
+            <span className="font-bold">مقاعد فريقها: {seatsLabel(n)}</span>
+            {seats.length > 0 && <span> — {filled} من {seats.length} قبلوا</span>}
+            <span className="block text-hint">{g.status === "accepted" ? "تدعو أصحابها في خطوة «الإداريون»." : "تُملأ في خطوة «الإداريون» بعد أن يقبل رئيسها."}</span>
+          </p>
+        )}
+        {g.status === "accepted" && <SharedTeam c={c} number={g.number} />}
+      </div>
+    </Card>
+  );
+}
+
+/** A group's seats — its guides and its assistants, by its category under the tier — each filled by an invitation */
+function GroupSeats({ req, g, editable }: { req: ClusterRequest; g: GroupInvite; editable: boolean }) {
+  const s = useStructure();
+  const toast = useToast();
+  const write = useWrite(req);
+  const picks = usePicks(req);
+  const c = req.cluster;
+  const n = seatsOf(s, c.tier, g.category);
+  const seats = c.seats[g.number] ?? [];
+  const exclude = new Set([...placedIn(c), req.headId]);
+  const setSeat = (i: number, seat: Seat, action: string, who?: string) => write({ ...c, seats: { ...c.seats, [g.number]: seats.map((x, j) => (j === i ? seat : x)) } }, action, who, groupName(g.number));
+  return (
+    <>
+        <p className="text-xs font-bold text-hint">مقاعد فريقها: {seatsLabel(n)}</p>
         {g.status !== "accepted" ? (
           <p className="rounded-xl bg-sand/70 px-3 py-2 text-xs text-hint">تُملأ مقاعدها بعد أن يقبل رئيسها.</p>
         ) : (
           seats.map((seat, i) => (
             <div key={i} className="rounded-xl border border-gold/25 p-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <span className="font-bold text-ink-soft">{seat.free ? `مقعد حر — ${seat.kind === "guide" ? "موجّه أو مرشد" : "معاون"}` : seat.kind === "guide" ? "موجّه أو مرشد" : "معاون"}</span>
+                <span className="font-bold text-ink-soft">{seat.free ? `مقعد حر — ${seat.kind === "guide" ? "موجّه المجموعة" : "معاون المجموعة"}` : seat.kind === "guide" ? "موجّه المجموعة (موجّه أو مرشد)" : "معاون المجموعة"}</span>
                 {seat.free && !seat.who && editable && (
                   <span className="flex gap-1">
                     {(["guide", "assistant"] as const).map((k) => (
                       <button key={k} type="button" onClick={() => setSeat(i, { ...seat, kind: k }, `مقعد حر في ${groupName(g.number)}: ${k === "guide" ? "موجّه" : "معاون"}`)} className={cn("rounded-lg px-2 py-1 font-bold", seat.kind === k ? "bg-green-dark text-white" : "bg-sand")}>
-                        {k === "guide" ? "موجّه أو مرشد" : "معاون"}
+                        {k === "guide" ? "موجّه" : "معاون"}
                       </button>
                     ))}
                   </span>
@@ -758,7 +784,7 @@ function GroupCard({ req, g, own, editable, onWithdraw, onOpen }: { req: Cluster
                 <PersonPicker
                   people={picks(seat.kind === "guide" ? "guideSeat" : "assistantSeat")}
                   exclude={exclude}
-                  placeholder={seat.kind === "guide" ? "ادعُ موجّهاً أو مرشداً" : "ادعُ معاوناً"}
+                  placeholder={seat.kind === "guide" ? "ادعُ موجّهاً للمجموعة (موجّه أو مرشد)" : "ادعُ معاوناً للمجموعة"}
                   onPick={(x) => {
                     setSeat(i, { ...seat, who: invite(x.id, x.name) }, `دعوة ${x.name} إلى مقعد ${seat.kind === "guide" ? "الموجّه" : "المعاون"}`, x.name);
                     toast({ title: `أُرسلت الدعوة إلى ${x.name}`, body: "تصله وحده، ويقبل أو يعتذر من حسابه.", icon: "✉️", tone: "info" });
@@ -771,8 +797,7 @@ function GroupCard({ req, g, own, editable, onWithdraw, onOpen }: { req: Cluster
           ))
         )}
         {g.status === "accepted" && seats.length === 0 && <p className="rounded-xl bg-sand/70 px-3 py-2 text-xs text-hint">لا مقاعد لفئتها في هذا المستوى: رئيسها وحده.</p>}
-      </div>
-    </Card>
+    </>
   );
 }
 
@@ -786,16 +811,29 @@ function GroupDesk({ req, number, onBack }: { req: ClusterRequest; number: numbe
         <ArrowRight className="size-4" /> كل مجموعات {c.name}
       </button>
       <GroupCard req={req} g={g} own={g.id === req.headId} editable={false} onWithdraw={() => undefined} />
-      <p className="rounded-2xl bg-sand p-3 text-sm text-ink-soft">
-        منسقها: <b>{c.coordinators.find((x) => x.status === "accepted" && x.id === c.sorting[number])?.name ?? "لم يوزَّع عليها منسق"}</b>
-        {c.femaleGuides.length > 0 && (
-          <>
-            {" — "}موجّهتها: <b>{c.femaleGuides.find((x) => x.status === "accepted" && x.id === c.guideSorting?.[number])?.name ?? "لم توزَّع عليها موجّهة"}</b>
-          </>
-        )}
-      </p>
       <AdminRequests fixed={number} embedded />
     </div>
+  );
+}
+
+/**
+ * Who of the cluster's shared team works in a group: they are not its seats — they are picked once for the
+ * whole cluster in «الإداريون» and distributed there — so a group's card only shows them
+ */
+function SharedTeam({ c, number }: { c: Cluster; number: number }) {
+  const coordinator = c.coordinators.find((x) => x.status === "accepted" && x.id === c.sorting[number]);
+  const guide = c.femaleGuides.find((x) => x.status === "accepted" && x.id === c.guideSorting?.[number]);
+  return (
+    <p className="rounded-xl bg-green-dark/5 px-3 py-2 text-xs leading-6 text-ink-soft">
+      <span className="font-bold text-green-dark">من فريق التكتل المشترك: </span>
+      منسقها <b className="text-ink">{coordinator?.name ?? "لم يوزَّع بعد"}</b>
+      {(c.femaleGuides.length > 0 || guide) && (
+        <>
+          {"، "}وموجّهتها <b className="text-ink">{guide?.name ?? "لم توزَّع بعد"}</b>
+        </>
+      )}
+      <span className="block text-hint">يُختاران ويوزَّعان في خطوة «الإداريون».</span>
+    </p>
   );
 }
 
@@ -815,7 +853,7 @@ function AssistantsStep({ req, editable }: { req: ClusterRequest; editable: bool
   const people = picks("assistantPool").filter((x) => !full || roleOf(s, x.role)?.multiplier);
   return (
     <Card className="space-y-3 md:p-6">
-      <SectionTitle icon={UserCheck} action={<Badge tone={req.stepOk.assistants ? "green" : "gold"}>{c.assistants.filter((x) => x.status === "accepted" && !multiplier(x.id)).length} من {req.needs.assistants}</Badge>}>
+      <SectionTitle icon={UserCheck} action={<Badge tone={req.checks.find((x) => x.key === "assistants")?.ok ? "green" : "gold"}>{c.assistants.filter((x) => x.status === "accepted" && !multiplier(x.id)).length} من {req.needs.assistants}</Badge>}>
         معاون التكتل
       </SectionTitle>
       <p className="text-sm leading-7 text-ink-soft">
@@ -842,9 +880,35 @@ function StaffStep({ req, editable, sortable }: { req: ClusterRequest; editable:
   const combo = req.checks.find((x) => x.key === "combo");
   const coords = c.coordinators.filter((x) => x.status === "accepted");
   const guides = c.femaleGuides.filter((x) => x.status === "accepted");
+  const groups = Object.values(c.groups).sort((a, b) => Number(b.id === req.headId) - Number(a.id === req.headId));
   return (
     <div className="space-y-6">
-      {editable && <StepNote title="المنسقون والموجّهات والمرشدات الدينيات" desc={`العدد محسوب من مجموع الفئات (${req.weight}): منسق لكل ${n.perCoordinator} وحدات، وموجّهة أو مرشدة لكل ${n.perGuide}، ولا يقلّ عمّا يتسع لكل المجموعات: لا يُوزَّع أحد على أكثر من وحداته.`} />}
+      {editable && (
+        <StepNote
+          title="الإداريون: فريق التكتل كله"
+          desc={`بعد المجموعات برؤسائها تدعو هنا بقية الإداريين، كلاً إلى مكانه، ويقبل كلٌّ دعوته أو يعتذر من حسابه: موجّه كل مجموعة ومعاونها في مقاعد فئتها (يعمل كلٌّ في مجموعته وحدها)، ثم معاون التكتل، ثم المنسقون التقنيون والموجّهات والمرشدات — فريق مشترك تختاره مرة للتكتل كله وتوزّعه على المجموعات: منسق لكل ${n.perCoordinator} وحدات، وموجّهة أو مرشدة لكل ${n.perGuide}، بمجموع الفئات (${req.weight}).`}
+        />
+      )}
+      <Card className="md:p-6">
+        <SectionTitle icon={UsersRound}>موجّهو المجموعات ومعاونوها</SectionTitle>
+        <p className="mt-1 text-sm leading-7 text-ink-soft">لكل مجموعة مقاعد فريقها بفئتها في هذا المستوى: «موجّه المجموعة» من الموجّهين أو المرشدين، و«معاون المجموعة» من المعاونين، والمقعد الحر لأحدهما.</p>
+        {groups.length === 0 ? (
+          <p className="mt-3 rounded-xl bg-sand px-3 py-2 text-sm text-hint">ادعُ المجموعات أولاً في خطوة «المجموعات».</p>
+        ) : (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {groups.map((g) => (
+              <div key={g.number} className="space-y-2 rounded-2xl border border-gold/30 p-3">
+                <p className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-display text-lg font-bold text-green-dark">{groupName(g.number)}</span>
+                  <span className="text-xs text-ink-soft">رئيسها {g.id === req.headId ? `${g.name} (مجموعتك)` : g.name} — {categoryOfId(s, g.category)?.name ?? "—"}</span>
+                </p>
+                <GroupSeats req={req} g={g} editable={editable} />
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+      <AssistantsStep req={req} editable={editable} />
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card className="space-y-3 md:p-6">
           <SectionTitle icon={Building2} action={<Badge tone={coords.length === n.coordinators ? "green" : "gold"}>{coords.length} من {coordinatorsLabel(n.coordinators)}</Badge>}>

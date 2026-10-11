@@ -33,13 +33,16 @@ export const STATUS: Record<ClusterStatus, { label: string; tone: "green" | "gol
   rejected: { label: "مرفوض — بملاحظات", tone: "maroon" },
 };
 
-/** The request's steps, in the order the administration's form takes them */
-export type Step = "tier" | "groups" | "assistants" | "staff" | "deputy" | "accountant" | "report";
+/**
+ * The request's steps, in the administration's order: the groups come in with their heads, then «الإداريون» —
+ * everyone else, each to his place: every group's guides and assistants in its seats, the cluster's assistant,
+ * its coordinators and female guides (shared, distributed on the groups) — then the deputy and the accountant
+ */
+export type Step = "tier" | "groups" | "staff" | "deputy" | "accountant" | "report";
 export const STEPS: { key: Step; label: string }[] = [
   { key: "tier", label: "المستوى" },
   { key: "groups", label: "المجموعات" },
-  { key: "assistants", label: "معاون التكتل" },
-  { key: "staff", label: "المنسقون والموجّهات" },
+  { key: "staff", label: "الإداريون" },
   { key: "deputy", label: "النائب" },
   { key: "accountant", label: "المحاسب" },
   { key: "report", label: "التقرير" },
@@ -147,9 +150,9 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
     ...groups.map((g): Check => {
       const seats = c.seats[g.number] ?? [];
       const filled = seats.filter((x) => yes(x.who)).length;
-      return { key: `seats-${g.number}`, step: "groups", label: `${groupName(g.number)} (${g.categoryName}): ${filled} من ${seats.length} مقاعد`, ok: filled === seats.length && seats.length === seatsOf(s, c.tier, g.category).total };
+      return { key: `seats-${g.number}`, step: "staff", label: `${groupName(g.number)} (${g.categoryName}): ${filled} من ${seats.length} مقاعد`, ok: filled === seats.length && seats.length === seatsOf(s, c.tier, g.category).total };
     }),
-    { key: "assistants", step: "assistants", label: `معاون التكتل: ${counted.length} من ${needs.assistants}${extra.length ? ` — ومعهم ${extra.length} «معاون بعدد»` : ""}`, ok: counted.length === needs.assistants },
+    { key: "assistants", step: "staff", label: `معاون التكتل: ${counted.length} من ${needs.assistants}${extra.length ? ` — ومعهم ${extra.length} «معاون بعدد»` : ""}`, ok: counted.length === needs.assistants },
     { key: "coordinators", step: "staff", label: `المنسقون: ${coords.length} من ${needs.coordinators} (منسق لكل ${needs.perCoordinator} وحدات)`, ok: coords.length === needs.coordinators },
     ...(needs.coordinators > 0 ? [{ key: "combo", step: "staff" as Step, label: `أحد المنسقين بصفة «${roleName("assistant-tech", s)}»`, ok: coords.some((x) => does(s, role(x.id), "assistantSeat") && does(s, role(x.id), "coordinatorPool")) }] : []),
     { key: "female", step: "staff", label: `الموجّهات والمرشدات: ${guides.length} من ${needs.femaleGuides} (واحدة لكل ${needs.perGuide} وحدات)`, ok: guides.length === needs.femaleGuides },

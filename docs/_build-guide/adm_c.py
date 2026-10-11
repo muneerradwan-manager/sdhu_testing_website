@@ -81,26 +81,32 @@ if ONLY in (None, "file"):
     S = "I"
     c, p = session("01033300882", "/administrator/cluster")
     jump(p, c)
-    c.shot("cl-file", "طلب تشكيل تكتل: صفة «رئيس تكتل»، وخطوات الطلب السبع، واسم التكتل", hl=[("main button:has-text('أبدأ طلب تشكيل التكتل')", "")], section=S)
+    c.shot("cl-file", "طلب تشكيل تكتل: صفة «رئيس تكتل»، وخطوات الطلب الست، واسم التكتل", hl=[("main button:has-text('أبدأ طلب تشكيل التكتل')", "")], section=S)
     btn(p, c, "أبدأ طلب تشكيل التكتل", 2200)
     c.scroll_top()
     c.shot("cl-tier", "1. المستوى: يحدد حجاج كل فئة ومقاعدها، وحدود مجموع الفئات، وعدد المنسقين والموجّهات", section=S)
     p.locator("main button:has-text('اقتصادي')").first.click(); c.settle(1000)
     tab(p, c, "المجموعات")
-    c.shot("cl-groups", "2. المجموعات: مجموعتك فيه من البداية، ومقاعد كل مجموعة بفئتها", section=S)
+    c.shot("cl-groups", "2. المجموعات: تدعو المجموعات وحدها، كلٌّ برئيسها وحجاجها، ومجموعتك فيه من البداية", section=S)
     add = p.locator("main li:has(button:has-text('ادعُ')) button:has-text('ادعُ'):not([disabled])").first
     add.scroll_into_view_if_needed(); c.settle(300)
     c.shot("cl-invite-group", "دعوة مجموعة معتمدة من فروعك: يقبل رئيسها دعوة واحدة لمجموعته", hl=[("main li:has(button:has-text('ادعُ')) button:has-text('ادعُ'):not([disabled])", "")], section=S)
     add.click(); c.settle(1200)
-    pick = p.locator("main input[placeholder='ادعُ موجّهاً أو مرشداً']").first
+    # 3. «الإداريون»: everyone but the heads, each to his place
+    tab(p, c, "الإداريون")
+    c.scroll_top()
+    c.shot("cl-admins", "3. الإداريون: فريق التكتل كله في خطوة واحدة، كلٌّ إلى مكانه", section=S)
+    pick = p.locator("main input[placeholder='ادعُ موجّهاً للمجموعة (موجّه أو مرشد)']").first
     pick.scroll_into_view_if_needed(); pick.click(); c.settle(500)
-    c.shot("cl-seats", "مقاعد المجموعة: تدعو لكل مقعد موجّهاً أو معاوناً من المؤهلين في فروعك", section=S)
+    c.shot("cl-seats", "موجّه المجموعة ومعاونها: تدعو لكل مقعد من المؤهلين في فروعك", section=S)
+    c.scroll_to("main h2:has-text('معاون التكتل')", 120)
+    c.shot("cl-assistants", "معاون التكتل: عدد ثابت لكل مستوى، ومعهم «معاون بعدد» يضيف كلٌّ 20 حاجاً", section=S)
+    c.scroll_to("main h2:has-text('المنسقون')", 120)
+    c.shot("cl-staff", "المنسقون والموجّهات: عددهم بمجموع الفئات، وأحد المنسقين «معاون ومنسق تقني»، ثم توزيعهم على المجموعات", section=S)
     for t, key, cap in [
-        ("معاون التكتل", "cl-assistants", "3. معاون التكتل: عدد ثابت لكل مستوى، ومعهم «معاون بعدد» يضيف كلٌّ 20 حاجاً"),
-        ("المنسقون والموجّهات", "cl-staff", "4. المنسقون والموجّهات: عددهم بمجموع الفئات، وأحد المنسقين «معاون ومنسق تقني»"),
-        ("النائب", "cl-deputy", "5. النائب: من رؤساء مجموعات التكتل"),
-        ("المحاسب", "cl-accountant", "6. المحاسب: من كادر التكتل عدا الموجّهات، وقد يكون النائب"),
-        ("التقرير", "cl-report", "7. التقرير: شروط الطلب، والإرسال بعد اكتمالها، والطباعة"),
+        ("النائب", "cl-deputy", "4. النائب: من رؤساء مجموعات التكتل"),
+        ("المحاسب", "cl-accountant", "5. المحاسب: من كادر التكتل عدا الموجّهات، وقد يكون النائب"),
+        ("التقرير", "cl-report", "6. التقرير: شروط الطلب، والإرسال بعد اكتمالها، والطباعة"),
     ]:
         tab(p, c, t)
         c.scroll_top()
@@ -207,6 +213,30 @@ if ONLY in (None, "members"):
         c.close()
     c, p = session("01033300981", "/administrator/groups")
     c.shot("gf-groups", "موجّهة التكتل: المجموعات التي وُزّعت عليها ضمن حدّها من الوحدات", section=S)
+    c.close()
+
+# ───────── «قناة التكتل»: its head, then a member who reads ─────────
+if ONLY in (None, "channel"):
+    S = "N2"
+    c, p = session("01033300881", "/administrator/channel")
+    c.shot("chan-head", "قناة التكتل: رسائل كادر التكتل، ومن يكتب فيها، وأعضاؤها", hl=[("aside a[href*='/administrator/channel']", "")], section=S)
+    p.locator("main div.group:has-text('هل نحضر قوائم') button:has-text('ردّ')").first.click(); c.settle(400)
+    p.get_by_label("نص الرسالة").fill("نعم، تكفي على المنصة. وأرسلوا أسماء معاونيكم قبل الاجتماع.")
+    c.settle(300)
+    c.shot("chan-reply", "الرد على رسالة: يظهر ما تردّ عليه فوق خانة الكتابة", hl=[("main button:has-text('إرسال')", "")], section=S)
+    p.locator("main button:has-text('إرسال')").first.click(); c.settle(1500)
+    c.scroll_to("main h2:has-text('من يكتب في القناة')", 120)
+    c.shot("chan-writers", "من يكتب في القناة: جاهزاً أو صفةً صفة، ورئيس التكتل يكتب دائماً", hl=[("main h2:has-text('من يكتب في القناة')", "")], section=S)
+    stop = p.locator("main li:has-text('أحمد سليمان الحمصي') button:has-text('إيقاف الكتابة')").first
+    stop.scroll_into_view_if_needed(); stop.click(); c.settle(600)
+    p.locator("[role=dialog] input").first.fill("الأسئلة الخاصة بمجموعته مع رئيس التكتل مباشرة"); c.settle(300)
+    c.shot("chan-mute", "إيقاف كتابة عضو: يبقى يقرأ، ولا يكتب حتى تعيدها له", hl=[("[role=dialog] button:has-text('إيقاف الكتابة')", "")], section=S)
+    p.locator("[role=dialog] button:has-text('إيقاف الكتابة')").first.click(); c.settle(1200)
+    c.close()
+    c, p = session("01033300874", "/administrator/dashboard")
+    c.shot("chan-badge", "رسائل جديدة في قناة التكتل: عددها بجانب «قناة التكتل»", hl=[("aside a[href*='/administrator/channel']", "")], section=S)
+    c.goto("/administrator/channel", wait=2500)
+    c.shot("chan-member", "عضو يقرأ: الكتابة لمن حددهم رئيس التكتل", hl=[("main p:has-text('كما حدّدها رئيس التكتل')", "")], section=S)
     c.close()
 
 # ───────── notifications, Telegram, letters, and the PIN ─────────
