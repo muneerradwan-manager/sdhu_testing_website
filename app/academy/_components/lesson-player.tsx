@@ -21,9 +21,10 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { formatClock, minutesLabel, type Lesson, type Lecturer } from "@/lib/data/academy";
+import { formatClock, type Lesson, type Lecturer } from "@/lib/data/academy";
 import { asset, seeded, cn } from "@/lib/utils";
 import { useVideoEngine, type PlayerEngine } from "./player-engine";
+import { useAcademyText } from "./i18n";
 
 export type PlayerLesson = Pick<Lesson, "slug" | "title" | "minutes" | "media" | "poster" | "gallery" | "videoSrc" | "summary" | "points" | "hasAudio">;
 
@@ -33,7 +34,7 @@ type Props = {
   fallbackGallery: string[];
   nextHref?: string;
   nextTitle?: string;
-  /** End-screen call to action; defaults to «الدرس التالي» */
+  /** End-screen call to action; defaults to «الدرس التالي» (Next lesson) */
   nextLabel?: string;
   className?: string;
   /** Base path of the narrated summary: `${narration}.mp3` + `${narration}.json` (sentence timings) */
@@ -55,10 +56,10 @@ export function LessonPlayer(props: Props) {
 
 // ───────────────────────── helpers ─────────────────────────
 
-function captionChunks(summary: string[]) {
+function captionChunks(summary: string[], en = false) {
   const out: string[] = [];
   for (const paragraph of summary) {
-    for (const sentence of paragraph.split(/[.؛:]\s+|،\s+/)) {
+    for (const sentence of paragraph.split(en ? /[.;:]\s+|,\s+/ : /[.؛:]\s+|،\s+/)) {
       const words = sentence.replace(/[«»"]/g, "").trim().split(/\s+/).filter(Boolean);
       for (let i = 0; i < words.length; i += 8) out.push(words.slice(i, i + 8).join(" "));
     }
@@ -105,18 +106,20 @@ function useCues(base?: string) {
   return cues;
 }
 
-function chaptersFor(lesson: PlayerLesson, duration: number) {
-  const titles = ["مقدمة الدرس", ...lesson.points.slice(0, 3)];
+function chaptersFor(lesson: PlayerLesson, duration: number, intro: string) {
+  const titles = [intro, ...lesson.points.slice(0, 3)];
   return titles.map((title, i) => ({ at: (i / titles.length) * duration, title }));
 }
 
 // ───────────────────────── Real video ─────────────────────────
 
 function RealVideoPlayer({ lesson, lecturer, nextHref, nextTitle, nextLabel, className }: Props) {
+  const { t, en } = useAcademyText();
   const videoRef = useRef<HTMLVideoElement>(null);
   const { engine, handlers } = useVideoEngine(videoRef);
-  const chapters = useMemo(() => chaptersFor(lesson, engine.duration), [lesson, engine.duration]);
-  const captions = useMemo(() => captionChunks(lesson.summary), [lesson.summary]);
+  const intro = t("مقدمة الدرس", "Introduction");
+  const chapters = useMemo(() => chaptersFor(lesson, engine.duration, intro), [lesson, engine.duration, intro]);
+  const captions = useMemo(() => captionChunks(lesson.summary, en), [lesson.summary, en]);
 
   return (
     <PlayerFrame
@@ -129,7 +132,7 @@ function RealVideoPlayer({ lesson, lecturer, nextHref, nextTitle, nextLabel, cla
       nextTitle={nextTitle}
       nextLabel={nextLabel}
       className={className}
-      badge="تصوير من الحرم"
+      badge={t("تصوير من الحرم", "Filmed at the Haram")}
     >
       <video
         ref={videoRef}
@@ -148,11 +151,14 @@ function RealVideoPlayer({ lesson, lecturer, nextHref, nextTitle, nextLabel, cla
 
 function SimVideoPlayer({ lesson, lecturer, fallbackGallery, nextHref, nextTitle, nextLabel, className, narration }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { t, en } = useAcademyText();
   const { engine, handlers } = useVideoEngine(audioRef);
   const images = lesson.gallery?.length ? lesson.gallery : fallbackGallery;
-  const chapters = useMemo(() => chaptersFor(lesson, engine.duration), [lesson, engine.duration]);
-  const captions = useMemo(() => captionChunks(lesson.summary), [lesson.summary]);
-  const cues = useCues(narration);
+  const intro = t("مقدمة الدرس", "Introduction");
+  const chapters = useMemo(() => chaptersFor(lesson, engine.duration, intro), [lesson, engine.duration, intro]);
+  const captions = useMemo(() => captionChunks(lesson.summary, en), [lesson.summary, en]);
+  // The narration is Arabic and its timed cues are Arabic: the English page shows the English summary instead
+  const cues = useCues(en ? undefined : narration);
 
   return (
     <PlayerFrame
@@ -166,7 +172,7 @@ function SimVideoPlayer({ lesson, lecturer, fallbackGallery, nextHref, nextTitle
       nextTitle={nextTitle}
       nextLabel={nextLabel}
       className={className}
-      badge="ملخص الدرس مسموعاً"
+      badge={t("ملخص الدرس مسموعاً", "Narrated lesson summary")}
     >
       <KenBurns images={images} time={engine.time} />
       <audio ref={audioRef} src={narration ? asset(`${narration}.mp3`) : undefined} preload="metadata" {...handlers} />
@@ -223,7 +229,7 @@ function PlayerFrame({
   captions,
   nextHref,
   nextTitle,
-  nextLabel = "الدرس التالي",
+  nextLabel,
   className,
   badge,
   children,
@@ -242,6 +248,7 @@ function PlayerFrame({
   badge?: string;
   children: ReactNode;
 }) {
+  const { t, en, minutes } = useAcademyText();
   const shellRef = useRef<HTMLDivElement>(null);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [idle, setIdle] = useState(false);
@@ -309,7 +316,10 @@ function PlayerFrame({
   const captionIndex = cues?.length
     ? cues.findLastIndex((c) => engine.time >= c.start)
     : captions.length
-      ? Math.floor(engine.time / CAPTION_SECONDS) % captions.length
+      ? en && engine.duration
+        ? // English captions are spread over the Arabic narration, in step with it
+          Math.min(captions.length - 1, Math.floor((engine.time / engine.duration) * captions.length))
+        : Math.floor(engine.time / CAPTION_SECONDS) % captions.length
       : -1;
   const captionText = captionIndex < 0 ? "" : cues?.length ? cues[captionIndex].text : captions[captionIndex];
   const chapterNow = [...chapters].reverse().find((c) => engine.time >= c.at);
@@ -320,7 +330,7 @@ function PlayerFrame({
       ref={shellRef}
       tabIndex={0}
       role="region"
-      aria-label={`مشغل الدرس: ${lesson.title}`}
+      aria-label={t(`مشغل الدرس: ${lesson.title}`, `Lesson player: ${lesson.title}`)}
       onKeyDown={onKey}
       onPointerMove={wake}
       onPointerLeave={() => engine.playing && setIdle(true)}
@@ -336,7 +346,7 @@ function PlayerFrame({
       {/* click surface */}
       <button
         type="button"
-        aria-label={engine.playing ? "إيقاف مؤقت" : "تشغيل"}
+        aria-label={engine.playing ? t("إيقاف مؤقت", "Pause") : t("تشغيل", "Play")}
         onClick={toggle}
         onDoubleClick={toggleFullscreen}
         className="absolute inset-0 z-10 cursor-[inherit] focus:outline-none"
@@ -368,11 +378,11 @@ function PlayerFrame({
       <AnimatePresence>
         {lowerThird && controlsVisible === false && (
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: en ? -40 : 40 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 40 }}
+            exit={{ opacity: 0, x: en ? -40 : 40 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-2.5 rounded-2xl border-r-4 border-gold bg-ink/70 py-2 pl-4 pr-3 backdrop-blur-md sm:right-6 sm:top-6"
+            className="pointer-events-none absolute start-3 top-3 z-20 flex items-center gap-2.5 rounded-2xl border-s-4 border-gold bg-ink/70 py-2 pe-4 ps-3 backdrop-blur-md sm:start-6 sm:top-6"
           >
             <span className="grid size-9 place-items-center rounded-full bg-gradient-to-br from-gold to-gold-dark font-display text-lg font-bold text-ink">{lecturer.initials}</span>
             <span>
@@ -441,9 +451,9 @@ function PlayerFrame({
             <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-ink/30" />
             <div className="bg-pattern absolute inset-0 opacity-10" />
             <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 p-4 sm:p-6">
-              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">{minutesLabel(lesson.minutes)}</span>
-              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">ترجمة عربية</span>
-              {lesson.hasAudio && <span className="rounded-full bg-gold/90 px-3 py-1 text-xs font-bold text-ink">+ ملف صوتي</span>}
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">{minutes(lesson.minutes)}</span>
+              <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">{t("ترجمة عربية", "English subtitles")}</span>
+              {lesson.hasAudio && <span className="rounded-full bg-gold/90 px-3 py-1 text-xs font-bold text-ink">{t("+ ملف صوتي", "+ audio file")}</span>}
             </div>
           </motion.div>
         )}
@@ -479,7 +489,7 @@ function PlayerFrame({
             <div className="absolute inset-0 animate-shimmer bg-[linear-gradient(100deg,transparent_30%,rgba(217,200,158,.16)_50%,transparent_70%)] bg-[length:200%_100%]" />
             <div className="relative flex flex-col items-center gap-3">
               <span className="size-14 animate-spin rounded-full border-4 border-white/15 border-t-gold" />
-              <span className="text-xs font-semibold text-white/80">جارٍ تحميل الدرس…</span>
+              <span className="text-xs font-semibold text-white/80">{t("جارٍ تحميل الدرس…", "Loading the lesson…")}</span>
             </div>
           </motion.div>
         )}
@@ -495,15 +505,15 @@ function PlayerFrame({
             className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-ink/80 p-4 text-center backdrop-blur-sm"
           >
             <motion.p initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="font-display text-xl font-bold text-gold sm:text-3xl">
-              بارك الله فيك، انتهى الدرس
+              {t("بارك الله فيك، انتهى الدرس", "May God bless you — the lesson is over")}
             </motion.p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button type="button" onClick={engine.replay} className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20">
-                <RotateCcw className="size-4" /> إعادة المشاهدة
+                <RotateCcw className="size-4" /> {t("إعادة المشاهدة", "Watch again")}
               </button>
               {nextHref && (
                 <Link href={nextHref} className="inline-flex items-center gap-2 rounded-2xl bg-gold px-4 py-2.5 text-sm font-bold text-ink hover:bg-gold-dark hover:text-white">
-                  {nextLabel}{nextTitle ? `: ${nextTitle}` : ""} <ChevronLeft className="size-4" />
+                  {nextLabel ?? t("الدرس التالي", "Next lesson")}{nextTitle ? `: ${nextTitle}` : ""} <ChevronLeft className="size-4" />
                 </Link>
               )}
             </div>
@@ -521,13 +531,13 @@ function PlayerFrame({
         <Timeline engine={engine} chapters={chapters} />
         <div className="mt-1.5 flex items-center justify-between gap-2 text-white" dir="ltr">
           <div className="flex items-center gap-0.5 sm:gap-1">
-            <CtrlButton label={engine.playing ? "إيقاف مؤقت" : "تشغيل"} onClick={toggle}>
+            <CtrlButton label={engine.playing ? t("إيقاف مؤقت", "Pause") : t("تشغيل", "Play")} onClick={toggle}>
               {engine.playing ? <Pause className="size-5 fill-white" /> : <Play className="size-5 fill-white" />}
             </CtrlButton>
-            <CtrlButton label="رجوع 10 ثوانٍ" onClick={() => skip(-10)} className="hidden sm:grid">
+            <CtrlButton label={t("رجوع 10 ثوانٍ", "Back 10 seconds")} onClick={() => skip(-10)} className="hidden sm:grid">
               <RotateCcw className="size-[18px]" />
             </CtrlButton>
-            <CtrlButton label="تقديم 10 ثوانٍ" onClick={() => skip(10)} className="hidden sm:grid">
+            <CtrlButton label={t("تقديم 10 ثوانٍ", "Forward 10 seconds")} onClick={() => skip(10)} className="hidden sm:grid">
               <RotateCw className="size-[18px]" />
             </CtrlButton>
             <VolumeControl engine={engine} />
@@ -536,11 +546,11 @@ function PlayerFrame({
             </span>
           </div>
           <div className="flex items-center gap-0.5 sm:gap-1">
-            <CtrlButton label={showCaptions ? "إخفاء الترجمة" : "إظهار الترجمة"} onClick={() => setShowCaptions((s) => !s)} active={showCaptions}>
+            <CtrlButton label={showCaptions ? t("إخفاء الترجمة", "Hide subtitles") : t("إظهار الترجمة", "Show subtitles")} onClick={() => setShowCaptions((s) => !s)} active={showCaptions}>
               {showCaptions ? <Captions className="size-5" /> : <CaptionsOff className="size-5" />}
             </CtrlButton>
             <SpeedMenu engine={engine} />
-            <CtrlButton label={fullscreen ? "الخروج من ملء الشاشة" : "ملء الشاشة"} onClick={toggleFullscreen}>
+            <CtrlButton label={fullscreen ? t("الخروج من ملء الشاشة", "Exit full screen") : t("ملء الشاشة", "Full screen")} onClick={toggleFullscreen}>
               {fullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
             </CtrlButton>
           </div>
@@ -569,6 +579,7 @@ function CtrlButton({ label, onClick, children, className, active }: { label: st
 }
 
 function Timeline({ engine, chapters }: { engine: PlayerEngine; chapters: { at: number; title: string }[] }) {
+  const { t, en } = useAcademyText();
   const barRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -590,11 +601,11 @@ function Timeline({ engine, chapters }: { engine: PlayerEngine; chapters: { at: 
       dir="ltr"
       role="slider"
       tabIndex={0}
-      aria-label="شريط التقدم"
+      aria-label={t("شريط التقدم", "Progress bar")}
       aria-valuemin={0}
       aria-valuemax={Math.round(d)}
       aria-valuenow={Math.round(engine.time)}
-      aria-valuetext={`${formatClock(engine.time)} من ${formatClock(d)}`}
+      aria-valuetext={t(`${formatClock(engine.time)} من ${formatClock(d)}`, `${formatClock(engine.time)} of ${formatClock(d)}`)}
       onKeyDown={(e) => {
         if (e.key === "ArrowRight") engine.seek(engine.time + 5);
         if (e.key === "ArrowLeft") engine.seek(engine.time - 5);
@@ -637,7 +648,7 @@ function Timeline({ engine, chapters }: { engine: PlayerEngine; chapters: { at: 
           className="pointer-events-none absolute bottom-6 flex -translate-x-1/2 flex-col items-center gap-0.5 whitespace-nowrap rounded-lg bg-ink/90 px-2 py-1 text-center shadow-lg ring-1 ring-white/10"
           style={{ left: `${Math.min(92, Math.max(8, hover * 100))}%` }}
         >
-          {hoverChapter && <span className="max-w-44 truncate text-[10px] text-gold" dir="rtl">{hoverChapter.title}</span>}
+          {hoverChapter && <span className="max-w-44 truncate text-[10px] text-gold" dir={en ? "ltr" : "rtl"}>{hoverChapter.title}</span>}
           <span className="text-[11px] font-bold tabular-nums text-white">{formatClock(hover * d)}</span>
         </span>
       )}
@@ -646,10 +657,11 @@ function Timeline({ engine, chapters }: { engine: PlayerEngine; chapters: { at: 
 }
 
 function VolumeControl({ engine }: { engine: PlayerEngine }) {
+  const { t } = useAcademyText();
   const level = engine.muted ? 0 : engine.volume;
   return (
     <div className="group/vol flex items-center">
-      <CtrlButton label={engine.muted ? "تشغيل الصوت" : "كتم الصوت"} onClick={engine.toggleMute}>
+      <CtrlButton label={engine.muted ? t("تشغيل الصوت", "Unmute") : t("كتم الصوت", "Mute")} onClick={engine.toggleMute}>
         {level === 0 ? <VolumeX className="size-5" /> : level < 0.5 ? <Volume1 className="size-5" /> : <Volume2 className="size-5" />}
       </CtrlButton>
       <input
@@ -658,7 +670,7 @@ function VolumeControl({ engine }: { engine: PlayerEngine }) {
         max={1}
         step={0.05}
         value={level}
-        aria-label="مستوى الصوت"
+        aria-label={t("مستوى الصوت", "Volume")}
         onChange={(e) => engine.setVolume(Number(e.target.value))}
         className="hidden h-1 w-0 cursor-pointer accent-gold opacity-0 transition-all duration-300 group-hover/vol:w-20 group-hover/vol:opacity-100 focus:w-20 focus:opacity-100 sm:block"
       />
@@ -667,12 +679,13 @@ function VolumeControl({ engine }: { engine: PlayerEngine }) {
 }
 
 function SpeedMenu({ engine }: { engine: PlayerEngine }) {
+  const { t, en } = useAcademyText();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
       <button
         type="button"
-        aria-label="سرعة التشغيل"
+        aria-label={t("سرعة التشغيل", "Playback speed")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -690,8 +703,8 @@ function SpeedMenu({ engine }: { engine: PlayerEngine }) {
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             className="absolute bottom-11 right-0 z-40 w-32 overflow-hidden rounded-2xl bg-ink/95 p-1 shadow-2xl ring-1 ring-white/10 backdrop-blur"
           >
-            <p className="px-3 pb-1 pt-1.5 text-right text-[10px] font-semibold text-white/50" dir="rtl">
-              سرعة التشغيل
+            <p className="px-3 pb-1 pt-1.5 text-start text-[10px] font-semibold text-white/50" dir={en ? "ltr" : "rtl"}>
+              {t("سرعة التشغيل", "Playback speed")}
             </p>
             {SPEEDS.map((s) => (
               <button
@@ -709,7 +722,7 @@ function SpeedMenu({ engine }: { engine: PlayerEngine }) {
                 )}
               >
                 <span>{s}x</span>
-                {s === 1 && <span className="text-[10px] text-white/50">عادي</span>}
+                {s === 1 && <span className="text-[10px] text-white/50">{t("عادي", "Normal")}</span>}
               </button>
             ))}
           </motion.div>
@@ -722,10 +735,12 @@ function SpeedMenu({ engine }: { engine: PlayerEngine }) {
 // ───────────────────────── Audio ─────────────────────────
 
 function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
+  const { t, en } = useAcademyText();
   const audioRef = useRef<HTMLAudioElement>(null);
   const { engine, handlers } = useVideoEngine(audioRef);
   const duration = engine.duration || lesson.minutes * 60;
-  const cues = useCues(narration);
+  // The narration is Arabic and its timed cues are Arabic: the English page shows the English summary instead
+  const cues = useCues(en ? undefined : narration);
   const bars = useMemo(() => {
     const rand = seeded(lesson.slug);
     return Array.from({ length: 72 }, (_, i) => {
@@ -734,8 +749,12 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
     });
   }, [lesson.slug]);
   const frac = engine.time / duration;
-  const captions = useMemo(() => captionChunks(lesson.summary), [lesson.summary]);
-  const captionIndex = cues?.length ? Math.max(0, cues.findLastIndex((c) => engine.time >= c.start)) : Math.floor(engine.time / CAPTION_SECONDS) % captions.length;
+  const captions = useMemo(() => captionChunks(lesson.summary, en), [lesson.summary, en]);
+  const captionIndex = cues?.length
+    ? Math.max(0, cues.findLastIndex((c) => engine.time >= c.start))
+    : en && engine.duration
+      ? Math.min(captions.length - 1, Math.floor((engine.time / engine.duration) * captions.length))
+      : Math.floor(engine.time / CAPTION_SECONDS) % captions.length;
   const captionText = cues?.length ? cues[captionIndex].text : captions[captionIndex];
 
   return (
@@ -757,11 +776,11 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
             {lecturer.initials}
           </span>
           <span className="absolute -bottom-1 flex items-center gap-1 rounded-full bg-maroon px-2.5 py-0.5 text-[10px] font-bold">
-            <Headphones className="size-3" /> درس صوتي
+            <Headphones className="size-3" /> {t("درس صوتي", "Audio lesson")}
           </span>
         </div>
 
-        <div className="w-full min-w-0 flex-1 text-center sm:text-right">
+        <div className="w-full min-w-0 flex-1 text-center sm:text-start">
           <p className="text-xs font-semibold text-gold">{lecturer.name} • {lecturer.role}</p>
           <h3 className="mt-1 font-display text-2xl font-bold sm:text-3xl">{lesson.title}</h3>
           <div className="mt-2 h-7 overflow-hidden">
@@ -773,7 +792,7 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
                 exit={{ opacity: 0, y: -10 }}
                 className="truncate text-sm text-white/75"
               >
-                {engine.started ? captionText : "اضغط تشغيل للاستماع إلى الدرس"}
+                {engine.started ? captionText : t("اضغط تشغيل للاستماع إلى الدرس", "Press play to listen to the lesson")}
               </motion.p>
             </AnimatePresence>
           </div>
@@ -785,7 +804,7 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
         dir="ltr"
         role="slider"
         tabIndex={0}
-        aria-label="موضع الاستماع"
+        aria-label={t("موضع الاستماع", "Listening position")}
         aria-valuemin={0}
         aria-valuemax={duration}
         aria-valuenow={Math.round(engine.time)}
@@ -825,19 +844,19 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
 
       <div className="mt-4 flex items-center justify-between gap-3" dir="ltr">
         <div className="flex items-center gap-1">
-          <CtrlButton label="كتم الصوت" onClick={engine.toggleMute}>
+          <CtrlButton label={t("كتم الصوت", "Mute")} onClick={engine.toggleMute}>
             {engine.muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
           </CtrlButton>
           <SpeedMenu engine={engine} />
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <CtrlButton label="رجوع 15 ثانية" onClick={() => engine.seek(engine.time - 15)}>
+          <CtrlButton label={t("رجوع 15 ثانية", "Back 15 seconds")} onClick={() => engine.seek(engine.time - 15)}>
             <RotateCcw className="size-5" />
           </CtrlButton>
           <button
             type="button"
             onClick={engine.toggle}
-            aria-label={engine.playing ? "إيقاف مؤقت" : "تشغيل"}
+            aria-label={engine.playing ? t("إيقاف مؤقت", "Pause") : t("تشغيل", "Play")}
             className="relative grid size-16 place-items-center rounded-full bg-gold text-ink shadow-[0_10px_30px_-8px_rgba(217,200,158,.8)] transition hover:scale-105 active:scale-95"
           >
             {engine.loading ? (
@@ -849,13 +868,13 @@ function AudioPlayer({ lesson, lecturer, className, narration }: Props) {
             )}
             {!engine.started && <span className="absolute inset-0 animate-ping rounded-full bg-gold/40 [animation-duration:2.2s]" />}
           </button>
-          <CtrlButton label="تقديم 15 ثانية" onClick={() => engine.seek(engine.time + 15)}>
+          <CtrlButton label={t("تقديم 15 ثانية", "Forward 15 seconds")} onClick={() => engine.seek(engine.time + 15)}>
             <RotateCw className="size-5" />
           </CtrlButton>
         </div>
         {narration && (
-          <a href={asset(`${narration}.mp3`)} download className="hidden items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/20 sm:flex" dir="rtl">
-            <Download className="size-4" /> تحميل MP3
+          <a href={asset(`${narration}.mp3`)} download className="hidden items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/20 sm:flex" dir={en ? "ltr" : "rtl"}>
+            <Download className="size-4" /> {t("تحميل MP3", "Download MP3")}
           </a>
         )}
       </div>

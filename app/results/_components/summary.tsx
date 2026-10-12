@@ -3,35 +3,44 @@
 import { BadgeCheck, CalendarRange, Dices, ShieldCheck } from "lucide-react";
 import { Counter, Reveal, Stagger, StaggerItem } from "@/components/ui/motion";
 import { RESULTS_SUMMARY as S } from "@/lib/data/public-results";
+import { dateEn } from "@/app/conditions/_lib/en";
+import { useT } from "@/lib/i18n";
 import { drawTotals, usePublishedDraw } from "@/lib/lottery";
 
 /** Headline numbers and the accepted-ages announcement */
 export function ResultsSummary() {
+  const t = useT();
   const draw = usePublishedDraw();
   const lottery = draw ? drawTotals(draw.picks) : null;
   const byMonth = draw ? draw.picks.filter((p) => p.months !== "all").length : 0;
   const cards = [
     {
       icon: BadgeCheck,
-      label: "مقبولون مباشرة وفق الأكبر سناً",
+      label: t("مقبولون مباشرة وفق الأكبر سناً", "Accepted directly, oldest first"),
       value: S.direct,
-      note: `65% من الحصة — ${S.acceptedAge} عاماً فأكثر (مواليد 1958 فما قبل)`,
+      note: t(`65% من الحصة — ${S.acceptedAge} عاماً فأكثر (مواليد 1958 فما قبل)`, `65% of the quota — aged ${S.acceptedAge} or over (born 1958 or earlier)`),
       tone: "from-green-dark to-green text-white",
       iconTone: "bg-white/15 text-gold",
     },
     {
       icon: Dices,
-      label: "مقبولون بالقرعة",
+      label: t("مقبولون بالقرعة", "Accepted by lottery"),
       value: lottery?.seats ?? 0,
-      note: lottery ? `35% من الحصة — ${lottery.apps.toLocaleString("en-US")} طلباً، قرعة علنية 26 أيلول` : "لم تُنشر نتائج القرعة بعد",
+      note: lottery
+        ? t(`35% من الحصة — ${lottery.apps.toLocaleString("en-US")} طلباً، قرعة علنية 26 أيلول`, `35% of the quota — ${lottery.apps.toLocaleString("en-US")} applications, public lottery on 26 September`)
+        : t("لم تُنشر نتائج القرعة بعد", "Lottery results not yet published"),
       tone: "from-white to-white text-ink",
       iconTone: "bg-green-light/12 text-green",
     },
     {
       icon: CalendarRange,
-      label: "سنوات ميلاد سُحبت",
+      label: t("سنوات ميلاد سُحبت", "Birth years drawn"),
       value: draw?.picks.length ?? 0,
-      note: draw ? (byMonth ? `منها ${byMonth} بأشهر محددة — يُطابَق ميلاد صاحب الطلب` : "كلها بجميع أشهرها") : "تُعلن في البث المباشر",
+      note: draw
+        ? byMonth
+          ? t(`منها ${byMonth} بأشهر محددة — يُطابَق ميلاد صاحب الطلب`, `${byMonth} of them with specific months — matched to the main applicant's birth`)
+          : t("كلها بجميع أشهرها", "All with every month")
+        : t("تُعلن في البث المباشر", "Announced in the live broadcast"),
       tone: "from-white to-white text-ink",
       iconTone: "bg-gold/35 text-maroon",
     },
@@ -42,33 +51,35 @@ export function ResultsSummary() {
         <Reveal>
           <div className="group relative h-full overflow-hidden rounded-3xl bg-maroon-dark p-7 text-white shadow-[0_30px_60px_-30px_rgba(66,0,35,.8)] md:p-9">
             <div className="bg-pattern absolute inset-0 opacity-20" />
-            <div className="absolute -left-16 -top-16 size-56 rounded-full bg-gold/20 blur-3xl transition duration-700 group-hover:scale-125" />
+            <div className="absolute -end-16 -top-16 size-56 rounded-full bg-gold/20 blur-3xl transition duration-700 group-hover:scale-125" />
             <div className="relative">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gold ring-1 ring-gold/30">
                 <span className="relative flex size-2">
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-gold opacity-75" />
                   <span className="relative inline-flex size-2 rounded-full bg-gold" />
                 </span>
-                إعلان رسمي معتمد
+                {t("إعلان رسمي معتمد", "Official approved announcement")}
               </span>
-              <p className="mt-5 text-lg font-semibold text-white/85">الأعمار المقبولة وفق الأكبر سناً</p>
+              <p className="mt-5 text-lg font-semibold text-white/85">{t("الأعمار المقبولة وفق الأكبر سناً", "Ages accepted, oldest first")}</p>
               <p className="mt-1 flex items-end gap-3">
                 <span className="font-display text-8xl leading-none font-bold text-gold-shine md:text-9xl">
                   <Counter to={S.acceptedAge} duration={1.6} />
                 </span>
-                <span className="mb-3 font-display text-2xl font-bold">عاماً فأكثر</span>
+                <span className="mb-3 font-display text-2xl font-bold">{t("عاماً فأكثر", "and over")}</span>
               </p>
               <p className="mt-5 text-sm leading-7 text-white/70">
-                اعتُمدت في {S.directApprovedAt}. ولم ينتقل أي طلب إلى القرعة وحده: التسجيل الأولي على القرعة كان مستقلاً بطلب جديد من{" "}
-                {S.lotteryWindow}، مفتوحاً لكل مؤهل ومنهم من لم يُقبل مباشرة.
+                {t(
+                  `اعتُمدت في ${S.directApprovedAt}. ولم ينتقل أي طلب إلى القرعة وحده: التسجيل الأولي على القرعة كان مستقلاً بطلب جديد من ${S.lotteryWindow}، مفتوحاً لكل مؤهل ومنهم من لم يُقبل مباشرة.`,
+                  `Approved on ${dateEn(S.directApprovedAt)}. No application moved to the lottery by itself: lottery pre-registration was separate, with a new application, from ${dateEn(S.lotteryWindow)}, open to everyone eligible, including those not accepted directly.`,
+                )}
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-2 text-xs">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">
                   <ShieldCheck className="size-3.5 text-gold" />
-                  آخر تحديث: {S.lastUpdate}
+                  {t(`آخر تحديث: ${S.lastUpdate}`, `Last updated: ${dateEn(S.lastUpdate)}`)}
                 </span>
                 <span className="rounded-full bg-white/10 px-3 py-1.5">
-                  طلبات التسجيل الأولي على القرعة: <span className="font-bold tabular-nums">{S.lotteryEligible.toLocaleString("en-US")}</span>
+                  {t("طلبات التسجيل الأولي على القرعة:", "Lottery pre-registration applications:")} <span className="font-bold tabular-nums">{S.lotteryEligible.toLocaleString("en-US")}</span>
                 </span>
               </div>
             </div>
@@ -76,8 +87,8 @@ export function ResultsSummary() {
         </Reveal>
 
         <Stagger className="grid gap-4 sm:grid-cols-3" gap={0.12}>
-          {cards.map((c) => (
-            <StaggerItem key={c.label}>
+          {cards.map((c, i) => (
+            <StaggerItem key={i}>
               <div
                 className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-br p-6 shadow-[0_20px_50px_-30px_rgba(0,89,79,.45)] transition duration-500 hover:-translate-y-1 ${c.tone}`}
               >
@@ -89,7 +100,7 @@ export function ResultsSummary() {
                   <Counter to={c.value} />
                 </p>
                 <p className="mt-auto pt-4 text-xs leading-6 opacity-70">{c.note}</p>
-                <span className="absolute -bottom-10 -left-10 size-28 rounded-full border-[14px] border-current opacity-[.04] transition duration-700 group-hover:scale-150" />
+                <span className="absolute -bottom-10 -end-10 size-28 rounded-full border-[14px] border-current opacity-[.04] transition duration-700 group-hover:scale-150" />
               </div>
             </StaggerItem>
           ))}

@@ -54,7 +54,7 @@ export function Planned() {
         <Stagger className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((p, i) => (
             <StaggerItem key={`${p.title}-${i}`} className="relative h-full rounded-3xl border border-dashed border-gold-dark/50 bg-white/70 p-6">
-              {badge && <span className="absolute left-5 top-5 rounded-full bg-sand px-2.5 py-0.5 text-xs font-bold text-hint">{badge}</span>}
+              {badge && <span className="absolute end-5 top-5 rounded-full bg-sand px-2.5 py-0.5 text-xs font-bold text-hint">{badge}</span>}
               <span className="grid size-12 place-items-center rounded-2xl bg-green-dark/8 text-green-dark">
                 <CmsIcon name={p.icon} className="size-6" fallback="UsersRound" />
               </span>

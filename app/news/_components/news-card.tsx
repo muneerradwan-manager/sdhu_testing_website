@@ -1,20 +1,26 @@
+"use client";
+
 import { CmsImage } from "@/components/cms/image";
 import Link from "next/link";
 import { ArrowUpLeft, CalendarDays, Clock3, Eye, Pin } from "lucide-react";
 import type { ReactNode } from "react";
 import { CATEGORY_TONE, type Article } from "@/lib/data/news";
 import { Badge } from "@/components/ui/widgets";
+import { useLang, useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
+import { categoryLabel } from "./categories";
 
 export function CategoryBadge({ article, className }: { article: Article; className?: string }) {
+  const lang = useLang();
   return (
     <Badge tone={CATEGORY_TONE[article.category]} className={className}>
-      {article.category}
+      {categoryLabel(article.category, lang)}
     </Badge>
   );
 }
 
 export function ArticleMeta({ article, light, className }: { article: Article; light?: boolean; className?: string }) {
+  const t = useT();
   return (
     <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs", light ? "text-white/70" : "text-hint", className)}>
       <span className="inline-flex items-center gap-1.5">
@@ -23,7 +29,7 @@ export function ArticleMeta({ article, light, className }: { article: Article; l
       </span>
       <span className="inline-flex items-center gap-1.5">
         <Clock3 className="size-3.5" />
-        {article.readingMinutes} دقائق قراءة
+        {t(`${article.readingMinutes} دقائق قراءة`, `${article.readingMinutes} min read`)}
       </span>
       <span className="inline-flex items-center gap-1.5">
         <Eye className="size-3.5" />
@@ -34,6 +40,7 @@ export function ArticleMeta({ article, light, className }: { article: Article; l
 }
 
 export function NewsCard({ article, title, priority }: { article: Article; title?: ReactNode; priority?: boolean }) {
+  const t = useT();
   return (
     <Link
       href={`/news/${article.slug}`}
@@ -53,20 +60,20 @@ export function NewsCard({ article, title, priority }: { article: Article; title
         <div className="absolute inset-x-3 top-3 flex items-center justify-between">
           <CategoryBadge article={article} className="bg-white/95 backdrop-blur" />
           {article.pinned && (
-            <span className="grid size-7 place-items-center rounded-full bg-maroon text-white shadow-lg" title="خبر مثبّت">
+            <span className="grid size-7 place-items-center rounded-full bg-maroon text-white shadow-lg" title={t("خبر مثبّت", "Pinned")}>
               <Pin className="size-3.5" />
             </span>
           )}
         </div>
-        <span className="absolute bottom-3 right-3 text-xs font-semibold text-white/90">{article.gregorian}</span>
+        <span className="absolute bottom-3 end-3 text-xs font-semibold text-white/90">{article.gregorian}</span>
       </div>
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-display text-lg font-bold leading-8 text-green-dark transition-colors group-hover:text-green">{title ?? article.title}</h3>
         <p className="mt-2 line-clamp-3 text-sm leading-7 text-ink-soft">{article.excerpt}</p>
         <div className="mt-auto flex items-center justify-between gap-3 pt-5">
           <ArticleMeta article={article} className="gap-x-3" />
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-green-dark/5 text-green-dark transition-all duration-500 group-hover:-rotate-45 group-hover:bg-green-dark group-hover:text-gold">
-            <ArrowUpLeft className="size-4 rotate-45" />
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-green-dark/5 text-green-dark transition-all duration-500 group-hover:-rotate-45 group-hover:bg-green-dark group-hover:text-gold ltr:group-hover:rotate-45">
+            <ArrowUpLeft className="size-4 rotate-45 ltr:-rotate-45" />
           </span>
         </div>
       </div>

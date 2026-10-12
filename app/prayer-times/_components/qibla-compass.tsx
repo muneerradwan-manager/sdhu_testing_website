@@ -4,7 +4,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { Compass, Navigation, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { distanceToKaaba, qiblaBearing, type City } from "@/lib/prayer";
+import { useLang, useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
+import { cityName } from "./names";
 import { useToast } from "@/components/ui/widgets";
 
 const CX = 160;
@@ -14,14 +16,16 @@ const polar = (r: number, deg: number) => {
 };
 
 const CARDINALS = [
-  { deg: 0, label: "ش" },
-  { deg: 90, label: "شر" },
-  { deg: 180, label: "ج" },
-  { deg: 270, label: "غ" },
+  { deg: 0, label: "ش", en: "N" },
+  { deg: 90, label: "شر", en: "E" },
+  { deg: 180, label: "ج", en: "S" },
+  { deg: 270, label: "غ", en: "W" },
 ];
 
-function directionName(b: number) {
-  const names = ["الشمال", "الشمال الشرقي", "الشرق", "الجنوب الشرقي", "الجنوب", "الجنوب الغربي", "الغرب", "الشمال الغربي"];
+function directionName(b: number, en = false) {
+  const names = en
+    ? ["the north", "the north-east", "the east", "the south-east", "the south", "the south-west", "the west", "the north-west"]
+    : ["الشمال", "الشمال الشرقي", "الشرق", "الجنوب الشرقي", "الجنوب", "الجنوب الغربي", "الغرب", "الشمال الغربي"];
   return names[Math.round(b / 45) % 8];
 }
 
@@ -40,6 +44,9 @@ export function QiblaCompass({ city }: { city: City }) {
   const distance = distanceToKaaba(city);
   const inMakkah = distance < 5;
   const toast = useToast();
+  const t = useT();
+  const lang = useLang();
+  const en = lang === "en";
 
   const [heading, setHeading] = useState<number | null>(null);
   const continuous = useRef(0);
@@ -56,7 +63,12 @@ export function QiblaCompass({ city }: { city: City }) {
       return;
     }
     if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) {
-      toast({ title: "البوصلة غير متاحة", body: "جهازك لا يدعم حساس الاتجاه. اعتمد على الزاوية المكتوبة.", tone: "warning", icon: "🧭" });
+      toast({
+        title: t("البوصلة غير متاحة", "Compass not available"),
+        body: t("جهازك لا يدعم حساس الاتجاه. اعتمد على الزاوية المكتوبة.", "Your device has no direction sensor. Use the angle shown instead."),
+        tone: "warning",
+        icon: "🧭",
+      });
       return;
     }
     const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
@@ -85,7 +97,12 @@ export function QiblaCompass({ city }: { city: City }) {
       if (!gotReading.current && cleanup.current) {
         cleanup.current();
         cleanup.current = null;
-        toast({ title: "لم نتمكن من قراءة البوصلة", body: "جرّب من هاتف محمول، أو وجّه أعلى الشاشة نحو الشمال.", tone: "info", icon: "🧭" });
+        toast({
+          title: t("لم نتمكن من قراءة البوصلة", "We could not read the compass"),
+          body: t("جرّب من هاتف محمول، أو وجّه أعلى الشاشة نحو الشمال.", "Try on a mobile phone, or point the top of the screen north."),
+          tone: "info",
+          icon: "🧭",
+        });
       }
     }, 2500);
   };
@@ -102,9 +119,9 @@ export function QiblaCompass({ city }: { city: City }) {
       <div className="relative flex items-center justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-            <Compass className="size-5 text-gold-dark" /> اتجاه القبلة
+            <Compass className="size-5 text-gold-dark" /> {t("اتجاه القبلة", "Qibla direction")}
           </p>
-          <p className="mt-1 text-sm text-ink-soft">من {city.name} نحو الكعبة المشرّفة</p>
+          <p className="mt-1 text-sm text-ink-soft">{t(`من ${city.name} نحو الكعبة المشرّفة`, `From ${cityName(city, lang)} towards the Holy Kaaba`)}</p>
         </div>
         <button
           type="button"
@@ -116,7 +133,7 @@ export function QiblaCompass({ city }: { city: City }) {
           aria-pressed={live}
         >
           <Smartphone className="size-3.5" />
-          {live ? "إيقاف البوصلة" : "بوصلة الجهاز"}
+          {live ? t("إيقاف البوصلة", "Stop the compass") : t("بوصلة الجهاز", "Device compass")}
         </button>
       </div>
 
@@ -126,7 +143,7 @@ export function QiblaCompass({ city }: { city: City }) {
           animate={{ rotate: dialRotation }}
           transition={{ type: "spring", stiffness: 60, damping: 18 }}
         >
-          <svg viewBox="0 0 320 320" className="size-full" role="img" aria-label={`القبلة على زاوية ${Math.round(bearing)} درجة من الشمال`}>
+          <svg viewBox="0 0 320 320" className="size-full" role="img" aria-label={t(`القبلة على زاوية ${Math.round(bearing)} درجة من الشمال`, `The Qibla is at ${Math.round(bearing)} degrees from north`)}>
             <defs>
               <radialGradient id="dial-bg" cx="50%" cy="45%" r="60%">
                 <stop offset="0%" stopColor="#ffffff" />
@@ -177,7 +194,7 @@ export function QiblaCompass({ city }: { city: City }) {
                   fontWeight={700}
                   fill={c.deg === 0 ? "#672146" : "#00594F"}
                 >
-                  {c.label}
+                  {en ? c.en : c.label}
                 </text>
               );
             })}
@@ -240,26 +257,28 @@ export function QiblaCompass({ city }: { city: City }) {
             exit={{ opacity: 0 }}
             className="relative -mt-2 mb-3 rounded-full bg-green-light/15 py-1.5 text-center text-sm font-bold text-green"
           >
-            أنت الآن باتجاه القبلة ✓
+            {t("أنت الآن باتجاه القبلة ✓", "You are now facing the Qibla ✓")}
           </motion.p>
         )}
       </AnimatePresence>
 
       <dl className="relative mt-auto grid grid-cols-2 gap-3">
         <div className="rounded-2xl bg-sand p-3 text-center ring-1 ring-gold/25">
-          <dt className="text-xs text-hint">زاوية القبلة</dt>
+          <dt className="text-xs text-hint">{t("زاوية القبلة", "Qibla angle")}</dt>
           <dd className="mt-1 font-display text-2xl font-bold tabular-nums text-green-dark">{Math.round(bearing)}°</dd>
-          <dd className="text-[11px] text-ink-soft">نحو {directionName(bearing)}</dd>
+          <dd className="text-[11px] text-ink-soft">{t(`نحو ${directionName(bearing)}`, `Towards ${directionName(bearing, true)}`)}</dd>
         </div>
         <div className="rounded-2xl bg-sand p-3 text-center ring-1 ring-gold/25">
-          <dt className="text-xs text-hint">المسافة إلى الكعبة</dt>
-          <dd className="mt-1 font-display text-2xl font-bold tabular-nums text-green-dark">{inMakkah ? "قريبة" : formatNumber(distance)}</dd>
-          <dd className="text-[11px] text-ink-soft">{inMakkah ? "أنت في مكة المكرمة" : "كيلومتر تقريباً"}</dd>
+          <dt className="text-xs text-hint">{t("المسافة إلى الكعبة", "Distance to the Kaaba")}</dt>
+          <dd className="mt-1 font-display text-2xl font-bold tabular-nums text-green-dark">{inMakkah ? t("قريبة", "Close") : formatNumber(distance)}</dd>
+          <dd className="text-[11px] text-ink-soft">{inMakkah ? t("أنت في مكة المكرمة", "You are in Makkah") : t("كيلومتر تقريباً", "kilometres, approx.")}</dd>
         </div>
       </dl>
       <p className="relative mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-hint">
         <Navigation className="size-3" />
-        {live ? "حرّك هاتفك ببطء حتى يشير السهم إلى الأعلى" : "وجّه أعلى الشاشة نحو الشمال لتقرأ الاتجاه"}
+        {live
+          ? t("حرّك هاتفك ببطء حتى يشير السهم إلى الأعلى", "Turn your phone slowly until the arrow points up")
+          : t("وجّه أعلى الشاشة نحو الشمال لتقرأ الاتجاه", "Point the top of the screen north to read the direction")}
       </p>
     </div>
   );

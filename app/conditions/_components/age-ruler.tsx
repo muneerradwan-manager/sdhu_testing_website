@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { CircleCheck, CircleX, Info, Mars, Venus } from "lucide-react";
 import { useState } from "react";
+import { useLang, useT } from "@/lib/i18n";
 import { SEASON } from "@/lib/season";
 import { cn } from "@/lib/utils";
 
@@ -12,18 +13,18 @@ const R = SEASON.rules;
 const pct = (y: number) => ((y - MIN) / (MAX - MIN)) * 100;
 
 const ZONES = [
-  { from: MIN, to: R.elderlyNeedsCompanionMaxBirthYear + 0.5, label: "يحتاج مرافقاً", color: "bg-maroon" },
-  { from: R.elderlyNeedsCompanionMaxBirthYear + 0.5, to: R.applicantMaxBirthYear + 0.5, label: "صاحب طلب أو مرافق", color: "bg-green-dark" },
-  { from: R.applicantMaxBirthYear + 0.5, to: R.companionMaxBirthYear + 0.5, label: "مرافق فقط", color: "bg-gold-dark" },
-  { from: R.companionMaxBirthYear + 0.5, to: MAX, label: "غير مسموح", color: "bg-ink/25" },
+  { from: MIN, to: R.elderlyNeedsCompanionMaxBirthYear + 0.5, label: "يحتاج مرافقاً", en: "Needs a companion", color: "bg-maroon" },
+  { from: R.elderlyNeedsCompanionMaxBirthYear + 0.5, to: R.applicantMaxBirthYear + 0.5, label: "صاحب طلب أو مرافق", en: "Applicant or companion", color: "bg-green-dark" },
+  { from: R.applicantMaxBirthYear + 0.5, to: R.companionMaxBirthYear + 0.5, label: "مرافق فقط", en: "Companion only", color: "bg-gold-dark" },
+  { from: R.companionMaxBirthYear + 0.5, to: MAX, label: "غير مسموح", en: "Not allowed", color: "bg-ink/25" },
 ];
 
-const PRESETS: { year: number; gender: "M" | "F"; label: string }[] = [
-  { year: 1990, gender: "F", label: "مواليد 1990 · امرأة" },
-  { year: 1950, gender: "M", label: "مواليد 1950" },
-  { year: 2010, gender: "M", label: "مواليد 2010" },
-  { year: 1968, gender: "M", label: "مواليد 1968 · رجل" },
-  { year: 2002, gender: "F", label: "مواليد 2002 · امرأة" },
+const PRESETS: { year: number; gender: "M" | "F"; label: string; en: string }[] = [
+  { year: 1990, gender: "F", label: "مواليد 1990 · امرأة", en: "Born 1990 · woman" },
+  { year: 1950, gender: "M", label: "مواليد 1950", en: "Born 1950" },
+  { year: 2010, gender: "M", label: "مواليد 2010", en: "Born 2010" },
+  { year: 1968, gender: "M", label: "مواليد 1968 · رجل", en: "Born 1968 · man" },
+  { year: 2002, gender: "F", label: "مواليد 2002 · امرأة", en: "Born 2002 · woman" },
 ];
 
 type Rule = { key: string; state: "ok" | "no" | "need"; text: string };
@@ -65,26 +66,55 @@ function evaluate(year: number, gender: "M" | "F"): { verdict: string; tone: "gr
   return { verdict, tone, rules };
 }
 
+/** The same verdict and rules in English (English has no grammatical gender to follow here) */
+function evaluateEn(year: number, gender: "M" | "F"): { verdict: string; tone: "green" | "gold" | "maroon"; rules: Rule[] } {
+  const f = gender === "F";
+  const rules: Rule[] = [
+    year <= R.applicantMaxBirthYear
+      ? { key: "applicant", state: "ok", text: "Can be the main applicant" }
+      : { key: "applicant", state: "no", text: `Cannot be the main applicant — the main applicant must be born in ${R.applicantMaxBirthYear} or earlier` },
+    year <= R.companionMaxBirthYear
+      ? { key: "companion", state: "ok", text: "Can be a companion in an application" }
+      : { key: "companion", state: "no", text: `Cannot be a companion — a companion must be born in ${R.companionMaxBirthYear} or earlier` },
+  ];
+  if (f && year >= R.womanNeedsMahramMinBirthYear) {
+    rules.push({ key: "mahram", state: "need", text: `Needs a mahram in the same application (born ${R.womanNeedsMahramMinBirthYear} or later)` });
+  }
+  if (year <= R.elderlyNeedsCompanionMaxBirthYear) {
+    rules.push({ key: "elderly", state: "need", text: `Must have a companion named in the application (born ${R.elderlyNeedsCompanionMaxBirthYear} or earlier)` });
+  }
+  const { tone } = evaluate(year, gender);
+  let verdict: string;
+  if (year > R.companionMaxBirthYear) verdict = "Cannot be a companion";
+  else if (year <= R.elderlyNeedsCompanionMaxBirthYear) verdict = "Must have a companion";
+  else if (f && year >= R.womanNeedsMahramMinBirthYear) verdict = year > R.applicantMaxBirthYear ? "Companion only, and needs a mahram" : "Needs a mahram";
+  else if (year > R.applicantMaxBirthYear) verdict = "Can only be a companion";
+  else verdict = "Meets all the age rules";
+  return { verdict, tone, rules };
+}
+
 export function AgeRuler() {
   const [year, setYear] = useState(1990);
   const [gender, setGender] = useState<"M" | "F">("F");
+  const t = useT();
+  const en = useLang() === "en";
   const age = SEASON.referenceYear - year;
-  const { verdict, tone, rules } = evaluate(year, gender);
+  const { verdict, tone, rules } = en ? evaluateEn(year, gender) : evaluate(year, gender);
   const toneCls = { green: "from-green-dark to-green", gold: "from-gold-dark to-[#8f8156]", maroon: "from-maroon-dark to-maroon" }[tone];
 
   return (
     <div className="overflow-hidden rounded-[2rem] border border-gold/40 bg-white shadow-[0_40px_80px_-50px_rgba(0,89,79,.6)]">
       {/* Verdict banner */}
-      <motion.div layout className={cn("relative overflow-hidden bg-gradient-to-l p-6 text-white transition-colors duration-500 md:p-8", toneCls)}>
+      <motion.div layout className={cn("relative overflow-hidden bg-gradient-to-l ltr:bg-gradient-to-r p-6 text-white transition-colors duration-500 md:p-8", toneCls)}>
         <div className="bg-pattern absolute inset-0 opacity-15" />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-white/75">المسطرة التفاعلية — حرّك المؤشر واختر الجنس</p>
+            <p className="text-sm text-white/75">{t("المسطرة التفاعلية — حرّك المؤشر واختر الجنس", "Interactive ruler — move the slider and choose the sex")}</p>
             <p className="mt-1 flex flex-wrap items-baseline gap-x-3 font-display text-2xl font-bold md:text-3xl">
               <span>
-                مواليد <span className="tabular-nums">{year}</span> · {gender === "F" ? "امرأة" : "رجل"}
+                {t("مواليد", "Born")} <span className="tabular-nums">{year}</span> · {gender === "F" ? t("امرأة", "woman") : t("رجل", "man")}
               </span>
-              <span className="text-gold">←</span>
+              <span className="text-gold">{en ? "→" : "←"}</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={verdict}
@@ -99,11 +129,11 @@ export function AgeRuler() {
               </AnimatePresence>
             </p>
           </div>
-          <div className="relative flex rounded-2xl bg-white/10 p-1" role="radiogroup" aria-label="الجنس">
+          <div className="relative flex rounded-2xl bg-white/10 p-1" role="radiogroup" aria-label={t("الجنس", "Sex")}>
             {(
               [
-                ["M", "رجل", Mars],
-                ["F", "امرأة", Venus],
+                ["M", t("رجل", "Man"), Mars],
+                ["F", t("امرأة", "Woman"), Venus],
               ] as const
             ).map(([g, label, Icon]) => (
               <button
@@ -127,24 +157,24 @@ export function AgeRuler() {
         <div>
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-xs text-ink-soft">العمر في سنة الموسم ({SEASON.referenceYear})</p>
+              <p className="text-xs text-ink-soft">{t(`العمر في سنة الموسم (${SEASON.referenceYear})`, `Age in the season year (${SEASON.referenceYear})`)}</p>
               <p className="font-display text-5xl font-bold text-green-dark tabular-nums">
                 {age}
-                <span className="ms-2 text-lg text-ink-soft">عاماً</span>
+                <span className="ms-2 text-lg text-ink-soft">{t("عاماً", "years")}</span>
               </p>
             </div>
             <div className="flex gap-1">
               <button
                 onClick={() => setYear((y) => Math.max(MIN, y - 1))}
                 className="size-10 rounded-xl bg-sand text-lg font-bold text-green-dark transition hover:bg-gold-light active:scale-90"
-                aria-label="سنة أقدم"
+                aria-label={t("سنة أقدم", "Earlier year")}
               >
                 −
               </button>
               <button
                 onClick={() => setYear((y) => Math.min(MAX, y + 1))}
                 className="size-10 rounded-xl bg-sand text-lg font-bold text-green-dark transition hover:bg-gold-light active:scale-90"
-                aria-label="سنة أحدث"
+                aria-label={t("سنة أحدث", "Later year")}
               >
                 +
               </button>
@@ -161,9 +191,9 @@ export function AgeRuler() {
                   exit={{ opacity: 0, y: 6 }}
                   className="absolute -top-7 flex h-5 items-center justify-center rounded-md border border-dashed border-maroon/50 bg-[repeating-linear-gradient(45deg,rgba(103,33,70,.12)_0_6px,transparent_6px_12px)] text-[10px] font-bold text-maroon"
                   style={{ left: `${pct(R.womanNeedsMahramMinBirthYear - 0.5)}%`, right: 0 }}
-                  dir="rtl"
+                  dir={en ? undefined : "rtl"}
                 >
-                  تحتاج محرماً
+                  {t("تحتاج محرماً", "Needs a mahram")}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -191,8 +221,8 @@ export function AgeRuler() {
               step={1}
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              aria-label="سنة الميلاد"
-              aria-valuetext={`مواليد ${year}، العمر ${age} عاماً`}
+              aria-label={t("سنة الميلاد", "Year of birth")}
+              aria-valuetext={t(`مواليد ${year}، العمر ${age} عاماً`, `Born ${year}, aged ${age}`)}
               className="peer absolute inset-x-0 -top-4 z-20 h-12 w-full cursor-grab opacity-0 active:cursor-grabbing"
             />
             <motion.div
@@ -227,7 +257,7 @@ export function AgeRuler() {
           <div className="mt-4 flex flex-wrap gap-3 text-xs text-ink-soft">
             {ZONES.map((z) => (
               <span key={z.label} className="flex items-center gap-1.5">
-                <span className={cn("size-2.5 rounded", z.color)} /> {z.label}
+                <span className={cn("size-2.5 rounded", z.color)} /> {t(z.label, z.en)}
               </span>
             ))}
           </div>
@@ -247,7 +277,7 @@ export function AgeRuler() {
                     active ? "border-green-dark bg-green-dark text-white" : "border-gold/60 bg-white text-ink hover:border-green-light",
                   )}
                 >
-                  {p.label}
+                  {t(p.label, p.en)}
                 </button>
               );
             })}
@@ -256,7 +286,7 @@ export function AgeRuler() {
 
         {/* Rules */}
         <div className="rounded-3xl bg-sand/70 p-5">
-          <p className="font-bold text-green-dark">ما ينطبق على هذا الشخص</p>
+          <p className="font-bold text-green-dark">{t("ما ينطبق على هذا الشخص", "What applies to this person")}</p>
           <motion.ul layout className="mt-4 space-y-2.5">
             <AnimatePresence initial={false} mode="popLayout">
               {rules.map((r) => (
@@ -284,7 +314,7 @@ export function AgeRuler() {
               ))}
             </AnimatePresence>
           </motion.ul>
-          <p className="mt-4 text-xs leading-6 text-ink-soft">تُحسب الشروط بسنة الميلاد فقط، وتضبطها الإدارة لكل موسم.</p>
+          <p className="mt-4 text-xs leading-6 text-ink-soft">{t("تُحسب الشروط بسنة الميلاد فقط، وتضبطها الإدارة لكل موسم.", "The rules go by year of birth only, and the Administration sets them for each season.")}</p>
         </div>
       </div>
     </div>

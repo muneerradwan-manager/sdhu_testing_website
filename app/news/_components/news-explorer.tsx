@@ -7,7 +7,9 @@ import { ArrowUpLeft, Pin, Search, SearchX, X } from "lucide-react";
 import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
 import { useArticles } from "@/lib/cms/content";
 import { CATEGORIES, type Category } from "@/lib/data/news";
+import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { categoryLabel } from "./categories";
 import { ArticleMeta, CategoryBadge, NewsCard } from "./news-card";
 
 const ALL = "الكل";
@@ -32,6 +34,8 @@ function highlight(text: string, q: string): ReactNode {
 
 export function NewsExplorer() {
   const articles = useArticles();
+  const t = useT();
+  const lang = useLang();
   const [filter, setFilter] = useState<Filter>(ALL);
   const [query, setQuery] = useState("");
   const deferred = useDeferredValue(query);
@@ -62,15 +66,15 @@ export function NewsExplorer() {
     <div className="min-w-0">
       {/* Controls */}
       <div className="flex flex-col gap-4 rounded-3xl border border-gold/30 bg-white p-3 shadow-[0_16px_50px_-40px_rgba(2,21,38,.5)] md:flex-row md:items-center md:p-4">
-        <label className="relative flex-1 md:max-w-xs">
-          <span className="sr-only">ابحث في الأخبار</span>
-          <Search className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-hint" />
+        <label className="relative flex-1 md:max-w-xs ltr:md:min-w-56">
+          <span className="sr-only">{t("ابحث في الأخبار", "Search the news")}</span>
+          <Search className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-hint" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث: القرعة، الأعمار، الجواز..."
-            className="h-11 w-full rounded-2xl border border-gold/35 bg-sand/60 pl-10 pr-11 text-sm outline-none transition placeholder:text-hint focus:border-green-light focus:bg-white focus:ring-4 focus:ring-green-light/15 [&::-webkit-search-cancel-button]:hidden"
+            placeholder={t("ابحث: القرعة، الأعمار، الجواز...", "Search: lottery, ages, passport...")}
+            className="h-11 w-full rounded-2xl border border-gold/35 bg-sand/60 ps-11 pe-10 text-sm outline-none transition placeholder:text-hint focus:border-green-light focus:bg-white focus:ring-4 focus:ring-green-light/15 [&::-webkit-search-cancel-button]:hidden"
           />
           <AnimatePresence>
             {query && (
@@ -80,8 +84,8 @@ export function NewsExplorer() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 onClick={() => setQuery("")}
-                className="absolute left-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full bg-ink/10 text-ink-soft hover:bg-ink/20"
-                aria-label="مسح البحث"
+                className="absolute end-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full bg-ink/10 text-ink-soft hover:bg-ink/20"
+                aria-label={t("مسح البحث", "Clear search")}
               >
                 <X className="size-3.5" />
               </motion.button>
@@ -90,7 +94,7 @@ export function NewsExplorer() {
         </label>
 
         <LayoutGroup id="news-filter">
-          <div role="tablist" aria-label="تصنيف الأخبار" className="scrollbar-none -mx-3 flex gap-1.5 overflow-x-auto px-3 md:mx-0 md:flex-wrap md:px-0">
+          <div role="tablist" aria-label={t("تصنيف الأخبار", "News categories")} className="scrollbar-none -mx-3 flex gap-1.5 overflow-x-auto px-3 md:mx-0 md:flex-wrap md:px-0">
             {[ALL, ...CATEGORIES].map((c) => {
               const active = filter === c;
               return (
@@ -113,7 +117,7 @@ export function NewsExplorer() {
                     />
                   )}
                   <span className="relative flex items-center gap-1.5">
-                    {c}
+                    {categoryLabel(c, lang)}
                     <span className={cn("rounded-full px-1.5 text-[10px] tabular-nums", active ? "bg-gold text-ink" : "bg-ink/5")}>{counts[c] ?? 0}</span>
                   </span>
                 </button>
@@ -152,7 +156,7 @@ export function NewsExplorer() {
               <div className="relative">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-maroon px-3 py-1 text-xs font-bold">
-                    <Pin className="size-3.5" /> خبر مثبّت
+                    <Pin className="size-3.5" /> {t("خبر مثبّت", "Pinned")}
                   </span>
                   <CategoryBadge article={featured} className="bg-white/90" />
                 </div>
@@ -161,8 +165,8 @@ export function NewsExplorer() {
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                   <ArticleMeta article={featured} light />
                   <span className="inline-flex items-center gap-2 rounded-2xl bg-gold px-5 py-2.5 text-sm font-bold text-ink transition group-hover:bg-white">
-                    اقرأ الإعلان
-                    <ArrowUpLeft className="size-4 transition-transform group-hover:-translate-x-1 group-hover:-translate-y-1" />
+                    {t("اقرأ الإعلان", "Read the announcement")}
+                    <ArrowUpLeft className="size-4 transition-transform group-hover:-translate-x-1 group-hover:-translate-y-1 ltr:group-hover:translate-x-1" />
                   </span>
                 </div>
               </div>
@@ -173,8 +177,8 @@ export function NewsExplorer() {
 
       {/* Result line */}
       <div className="mb-4 mt-8 flex items-center justify-between text-sm" aria-live="polite">
-        <p className="font-display text-xl font-bold text-green-dark">{browsing ? "أحدث المنشورات" : filter === ALL ? "نتائج البحث" : filter}</p>
-        <p className="text-hint">عدد المنشورات: {results.length}</p>
+        <p className="font-display text-xl font-bold text-green-dark">{browsing ? t("أحدث المنشورات", "Latest posts") : filter === ALL ? t("نتائج البحث", "Search results") : categoryLabel(filter, lang)}</p>
+        <p className="text-hint">{t(`عدد المنشورات: ${results.length}`, `Posts: ${results.length}`)}</p>
       </div>
 
       {/* Grid */}
@@ -205,8 +209,8 @@ export function NewsExplorer() {
             <span className="grid size-16 place-items-center rounded-full bg-gold/25 text-gold-dark">
               <SearchX className="size-8" />
             </span>
-            <p className="mt-4 font-display text-xl font-bold text-green-dark">لم نجد منشوراً مطابقاً</p>
-            <p className="mt-1 text-sm text-ink-soft">جرّب كلمة أخرى أو اختر تصنيفاً مختلفاً.</p>
+            <p className="mt-4 font-display text-xl font-bold text-green-dark">{t("لم نجد منشوراً مطابقاً", "No matching posts")}</p>
+            <p className="mt-1 text-sm text-ink-soft">{t("جرّب كلمة أخرى أو اختر تصنيفاً مختلفاً.", "Try another word or choose a different category.")}</p>
             <button
               type="button"
               onClick={() => {
@@ -215,7 +219,7 @@ export function NewsExplorer() {
               }}
               className="mt-5 rounded-2xl border-2 border-green-dark/20 px-5 py-2 text-sm font-bold text-green-dark transition hover:border-green-dark"
             >
-              عرض كل الأخبار
+              {t("عرض كل الأخبار", "Show all news")}
             </button>
           </motion.div>
         )}

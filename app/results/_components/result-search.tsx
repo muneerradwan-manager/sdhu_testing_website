@@ -21,6 +21,8 @@ import { searchResult, type SearchResult, RESULTS_SUMMARY } from "@/lib/data/pub
 import { usePublishedDraw } from "@/lib/lottery";
 import { isValidNationalId } from "@/lib/registry";
 import { useHydrated } from "@/lib/store";
+import { campaignEn, dateEn, placeEn } from "@/app/conditions/_lib/en";
+import { useT } from "@/lib/i18n";
 import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
 import { CaptchaImage, makeCaptcha } from "./captcha";
 
@@ -36,12 +38,24 @@ const DEMO_IDS = [
   { id: "01012340078", label: "خديجة الخطيب" },
 ];
 
-const STEPS = ["التحقق من رمز التحقق", "البحث في القوائم المعتمدة والمنشورة", "تجهيز النتيجة المسموح بعرضها"];
+const STEPS = [
+  { ar: "التحقق من رمز التحقق", en: "Checking the verification code" },
+  { ar: "البحث في القوائم المعتمدة والمنشورة", en: "Searching the approved, published lists" },
+  { ar: "تجهيز النتيجة المسموح بعرضها", en: "Preparing the result that may be shown" },
+];
+
+/** The result's line (lib/data/public-results writes it in Arabic) */
+function outcomeEn(r: Extract<SearchResult, { found: true }>) {
+  if (r.campaign === "المنحة") return "Accepted directly — scholarship campaign";
+  if (r.outcome === "direct") return `Accepted directly, oldest first${r.applicationNo ? ` (family application ${r.applicationNo})` : ""}`;
+  return r.outcome === "lottery" ? "Accepted by lottery" : "Not accepted in the lottery";
+}
 
 type Phase = "idle" | "searching" | "done";
 type FieldError = { field: "id" | "captcha" | "limit"; msg: string; key: number };
 
 export function ResultSearch() {
+  const t = useT();
   const hydrated = useHydrated();
   const draw = usePublishedDraw();
   const [nationalId, setNationalId] = useState("");
@@ -113,15 +127,15 @@ export function ResultSearch() {
     setNow(n);
 
     if (inWindow.length >= MAX_SEARCHES) {
-      setError({ field: "limit", msg: "بلغت الحد الأقصى لمحاولات البحث. انتظر قليلاً ثم أعد المحاولة.", key: n });
+      setError({ field: "limit", msg: t("بلغت الحد الأقصى لمحاولات البحث. انتظر قليلاً ثم أعد المحاولة.", "You have reached the maximum number of searches. Wait a moment, then try again."), key: n });
       return;
     }
     if (!isValidNationalId(nationalId)) {
-      setError({ field: "id", msg: "أدخل الرقم الوطني كاملاً: 11 رقماً دون فراغات.", key: n });
+      setError({ field: "id", msg: t("أدخل الرقم الوطني كاملاً: 11 رقماً دون فراغات.", "Enter the full national number: 11 digits with no spaces."), key: n });
       return;
     }
     if (!answer.trim()) {
-      setError({ field: "captcha", msg: "اكتب الحروف والأرقام الظاهرة في الصورة.", key: n });
+      setError({ field: "captcha", msg: t("اكتب الحروف والأرقام الظاهرة في الصورة.", "Type the letters and numbers shown in the image."), key: n });
       return;
     }
 
@@ -129,7 +143,7 @@ export function ResultSearch() {
     setAttempts([...inWindow, n]);
 
     if (answer.trim().toUpperCase() !== captcha.text) {
-      setError({ field: "captcha", msg: "رمز التحقق غير صحيح. أنشأنا لك رمزاً جديداً.", key: n });
+      setError({ field: "captcha", msg: t("رمز التحقق غير صحيح. أنشأنا لك رمزاً جديداً.", "The verification code is wrong. We have made you a new one."), key: n });
       refreshCaptcha();
       return;
     }
@@ -163,17 +177,17 @@ export function ResultSearch() {
       {/* ── Form ── */}
       <form onSubmit={submit} noValidate className="relative overflow-hidden bg-green-dark p-6 text-white sm:p-8 md:p-10">
         <div className="bg-pattern absolute inset-0 opacity-15" />
-        <div className="absolute -bottom-24 -right-24 size-72 rounded-full bg-green-light/30 blur-3xl" />
+        <div className="absolute -bottom-24 -start-24 size-72 rounded-full bg-green-light/30 blur-3xl" />
         <div className="relative">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gold">
-            <Lock className="size-3.5" /> بحث آمن دون تسجيل دخول
+            <Lock className="size-3.5" /> {t("بحث آمن دون تسجيل دخول", "Secure search, no sign-in")}
           </span>
-          <h2 className="mt-4 font-display text-3xl font-bold md:text-4xl">ابحث عن نتيجتك</h2>
-          <p className="mt-2 text-sm leading-7 text-white/70">أدخل الرقم الوطني كاملاً، ثم اكتب رمز التحقق. لا تظهر إلا المعلومات المسموح بنشرها.</p>
+          <h2 className="mt-4 font-display text-3xl font-bold md:text-4xl">{t("ابحث عن نتيجتك", "Find your result")}</h2>
+          <p className="mt-2 text-sm leading-7 text-white/70">{t("أدخل الرقم الوطني كاملاً، ثم اكتب رمز التحقق. لا تظهر إلا المعلومات المسموح بنشرها.", "Enter your full national number, then type the verification code. Only information that may be published is shown.")}</p>
 
           {/* National id */}
           <label htmlFor="nid" className="mt-7 block text-sm font-semibold text-white/90">
-            الرقم الوطني
+            {t("الرقم الوطني", "National number")}
           </label>
           <motion.div
             key={error?.field === "id" ? error.key : "id"}
@@ -211,7 +225,7 @@ export function ResultSearch() {
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-white/55">أرقام تجريبية:</span>
+            <span className="text-white/55">{t("أرقام تجريبية:", "Demo numbers:")}</span>
             {DEMO_IDS.map((d) => (
               <button
                 key={d.id}
@@ -227,13 +241,13 @@ export function ResultSearch() {
               onClick={() => setNationalId(`0${Math.floor(Math.random() * 1e10).toString().padStart(10, "0")}`)}
               className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 transition hover:bg-gold hover:text-ink"
             >
-              <Shuffle className="size-3" /> رقم عشوائي
+              <Shuffle className="size-3" /> {t("رقم عشوائي", "Random number")}
             </button>
           </div>
 
           {/* Captcha */}
           <label htmlFor="captcha" className="mt-7 block text-sm font-semibold text-white/90">
-            رمز التحقق
+            {t("رمز التحقق", "Verification code")}
           </label>
           <div className="mt-2 flex items-stretch gap-2">
             <div className="relative h-16 w-44 shrink-0 overflow-hidden rounded-2xl ring-2 ring-gold/40 sm:w-48">
@@ -257,7 +271,7 @@ export function ResultSearch() {
             <motion.button
               type="button"
               onClick={refreshCaptcha}
-              aria-label="رمز تحقق جديد"
+              aria-label={t("رمز تحقق جديد", "New verification code")}
               className="flex w-12 items-center justify-center rounded-2xl bg-white/10 transition hover:bg-white/20"
               whileTap={{ scale: 0.9 }}
             >
@@ -314,8 +328,8 @@ export function ResultSearch() {
           {/* Rate limit */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink/25 px-4 py-3 text-xs ring-1 ring-white/10">
             <div className="flex items-center gap-2">
-              <span className="text-white/70">محاولات البحث المتبقية هذه الدقيقة:</span>
-              <span className="flex gap-1" aria-label={`${remaining} من ${MAX_SEARCHES}`}>
+              <span className="text-white/70">{t("محاولات البحث المتبقية هذه الدقيقة:", "Searches left this minute:")}</span>
+              <span className="flex gap-1" aria-label={t(`${remaining} من ${MAX_SEARCHES}`, `${remaining} of ${MAX_SEARCHES}`)}>
                 {Array.from({ length: MAX_SEARCHES }, (_, i) => (
                   <motion.span
                     key={i}
@@ -335,7 +349,7 @@ export function ResultSearch() {
                   className="flex items-center gap-2 rounded-full bg-maroon px-3 py-1 font-bold"
                 >
                   <CooldownRing seconds={cooldown} />
-                  انتظر {cooldown} ثانية
+                  {t(`انتظر ${cooldown} ثانية`, `Wait ${cooldown} seconds`)}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -350,9 +364,9 @@ export function ResultSearch() {
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-l from-transparent via-white/60 to-transparent transition duration-700 group-hover:translate-x-full" />
             {phase === "searching" ? <LoaderCircle className="size-5 animate-spin" /> : locked ? <Timer className="size-5" /> : <Search className="size-5" />}
-            <span className="relative">{phase === "searching" ? "جارٍ البحث…" : locked ? "البحث متوقف مؤقتاً" : "اعرض النتيجة"}</span>
+            <span className="relative">{phase === "searching" ? t("جارٍ البحث…", "Searching…") : locked ? t("البحث متوقف مؤقتاً", "Search paused") : t("اعرض النتيجة", "Show the result")}</span>
           </motion.button>
-          <p className="mt-3 text-center text-[11px] text-white/50">حماية من البحث الآلي: رمز تحقق + {MAX_SEARCHES} محاولات في الدقيقة كحد أقصى</p>
+          <p className="mt-3 text-center text-[11px] text-white/50">{t(`حماية من البحث الآلي: رمز تحقق + ${MAX_SEARCHES} محاولات في الدقيقة كحد أقصى`, `Protection against automated searches: a verification code + at most ${MAX_SEARCHES} searches a minute`)}</p>
         </div>
       </form>
 
@@ -397,6 +411,7 @@ const fade = {
 };
 
 function IdleStage() {
+  const t = useT();
   return (
     <motion.div {...fade} className="w-full max-w-md text-center">
       <div className="relative mx-auto flex size-28 items-center justify-center">
@@ -404,28 +419,31 @@ function IdleStage() {
         <span className="absolute inset-3 rounded-full bg-white shadow-lg" />
         <ShieldCheck className="relative size-12 animate-float text-green-dark" />
       </div>
-      <h3 className="mt-6 font-display text-2xl font-bold text-green-dark">نتيجتك تظهر هنا</h3>
+      <h3 className="mt-6 font-display text-2xl font-bold text-green-dark">{t("نتيجتك تظهر هنا", "Your result appears here")}</h3>
       <p className="mt-2 text-sm leading-7 text-ink-soft">
-        النتائج معتمدة ومنشورة منذ {RESULTS_SUMMARY.lastUpdate}. نحترم خصوصيتك، فلا نعرض إلا ما يسمح به النظام.
+        {t(
+          `النتائج معتمدة ومنشورة منذ ${RESULTS_SUMMARY.lastUpdate}. نحترم خصوصيتك، فلا نعرض إلا ما يسمح به النظام.`,
+          `The results have been approved and published since ${dateEn(RESULTS_SUMMARY.lastUpdate)}. We respect your privacy, so we show only what the system allows.`,
+        )}
       </p>
       <div className="mt-6 grid gap-3 text-start sm:grid-cols-2">
         <div className="rounded-2xl border border-green-light/25 bg-white p-4">
           <p className="flex items-center gap-1.5 text-sm font-bold text-green">
-            <CircleCheck className="size-4" /> ما يظهر
+            <CircleCheck className="size-4" /> {t("ما يظهر", "What is shown")}
           </p>
           <ul className="mt-2 space-y-1 text-sm text-ink-soft">
-            {["الاسم", "النتيجة", "الحملة", "المحافظة"].map((t) => (
-              <li key={t}>• {t}</li>
+            {[t("الاسم", "Name"), t("النتيجة", "Result"), t("الحملة", "Campaign"), t("المحافظة", "Governorate")].map((x) => (
+              <li key={x}>• {x}</li>
             ))}
           </ul>
         </div>
         <div className="rounded-2xl border border-maroon/15 bg-white p-4">
           <p className="flex items-center gap-1.5 text-sm font-bold text-maroon">
-            <EyeOff className="size-4" /> لا يظهر أبداً
+            <EyeOff className="size-4" /> {t("لا يظهر أبداً", "Never shown")}
           </p>
           <ul className="mt-2 space-y-1 text-sm text-ink-soft">
-            {["الهاتف", "العنوان", "العمر", "سبب عدم القبول", "أفراد العائلة"].map((t) => (
-              <li key={t}>• {t}</li>
+            {[t("الهاتف", "Phone"), t("العنوان", "Address"), t("العمر", "Age"), t("سبب عدم القبول", "Reason for not being accepted"), t("أفراد العائلة", "Family members")].map((x) => (
+              <li key={x}>• {x}</li>
             ))}
           </ul>
         </div>
@@ -435,6 +453,7 @@ function IdleStage() {
 }
 
 function SearchingStage({ step, id }: { step: number; id: string }) {
+  const t = useT();
   return (
     <motion.div {...fade} className="flex w-full max-w-sm flex-col items-center text-center">
       <div className="relative flex size-52 items-center justify-center">
@@ -482,7 +501,7 @@ function SearchingStage({ step, id }: { step: number; id: string }) {
           const active = step === i;
           return (
             <motion.li
-              key={s}
+              key={s.ar}
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: i <= step ? 1 : 0.35, x: 0 }}
               transition={{ delay: i * 0.1 }}
@@ -499,7 +518,7 @@ function SearchingStage({ step, id }: { step: number; id: string }) {
                   <span className="size-2 rounded-full bg-gold" />
                 )}
               </span>
-              <span className={cn("font-medium", done ? "text-green" : "text-ink")}>{s}</span>
+              <span className={cn("font-medium", done ? "text-green" : "text-ink")}>{t(s.ar, s.en)}</span>
             </motion.li>
           );
         })}
@@ -511,10 +530,11 @@ function SearchingStage({ step, id }: { step: number; id: string }) {
 function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found: true }>; onReset: () => void }) {
   const accepted = result.outcome !== "notDrawn";
   const Icon = result.outcome === "direct" ? BadgeCheck : result.outcome === "lottery" ? Dices : CircleSlash;
+  const t = useT();
   const rows = [
-    { k: "النتيجة", v: result.label },
-    { k: "الحملة", v: result.campaign },
-    { k: "المحافظة", v: result.governorate },
+    { key: "result", k: t("النتيجة", "Result"), v: t(result.label, outcomeEn(result)) },
+    { key: "campaign", k: t("الحملة", "Campaign"), v: t(result.campaign, campaignEn(result.campaign)) },
+    { key: "governorate", k: t("المحافظة", "Governorate"), v: t(result.governorate, placeEn(result.governorate)) },
   ];
 
   return (
@@ -528,7 +548,7 @@ function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found
             animate={{ x: 520 }}
             transition={{ duration: 1.6, delay: 0.4, ease: "easeInOut" }}
           />
-          <p className="relative text-sm font-semibold text-gold">{accepted ? "مبارك! تقبّل الله منكم" : "نتيجة القرعة"}</p>
+          <p className="relative text-sm font-semibold text-gold">{accepted ? t("مبارك! تقبّل الله منكم", "Congratulations! May Allah accept it from you") : t("نتيجة القرعة", "Lottery result")}</p>
           <p className="relative mt-1 font-display text-3xl font-bold leading-tight">{result.name}</p>
         </div>
         <motion.div
@@ -536,7 +556,7 @@ function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.25 }}
           className={cn(
-            "absolute left-6 top-[6.2rem] flex size-20 items-center justify-center rounded-full border-4 border-white shadow-xl",
+            "absolute end-6 top-[6.2rem] flex size-20 items-center justify-center rounded-full border-4 border-white shadow-xl",
             accepted ? "bg-gold text-green-dark" : "bg-gold-light text-maroon",
           )}
         >
@@ -546,36 +566,43 @@ function ResultCard({ result, onReset }: { result: Extract<SearchResult, { found
         <dl className="space-y-1 px-6 pb-6 pt-8">
           {rows.map((r, i) => (
             <motion.div
-              key={r.k}
+              key={r.key}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.35 + i * 0.08 }}
               className="flex items-center justify-between gap-4 border-b border-dashed border-gold/60 py-3 last:border-0"
             >
               <dt className="text-sm text-ink-soft">{r.k}</dt>
-              <dd className={cn("text-end font-bold", r.k === "النتيجة" ? (accepted ? "text-green" : "text-maroon") : "text-ink")}>{r.v}</dd>
+              <dd className={cn("text-end font-bold", r.key === "result" ? (accepted ? "text-green" : "text-maroon") : "text-ink")}>{r.v}</dd>
             </motion.div>
           ))}
         </dl>
         <div className="flex flex-wrap items-center justify-between gap-2 bg-sand px-6 py-3 text-xs text-ink-soft">
-          <span>آخر تحديث: {RESULTS_SUMMARY.lastUpdate}</span>
+          <span>{t(`آخر تحديث: ${RESULTS_SUMMARY.lastUpdate}`, `Last updated: ${dateEn(RESULTS_SUMMARY.lastUpdate)}`)}</span>
           <button onClick={onReset} className="font-bold text-green-dark hover:underline">
-            بحث جديد
+            {t("بحث جديد", "New search")}
           </button>
         </div>
       </div>
       <p className="mt-4 text-center text-xs leading-6 text-ink-soft">
         {accepted
           ? result.outcome === "lottery"
-            ? "ثبّت تسجيلك من حسابك: أكّد قبولك وادفع الدفعة الأولى قبل 27 تشرين الأول، وإلا سقط القبول."
-            : "الخطوات المطلوبة ومهل التأكيد تظهر في حسابك بعد تسجيل الدخول."
-          : "لم تُسحب سنة ميلاد صاحب طلبك وشهره هذا الموسم. يمكنك التسجيل في الموسم القادم."}
+            ? t(
+                "ثبّت تسجيلك من حسابك: أكّد قبولك وادفع الدفعة الأولى قبل 27 تشرين الأول، وإلا سقط القبول.",
+                "Confirm your registration from your account: confirm your acceptance and pay the first instalment before 27 October, or the acceptance lapses.",
+              )
+            : t("الخطوات المطلوبة ومهل التأكيد تظهر في حسابك بعد تسجيل الدخول.", "The steps required and the confirmation deadlines appear in your account after you sign in.")
+          : t(
+              "لم تُسحب سنة ميلاد صاحب طلبك وشهره هذا الموسم. يمكنك التسجيل في الموسم القادم.",
+              "The main applicant's year and month of birth were not drawn this season. You can register again next season.",
+            )}
       </p>
     </motion.div>
   );
 }
 
 function NotFound({ onReset }: { onReset: () => void }) {
+  const t = useT();
   return (
     <motion.div {...fade} className="w-full max-w-md text-center">
       <motion.div
@@ -587,10 +614,10 @@ function NotFound({ onReset }: { onReset: () => void }) {
         <SearchX className="size-10" />
       </motion.div>
       <p className="mt-6 rounded-3xl bg-white px-6 py-6 font-display text-xl leading-9 font-bold text-ink shadow-sm ring-1 ring-gold/40">
-        لم يرد هذا الرقم في طلبات هذا الموسم
+        {t("لم يرد هذا الرقم في طلبات هذا الموسم", "This number is not in this season's applications")}
       </p>
       <button onClick={onReset} className="mt-5 text-sm font-bold text-green-dark hover:underline">
-        بحث جديد
+        {t("بحث جديد", "New search")}
       </button>
     </motion.div>
   );

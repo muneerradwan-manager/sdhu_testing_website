@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { BadgeCheck, Briefcase, Building2, Eye, EyeOff, FlaskConical, IdCard, KeyRound, Mail, Phone, ShieldAlert, ShieldCheck, UserRound, Zap, type LucideIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useLang, useT } from "@/lib/i18n";
 import { fullName, type Person } from "@/lib/registry";
 import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
 import { DEMO_OTP, Field, OtpInput, inputClass } from "./bits";
@@ -18,10 +19,11 @@ import { Card, PortalShell } from "./shell";
 
 export type AuthPortal = "pilgrim" | "admin" | "staff";
 
-const PORTALS: Record<AuthPortal, { label: string; icon: LucideIcon; image: string; home?: { href: string; label: string }; login: string; register?: string }> = {
-  pilgrim: { label: "حاج", icon: UserRound, image: "/images/haram-2022.jpg", login: "/login", register: "/register" },
-  admin: { label: "إداري", icon: Briefcase, image: "/images/umayyad.jpg", home: { href: "/administrator", label: "بوابة الإداريين" }, login: "/administrator/login", register: "/administrator/register" },
-  staff: { label: "موظف", icon: Building2, image: "/images/clock-tower.jpg", home: { href: "/staff", label: "بوابة الموظفين" }, login: "/staff/login" },
+/** `en`: the label on the public pages in English (the administrators' and staff's own pages stay Arabic) */
+const PORTALS: Record<AuthPortal, { label: string; en: string; icon: LucideIcon; image: string; home?: { href: string; label: string }; login: string; register?: string }> = {
+  pilgrim: { label: "حاج", en: "Pilgrim", icon: UserRound, image: "/images/haram-2022.jpg", login: "/login", register: "/register" },
+  admin: { label: "إداري", en: "Administrator", icon: Briefcase, image: "/images/umayyad.jpg", home: { href: "/administrator", label: "بوابة الإداريين" }, login: "/administrator/login", register: "/administrator/register" },
+  staff: { label: "موظف", en: "Staff", icon: Building2, image: "/images/clock-tower.jpg", home: { href: "/staff", label: "بوابة الموظفين" }, login: "/staff/login" },
 };
 
 export function AuthShell({
@@ -50,13 +52,14 @@ export function AuthShell({
   below?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   const P = PORTALS[portal];
   return (
     <PortalShell
       image={P.image}
       eyebrow={
-        <nav aria-label="مسار التنقل" className="flex flex-wrap items-center gap-1.5 text-sm text-white/70">
-          <Link href="/" className="transition hover:text-gold">الرئيسية</Link>
+        <nav aria-label={t("مسار التنقل", "Breadcrumb")} className="flex flex-wrap items-center gap-1.5 text-sm text-white/70">
+          <Link href="/" className="transition hover:text-gold">{t("الرئيسية", "Home")}</Link>
           {P.home && (
             <>
               <span aria-hidden>/</span>
@@ -64,7 +67,7 @@ export function AuthShell({
             </>
           )}
           <span aria-hidden>/</span>
-          <span className="text-gold">{page === "login" ? "تسجيل الدخول" : "إنشاء حساب"}</span>
+          <span className="text-gold">{page === "login" ? t("تسجيل الدخول", "Sign in") : t("إنشاء حساب", "Create account")}</span>
         </nav>
       }
       title={title}
@@ -99,10 +102,11 @@ export function AuthShell({
 
 /** Who is signing in (or opening an account): each choice is its own page */
 function AccountTabs({ portal, page }: { portal: AuthPortal; page: "login" | "register" }) {
+  const t = useT();
   const keys = (Object.keys(PORTALS) as AuthPortal[]).filter((k) => page === "login" || PORTALS[k].register);
   return (
-    <nav aria-label="نوع الحساب" className="mb-8 border-b border-gold-light pb-8">
-      <p className="mb-2 text-sm font-bold text-ink-soft">{page === "login" ? "الدخول بصفتك" : "نوع الحساب"}</p>
+    <nav aria-label={t("نوع الحساب", "Account type")} className="mb-8 border-b border-gold-light pb-8">
+      <p className="mb-2 text-sm font-bold text-ink-soft">{page === "login" ? t("الدخول بصفتك", "Sign in as") : t("نوع الحساب", "Account type")}</p>
       <div className={cn("grid gap-1.5 rounded-2xl bg-sand p-1.5", keys.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
         {keys.map((k) => {
           const P = PORTALS[k];
@@ -114,7 +118,7 @@ function AccountTabs({ portal, page }: { portal: AuthPortal; page: "login" | "re
               aria-current={on ? "page" : undefined}
               className={cn("flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition", on ? "bg-green-dark text-white shadow" : "text-ink-soft hover:bg-white hover:text-ink")}
             >
-              <P.icon className={cn("size-4", on ? "text-gold" : "text-gold-dark")} /> {P.label}
+              <P.icon className={cn("size-4", on ? "text-gold" : "text-gold-dark")} /> {t(P.label, P.en)}
             </Link>
           );
         })}
@@ -138,11 +142,21 @@ export function StepTitle({ children, action, sub }: { children: ReactNode; acti
 
 // ───────────────────────── Fields ─────────────────────────
 
-const icon = "absolute right-4 top-1/2 size-5 -translate-y-1/2 text-gold-dark";
+const icon = "absolute start-4 top-1/2 size-5 -translate-y-1/2 text-gold-dark";
+
+/**
+ * The inputs are written left to right in both languages (digits, e-mail), so their padding cannot follow
+ * the page's direction by itself: the icon sits on the right in Arabic and on the left in English.
+ */
+function useAr() {
+  return useLang() === "ar";
+}
 
 export function NationalIdField({ value, onChange, error, hint, placeholder }: { value: string; onChange: (v: string) => void; error?: string | false; hint?: ReactNode; placeholder?: string }) {
+  const t = useT();
+  const ar = useAr();
   return (
-    <Field label="الرقم الوطني" hint={hint} error={error}>
+    <Field label={t("الرقم الوطني", "National ID")} hint={hint} error={error}>
       <div className="relative">
         <IdCard className={icon} />
         <input
@@ -153,20 +167,22 @@ export function NationalIdField({ value, onChange, error, hint, placeholder }: {
           autoComplete="username"
           value={value}
           onChange={(e) => onChange(digitsOnly(e.target.value))}
-          className={cn(inputClass, "pl-16 pr-12 text-left font-mono tracking-[.2em]")}
+          className={cn(inputClass, ar ? "pl-16 pr-12" : "pl-12 pr-16", "text-left font-mono tracking-[.2em]")}
         />
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-hint">{value.length}/11</span>
+        <span className="absolute end-4 top-1/2 -translate-y-1/2 text-xs text-hint">{value.length}/11</span>
       </div>
     </Field>
   );
 }
 
 export function UsernameField({ value, onChange, error, placeholder }: { value: string; onChange: (v: string) => void; error?: string | false; placeholder?: string }) {
+  const t = useT();
+  const ar = useAr();
   return (
-    <Field label="اسم المستخدم" error={error}>
+    <Field label={t("اسم المستخدم", "Username")} error={error}>
       <div className="relative">
         <UserRound className={icon} />
-        <input dir="ltr" autoComplete="username" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, "pr-12 text-left")} />
+        <input dir="ltr" autoComplete="username" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, ar ? "pr-12" : "pl-12", "text-left")} />
       </div>
     </Field>
   );
@@ -177,8 +193,8 @@ export function PhoneField({
   value,
   onChange,
   error,
-  label = "رقم الهاتف",
-  hint = "سيصلك عليه رمز تحقق برسالة نصية",
+  label,
+  hint,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -186,22 +202,26 @@ export function PhoneField({
   label?: string;
   hint?: string;
 }) {
+  const t = useT();
+  const ar = useAr();
   return (
-    <Field label={label} hint={hint} error={error}>
+    <Field label={label ?? t("رقم الهاتف", "Phone number")} hint={hint ?? t("سيصلك عليه رمز تحقق برسالة نصية", "We will text a verification code to this number")} error={error}>
       <div className="relative">
         <Phone className={icon} />
-        <input inputMode="tel" dir="ltr" maxLength={10} placeholder="09xxxxxxxx" autoComplete="tel" value={value} onChange={(e) => onChange(digitsOnly(e.target.value))} className={cn(inputClass, "pr-12 text-left font-mono tracking-widest")} />
+        <input inputMode="tel" dir="ltr" maxLength={10} placeholder="09xxxxxxxx" autoComplete="tel" value={value} onChange={(e) => onChange(digitsOnly(e.target.value))} className={cn(inputClass, ar ? "pr-12" : "pl-12", "text-left font-mono tracking-widest")} />
       </div>
     </Field>
   );
 }
 
 export function EmailField({ value, onChange, error, hint }: { value: string; onChange: (v: string) => void; error?: string | false; hint?: ReactNode }) {
+  const t = useT();
+  const ar = useAr();
   return (
-    <Field label="البريد الإلكتروني" optional hint={hint} error={error}>
+    <Field label={t("البريد الإلكتروني", "Email")} optional hint={hint} error={error}>
       <div className="relative">
         <Mail className={icon} />
-        <input type="email" dir="ltr" placeholder="name@example.com" autoComplete="email" value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, "pr-12 text-left")} />
+        <input type="email" dir="ltr" placeholder="name@example.com" autoComplete="email" value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, ar ? "pr-12" : "pl-12", "text-left")} />
       </div>
     </Field>
   );
@@ -209,14 +229,15 @@ export function EmailField({ value, onChange, error, hint }: { value: string; on
 
 /** With a show/hide eye; at account creation, a strength bar under it */
 export function PasswordField({ value, onChange, error, strength, autoComplete = "current-password" }: { value: string; onChange: (v: string) => void; error?: string | false; strength?: boolean; autoComplete?: string }) {
+  const t = useT();
   const [show, setShow] = useState(false);
   const level = Math.min(4, [/.{8,}/, /\d/, /[A-Za-z]/, /[^A-Za-z0-9]/].filter((r) => r.test(value)).length);
   return (
-    <Field label="كلمة المرور" error={error}>
+    <Field label={t("كلمة المرور", "Password")} error={error}>
       <div className="relative">
         <KeyRound className={icon} />
         <input type={show ? "text" : "password"} dir="ltr" autoComplete={autoComplete} value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, "px-12 text-left")} />
-        <button type="button" onClick={() => setShow((v) => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-hint hover:text-green-dark" aria-label={show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+        <button type="button" onClick={() => setShow((v) => !v)} className="absolute end-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-hint hover:text-green-dark" aria-label={show ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")}>
           {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
         </button>
       </div>
@@ -275,13 +296,14 @@ export function SwitchLine({ text, href, label }: { text: string; href: string; 
 
 /** The code sent by text message: at account creation and at every sign-in */
 export function OtpStep({ phone, confirm, onSuccess, onResend, back }: { phone?: string; confirm: string; onSuccess: () => void; onResend: () => void; back?: { label: string; onClick: () => void } }) {
+  const t = useT();
   const [otp, setOtp] = useState("");
   const [bad, setBad] = useState(false);
   const [resendIn, setResendIn] = useState(60);
   useEffect(() => {
     if (resendIn <= 0) return;
-    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
   }, [resendIn]);
   const verify = () => {
     if (otp !== DEMO_OTP) {
@@ -296,22 +318,22 @@ export function OtpStep({ phone, confirm, onSuccess, onResend, back }: { phone?:
       <motion.div initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} className="mx-auto grid size-20 place-items-center rounded-3xl bg-gold/30 text-4xl">
         📱
       </motion.div>
-      <h2 className="mt-5 font-display text-2xl font-bold text-green-dark md:text-3xl">أدخل رمز التحقق</h2>
+      <h2 className="mt-5 font-display text-2xl font-bold text-green-dark md:text-3xl">{t("أدخل رمز التحقق", "Enter the verification code")}</h2>
       <p className="mt-2 text-ink-soft">
-        أرسلنا رمزاً من 4 أرقام إلى{" "}
+        {t("أرسلنا رمزاً من 4 أرقام إلى", "We sent a 4-digit code to")}{" "}
         {phone ? (
           <>
-            الهاتف <span dir="ltr" className="font-mono font-bold text-ink">{phone.slice(0, 4)} ••• {phone.slice(-3)}</span>
+            {t("الهاتف", "the phone")} <span dir="ltr" className="font-mono font-bold text-ink">{phone.slice(0, 4)} ••• {phone.slice(-3)}</span>
           </>
         ) : (
-          "هاتفك المسجّل"
+          t("هاتفك المسجّل", "your registered phone")
         )}
       </p>
       <div className="mt-8">
         <OtpInput value={otp} onChange={setOtp} invalid={bad} />
       </div>
       <p className="mt-4 text-sm text-hint">
-        رمز النسخة التجريبية:{" "}
+        {t("رمز النسخة التجريبية:", "Demo code:")}{" "}
         <button type="button" onClick={() => setOtp(DEMO_OTP)} className="font-mono font-bold text-green-dark underline">
           {DEMO_OTP}
         </button>
@@ -329,7 +351,7 @@ export function OtpStep({ phone, confirm, onSuccess, onResend, back }: { phone?:
           }}
           className="text-sm font-semibold text-green-dark disabled:text-hint"
         >
-          {resendIn > 0 ? `إعادة الإرسال بعد ${resendIn} ثانية` : "إعادة إرسال الرمز"}
+          {resendIn > 0 ? t(`إعادة الإرسال بعد ${resendIn} ثانية`, `Resend in ${resendIn} seconds`) : t("إعادة إرسال الرمز", "Resend the code")}
         </button>
         {back && (
           <button type="button" onClick={back.onClick} className="text-sm text-hint hover:text-ink">
@@ -343,6 +365,7 @@ export function OtpStep({ phone, confirm, onSuccess, onResend, back }: { phone?:
 
 /** The person as the civil registry knows them, at account creation */
 export function CivilRecordCard({ person, rows }: { person: Person; rows: [string, string][] }) {
+  const t = useT();
   return (
     <>
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-dark to-green p-6 text-white">
@@ -352,7 +375,7 @@ export function CivilRecordCard({ person, rows }: { person: Person; rows: [strin
           <div>
             <p className="font-display text-2xl font-bold">{fullName(person)}</p>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-gold">
-              <BadgeCheck className="size-4" /> مؤكدة من الشؤون المدنية — {maskNationalId(person.id)}
+              <BadgeCheck className="size-4" /> {t("مؤكدة من الشؤون المدنية", "Confirmed by the Civil Registry")} — {maskNationalId(person.id)}
             </p>
           </div>
         </div>
@@ -387,13 +410,14 @@ export type DemoAccount = {
 
 /** For the demo only: every portal's ready-made accounts in the same box, under the sign-in card */
 export function DemoAccounts({ hint, groups, footer }: { hint: ReactNode; groups: { label?: string; items: DemoAccount[] }[]; footer?: ReactNode }) {
+  const t = useT();
   return (
     <section aria-labelledby="demo-accounts" className="rounded-[2rem] border-2 border-dashed border-gold-dark/50 bg-gold/10 p-5 md:p-7">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="demo-accounts" className="flex items-center gap-2 font-display text-xl font-bold text-maroon">
-          <FlaskConical className="size-5" /> حسابات تجريبية
+          <FlaskConical className="size-5" /> {t("حسابات تجريبية", "Demo accounts")}
         </h2>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink-soft">للنسخة التجريبية فقط</span>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink-soft">{t("للنسخة التجريبية فقط", "For the demo only")}</span>
       </div>
       <p className="mt-1 text-sm leading-7 text-ink-soft">{hint}</p>
       {groups.map((g, gi) => (
@@ -407,7 +431,7 @@ export function DemoAccounts({ hint, groups, footer }: { hint: ReactNode; groups
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={a.onPick}
-                  className="group flex h-full w-full flex-col rounded-2xl bg-white p-4 text-right shadow-sm ring-1 ring-gold/30 transition hover:shadow-md hover:ring-green-dark/40"
+                  className="group flex h-full w-full flex-col rounded-2xl bg-white p-4 text-start shadow-sm ring-1 ring-gold/30 transition hover:shadow-md hover:ring-green-dark/40"
                 >
                   <span className="flex items-start gap-3">
                     <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-gold to-gold-dark font-display text-lg font-bold text-ink">{a.initial}</span>
@@ -435,7 +459,7 @@ export function DemoAccounts({ hint, groups, footer }: { hint: ReactNode; groups
                     </span>
                   )}
                   <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-bold text-green-dark">
-                    <Zap className="size-3.5 transition group-hover:scale-125" /> دخول فوري
+                    <Zap className="size-3.5 transition group-hover:scale-125" /> {t("دخول فوري", "Instant sign-in")}
                   </span>
                 </motion.button>
               </li>

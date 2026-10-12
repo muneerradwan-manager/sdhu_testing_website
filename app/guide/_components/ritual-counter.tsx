@@ -5,7 +5,9 @@ import { Info, PartyPopper, RotateCcw, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SpeakButton } from "@/components/ui/widgets";
 import { SAI_LAPS, SAI_SAFA_DUA, TAWAF_BETWEEN_CORNERS, TAWAF_ROUNDS } from "@/lib/data/guide";
+import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { SAI_LAPS_EN, TAWAF_HINTS_EN } from "./guide-en";
 
 async function burst() {
   const confetti = (await import("canvas-confetti")).default;
@@ -16,25 +18,26 @@ async function burst() {
 
 export function RitualCounter() {
   const [mode, setMode] = useState<"tawaf" | "sai">("tawaf");
+  const t = useT();
   return (
     <div>
-      <div role="tablist" aria-label="نوع العدّاد" className="mx-auto flex w-fit gap-1 rounded-2xl border border-gold/40 bg-white p-1 shadow-sm">
+      <div role="tablist" aria-label={t("نوع العدّاد", "Counter type")} className="mx-auto flex w-fit gap-1 rounded-2xl border border-gold/40 bg-white p-1 shadow-sm">
         {(
           [
-            { id: "tawaf", label: "عدّاد الطواف" },
-            { id: "sai", label: "عدّاد السعي" },
+            { id: "tawaf", label: t("عدّاد الطواف", "Tawaf counter") },
+            { id: "sai", label: t("عدّاد السعي", "Sa'i counter") },
           ] as const
-        ).map((t) => (
+        ).map((tab) => (
           <button
-            key={t.id}
+            key={tab.id}
             type="button"
             role="tab"
-            aria-selected={mode === t.id}
-            onClick={() => setMode(t.id)}
-            className={cn("relative rounded-xl px-6 py-2.5 font-bold transition-colors", mode === t.id ? "text-white" : "text-ink-soft hover:text-green-dark")}
+            aria-selected={mode === tab.id}
+            onClick={() => setMode(tab.id)}
+            className={cn("relative rounded-xl px-6 py-2.5 font-bold transition-colors", mode === tab.id ? "text-white" : "text-ink-soft hover:text-green-dark")}
           >
-            {mode === t.id && <motion.span layoutId="ritual-pill" className="absolute inset-0 rounded-xl bg-green-dark" transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
-            <span className="relative">{t.label}</span>
+            {mode === tab.id && <motion.span layoutId="ritual-pill" className="absolute inset-0 rounded-xl bg-green-dark" transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
+            <span className="relative">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -69,6 +72,8 @@ function segmentPath(i: number) {
 }
 
 function TawafCounter() {
+  const t = useT();
+  const rtl = useLang() === "ar";
   const [count, setCount] = useState(0);
   const progress = useMotionValue(0);
   const running = useRef<ReturnType<typeof animate> | null>(null);
@@ -111,11 +116,12 @@ function TawafCounter() {
   };
 
   const round = TAWAF_ROUNDS[Math.min(count, 6)];
+  const hint = rtl ? round.hint : TAWAF_HINTS_EN[Math.min(count, 6)];
 
   return (
     <div className="grid items-center gap-8 lg:grid-cols-2">
       <div className="relative mx-auto w-full max-w-[440px]">
-        <svg viewBox="-12 -12 344 344" className="w-full drop-shadow-[0_30px_40px_rgba(2,21,38,.25)]" role="img" aria-label={`رسم الكعبة من الأعلى، أتممت ${count} من 7 أشواط`}>
+        <svg viewBox="-12 -12 344 344" className="w-full drop-shadow-[0_30px_40px_rgba(2,21,38,.25)]" role="img" aria-label={t(`رسم الكعبة من الأعلى، أتممت ${count} من 7 أشواط`, `The Kaaba seen from above: ${count} of 7 rounds done`)}>
           <defs>
             <radialGradient id="mataf" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#ffffff" />
@@ -182,7 +188,7 @@ function TawafCounter() {
 
           {/* Hijr Ismail */}
           <path d="M 118 108 A 44 40 0 0 1 202 108" fill="none" stroke="#021526" strokeOpacity=".55" strokeWidth="6" strokeLinecap="round" />
-          <text x={C} y={60} textAnchor="middle" fontSize="10" fill="#4A4A4A" fontWeight="700">حِجر إسماعيل</text>
+          <text x={C} y={60} textAnchor="middle" fontSize="10" fill="#4A4A4A" fontWeight="700">{t("حِجر إسماعيل", "Hijr Isma'il")}</text>
 
           {/* Kaaba */}
           <g>
@@ -195,13 +201,13 @@ function TawafCounter() {
           {/* Maqam Ibrahim */}
           <g>
             <circle cx={238} cy={146} r={7} fill="#D9C89E" stroke="#AD9E6E" strokeWidth="2" />
-            <text x={238} y={128} textAnchor="middle" fontSize="9" fill="#4A4A4A" fontWeight="700">المقام</text>
+            <text x={238} y={128} textAnchor="middle" fontSize="9" fill="#4A4A4A" fontWeight="700">{t("المقام", "Maqam")}</text>
           </g>
           {/* corners */}
           <circle cx={204} cy={204} r={6} fill="#672146" stroke="#fff" strokeWidth="2" />
-          <text x={214} y={228} fontSize="10" fill="#672146" fontWeight="800">الحجر الأسود</text>
+          <text x={214} y={228} fontSize="10" fill="#672146" fontWeight="800">{t("الحجر الأسود", "Black Stone")}</text>
           <circle cx={116} cy={204} r={4} fill="#AD9E6E" />
-          <text x={108} y={226} textAnchor="end" fontSize="10" fill="#4A4A4A" fontWeight="700">الركن اليماني</text>
+          <text x={108} y={226} textAnchor="end" fontSize="10" fill="#4A4A4A" fontWeight="700">{t("الركن اليماني", "Yemeni Corner")}</text>
 
           {/* pilgrim */}
           <motion.circle cx={dotX} cy={dotY} r={11} fill="#289E92" opacity=".25" filter="url(#glow)" />
@@ -212,7 +218,7 @@ function TawafCounter() {
             {count}/7
           </text>
         </svg>
-        <p className="mt-2 text-center text-xs text-hint">الاتجاه عكس عقارب الساعة، والكعبة عن يسارك</p>
+        <p className="mt-2 text-center text-xs text-hint">{t("الاتجاه عكس عقارب الساعة، والكعبة عن يسارك", "Go anticlockwise, with the Kaaba on your left")}</p>
       </div>
 
       <div>
@@ -227,25 +233,28 @@ function TawafCounter() {
             >
               <div className="bg-pattern absolute inset-0 opacity-15" />
               <PartyPopper className="relative size-10 text-gold" />
-              <p className="relative mt-3 font-display text-3xl font-bold">تقبّل الله طوافك</p>
+              <p className="relative mt-3 font-display text-3xl font-bold">{t("تقبّل الله طوافك", "May Allah accept your Tawaf")}</p>
               <p className="relative mt-3 leading-8 text-white/85">
-                أتممت سبعة أشواط. غطِّ كتفك الأيمن إن كنت مضطبعاً، ثم صلِّ ركعتين خلف مقام إبراهيم إن تيسّر، واشرب من ماء زمزم.
+                {t(
+                  "أتممت سبعة أشواط. غطِّ كتفك الأيمن إن كنت مضطبعاً، ثم صلِّ ركعتين خلف مقام إبراهيم إن تيسّر، واشرب من ماء زمزم.",
+                  "You have completed seven rounds. Cover your right shoulder if it was bare, then pray two rak'ahs behind Maqam Ibrahim if you can, and drink Zamzam water.",
+                )}
               </p>
               <button type="button" onClick={reset} className="relative mt-6 inline-flex items-center gap-2 rounded-2xl bg-gold px-5 py-3 font-bold text-ink hover:bg-white">
-                <RotateCcw className="size-4" /> طواف جديد
+                <RotateCcw className="size-4" /> {t("طواف جديد", "New Tawaf")}
               </button>
             </motion.div>
           ) : (
-            <motion.div key={count} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.35 }}>
-              <p className="text-sm font-bold text-maroon">{count === 0 ? "ابدأ من خط الحجر الأسود" : `أتممت ${count} من 7`}</p>
-              <h3 className="mt-1 font-display text-3xl font-bold text-green-dark">الشوط {count + 1} من 7</h3>
-              <p className="mt-3 leading-8 text-ink-soft">{round.hint}</p>
+            <motion.div key={count} initial={{ opacity: 0, x: rtl ? -20 : 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: rtl ? 20 : -20 }} transition={{ duration: 0.35 }}>
+              <p className="text-sm font-bold text-maroon">{count === 0 ? t("ابدأ من خط الحجر الأسود", "Start from the Black Stone line") : t(`أتممت ${count} من 7`, `${count} of 7 done`)}</p>
+              <h3 className="mt-1 font-display text-3xl font-bold text-green-dark">{t(`الشوط ${count + 1} من 7`, `Round ${count + 1} of 7`)}</h3>
+              <p className="mt-3 leading-8 text-ink-soft">{hint}</p>
               <div className="mt-5 rounded-3xl border border-gold/40 bg-white p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-gold-dark">دعاء مقترح</span>
+                  <span className="text-xs font-bold text-gold-dark">{t("دعاء مقترح", "Suggested dua")}</span>
                   <SpeakButton text={round.dua} className="px-3 py-1.5" />
                 </div>
-                <p className="mt-2 font-quran text-2xl leading-[2.2] text-ink">{round.dua}</p>
+                <p dir="rtl" className="mt-2 font-quran text-2xl leading-[2.2] text-ink">{round.dua}</p>
               </div>
             </motion.div>
           )}
@@ -260,9 +269,9 @@ function TawafCounter() {
               className="relative inline-flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-green-dark px-6 py-4 text-lg font-bold text-white shadow-[0_14px_30px_-12px_rgba(0,89,79,.8)] transition hover:bg-green sm:flex-none"
             >
               <span className="absolute inset-0 animate-pulse-ring rounded-2xl text-green-light" />
-              أتممت الشوط {count + 1}
+              {t(`أتممت الشوط ${count + 1}`, `Round ${count + 1} done`)}
             </motion.button>
-            <button type="button" onClick={undo} disabled={count === 0} aria-label="تراجع عن آخر شوط" className="grid size-14 place-items-center rounded-2xl border-2 border-green-dark/15 text-green-dark hover:border-green-dark disabled:opacity-40">
+            <button type="button" onClick={undo} disabled={count === 0} aria-label={t("تراجع عن آخر شوط", "Undo the last round")} className="grid size-14 place-items-center rounded-2xl border-2 border-green-dark/15 text-green-dark hover:border-green-dark disabled:opacity-40">
               <Undo2 className="size-5" />
             </button>
           </div>
@@ -271,8 +280,11 @@ function TawafCounter() {
         <div className="mt-6 flex items-start gap-3 rounded-2xl bg-gold-light/60 p-4 text-sm leading-7 text-ink-soft">
           <Info className="mt-1 size-5 shrink-0 text-gold-dark" />
           <p>
-            لا يثبت دعاء مخصوص لكل شوط؛ هذه أدعية عامة مقترحة، وادعُ بما تحب. وبين الركن اليماني والحجر الأسود قل:{" "}
-            <span className="font-quran text-lg text-green-dark">«{TAWAF_BETWEEN_CORNERS}»</span>
+            {t(
+              "لا يثبت دعاء مخصوص لكل شوط؛ هذه أدعية عامة مقترحة، وادعُ بما تحب. وبين الركن اليماني والحجر الأسود قل:",
+              "There is no set dua for each round; these are general suggestions, so pray for whatever you wish. Between the Yemeni Corner and the Black Stone, say:",
+            )}{" "}
+            <span dir="rtl" className="font-quran text-lg text-green-dark">«{TAWAF_BETWEEN_CORNERS}»</span>
           </p>
         </div>
       </div>
@@ -288,6 +300,8 @@ const GREEN_FROM = 214; // green lights, nearer to Safa
 const GREEN_TO = 156;
 
 function SaiCounter() {
+  const t = useT();
+  const rtl = useLang() === "ar";
   const [count, setCount] = useState(0);
   const done = count >= 7;
   const atSafa = count % 2 === 0;
@@ -301,19 +315,19 @@ function SaiCounter() {
     if (n === 7) setTimeout(() => void burst(), 2200);
   };
 
-  const lap = SAI_LAPS[Math.min(count, 6)];
+  const lap = (rtl ? SAI_LAPS : SAI_LAPS_EN)[Math.min(count, 6)];
   const goingToMarwa = count % 2 === 0;
 
   return (
     <div className="grid items-center gap-8 lg:grid-cols-2">
       <div className="mx-auto w-full max-w-[520px]">
-        <svg viewBox="0 0 380 220" className="w-full drop-shadow-[0_30px_40px_rgba(2,21,38,.2)]" role="img" aria-label={`مسار السعي بين الصفا والمروة، أتممت ${count} من 7 أشواط`}>
+        <svg viewBox="0 0 380 220" className="w-full drop-shadow-[0_30px_40px_rgba(2,21,38,.2)]" role="img" aria-label={t(`مسار السعي بين الصفا والمروة، أتممت ${count} من 7 أشواط`, `The Sa'i path between Safa and Marwah: ${count} of 7 laps done`)}>
           <rect x="4" y="30" width="372" height="160" rx="28" fill="#fff" stroke="#D9C89E" strokeWidth="1.5" />
           {/* hills */}
           <path d={`M ${SAFA_X - 34} 150 Q ${SAFA_X} 70 ${SAFA_X + 44} 150 Z`} fill="#AD9E6E" opacity=".55" />
           <path d={`M ${MARWA_X - 44} 150 Q ${MARWA_X} 78 ${MARWA_X + 34} 150 Z`} fill="#AD9E6E" opacity=".55" />
-          <text x={SAFA_X} y={58} textAnchor="middle" fontSize="15" fontWeight="800" fill="#00594F">الصفا</text>
-          <text x={MARWA_X} y={58} textAnchor="middle" fontSize="15" fontWeight="800" fill="#00594F">المروة</text>
+          <text x={SAFA_X} y={58} textAnchor="middle" fontSize="15" fontWeight="800" fill="#00594F">{t("الصفا", "Safa")}</text>
+          <text x={MARWA_X} y={58} textAnchor="middle" fontSize="15" fontWeight="800" fill="#00594F">{t("المروة", "Marwah")}</text>
 
           {/* corridor */}
           <rect x={MARWA_X} y="118" width={SAFA_X - MARWA_X} height="26" rx="13" fill="#F7F4EF" stroke="#E4DDD3" />
@@ -336,7 +350,7 @@ function SaiCounter() {
               <motion.circle cx={x} cy="90" r="6" fill="#289E92" animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 1.2, repeat: Infinity }} />
             </g>
           ))}
-          <text x={(GREEN_FROM + GREEN_TO) / 2} y="176" textAnchor="middle" fontSize="10" fontWeight="700" fill="#016D5D">العلمان الأخضران: يُسرع الرجل</text>
+          <text x={(GREEN_FROM + GREEN_TO) / 2} y="176" textAnchor="middle" fontSize="10" fontWeight="700" fill="#016D5D">{t("العلمان الأخضران: يُسرع الرجل", "Green markers: men hurry")}</text>
 
           {/* lap dots */}
           {Array.from({ length: 7 }, (_, i) => (
@@ -362,7 +376,9 @@ function SaiCounter() {
             <circle cx="0" cy="131" r="8" fill="#00594F" stroke="#fff" strokeWidth="2.5" />
           </motion.g>
         </svg>
-        <p className="mt-2 text-center text-xs text-hint">يبدأ السعي بالصفا وينتهي بالمروة، والذهاب شوط والعودة شوط</p>
+        <p className="mt-2 text-center text-xs text-hint">
+          {t("يبدأ السعي بالصفا وينتهي بالمروة، والذهاب شوط والعودة شوط", "Sa'i starts at Safa and ends at Marwah; going is one lap and returning is another")}
+        </p>
       </div>
 
       <div>
@@ -377,23 +393,30 @@ function SaiCounter() {
             >
               <div className="bg-pattern absolute inset-0 opacity-15" />
               <PartyPopper className="relative size-10 text-gold" />
-              <p className="relative mt-3 font-display text-3xl font-bold">تقبّل الله سعيك</p>
-              <p className="relative mt-3 leading-8 text-white/85">انتهيت عند المروة بعد سبعة أشواط. إن كانت عمرة فاحلق أو قصّر، وتقص المرأة قدر أنملة.</p>
+              <p className="relative mt-3 font-display text-3xl font-bold">{t("تقبّل الله سعيك", "May Allah accept your Sa'i")}</p>
+              <p className="relative mt-3 leading-8 text-white/85">
+                {t(
+                  "انتهيت عند المروة بعد سبعة أشواط. إن كانت عمرة فاحلق أو قصّر، وتقص المرأة قدر أنملة.",
+                  "You finished at Marwah after seven laps. If this is Umrah, shave or shorten your hair; a woman cuts a fingertip's length.",
+                )}
+              </p>
               <button type="button" onClick={() => setCount(0)} className="relative mt-6 inline-flex items-center gap-2 rounded-2xl bg-gold px-5 py-3 font-bold text-ink hover:bg-white">
-                <RotateCcw className="size-4" /> سعي جديد
+                <RotateCcw className="size-4" /> {t("سعي جديد", "New Sa'i")}
               </button>
             </motion.div>
           ) : (
-            <motion.div key={count} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.35 }}>
-              <p className="text-sm font-bold text-maroon">{goingToMarwa ? "من الصفا ← إلى المروة" : "من المروة ← إلى الصفا"}</p>
-              <h3 className="mt-1 font-display text-3xl font-bold text-green-dark">الشوط {count + 1} من 7</h3>
+            <motion.div key={count} initial={{ opacity: 0, x: rtl ? -20 : 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: rtl ? 20 : -20 }} transition={{ duration: 0.35 }}>
+              <p className="text-sm font-bold text-maroon">
+                {goingToMarwa ? t("من الصفا ← إلى المروة", "From Safa → to Marwah") : t("من المروة ← إلى الصفا", "From Marwah → to Safa")}
+              </p>
+              <h3 className="mt-1 font-display text-3xl font-bold text-green-dark">{t(`الشوط ${count + 1} من 7`, `Lap ${count + 1} of 7`)}</h3>
               <p className="mt-3 leading-8 text-ink-soft">{lap}</p>
               <div className="mt-5 rounded-3xl border border-gold/40 bg-white p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-gold-dark">على الصفا والمروة (مستقبلاً الكعبة)</span>
+                  <span className="text-xs font-bold text-gold-dark">{t("على الصفا والمروة (مستقبلاً الكعبة)", "On Safa and Marwah (facing the Kaaba)")}</span>
                   <SpeakButton text={SAI_SAFA_DUA} className="px-3 py-1.5" />
                 </div>
-                <p className="mt-2 font-quran text-xl leading-[2.2] text-ink">{SAI_SAFA_DUA}</p>
+                <p dir="rtl" className="mt-2 font-quran text-xl leading-[2.2] text-ink">{SAI_SAFA_DUA}</p>
               </div>
             </motion.div>
           )}
@@ -408,13 +431,13 @@ function SaiCounter() {
               className="relative inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-green-dark px-6 py-4 text-lg font-bold text-white shadow-[0_14px_30px_-12px_rgba(0,89,79,.8)] transition hover:bg-green sm:flex-none"
             >
               <span className="absolute inset-0 animate-pulse-ring rounded-2xl text-green-light" />
-              {goingToMarwa ? "وصلت إلى المروة" : "وصلت إلى الصفا"}
+              {goingToMarwa ? t("وصلت إلى المروة", "I reached Marwah") : t("وصلت إلى الصفا", "I reached Safa")}
             </motion.button>
             <button
               type="button"
               onClick={() => setCount((c) => Math.max(0, c - 1))}
               disabled={count === 0}
-              aria-label="تراجع عن آخر شوط"
+              aria-label={t("تراجع عن آخر شوط", "Undo the last lap")}
               className="grid size-14 place-items-center rounded-2xl border-2 border-green-dark/15 text-green-dark hover:border-green-dark disabled:opacity-40"
             >
               <Undo2 className="size-5" />

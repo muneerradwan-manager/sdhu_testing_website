@@ -10,7 +10,7 @@ export function ReadingProgress() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[75] h-1 bg-ink/5 print:hidden" aria-hidden>
       <motion.div
-        className="h-full origin-right bg-gradient-to-l from-green-light via-gold to-maroon"
+        className="h-full origin-right bg-gradient-to-l from-green-light via-gold to-maroon ltr:origin-left ltr:bg-gradient-to-r"
         style={{ scaleX, opacity: glow, boxShadow: "0 0 12px rgba(217,200,158,.8)" }}
       />
     </div>

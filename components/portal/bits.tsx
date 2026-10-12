@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Check, FlaskConical, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useT } from "@/lib/i18n";
 import { DEMO_SCENARIOS } from "@/lib/registry";
 import { cn, digitsOnly } from "@/lib/utils";
 
@@ -10,6 +11,7 @@ export const DEMO_OTP = "1448";
 
 /** Big, forgiving one-time-code boxes: auto-advance, paste support, numeric keyboard */
 export function OtpInput({ value, onChange, length = 4, invalid }: { value: string; onChange: (v: string) => void; length?: number; invalid?: boolean }) {
+  const t = useT();
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const digits = Array.from({ length }, (_, i) => value[i] ?? "");
 
@@ -36,7 +38,7 @@ export function OtpInput({ value, onChange, length = 4, invalid }: { value: stri
           autoComplete={i === 0 ? "one-time-code" : "off"}
           maxLength={1}
           value={d}
-          aria-label={`الرقم ${i + 1}`}
+          aria-label={t(`الرقم ${i + 1}`, `Digit ${i + 1}`)}
           onChange={(e) => {
             const v = digitsOnly(e.target.value).slice(-1);
             set(i, v);
@@ -179,11 +181,12 @@ export function Field({
   children: ReactNode;
   optional?: boolean;
 }) {
+  const t = useT();
   return (
     <label className="block">
       <span className="mb-2 flex items-center gap-2 font-bold text-ink">
         {label}
-        {optional && <span className="rounded-full bg-sand px-2 py-0.5 text-xs font-medium text-hint">اختياري</span>}
+        {optional && <span className="rounded-full bg-sand px-2 py-0.5 text-xs font-medium text-hint">{t("اختياري", "Optional")}</span>}
       </span>
       {children}
       <AnimatePresence mode="wait">

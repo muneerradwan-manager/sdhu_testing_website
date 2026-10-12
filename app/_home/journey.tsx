@@ -6,11 +6,14 @@ import { useCallback, useEffect, useRef } from "react";
 import { CmsIcon, list, str } from "@/components/cms/bits";
 import { SectionHeading } from "@/components/ui/motion";
 import { useSection } from "@/lib/cms/store";
+import { useLang } from "@/lib/i18n";
 
 type Step = { icon: string; title: string; text: string; when: string };
 
 export function Journey() {
   const v = useSection("home", "journey");
+  // Left to right in English: the track, the plane and the cards change sides
+  const en = useLang() === "en";
   const steps = list<Step>(v, "steps");
   const ref = useRef<HTMLDivElement>(null);
   // Progress = how far the line at 55% of the screen height has travelled down the track, so the plane
@@ -41,12 +44,12 @@ export function Journey() {
 
         <div ref={ref} className="relative">
           {/* Track */}
-          <div className="absolute bottom-0 right-7 top-0 w-1 rounded-full bg-gold-light md:right-1/2 md:translate-x-1/2" />
+          <div className="absolute bottom-0 start-7 top-0 w-1 rounded-full bg-gold-light md:start-1/2 md:translate-x-1/2 ltr:md:-translate-x-1/2" />
           <motion.div
             style={{ scaleY: progress }}
-            className="absolute bottom-0 right-7 top-0 w-1 origin-top rounded-full bg-gradient-to-b from-green-light via-green-dark to-gold-dark md:right-1/2 md:translate-x-1/2"
+            className="absolute bottom-0 start-7 top-0 w-1 origin-top rounded-full bg-gradient-to-b from-green-light via-green-dark to-gold-dark md:start-1/2 md:translate-x-1/2 ltr:md:-translate-x-1/2"
           />
-          <motion.div style={{ top: planeTop }} className="absolute right-7 z-10 -translate-y-1/2 translate-x-1/2 md:right-1/2">
+          <motion.div style={{ top: planeTop }} className="absolute start-7 z-10 -translate-y-1/2 translate-x-1/2 ltr:-translate-x-1/2 md:start-1/2">
             <span className="grid size-10 place-items-center rounded-full bg-gold text-ink shadow-lg shadow-gold-dark/30 ring-4 ring-sand">
               <Plane className="size-5 rotate-90" />
             </span>
@@ -58,14 +61,14 @@ export function Journey() {
               return (
                 <motion.div
                   key={`${s.title}-${i}`}
-                  initial={{ opacity: 0, x: left ? -50 : 50 }}
+                  initial={{ opacity: 0, x: (left ? -50 : 50) * (en ? -1 : 1) }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: "-80px" }}
                   transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                  className={`relative flex pr-20 md:w-1/2 md:pr-0 ${left ? "md:mr-auto md:pr-14" : "md:pl-14"}`}
+                  className={`relative flex ps-20 md:w-1/2 md:ps-0 ${left ? "md:ms-auto md:ps-14" : "md:pe-14"}`}
                 >
                   <span
-                    className={`absolute right-3 top-6 grid size-9 place-items-center rounded-full border-4 border-sand bg-green-dark font-display text-sm font-bold text-gold md:top-8 ${left ? "md:-right-[18px]" : "md:-left-[18px] md:right-auto"}`}
+                    className={`absolute start-3 top-6 grid size-9 place-items-center rounded-full border-4 border-sand bg-green-dark font-display text-sm font-bold text-gold md:top-8 ${left ? "md:-start-[18px]" : "md:-end-[18px] md:start-auto"}`}
                   >
                     {i + 1}
                   </span>

@@ -1,3 +1,4 @@
+import type { Lang } from "@/lib/i18n";
 import { CITIES, PRAYERS, prayerTimes, type City, type PrayerKey } from "@/lib/prayer";
 
 /**
@@ -49,22 +50,22 @@ export function schedule(city: City, nowMs: number) {
   return { today, next, prev, progress, remaining: Math.max(0, next.time.getTime() - nowMs) };
 }
 
-const timeFmt = new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: ZONE });
-const clockFmt = new Intl.DateTimeFormat("ar-SY-u-nu-latn", {
-  hour: "numeric",
-  minute: "2-digit",
-  second: "2-digit",
-  hour12: true,
-  timeZone: ZONE,
-});
+const LOCALE: Record<Lang, string> = { ar: "ar-SY-u-nu-latn", en: "en-GB" };
 
-export function fmtTime(d: Date) {
-  return timeFmt.format(d);
+const timeFmt = {
+  ar: new Intl.DateTimeFormat(LOCALE.ar, { hour: "numeric", minute: "2-digit", hour12: true, timeZone: ZONE }),
+  en: new Intl.DateTimeFormat(LOCALE.en, { hour: "numeric", minute: "2-digit", hour12: true, timeZone: ZONE }),
+};
+const clockOptions: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: ZONE };
+const clockFmt = { ar: new Intl.DateTimeFormat(LOCALE.ar, clockOptions), en: new Intl.DateTimeFormat(LOCALE.en, clockOptions) };
+
+export function fmtTime(d: Date, lang: Lang = "ar") {
+  return timeFmt[lang].format(d);
 }
 
-/** "4:32" + "م" split, so the period can be styled smaller */
-export function timeParts(d: Date, seconds = false) {
-  const parts = (seconds ? clockFmt : timeFmt).formatToParts(d);
+/** "4:32" + "م" (or "pm") split, so the period can be styled smaller */
+export function timeParts(d: Date, seconds = false, lang: Lang = "ar") {
+  const parts = (seconds ? clockFmt : timeFmt)[lang].formatToParts(d);
   const period = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
   const time = parts
     .filter((p) => p.type !== "dayPeriod")
@@ -82,14 +83,59 @@ export function countdown(ms: number) {
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
-export function humanRemaining(ms: number) {
+export function humanRemaining(ms: number, lang: Lang = "ar") {
   const mins = Math.ceil(ms / 60_000);
-  if (mins < 1) return "الآن";
+  if (mins < 1) return lang === "en" ? "now" : "الآن";
   const h = Math.floor(mins / 60);
   const m = mins % 60;
+  if (lang === "en") {
+    const hours = h === 0 ? "" : h === 1 ? "1 hour" : `${h} hours`;
+    const minutes = m === 0 ? "" : m === 1 ? "1 minute" : `${m} minutes`;
+    return [hours, minutes].filter(Boolean).join(" and ");
+  }
   const hs = h === 0 ? "" : h === 1 ? "ساعة" : h === 2 ? "ساعتين" : h <= 10 ? `${h} ساعات` : `${h} ساعة`;
   const ms_ = m === 0 ? "" : m === 1 ? "دقيقة" : m === 2 ? "دقيقتين" : m <= 10 ? `${m} دقائق` : `${m} دقيقة`;
   return [hs, ms_].filter(Boolean).join(" و");
+}
+
+const HIJRI_MONTHS_EN = [
+  "Muharram",
+  "Safar",
+  "Rabi' al-Awwal",
+  "Rabi' al-Thani",
+  "Jumada al-Ula",
+  "Jumada al-Akhirah",
+  "Rajab",
+  "Sha'ban",
+  "Ramadan",
+  "Shawwal",
+  "Dhu al-Qa'dah",
+  "Dhu al-Hijjah",
+];
+
+const hijriParts = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "numeric", year: "numeric", timeZone: ZONE });
+
+/** A Hijri date in English with the usual month names: "12 Dhu al-Hijjah 1447 AH" */
+function hijriEn(d: Date, withYear: boolean) {
+  const parts = hijriParts.formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const month = HIJRI_MONTHS_EN[Number(get("month")) - 1] ?? get("month");
+  return withYear ? `${get("day")} ${month} ${get("year")} AH` : `${get("day")} ${month}`;
+}
+
+type DateFmt = { format: (d: Date) => string };
+
+const enFmt = {
+  hijri: { format: (d: Date) => hijriEn(d, true) },
+  hijriShort: { format: (d: Date) => hijriEn(d, false) },
+  gregorian: new Intl.DateTimeFormat(LOCALE.en, { day: "numeric", month: "long", year: "numeric", timeZone: ZONE }),
+  gregorianShort: new Intl.DateTimeFormat(LOCALE.en, { day: "numeric", month: "short", timeZone: ZONE }),
+  weekday: new Intl.DateTimeFormat(LOCALE.en, { weekday: "long", timeZone: ZONE }),
+};
+
+/** The page's date formats in its language */
+export function datesIn(lang: Lang): Record<"hijri" | "hijriShort" | "gregorian" | "gregorianShort" | "weekday", DateFmt> {
+  return lang === "en" ? enFmt : dateFmt;
 }
 
 export const dateFmt = {

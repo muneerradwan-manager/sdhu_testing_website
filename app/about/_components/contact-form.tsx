@@ -8,31 +8,35 @@ import { useSection } from "@/lib/cms/store";
 import type { Branch } from "@/lib/cms/site";
 import { useToast } from "@/components/ui/widgets";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 import { cn, sleep } from "@/lib/utils";
+
+type T = ReturnType<typeof useT>;
 
 type Values = { name: string; phone: string; email: string; subject: string; branch: string; message: string };
 type Errors = Partial<Record<keyof Values, string>>;
 
 const EMPTY: Values = { name: "", phone: "", email: "", subject: "", branch: "", message: "" };
 
-function validate(v: Values): Errors {
+function validate(v: Values, t: T): Errors {
   const e: Errors = {};
-  if (v.name.trim().split(/\s+/).filter(Boolean).length < 2) e.name = "اكتب اسمك الثنائي على الأقل.";
-  if (!/^09\d{8}$/.test(v.phone.replace(/[\s-]/g, ""))) e.phone = "رقم الجوال يبدأ بـ 09 ويتكون من 10 أرقام.";
-  if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) e.email = "البريد الإلكتروني غير صحيح.";
-  if (!v.subject) e.subject = "اختر موضوع الرسالة.";
-  if (v.message.trim().length < 20) e.message = "اكتب رسالتك بعشرين حرفاً على الأقل.";
+  if (v.name.trim().split(/\s+/).filter(Boolean).length < 2) e.name = t("اكتب اسمك الثنائي على الأقل.", "Enter at least your first and last name.");
+  if (!/^09\d{8}$/.test(v.phone.replace(/[\s-]/g, ""))) e.phone = t("رقم الجوال يبدأ بـ 09 ويتكون من 10 أرقام.", "The mobile number starts with 09 and has 10 digits.");
+  if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) e.email = t("البريد الإلكتروني غير صحيح.", "The email address is not valid.");
+  if (!v.subject) e.subject = t("اختر موضوع الرسالة.", "Choose a subject for your message.");
+  if (v.message.trim().length < 20) e.message = t("اكتب رسالتك بعشرين حرفاً على الأقل.", "Write at least 20 characters.");
   return e;
 }
 
 function Field({ label, error, optional, children, id, hint }: { label: string; error?: string; optional?: boolean; children: ReactNode; id: string; hint?: string }) {
+  const t = useT();
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 flex items-center justify-between text-sm font-semibold text-ink">
         <span>
           {label} {!optional && <span className="text-maroon">*</span>}
         </span>
-        {optional && <span className="text-xs font-normal text-hint">اختياري</span>}
+        {optional && <span className="text-xs font-normal text-hint">{t("اختياري", "Optional")}</span>}
         {hint && <span className="text-xs font-normal text-hint">{hint}</span>}
       </label>
       {children}
@@ -61,6 +65,7 @@ const inputCls = (err?: string) =>
   );
 
 export function ContactForm() {
+  const t = useT();
   const BRANCHES = list<Branch>(useSection("about", "branches"), "items");
   const CONTACT_SUBJECTS = list<{ text: string }>(useSection("about", "contact"), "subjects").map((x) => x.text);
   const uid = useId();
@@ -76,13 +81,13 @@ export function ContactForm() {
   const set = (k: keyof Values) => (e: { target: { value: string } }) => {
     const next = { ...values, [k]: e.target.value };
     setValues(next);
-    if (touched) setErrors(validate(next));
+    if (touched) setErrors(validate(next, t));
   };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setTouched(true);
-    const errs = validate(values);
+    const errs = validate(values, t);
     setErrors(errs);
     if (Object.keys(errs).length) {
       animate(scope.current, { x: [0, -10, 10, -6, 6, 0] }, { duration: 0.45 });
@@ -95,7 +100,7 @@ export function ContactForm() {
     const n = `SDH-1448-${String(Math.floor(10000 + Math.random() * 89999))}`;
     setTicket(n);
     setLoading(false);
-    toast({ title: "وصلت رسالتك", body: `رقم التذكرة ${n}. سنرد عليك خلال يومي عمل.`, tone: "success", icon: "✅" });
+    toast({ title: t("وصلت رسالتك", "Your message has arrived"), body: t(`رقم التذكرة ${n}. سنرد عليك خلال يومي عمل.`, `Ticket number ${n}. We will reply within two working days.`), tone: "success", icon: "✅" });
   };
 
   const reset = () => {
@@ -112,7 +117,7 @@ export function ContactForm() {
     } catch {
       /* ignore */
     }
-    toast({ title: "تم نسخ رقم التذكرة", tone: "gold", icon: "🎫" });
+    toast({ title: t("تم نسخ رقم التذكرة", "Ticket number copied"), tone: "gold", icon: "🎫" });
   };
 
   const id = (k: keyof Values) => `${uid}-${k}`;
@@ -137,22 +142,27 @@ export function ContactForm() {
             >
               <Check className="size-10" strokeWidth={3} />
             </motion.span>
-            <p className="mt-6 font-display text-2xl font-bold text-green-dark">شكراً لتواصلك معنا</p>
-            <p className="mt-2 max-w-sm text-sm leading-7 text-ink-soft">استلمنا رسالتك، وسيتواصل معك موظف من {BRANCHES.find((b) => b.slug === branch)?.name} خلال يومي عمل.</p>
+            <p className="mt-6 font-display text-2xl font-bold text-green-dark">{t("شكراً لتواصلك معنا", "Thank you for contacting us")}</p>
+            <p className="mt-2 max-w-sm text-sm leading-7 text-ink-soft">
+              {t(
+                `استلمنا رسالتك، وسيتواصل معك موظف من ${BRANCHES.find((b) => b.slug === branch)?.name ?? ""} خلال يومي عمل.`,
+                `We have received your message. A member of staff from ${BRANCHES.find((b) => b.slug === branch)?.name ?? ""} will contact you within two working days.`,
+              )}
+            </p>
             <div className="perforated mt-6 flex items-center gap-3 rounded-2xl bg-gold/30 px-8 py-4">
               <Ticket className="size-6 text-maroon" />
               <div className="text-start">
-                <p className="text-xs text-ink-soft">رقم التذكرة</p>
+                <p className="text-xs text-ink-soft">{t("رقم التذكرة", "Ticket number")}</p>
                 <p dir="ltr" className="font-display text-xl font-bold tracking-wider text-ink">
                   {ticket}
                 </p>
               </div>
-              <button type="button" onClick={copyTicket} className="grid size-9 place-items-center rounded-xl bg-white text-green-dark transition hover:bg-green-dark hover:text-white" aria-label="نسخ رقم التذكرة">
+              <button type="button" onClick={copyTicket} className="grid size-9 place-items-center rounded-xl bg-white text-green-dark transition hover:bg-green-dark hover:text-white" aria-label={t("نسخ رقم التذكرة", "Copy ticket number")}>
                 <Copy className="size-4" />
               </button>
             </div>
             <Button variant="outline" className="mt-6" onClick={reset}>
-              إرسال رسالة أخرى
+              {t("إرسال رسالة أخرى", "Send another message")}
             </Button>
           </motion.div>
         ) : (
@@ -165,10 +175,10 @@ export function ContactForm() {
             exit={{ opacity: 0 }}
             className="grid gap-4 sm:grid-cols-2"
           >
-            <Field label="الاسم الكامل" id={id("name")} error={errors.name}>
-              <input {...aria("name")} value={values.name} onChange={set("name")} autoComplete="name" placeholder="مثال: محمد أحمد العلي" className={cn(inputCls(errors.name), "h-12")} />
+            <Field label={t("الاسم الكامل", "Full name")} id={id("name")} error={errors.name}>
+              <input {...aria("name")} value={values.name} onChange={set("name")} autoComplete="name" placeholder={t("مثال: محمد أحمد العلي", "e.g. Mohammad Ahmad Al-Ali")} className={cn(inputCls(errors.name), "h-12")} />
             </Field>
-            <Field label="رقم الجوال" id={id("phone")} error={errors.phone}>
+            <Field label={t("رقم الجوال", "Mobile number")} id={id("phone")} error={errors.phone}>
               <input
                 {...aria("phone")}
                 value={values.phone}
@@ -177,10 +187,10 @@ export function ContactForm() {
                 autoComplete="tel"
                 dir="ltr"
                 placeholder="09xx xxx xxx"
-                className={cn(inputCls(errors.phone), "h-12 text-end")}
+                className={cn(inputCls(errors.phone), "h-12 rtl:text-end")}
               />
             </Field>
-            <Field label="البريد الإلكتروني" id={id("email")} error={errors.email} optional>
+            <Field label={t("البريد الإلكتروني", "Email")} id={id("email")} error={errors.email} optional>
               <input
                 {...aria("email")}
                 type="email"
@@ -189,10 +199,10 @@ export function ContactForm() {
                 autoComplete="email"
                 dir="ltr"
                 placeholder="name@example.com"
-                className={cn(inputCls(errors.email), "h-12 text-end")}
+                className={cn(inputCls(errors.email), "h-12 rtl:text-end")}
               />
             </Field>
-            <Field label="الفرع الأقرب إليك" id={id("branch")}>
+            <Field label={t("الفرع الأقرب إليك", "Your nearest branch")} id={id("branch")}>
               <select {...aria("branch")} value={branch} onChange={set("branch")} className={cn(inputCls(), "h-12")}>
                 {BRANCHES.map((b) => (
                   <option key={b.slug} value={b.slug}>
@@ -202,8 +212,8 @@ export function ContactForm() {
               </select>
             </Field>
             <div className="sm:col-span-2">
-              <Field label="موضوع الرسالة" id={id("subject")} error={errors.subject}>
-                <div role="radiogroup" aria-label="موضوع الرسالة" className="flex flex-wrap gap-2 rounded-2xl outline-none" id={id("subject")} tabIndex={-1}>
+              <Field label={t("موضوع الرسالة", "Subject")} id={id("subject")} error={errors.subject}>
+                <div role="radiogroup" aria-label={t("موضوع الرسالة", "Subject")} className="flex flex-wrap gap-2 rounded-2xl outline-none" id={id("subject")} tabIndex={-1}>
                   {CONTACT_SUBJECTS.map((s) => {
                     const on = values.subject === s;
                     return (
@@ -216,7 +226,7 @@ export function ContactForm() {
                         className={cn(
                           "rounded-full border px-3.5 py-1.5 text-sm font-semibold transition",
                           on ? "border-green-dark bg-green-dark text-white shadow-md" : "border-gold/40 bg-sand/50 text-ink-soft hover:border-green-dark/40",
-                          s === "الإبلاغ عن جهة وهمية" && !on && "border-maroon/30 text-maroon",
+                          (s === "الإبلاغ عن جهة وهمية" || s === "Report a fake organisation") && !on && "border-maroon/30 text-maroon",
                         )}
                       >
                         {s}
@@ -227,28 +237,28 @@ export function ContactForm() {
               </Field>
             </div>
             <div className="sm:col-span-2">
-              <Field label="نص الرسالة" id={id("message")} error={errors.message} hint={`${values.message.trim().length} / 500`}>
+              <Field label={t("نص الرسالة", "Message")} id={id("message")} error={errors.message} hint={`${values.message.trim().length} / 500`}>
                 <textarea
                   {...aria("message")}
                   value={values.message}
                   onChange={set("message")}
                   maxLength={500}
                   rows={5}
-                  placeholder="اكتب استفسارك بوضوح، ويُفضَّل ذكر رقم الطلب إن وُجد."
+                  placeholder={t("اكتب استفسارك بوضوح، ويُفضَّل ذكر رقم الطلب إن وُجد.", "Write your question clearly, and include your application number if you have one.")}
                   className={cn(inputCls(errors.message), "resize-none py-3 leading-7")}
                 />
               </Field>
             </div>
             <div className="flex flex-col-reverse items-center justify-between gap-4 sm:col-span-2 sm:flex-row">
-              <p className="text-xs leading-6 text-hint">لا تكتب كلمة المرور أو رمز التحقق في الرسالة أبداً.</p>
+              <p className="text-xs leading-6 text-hint">{t("لا تكتب كلمة المرور أو رمز التحقق في الرسالة أبداً.", "Never write your password or a verification code in the message.")}</p>
               <Button type="submit" size="lg" disabled={loading} className="w-full sm:w-auto">
                 {loading ? (
                   <>
-                    <LoaderCircle className="size-5 animate-spin" /> جارٍ الإرسال...
+                    <LoaderCircle className="size-5 animate-spin" /> {t("جارٍ الإرسال...", "Sending...")}
                   </>
                 ) : (
                   <>
-                    إرسال الرسالة <Send className="size-5 -scale-x-100 transition-transform group-hover/btn:-translate-x-1" />
+                    {t("إرسال الرسالة", "Send message")} <Send className="size-5 transition-transform rtl:-scale-x-100 rtl:group-hover/btn:-translate-x-1 ltr:group-hover/btn:translate-x-1" />
                   </>
                 )}
               </Button>

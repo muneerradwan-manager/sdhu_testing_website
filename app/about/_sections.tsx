@@ -52,7 +52,7 @@ export function Intro() {
                   className="object-cover transition-transform duration-[2s] group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-green-dark/70 to-transparent" />
-                <p className="absolute bottom-4 right-4 text-sm font-semibold text-white">{str(v, "imageMainCaption")}</p>
+                <p className="absolute bottom-4 start-4 text-sm font-semibold text-white">{str(v, "imageMainCaption")}</p>
               </div>
               <div className="group relative col-span-2 row-span-3 overflow-hidden rounded-3xl ring-1 ring-gold/40">
                 <CmsImage src={v.imageTop} alt={str(v, "imageTopAlt")} fill quality={70} sizes="(min-width: 1024px) 250px, 40vw" className="object-cover transition-transform duration-[2s] group-hover:scale-110" />
@@ -61,14 +61,14 @@ export function Intro() {
                 <CmsImage src={v.imageBottom} alt={str(v, "imageBottomAlt")} fill quality={70} sizes="(min-width: 1024px) 250px, 40vw" className="object-cover transition-transform duration-[2s] group-hover:scale-110" />
               </div>
             </div>
-            <div className="animate-float absolute -bottom-6 left-4 rounded-3xl bg-white p-4 shadow-[0_24px_60px_-30px_rgba(2,21,38,.6)] ring-1 ring-gold/40 md:-left-6">
+            <div className="animate-float absolute -bottom-6 end-4 rounded-3xl bg-white p-4 shadow-[0_24px_60px_-30px_rgba(2,21,38,.6)] ring-1 ring-gold/40 md:-end-6">
               <p className="text-xs text-hint">{str(v, "badgeLabel")}</p>
               <p className="font-display text-3xl font-bold text-green-dark">
                 <Counter to={num(v, "badgeValue")} />
               </p>
               <p className="text-xs font-semibold text-maroon">{str(v, "badgeSub")}</p>
             </div>
-            <div className="bg-pattern-dark absolute -right-3 -top-6 -z-10 size-40 rounded-3xl md:-right-6" aria-hidden />
+            <div className="bg-pattern-dark absolute -start-3 -top-6 -z-10 size-40 rounded-3xl md:-start-6" aria-hidden />
           </Reveal>
         </div>
       </section>
@@ -100,7 +100,7 @@ export function Pillars() {
                   <CmsIcon
                     name={p.icon}
                     fallback="Eye"
-                    className={cn("absolute -left-6 -top-6 -z-10 size-32 transition-transform duration-700 group-hover:rotate-12 group-hover:scale-110", dark ? "text-white/5" : "text-gold/20")}
+                    className={cn("absolute -end-6 -top-6 -z-10 size-32 transition-transform duration-700 group-hover:rotate-12 group-hover:scale-110", dark ? "text-white/5" : "text-gold/20")}
                   />
                   <span className={cn("grid size-14 place-items-center rounded-2xl transition-transform duration-500 group-hover:-rotate-6", dark ? "bg-gold text-green-dark" : "bg-green-dark text-gold")}>
                     <CmsIcon name={p.icon} fallback="Eye" className="size-7" />
@@ -207,7 +207,10 @@ export function Leaders() {
                     )}
                   </span>
                   <div className="min-w-0">
-                    <h3 className="font-display text-lg font-bold text-green-dark">{l.name}</h3>
+                    <h3 className="font-display text-lg font-bold text-green-dark">
+                      {/* An Arabic name keeps its own direction inside an English line («د.» stays in front) */}
+                      <bdi>{l.name}</bdi>
+                    </h3>
                     <p className="text-sm font-semibold text-maroon">{l.role}</p>
                     <p className="mt-1 text-xs leading-6 text-ink-soft">{l.note}</p>
                   </div>
@@ -234,7 +237,7 @@ export function Departments() {
           {items.map((d, i) => (
             <StaggerItem key={`${d.title}-${i}`}>
               <article className="group relative h-full overflow-hidden rounded-3xl border border-gold/30 bg-white p-6 transition-all duration-500 hover:border-green-dark hover:bg-green-dark">
-                <span className="absolute left-5 top-5 font-display text-5xl font-bold text-gold/25 transition-colors group-hover:text-gold/20">{String(i + 1).padStart(2, "0")}</span>
+                <span className="absolute end-5 top-5 font-display text-5xl font-bold text-gold/25 transition-colors group-hover:text-gold/20">{String(i + 1).padStart(2, "0")}</span>
                 <span className="grid size-12 place-items-center rounded-2xl bg-gold/30 text-green-dark transition-all duration-500 group-hover:rotate-[-8deg] group-hover:bg-gold">
                   <CmsIcon name={d.icon} fallback="ClipboardList" className="size-6" />
                 </span>
@@ -274,7 +277,7 @@ export function Accounts() {
                       featured ? "bg-gradient-to-b from-gold to-gold-dark text-ink ring-gold" : "bg-white/[.05] ring-white/15 hover:ring-gold/50",
                     )}
                   >
-                    {featured && featuredBadge && <span className="absolute left-5 top-5 rounded-full bg-maroon px-3 py-1 text-xs font-bold text-white">{featuredBadge}</span>}
+                    {featured && featuredBadge && <span className="absolute end-5 top-5 rounded-full bg-maroon px-3 py-1 text-xs font-bold text-white">{featuredBadge}</span>}
                     <span className={cn("grid size-14 place-items-center rounded-2xl", featured ? "bg-green-dark text-gold" : "bg-gold/15 text-gold")}>
                       <CmsIcon name={a.icon} fallback="UserRound" className="size-7" />
                     </span>
@@ -411,7 +414,7 @@ export function Contact() {
                       </span>
                       <div className="min-w-0">
                         <p className="text-xs text-white/55">{c.label}</p>
-                        <p dir={c.ltr ? "ltr" : undefined} className={cn("break-words font-bold", c.ltr && "text-end tabular-nums")}>
+                        <p dir={c.ltr ? "ltr" : undefined} className={cn("break-words font-bold", c.ltr && "tabular-nums rtl:text-end")}>
                           {c.value}
                         </p>
                         <p className="text-xs text-white/60">{c.note}</p>

@@ -23,6 +23,11 @@ const CSS = `
 #sdhu-splash .sp-sub{font-family:var(--font-qomra),system-ui,sans-serif;font-size:14px;color:#D9C89E;margin-top:-12px;animation:sdhu-rise .8s cubic-bezier(.16,1,.3,1) .6s both}
 #sdhu-splash .sp-bar{width:160px;height:3px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden;animation:sdhu-rise .6s ease .75s both}
 #sdhu-splash .sp-bar i{display:block;height:100%;width:40%;border-radius:3px;background:linear-gradient(90deg,#AD9E6E,#E4DDD3,#AD9E6E);animation:sdhu-load 1.2s ease-in-out .8s infinite}
+#sdhu-splash .sp-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#sdhu-splash .sp-en{display:none}
+html[data-lang="en"] #sdhu-splash .sp-en{display:inline}
+html[data-lang="en"] #sdhu-splash .sp-ar{display:none}
+html[data-lang="en"] #sdhu-splash :is(.sp-title,.sp-sub){font-family:var(--font-latin),var(--font-qomra),system-ui,sans-serif}
 @keyframes sdhu-pop{from{opacity:0;transform:scale(.6) rotate(-12deg)}to{opacity:1;transform:none}}
 @keyframes sdhu-halo{from{opacity:.9;transform:scale(.85)}to{opacity:0;transform:scale(1.35)}}
 @keyframes sdhu-spin{to{transform:rotate(360deg)}}
@@ -37,7 +42,12 @@ export function Splash() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div id="sdhu-splash" role="status" aria-label="جارٍ تحميل المنصة الوطنية للحج">
+      {/* Arabic and English both written, the page's language (set on <html> before the first paint) shows one */}
+      <div id="sdhu-splash" role="status">
+        <span className="sp-hidden">
+          <span className="sp-ar">جارٍ تحميل المنصة الوطنية للحج</span>
+          <span className="sp-en">Loading the National Hajj Platform</span>
+        </span>
         <div className="sp-pattern" />
         <div className="sp-mark">
           <span className="sp-halo" />
@@ -62,8 +72,14 @@ export function Splash() {
             <path d="M32 31.9v8.3" stroke="#0a2438" strokeWidth=".6" />
           </svg>
         </div>
-        <p className="sp-title">المنصة الوطنية للحج</p>
-        <p className="sp-sub">إدارة الحج والعمرة السورية</p>
+        <p className="sp-title" aria-hidden>
+          <span className="sp-ar">المنصة الوطنية للحج</span>
+          <span className="sp-en">National Hajj Platform</span>
+        </p>
+        <p className="sp-sub" aria-hidden>
+          <span className="sp-ar">إدارة الحج والعمرة السورية</span>
+          <span className="sp-en">Syrian Hajj and Umrah Administration</span>
+        </p>
         <div className="sp-bar">
           <i />
         </div>

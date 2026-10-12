@@ -9,14 +9,26 @@ import { AuthShell, CivilRecordCard, EmailField, FormError, NationalIdField, Otp
 import { DEMO_OTP, Field, ProgressChecklist, inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
+import { useLang, useT } from "@/lib/i18n";
 import { ageOf, getPerson, isValidNationalId, type Person } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn, digitsOnly } from "@/lib/utils";
 
-/** Step 0 (account type) was removed: this page creates a pilgrim account directly */
-const STEPS = ["البيانات الأساسية", "رمز التحقق", "الشؤون المدنية", "معلومات إضافية", "الحساب جاهز"];
+/** The civil registry's words in English: cities by their usual names; a neighbourhood (a name) stays as it is */
+const PLACES_EN: Record<string, string> = { دمشق: "Damascus", "ريف دمشق": "Rural Damascus", حلب: "Aleppo", حمص: "Homs", حماة: "Hama", اللاذقية: "Latakia", درعا: "Daraa", دوما: "Douma" };
+const MARITAL_EN: Record<string, string> = { متزوج: "Married", متزوجة: "Married", عازب: "Single", عزباء: "Single", أرملة: "Widowed", أرمل: "Widowed", مطلقة: "Divorced", مطلق: "Divorced" };
+const placeEn = (v: string) => PLACES_EN[v] ?? v;
+/** "دمشق 5412": the city in English, the register's number as it is */
+const registryEn = (v: string) => {
+  const city = Object.keys(PLACES_EN).find((c) => v === c || v.startsWith(`${c} `));
+  return city ? PLACES_EN[city] + v.slice(city.length) : v;
+};
 
 export function RegisterFlow() {
+  const t = useT();
+  const en = useLang() === "en";
+  /** Step 0 (account type) was removed: this page creates a pilgrim account directly */
+  const STEPS = [t("البيانات الأساسية", "Basic details"), t("رمز التحقق", "Verification code"), t("الشؤون المدنية", "Civil Registry"), t("معلومات إضافية", "Extra details"), t("الحساب جاهز", "Account ready")];
   const router = useRouter();
   const toast = useToast();
   const accounts = useStore((s) => s.accounts);
@@ -37,10 +49,10 @@ export function RegisterFlow() {
   };
 
   const errors = {
-    nationalId: !isValidNationalId(form.nationalId) && "الرقم الوطني يتكون من 11 رقماً",
-    phone: !/^09\d{8}$/.test(form.phone) && "رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام",
-    email: form.email && !/^\S+@\S+\.\S+$/.test(form.email) && "صيغة البريد غير صحيحة",
-    password: form.password.length < 6 && "كلمة المرور 6 أحرف على الأقل",
+    nationalId: !isValidNationalId(form.nationalId) && t("الرقم الوطني يتكون من 11 رقماً", "The national ID has 11 digits"),
+    phone: !/^09\d{8}$/.test(form.phone) && t("رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام", "The phone number starts with 09 and has 10 digits"),
+    email: form.email && !/^\S+@\S+\.\S+$/.test(form.email) && t("صيغة البريد غير صحيحة", "This email address is not valid"),
+    password: form.password.length < 6 && t("كلمة المرور 6 أحرف على الأقل", "The password needs at least 6 characters"),
   };
   const exists = isValidNationalId(form.nationalId) && accounts[form.nationalId];
   /** One account type per person: an administrator cannot also hold a pilgrim account */
@@ -53,8 +65,8 @@ export function RegisterFlow() {
     setTimeout(
       () =>
         toast({
-          title: "رسالة نصية جديدة",
-          body: `منصة الحج الوطنية: رمز التحقق الخاص بك هو ${DEMO_OTP}. لا تشاركه مع أحد.`,
+          title: t("رسالة نصية جديدة", "New text message"),
+          body: t(`منصة الحج الوطنية: رمز التحقق الخاص بك هو ${DEMO_OTP}. لا تشاركه مع أحد.`, `National Hajj Platform: your verification code is ${DEMO_OTP}. Do not share it with anyone.`),
           icon: "💬",
           tone: "gold",
         }),
@@ -86,8 +98,11 @@ export function RegisterFlow() {
     setTimeout(
       () =>
         toast({
-          title: `أهلاً ${person?.firstName}`,
-          body: "تم إنشاء حسابك في منصة الحج الوطنية. التسجيل على القبول المباشر لموسم 1448هـ من 12 إلى 25 آب، والتسجيل الأولي على القرعة بطلب مستقل من 26 آب إلى 10 أيلول، ومعك حتى ثلاثة مرافقين.",
+          title: t(`أهلاً ${person?.firstName}`, `Welcome, ${person?.firstName}`),
+          body: t(
+            "تم إنشاء حسابك في منصة الحج الوطنية. التسجيل على القبول المباشر لموسم 1448هـ من 12 إلى 25 آب، والتسجيل الأولي على القرعة بطلب مستقل من 26 آب إلى 10 أيلول، ومعك حتى ثلاثة مرافقين.",
+            "Your account on the National Hajj Platform has been created. Registration for direct acceptance for the 1448 AH season runs from 12 to 25 August, and lottery pre-registration, a separate application, from 26 August to 10 September. You can bring up to three companions.",
+          ),
           icon: "🕋",
           tone: "success",
         }),
@@ -99,12 +114,12 @@ export function RegisterFlow() {
     <AuthShell
       portal="pilgrim"
       page="register"
-      title="إنشاء حساب حاج"
-      subtitle="حساب الحاج لتقديم طلب الحج لك ولعائلتك ومتابعته. لا نطلب منك إلا أربعة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة."
+      title={t("إنشاء حساب حاج", "Create a pilgrim account")}
+      subtitle={t("حساب الحاج لتقديم طلب الحج لك ولعائلتك ومتابعته. لا نطلب منك إلا أربعة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "A pilgrim account lets you apply for Hajj for yourself and your family, and follow the application. We ask for just four fields; your official details come straight from the Civil Registry.")}
       steps={STEPS}
       step={step - 1}
       tabs={step === 1}
-      note="لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة."
+      note={t("لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة.", "Each person holds one type of account on the platform: pilgrim, administrator or staff. Staff accounts cannot be self-created; the Administration creates them.")}
     >
       <AnimatePresence mode="wait" custom={dir}>
         <motion.div
@@ -123,58 +138,59 @@ export function RegisterFlow() {
               }}
               className="space-y-6"
             >
-              <StepTitle action={<SpeakButton text="أدخل الرقم الوطني ورقم الهاتف والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />}>البيانات الأساسية</StepTitle>
-              <NationalIdField value={form.nationalId} onChange={(v) => setForm({ ...form, nationalId: v })} placeholder="01012345412" hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية" error={touched && errors.nationalId} />
+              {/* The read-aloud voice speaks Arabic only, so the button is for the Arabic page */}
+              <StepTitle action={en ? undefined : <SpeakButton text="أدخل الرقم الوطني ورقم الهاتف والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />}>{t("البيانات الأساسية", "Basic details")}</StepTitle>
+              <NationalIdField value={form.nationalId} onChange={(v) => setForm({ ...form, nationalId: v })} placeholder="01012345412" hint={t("مفتاحك في المنصة كلها — تجده على البطاقة الشخصية", "Your key to the whole platform: you will find it on your ID card")} error={touched && errors.nationalId} />
               <FormError
-                text={exists ? "هذا الرقم لديه حساب حاج بالفعل." : isAdmin ? "هذا الرقم مسجّل بحساب إداري، ولكل شخص نوع حساب واحد في المنصة." : null}
-                link={exists ? { href: "/login", label: "سجّل الدخول" } : isAdmin ? { href: "/administrator/login", label: "دخول الإداريين" } : undefined}
+                text={exists ? t("هذا الرقم لديه حساب حاج بالفعل.", "This number already has a pilgrim account.") : isAdmin ? t("هذا الرقم مسجّل بحساب إداري، ولكل شخص نوع حساب واحد في المنصة.", "This number belongs to an administrator account, and each person holds one type of account on the platform.") : null}
+                link={exists ? { href: "/login", label: t("سجّل الدخول", "Sign in") } : isAdmin ? { href: "/administrator/login", label: t("دخول الإداريين", "Administrator sign-in") } : undefined}
               />
               <PhoneField value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} error={touched && errors.phone} />
-              <EmailField value={form.email} onChange={(v) => setForm({ ...form, email: v })} hint="للإشعارات والإيصالات إن رغبت" error={touched && errors.email} />
+              <EmailField value={form.email} onChange={(v) => setForm({ ...form, email: v })} hint={t("للإشعارات والإيصالات إن رغبت", "For notifications and receipts, if you like")} error={touched && errors.email} />
               <PasswordField value={form.password} onChange={(v) => setForm({ ...form, password: v })} error={touched && errors.password} strength autoComplete="new-password" />
               <Button type="submit" size="lg" className="w-full">
-                إرسال رمز التحقق <ArrowLeft className="size-5" />
+                {t("إرسال رمز التحقق", "Send verification code")} <ArrowLeft className="size-5" />
               </Button>
-              <SwitchLine text="لديك حساب؟" href="/login" label="سجّل الدخول" />
+              <SwitchLine text={t("لديك حساب؟", "Already have an account?")} href="/login" label={t("سجّل الدخول", "Sign in")} />
             </form>
           )}
 
           {step === 2 && (
             <OtpStep
               phone={form.phone}
-              confirm="تحقق"
+              confirm={t("تحقق", "Verify")}
               onSuccess={verifyOtp}
-              onResend={() => toast({ title: "أُعيد إرسال الرمز", body: `الرمز: ${DEMO_OTP}`, icon: "💬", tone: "gold" })}
-              back={{ label: "تعديل رقم الهاتف", onClick: () => go(1) }}
+              onResend={() => toast({ title: t("أُعيد إرسال الرمز", "Code sent again"), body: t(`الرمز: ${DEMO_OTP}`, `Code: ${DEMO_OTP}`), icon: "💬", tone: "gold" })}
+              back={{ label: t("تعديل رقم الهاتف", "Change phone number"), onClick: () => go(1) }}
             />
           )}
 
           {step === 3 && person && (
             <div>
-              <StepTitle sub={fetched ? "راجعها وأكّدها فقط — لا حاجة لإعادة إدخال أي شيء." : "يستغرق ذلك ثوانيَ قليلة."}>
-                {fetched ? "هذه بياناتك كما وردت من الشؤون المدنية" : "نجلب بياناتك الرسمية..."}
+              <StepTitle sub={fetched ? t("راجعها وأكّدها فقط — لا حاجة لإعادة إدخال أي شيء.", "Just check and confirm them; there is nothing to type again.") : t("يستغرق ذلك ثوانيَ قليلة.", "This takes a few seconds.")}>
+                {fetched ? t("هذه بياناتك كما وردت من الشؤون المدنية", "Your details as received from the Civil Registry") : t("نجلب بياناتك الرسمية...", "Fetching your official details…")}
               </StepTitle>
               <div className="mt-8">
                 {!fetched ? (
                   <ProgressChecklist
                     onDone={onFetched}
-                    steps={["الاتصال الآمن بالشؤون المدنية", "التحقق من الرقم الوطني", "جلب القيد والبيانات الشخصية", "مطابقة رقم الهاتف"]}
+                    steps={[t("الاتصال الآمن بالشؤون المدنية", "Secure connection to the Civil Registry"), t("التحقق من الرقم الوطني", "Checking the national ID"), t("جلب القيد والبيانات الشخصية", "Fetching the civil record and personal details"), t("مطابقة رقم الهاتف", "Matching the phone number")]}
                   />
                 ) : (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <CivilRecordCard
                       person={person}
                       rows={[
-                        ["الاسم الكامل", `${person.firstName} ${person.fatherName} ${person.lastName}`],
-                        ["اسم الأب", person.fatherName],
-                        ["اسم الأم", person.motherName],
-                        ["تاريخ الميلاد", `${person.birthDate} (${ageOf(person)} عاماً)`],
-                        ["الجنس", person.gender === "M" ? "ذكر" : "أنثى"],
-                        ["مكان الولادة", person.birthPlace],
-                        ["المحافظة", person.governorate],
-                        ["مكان القيد", person.registry],
-                        ["الحالة المدنية", person.maritalStatus],
-                        ["رقم دفتر العائلة", person.familyBookNo],
+                        [t("الاسم الكامل", "Full name"), `${person.firstName} ${person.fatherName} ${person.lastName}`],
+                        [t("اسم الأب", "Father's name"), person.fatherName],
+                        [t("اسم الأم", "Mother's name"), person.motherName],
+                        [t("تاريخ الميلاد", "Date of birth"), t(`${person.birthDate} (${ageOf(person)} عاماً)`, `${person.birthDate} (aged ${ageOf(person)})`)],
+                        [t("الجنس", "Sex"), person.gender === "M" ? t("ذكر", "Male") : t("أنثى", "Female")],
+                        [t("مكان الولادة", "Place of birth"), en ? placeEn(person.birthPlace) : person.birthPlace],
+                        [t("المحافظة", "Governorate"), en ? placeEn(person.governorate) : person.governorate],
+                        [t("مكان القيد", "Place of registration"), en ? registryEn(person.registry) : person.registry],
+                        [t("الحالة المدنية", "Marital status"), en ? (MARITAL_EN[person.maritalStatus] ?? person.maritalStatus) : person.maritalStatus],
+                        [t("رقم دفتر العائلة", "Family book number"), person.familyBookNo],
                       ]}
                     />
                     <div className="mt-8 flex flex-wrap justify-between gap-3">
@@ -182,17 +198,17 @@ export function RegisterFlow() {
                         variant="outline"
                         onClick={() =>
                           toast({
-                            title: "سيتم التحقق يدوياً",
-                            body: "في المنصة الفعلية تُدخل بياناتك بنفسك وترفع وثيقة تثبتها، وتُعلَّم «غير مؤكدة» حتى يراجعها موظف التسجيل.",
+                            title: t("سيتم التحقق يدوياً", "This will be checked by hand"),
+                            body: t("في المنصة الفعلية تُدخل بياناتك بنفسك وترفع وثيقة تثبتها، وتُعلَّم «غير مؤكدة» حتى يراجعها موظف التسجيل.", "On the real platform you enter your details yourself and upload a document that proves them. They are marked “unconfirmed” until a registration officer reviews them."),
                             tone: "info",
                             icon: "📝",
                           })
                         }
                       >
-                        <PencilLine className="size-4" /> البيانات غير صحيحة
+                        <PencilLine className="size-4" /> {t("البيانات غير صحيحة", "These details are wrong")}
                       </Button>
                       <Button size="lg" onClick={() => go(4)}>
-                        نعم، بياناتي صحيحة <ArrowLeft className="size-5" />
+                        {t("نعم، بياناتي صحيحة", "Yes, my details are correct")} <ArrowLeft className="size-5" />
                       </Button>
                     </div>
                   </motion.div>
@@ -203,12 +219,12 @@ export function RegisterFlow() {
 
           {step === 4 && person && (
             <div className="space-y-6">
-              <StepTitle sub="كلها اختيارية ويمكنك إضافتها لاحقاً من ملفك.">معلومات لا تملكها الشؤون المدنية</StepTitle>
+              <StepTitle sub={t("كلها اختيارية ويمكنك إضافتها لاحقاً من ملفك.", "All optional; you can add them later from your profile.")}>{t("معلومات لا تملكها الشؤون المدنية", "Details the Civil Registry does not hold")}</StepTitle>
               <div className="flex items-center gap-5 rounded-3xl bg-sand p-5">
                 <label className="group relative grid size-24 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-3xl border-2 border-dashed border-gold-dark bg-white">
                   {extra.photo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={extra.photo} alt="الصورة الشخصية" className="size-full object-cover" />
+                    <img src={extra.photo} alt={t("الصورة الشخصية", "Personal photo")} className="size-full object-cover" />
                   ) : (
                     <Camera className="size-8 text-gold-dark transition group-hover:scale-110" />
                   )}
@@ -223,28 +239,28 @@ export function RegisterFlow() {
                   />
                 </label>
                 <div>
-                  <p className="font-bold">الصورة الشخصية</p>
-                  <p className="text-sm leading-6 text-ink-soft">خلفية بيضاء وحديثة. تُستخدم في بطاقة الحاج الرقمية.</p>
+                  <p className="font-bold">{t("الصورة الشخصية", "Personal photo")}</p>
+                  <p className="text-sm leading-6 text-ink-soft">{t("خلفية بيضاء وحديثة. تُستخدم في بطاقة الحاج الرقمية.", "Recent, on a white background. Used on your digital pilgrim card.")}</p>
                 </div>
               </div>
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="رقم هاتف بديل" optional>
+                <Field label={t("رقم هاتف بديل", "Alternative phone number")} optional>
                   <input dir="ltr" inputMode="tel" className={cn(inputClass, "text-left")} value={extra.altPhone} onChange={(e) => setExtra({ ...extra, altPhone: digitsOnly(e.target.value) })} />
                 </Field>
                 <div />
-                <Field label="جهة اتصال للطوارئ" optional hint="شخص يبقى في سوريا ونبلغه بمحطات رحلتك">
-                  <input className={inputClass} placeholder="مثال: سارة (ابنتي)" value={extra.emergencyName} onChange={(e) => setExtra({ ...extra, emergencyName: e.target.value })} />
+                <Field label={t("جهة اتصال للطوارئ", "Emergency contact")} optional hint={t("شخص يبقى في سوريا ونبلغه بمحطات رحلتك", "Someone staying in Syria whom we keep informed at each stage of your journey")}>
+                  <input className={inputClass} placeholder={t("مثال: سارة (ابنتي)", "e.g. سارة (my daughter)")} value={extra.emergencyName} onChange={(e) => setExtra({ ...extra, emergencyName: e.target.value })} />
                 </Field>
-                <Field label="هاتف جهة الطوارئ" optional>
+                <Field label={t("هاتف جهة الطوارئ", "Emergency contact phone")} optional>
                   <input dir="ltr" inputMode="tel" className={cn(inputClass, "text-left")} value={extra.emergencyPhone} onChange={(e) => setExtra({ ...extra, emergencyPhone: digitsOnly(e.target.value) })} />
                 </Field>
               </div>
               <div className="flex flex-wrap justify-between gap-3 pt-2">
                 <Button variant="ghost" onClick={() => go(3)}>
-                  <ArrowRight className="size-4" /> رجوع
+                  <ArrowRight className="size-4" /> {t("رجوع", "Back")}
                 </Button>
                 <Button size="lg" onClick={finish}>
-                  إنشاء الحساب <BadgeCheck className="size-5" />
+                  {t("إنشاء الحساب", "Create account")} <BadgeCheck className="size-5" />
                 </Button>
               </div>
             </div>
@@ -260,12 +276,12 @@ export function RegisterFlow() {
               >
                 <BadgeCheck className="size-12" />
               </motion.div>
-              <h2 className="mt-6 font-display text-3xl font-bold text-green-dark md:text-4xl">أهلاً {person.firstName}، حسابك جاهز</h2>
+              <h2 className="mt-6 font-display text-3xl font-bold text-green-dark md:text-4xl">{t(`أهلاً ${person.firstName}، حسابك جاهز`, `Welcome, ${person.firstName}. Your account is ready`)}</h2>
               <p className="mx-auto mt-3 max-w-lg leading-8 text-ink-soft">
-                تم إنشاء ملف الحاج الخاص بك، وهو ملف دائم يبقى معك عبر المواسم. التسجيل لموسم 1448هـ مفتوح الآن.
+                {t("تم إنشاء ملف الحاج الخاص بك، وهو ملف دائم يبقى معك عبر المواسم. التسجيل لموسم 1448هـ مفتوح الآن.", "Your pilgrim profile has been created. It is permanent and stays with you from one season to the next. Registration for the 1448 AH season is now open.")}
               </p>
               <div className="mx-auto mt-8 max-w-md rounded-3xl border border-gold/40 bg-sand p-6">
-                <p className="font-bold">كيف كانت تجربة إنشاء الحساب؟</p>
+                <p className="font-bold">{t("كيف كانت تجربة إنشاء الحساب؟", "How was creating your account?")}</p>
                 <div className="mt-3 flex justify-center">
                   <StarRating
                     value={rating}
@@ -273,17 +289,17 @@ export function RegisterFlow() {
                     onChange={(v) => {
                       setRating(v);
                       actions.updateAccount(person.id, { rating: v });
-                      toast({ title: "شكراً لتقييمك", body: "تُجمع التقييمات في لوحة جودة الخدمة تحت بند «التسجيل».", icon: "⭐", tone: "gold" });
+                      toast({ title: t("شكراً لتقييمك", "Thank you for your rating"), body: t("تُجمع التقييمات في لوحة جودة الخدمة تحت بند «التسجيل».", "Ratings are collected on the service-quality dashboard under “Registration”."), icon: "⭐", tone: "gold" });
                     }}
                   />
                 </div>
               </div>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <Button size="xl" variant="gold" onClick={() => router.push("/portal/apply")}>
-                  تقديم طلب حج الآن <ArrowLeft className="size-6" />
+                  {t("تقديم طلب حج الآن", "Apply for Hajj now")} <ArrowLeft className="size-6" />
                 </Button>
                 <Button size="xl" variant="outline" onClick={() => router.push("/portal")}>
-                  <UserRound className="size-6" /> ملفي
+                  <UserRound className="size-6" /> {t("ملفي", "My profile")}
                 </Button>
               </div>
             </div>

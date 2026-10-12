@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Briefcase, Compass, Landmark, Loader2, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SpeakButton } from "@/components/ui/widgets";
+import { useLang } from "@/lib/i18n";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn, samePath } from "@/lib/utils";
 
@@ -13,17 +14,78 @@ import { cn, samePath } from "@/lib/utils";
  * Each step opens a page, spotlights one real element and anchors the card beside it;
  * on small or short screens the card becomes a bottom sheet. The last step offers the demo journeys.
  */
-type Step = { route: string; selector?: string; title: string; text: string };
+type Text = { ar: string; en: string };
+type Step = { route: string; selector?: string; title: Text; text: Text };
 
 const STEPS: Step[] = [
-  { route: "/", title: "أهلاً بك في المنصة الوطنية للحج", text: "جولة سريعة لا تتجاوز دقيقة، نفتح فيها أهم صفحات المنصة ونشير إلى ما يميّز كل صفحة. كل البيانات هنا وهمية لأغراض العرض." },
-  { route: "/", selector: "#services", title: "البوابة العامة — دون تسجيل دخول", text: "الأخبار والأكاديمية ومواقيت الصلاة ونتائج القبول متاحة للجميع. لا نطلب الحساب إلا عند تقديم الطلب." },
-  { route: "/academy", selector: "#search", title: "أكاديمية الدروس الدينية", text: "ابحث في كل الدروس، واستمع إلى الشرح المسموع بصوت سوري، مع فيديو حقيقي من الحرم واختبارات وشهادة إتمام." },
-  { route: "/guide", selector: "#counter", title: "دليل المناسك — عدّاد الطواف والسعي", text: "دليل يوماً بيوم من التروية حتى أيام التشريق، وهنا عدّاد تفاعلي يساعد الحاج على عدّ أشواط الطواف والسعي." },
-  { route: "/prayer-times", selector: 'section[aria-label="الصلاة القادمة واتجاه القبلة"]', title: "مواقيت الصلاة واتجاه القبلة", text: "الصلاة القادمة مع عدّ تنازلي، وبوصلة القبلة لمدينتك، مع جدول شهري لكل المدن السورية ومكة والمدينة." },
-  { route: "/conditions", selector: "#precheck", title: "فحص الأهلية المبدئي", text: "أدخل سنة الميلاد وأجب عن أسئلة قليلة لتعرف إن كنت مستوفياً لشروط موسم 1448 — دون حفظ أي بيانات." },
-  { route: "/results", selector: "#search", title: "نتائج القبول العامة", text: "البحث عن النتيجة بالرقم الوطني ورمز التحقق، دون كشف أي معلومة شخصية." },
-  { route: "/", title: "اختر رحلتك التجريبية", text: "جرّب المنصة من وجهة نظر أحد أطرافها الثلاثة." },
+  {
+    route: "/",
+    title: { ar: "أهلاً بك في المنصة الوطنية للحج", en: "Welcome to the National Hajj Platform" },
+    text: {
+      ar: "جولة سريعة لا تتجاوز دقيقة، نفتح فيها أهم صفحات المنصة ونشير إلى ما يميّز كل صفحة. كل البيانات هنا وهمية لأغراض العرض.",
+      en: "A quick tour of under a minute: we open the platform's main pages and point out what each one offers. All the data here is fictitious, for demonstration only.",
+    },
+  },
+  {
+    route: "/",
+    selector: "#services",
+    title: { ar: "البوابة العامة — دون تسجيل دخول", en: "The public portal — no sign-in needed" },
+    text: {
+      ar: "الأخبار والأكاديمية ومواقيت الصلاة ونتائج القبول متاحة للجميع. لا نطلب الحساب إلا عند تقديم الطلب.",
+      en: "The news, the Academy, prayer times and admission results are open to everyone. We only ask for an account when you apply.",
+    },
+  },
+  {
+    route: "/academy",
+    selector: "#search",
+    title: { ar: "أكاديمية الدروس الدينية", en: "Religious Lessons Academy" },
+    text: {
+      ar: "ابحث في كل الدروس، واستمع إلى الشرح المسموع بصوت سوري، مع فيديو حقيقي من الحرم واختبارات وشهادة إتمام.",
+      en: "Search every lesson and listen to the explanations in a Syrian voice, with real video from the Haram, quizzes and a certificate of completion.",
+    },
+  },
+  {
+    route: "/guide",
+    selector: "#counter",
+    title: { ar: "دليل المناسك — عدّاد الطواف والسعي", en: "Hajj rites guide — Tawaf and Sa'i counter" },
+    text: {
+      ar: "دليل يوماً بيوم من التروية حتى أيام التشريق، وهنا عدّاد تفاعلي يساعد الحاج على عدّ أشواط الطواف والسعي.",
+      en: "A day-by-day guide from the Day of Tarwiyah to the Days of Tashreeq, with an interactive counter that helps the pilgrim count the circuits of Tawaf and Sa'i.",
+    },
+  },
+  {
+    route: "/prayer-times",
+    // The section's label is in the page's language: either one finds it
+    selector: 'section[aria-label="الصلاة القادمة واتجاه القبلة"], section[aria-label="Next prayer and Qibla direction"]',
+    title: { ar: "مواقيت الصلاة واتجاه القبلة", en: "Prayer times and the Qibla direction" },
+    text: {
+      ar: "الصلاة القادمة مع عدّ تنازلي، وبوصلة القبلة لمدينتك، مع جدول شهري لكل المدن السورية ومكة والمدينة.",
+      en: "The next prayer with a countdown, a Qibla compass for your city, and a monthly timetable for every Syrian city, Makkah and Madinah.",
+    },
+  },
+  {
+    route: "/conditions",
+    selector: "#precheck",
+    title: { ar: "فحص الأهلية المبدئي", en: "Quick eligibility check" },
+    text: {
+      ar: "أدخل سنة الميلاد وأجب عن أسئلة قليلة لتعرف إن كنت مستوفياً لشروط موسم 1448 — دون حفظ أي بيانات.",
+      en: "Enter your year of birth and answer a few questions to find out whether you meet the conditions of the 1448 season — nothing is saved.",
+    },
+  },
+  {
+    route: "/results",
+    selector: "#search",
+    title: { ar: "نتائج القبول العامة", en: "Public admission results" },
+    text: {
+      ar: "البحث عن النتيجة بالرقم الوطني ورمز التحقق، دون كشف أي معلومة شخصية.",
+      en: "Look up a result with the national number and a verification code, without revealing any personal information.",
+    },
+  },
+  {
+    route: "/",
+    title: { ar: "اختر رحلتك التجريبية", en: "Choose your demo journey" },
+    text: { ar: "جرّب المنصة من وجهة نظر أحد أطرافها الثلاثة.", en: "Try the platform from the point of view of one of its three users." },
+  },
 ];
 
 const DEMO_PILGRIM = "01012345412";
@@ -46,6 +108,8 @@ export function GuidedTour() {
   const router = useRouter();
   const pathname = usePathname();
   const hydrated = useHydrated();
+  const lang = useLang();
+  const t = (x: Text) => x[lang];
   const tourSeen = useStore((s) => s.tourSeen);
   const accounts = useStore((s) => s.accounts);
   const [index, setIndex] = useState<number | null>(null);
@@ -205,24 +269,24 @@ export function GuidedTour() {
       {/* Launcher */}
       <AnimatePresence>
         {index === null && !hideLauncher && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="fixed bottom-5 right-5 z-[60] flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="fixed bottom-5 start-5 z-[60] flex items-center gap-2">
             <AnimatePresence>
               {nudge && (
                 <motion.button
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: lang === "en" ? -20 : 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
+                  exit={{ opacity: 0, x: lang === "en" ? -20 : 20 }}
                   onClick={start}
                   className="hidden rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-green-dark shadow-xl ring-1 ring-gold/40 sm:block"
                 >
-                  جديد هنا؟ خذ جولة تعريفية سريعة ✨
+                  {lang === "en" ? "New here? Take a quick guided tour ✨" : "جديد هنا؟ خذ جولة تعريفية سريعة ✨"}
                 </motion.button>
               )}
             </AnimatePresence>
             <button
               onClick={start}
-              aria-label="جولة تعريفية"
-              title="جولة تعريفية في المنصة"
+              aria-label={t({ ar: "جولة تعريفية", en: "Guided tour" })}
+              title={t({ ar: "جولة تعريفية في المنصة", en: "A guided tour of the platform" })}
               className={cn("grid size-13 place-items-center rounded-full bg-gold text-ink shadow-xl shadow-gold-dark/30 transition hover:scale-105", nudge && "animate-pulse-ring")}
             >
               <Compass className="size-6" />
@@ -258,7 +322,7 @@ export function GuidedTour() {
                 exit={{ opacity: 0 }}
                 className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-green-dark shadow-xl ring-1 ring-gold/40"
               >
-                <Loader2 className="size-4 animate-spin" /> نفتح الصفحة...
+                <Loader2 className="size-4 animate-spin" /> {t({ ar: "نفتح الصفحة...", en: "Opening the page..." })}
               </motion.div>
             )}
           </AnimatePresence>
@@ -271,7 +335,7 @@ export function GuidedTour() {
                 ref={cardRef}
                 role="dialog"
                 data-tour-card
-                aria-label={step.title}
+                aria-label={t(step.title)}
                 initial={{ opacity: 0, y: anchored ? 12 : 24, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8 }}
@@ -283,61 +347,62 @@ export function GuidedTour() {
                 )}
               >
                 <div className="sticky top-0 h-1.5 bg-sand">
-                  <motion.div className="h-full bg-gradient-to-l from-green-light to-green-dark" initial={false} animate={{ width: `${((index! + 1) / STEPS.length) * 100}%` }} />
+                  <motion.div className="h-full bg-gradient-to-l from-green-light to-green-dark ltr:bg-gradient-to-r" initial={false} animate={{ width: `${((index! + 1) / STEPS.length) * 100}%` }} />
                 </div>
                 <div className="p-3.5 sm:p-5 md:p-6">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-xs font-bold text-gold-dark">
-                      جولة تعريفية — {index! + 1} من {STEPS.length}
+                      {lang === "en" ? `Guided tour — ${index! + 1} of ${STEPS.length}` : `جولة تعريفية — ${index! + 1} من ${STEPS.length}`}
                     </p>
-                    <button onClick={close} className="rounded-full p-1 text-hint hover:bg-sand hover:text-ink" aria-label="إنهاء الجولة">
+                    <button onClick={close} className="rounded-full p-1 text-hint hover:bg-sand hover:text-ink" aria-label={t({ ar: "إنهاء الجولة", en: "End the tour" })}>
                       <X className="size-5" />
                     </button>
                   </div>
-                  <h2 className="mt-1 font-display text-lg font-bold text-green-dark sm:text-xl md:text-2xl">{step.title}</h2>
-                  <p className="mt-2 text-sm leading-7 text-ink-soft sm:text-base sm:leading-8">{step.text}</p>
+                  <h2 className="mt-1 font-display text-lg font-bold text-green-dark sm:text-xl md:text-2xl">{t(step.title)}</h2>
+                  <p className="mt-2 text-sm leading-7 text-ink-soft sm:text-base sm:leading-8">{t(step.text)}</p>
 
                   {last && (
                     <div className="mt-4 grid gap-2">
-                      <button onClick={startPilgrim} className="flex items-center gap-3 rounded-2xl bg-green-dark p-3.5 text-right text-white transition hover:bg-green">
+                      <button onClick={startPilgrim} className="flex items-center gap-3 rounded-2xl bg-green-dark p-3.5 text-start text-white transition hover:bg-green">
                         <UserRound className="size-6 shrink-0 text-gold" />
                         <span>
-                          <span className="block font-bold">الحاج: عائلة محمد الخطيب</span>
-                          <span className="text-sm text-white/70">من التقديم حتى القبول والرحلة</span>
+                          <span className="block font-bold">{t({ ar: "الحاج: عائلة محمد الخطيب", en: "Pilgrim: the family of محمد الخطيب" })}</span>
+                          <span className="text-sm text-white/70">{t({ ar: "من التقديم حتى القبول والرحلة", en: "From applying to acceptance and the journey" })}</span>
                         </span>
                       </button>
-                      <button onClick={() => { close(); router.push("/administrator"); }} className="flex items-center gap-3 rounded-2xl bg-maroon p-3.5 text-right text-white transition hover:bg-maroon-dark">
+                      <button onClick={() => { close(); router.push("/administrator"); }} className="flex items-center gap-3 rounded-2xl bg-maroon p-3.5 text-start text-white transition hover:bg-maroon-dark">
                         <Briefcase className="size-6 shrink-0 text-gold" />
                         <span>
-                          <span className="block font-bold">الإداري: أحمد سليمان الحمصي</span>
-                          <span className="text-sm text-white/70">الاختبار، تشكيل المجموعة، حجاج المجموعة</span>
+                          <span className="block font-bold">{t({ ar: "الإداري: أحمد سليمان الحمصي", en: "Administrator: أحمد سليمان الحمصي" })}</span>
+                          <span className="text-sm text-white/70">{t({ ar: "الاختبار، تشكيل المجموعة، حجاج المجموعة", en: "The exam, forming the group, the group's pilgrims" })}</span>
                         </span>
                       </button>
-                      <button onClick={() => { close(); router.push("/staff"); }} className="flex items-center gap-3 rounded-2xl bg-ink p-3.5 text-right text-white transition hover:bg-ink/90">
+                      <button onClick={() => { close(); router.push("/staff"); }} className="flex items-center gap-3 rounded-2xl bg-ink p-3.5 text-start text-white transition hover:bg-ink/90">
                         <Landmark className="size-6 shrink-0 text-gold" />
                         <span>
-                          <span className="block font-bold">الموظف: غرفة العمليات والتسجيل</span>
-                          <span className="text-sm text-white/70">المراجعة، القرعة، إعدادات الموسم، سجل الأحداث</span>
+                          <span className="block font-bold">{t({ ar: "الموظف: غرفة العمليات والتسجيل", en: "Staff: the operations room and registration" })}</span>
+                          <span className="text-sm text-white/70">{t({ ar: "المراجعة، القرعة، إعدادات الموسم، سجل الأحداث", en: "Reviews, the lottery, season settings, the event log" })}</span>
                         </span>
                       </button>
                     </div>
                   )}
 
                   <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-2 bg-white pt-2">
-                    <SpeakButton text={`${step.title}. ${step.text}`} />
+                    {/* The read-aloud voice is Arabic: it reads the step in Arabic only */}
+                    {lang === "ar" ? <SpeakButton text={`${step.title.ar}. ${step.text.ar}`} /> : <span />}
                     <div className="flex gap-2">
                       {index! > 0 && (
                         <button onClick={() => go(index! - 1)} className="flex items-center gap-1 rounded-2xl px-3 py-2.5 font-bold text-green-dark hover:bg-sand">
-                          <ArrowRight className="size-4" /> السابق
+                          <ArrowRight className="size-4" /> {t({ ar: "السابق", en: "Back" })}
                         </button>
                       )}
                       {!last ? (
                         <button onClick={() => go(index! + 1)} className="flex items-center gap-1 rounded-2xl bg-green-dark px-5 py-2.5 font-bold text-white hover:bg-green">
-                          التالي <ArrowLeft className="size-4" />
+                          {t({ ar: "التالي", en: "Next" })} <ArrowLeft className="size-4" />
                         </button>
                       ) : (
                         <button onClick={close} className="rounded-2xl px-4 py-2.5 font-bold text-ink-soft hover:bg-sand">
-                          إنهاء
+                          {t({ ar: "إنهاء", en: "Finish" })}
                         </button>
                       )}
                     </div>

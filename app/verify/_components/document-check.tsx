@@ -6,11 +6,31 @@ import { Award, Camera, CircleCheck, FileSearch, LoaderCircle, QrCode, Receipt, 
 import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { Modal } from "@/components/ui/widgets";
 import { DOCUMENTS, findDocument, type IssuedDocument } from "@/lib/data/clusters";
+import { dateEn } from "@/app/conditions/_lib/en";
+import { useT } from "@/lib/i18n";
 import { cn, formatUSD } from "@/lib/utils";
+
+/** The demo documents' Arabic lines (lib/data/clusters DOCUMENTS) in English; the holders' names stay as they are */
+const DOC_EN: Record<string, string> = {
+  "إيصال رسم التسجيل": "Registration fee receipt",
+  "إيصال الدفعة الأولى من تكلفة الحج": "Receipt for the first instalment of the Hajj cost",
+  "إيصال الهدي": "Hady receipt",
+  "إيصال السكن الخاص": "Private accommodation receipt",
+  "إيصال رسم تسجيل إداري": "Administrator registration fee receipt",
+  "شهادة أداء فريضة الحج": "Certificate of performing Hajj",
+  "طلب عائلي — 4 أفراد × 25 دولاراً": "Family application — 4 people × 25 dollars",
+  "4 أفراد × 3,500 دولار — مع التسجيل على القبول المباشر": "4 people × 3,500 dollars — with registration for direct acceptance",
+  "4 أفراد × 180 دولاراً": "4 people × 180 dollars",
+  "غرفة بأربعة أسرّة — 4 × 50 $": "Four-bed room — 4 × 50 $",
+  "رسم تسجيل إداري للموسم": "Administrator registration fee for the season",
+  "موسم 1448هـ — تكتل النور لخدمة الحجاج": "1448 AH season — Cluster: تكتل النور لخدمة الحجاج",
+};
+const docEn = (s: string) => DOC_EN[s] ?? dateEn(s);
 
 type State = { status: "idle" } | { status: "checking" } | { status: "valid"; doc: IssuedDocument } | { status: "invalid"; number: string };
 
 export function DocumentCheck() {
+  const t = useT();
   const [number, setNumber] = useState("");
   const [state, setState] = useState<State>({ status: "idle" });
   const [scanOpen, setScanOpen] = useState(false);
@@ -52,9 +72,9 @@ export function DocumentCheck() {
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
         <form onSubmit={submit} className="relative">
           <label htmlFor="doc-no" className="sr-only">
-            رقم الإيصال أو الشهادة
+            {t("رقم الإيصال أو الشهادة", "Receipt or certificate number")}
           </label>
-          <Receipt className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-gold-dark" />
+          <Receipt className="pointer-events-none absolute start-5 top-1/2 size-6 -translate-y-1/2 text-gold-dark" />
           <input
             id="doc-no"
             dir="ltr"
@@ -63,14 +83,14 @@ export function DocumentCheck() {
             value={number}
             onChange={(e) => setNumber(e.target.value.toUpperCase())}
             placeholder="1448-R-004512"
-            className="h-16 w-full rounded-3xl border-2 border-gold/50 bg-white pl-32 pr-14 text-right font-mono text-xl tracking-wider text-ink shadow-[0_20px_50px_-35px_rgba(0,89,79,.6)] outline-none transition placeholder:text-hint focus:border-green-light focus:ring-8 focus:ring-green-light/10"
+            className="h-16 w-full rounded-3xl border-2 border-gold/50 bg-white ps-14 pe-32 font-mono rtl:text-right text-xl tracking-wider text-ink shadow-[0_20px_50px_-35px_rgba(0,89,79,.6)] outline-none transition placeholder:text-hint focus:border-green-light focus:ring-8 focus:ring-green-light/10"
           />
           <button
             type="submit"
-            className="absolute left-2 top-2 flex h-12 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"
+            className="absolute end-2 top-2 flex h-12 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"
           >
             {state.status === "checking" ? <LoaderCircle className="size-5 animate-spin" /> : <FileSearch className="size-5" />}
-            تحقّق
+            {t("تحقّق", "Check")}
           </button>
         </form>
         <motion.button
@@ -83,12 +103,12 @@ export function DocumentCheck() {
             <QrCode className="size-5 text-gold" />
             <span className="absolute inset-x-1 top-1 h-0.5 animate-bounce rounded bg-gold/80" />
           </span>
-          مسح رمز QR
+          {t("مسح رمز QR", "Scan a QR code")}
         </motion.button>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
-        <span className="text-ink-soft">أرقام تجريبية:</span>
+        <span className="text-ink-soft">{t("أرقام تجريبية:", "Demo numbers:")}</span>
         {[...DOCUMENTS.map((d) => d.number), "1448-R-009999"].map((n) => (
           <button
             key={n}
@@ -131,14 +151,19 @@ const panel = {
 };
 
 function DocHint() {
+  const t = useT();
   return (
     <motion.div {...panel} className="grid gap-4 sm:grid-cols-3">
       {[
-        { icon: Receipt, t: "إيصالات الرسوم والتكاليف", d: "لكل رسم أو تكلفة إيصال رقمي مستقل برقم فريد ورمز QR." },
-        { icon: Award, t: "شهادة أداء الحج", d: "تصدر بعد الموسم، ويمكن لأي جهة التحقق منها هنا." },
-        { icon: ShieldCheck, t: "دون بيانات شخصية", d: "تظهر تفاصيل الوثيقة فقط، واسم صاحبها مقنّع." },
-      ].map((x) => (
-        <div key={x.t} className="rounded-3xl border border-gold/40 bg-white p-5">
+        {
+          icon: Receipt,
+          t: t("إيصالات الرسوم والتكاليف", "Receipts for fees and costs"),
+          d: t("لكل رسم أو تكلفة إيصال رقمي مستقل برقم فريد ورمز QR.", "Every fee or cost has its own digital receipt with a unique number and a QR code."),
+        },
+        { icon: Award, t: t("شهادة أداء الحج", "Hajj certificate"), d: t("تصدر بعد الموسم، ويمكن لأي جهة التحقق منها هنا.", "Issued after the season; anyone can verify it here.") },
+        { icon: ShieldCheck, t: t("دون بيانات شخصية", "No personal data"), d: t("تظهر تفاصيل الوثيقة فقط، واسم صاحبها مقنّع.", "Only the document's details are shown, and the holder's name is masked.") },
+      ].map((x, i) => (
+        <div key={i} className="rounded-3xl border border-gold/40 bg-white p-5">
           <x.icon className="size-7 text-green" />
           <p className="mt-3 font-bold text-ink">{x.t}</p>
           <p className="mt-1 text-sm leading-7 text-ink-soft">{x.d}</p>
@@ -149,6 +174,7 @@ function DocHint() {
 }
 
 function DocChecking() {
+  const t = useT();
   return (
     <motion.div {...panel} className="flex flex-col items-center py-10">
       <div className="relative">
@@ -165,12 +191,13 @@ function DocChecking() {
           transition={{ duration: 0.8, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
         />
       </div>
-      <p className="mt-6 font-semibold text-green-dark">نطابق رقم الوثيقة مع سجل المنصة…</p>
+      <p className="mt-6 font-semibold text-green-dark">{t("نطابق رقم الوثيقة مع سجل المنصة…", "Matching the document number against the platform's register…")}</p>
     </motion.div>
   );
 }
 
 function Seal() {
+  const t = useT();
   return (
     <div className="relative size-40 shrink-0">
       <motion.svg
@@ -189,7 +216,7 @@ function Seal() {
         <circle cx="100" cy="100" r="56" fill="#016D5D" stroke="#D9C89E" strokeWidth="2" />
         <g className="animate-spin-slow" style={{ transformOrigin: "100px 100px" }}>
           <text fill="#D9C89E" fontSize="13" fontWeight="700" letterSpacing="1">
-            <textPath href="#seal-circle">صادرة عن المنصة الوطنية للحج ✦ صحيحة ✦ موسم 1448هـ ✦</textPath>
+            <textPath href="#seal-circle">{t("صادرة عن المنصة الوطنية للحج ✦ صحيحة ✦ موسم 1448هـ ✦", "National Hajj Platform ✦ Valid ✦ 1448 AH ✦")}</textPath>
           </text>
         </g>
       </motion.svg>
@@ -211,13 +238,14 @@ function Seal() {
 }
 
 function ValidDocument({ doc }: { doc: IssuedDocument }) {
+  const t = useT();
   const rows = [
-    { k: "نوع الوثيقة", v: doc.type },
-    { k: "رقم الوثيقة", v: doc.number, mono: true },
-    ...(doc.amount !== undefined ? [{ k: "المبلغ", v: formatUSD(doc.amount) }] : []),
-    { k: "تاريخ الإصدار", v: doc.date },
-    { k: "صاحب الوثيقة", v: doc.holder },
-    { k: "البيان", v: doc.detail },
+    { k: t("نوع الوثيقة", "Document type"), v: t(doc.type, docEn(doc.type)) },
+    { k: t("رقم الوثيقة", "Document number"), v: doc.number, mono: true },
+    ...(doc.amount !== undefined ? [{ k: t("المبلغ", "Amount"), v: formatUSD(doc.amount) }] : []),
+    { k: t("تاريخ الإصدار", "Date issued"), v: t(doc.date, dateEn(doc.date)) },
+    { k: t("صاحب الوثيقة", "Holder"), v: <bdi>{doc.holder}</bdi> },
+    { k: t("البيان", "Details"), v: t(doc.detail, docEn(doc.detail)) },
   ];
   return (
     <motion.div {...panel} className="overflow-hidden rounded-[2rem] border border-green-light/30 bg-white shadow-[0_40px_80px_-50px_rgba(0,89,79,.7)]">
@@ -231,17 +259,17 @@ function ValidDocument({ doc }: { doc: IssuedDocument }) {
         <Seal />
         <div className="relative">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-green-light/15 px-3 py-1 text-xs font-bold text-green">
-            <CircleCheck className="size-3.5" /> تم التحقق الآن
+            <CircleCheck className="size-3.5" /> {t("تم التحقق الآن", "Verified just now")}
           </span>
-          <h3 className="mt-3 font-display text-3xl font-bold text-green-dark md:text-4xl">صادرة عن المنصة — صحيحة</h3>
-          <p className="mt-2 text-sm leading-7 text-ink-soft">هذه الوثيقة مسجّلة في سجل المنصة ولم تُلغَ. تظهر هنا تفاصيل غير شخصية فقط.</p>
+          <h3 className="mt-3 font-display text-3xl font-bold text-green-dark md:text-4xl">{t("صادرة عن المنصة — صحيحة", "Issued by the platform — valid")}</h3>
+          <p className="mt-2 text-sm leading-7 text-ink-soft">{t("هذه الوثيقة مسجّلة في سجل المنصة ولم تُلغَ. تظهر هنا تفاصيل غير شخصية فقط.", "This document is in the platform's register and has not been cancelled. Only non-personal details are shown here.")}</p>
         </div>
       </div>
       <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:p-8">
         <dl className="divide-y divide-dashed divide-gold/50">
           {rows.map((r, i) => (
             <motion.div
-              key={r.k}
+              key={i}
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 + i * 0.07 }}
@@ -258,7 +286,7 @@ function ValidDocument({ doc }: { doc: IssuedDocument }) {
           <div className="rounded-xl bg-white p-2 shadow-sm">
             <QRCodeSVG value={`https://hajj.example.sy/verify?doc=${doc.number}`} size={120} fgColor="#00594F" level="M" />
           </div>
-          <p className="text-[11px] text-ink-soft">رمز التحقق المطبوع على الوثيقة</p>
+          <p className="text-[11px] text-ink-soft">{t("رمز التحقق المطبوع على الوثيقة", "The verification code printed on the document")}</p>
         </div>
       </div>
     </motion.div>
@@ -266,6 +294,7 @@ function ValidDocument({ doc }: { doc: IssuedDocument }) {
 }
 
 function InvalidDocument({ number }: { number: string }) {
+  const t = useT();
   return (
     <motion.div {...panel} className="mx-auto max-w-2xl">
       <motion.div
@@ -281,13 +310,19 @@ function InvalidDocument({ number }: { number: string }) {
         >
           <SearchX className="size-9" />
         </motion.span>
-        <h3 className="mt-5 font-display text-2xl font-bold text-ink md:text-3xl">لم يُعثر على وثيقة بهذا الرقم</h3>
+        <h3 className="mt-5 font-display text-2xl font-bold text-ink md:text-3xl">{t("لم يُعثر على وثيقة بهذا الرقم", "No document found with this number")}</h3>
         <p className="mt-2 font-mono text-ink-soft" dir="ltr">
           {number}
         </p>
         <ul className="mx-auto mt-6 max-w-md space-y-2 text-start text-sm leading-7 text-ink-soft">
-          <li>• تأكد من كتابة الرقم كما هو مطبوع، مثل: 1448-R-004512.</li>
-          <li>• إذا حصلت على الوثيقة من جهة غير معتمدة فلا تعتمد عليها، وأبلغ عنها على الخط الساخن 9449.</li>
+          <li>• {t("تأكد من كتابة الرقم كما هو مطبوع، مثل: 1448-R-004512.", "Make sure you typed the number exactly as printed, e.g. 1448-R-004512.")}</li>
+          <li>
+            •{" "}
+            {t(
+              "إذا حصلت على الوثيقة من جهة غير معتمدة فلا تعتمد عليها، وأبلغ عنها على الخط الساخن 9449.",
+              "If you got the document from an organisation that is not approved, do not rely on it, and report it on the 9449 hotline.",
+            )}
+          </li>
         </ul>
       </motion.div>
     </motion.div>
@@ -295,6 +330,7 @@ function InvalidDocument({ number }: { number: string }) {
 }
 
 function Scanner({ open, code, onClose, onDetected }: { open: boolean; code: string; onClose: () => void; onDetected: (code: string) => void }) {
+  const t = useT();
   const [detected, setDetected] = useState(false);
   const handleDetected = useEffectEvent((c: string) => onDetected(c));
 
@@ -320,10 +356,10 @@ function Scanner({ open, code, onClose, onDetected }: { open: boolean; code: str
       }}
       className="max-w-md bg-ink p-4 text-white sm:p-5"
     >
-      <div className="flex items-center gap-2 pb-3 pl-8">
+      <div className="flex items-center gap-2 pb-3 pe-8">
         <Camera className="size-5 text-gold" />
-        <p className="font-bold">مسح رمز QR</p>
-        <span className="mr-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/70">كاميرا تجريبية</span>
+        <p className="font-bold">{t("مسح رمز QR", "Scan a QR code")}</p>
+        <span className="ms-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/70">{t("كاميرا تجريبية", "Demo camera")}</span>
       </div>
 
       <div className="relative aspect-square overflow-hidden rounded-3xl bg-[radial-gradient(circle_at_30%_20%,#2a3a3a,#0b1414_70%)]">
@@ -347,7 +383,7 @@ function Scanner({ open, code, onClose, onDetected }: { open: boolean; code: str
           transition={{ duration: 2, ease: "easeOut" }}
         >
           <div className="mb-2 flex items-center justify-between text-[9px] font-bold text-green-dark">
-            <span>المنصة الوطنية للحج</span>
+            <span>{t("المنصة الوطنية للحج", "National Hajj Platform")}</span>
             <span dir="ltr" className="font-mono">
               {code}
             </span>
@@ -398,7 +434,7 @@ function Scanner({ open, code, onClose, onDetected }: { open: boolean; code: str
                 animate={{ y: 0, scale: 1 }}
                 className="flex items-center gap-2 rounded-full bg-green-light px-4 py-2 text-sm font-bold text-white shadow-xl"
               >
-                <CircleCheck className="size-4" /> تم التقاط الرمز
+                <CircleCheck className="size-4" /> {t("تم التقاط الرمز", "Code captured")}
               </motion.span>
             </motion.div>
           )}
@@ -408,11 +444,11 @@ function Scanner({ open, code, onClose, onDetected }: { open: boolean; code: str
       <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-white/70">
         {detected ? (
           <>
-            <LoaderCircle className="size-4 animate-spin" /> جارٍ التحقق من الوثيقة…
+            <LoaderCircle className="size-4 animate-spin" /> {t("جارٍ التحقق من الوثيقة…", "Checking the document…")}
           </>
         ) : (
           <>
-            <ScanLine className="size-4 text-gold" /> وجّه الكاميرا نحو رمز QR على الإيصال أو الشهادة
+            <ScanLine className="size-4 text-gold" /> {t("وجّه الكاميرا نحو رمز QR على الإيصال أو الشهادة", "Point the camera at the QR code on the receipt or certificate")}
           </>
         )}
       </p>

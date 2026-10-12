@@ -5,28 +5,33 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Building, FileSearch, Hotel } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
+import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { EntityCheck } from "./entity-check";
 import { DocumentCheck } from "./document-check";
 import { ServicesDirectory } from "./services-directory";
 
 const TABS = [
-  { key: "entity", label: "التحقق من جهة", sub: "هل التكتل أو الحملة معتمدة؟", icon: Building },
-  { key: "document", label: "التحقق من وثيقة", sub: "إيصال أو شهادة أو رمز QR", icon: FileSearch },
-  { key: "directory", label: "دليل الخدمات", sub: "برامج التكتلات المعتمدة", icon: Hotel },
+  { key: "entity", label: "التحقق من جهة", sub: "هل التكتل أو الحملة معتمدة؟", en: "Check an organisation", subEn: "Is the cluster or campaign approved?", icon: Building },
+  { key: "document", label: "التحقق من وثيقة", sub: "إيصال أو شهادة أو رمز QR", en: "Check a document", subEn: "Receipt, certificate or QR code", icon: FileSearch },
+  { key: "directory", label: "دليل الخدمات", sub: "برامج التكتلات المعتمدة", en: "Services directory", subEn: "Programmes of the approved clusters", icon: Hotel },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
 
 export function VerifyTabs() {
   const router = useRouter();
+  const t = useT();
+  const en = useLang() === "en";
   const [tab, setTab] = useState<TabKey>("entity");
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const index = TABS.findIndex((t) => t.key === tab);
 
   function onKey(e: KeyboardEvent) {
-    // RTL: ArrowLeft moves forward
-    const dir = e.key === "ArrowLeft" ? 1 : e.key === "ArrowRight" ? -1 : 0;
+    // Forward is ArrowLeft in Arabic (right to left), ArrowRight in English
+    const fwd = en ? "ArrowRight" : "ArrowLeft";
+    const back = en ? "ArrowLeft" : "ArrowRight";
+    const dir = e.key === fwd ? 1 : e.key === back ? -1 : 0;
     if (!dir) return;
     e.preventDefault();
     const next = (index + dir + TABS.length) % TABS.length;
@@ -38,24 +43,24 @@ export function VerifyTabs() {
     <div>
       <div
         role="tablist"
-        aria-label="أدوات التحقق"
+        aria-label={t("أدوات التحقق", "Verification tools")}
         onKeyDown={onKey}
         className="relative mx-auto grid max-w-4xl grid-cols-3 gap-1.5 rounded-3xl border border-gold/40 bg-white p-1.5 shadow-[0_24px_60px_-40px_rgba(0,89,79,.6)]"
       >
-        {TABS.map((t, i) => {
-          const active = t.key === tab;
+        {TABS.map((item, i) => {
+          const active = item.key === tab;
           return (
             <button
-              key={t.key}
+              key={item.key}
               ref={(el) => {
                 refs.current[i] = el;
               }}
               role="tab"
-              id={`tab-${t.key}`}
+              id={`tab-${item.key}`}
               aria-selected={active}
-              aria-controls={`panel-${t.key}`}
+              aria-controls={`panel-${item.key}`}
               tabIndex={active ? 0 : -1}
-              onClick={() => setTab(t.key)}
+              onClick={() => setTab(item.key)}
               className={cn(
                 "relative flex flex-col items-center gap-1 rounded-[1.1rem] px-2 py-3 text-center transition sm:flex-row sm:gap-3 sm:px-4 sm:text-start",
                 active ? "text-white" : "text-ink hover:bg-sand",
@@ -74,11 +79,11 @@ export function VerifyTabs() {
                   active ? "bg-white/15 text-gold" : "bg-green-light/10 text-green",
                 )}
               >
-                <t.icon className="size-5" />
+                <item.icon className="size-5" />
               </span>
               <span className="relative">
-                <span className="block text-xs font-bold sm:text-base">{t.label}</span>
-                <span className={cn("hidden text-xs sm:block", active ? "text-white/70" : "text-ink-soft")}>{t.sub}</span>
+                <span className="block text-xs font-bold sm:text-base">{t(item.label, item.en)}</span>
+                <span className={cn("hidden text-xs sm:block", active ? "text-white/70" : "text-ink-soft")}>{t(item.sub, item.subEn)}</span>
               </span>
             </button>
           );

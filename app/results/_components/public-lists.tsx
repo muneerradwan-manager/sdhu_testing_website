@@ -1,11 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, ChevronLeft, ChevronRight, Dices, Hash, ListFilter, RotateCcw, Users } from "lucide-react";
+import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Dices, Hash, ListFilter, RotateCcw, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { OFFICES } from "@/lib/season";
 import { getDirectList, RESULTS_SUMMARY } from "@/lib/data/public-results";
 import { drawTotals, usePublishedDraw } from "@/lib/lottery";
+import { campaignEn, dateEn, officeEn, placeEn } from "@/app/conditions/_lib/en";
+import { useT } from "@/lib/i18n";
 import { cn, digitsOnly, formatNumber } from "@/lib/utils";
 import { DrawTable } from "./draw-table";
 
@@ -17,6 +19,7 @@ const selectCls =
   "h-11 w-full appearance-none rounded-xl border border-gold/50 bg-white px-3 text-sm text-ink outline-none transition focus:border-green-light focus:ring-4 focus:ring-green-light/15";
 
 export function PublicLists() {
+  const t = useT();
   const [kind, setKind] = useState<ListKind>("lottery");
   const [gov, setGov] = useState("");
   const [campaign, setCampaign] = useState("");
@@ -26,8 +29,20 @@ export function PublicLists() {
   const draw = usePublishedDraw();
   // The lottery publishes its table of birth years and months; only direct acceptance lists names
   const TABS: { key: ListKind; label: string; count: number; icon: typeof BadgeCheck; hint: string }[] = [
-    { key: "lottery", label: "نتائج القرعة", count: draw ? drawTotals(draw.picks).seats : 0, icon: Dices, hint: "سنوات الميلاد وأشهرها المسحوبة — 26 أيلول، دير الزور" },
-    { key: "direct", label: "المقبولون مباشرة", count: RESULTS_SUMMARY.direct, icon: BadgeCheck, hint: `وفق الأكبر سناً — ${RESULTS_SUMMARY.acceptedAge} عاماً فأكثر` },
+    {
+      key: "lottery",
+      label: t("نتائج القرعة", "Lottery results"),
+      count: draw ? drawTotals(draw.picks).seats : 0,
+      icon: Dices,
+      hint: t("سنوات الميلاد وأشهرها المسحوبة — 26 أيلول، دير الزور", "Birth years and months drawn — 26 September, Deir ez-Zor"),
+    },
+    {
+      key: "direct",
+      label: t("المقبولون مباشرة", "Accepted directly"),
+      count: RESULTS_SUMMARY.direct,
+      icon: BadgeCheck,
+      hint: t(`وفق الأكبر سناً — ${RESULTS_SUMMARY.acceptedAge} عاماً فأكثر`, `Oldest first — aged ${RESULTS_SUMMARY.acceptedAge} or over`),
+    },
   ];
   const list = useMemo(() => getDirectList(), []);
   const filtered = useMemo(
@@ -56,18 +71,18 @@ export function PublicLists() {
   return (
     <div className="rounded-[2rem] border border-gold/40 bg-white p-4 shadow-[0_30px_70px_-50px_rgba(0,89,79,.6)] sm:p-6 md:p-8">
       {/* Tabs */}
-      <div role="tablist" aria-label="القوائم العامة" className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        {TABS.map((t) => {
-          const active = t.key === kind;
+      <div role="tablist" aria-label={t("القوائم العامة", "Public lists")} className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        {TABS.map((tb) => {
+          const active = tb.key === kind;
           return (
             <button
-              key={t.key}
+              key={tb.key}
               role="tab"
               aria-selected={active}
               onClick={() => {
-                setKind(t.key);
+                setKind(tb.key);
                 setPage(1);
-                if (t.key !== "direct") setCampaign("");
+                if (tb.key !== "direct") setCampaign("");
               }}
               className={cn(
                 "relative flex shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-start transition",
@@ -81,10 +96,10 @@ export function PublicLists() {
                   transition={{ type: "spring", damping: 28, stiffness: 320 }}
                 />
               )}
-              <t.icon className={cn("relative size-5", active ? "text-gold" : "text-green")} />
+              <tb.icon className={cn("relative size-5", active ? "text-gold" : "text-green")} />
               <span className="relative">
-                <span className="block text-sm font-bold">{t.label}</span>
-                <span className={cn("block text-xs tabular-nums", active ? "text-white/70" : "text-ink-soft")}>{t.count ? `${formatNumber(t.count)} حاجاً` : "لم تُنشر بعد"}</span>
+                <span className="block text-sm font-bold">{tb.label}</span>
+                <span className={cn("block text-xs tabular-nums", active ? "text-white/70" : "text-ink-soft")}>{tb.count ? t(`${formatNumber(tb.count)} حاجاً`, `${formatNumber(tb.count)} pilgrims`) : t("لم تُنشر بعد", "Not yet published")}</span>
               </span>
             </button>
           );
@@ -100,10 +115,10 @@ export function PublicLists() {
           {/* Filters */}
           <div className="mt-6 grid gap-3 rounded-2xl bg-sand/70 p-3 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_auto] lg:items-center">
             <span className="hidden items-center gap-1.5 px-2 text-sm font-bold text-green-dark lg:flex">
-              <ListFilter className="size-4" /> تصفية
+              <ListFilter className="size-4" /> {t("تصفية", "Filter")}
             </span>
             <label className="relative">
-              <span className="sr-only">المكتب</span>
+              <span className="sr-only">{t("المكتب", "Office")}</span>
               <select
                 className={selectCls}
                 value={gov}
@@ -111,42 +126,42 @@ export function PublicLists() {
                   change(setGov)(e.target.value);
                 }}
               >
-                <option value="">كل المكاتب</option>
-                <optgroup label="داخل سوريا">
+                <option value="">{t("كل المكاتب", "All offices")}</option>
+                <optgroup label={t("داخل سوريا", "Inside Syria")}>
                   {OFFICES.filter((o) => !o.abroad).map((o) => (
-                    <option key={o.governorate} value={o.governorate}>{o.office}</option>
+                    <option key={o.governorate} value={o.governorate}>{t(o.office, officeEn(o.office))}</option>
                   ))}
                 </optgroup>
-                <optgroup label="مكاتب الخارج">
+                <optgroup label={t("مكاتب الخارج", "Offices abroad")}>
                   {OFFICES.filter((o) => o.abroad).map((o) => (
-                    <option key={o.governorate} value={o.governorate}>{o.office}</option>
+                    <option key={o.governorate} value={o.governorate}>{t(o.office, officeEn(o.office))}</option>
                   ))}
                 </optgroup>
               </select>
-              <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
+              <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
             </label>
             <label className="relative">
-              <span className="sr-only">الحملة</span>
+              <span className="sr-only">{t("الحملة", "Campaign")}</span>
               <select className={selectCls} value={campaign} onChange={(e) => change(setCampaign)(e.target.value)}>
-                <option value="">كل الحملات</option>
+                <option value="">{t("كل الحملات", "All campaigns")}</option>
                 {kind === "direct" ? (
                   <>
-                    <option>القبول المباشر</option>
-                    <option>المنحة</option>
+                    <option value="القبول المباشر">{t("القبول المباشر", "Direct acceptance")}</option>
+                    <option value="المنحة">{t("المنحة", "Scholarship")}</option>
                   </>
                 ) : (
-                  <option>القرعة</option>
+                  <option value="القرعة">{t("القرعة", "Lottery")}</option>
                 )}
               </select>
-              <ChevronLeft className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-hint" />
+              <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
             </label>
             <label className="relative">
-              <span className="sr-only">رقم الطلب</span>
-              <Hash className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
+              <span className="sr-only">{t("رقم الطلب", "Application number")}</span>
+              <Hash className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
               <input
-                className={cn(selectCls, "pr-9")}
+                className={cn(selectCls, "ps-9")}
                 inputMode="numeric"
-                placeholder="رقم الطلب (مثال: 4512)"
+                placeholder={t("رقم الطلب (مثال: 4512)", "Application no. (e.g. 4512)")}
                 value={appNo}
                 onChange={(e) => change(setAppNo)(digitsOnly(e.target.value).slice(0, 6))}
               />
@@ -165,7 +180,7 @@ export function PublicLists() {
                   }}
                   className="flex h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-bold text-maroon hover:bg-maroon/5"
                 >
-                  <RotateCcw className="size-4" /> مسح
+                  <RotateCcw className="size-4" /> {t("مسح", "Clear")}
                 </motion.button>
               )}
             </AnimatePresence>
@@ -173,10 +188,10 @@ export function PublicLists() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-1 text-sm text-ink-soft">
             <p>
-              <span className="font-bold text-green-dark tabular-nums">{formatNumber(filtered.length)}</span> طلباً ·{" "}
-              <span className="font-bold text-green-dark tabular-nums">{formatNumber(people)}</span> شخصاً — {tab.hint}
+              <span className="font-bold text-green-dark tabular-nums">{formatNumber(filtered.length)}</span> {t("طلباً", "applications")} ·{" "}
+              <span className="font-bold text-green-dark tabular-nums">{formatNumber(people)}</span> {t("شخصاً", "people")} — {tab.hint}
             </p>
-            <p className="text-xs">الرقم الوطني مقنّع · آخر تحديث: {RESULTS_SUMMARY.lastUpdate}</p>
+            <p className="text-xs">{t(`الرقم الوطني مقنّع · آخر تحديث: ${RESULTS_SUMMARY.lastUpdate}`, `National numbers masked · Last updated: ${dateEn(RESULTS_SUMMARY.lastUpdate)}`)}</p>
           </div>
 
           {/* Table — scrolls inside its own container on small screens */}
@@ -184,12 +199,12 @@ export function PublicLists() {
             <table className="w-full min-w-[820px] border-collapse text-sm">
               <thead className="bg-green-dark text-white">
                 <tr className="text-start">
-                  <th className="px-4 py-3 text-start font-semibold">رقم الطلب</th>
-                  <th className="px-4 py-3 text-start font-semibold">الاسم</th>
-                  <th className="px-4 py-3 text-start font-semibold">الرقم الوطني</th>
-                  <th className="px-4 py-3 text-start font-semibold">المحافظة / البلد</th>
-                  <th className="px-4 py-3 text-start font-semibold">المكتب</th>
-                  <th className="px-4 py-3 text-start font-semibold">الحملة</th>
+                  <th className="px-4 py-3 text-start font-semibold">{t("رقم الطلب", "Application no.")}</th>
+                  <th className="px-4 py-3 text-start font-semibold">{t("الاسم", "Name")}</th>
+                  <th className="px-4 py-3 text-start font-semibold">{t("الرقم الوطني", "National number")}</th>
+                  <th className="px-4 py-3 text-start font-semibold">{t("المحافظة / البلد", "Governorate / country")}</th>
+                  <th className="px-4 py-3 text-start font-semibold">{t("المكتب", "Office")}</th>
+                  <th className="px-4 py-3 text-start font-semibold">{t("الحملة", "Campaign")}</th>
                 </tr>
               </thead>
               {slice.map((a, i) => {
@@ -213,7 +228,7 @@ export function PublicLists() {
                             <span className="font-mono font-bold text-green-dark">{a.applicationNo}</span>
                             {family && (
                               <span className="mt-1 flex w-max items-center gap-1 rounded-full bg-green-light/12 px-2 py-0.5 text-[11px] font-bold text-green">
-                                <Users className="size-3" /> طلب عائلي · {span} أفراد
+                                <Users className="size-3" /> {t(`طلب عائلي · ${span} أفراد`, `Family application · ${span} people`)}
                               </span>
                             )}
                           </td>
@@ -224,16 +239,16 @@ export function PublicLists() {
                             {m.name}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 font-mono text-ink-soft" dir="ltr" style={{ textAlign: "right" }}>
+                        <td className="px-4 py-2.5 font-mono text-ink-soft rtl:text-right" dir="ltr">
                           {m.maskedId}
                         </td>
                         {j === 0 && (
                           <>
                             <td rowSpan={span} className="px-4 py-3 align-top text-ink">
-                              {a.governorate}
+                              {t(a.governorate, placeEn(a.governorate))}
                             </td>
                             <td rowSpan={span} className="px-4 py-3 align-top text-ink-soft">
-                              {a.office}
+                              {t(a.office, officeEn(a.office))}
                             </td>
                             <td rowSpan={span} className="px-4 py-3 align-top">
                               <span
@@ -242,7 +257,7 @@ export function PublicLists() {
                                   a.campaign === "المنحة" ? "bg-maroon/10 text-maroon" : "bg-gold/35 text-ink",
                                 )}
                               >
-                                {a.campaign}
+                                {t(a.campaign, campaignEn(a.campaign))}
                               </span>
                             </td>
                           </>
@@ -256,7 +271,7 @@ export function PublicLists() {
                 <tbody>
                   <tr>
                     <td colSpan={7} className="px-4 py-14 text-center text-ink-soft">
-                      لا توجد طلبات مطابقة للتصفية المختارة.
+                      {t("لا توجد طلبات مطابقة للتصفية المختارة.", "No applications match the filters you chose.")}
                     </td>
                   </tr>
                 </tbody>
@@ -273,15 +288,16 @@ export function PublicLists() {
 }
 
 function Pagination({ page, pages, onChange }: { page: number; pages: number; onChange: (p: number) => void }) {
+  const t = useT();
   const nums = Array.from(new Set([1, page - 1, page, page + 1, pages].filter((n) => n >= 1 && n <= pages))).sort((a, b) => a - b);
   const btn = "flex size-10 items-center justify-center rounded-xl text-sm font-bold transition disabled:opacity-30";
   return (
-    <nav aria-label="الصفحات" className="mt-5 flex flex-wrap items-center justify-between gap-3">
+    <nav aria-label={t("الصفحات", "Pages")} className="mt-5 flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-ink-soft">
-        صفحة <span className="font-bold text-ink tabular-nums">{formatNumber(page)}</span> من <span className="tabular-nums">{formatNumber(pages)}</span>
+        {t("صفحة", "Page")} <span className="font-bold text-ink tabular-nums">{formatNumber(page)}</span> {t("من", "of")} <span className="tabular-nums">{formatNumber(pages)}</span>
       </p>
       <div className="flex items-center gap-1">
-        <button className={cn(btn, "hover:bg-sand")} disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="الصفحة السابقة">
+        <button className={cn(btn, "hover:bg-sand")} disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label={t("الصفحة السابقة", "Previous page")}>
           <ChevronRight className="size-5" />
         </button>
         {nums.map((n, i) => (
@@ -297,7 +313,7 @@ function Pagination({ page, pages, onChange }: { page: number; pages: number; on
             </button>
           </span>
         ))}
-        <button className={cn(btn, "hover:bg-sand")} disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label="الصفحة التالية">
+        <button className={cn(btn, "hover:bg-sand")} disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label={t("الصفحة التالية", "Next page")}>
           <ChevronLeft className="size-5" />
         </button>
       </div>

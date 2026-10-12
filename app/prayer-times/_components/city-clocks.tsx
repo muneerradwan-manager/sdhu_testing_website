@@ -2,15 +2,17 @@
 
 import Image from "next/image";
 import { motion } from "motion/react";
+import { useLang, useT } from "@/lib/i18n";
 import { CITIES } from "@/lib/prayer";
 import { cn } from "@/lib/utils";
+import { cityName, prayerName } from "./names";
 import { PrayerIcon } from "./prayer-icon";
 import { humanRemaining, schedule, timeParts, wallHMS } from "./time";
 
 const TRIO = [
-  { slug: "damascus", image: "/images/umayyad.jpg", note: "الجامع الأموي" },
-  { slug: "makkah", image: "/images/clock-tower.jpg", note: "المسجد الحرام" },
-  { slug: "madinah", image: "/images/nabawi.jpg", note: "المسجد النبوي" },
+  { slug: "damascus", image: "/images/umayyad.jpg", note: "الجامع الأموي", noteEn: "The Umayyad Mosque" },
+  { slug: "makkah", image: "/images/clock-tower.jpg", note: "المسجد الحرام", noteEn: "Masjid al-Haram" },
+  { slug: "madinah", image: "/images/nabawi.jpg", note: "المسجد النبوي", noteEn: "The Prophet's Mosque" },
 ];
 
 function Analog({ nowMs, dark }: { nowMs: number; dark?: boolean }) {
@@ -45,13 +47,15 @@ function Analog({ nowMs, dark }: { nowMs: number; dark?: boolean }) {
 }
 
 export function CityClocks({ nowMs, activeSlug }: { nowMs: number; activeSlug: string }) {
+  const tr = useT();
+  const lang = useLang();
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {TRIO.map((t, i) => {
         const city = CITIES.find((c) => c.slug === t.slug)!;
         const sched = schedule(city, nowMs);
-        const clock = timeParts(new Date(nowMs), true);
-        const nt = timeParts(sched.next.time);
+        const clock = timeParts(new Date(nowMs), true, lang);
+        const nt = timeParts(sched.next.time, false, lang);
         const active = activeSlug === t.slug;
         return (
           <motion.article
@@ -77,8 +81,8 @@ export function CityClocks({ nowMs, activeSlug }: { nowMs: number; activeSlug: s
             <div className="flex items-center gap-4">
               <Analog nowMs={nowMs} dark />
               <div className="min-w-0">
-                <p className="font-display text-xl font-bold">{city.name}</p>
-                <p className="text-xs text-white/60">{t.note}</p>
+                <p className="font-display text-xl font-bold">{cityName(city, lang)}</p>
+                <p className="text-xs text-white/60">{tr(t.note, t.noteEn)}</p>
                 <p className="mt-2 flex items-baseline gap-1">
                   <span dir="ltr" className="text-2xl font-bold tabular-nums">
                     {clock.time}
@@ -90,11 +94,11 @@ export function CityClocks({ nowMs, activeSlug }: { nowMs: number; activeSlug: s
             <div className="mt-4 flex items-center justify-between gap-2 rounded-2xl bg-white/10 px-3 py-2.5 text-sm ring-1 ring-white/10 backdrop-blur">
               <span className="flex items-center gap-2">
                 <PrayerIcon prayer={sched.next.key} className="size-4 text-gold" />
-                <span className="text-white/70">القادمة:</span>
-                <span className="font-bold text-gold">{sched.next.name}</span>
+                <span className="text-white/70">{tr("القادمة:", "Next:")}</span>
+                <span className="font-bold text-gold">{prayerName(sched.next.key, lang)}</span>
                 <span className="tabular-nums">{nt.time}</span>
               </span>
-              <span className="truncate text-xs text-white/60">{sched.remaining < 60_000 ? "حان الوقت" : `بعد ${humanRemaining(sched.remaining)}`}</span>
+              <span className="truncate text-xs text-white/60">{sched.remaining < 60_000 ? tr("حان الوقت", "It's time") : tr(`بعد ${humanRemaining(sched.remaining)}`, `in ${humanRemaining(sched.remaining, "en")}`)}</span>
             </div>
           </motion.article>
         );

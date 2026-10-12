@@ -9,7 +9,9 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { langNow, type Lang } from "@/lib/i18n";
 import { getCollectionDef, CMS_COLLECTIONS } from "./collections";
+import { COLLECTIONS_EN, PAGES_EN } from "./en";
 import { CMS_PAGES, sectionDefaults } from "./schema";
 import type {
   CmsState,
@@ -45,7 +47,15 @@ const listeners = new Set<() => void>();
 const derived = new Map<string, { from: CmsState; value: unknown }>();
 const derivedInitial = new Map<string, unknown>();
 
+/**
+ * The language the content is read in: the page's (lib/i18n), but Arabic for React's comparison with the static
+ * HTML while it hydrates (`forced`), which was written in Arabic. Every derived value is kept per language.
+ */
+let forced: Lang | null = null;
+const lang = (): Lang => forced ?? langNow();
+
 export function cmsMemo<T>(key: string, from: CmsState, compute: () => T): T {
+  key = `${lang()}|${key}`;
   if (from === initial) {
     if (!derivedInitial.has(key)) derivedInitial.set(key, compute());
     return derivedInitial.get(key) as T;
@@ -98,9 +108,12 @@ function subscribe(listener: () => void) {
     listener();
   };
   window.addEventListener("storage", onStorage);
+  // The visitor chose the other language: the content is read again in it
+  window.addEventListener("sdhu-lang", listener);
   return () => {
     listeners.delete(listener);
     window.removeEventListener("storage", onStorage);
+    window.removeEventListener("sdhu-lang", listener);
   };
 }
 
@@ -111,7 +124,14 @@ export function useCms<T>(selector: (s: CmsState) => T): T {
       load();
       return selector(state);
     },
-    () => selector(initial),
+    () => {
+      forced = "ar";
+      try {
+        return selector(initial);
+      } finally {
+        forced = null;
+      }
+    },
   );
 }
 
@@ -155,8 +175,18 @@ export function readSection(s: CmsState, pageId: string, sectionId: string): Rec
   return cmsMemo(`section:${pageId}:${sectionId}`, s, () => {
     const page = pageState(s, pageId);
     const src = s.preview ? draftOf(page) : page.sections;
-    return { ...sectionDefaults(pageId, sectionId), ...(src[sectionId]?.values ?? EMPTY_VALUES) };
+    const values = { ...sectionDefaults(pageId, sectionId), ...(src[sectionId]?.values ?? EMPTY_VALUES) };
+    return lang() === "en" ? inEnglish(values, PAGES_EN[pageId]?.[sectionId]) : values;
   });
+}
+
+/**
+ * The English of a section or an item: its English texts (lib/cms/en) over its values, and over them whatever
+ * was saved in English (`<key>@en`). A field with no English keeps its value — an image, a link, a number.
+ */
+function inEnglish(values: Record<string, unknown>, en: Record<string, unknown> | undefined): Record<string, unknown> {
+  const saved = Object.fromEntries(Object.entries(values).filter(([k]) => k.endsWith("@en")).map(([k, v]) => [k.slice(0, -3), v]));
+  return en || Object.keys(saved).length ? { ...values, ...en, ...saved } : values;
 }
 
 /** هل يظهر القسم للزائر؟ */
@@ -219,7 +249,7 @@ function itemDefaults(colId: string, itemId: string): Record<string, unknown> {
  * كل عناصر المجموعة مرتبةً: ما أنشأه الموظف أولاً (الأحدث أولاً)، ثم الأصلية بترتيبها،
  * مع دمج التعديلات فوق القيم الأصلية. المؤرشفة تبقى في القائمة ويميّزها `archived`.
  */
-function buildCollection(s: CmsState, colId: string, src: Record<string, CollectionItemState>): CollectionItem[] {
+function buildCollection(s: CmsState, colId: string, src: Record<string, CollectionItemState>, en = false): CollectionItem[] {
   const def = getCollectionDef(colId);
   if (!def) return [];
   const c = collectionState(s, colId);
@@ -235,7 +265,7 @@ function buildCollection(s: CmsState, colId: string, src: Record<string, Collect
 
   return ids.map((id) => ({
     id,
-    values: { ...itemDefaults(colId, id), ...(src[id]?.values ?? EMPTY_VALUES) },
+    values: en ? inEnglish({ ...itemDefaults(colId, id), ...(src[id]?.values ?? EMPTY_VALUES) }, COLLECTIONS_EN[colId]?.[id]) : { ...itemDefaults(colId, id), ...(src[id]?.values ?? EMPTY_VALUES) },
     archived: !!src[id]?.archived,
     isNew: !builtInIds.includes(id),
     createdAt: src[id]?.createdAt,
@@ -249,7 +279,7 @@ export function readCollection(s: CmsState, colId: string): CollectionItem[] {
 
 /** ما يراه الزائر: المنشور بلا المؤرشف */
 export function readLiveCollection(s: CmsState, colId: string): CollectionItem[] {
-  return cmsMemo(`collectionLive:${colId}`, s, () => buildCollection(s, colId, liveSource(s, colId)).filter((i) => !i.archived));
+  return cmsMemo(`collectionLive:${colId}`, s, () => buildCollection(s, colId, liveSource(s, colId), lang() === "en").filter((i) => !i.archived));
 }
 
 export function readItem(s: CmsState, colId: string, itemId: string): CollectionItem | null {

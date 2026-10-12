@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { createPortal } from "react-dom";
 import { STATIC_EXPORT, cn } from "@/lib/utils";
 import { useScrollLock } from "@/lib/scroll-lock";
+import { useLang, useT } from "@/lib/i18n";
 
 // ───────────────────────── Map ─────────────────────────
 
@@ -23,6 +24,7 @@ export function MapEmbed({
   zoom?: number;
   className?: string;
 }) {
+  const t = useT();
   const bbox = [lng - zoom, lat - zoom * 0.6, lng + zoom, lat + zoom * 0.6].join(",");
   return (
     <div className={cn("group relative overflow-hidden rounded-3xl border border-gold/40 bg-gold-light", className)}>
@@ -43,7 +45,7 @@ export function MapEmbed({
           rel="noreferrer"
           className="pointer-events-auto flex items-center gap-1 rounded-full bg-green-dark px-3 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-green"
         >
-          افتح في الخرائط <ExternalLink className="size-3" />
+          {t("افتح في الخرائط", "Open in Maps")} <ExternalLink className="size-3" />
         </a>
       </div>
     </div>
@@ -56,7 +58,8 @@ export function MapEmbed({
 let activeStop: (() => void) | null = null;
 
 /** Reads Arabic text aloud in a natural Syrian voice — a lifeline for elderly pilgrims */
-export function SpeakButton({ text, className, label = "استمع", voice = "f" }: { text: string; className?: string; label?: string; voice?: "f" | "m" }) {
+export function SpeakButton({ text, className, label, voice = "f" }: { text: string; className?: string; label?: string; voice?: "f" | "m" }) {
+  const t = useT();
   const [state, setState] = useState<"idle" | "loading" | "speaking">("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speaking = state !== "idle";
@@ -122,7 +125,7 @@ export function SpeakButton({ text, className, label = "استمع", voice = "f"
         {state === "loading" ? <Loader2 className="size-4 animate-spin" /> : <Volume2 className="size-4" />}
         {state === "speaking" && <span className="absolute inset-0 animate-ping rounded-full bg-green-light/40" />}
       </span>
-      {state === "loading" ? "جارٍ التحضير..." : speaking ? "إيقاف" : label}
+      {state === "loading" ? t("جارٍ التحضير...", "Preparing...") : speaking ? t("إيقاف", "Stop") : (label ?? t("استمع", "Listen"))}
     </button>
   );
 }
@@ -130,6 +133,7 @@ export function SpeakButton({ text, className, label = "استمع", voice = "f"
 // ───────────────────────── Stars ─────────────────────────
 
 export function StarRating({ value, onChange, size = "md" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "md" | "lg" }) {
+  const t = useT();
   const [hover, setHover] = useState(0);
   const s = size === "lg" ? "size-10" : size === "sm" ? "size-4" : "size-7";
   return (
@@ -145,7 +149,7 @@ export function StarRating({ value, onChange, size = "md" }: { value: number; on
             whileTap={onChange ? { scale: 0.9 } : undefined}
             onMouseEnter={() => onChange && setHover(n)}
             onClick={() => onChange?.(n)}
-            aria-label={`${n} نجوم`}
+            aria-label={t(`${n} نجوم`, n === 1 ? "1 star" : `${n} stars`)}
             className="disabled:cursor-default"
           >
             <Star className={cn(s, "transition-colors", active ? "fill-gold-dark text-gold-dark" : "text-gold")} />
@@ -169,6 +173,7 @@ export function Modal({
   children: ReactNode;
   className?: string;
 }) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -200,7 +205,7 @@ export function Modal({
             onClick={(e) => e.stopPropagation()}
             className={cn("relative max-h-[calc(90dvh/var(--zoom))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-6 shadow-2xl", className)}
           >
-            <button onClick={onClose} className="absolute left-4 top-4 rounded-full p-1.5 text-hint hover:bg-sand hover:text-ink" aria-label="إغلاق">
+            <button onClick={onClose} className="absolute end-4 top-4 rounded-full p-1.5 text-hint hover:bg-sand hover:text-ink" aria-label={t("إغلاق", "Close")}>
               <X className="size-5" />
             </button>
             {children}
@@ -222,6 +227,8 @@ export function useToast() {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  // They slide in from the end of the page: its left in Arabic, its right in English
+  const from = useLang() === "en" ? 60 : -60;
   const [toasts, setToasts] = useState<Toast[]>([]);
   const push = useCallback((t: Omit<Toast, "id">) => {
     const id = Date.now() + Math.random();
@@ -239,18 +246,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed inset-x-3 top-3 z-[90] flex flex-col items-center gap-2 sm:left-4 sm:right-auto sm:top-24 sm:w-96 sm:items-stretch">
+      <div className="pointer-events-none fixed inset-x-3 top-3 z-[90] flex flex-col items-center gap-2 sm:end-4 sm:start-auto sm:top-24 sm:w-96 sm:items-stretch">
         <AnimatePresence initial={false}>
           {toasts.map((t) => (
             <motion.div
               layout
               key={t.id}
-              initial={{ opacity: 0, x: -60, scale: 0.9 }}
+              initial={{ opacity: 0, x: from, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -60, scale: 0.9 }}
+              exit={{ opacity: 0, x: from, scale: 0.9 }}
               transition={{ type: "spring", damping: 24, stiffness: 280 }}
               className={cn(
-                "pointer-events-auto relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border bg-white/95 p-4 pr-5 shadow-xl backdrop-blur before:absolute before:inset-y-0 before:right-0 before:w-1.5",
+                "pointer-events-auto relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border bg-white/95 p-4 ps-5 shadow-xl backdrop-blur before:absolute before:inset-y-0 before:start-0 before:w-1.5",
                 tones[t.tone ?? "info"],
               )}
             >

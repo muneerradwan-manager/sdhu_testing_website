@@ -2,8 +2,10 @@
 
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
+import { useLang, useT } from "@/lib/i18n";
 import { PRAYERS } from "@/lib/prayer";
 import { cn } from "@/lib/utils";
+import { prayerName } from "./names";
 import { PrayerIcon } from "./prayer-icon";
 import { timeParts, type schedule } from "./time";
 
@@ -17,6 +19,8 @@ const TINTS = {
 } as const;
 
 export function PrayerCards({ nowMs, sched }: { nowMs: number; sched: ReturnType<typeof schedule> }) {
+  const t = useT();
+  const lang = useLang();
   const { today, next, prev } = sched;
   // Fajr's time ends at sunrise, so nothing is "current" between sunrise and Dhuhr
   const fajrOver = prev.key === "fajr" && nowMs >= today.sunrise.getTime();
@@ -28,7 +32,7 @@ export function PrayerCards({ nowMs, sched }: { nowMs: number; sched: ReturnType
         const isNext = next.day === 0 && next.key === p.key;
         const isCurrent = prev.day === 0 && prev.key === p.key && !fajrOver;
         const passed = time.getTime() <= nowMs && !isCurrent;
-        const t = timeParts(time);
+        const tp = timeParts(time, false, lang);
 
         return (
           <motion.li
@@ -73,25 +77,25 @@ export function PrayerCards({ nowMs, sched }: { nowMs: number; sched: ReturnType
                     <span className="absolute inset-0 animate-ping rounded-full bg-gold" />
                     <span className="relative size-2 rounded-full bg-gold" />
                   </span>
-                  وقتها الآن
+                  {t("وقتها الآن", "Now")}
                 </span>
               )}
-              {isNext && <span className="rounded-full bg-green-light/15 px-2 py-0.5 text-[11px] font-bold text-green">القادمة</span>}
+              {isNext && <span className="rounded-full bg-green-light/15 px-2 py-0.5 text-[11px] font-bold text-green">{t("القادمة", "Next")}</span>}
               {passed && !isNext && (
-                <span className="grid size-5 place-items-center rounded-full bg-green-light/15 text-green" title="مضى وقتها">
+                <span className="grid size-5 place-items-center rounded-full bg-green-light/15 text-green" title={t("مضى وقتها", "Passed")}>
                   <Check className="size-3" />
                 </span>
               )}
             </div>
 
-            <p className={cn("mt-4 font-display text-lg font-bold", isCurrent ? "text-gold" : "text-green-dark")}>{p.name}</p>
+            <p className={cn("mt-4 font-display text-lg font-bold", isCurrent ? "text-gold" : "text-green-dark")}>{prayerName(p.key, lang)}</p>
             <p className={cn("mt-1 flex items-baseline gap-1.5", passed && "opacity-60")}>
-              <span className={cn("text-3xl font-bold tabular-nums tracking-tight", isCurrent ? "text-white" : "text-ink")}>{t.time}</span>
-              <span className={cn("text-sm font-semibold", isCurrent ? "text-white/70" : "text-hint")}>{t.period}</span>
+              <span className={cn("text-3xl font-bold tabular-nums tracking-tight", isCurrent ? "text-white" : "text-ink")}>{tp.time}</span>
+              <span className={cn("text-sm font-semibold", isCurrent ? "text-white/70" : "text-hint")}>{tp.period}</span>
             </p>
             {isNext && (
               <motion.span
-                className="absolute inset-x-4 bottom-0 h-1 origin-right rounded-full bg-gradient-to-l from-green-light to-gold"
+                className="absolute inset-x-4 bottom-0 h-1 origin-right rounded-full bg-gradient-to-l from-green-light to-gold ltr:origin-left ltr:bg-gradient-to-r"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: sched.progress }}
                 transition={{ duration: 1 }}

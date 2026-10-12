@@ -7,9 +7,11 @@ import { list } from "@/components/cms/bits";
 import { useSection } from "@/lib/cms/store";
 import type { Branch } from "@/lib/cms/site";
 import { MapEmbed } from "@/components/ui/widgets";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function BranchDirectory() {
+  const t = useT();
   const BRANCHES = list<Branch>(useSection("about", "branches"), "items");
   const [slug, setSlug] = useState("");
   const branch = BRANCHES.find((b) => b.slug === slug) ?? BRANCHES[0];
@@ -18,7 +20,7 @@ export function BranchDirectory() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-      <div role="listbox" aria-label="الفروع" className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
+      <div role="listbox" aria-label={t("الفروع", "Branches")} className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
         {BRANCHES.map((b) => {
           const active = b.slug === slug;
           return (
@@ -50,7 +52,7 @@ export function BranchDirectory() {
               </span>
               <span className="relative min-w-0">
                 <span className="block whitespace-nowrap font-bold">{b.city}</span>
-                <span className={cn("block whitespace-nowrap text-xs", active ? "text-white/70" : "text-hint")}>{b.head ? "الإدارة العامة" : "فرع المحافظة"}</span>
+                <span className={cn("block whitespace-nowrap text-xs", active ? "text-white/70" : "text-hint")}>{b.head ? t("الإدارة العامة", "Head Office") : t("فرع المحافظة", "Governorate branch")}</span>
               </span>
             </button>
           );
@@ -77,22 +79,22 @@ export function BranchDirectory() {
               <div className="flex gap-3">
                 <MapPin className="mt-0.5 size-4 shrink-0 text-maroon" />
                 <div>
-                  <dt className="text-xs text-hint">العنوان</dt>
+                  <dt className="text-xs text-hint">{t("العنوان", "Address")}</dt>
                   <dd className="leading-7 text-ink">{branch.address}</dd>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Clock3 className="mt-0.5 size-4 shrink-0 text-maroon" />
                 <div>
-                  <dt className="text-xs text-hint">أوقات الدوام</dt>
+                  <dt className="text-xs text-hint">{t("أوقات الدوام", "Opening hours")}</dt>
                   <dd className="text-ink">{branch.hours}</dd>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Phone className="mt-0.5 size-4 shrink-0 text-maroon" />
                 <div>
-                  <dt className="text-xs text-hint">الهاتف</dt>
-                  <dd dir="ltr" className="text-end font-semibold tabular-nums text-ink">
+                  <dt className="text-xs text-hint">{t("الهاتف", "Phone")}</dt>
+                  <dd dir="ltr" className="font-semibold tabular-nums text-ink rtl:text-end">
                     {branch.phone}
                   </dd>
                 </div>
@@ -103,7 +105,7 @@ export function BranchDirectory() {
                 href={`tel:${branch.phone.replace(/\s/g, "")}`}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-green-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green"
               >
-                <Phone className="size-4" /> اتصل بالفرع
+                <Phone className="size-4" /> {t("اتصل بالفرع", "Call the branch")}
               </a>
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${branch.lat},${branch.lng}`}
@@ -111,7 +113,7 @@ export function BranchDirectory() {
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-green-dark/15 px-4 py-2 text-sm font-bold text-green-dark transition hover:border-green-dark"
               >
-                <Navigation2 className="size-4" /> احصل على الاتجاهات
+                <Navigation2 className="size-4" /> {t("احصل على الاتجاهات", "Get directions")}
               </a>
             </div>
           </motion.div>

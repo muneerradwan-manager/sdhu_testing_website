@@ -7,6 +7,7 @@ import { useState, type MouseEvent } from "react";
 import { StarRating, useToast } from "@/components/ui/widgets";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 async function celebrate(x = 0.5, y = 0.6) {
   const confetti = (await import("canvas-confetti")).default;
@@ -16,6 +17,7 @@ async function celebrate(x = 0.5, y = 0.6) {
 export { celebrate };
 
 export function LessonActions({ lessonKey, lessonTitle, isLastInTrack }: { lessonKey: string; lessonTitle: string; isLastInTrack: boolean }) {
+  const t = useT();
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
   const done = useStore((s) => !!s.academy[lessonKey]);
@@ -29,8 +31,10 @@ export function LessonActions({ lessonKey, lessonTitle, isLastInTrack }: { lesso
     const r = e.currentTarget.getBoundingClientRect();
     void celebrate((r.left + r.width / 2) / window.innerWidth, (r.top + r.height / 2) / window.innerHeight);
     toast({
-      title: "أحسنت! أتممت الدرس",
-      body: isLastInTrack ? "هذا آخر درس في المسار — راجع صفحة المسار لشهادتك." : `حُفظ تقدمك في «${lessonTitle}».`,
+      title: t("أحسنت! أتممت الدرس", "Well done! Lesson completed"),
+      body: isLastInTrack
+        ? t("هذا آخر درس في المسار — راجع صفحة المسار لشهادتك.", "This is the last lesson in the track — see the track page for your certificate.")
+        : t(`حُفظ تقدمك في «${lessonTitle}».`, `Your progress in «${lessonTitle}» has been saved.`),
       tone: "gold",
       icon: "🌟",
     });
@@ -38,7 +42,12 @@ export function LessonActions({ lessonKey, lessonTitle, isLastInTrack }: { lesso
 
   const rate = (v: number) => {
     setRating(v);
-    toast({ title: "شكراً لتقييمك", body: `قيّمت الدرس ${v} من 5 نجوم. رأيك يساعدنا على تحسين الدروس.`, tone: "success", icon: "⭐" });
+    toast({
+      title: t("شكراً لتقييمك", "Thank you for your rating"),
+      body: t(`قيّمت الدرس ${v} من 5 نجوم. رأيك يساعدنا على تحسين الدروس.`, `You rated the lesson ${v} out of 5 stars. Your feedback helps us improve the lessons.`),
+      tone: "success",
+      icon: "⭐",
+    });
   };
 
   if (!loggedIn) {
@@ -46,14 +55,14 @@ export function LessonActions({ lessonKey, lessonTitle, isLastInTrack }: { lesso
       <div className="flex flex-col items-start justify-between gap-3 rounded-3xl border border-dashed border-gold-dark/40 bg-gold-light/40 p-4 sm:flex-row sm:items-center sm:p-5">
         <p className="flex items-center gap-2.5 text-sm leading-7 text-ink-soft">
           <Lock className="size-5 shrink-0 text-gold-dark" />
-          سجّل الدخول لتحفظ إتمام الدرس، وتقيّمه، وتحصل على شهادة المسار.
+          {t("سجّل الدخول لتحفظ إتمام الدرس، وتقيّمه، وتحصل على شهادة المسار.", "Log in to save your completed lessons, rate them and earn the track certificate.")}
         </p>
         <div className="flex shrink-0 gap-2">
           <Link href="/register" className="rounded-xl bg-green-dark px-4 py-2 text-sm font-bold text-white hover:bg-green">
-            إنشاء حساب
+            {t("إنشاء حساب", "Create an account")}
           </Link>
           <Link href="/login" className="rounded-xl border border-green-dark/20 px-4 py-2 text-sm font-semibold text-green-dark hover:bg-green-dark/5">
-            دخول
+            {t("دخول", "Log in")}
           </Link>
         </div>
       </div>
@@ -83,12 +92,12 @@ export function LessonActions({ lessonKey, lessonTitle, isLastInTrack }: { lesso
             </motion.span>
           )}
         </AnimatePresence>
-        {done ? "أتممت هذا الدرس" : "تحديد الدرس كمكتمل"}
+        {done ? t("أتممت هذا الدرس", "You have completed this lesson") : t("تحديد الدرس كمكتمل", "Mark the lesson as complete")}
         {!done && <span className="absolute inset-0 -translate-x-full animate-shimmer bg-[linear-gradient(100deg,transparent_30%,rgba(255,255,255,.18)_50%,transparent_70%)] bg-[length:200%_100%]" />}
       </motion.button>
 
       <div className={cn("flex items-center gap-3 transition-opacity", !done && "opacity-50")}>
-        <span className="text-sm font-semibold text-ink-soft">{done ? "قيّم الدرس:" : "قيّم بعد الإتمام"}</span>
+        <span className="text-sm font-semibold text-ink-soft">{done ? t("قيّم الدرس:", "Rate the lesson:") : t("قيّم بعد الإتمام", "Rate it once completed")}</span>
         <StarRating value={rating} onChange={done ? rate : undefined} />
       </div>
     </div>

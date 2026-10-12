@@ -4,9 +4,16 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Luggage, RotateCcw, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { PACKING } from "@/lib/data/guide";
+import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { PACKING_EN, PACKING_GROUPS_EN } from "./guide-en";
 
-export function PackingChecklist({ groups }: { groups: typeof PACKING }) {
+export function PackingChecklist({ groups: source }: { groups: typeof PACKING }) {
+  const t = useT();
+  const en = useLang() === "en";
+  const groups = en
+    ? source.map((g, gi) => ({ group: PACKING_GROUPS_EN[gi] ?? g.group, items: g.items.map((i) => ({ ...i, ...PACKING_EN[i.id] })) }))
+    : source;
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const pct = checked.size / total;
@@ -30,9 +37,9 @@ export function PackingChecklist({ groups }: { groups: typeof PACKING }) {
               <Luggage className="size-6" />
             </motion.span>
             <div>
-              <p className="font-display text-xl font-bold">حقيبة الحاج</p>
+              <p className="font-display text-xl font-bold">{t("حقيبة الحاج", "The pilgrim's bag")}</p>
               <p className="text-sm text-white/70">
-                جهّزت <span className="font-bold tabular-nums text-gold">{checked.size}</span> من {total}
+                {t("جهّزت", "Packed")} <span className="font-bold tabular-nums text-gold">{checked.size}</span> {t("من", "of")} {total}
               </p>
             </div>
           </div>
@@ -42,16 +49,16 @@ export function PackingChecklist({ groups }: { groups: typeof PACKING }) {
             disabled={checked.size === 0}
             className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/20 disabled:opacity-40"
           >
-            <RotateCcw className="size-3.5" /> إعادة
+            <RotateCcw className="size-3.5" /> {t("إعادة", "Reset")}
           </button>
         </div>
-        <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)} aria-label="نسبة تجهيز الحقيبة">
-          <motion.div className={cn("h-full rounded-full", complete ? "bg-green-light" : "bg-gradient-to-l from-gold to-gold-dark")} animate={{ width: `${pct * 100}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
+        <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)} aria-label={t("نسبة تجهيز الحقيبة", "Bag packing progress")}>
+          <motion.div className={cn("h-full rounded-full", complete ? "bg-green-light" : "bg-gradient-to-l from-gold to-gold-dark ltr:bg-gradient-to-r")} animate={{ width: `${pct * 100}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
         </div>
         <AnimatePresence>
           {complete && (
             <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="relative mt-3 flex items-center gap-2 text-sm font-bold text-gold">
-              <Sparkles className="size-4" /> حقيبتك جاهزة! رحلة موفقة وحج مبرور بإذن الله
+              <Sparkles className="size-4" /> {t("حقيبتك جاهزة! رحلة موفقة وحج مبرور بإذن الله", "Your bag is ready! Have a safe journey and an accepted Hajj, God willing")}
             </motion.p>
           )}
         </AnimatePresence>
@@ -93,7 +100,7 @@ export function PackingChecklist({ groups }: { groups: typeof PACKING }) {
                         <span className="min-w-0 flex-1">
                           <span className={cn("relative inline-block text-sm font-semibold transition-colors", on ? "text-ink-soft" : "text-ink")}>
                             {item.label}
-                            <motion.span className="absolute right-0 top-1/2 h-px bg-ink-soft/60" initial={false} animate={{ width: on ? "100%" : "0%" }} transition={{ duration: 0.3 }} />
+                            <motion.span className="absolute start-0 top-1/2 h-px bg-ink-soft/60" initial={false} animate={{ width: on ? "100%" : "0%" }} transition={{ duration: 0.3 }} />
                           </span>
                           {item.note && <span className="block text-[11px] text-hint">{item.note}</span>}
                         </span>

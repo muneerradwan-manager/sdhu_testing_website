@@ -6,7 +6,7 @@ import { CheckCircle2, Headphones, PlayCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { minutesLabel } from "@/lib/data/academy";
+import { useAcademyText } from "./i18n";
 
 export type PlaylistLevel = {
   title: string;
@@ -14,6 +14,8 @@ export type PlaylistLevel = {
 };
 
 export function Playlist({ trackSlug, trackTitle, levels, current }: { trackSlug: string; trackTitle: string; levels: PlaylistLevel[]; current: string }) {
+  const x = useAcademyText();
+  const { t } = x;
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
   const academy = useStore((s) => s.academy);
@@ -33,7 +35,7 @@ export function Playlist({ trackSlug, trackTitle, levels, current }: { trackSlug
     <aside className="overflow-hidden rounded-3xl border border-gold/35 bg-white shadow-[0_20px_60px_-40px_rgba(2,21,38,.4)] lg:sticky lg:top-28">
       <div className="relative overflow-hidden bg-green-dark p-5 text-white">
         <div className="bg-pattern absolute inset-0 opacity-15" />
-        <p className="relative text-xs font-semibold text-gold">دروس المسار</p>
+        <p className="relative text-xs font-semibold text-gold">{t("دروس المسار", "Track lessons")}</p>
         <Link href={`/academy/${trackSlug}`} className="relative mt-1 block font-display text-xl font-bold hover:text-gold">
           {trackTitle}
         </Link>
@@ -64,20 +66,20 @@ export function Playlist({ trackSlug, trackTitle, levels, current }: { trackSlug
                     isCurrent ? "bg-gold-light/70" : "hover:bg-sand",
                   )}
                 >
-                  {isCurrent && <motion.span layoutId="playlist-current" className="absolute inset-y-2 right-0 w-1 rounded-full bg-gold-dark" />}
+                  {isCurrent && <motion.span layoutId="playlist-current" className="absolute inset-y-2 start-0 w-1 rounded-full bg-gold-dark" />}
                   <span
                     className={cn(
                       "grid size-8 shrink-0 place-items-center rounded-xl text-xs font-bold tabular-nums",
                       isDone ? "bg-green-light/15 text-green" : isCurrent ? "bg-green-dark text-gold" : "bg-sand text-ink-soft",
                     )}
                   >
-                    {isDone ? <CheckCircle2 className="size-4" /> : isCurrent ? <Equalizer /> : n}
+                    {isDone ? <CheckCircle2 className="size-4" /> : isCurrent ? <Equalizer label={t("الدرس الحالي", "Current lesson")} /> : n}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className={cn("block truncate text-sm font-semibold", isCurrent ? "text-green-dark" : "text-ink")}>{l.title}</span>
                     <span className="mt-0.5 flex items-center gap-1 text-[11px] text-hint">
                       {l.media === "audio" ? <Headphones className="size-3" /> : <PlayCircle className="size-3" />}
-                      {minutesLabel(l.minutes)}
+                      {x.minutes(l.minutes)}
                     </span>
                   </span>
                 </Link>
@@ -90,9 +92,9 @@ export function Playlist({ trackSlug, trackTitle, levels, current }: { trackSlug
   );
 }
 
-function Equalizer() {
+function Equalizer({ label }: { label: string }) {
   return (
-    <span className="flex h-3.5 items-end gap-[2px]" aria-label="الدرس الحالي">
+    <span className="flex h-3.5 items-end gap-[2px]" aria-label={label}>
       {[0.9, 0.5, 0.75].map((d, i) => (
         <motion.span key={i} className="w-[3px] rounded-full bg-gold" animate={{ height: ["30%", "100%", "45%", "80%", "30%"] }} transition={{ duration: d + 0.4, repeat: Infinity, ease: "easeInOut" }} />
       ))}

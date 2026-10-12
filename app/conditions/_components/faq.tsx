@@ -6,12 +6,28 @@ import { useState, type ReactNode } from "react";
 import { useFaqs } from "@/lib/cms/content";
 import { FAQ_CATEGORIES, type FaqCategory } from "@/lib/data/faq";
 import { normalizeArabic } from "@/lib/data/clusters";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+
+/** The categories in English; a category the English content may already give in English maps back to its Arabic key */
+const CATEGORY_EN: Record<string, string> = {
+  "الكل": "All",
+  "التسجيل": "Registration",
+  "الشروط": "Conditions",
+  "القبول والقرعة": "Acceptance and lottery",
+  "التكاليف والدفع": "Costs and payment",
+  "الخدمات والتحقق": "Services and verification",
+};
+const CATEGORY_AR: Record<string, string> = Object.fromEntries(Object.entries(CATEGORY_EN).map(([ar, en]) => [en, ar]));
+const categoryOf = (c: string) => CATEGORY_AR[c] ?? c;
+
+/** Search in Arabic or English: Arabic letters normalised, Latin letters in any case */
+const norm = (s: string) => normalizeArabic(s).toLowerCase();
 
 function highlight(text: string, q: string): ReactNode {
   const query = q.trim();
   if (query.length < 2) return text;
-  const idx = text.indexOf(query);
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
   if (idx < 0) return text;
   return (
     <>
@@ -23,27 +39,28 @@ function highlight(text: string, q: string): ReactNode {
 }
 
 export function Faq() {
-  const faqs = useFaqs();
+  const t = useT();
+  const faqs = useFaqs().map((f) => ({ ...f, category: categoryOf(f.category) as FaqCategory }));
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<"الكل" | FaqCategory>("الكل");
   // null = لم يختر الزائر شيئاً بعد، فيُفتح أول سؤال معروض
   const [open, setOpen] = useState<string | null>(null);
 
-  const nq = normalizeArabic(q);
-  const list = faqs.filter((f) => (cat === "الكل" || f.category === cat) && (!nq || normalizeArabic(`${f.q} ${f.a}`).includes(nq)));
+  const nq = norm(q);
+  const list = faqs.filter((f) => (cat === "الكل" || f.category === cat) && (!nq || norm(`${f.q} ${f.a}`).includes(nq)));
   const counts = (c: "الكل" | FaqCategory) => (c === "الكل" ? faqs.length : faqs.filter((f) => f.category === c).length);
   const openQuestion = open ?? list[0]?.q ?? null;
 
   return (
     <div className="mx-auto max-w-4xl">
       <label className="relative block">
-        <span className="sr-only">ابحث في الأسئلة الشائعة</span>
-        <Search className="pointer-events-none absolute right-5 top-1/2 size-5 -translate-y-1/2 text-gold-dark" />
+        <span className="sr-only">{t("ابحث في الأسئلة الشائعة", "Search the FAQ")}</span>
+        <Search className="pointer-events-none absolute start-5 top-1/2 size-5 -translate-y-1/2 text-gold-dark" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ابحث في الأسئلة… مثال: محرم، القرعة، الإيصال"
-          className="h-14 w-full rounded-3xl border-2 border-gold/50 bg-white pl-4 pr-13 text-base outline-none transition placeholder:text-hint focus:border-green-light focus:ring-8 focus:ring-green-light/10"
+          placeholder={t("ابحث في الأسئلة… مثال: محرم، القرعة، الإيصال", "Search the questions… e.g. mahram, lottery, receipt")}
+          className="h-14 w-full rounded-3xl border-2 border-gold/50 bg-white ps-13 pe-4 text-base outline-none transition placeholder:text-hint focus:border-green-light focus:ring-8 focus:ring-green-light/10"
         />
       </label>
 
@@ -56,7 +73,7 @@ export function Faq() {
           >
             {cat === c && <motion.span layoutId="faq-cat" className="absolute inset-0 rounded-full bg-green-dark" transition={{ type: "spring", damping: 26, stiffness: 320 }} />}
             <span className="relative">
-              {c} <span className={cn("text-xs", cat === c ? "text-gold" : "text-hint")}>{counts(c)}</span>
+              {t(c, CATEGORY_EN[c] ?? c)} <span className={cn("text-xs", cat === c ? "text-gold" : "text-hint")}>{counts(c)}</span>
             </span>
           </button>
         ))}
@@ -88,7 +105,7 @@ export function Faq() {
                     className="flex w-full items-center gap-4 p-5 text-start"
                   >
                     <span className="flex-1">
-                      <span className="mb-1 block text-[11px] font-bold text-gold-dark">{f.category}</span>
+                      <span className="mb-1 block text-[11px] font-bold text-gold-dark">{t(f.category, CATEGORY_EN[f.category] ?? f.category)}</span>
                       <span className={cn("block font-bold leading-7 transition-colors", isOpen ? "text-green-dark" : "text-ink")}>{highlight(f.q, q)}</span>
                     </span>
                     <motion.span
@@ -123,7 +140,7 @@ export function Faq() {
       {list.length === 0 && (
         <div className="py-14 text-center text-ink-soft">
           <SearchX className="mx-auto size-10 text-gold-dark" />
-          <p className="mt-3">لا توجد أسئلة مطابقة. جرّب كلمة أخرى.</p>
+          <p className="mt-3">{t("لا توجد أسئلة مطابقة. جرّب كلمة أخرى.", "No matching questions. Try another word.")}</p>
         </div>
       )}
     </div>

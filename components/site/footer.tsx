@@ -4,9 +4,11 @@ import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Emblem } from "@/components/brand/logo";
 import { SOCIAL_PATHS, useFooter, useNav, useSiteIdentity } from "@/lib/cms/site";
+import { useT } from "@/lib/i18n";
 
 /** كل نصوص التذييل وروابطه تأتي من لوحة المحتوى (الإعدادات العامة ← تذييل الموقع) */
 export function Footer() {
+  const t = useT();
   const identity = useSiteIdentity();
   const { nav, more } = useNav();
   const f = useFooter();
@@ -14,7 +16,7 @@ export function Footer() {
   return (
     <footer className="relative mt-24 overflow-hidden bg-ink text-white/75">
       <div className="bg-pattern absolute inset-0 opacity-[.07]" />
-      <div className="h-1.5 bg-gradient-to-l from-green-dark via-gold-dark to-maroon" />
+      <div className="h-1.5 bg-gradient-to-l from-green-dark ltr:bg-gradient-to-r via-gold-dark to-maroon" />
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-16 md:grid-cols-2 md:px-8 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
         <div>
           <div className="flex items-center gap-3">
@@ -70,7 +72,7 @@ export function Footer() {
               <li key={m.href}>
                 <Link href={m.href} className="inline-flex items-center gap-2 transition hover:text-gold">
                   {m.label}
-                  {m.soon && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-gold">قريباً</span>}
+                  {m.soon && <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-bold text-gold">{t("قريباً", "Soon")}</span>}
                 </Link>
               </li>
             ))}

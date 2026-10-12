@@ -10,9 +10,11 @@ import { Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/mo
 import { SpeakButton } from "@/components/ui/widgets";
 import { useArticle, useArticles, useRelatedArticles } from "@/lib/cms/content";
 import type { Block } from "@/lib/data/news";
+import { useLang, useT } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
 import { ArticleBody, headingId } from "../_components/article-body";
 import { Feedback, ShareBar, TableOfContents } from "../_components/article-actions";
+import { categoryLabel } from "../_components/categories";
 import { CategoryBadge, NewsCard } from "../_components/news-card";
 import { ReadingProgress } from "../_components/reading-progress";
 
@@ -44,11 +46,14 @@ export function ArticleView({ slug }: { slug: string }) {
   const article = useArticle(slug);
   const articles = useArticles();
   const related = useRelatedArticles(article);
+  const t = useT();
+  const lang = useLang();
+  const platform = t("المنصة الوطنية للحج", "National Hajj Platform");
 
   // عنوان التبويب يتبع المقال المعروض، حتى للمقالات التي أُدخلت بعد بناء الموقع
   useEffect(() => {
-    if (article?.title) document.title = `${article.title} | المنصة الوطنية للحج`;
-  }, [article?.title]);
+    if (article?.title) document.title = `${article.title} | ${platform}`;
+  }, [article?.title, platform]);
 
   if (!article) return <MissingArticle />;
 
@@ -63,7 +68,7 @@ export function ArticleView({ slug }: { slug: string }) {
       <PageHero
         title={<span className="block max-w-4xl leading-tight">{article.title}</span>}
         image={article.image}
-        crumbs={[{ label: "الأخبار", href: "/news" }, { label: article.category }]}
+        crumbs={[{ label: t("الأخبار", "News"), href: "/news" }, { label: categoryLabel(article.category, lang) }]}
       >
         <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-white/80">
           <CategoryBadge article={article} className="bg-white/95" />
@@ -73,11 +78,11 @@ export function ArticleView({ slug }: { slug: string }) {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock3 className="size-4 text-gold" />
-            {article.readingMinutes} دقائق قراءة
+            {t(`${article.readingMinutes} دقائق قراءة`, `${article.readingMinutes} min read`)}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Eye className="size-4 text-gold" />
-            {formatNumber(article.views)} قراءة
+            {t(`${formatNumber(article.views)} قراءة`, `${formatNumber(article.views)} reads`)}
           </span>
         </div>
       </PageHero>
@@ -93,7 +98,7 @@ export function ArticleView({ slug }: { slug: string }) {
             </Reveal>
 
             <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-gold/30 pb-6 print:hidden">
-              <SpeakButton text={`${article.title}. ${plainText(article.body)}`} label="استمع إلى المنشور" />
+              <SpeakButton text={`${article.title}. ${plainText(article.body)}`} label={t("استمع إلى المنشور", "Listen to the post")} />
               <ShareBar title={article.title} />
             </div>
 
@@ -123,7 +128,7 @@ export function ArticleView({ slug }: { slug: string }) {
                     <PenLine className="size-5" />
                   </span>
                   <div>
-                    <p className="text-xs text-hint">نُشر بواسطة</p>
+                    <p className="text-xs text-hint">{t("نُشر بواسطة", "Published by")}</p>
                     <p className="font-bold text-green-dark">{article.author}</p>
                   </div>
                 </div>
@@ -134,11 +139,11 @@ export function ArticleView({ slug }: { slug: string }) {
                 <Feedback />
               </div>
 
-              <nav aria-label="التنقل بين المنشورات" className="mt-8 grid gap-3 sm:grid-cols-2 print:hidden">
+              <nav aria-label={t("التنقل بين المنشورات", "Post navigation")} className="mt-8 grid gap-3 sm:grid-cols-2 print:hidden">
                 {newer ? (
                   <Link href={`/news/${newer.slug}`} className="group rounded-3xl border border-gold/30 bg-white p-5 transition hover:border-green-dark/40 hover:shadow-lg">
                     <span className="flex items-center gap-1 text-xs font-semibold text-hint">
-                      <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" /> منشور أحدث
+                      <ChevronRight className="size-4 transition-transform group-hover:translate-x-1 ltr:group-hover:-translate-x-1" /> {t("منشور أحدث", "Newer post")}
                     </span>
                     <span className="mt-2 line-clamp-2 block font-semibold leading-7 text-green-dark">{newer.title}</span>
                   </Link>
@@ -146,9 +151,9 @@ export function ArticleView({ slug }: { slug: string }) {
                   <span className="hidden sm:block" />
                 )}
                 {older && (
-                  <Link href={`/news/${older.slug}`} className="group rounded-3xl border border-gold/30 bg-white p-5 transition hover:border-green-dark/40 hover:shadow-lg sm:text-left">
+                  <Link href={`/news/${older.slug}`} className="group rounded-3xl border border-gold/30 bg-white p-5 transition hover:border-green-dark/40 hover:shadow-lg sm:text-end">
                     <span className="flex items-center justify-end gap-1 text-xs font-semibold text-hint">
-                      منشور أقدم <ChevronLeft className="size-4 transition-transform group-hover:-translate-x-1" />
+                      {t("منشور أقدم", "Older post")} <ChevronLeft className="size-4 transition-transform group-hover:-translate-x-1 ltr:group-hover:translate-x-1" />
                     </span>
                     <span className="mt-2 line-clamp-2 block font-semibold leading-7 text-green-dark">{older.title}</span>
                   </Link>
@@ -165,21 +170,24 @@ export function ArticleView({ slug }: { slug: string }) {
                 <div className="flex items-start gap-3">
                   <Building2 className="mt-0.5 size-4 text-gold" />
                   <div>
-                    <dt className="text-white/55">الجهة المختصة</dt>
+                    <dt className="text-white/55">{t("الجهة المختصة", "Issuing department")}</dt>
                     <dd className="font-semibold">{article.department}</dd>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CalendarDays className="mt-0.5 size-4 text-gold" />
                   <div>
-                    <dt className="text-white/55">تاريخ النشر</dt>
+                    <dt className="text-white/55">{t("تاريخ النشر", "Date published")}</dt>
                     <dd className="font-semibold">{article.hijri}</dd>
                     <dd className="text-white/70">{article.gregorian}</dd>
                   </div>
                 </div>
               </dl>
               <p className="relative mt-5 rounded-2xl bg-white/10 p-3 text-xs leading-6 text-white/75">
-                هذا المنشور صادر عن الإدارة ومعتمد قبل نشره. المصدر الرسمي الوحيد لإعلانات الإدارة هو هذه المدونة.
+                {t(
+                  "هذا المنشور صادر عن الإدارة ومعتمد قبل نشره. المصدر الرسمي الوحيد لإعلانات الإدارة هو هذه المدونة.",
+                  "This post is issued by the Administration and was approved before publication. This blog is the only official source of the Administration's announcements.",
+                )}
               </p>
             </div>
           </aside>
@@ -187,7 +195,7 @@ export function ArticleView({ slug }: { slug: string }) {
 
         {related.length > 0 && (
           <section className="mt-24 print:hidden">
-            <SectionHeading eyebrow="تابع القراءة" title="منشورات ذات صلة" />
+            <SectionHeading eyebrow={t("تابع القراءة", "Keep reading")} title={t("منشورات ذات صلة", "Related posts")} />
             <Stagger className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {related.map((a) => (
                 <StaggerItem key={a.slug} className="h-full">
@@ -204,21 +212,25 @@ export function ArticleView({ slug }: { slug: string }) {
 
 /** رابط محجوز لم يُنشر فيه منشور بعد، أو منشور أُرشف من لوحة المحتوى */
 function MissingArticle() {
+  const t = useT();
   return (
     <section className="mx-auto grid min-h-[calc(70vh/var(--zoom))] max-w-2xl place-content-center px-4 pt-40 text-center">
       <span className="mx-auto grid size-20 place-items-center rounded-3xl bg-gold/20 text-maroon">
         <FileQuestion className="size-10" />
       </span>
-      <h1 className="mt-6 font-display text-3xl font-bold text-green-dark md:text-4xl">لا يوجد منشور على هذا الرابط</h1>
+      <h1 className="mt-6 font-display text-3xl font-bold text-green-dark md:text-4xl">{t("لا يوجد منشور على هذا الرابط", "There is no post at this link")}</h1>
       <p className="mt-4 leading-8 text-ink-soft">
-        قد يكون المنشور قد أُرشف، أو أن هذا الرابط محجوز لمنشور لم تنشره الإدارة بعد. تصفّح آخر الإعلانات في مدونة الإدارة.
+        {t(
+          "قد يكون المنشور قد أُرشف، أو أن هذا الرابط محجوز لمنشور لم تنشره الإدارة بعد. تصفّح آخر الإعلانات في مدونة الإدارة.",
+          "The post may have been archived, or this link may be reserved for a post the Administration has not published yet. Browse the latest announcements on the Administration blog.",
+        )}
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <ButtonLink href="/news" size="lg">
-          كل الأخبار والإعلانات
+          {t("كل الأخبار والإعلانات", "All news and announcements")}
         </ButtonLink>
         <ButtonLink href="/" size="lg" variant="outline">
-          الصفحة الرئيسية
+          {t("الصفحة الرئيسية", "Home page")}
         </ButtonLink>
       </div>
     </section>

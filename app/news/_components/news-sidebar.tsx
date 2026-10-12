@@ -5,11 +5,15 @@ import { BadgeCheck, Flame, Megaphone, ShieldAlert } from "lucide-react";
 import { CmsImage } from "@/components/cms/image";
 import { useArticles, useMostRead } from "@/lib/cms/content";
 import { Reveal } from "@/components/ui/motion";
+import { useLang, useT } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
+import { categoryLabel } from "./categories";
 
 export function NewsSidebar() {
   const articles = useArticles();
   const mostRead = useMostRead();
+  const t = useT();
+  const lang = useLang();
   const official = articles.filter((a) => a.category === "إعلانات رسمية" || a.category === "قرارات").slice(0, 5);
 
   return (
@@ -17,7 +21,7 @@ export function NewsSidebar() {
       <Reveal>
         <section className="rounded-3xl border border-gold/30 bg-white p-5" aria-labelledby="most-read">
           <h2 id="most-read" className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
-            <Flame className="size-5 text-maroon" /> الأكثر قراءة
+            <Flame className="size-5 text-maroon" /> {t("الأكثر قراءة", "Most read")}
           </h2>
           <ol className="mt-4 space-y-1">
             {mostRead.map((a, i) => (
@@ -29,7 +33,7 @@ export function NewsSidebar() {
                   </span>
                   <span className="min-w-0">
                     <span className="line-clamp-2 text-sm font-semibold leading-6 text-ink transition-colors group-hover:text-green-dark">{a.title}</span>
-                    <span className="text-[11px] text-hint">{formatNumber(a.views)} قراءة</span>
+                    <span className="text-[11px] text-hint">{t(`${formatNumber(a.views)} قراءة`, `${formatNumber(a.views)} reads`)}</span>
                   </span>
                 </Link>
               </li>
@@ -42,7 +46,7 @@ export function NewsSidebar() {
         <section className="relative overflow-hidden rounded-3xl bg-green-dark p-5 text-white" aria-labelledby="official">
           <div className="bg-pattern absolute inset-0 opacity-15" />
           <h2 id="official" className="relative flex items-center gap-2 font-display text-lg font-bold text-gold">
-            <Megaphone className="size-5" /> الإعلانات الرسمية
+            <Megaphone className="size-5" /> {t("الإعلانات الرسمية", "Official announcements")}
           </h2>
           <ul className="relative mt-4 divide-y divide-white/10">
             {official.map((a) => (
@@ -52,7 +56,7 @@ export function NewsSidebar() {
                   <span>
                     <span className="block text-sm font-semibold leading-6 transition-colors group-hover:text-gold">{a.title}</span>
                     <span className="text-[11px] text-white/55">
-                      {a.category} · {a.hijri}
+                      {categoryLabel(a.category, lang)} · {a.hijri}
                     </span>
                   </span>
                 </Link>
@@ -64,14 +68,19 @@ export function NewsSidebar() {
 
       <Reveal delay={0.15}>
         <section className="relative overflow-hidden rounded-3xl border border-maroon/25 bg-maroon/[.06] p-5">
-          <ShieldAlert className="absolute -left-4 -top-4 size-24 text-maroon/10" />
-          <p className="relative font-display text-lg font-bold text-maroon">لا توجد مقاعد مضمونة</p>
-          <p className="relative mt-2 text-sm leading-7 text-ink-soft">وصلك عرض من «حملة» تعدك بالقبول مقابل مبلغ؟ تحقق منها قبل أن تدفع أي شيء.</p>
+          <ShieldAlert className="absolute -end-4 -top-4 size-24 text-maroon/10" />
+          <p className="relative font-display text-lg font-bold text-maroon">{t("لا توجد مقاعد مضمونة", "There are no guaranteed places")}</p>
+          <p className="relative mt-2 text-sm leading-7 text-ink-soft">
+            {t(
+              "وصلك عرض من «حملة» تعدك بالقبول مقابل مبلغ؟ تحقق منها قبل أن تدفع أي شيء.",
+              "Did a \"campaign\" offer you acceptance for a fee? Check it before you pay anything.",
+            )}
+          </p>
           <Link
             href="/verify"
             className="relative mt-4 inline-flex items-center gap-2 rounded-2xl bg-maroon px-4 py-2 text-sm font-bold text-white transition hover:bg-maroon-dark"
           >
-            تحقق من جهة الآن
+            {t("تحقق من جهة الآن", "Check an organisation now")}
           </Link>
         </section>
       </Reveal>

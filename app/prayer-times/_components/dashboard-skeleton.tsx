@@ -1,7 +1,12 @@
+"use client";
+
+import { useT } from "@/lib/i18n";
+
 /** Placeholder shown during prerender and hydration, sized like the live dashboard to avoid layout shift */
 export function DashboardSkeleton() {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="جارٍ حساب المواقيت">
+    <div aria-busy="true" aria-label={t("جارٍ حساب المواقيت", "Calculating prayer times")}>
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="skeleton h-[34rem] rounded-3xl lg:h-[28rem]" />
         <div className="skeleton h-[32rem] rounded-3xl lg:h-[28rem]" />

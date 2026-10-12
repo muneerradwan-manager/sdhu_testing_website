@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { CmsImage } from "@/components/cms/image";
 import { Reveal } from "./motion";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** Hero banner for inner pages: photo, green wash, star lattice, breadcrumb */
@@ -21,6 +24,7 @@ export function PageHero({
   children?: ReactNode;
   className?: string;
 }) {
+  const t = useT();
   return (
     <section className={cn("relative isolate overflow-hidden bg-green-dark pb-16 pt-36 text-white md:pb-24 md:pt-44", className)}>
       <div className="absolute inset-0 -z-20">
@@ -30,8 +34,8 @@ export function PageHero({
       <div className="bg-pattern absolute inset-0 -z-10 opacity-25 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <Reveal>
-          <nav aria-label="مسار التنقل" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-white/70">
-            <Link href="/" className="hover:text-gold">الرئيسية</Link>
+          <nav aria-label={t("مسار التنقل", "Breadcrumb")} className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-white/70">
+            <Link href="/" className="hover:text-gold">{t("الرئيسية", "Home")}</Link>
             {crumbs.map((c) => (
               <span key={c.label} className="flex items-center gap-1.5">
                 <ChevronLeft className="size-3.5" />

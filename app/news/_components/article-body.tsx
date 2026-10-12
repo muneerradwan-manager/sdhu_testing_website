@@ -1,18 +1,22 @@
+"use client";
+
 import { AlertTriangle, BadgeCheck, Lightbulb, Quote } from "lucide-react";
 import type { Block } from "@/lib/data/news";
 import { Reveal } from "@/components/ui/motion";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const headingId = (i: number) => `section-${i + 1}`;
 
 const CALLOUT = {
-  gold: { box: "border-gold-dark/40 bg-gradient-to-l from-gold/35 to-gold-light/40", icon: Lightbulb, iconBox: "bg-gold-dark text-white", title: "text-maroon" },
-  maroon: { box: "border-maroon/30 bg-gradient-to-l from-maroon/10 to-maroon/[.03]", icon: AlertTriangle, iconBox: "bg-maroon text-white", title: "text-maroon" },
-  green: { box: "border-green-light/40 bg-gradient-to-l from-green-light/15 to-green-light/[.04]", icon: BadgeCheck, iconBox: "bg-green-dark text-gold", title: "text-green-dark" },
+  gold: { box: "border-gold-dark/40 bg-gradient-to-l from-gold/35 to-gold-light/40 ltr:bg-gradient-to-r", icon: Lightbulb, iconBox: "bg-gold-dark text-white", title: "text-maroon" },
+  maroon: { box: "border-maroon/30 bg-gradient-to-l from-maroon/10 to-maroon/[.03] ltr:bg-gradient-to-r", icon: AlertTriangle, iconBox: "bg-maroon text-white", title: "text-maroon" },
+  green: { box: "border-green-light/40 bg-gradient-to-l from-green-light/15 to-green-light/[.04] ltr:bg-gradient-to-r", icon: BadgeCheck, iconBox: "bg-green-dark text-gold", title: "text-green-dark" },
 } as const;
 
 export function ArticleBody({ blocks }: { blocks: Block[] }) {
   const leadIndex = blocks.findIndex((b) => b.type === "p");
+  const en = useLang() === "en";
 
   return (
     <div className="text-[1.075rem] leading-9 text-ink/90">
@@ -26,7 +30,7 @@ export function ArticleBody({ blocks }: { blocks: Block[] }) {
                 className={cn(
                   "my-5",
                   lead &&
-                    "border-r-4 border-gold pr-5 text-lg font-medium leading-10 text-ink md:text-xl md:leading-[2.75rem]",
+                    "border-s-4 border-gold ps-5 text-lg font-medium leading-10 text-ink md:text-xl md:leading-[2.75rem]",
                 )}
               >
                 {b.text}
@@ -85,8 +89,8 @@ export function ArticleBody({ blocks }: { blocks: Block[] }) {
           case "quote":
             return (
               <figure key={i} className="relative my-10 rounded-3xl bg-green-dark px-6 py-8 text-white md:px-10">
-                <Quote className="absolute -top-4 right-6 size-10 rounded-full bg-gold p-2 text-green-dark" />
-                <blockquote className="font-quran text-xl leading-10 md:text-2xl">«{b.text}»</blockquote>
+                <Quote className="absolute -top-4 start-6 size-10 rounded-full bg-gold p-2 text-green-dark" />
+                <blockquote className="font-quran text-xl leading-10 md:text-2xl">{en ? `“${b.text}”` : `«${b.text}»`}</blockquote>
                 {b.by && <figcaption className="mt-3 text-sm text-gold">— {b.by}</figcaption>}
               </figure>
             );

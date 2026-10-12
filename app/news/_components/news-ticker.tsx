@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { Radio } from "lucide-react";
 import { useArticles } from "@/lib/cms/content";
+import { useT } from "@/lib/i18n";
 
 export function NewsTicker() {
   const items = useArticles().filter((a) => a.ticker);
+  const t = useT();
   const row = (copy: number) => (
     <ul className="flex shrink-0 items-center" aria-hidden={copy === 1}>
       {items.map((a) => (
@@ -27,10 +29,10 @@ export function NewsTicker() {
           <span className="relative size-2.5 rounded-full bg-gold" />
         </span>
         <Radio className="hidden size-4 sm:block" />
-        عاجل
+        {t("عاجل", "Breaking")}
       </div>
       <div className="relative flex-1 overflow-hidden [mask-image:linear-gradient(to_left,transparent,black_4%,black_96%,transparent)]">
-        <div className="flex w-max animate-marquee items-center py-3 group-hover:[animation-play-state:paused]">
+        <div className="flex w-max animate-marquee items-center py-3 group-hover:[animation-play-state:paused] ltr:-translate-x-1/2 ltr:[animation-direction:reverse]">
           {row(0)}
           {row(1)}
         </div>

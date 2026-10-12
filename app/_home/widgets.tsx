@@ -11,18 +11,27 @@ import { useMediaUrl } from "@/lib/cms/media";
 import { useSection } from "@/lib/cms/store";
 import { CITIES, PRAYERS, formatTime, nextPrayer, prayerTimes } from "@/lib/prayer";
 import { useHydrated } from "@/lib/store";
-import { cn, hijriDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useLang, useT } from "@/lib/i18n";
+import { CITY_EN, PRAYER_EN, hijriDateIn } from "@/components/site/en-format";
 
 const ICONS = { fajr: MoonStar, sunrise: Sunrise, dhuhr: Sun, asr: Sun, maghrib: Sunset, isha: MoonStar } as const;
 const PICK = ["damascus", "aleppo", "makkah", "madinah"];
 
+/** A prayer's time: as lib/prayer writes it in Arabic, «05:12 am» in English */
+const timeIn = (en: boolean, d: Date) =>
+  en ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true }).format(d) : formatTime(d);
+
 export function PrayerWidget({ className }: { className?: string }) {
+  const t = useT();
+  const lang = useLang();
+  const en = lang === "en";
   const hydrated = useHydrated();
   const [slug, setSlug] = useState("damascus");
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
   const city = CITIES.find((c) => c.slug === slug)!;
   const times = hydrated ? prayerTimes(city, now) : null;
@@ -35,12 +44,12 @@ export function PrayerWidget({ className }: { className?: string }) {
   return (
     <div className={cn("relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white shadow-2xl md:p-8", className)}>
       <div className="bg-pattern absolute inset-0 opacity-20" />
-      <div className="absolute -left-16 -top-16 size-56 rounded-full bg-green-light/30 blur-3xl" />
+      <div className="absolute -end-16 -top-16 size-56 rounded-full bg-green-light/30 blur-3xl" />
       <div className="relative flex h-full flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-display text-2xl font-bold">{city.name}</p>
-            <p className="text-xs text-white/60">{hydrated ? hijriDate(now, { weekday: "long" }) : " "}</p>
+            <p className="font-display text-2xl font-bold">{en ? CITY_EN[city.slug] : city.name}</p>
+            <p className="text-xs text-white/60">{hydrated ? hijriDateIn(lang, now, true) : " "}</p>
           </div>
           <div className="flex flex-wrap gap-1 rounded-2xl bg-white/10 p-1">
             {PICK.map((s) => {
@@ -52,7 +61,7 @@ export function PrayerWidget({ className }: { className?: string }) {
                   className={cn("relative rounded-xl px-3 py-1.5 text-xs font-bold transition", slug === s ? "on-light text-ink" : "text-white/75 hover:text-white")}
                 >
                   {slug === s && <motion.span layoutId="home-city" className="absolute inset-0 -z-10 rounded-xl bg-gold" />}
-                  {c.name.replace(" المكرمة", "").replace(" المنورة", "")}
+                  {en ? CITY_EN[c.slug] : c.name.replace(" المكرمة", "").replace(" المنورة", "")}
                 </button>
               );
             })}
@@ -61,10 +70,10 @@ export function PrayerWidget({ className }: { className?: string }) {
 
         <div className="mt-6 flex items-end justify-between gap-4 rounded-3xl bg-white/10 p-5 backdrop-blur">
           <div>
-            <p className="text-sm text-white/70">الصلاة القادمة</p>
+            <p className="text-sm text-white/70">{t("الصلاة القادمة", "Next prayer")}</p>
             <AnimatePresence mode="wait">
               <motion.p key={`${slug}-${next?.key}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="font-display text-3xl font-bold text-gold">
-                {next?.name ?? "—"}
+                {next ? (en ? PRAYER_EN[next.key] : next.name) : "—"}
               </motion.p>
             </AnimatePresence>
           </div>
@@ -80,15 +89,15 @@ export function PrayerWidget({ className }: { className?: string }) {
             return (
               <div key={p.key} className={cn("flex flex-col items-center justify-center rounded-2xl p-3 text-center transition", active ? "bg-gold text-ink shadow-lg" : "bg-white/5")}>
                 <Icon className={cn("mx-auto size-5", active ? "text-maroon" : "text-gold")} />
-                <p className="mt-1 text-sm font-semibold">{p.name}</p>
-                <p className="mt-0.5 text-lg font-bold tabular-nums md:text-xl">{times ? formatTime(times[p.key]) : "--:--"}</p>
+                <p className="mt-1 text-sm font-semibold">{en ? PRAYER_EN[p.key] : p.name}</p>
+                <p className="mt-0.5 text-lg font-bold tabular-nums md:text-xl">{times ? timeIn(en, times[p.key]) : "--:--"}</p>
               </div>
             );
           })}
         </div>
 
         <Link href="/prayer-times" className="mt-5 inline-flex items-center gap-1.5 self-start text-sm font-bold text-gold hover:underline">
-          <Clock className="size-4" /> الجدول الشهري واتجاه القبلة <ArrowLeft className="size-4" />
+          <Clock className="size-4" /> {t("الجدول الشهري واتجاه القبلة", "Monthly timetable and Qibla direction")} <ArrowLeft className="size-4" />
         </Link>
       </div>
     </div>
@@ -103,7 +112,7 @@ export function AcademyTeaser() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="group relative block aspect-[4/3] w-full overflow-hidden rounded-[2rem] text-right shadow-2xl">
+      <button onClick={() => setOpen(true)} className="group relative block aspect-[4/3] w-full overflow-hidden rounded-[2rem] text-start shadow-2xl">
         <CmsImage src={v.videoPoster} alt={str(v, "videoTitle")} fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover transition duration-[1.2s] group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
         <span className="absolute left-1/2 top-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-white backdrop-blur-md transition duration-500 group-hover:scale-110 group-hover:bg-gold group-hover:text-ink">

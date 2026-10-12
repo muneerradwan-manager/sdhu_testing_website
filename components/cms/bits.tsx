@@ -5,6 +5,7 @@ import { Eye, PencilLine, X } from "lucide-react";
 import { createElement, type ReactNode } from "react";
 import { cms, useCmsHydrated, usePreview, useSectionVisible } from "@/lib/cms/store";
 import { cmsIcon } from "@/lib/cms/icons";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** يخفي القسم كاملاً إن أخفاه الموظف أو أرشفه من لوحة التحكم */
@@ -27,6 +28,7 @@ export function CmsIcon({ name, className, fallback }: { name: unknown; classNam
  * لم يرها الزوار بعد، ويعود منه إلى لوحة التحكم بضغطة.
  */
 export function PreviewBar() {
+  const t = useT();
   const hydrated = useCmsHydrated();
   const preview = usePreview();
   if (!hydrated || !preview) return null;
@@ -34,21 +36,23 @@ export function PreviewBar() {
     <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-gold/40 bg-maroon-dark/95 text-white backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-sm md:px-8">
         <span className="flex items-center gap-2 font-bold text-gold">
-          <Eye className="size-4" /> وضع المعاينة
+          <Eye className="size-4" /> {t("وضع المعاينة", "Preview mode")}
         </span>
-        <span className="text-white/75">تشاهد المسودات غير المنشورة — الزوار ما زالوا يرون المحتوى المنشور.</span>
-        <div className="mr-auto flex items-center gap-2">
+        <span className="text-white/75">
+          {t("تشاهد المسودات غير المنشورة — الزوار ما زالوا يرون المحتوى المنشور.", "You are viewing unpublished drafts — visitors still see the published content.")}
+        </span>
+        <div className="ms-auto flex items-center gap-2">
           <Link
             href="/staff/content"
             className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5 font-bold transition hover:bg-white/25"
           >
-            <PencilLine className="size-4" /> لوحة المحتوى
+            <PencilLine className="size-4" /> {t("لوحة المحتوى", "Content board")}
           </Link>
           <button
             onClick={() => cms.setPreview(false)}
             className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
           >
-            <X className="size-4" /> إيقاف
+            <X className="size-4" /> {t("إيقاف", "Stop")}
           </button>
         </div>
       </div>

@@ -8,6 +8,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { Counter, Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
 import { useArticles } from "@/lib/cms/content";
 import { useSection } from "@/lib/cms/store";
+import { useLang, useT } from "@/lib/i18n";
+import { categoryLabel } from "./news/_components/categories";
 import { Hero } from "./_home/hero";
 import { Journey } from "./_home/journey";
 import { SeasonDock } from "./_home/season-dock";
@@ -41,6 +43,7 @@ export default function Home() {
 // ───────────────────────── الشريط العاجل ─────────────────────────
 
 function Ticker() {
+  const t = useT();
   const v = useSection("home", "ticker");
   const items = list<{ text: string }>(v, "items")
     .map((i) => i.text)
@@ -53,13 +56,13 @@ function Ticker() {
       <div className="relative z-10 overflow-hidden border-y border-gold/40 bg-[var(--color-gold-light)] dark:border-gold/20 dark:bg-[#1c2620]">
         <div className="flex items-stretch">
           <span className="z-10 flex shrink-0 items-center gap-2 bg-maroon px-5 py-3 font-bold text-white shadow-[8px_0_20px_rgba(0,0,0,.15)]">
-            <Megaphone className="size-4 text-gold" /> {str(v, "label", "عاجل")}
+            <Megaphone className="size-4 text-gold" /> {str(v, "label", t("عاجل", "Breaking"))}
           </span>
           <div className="flex overflow-hidden [mask-image:linear-gradient(to_left,transparent,black_6%,black_94%,transparent)]">
-            <div className="flex shrink-0 animate-marquee items-center gap-12 whitespace-nowrap py-3 pr-12 font-semibold text-green-dark hover:[animation-play-state:paused]">
-              {[...items, ...items].map((t, i) => (
+            <div className="flex shrink-0 animate-marquee items-center gap-12 whitespace-nowrap py-3 pr-12 ltr:[animation-direction:reverse] ltr:[translate:-50%_0] font-semibold text-green-dark hover:[animation-play-state:paused]">
+              {[...items, ...items].map((text, i) => (
                 <span key={i} className="flex items-center gap-3">
-                  <span className="size-1.5 rotate-45 bg-gold-dark" /> {t}
+                  <span className="size-1.5 rotate-45 bg-gold-dark" /> {text}
                 </span>
               ))}
             </div>
@@ -107,7 +110,7 @@ function Services() {
                   </span>
                   <h3 className={`relative mt-5 font-display text-lg font-bold md:text-xl ${featured ? "" : "text-green-dark"}`}>{s.title}</h3>
                   <p className={`relative mt-1 text-sm ${featured ? "text-white/70" : "text-ink-soft"}`}>{s.text}</p>
-                  <ArrowLeft className={`relative mt-4 size-5 transition duration-500 group-hover:-translate-x-2 ${featured ? "text-gold" : "text-gold-dark"}`} />
+                  <ArrowLeft className={`relative mt-4 size-5 transition duration-500 group-hover:-translate-x-2 ltr:group-hover:translate-x-2 ${featured ? "text-gold" : "text-gold-dark"}`} />
                 </Link>
               </StaggerItem>
             );
@@ -252,6 +255,7 @@ function Verse() {
 // ───────────────────────── آخر الأخبار ─────────────────────────
 
 function News() {
+  const lang = useLang();
   const v = useSection("home", "news");
   const articles = useArticles();
   const picked = list<{ slug: string }>(v, "slugs")
@@ -279,7 +283,7 @@ function News() {
               >
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <CmsImage src={n.image} alt="" fill sizes="(min-width: 768px) 33vw, 100vw" quality={70} className="object-cover transition duration-[1.2s] group-hover:scale-110" />
-                  <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-maroon backdrop-blur">{n.category}</span>
+                  <span className="absolute start-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-maroon backdrop-blur">{categoryLabel(n.category, lang)}</span>
                 </div>
                 <div className="p-6">
                   <p className="flex items-center gap-1.5 text-xs text-hint">
@@ -333,7 +337,7 @@ function Cta() {
             <div className="absolute inset-0 -z-20">
               <CmsImage src={v.image} alt="" fill sizes="100vw" quality={70} className="object-cover opacity-25" />
             </div>
-            <div className="absolute inset-0 -z-10 bg-gradient-to-l from-maroon-dark via-maroon-dark/90 to-maroon/60" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-l from-maroon-dark ltr:bg-gradient-to-r via-maroon-dark/90 to-maroon/60" />
             <div className="bg-pattern absolute inset-0 -z-10 opacity-15" />
             <div className="grid items-center gap-10 md:grid-cols-[1.4fr_1fr]">
               <div>

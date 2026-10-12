@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import { useT } from "@/lib/i18n";
 import { seeded } from "@/lib/utils";
 
 const CHARS = "ABCDEFGHJKMNPRSTUVWXYZ23456789";
@@ -33,10 +34,11 @@ export function makeCaptcha(seed: string) {
 
 /** Distorted SVG text captcha, generated on the client (demo only — a real portal verifies on the server) */
 export function CaptchaImage({ captcha }: { captcha: ReturnType<typeof makeCaptcha> }) {
+  const t = useT();
   const raw = useId();
   const id = `cap${raw.replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
-    <svg viewBox="0 0 180 64" className="h-full w-full" role="img" aria-label="صورة رمز التحقق: حروف وأرقام مشوّهة" direction="ltr">
+    <svg viewBox="0 0 180 64" className="h-full w-full" role="img" aria-label={t("صورة رمز التحقق: حروف وأرقام مشوّهة", "Verification code image: distorted letters and numbers")} direction="ltr">
       <defs>
         <filter id={`${id}-warp`} x="-10%" y="-10%" width="120%" height="120%">
           <feTurbulence type="fractalNoise" baseFrequency="0.035 0.08" numOctaves="2" seed={captcha.noiseSeed} result="noise" />

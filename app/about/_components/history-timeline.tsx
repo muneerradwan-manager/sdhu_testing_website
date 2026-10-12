@@ -4,12 +4,15 @@ import { motion, useScroll, useSpring } from "motion/react";
 import { useRef } from "react";
 import { list } from "@/components/cms/bits";
 import { useSection } from "@/lib/cms/store";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Milestone = { year: string; hijri: string; title: string; text: string };
 
 export function HistoryTimeline() {
   const HISTORY = list<Milestone>(useSection("about", "history"), "items");
+  // The cards slide in from their own side: the right one first in Arabic, the left one in English
+  const flip = useLang() === "en" ? -1 : 1;
   const ref = useRef<HTMLOListElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 75%", "end 55%"] });
   const scaleY = useSpring(scrollYProgress, { stiffness: 90, damping: 24 });
@@ -17,10 +20,10 @@ export function HistoryTimeline() {
   return (
     <ol ref={ref} className="relative mx-auto max-w-4xl overflow-x-clip" /* cards slide in from ±40px; keep them from widening the page */>
       {/* Rail */}
-      <span className="absolute inset-y-0 right-5 w-0.5 bg-gold/30 md:right-1/2 md:translate-x-1/2" aria-hidden />
+      <span className="absolute inset-y-0 start-5 w-0.5 bg-gold/30 md:start-1/2 md:rtl:translate-x-1/2 md:ltr:-translate-x-1/2" aria-hidden />
       <motion.span
         style={{ scaleY }}
-        className="absolute inset-y-0 right-5 w-0.5 origin-top bg-gradient-to-b from-gold via-gold-dark to-green-dark md:right-1/2 md:translate-x-1/2"
+        className="absolute inset-y-0 start-5 w-0.5 origin-top bg-gradient-to-b from-gold via-gold-dark to-green-dark md:start-1/2 md:rtl:translate-x-1/2 md:ltr:-translate-x-1/2"
         aria-hidden
       />
 
@@ -28,14 +31,14 @@ export function HistoryTimeline() {
         const last = i === HISTORY.length - 1;
         const side = i % 2 === 0;
         return (
-          <li key={`${h.year}-${i}`} className="relative grid pb-10 pr-14 last:pb-0 md:grid-cols-2 md:pr-0">
+          <li key={`${h.year}-${i}`} className="relative grid pb-10 ps-14 last:pb-0 md:grid-cols-2 md:ps-0">
             <motion.span
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
               viewport={{ once: true, margin: "-35% 0px" }}
               transition={{ type: "spring", stiffness: 300, damping: 16 }}
               className={cn(
-                "absolute right-5 top-1 z-10 grid translate-x-1/2 place-items-center rounded-full md:right-1/2",
+                "absolute start-5 top-1 z-10 grid place-items-center rounded-full md:start-1/2 rtl:translate-x-1/2 ltr:-translate-x-1/2",
                 last ? "size-9 bg-maroon text-gold ring-8 ring-maroon/15" : "size-5 bg-green-dark ring-4 ring-gold/40",
               )}
               aria-hidden
@@ -44,11 +47,11 @@ export function HistoryTimeline() {
             </motion.span>
 
             <motion.div
-              initial={{ opacity: 0, x: side ? 40 : -40 }}
+              initial={{ opacity: 0, x: (side ? 40 : -40) * flip }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className={cn(side ? "md:col-start-1 md:pl-14" : "md:col-start-2 md:pr-14")}
+              className={cn(side ? "md:col-start-1 md:pe-14" : "md:col-start-2 md:ps-14")}
             >
               <div
                 className={cn(

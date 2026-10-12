@@ -7,6 +7,7 @@ import { list, str } from "@/components/cms/bits";
 import { ButtonLink } from "@/components/ui/button";
 import { useSection } from "@/lib/cms/store";
 import { useMediaUrl } from "@/lib/cms/media";
+import { useLang, useT } from "@/lib/i18n";
 import { useHydrated } from "@/lib/store";
 import { LiveHaram } from "./live-haram";
 
@@ -49,6 +50,8 @@ function Digit({ value, label }: { value: number; label: string }) {
 }
 
 export function Hero() {
+  const t = useT();
+  const en = useLang() === "en";
   const v = useSection("home", "hero");
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -81,9 +84,9 @@ export function Hero() {
           <img src={posterSrc} alt="" className="size-full object-cover" />
         ) : null}
       </motion.div>
-      <div className="absolute inset-0 -z-10 bg-gradient-to-l from-ink/40 via-green-dark/70 to-ink/95" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-l from-ink/40 ltr:bg-gradient-to-r via-green-dark/70 to-ink/95" />
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-transparent to-ink/40" />
-      <div className="bg-pattern absolute inset-0 -z-10 opacity-[.12] [mask-image:radial-gradient(ellipse_at_left,black,transparent_70%)]" />
+      <div className="bg-pattern absolute inset-0 -z-10 opacity-[.12] [mask-image:radial-gradient(ellipse_at_left,black,transparent_70%)] ltr:[mask-image:radial-gradient(ellipse_at_right,black,transparent_70%)]" />
 
       <motion.div style={{ opacity: fade }} className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 pb-24 pt-40 md:px-8 lg:grid-cols-[1.25fr_1fr]">
         <div>
@@ -105,7 +108,7 @@ export function Hero() {
                 initial={{ opacity: 0, y: 40, filter: "blur(12px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ delay: 0.35 + i * 0.12, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className={`ml-4 inline-block ${w.highlight ? "text-gold-shine" : ""}`}
+                className={`me-4 inline-block ${w.highlight ? "text-gold-shine" : ""}`}
               >
                 {w.word}
               </motion.span>
@@ -124,7 +127,7 @@ export function Hero() {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.25, duration: 0.7 }} className="mt-9 flex flex-wrap gap-3">
             <ButtonLink href={str(v, "primaryHref", "/register")} variant="gold" size="lg" className="shadow-2xl">
               {str(v, "primaryLabel")}
-              <ArrowLeft className="size-5 transition-transform group-hover/btn:-translate-x-1" />
+              <ArrowLeft className="size-5 transition-transform group-hover/btn:-translate-x-1 ltr:group-hover/btn:translate-x-1" />
             </ButtonLink>
             {/* The administrators' way in, beside the pilgrims': account creation is open all year */}
             <ButtonLink href={str(v, "secondaryHref", "/administrator/register")} variant="glass" size="lg">
@@ -144,7 +147,7 @@ export function Hero() {
         </div>
 
         <motion.div
-          initial={{ opacity: 0, x: -40, rotate: -2 }}
+          initial={{ opacity: 0, x: en ? 40 : -40, rotate: en ? 2 : -2 }}
           animate={{ opacity: 1, x: 0, rotate: 0 }}
           transition={{ delay: 0.9, duration: 1, ease: [0.16, 1, 0.3, 1] }}
           className="relative"
@@ -153,11 +156,11 @@ export function Hero() {
           <div className="rounded-[2rem] border border-white/15 bg-white/[.07] p-6 shadow-2xl backdrop-blur-xl md:p-8">
             <p className="text-sm text-gold">{str(v, "countdownEyebrow")}</p>
             <p className="mt-1 font-display text-2xl font-bold">{str(v, "countdownTitle")}</p>
-            <div className="mt-6 flex justify-between gap-2" dir="rtl">
-              <Digit value={c.ready ? c.days : 0} label="يوم" />
-              <Digit value={c.ready ? c.hours : 0} label="ساعة" />
-              <Digit value={c.ready ? c.minutes : 0} label="دقيقة" />
-              <Digit value={c.ready ? c.seconds : 0} label="ثانية" />
+            <div className="mt-6 flex justify-between gap-2" dir={en ? "ltr" : "rtl"}>
+              <Digit value={c.ready ? c.days : 0} label={t("يوم", "Days")} />
+              <Digit value={c.ready ? c.hours : 0} label={t("ساعة", "Hours")} />
+              <Digit value={c.ready ? c.minutes : 0} label={t("دقيقة", "Minutes")} />
+              <Digit value={c.ready ? c.seconds : 0} label={t("ثانية", "Seconds")} />
             </div>
             {rows.length > 0 && (
               <div className="mt-7 space-y-3 border-t border-white/10 pt-6 text-sm">
@@ -190,7 +193,7 @@ export function Hero() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1.6 }}
         aria-pressed={live}
-        className="absolute bottom-8 left-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 md:left-8"
+        className="absolute bottom-8 end-4 z-10 flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 md:end-8"
       >
         <span className="relative flex">
           {live ? <X className="size-5 text-gold" /> : <Radio className="size-5" />}
@@ -204,7 +207,7 @@ export function Hero() {
         href="#services"
         style={{ opacity: fade }}
         className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-xs text-white/60"
-        aria-label="انتقل إلى الخدمات"
+        aria-label={t("انتقل إلى الخدمات", "Go to the services")}
       >
         {str(v, "scrollHint")}
         <motion.span animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>

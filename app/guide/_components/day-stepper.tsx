@@ -6,13 +6,20 @@ import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock, GraduationCap, MapPin, Moon } from "lucide-react";
 import { useState } from "react";
 import { MapEmbed, SpeakButton } from "@/components/ui/widgets";
+import { useLessonRef } from "@/lib/cms/content";
 import type { GuideDay } from "@/lib/data/guide";
+import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function DayStepper({ days }: { days: GuideDay[] }) {
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
   const day = days[active];
+  const t = useT();
+  const rtl = useLang() === "ar";
+  // The lesson's title as the academy shows it, in the page's language
+  const lesson = useLessonRef(day.lesson.track, day.lesson.lesson);
+  const lessonTitle = lesson?.lesson.title ?? day.lesson.title;
 
   const go = (i: number) => {
     const next = Math.max(0, Math.min(days.length - 1, i));
@@ -26,16 +33,16 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
       <div className="scrollbar-none -mx-4 overflow-x-auto px-4 pb-2">
         <div
           role="tablist"
-          aria-label="أيام الحج"
+          aria-label={t("أيام الحج", "Days of Hajj")}
           className="relative mx-auto flex min-w-[640px] max-w-4xl items-start justify-between"
           onKeyDown={(e) => {
-            if (e.key === "ArrowLeft") go(active + 1);
-            if (e.key === "ArrowRight") go(active - 1);
+            if (e.key === "ArrowLeft") go(rtl ? active + 1 : active - 1);
+            if (e.key === "ArrowRight") go(rtl ? active - 1 : active + 1);
           }}
         >
-          <span className="absolute left-[10%] right-[10%] top-8 h-1 rounded-full bg-gold-light" aria-hidden />
+          <span className="absolute inset-x-[10%] top-8 h-1 rounded-full bg-gold-light" aria-hidden />
           <motion.span
-            className="absolute right-[10%] top-8 h-1 rounded-full bg-gradient-to-l from-green-dark to-green-light"
+            className="absolute start-[10%] top-8 h-1 rounded-full bg-gradient-to-l from-green-dark to-green-light ltr:bg-gradient-to-r"
             animate={{ width: `${(active / (days.length - 1)) * 80}%` }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             aria-hidden
@@ -67,7 +74,7 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
                           : "border-gold/60 bg-white text-ink-soft group-hover:border-gold-dark",
                     )}
                   >
-                    {passed ? <CheckCircle2 className="size-5" /> : d.day.startsWith("ليلة") ? <Moon className="size-5" /> : <span className="text-[15px] leading-none">{d.day}</span>}
+                    {passed ? <CheckCircle2 className="size-5" /> : d.day.startsWith("ليلة") || d.day.startsWith("Night") ? <Moon className="size-5" /> : <span className="text-[15px] leading-none">{d.day}</span>}
                   </span>
                 </span>
                 <span className={cn("text-sm font-bold transition-colors", isActive ? "text-green-dark" : "text-ink-soft")}>{d.name}</span>
@@ -84,9 +91,9 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
           <motion.div
             key={day.id}
             custom={dir}
-            initial={{ opacity: 0, x: dir * -40 }}
+            initial={{ opacity: 0, x: dir * (rtl ? -40 : 40) }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir * 40 }}
+            exit={{ opacity: 0, x: dir * (rtl ? 40 : -40) }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             role="tabpanel"
             className="grid gap-5 lg:grid-cols-[1.05fr_1fr]"
@@ -96,9 +103,9 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
                 <CmsImage src={day.image} alt={day.name} fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover" />
               </motion.div>
               <div className="absolute inset-0 -z-10 bg-gradient-to-t from-green-dark via-green-dark/70 to-transparent" />
-              <span className="absolute left-5 top-5 rounded-2xl bg-white/15 px-4 py-2 text-center backdrop-blur-md">
+              <span className="absolute end-5 top-5 rounded-2xl bg-white/15 px-4 py-2 text-center backdrop-blur-md">
                 <span className="block font-display text-2xl font-bold leading-none text-gold">{day.day}</span>
-                <span className="mt-1 block text-[10px] font-semibold">ذو الحجة</span>
+                <span className="mt-1 block text-[10px] font-semibold">{t("ذو الحجة", "Dhu al-Hijjah")}</span>
               </span>
               <p className="text-sm font-semibold text-gold">{day.hijri}</p>
               <h3 className="mt-1 font-display text-3xl font-bold sm:text-4xl">{day.name}</h3>
@@ -110,12 +117,12 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
 
             <div className="flex flex-col gap-5">
               <div className="rounded-3xl border border-gold/35 bg-white p-5 sm:p-6">
-                <h4 className="font-display text-lg font-bold text-green-dark">ماذا أفعل؟</h4>
+                <h4 className="font-display text-lg font-bold text-green-dark">{t("ماذا أفعل؟", "What do I do?")}</h4>
                 <ol className="mt-4 space-y-2.5">
-                  {day.tasks.map((t, i) => (
-                    <motion.li key={t} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.07 }} className="flex items-start gap-3">
+                  {day.tasks.map((task, i) => (
+                    <motion.li key={task} initial={{ opacity: 0, x: rtl ? -14 : 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.07 }} className="flex items-start gap-3">
                       <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-lg bg-green-dark text-xs font-bold text-gold">{i + 1}</span>
-                      <span className="leading-7 text-ink">{t}</span>
+                      <span className="leading-7 text-ink">{task}</span>
                     </motion.li>
                   ))}
                 </ol>
@@ -123,17 +130,19 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
 
               <div className="rounded-3xl border border-gold/35 bg-white p-5 sm:p-6">
                 <h4 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
-                  <Clock className="size-5 text-gold-dark" /> المواعيد التقريبية
+                  <Clock className="size-5 text-gold-dark" /> {t("المواعيد التقريبية", "Approximate times")}
                 </h4>
                 <ol className="relative mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {day.times.map((t, i) => (
-                    <motion.li key={t.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.06 }} className="rounded-2xl bg-sand p-3 text-center">
-                      <span className="block font-display text-xl font-bold tabular-nums text-maroon">{t.time}</span>
-                      <span className="mt-1 block text-xs leading-5 text-ink-soft">{t.label}</span>
+                  {day.times.map((tm, i) => (
+                    <motion.li key={tm.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.06 }} className="rounded-2xl bg-sand p-3 text-center">
+                      <span className="block font-display text-xl font-bold tabular-nums text-maroon">{tm.time}</span>
+                      <span className="mt-1 block text-xs leading-5 text-ink-soft">{tm.label}</span>
                     </motion.li>
                   ))}
                 </ol>
-                <p className="mt-3 text-xs text-hint">تتغير المواعيد حسب جدول التفويج الذي يعلنه قائد مجموعتك في التطبيق.</p>
+                <p className="mt-3 text-xs text-hint">
+                  {t("تتغير المواعيد حسب جدول التفويج الذي يعلنه قائد مجموعتك في التطبيق.", "Times change with the transport schedule your group leader announces in the app.")}
+                </p>
               </div>
             </div>
 
@@ -144,12 +153,12 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
                   <p className="text-sm font-bold text-gold">{day.dua.title}</p>
                   <SpeakButton text={day.dua.text} />
                 </div>
-                <p className="mt-4 font-quran text-2xl leading-[2.3] sm:text-3xl sm:leading-[2.3]">{day.dua.text}</p>
+                <p dir="rtl" className="mt-4 font-quran text-2xl leading-[2.3] sm:text-3xl sm:leading-[2.3]">{day.dua.text}</p>
                 <Link
                   href={`/academy/${day.lesson.track}/${day.lesson.lesson}`}
                   className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-semibold ring-1 ring-white/20 transition hover:bg-white/20"
                 >
-                  <GraduationCap className="size-4 text-gold" /> درس الأكاديمية: {day.lesson.title} <ChevronLeft className="size-4" />
+                  <GraduationCap className="size-4 text-gold" /> {t("درس الأكاديمية:", "Academy lesson:")} {lessonTitle} <ChevronLeft className="size-4" />
                 </Link>
               </div>
             </div>
@@ -166,7 +175,7 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
           disabled={active === 0}
           className="inline-flex items-center gap-2 rounded-2xl border-2 border-green-dark/15 px-4 py-2.5 font-semibold text-green-dark transition hover:border-green-dark disabled:opacity-40"
         >
-          <ChevronRight className="size-5" /> اليوم السابق
+          <ChevronRight className="size-5" /> {t("اليوم السابق", "Previous day")}
         </button>
         <span className="text-sm tabular-nums text-hint">
           {active + 1} / {days.length}
@@ -177,7 +186,7 @@ export function DayStepper({ days }: { days: GuideDay[] }) {
           disabled={active === days.length - 1}
           className="inline-flex items-center gap-2 rounded-2xl bg-green-dark px-4 py-2.5 font-semibold text-white transition hover:bg-green disabled:opacity-40"
         >
-          اليوم التالي <ChevronLeft className="size-5" />
+          {t("اليوم التالي", "Next day")} <ChevronLeft className="size-5" />
         </button>
       </div>
     </div>

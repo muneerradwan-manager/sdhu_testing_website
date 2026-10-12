@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Emblem } from "@/components/brand/logo";
+import { useT } from "@/lib/i18n";
 import { asset } from "@/lib/utils";
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
@@ -12,6 +13,7 @@ const DISMISS_KEY = "sdhu-install-dismissed";
 
 /** Registers the service worker (production only) and offers installation on phones */
 export function PwaSupport() {
+  const t = useT();
   const [deferred, setDeferred] = useState<InstallEvent | null>(null);
   const [ios, setIos] = useState(false);
 
@@ -44,10 +46,10 @@ export function PwaSupport() {
     window.addEventListener("beforeinstallprompt", onPrompt);
 
     const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !("MSStream" in window);
-    const t = isIos ? setTimeout(() => setIos(true), 20000) : undefined;
+    const iosTimer = isIos ? setTimeout(() => setIos(true), 20000) : undefined;
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
-      clearTimeout(t);
+      clearTimeout(iosTimer);
       clearTimeout(promptTimer);
     };
   }, []);
@@ -81,27 +83,30 @@ export function PwaSupport() {
           transition={{ type: "spring", damping: 24, stiffness: 260 }}
           className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-md overflow-hidden rounded-3xl bg-green-dark text-white shadow-2xl ring-1 ring-gold/30 md:bottom-6"
           role="dialog"
-          aria-label="تثبيت التطبيق"
+          aria-label={t("تثبيت التطبيق", "Install the app")}
         >
           <div className="bg-pattern absolute inset-0 opacity-15" />
           <div className="relative flex items-start gap-4 p-4">
             <Emblem className="size-14" />
             <div className="min-w-0 flex-1">
-              <p className="font-display text-lg font-bold">ثبّت منصة الحج على هاتفك</p>
+              <p className="font-display text-lg font-bold">{t("ثبّت منصة الحج على هاتفك", "Install the Hajj platform on your phone")}</p>
               {deferred ? (
-                <p className="mt-1 text-sm leading-6 text-white/75">تفتح كتطبيق مستقل، وتبقى دروسك المسموعة وصفحاتك متاحة دون إنترنت.</p>
+                <p className="mt-1 text-sm leading-6 text-white/75">
+                  {t("تفتح كتطبيق مستقل، وتبقى دروسك المسموعة وصفحاتك متاحة دون إنترنت.", "It opens as an app of its own, and your audio lessons and pages stay available offline.")}
+                </p>
               ) : (
                 <p className="mt-1 flex flex-wrap items-center gap-1 text-sm leading-6 text-white/75">
-                  اضغط <Share className="inline size-4 text-gold" /> مشاركة، ثم <SquarePlus className="inline size-4 text-gold" /> «إضافة إلى الشاشة الرئيسية».
+                  {t("اضغط", "Tap")} <Share className="inline size-4 text-gold" /> {t("مشاركة، ثم", "Share, then")} <SquarePlus className="inline size-4 text-gold" />{" "}
+                  {t("«إضافة إلى الشاشة الرئيسية».", "“Add to Home Screen”.")}
                 </p>
               )}
               {deferred && (
                 <button onClick={install} className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-gold px-4 py-2 font-bold text-ink">
-                  <Download className="size-4" /> تثبيت
+                  <Download className="size-4" /> {t("تثبيت", "Install")}
                 </button>
               )}
             </div>
-            <button onClick={dismiss} className="rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label="إغلاق">
+            <button onClick={dismiss} className="rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white" aria-label={t("إغلاق", "Close")}>
               <X className="size-5" />
             </button>
           </div>

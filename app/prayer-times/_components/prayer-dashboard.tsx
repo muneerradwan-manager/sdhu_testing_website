@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Info, MapPin } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { useLang, useT } from "@/lib/i18n";
 import { CITIES, type City } from "@/lib/prayer";
 import { useHydrated } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -13,16 +14,19 @@ import { MonthlyTable } from "./monthly-table";
 import { NextPrayerHero } from "./next-prayer";
 import { PrayerCards } from "./prayer-cards";
 import { QiblaCompass } from "./qibla-compass";
-import { cityBySlug, dateFmt, schedule } from "./time";
+import { cityName } from "./names";
+import { cityBySlug, dateFmt, datesIn, schedule } from "./time";
 import { useNow } from "./use-now";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 
 const GROUPS = [
-  { label: "المدن السورية", cities: CITIES.filter((c) => c.country === "سوريا") },
-  { label: "الحرمان الشريفان", cities: CITIES.filter((c) => c.country === "السعودية") },
+  { label: "المدن السورية", labelEn: "Syrian cities", cities: CITIES.filter((c) => c.country === "سوريا") },
+  { label: "الحرمان الشريفان", labelEn: "The Two Holy Mosques", cities: CITIES.filter((c) => c.country === "السعودية") },
 ];
 
 function CityPicker({ city, onPick, pending }: { city: City; onPick: (slug: string) => void; pending: boolean }) {
+  const t = useT();
+  const lang = useLang();
   return (
     <div
       className={cn(
@@ -35,11 +39,11 @@ function CityPicker({ city, onPick, pending }: { city: City; onPick: (slug: stri
           <span className="grid size-8 place-items-center rounded-xl bg-green-dark text-gold">
             <MapPin className="size-4" />
           </span>
-          اختر مدينتك
+          {t("اختر مدينتك", "Choose your city")}
         </p>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
           {GROUPS.map((g) => (
-            <div key={g.label} role="radiogroup" aria-label={g.label} className="flex flex-wrap gap-2">
+            <div key={g.label} role="radiogroup" aria-label={t(g.label, g.labelEn)} className="flex flex-wrap gap-2">
               {g.cities.map((c) => {
                 const active = c.slug === city.slug;
                 return (
@@ -62,7 +66,7 @@ function CityPicker({ city, onPick, pending }: { city: City; onPick: (slug: stri
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
-                    <span className="relative">{c.name}</span>
+                    <span className="relative">{cityName(c, lang)}</span>
                   </button>
                 );
               })}
@@ -82,6 +86,10 @@ export function PrayerDashboard() {
   const hydrated = useHydrated();
   const nowMs = useNow();
   const city = cityBySlug(params.get("city"));
+  const t = useT();
+  const lang = useLang();
+  const dates = datesIn(lang);
+  const name = cityName(city, lang);
 
   const pick = (slug: string) => {
     startTransition(() => {
@@ -105,7 +113,7 @@ export function PrayerDashboard() {
     <>
       <CityPicker city={city} onPick={pick} pending={pending} />
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_22rem] print:hidden" aria-label="الصلاة القادمة واتجاه القبلة">
+      <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_22rem] print:hidden" aria-label={t("الصلاة القادمة واتجاه القبلة", "Next prayer and Qibla direction")}>
         <motion.div data-tour-target key={city.slug} className="h-full" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
           <NextPrayerHero city={city} nowMs={nowMs} sched={sched} />
         </motion.div>
@@ -116,10 +124,10 @@ export function PrayerDashboard() {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="today-heading" className="font-display text-2xl font-bold text-green-dark md:text-3xl">
-              مواقيت اليوم في {city.name}
+              {t(`مواقيت اليوم في ${name}`, `Today's prayer times in ${name}`)}
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
-              {dateFmt.weekday.format(new Date(nowMs))} {dateFmt.hijri.format(new Date(nowMs))} — {dateFmt.gregorian.format(new Date(nowMs))}
+              {dates.weekday.format(new Date(nowMs))} {dates.hijri.format(new Date(nowMs))} — {dates.gregorian.format(new Date(nowMs))}
             </p>
           </div>
         </div>
@@ -128,9 +136,12 @@ export function PrayerDashboard() {
 
       <section className="mt-16 print:hidden">
         <SectionHeading
-          eyebrow="ساعات حية"
-          title="بين دمشق والحرمين"
-          description="الوقت الآن والصلاة القادمة في دمشق ومكة المكرمة والمدينة المنورة، لتبقى قريباً من حجاجك."
+          eyebrow={t("ساعات حية", "Live clocks")}
+          title={t("بين دمشق والحرمين", "Between Damascus and the Two Holy Mosques")}
+          description={t(
+            "الوقت الآن والصلاة القادمة في دمشق ومكة المكرمة والمدينة المنورة، لتبقى قريباً من حجاجك.",
+            "The time now and the next prayer in Damascus, Makkah and Madinah, so you stay close to your pilgrims.",
+          )}
         />
         <CityClocks nowMs={nowMs} activeSlug={city.slug} />
       </section>
@@ -142,24 +153,27 @@ export function PrayerDashboard() {
             <div className="bg-pattern absolute inset-0 opacity-15" />
             <div className="relative">
               <p className="flex items-center gap-2 font-display text-xl font-bold text-gold">
-                <Info className="size-5" /> طريقة الحساب
+                <Info className="size-5" /> {t("طريقة الحساب", "Calculation method")}
               </p>
               <ul className="mt-5 grid gap-3 text-sm leading-7 md:grid-cols-3">
                 <li className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-                  <p className="font-bold text-gold">المدن السورية</p>
-                  <p className="text-white/75">رابطة العالم الإسلامي: الفجر 18° والعشاء 17°.</p>
+                  <p className="font-bold text-gold">{t("المدن السورية", "Syrian cities")}</p>
+                  <p className="text-white/75">{t("رابطة العالم الإسلامي: الفجر 18° والعشاء 17°.", "Muslim World League: Fajr 18° and Isha 17°.")}</p>
                 </li>
                 <li className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-                  <p className="font-bold text-gold">مكة المكرمة والمدينة المنورة</p>
-                  <p className="text-white/75">تقويم أم القرى: الفجر 18.5° والعشاء بعد المغرب بتسعين دقيقة.</p>
+                  <p className="font-bold text-gold">{t("مكة المكرمة والمدينة المنورة", "Makkah and Madinah")}</p>
+                  <p className="text-white/75">{t("تقويم أم القرى: الفجر 18.5° والعشاء بعد المغرب بتسعين دقيقة.", "Umm al-Qura calendar: Fajr 18.5°, and Isha ninety minutes after Maghrib.")}</p>
                 </li>
                 <li className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-                  <p className="font-bold text-gold">العصر</p>
-                  <p className="text-white/75">مذهب الجمهور: حين يصير ظل الشيء مثله.</p>
+                  <p className="font-bold text-gold">{t("العصر", "Asr")}</p>
+                  <p className="text-white/75">{t("مذهب الجمهور: حين يصير ظل الشيء مثله.", "The majority view: when an object's shadow equals its length.")}</p>
                 </li>
               </ul>
               <p className="mt-5 text-xs leading-6 text-white/55">
-                المواقيت محسوبة فلكياً بتوقيت +3، وقد تختلف دقيقة أو دقيقتين عن التقويم المحلي. يُرجى الاحتياط في الصيام والإمساك.
+                {t(
+                  "المواقيت محسوبة فلكياً بتوقيت +3، وقد تختلف دقيقة أو دقيقتين عن التقويم المحلي. يُرجى الاحتياط في الصيام والإمساك.",
+                  "Times are calculated astronomically for UTC+3 and may differ by a minute or two from the local calendar. Please allow a margin when fasting and stopping eating before Fajr.",
+                )}
               </p>
             </div>
           </aside>

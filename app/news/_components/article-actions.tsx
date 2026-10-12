@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Link2, ListTree, Printer, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/widgets";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -24,6 +25,7 @@ function TelegramIcon({ className }: { className?: string }) {
 
 export function ShareBar({ title, className }: { title: string; className?: string }) {
   const toast = useToast();
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -33,7 +35,12 @@ export function ShareBar({ title, className }: { title: string; className?: stri
       /* clipboard may be blocked; still confirm so the demo flows */
     }
     setCopied(true);
-    toast({ title: "تم نسخ الرابط", body: "يمكنك الآن مشاركته مع أهلك ومعارفك.", tone: "success", icon: "🔗" });
+    toast({
+      title: t("تم نسخ الرابط", "Link copied"),
+      body: t("يمكنك الآن مشاركته مع أهلك ومعارفك.", "You can now share it with your family and friends."),
+      tone: "success",
+      icon: "🔗",
+    });
     setTimeout(() => setCopied(false), 2200);
   };
 
@@ -49,21 +56,21 @@ export function ShareBar({ title, className }: { title: string; className?: stri
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <span className="me-1 text-sm font-semibold text-ink-soft">شارك:</span>
-      <button type="button" onClick={copy} className={cn(btn, copied && "border-green-light bg-green-light/10")} aria-label="نسخ الرابط">
+      <span className="me-1 text-sm font-semibold text-ink-soft">{t("شارك:", "Share:")}</span>
+      <button type="button" onClick={copy} className={cn(btn, copied && "border-green-light bg-green-light/10")} aria-label={t("نسخ الرابط", "Copy link")}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.span key={copied ? "ok" : "link"} initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 90 }}>
             {copied ? <Check className="size-5 text-green" /> : <Link2 className="size-5" />}
           </motion.span>
         </AnimatePresence>
       </button>
-      <button type="button" onClick={() => open("wa")} className={cn(btn, "hover:border-[#25D366] hover:bg-[#25D366] hover:text-white")} aria-label="مشاركة عبر واتساب">
+      <button type="button" onClick={() => open("wa")} className={cn(btn, "hover:border-[#25D366] hover:bg-[#25D366] hover:text-white")} aria-label={t("مشاركة عبر واتساب", "Share on WhatsApp")}>
         <WhatsAppIcon className="size-5" />
       </button>
-      <button type="button" onClick={() => open("tg")} className={cn(btn, "hover:border-[#229ED9] hover:bg-[#229ED9] hover:text-white")} aria-label="مشاركة عبر تيليغرام">
+      <button type="button" onClick={() => open("tg")} className={cn(btn, "hover:border-[#229ED9] hover:bg-[#229ED9] hover:text-white")} aria-label={t("مشاركة عبر تيليغرام", "Share on Telegram")}>
         <TelegramIcon className="size-5" />
       </button>
-      <button type="button" onClick={() => window.print()} className={cn(btn, "hover:bg-green-dark hover:text-gold")} aria-label="طباعة">
+      <button type="button" onClick={() => window.print()} className={cn(btn, "hover:bg-green-dark hover:text-gold")} aria-label={t("طباعة", "Print")}>
         <Printer className="size-5" />
       </button>
     </div>
@@ -72,25 +79,26 @@ export function ShareBar({ title, className }: { title: string; className?: stri
 
 export function Feedback() {
   const toast = useToast();
+  const t = useT();
   const [answer, setAnswer] = useState<"yes" | "no" | null>(null);
 
   const pick = (v: "yes" | "no") => {
     setAnswer(v);
     toast(
       v === "yes"
-        ? { title: "شكراً لك!", body: "يسعدنا أن المنشور كان مفيداً.", tone: "gold", icon: "💚" }
-        : { title: "شكراً لملاحظتك", body: "سنعمل على توضيح هذا المنشور أكثر.", tone: "info", icon: "📝" },
+        ? { title: t("شكراً لك!", "Thank you!"), body: t("يسعدنا أن المنشور كان مفيداً.", "We're glad the post was helpful."), tone: "gold", icon: "💚" }
+        : { title: t("شكراً لملاحظتك", "Thanks for your feedback"), body: t("سنعمل على توضيح هذا المنشور أكثر.", "We will work on making this post clearer."), tone: "info", icon: "📝" },
     );
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-gold/35 bg-gradient-to-l from-gold-light/60 to-white p-6 text-center md:p-8">
+    <div className="relative overflow-hidden rounded-3xl border border-gold/35 bg-gradient-to-l from-gold-light/60 to-white p-6 text-center ltr:bg-gradient-to-r md:p-8">
       <div className="bg-pattern-dark absolute inset-0 opacity-50" />
       <AnimatePresence mode="wait">
         {answer === null ? (
           <motion.div key="ask" className="relative" exit={{ opacity: 0, y: -10 }}>
-            <p className="font-display text-xl font-bold text-green-dark">هل كان هذا مفيداً؟</p>
-            <p className="mt-1 text-sm text-ink-soft">رأيك يساعدنا على كتابة إعلانات أوضح.</p>
+            <p className="font-display text-xl font-bold text-green-dark">{t("هل كان هذا مفيداً؟", "Was this helpful?")}</p>
+            <p className="mt-1 text-sm text-ink-soft">{t("رأيك يساعدنا على كتابة إعلانات أوضح.", "Your opinion helps us write clearer announcements.")}</p>
             <div className="mt-5 flex justify-center gap-3">
               <motion.button
                 type="button"
@@ -99,7 +107,7 @@ export function Feedback() {
                 onClick={() => pick("yes")}
                 className="inline-flex items-center gap-2 rounded-2xl bg-green-dark px-6 py-2.5 font-bold text-white shadow-[0_8px_24px_-10px_rgba(0,89,79,.7)]"
               >
-                <ThumbsUp className="size-4" /> نعم
+                <ThumbsUp className="size-4" /> {t("نعم", "Yes")}
               </motion.button>
               <motion.button
                 type="button"
@@ -108,7 +116,7 @@ export function Feedback() {
                 onClick={() => pick("no")}
                 className="inline-flex items-center gap-2 rounded-2xl border-2 border-green-dark/20 bg-white px-6 py-2.5 font-bold text-green-dark"
               >
-                <ThumbsDown className="size-4" /> لا
+                <ThumbsDown className="size-4" /> {t("لا", "No")}
               </motion.button>
             </div>
           </motion.div>
@@ -122,9 +130,9 @@ export function Feedback() {
             >
               <Check className="size-7" />
             </motion.span>
-            <p className="mt-3 font-display text-xl font-bold text-green-dark">{answer === "yes" ? "شكراً، سعدنا بذلك" : "شكراً، وصلت ملاحظتك"}</p>
+            <p className="mt-3 font-display text-xl font-bold text-green-dark">{answer === "yes" ? t("شكراً، سعدنا بذلك", "Thank you, we're glad to hear it") : t("شكراً، وصلت ملاحظتك", "Thank you, we received your feedback")}</p>
             <button type="button" onClick={() => setAnswer(null)} className="mt-2 text-sm text-hint underline-offset-4 hover:underline">
-              تغيير إجابتي
+              {t("تغيير إجابتي", "Change my answer")}
             </button>
           </motion.div>
         )}
@@ -135,6 +143,7 @@ export function Feedback() {
 
 export function TableOfContents({ items }: { items: { id: string; text: string }[] }) {
   const [active, setActive] = useState<string | null>(null);
+  const t = useT();
 
   useEffect(() => {
     const els = items.map((i) => document.getElementById(i.id)).filter((e): e is HTMLElement => !!e);
@@ -152,19 +161,19 @@ export function TableOfContents({ items }: { items: { id: string; text: string }
   if (items.length === 0) return null;
 
   return (
-    <nav aria-label="محتويات المنشور" className="rounded-3xl border border-gold/30 bg-white p-5">
+    <nav aria-label={t("محتويات المنشور", "Post contents")} className="rounded-3xl border border-gold/30 bg-white p-5">
       <p className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
-        <ListTree className="size-5 text-gold-dark" /> في هذا المنشور
+        <ListTree className="size-5 text-gold-dark" /> {t("في هذا المنشور", "In this post")}
       </p>
-      <ol className="relative mt-4 space-y-1 border-r-2 border-gold/30">
+      <ol className="relative mt-4 space-y-1 border-s-2 border-gold/30">
         {items.map((it) => {
           const on = active === it.id;
           return (
             <li key={it.id} className="relative">
-              {on && <motion.span layoutId="toc-bar" className="absolute -right-[2px] top-0 h-full w-[2px] bg-green-dark" />}
+              {on && <motion.span layoutId="toc-bar" className="absolute -start-[2px] top-0 h-full w-[2px] bg-green-dark" />}
               <a
                 href={`#${it.id}`}
-                className={cn("block py-1.5 pr-4 text-sm leading-6 transition-colors", on ? "font-bold text-green-dark" : "text-ink-soft hover:text-green-dark")}
+                className={cn("block py-1.5 ps-4 text-sm leading-6 transition-colors", on ? "font-bold text-green-dark" : "text-ink-soft hover:text-green-dark")}
               >
                 {it.text}
               </a>

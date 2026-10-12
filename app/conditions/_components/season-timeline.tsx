@@ -3,11 +3,16 @@
 import { motion, useScroll, useSpring } from "motion/react";
 import { Check, UserRound } from "lucide-react";
 import { useRef } from "react";
+import { useLang, useT } from "@/lib/i18n";
 import { useToday } from "@/lib/operations";
 import { SEASON } from "@/lib/season";
 import { cn } from "@/lib/utils";
+import { dateEn, phraseEn } from "../_lib/en";
 
 export function SeasonTimeline() {
+  const t = useT();
+  // The cards slide in from their own side, mirrored in English
+  const flip = useLang() === "en" ? -1 : 1;
   // The row the demo's date is in (the first that has not ended when two overlap)
   const today = useToday();
   const at = SEASON.dates.findIndex((d) => today <= d.to);
@@ -19,9 +24,9 @@ export function SeasonTimeline() {
   return (
     <ol ref={ref} className="relative mx-auto max-w-4xl">
       {/* rail */}
-      <span className="absolute bottom-0 right-[20px] top-0 w-1 rounded-full bg-gold-light md:right-[calc(50%-2px)]" aria-hidden />
+      <span className="absolute bottom-0 start-[20px] top-0 w-1 rounded-full bg-gold-light md:start-[calc(50%-2px)]" aria-hidden />
       <motion.span
-        className="absolute bottom-0 right-[20px] top-0 w-1 origin-top rounded-full bg-gradient-to-b from-green-light via-green to-gold-dark md:right-[calc(50%-2px)]"
+        className="absolute bottom-0 start-[20px] top-0 w-1 origin-top rounded-full bg-gradient-to-b from-green-light via-green to-gold-dark md:start-[calc(50%-2px)]"
         style={{ scaleY }}
         aria-hidden
       />
@@ -31,7 +36,7 @@ export function SeasonTimeline() {
         const current = i === CURRENT;
         const even = i % 2 === 0;
         return (
-          <li key={d.title} className="relative pb-8 pr-16 last:pb-0 md:grid md:grid-cols-2 md:gap-14 md:pr-0">
+          <li key={d.title} className="relative pb-8 ps-16 last:pb-0 md:grid md:grid-cols-2 md:gap-14 md:ps-0">
             {/* dot */}
             <motion.span
               initial={{ scale: 0 }}
@@ -39,7 +44,7 @@ export function SeasonTimeline() {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ type: "spring", stiffness: 400, damping: 18 }}
               className={cn(
-                "absolute right-0 top-3 z-10 flex size-11 items-center justify-center rounded-full border-4 border-sand font-display text-sm font-bold md:right-[calc(50%-22px)]",
+                "absolute start-0 top-3 z-10 flex size-11 items-center justify-center rounded-full border-4 border-sand font-display text-sm font-bold md:start-[calc(50%-22px)]",
                 past && "bg-green-dark text-white",
                 current && "animate-pulse-ring bg-gold text-maroon-dark",
                 !past && !current && "bg-white text-ink-soft ring-1 ring-gold/60",
@@ -49,7 +54,7 @@ export function SeasonTimeline() {
             </motion.span>
 
             <motion.div
-              initial={{ opacity: 0, x: even ? 40 : -40 }}
+              initial={{ opacity: 0, x: (even ? 40 : -40) * flip }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -66,18 +71,18 @@ export function SeasonTimeline() {
                 )}
               >
                 {current && (
-                  <span className="absolute -top-3 left-5 rounded-full bg-gold px-3 py-0.5 text-[11px] font-bold text-maroon-dark shadow">المرحلة الحالية</span>
+                  <span className="absolute -top-3 end-5 rounded-full bg-gold px-3 py-0.5 text-[11px] font-bold text-maroon-dark shadow">{t("المرحلة الحالية", "Current stage")}</span>
                 )}
-                <p className={cn("font-display text-lg font-bold", current ? "text-gold" : past ? "text-green" : "text-green-dark")}>{d.hijri}</p>
-                <p className={cn("text-xs", current ? "text-white/70" : "text-ink-soft")}>{d.gregorian}</p>
-                <p className={cn("mt-2 font-bold leading-7", current ? "text-white" : past ? "text-ink/70" : "text-ink")}>{d.title}</p>
+                <p className={cn("font-display text-lg font-bold", current ? "text-gold" : past ? "text-green" : "text-green-dark")}>{t(d.hijri, dateEn(d.hijri))}</p>
+                <p className={cn("text-xs", current ? "text-white/70" : "text-ink-soft")}>{t(d.gregorian, dateEn(d.gregorian))}</p>
+                <p className={cn("mt-2 font-bold leading-7", current ? "text-white" : past ? "text-ink/70" : "text-ink")}>{t(d.title, phraseEn(d.title))}</p>
                 <span
                   className={cn(
                     "mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
                     current ? "bg-white/15 text-white" : "bg-sand text-ink-soft",
                   )}
                 >
-                  <UserRound className="size-3" /> {d.who}
+                  <UserRound className="size-3" /> {t(d.who, phraseEn(d.who))}
                 </span>
               </div>
             </motion.div>

@@ -8,8 +8,10 @@ import type { QuizQuestion } from "@/lib/data/academy";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "./progress-ring";
 import { celebrate } from "./lesson-actions";
+import { useAcademyText } from "./i18n";
 
 const LETTERS = ["أ", "ب", "ج", "د"];
+const LETTERS_EN = ["A", "B", "C", "D"];
 
 export function QuizDialog({ open, onClose, title, questions }: { open: boolean; onClose: () => void; title: string; questions: QuizQuestion[] }) {
   return (
@@ -20,6 +22,7 @@ export function QuizDialog({ open, onClose, title, questions }: { open: boolean;
 }
 
 function QuizBody({ title, questions, onClose }: { title: string; questions: QuizQuestion[]; onClose: () => void }) {
+  const { t, en } = useAcademyText();
   const [step, setStep] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -50,7 +53,7 @@ function QuizBody({ title, questions, onClose }: { title: string; questions: Qui
     <div className="overflow-hidden rounded-3xl">
       <div className="relative bg-green-dark px-6 pb-5 pt-6 text-white">
         <div className="bg-pattern absolute inset-0 opacity-15" />
-        <p className="relative text-xs font-semibold text-gold">اختبار قصير للمراجعة — لا يؤثر في أي طلب</p>
+        <p className="relative text-xs font-semibold text-gold">{t("اختبار قصير للمراجعة — لا يؤثر في أي طلب", "A short review quiz — it does not affect any application")}</p>
         <h2 className="relative mt-1 pe-8 font-display text-xl font-bold">{title}</h2>
         <div className="relative mt-4 flex gap-1.5" dir="ltr">
           {questions.map((_, i) => (
@@ -64,9 +67,9 @@ function QuizBody({ title, questions, onClose }: { title: string; questions: Qui
       <div className="p-6">
         <AnimatePresence mode="wait">
           {!finished ? (
-            <motion.div key={step} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }} transition={{ duration: 0.3 }}>
+            <motion.div key={step} initial={{ opacity: 0, x: en ? 30 : -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: en ? -30 : 30 }} transition={{ duration: 0.3 }}>
               <p className="text-xs font-bold text-maroon">
-                السؤال {step + 1} من {questions.length}
+                {t(`السؤال ${step + 1} من ${questions.length}`, `Question ${step + 1} of ${questions.length}`)}
               </p>
               <h3 className="mt-2 text-lg font-bold leading-8 text-ink">{q.q}</h3>
               <div className="mt-5 space-y-2.5" role="radiogroup" aria-label={q.q}>
@@ -85,7 +88,7 @@ function QuizBody({ title, questions, onClose }: { title: string; questions: Qui
                       animate={isWrong ? { x: [0, -8, 8, -5, 5, 0] } : isRight && isPicked ? { scale: [1, 1.03, 1] } : {}}
                       transition={{ duration: 0.4 }}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-2xl border-2 p-3.5 text-right font-semibold transition-colors",
+                        "flex w-full items-center gap-3 rounded-2xl border-2 p-3.5 text-start font-semibold transition-colors",
                         picked === null && "border-gold/30 hover:border-green-light hover:bg-green-light/5",
                         isRight && "border-green-light bg-green-light/10 text-green",
                         isWrong && "border-maroon/50 bg-maroon/5 text-maroon",
@@ -98,7 +101,7 @@ function QuizBody({ title, questions, onClose }: { title: string; questions: Qui
                           isRight ? "bg-green-light text-white" : isWrong ? "bg-maroon text-white" : "bg-sand text-ink-soft",
                         )}
                       >
-                        {isRight ? <Check className="size-4" /> : isWrong ? <X className="size-4" /> : LETTERS[i]}
+                        {isRight ? <Check className="size-4" /> : isWrong ? <X className="size-4" /> : (en ? LETTERS_EN : LETTERS)[i]}
                       </span>
                       <span className="leading-7">{opt}</span>
                     </motion.button>
@@ -109,11 +112,11 @@ function QuizBody({ title, questions, onClose }: { title: string; questions: Qui
                 {picked !== null && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
                     <p className={cn("mt-4 rounded-2xl p-3.5 text-sm leading-7", picked === q.answer ? "bg-green-light/10 text-green" : "bg-gold-light/60 text-ink-soft")}>
-                      <strong>{picked === q.answer ? "إجابة صحيحة! " : "الإجابة الصحيحة: " + q.options[q.answer] + ". "}</strong>
+                      <strong>{picked === q.answer ? t("إجابة صحيحة! ", "Correct! ") : t("الإجابة الصحيحة: ", "The correct answer: ") + q.options[q.answer] + ". "}</strong>
                       {q.explain}
                     </p>
                     <button type="button" onClick={nextStep} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-green-dark py-3 font-bold text-white hover:bg-green">
-                      {step === questions.length - 1 ? "عرض النتيجة" : "السؤال التالي"} <ChevronLeft className="size-5" />
+                      {step === questions.length - 1 ? t("عرض النتيجة", "See your result") : t("السؤال التالي", "Next question")} <ChevronLeft className="size-5" />
                     </button>
                   </motion.div>
                 )}
@@ -130,15 +133,21 @@ function QuizBody({ title, questions, onClose }: { title: string; questions: Qui
                 </span>
               </ProgressRing>
               <h3 className="mt-4 font-display text-2xl font-bold text-green-dark">
-                {score === questions.length ? "ممتاز! علامة كاملة" : score >= 4 ? "أحسنت، نتيجة رائعة" : score >= 3 ? "جيد، راجع بعض الدروس" : "لا بأس، أعد مراجعة المستوى"}
+                {score === questions.length
+                  ? t("ممتاز! علامة كاملة", "Excellent! Full marks")
+                  : score >= 4
+                    ? t("أحسنت، نتيجة رائعة", "Well done, a great result")
+                    : score >= 3
+                      ? t("جيد، راجع بعض الدروس", "Good — review a few lessons")
+                      : t("لا بأس، أعد مراجعة المستوى", "No problem — review the level again")}
               </h3>
-              <p className="mt-2 max-w-sm leading-7 text-ink-soft">الاختبار للمراجعة فقط. يمكنك إعادته متى شئت.</p>
+              <p className="mt-2 max-w-sm leading-7 text-ink-soft">{t("الاختبار للمراجعة فقط. يمكنك إعادته متى شئت.", "The quiz is for review only. You can take it again whenever you like.")}</p>
               <div className="mt-6 flex gap-3">
                 <button type="button" onClick={restart} className="inline-flex items-center gap-2 rounded-2xl border-2 border-green-dark/20 px-5 py-2.5 font-semibold text-green-dark hover:border-green-dark">
-                  <RotateCcw className="size-4" /> إعادة الاختبار
+                  <RotateCcw className="size-4" /> {t("إعادة الاختبار", "Retake the quiz")}
                 </button>
                 <button type="button" onClick={onClose} className="rounded-2xl bg-green-dark px-5 py-2.5 font-bold text-white hover:bg-green">
-                  إنهاء
+                  {t("إنهاء", "Finish")}
                 </button>
               </div>
             </motion.div>

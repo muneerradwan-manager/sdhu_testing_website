@@ -5,10 +5,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, ChevronDown, ChevronLeft, ClipboardCheck, Headphones, Lock, PlayCircle } from "lucide-react";
 import { useState } from "react";
 import { useHydrated, useStore } from "@/lib/store";
-import { LESSON_FORMS, arabicCount, minutesLabel, type QuizQuestion } from "@/lib/data/academy";
+import type { QuizQuestion } from "@/lib/data/academy";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "./progress-ring";
 import { QuizDialog } from "./quiz-dialog";
+import { useAcademyText } from "./i18n";
 
 export type LevelData = {
   title: string;
@@ -18,6 +19,8 @@ export type LevelData = {
 };
 
 export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: LevelData[] }) {
+  const x = useAcademyText();
+  const { t } = x;
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
   const academy = useStore((s) => s.academy);
@@ -33,7 +36,7 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
   return (
     <div className="relative">
       {/* timeline spine */}
-      <span className="absolute bottom-6 right-[27px] top-6 w-0.5 bg-gradient-to-b from-gold-dark via-gold to-transparent sm:right-[31px]" aria-hidden />
+      <span className="absolute bottom-6 start-[27px] top-6 w-0.5 bg-gradient-to-b from-gold-dark via-gold to-transparent sm:start-[31px]" aria-hidden />
       <ol className="space-y-5">
         {levels.map((level, li) => {
           const doneCount = loggedIn ? level.lessons.filter((l) => academy[`${trackSlug}/${l.slug}`]).length : 0;
@@ -49,7 +52,7 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
               transition={{ duration: 0.6, delay: li * 0.08, ease: [0.16, 1, 0.3, 1] }}
               className="relative ps-16 sm:ps-20"
             >
-              <span className="absolute right-0 top-3">
+              <span className="absolute start-0 top-3">
                 <ProgressRing value={loggedIn ? doneCount / level.lessons.length : 0} size={56} stroke={4} className="bg-sand sm:scale-110">
                   <span className={cn("grid size-10 place-items-center rounded-full font-display text-lg font-bold", complete ? "bg-green-light text-white" : "bg-green-dark text-gold")}>
                     {complete ? <CheckCircle2 className="size-5" /> : li + 1}
@@ -58,17 +61,17 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
               </span>
 
               <div className={cn("overflow-hidden rounded-3xl border bg-white transition-shadow", isOpen ? "border-gold-dark/40 shadow-[0_24px_60px_-36px_rgba(2,21,38,.45)]" : "border-gold/30 hover:shadow-lg")}>
-                <button type="button" onClick={() => setOpen(isOpen ? -1 : li)} aria-expanded={isOpen} className="flex w-full items-center gap-3 p-5 text-right sm:p-6">
+                <button type="button" onClick={() => setOpen(isOpen ? -1 : li)} aria-expanded={isOpen} className="flex w-full items-center gap-3 p-5 text-start sm:p-6">
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-xl font-bold text-green-dark sm:text-2xl">{level.title}</span>
                     <span className="mt-1 block text-sm text-ink-soft">{level.subtitle}</span>
                     <span className="mt-3 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-full bg-sand px-2.5 py-1 font-semibold text-ink-soft">{arabicCount(level.lessons.length, LESSON_FORMS)}</span>
-                      <span className="rounded-full bg-sand px-2.5 py-1 font-semibold text-ink-soft">{minutesLabel(minutes)}</span>
-                      <span className="rounded-full bg-gold/30 px-2.5 py-1 font-semibold text-maroon">اختبار من 5 أسئلة</span>
+                      <span className="rounded-full bg-sand px-2.5 py-1 font-semibold text-ink-soft">{x.lessons(level.lessons.length)}</span>
+                      <span className="rounded-full bg-sand px-2.5 py-1 font-semibold text-ink-soft">{x.minutes(minutes)}</span>
+                      <span className="rounded-full bg-gold/30 px-2.5 py-1 font-semibold text-maroon">{t("اختبار من 5 أسئلة", "5-question quiz")}</span>
                       {loggedIn && (
                         <span className="rounded-full bg-green-light/12 px-2.5 py-1 font-bold text-green tabular-nums">
-                          أتممت {doneCount}/{level.lessons.length}
+                          {t("أتممت", "Done")} {doneCount}/{level.lessons.length}
                         </span>
                       )}
                     </span>
@@ -83,7 +86,7 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
                         {level.lessons.map((l, i) => {
                           const done = loggedIn && !!academy[`${trackSlug}/${l.slug}`];
                           return (
-                            <motion.li key={l.slug} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 * i + 0.1 }}>
+                            <motion.li key={l.slug} initial={{ opacity: 0, x: x.en ? -20 : 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 * i + 0.1 }}>
                               <Link href={`/academy/${trackSlug}/${l.slug}`} className="group flex items-center gap-3 px-4 py-3.5 transition hover:bg-sand sm:px-6">
                                 <span
                                   className={cn(
@@ -98,14 +101,14 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
                                   <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-hint">
                                     <span className="flex items-center gap-1">
                                       {l.media === "audio" ? <Headphones className="size-3.5" /> : <PlayCircle className="size-3.5" />}
-                                      {l.media === "audio" ? "صوتي" : "فيديو"} • {minutesLabel(l.minutes)}
+                                      {l.media === "audio" ? t("صوتي", "Audio") : t("فيديو", "Video")} • {x.minutes(l.minutes)}
                                     </span>
                                     <span>{l.lecturer}</span>
-                                    {l.hasAudio && <span className="text-maroon">+ ملف صوتي</span>}
-                                    {l.real && <span className="font-bold text-gold-dark">تصوير من الحرم</span>}
+                                    {l.hasAudio && <span className="text-maroon">{t("+ ملف صوتي", "+ audio file")}</span>}
+                                    {l.real && <span className="font-bold text-gold-dark">{t("تصوير من الحرم", "Filmed at the Haram")}</span>}
                                   </span>
                                 </span>
-                                <ChevronLeft className="size-5 shrink-0 text-gold-dark opacity-0 transition group-hover:-translate-x-1 group-hover:opacity-100" />
+                                <ChevronLeft className="size-5 shrink-0 text-gold-dark opacity-0 transition group-hover:-translate-x-1 group-hover:opacity-100 ltr:group-hover:translate-x-1" />
                               </Link>
                             </motion.li>
                           );
@@ -114,15 +117,15 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
                       <div className="flex flex-col items-start justify-between gap-3 border-t border-gold/25 bg-sand/60 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
                         <p className="flex items-center gap-2 text-sm text-ink-soft">
                           <ClipboardCheck className="size-5 text-gold-dark" />
-                          خمسة أسئلة لمراجعة المستوى، ولا تؤثر في أي طلب.
+                          {t("خمسة أسئلة لمراجعة المستوى، ولا تؤثر في أي طلب.", "Five questions to review the level. They do not affect any application.")}
                         </p>
                         {loggedIn ? (
                           <button type="button" onClick={() => setQuiz(li)} className="inline-flex items-center gap-2 rounded-2xl bg-maroon px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-maroon-dark">
-                            <ClipboardCheck className="size-4" /> ابدأ اختبار المستوى
+                            <ClipboardCheck className="size-4" /> {t("ابدأ اختبار المستوى", "Start the level quiz")}
                           </button>
                         ) : (
                           <Link href="/register" className="inline-flex items-center gap-2 rounded-2xl border-2 border-dashed border-maroon/30 px-5 py-2 text-sm font-bold text-maroon hover:border-maroon">
-                            <Lock className="size-4" /> أنشئ حساباً لأداء الاختبار
+                            <Lock className="size-4" /> {t("أنشئ حساباً لأداء الاختبار", "Create an account to take the quiz")}
                           </Link>
                         )}
                       </div>

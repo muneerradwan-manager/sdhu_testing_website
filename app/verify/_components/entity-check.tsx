@@ -22,9 +22,31 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { useClusters } from "@/lib/cms/content";
 import { findEntity, HOTLINE, suggestEntities, UNAPPROVED, type EntityMatch } from "@/lib/data/clusters";
+import { levelEn } from "@/app/conditions/_lib/en";
+import { useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
 
+/** What the known unapproved «campaigns» claim (lib/data/clusters), in English */
+const CLAIMS_EN: Record<string, string> = {
+  "تعد بمقعد حج مضمون دون قرعة": "Promises a guaranteed Hajj place without the lottery",
+  "تطلب مبلغاً مقدماً نقداً أو بالحوالة": "Asks for money up front, in cash or by transfer",
+  "تتواصل عبر واتساب فقط": "Communicates only through WhatsApp",
+  "يعرض تأشيرات حج خارج الحصة الرسمية": "Offers Hajj visas outside the official quota",
+  "يطلب صورة الهوية وكلمة مرور الحساب": "Asks for a copy of your ID and your account password",
+};
+
+/** Where the report says the advert came from: the value kept as it was, shown in the page's language */
+const SOURCES: [string, string][] = [
+  ["واتساب", "WhatsApp"],
+  ["فيسبوك", "Facebook"],
+  ["اتصال هاتفي", "Phone call"],
+  ["مكتب أو لافتة", "Office or sign"],
+  ["شخص وسيط", "A middleman"],
+  ["أخرى", "Other"],
+];
+
 export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) => void }) {
+  const t = useT();
   const CLUSTERS = useClusters();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -62,10 +84,10 @@ export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) =
     <div className="mx-auto max-w-4xl">
       <form onSubmit={submit} className="relative" role="search">
         <label htmlFor="entity-q" className="sr-only">
-          اسم التكتل أو الحملة
+          {t("اسم التكتل أو الحملة", "Name of the cluster or campaign")}
         </label>
         <div className="relative">
-          <Search className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-gold-dark" />
+          <Search className="pointer-events-none absolute start-5 top-1/2 size-6 -translate-y-1/2 text-gold-dark" />
           <input
             id="entity-q"
             role="combobox"
@@ -93,15 +115,15 @@ export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) =
                 setOpen(false);
               }
             }}
-            placeholder="اكتب اسم التكتل أو الحملة… مثال: تكتل النور"
-            className="h-16 w-full rounded-3xl border-2 border-gold/50 bg-white pl-32 pr-14 text-lg text-ink shadow-[0_20px_50px_-35px_rgba(0,89,79,.6)] outline-none transition placeholder:text-hint focus:border-green-light focus:ring-8 focus:ring-green-light/10"
+            placeholder={t("اكتب اسم التكتل أو الحملة… مثال: تكتل النور", "Type the name of the cluster or campaign… e.g. تكتل النور")}
+            className="h-16 w-full rounded-3xl border-2 border-gold/50 bg-white ps-14 pe-32 text-lg text-ink shadow-[0_20px_50px_-35px_rgba(0,89,79,.6)] outline-none transition placeholder:text-hint focus:border-green-light focus:ring-8 focus:ring-green-light/10"
           />
           <button
             type="submit"
-            className="absolute left-2 top-2 flex h-12 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"
+            className="absolute end-2 top-2 flex h-12 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"
           >
             {checking ? <LoaderCircle className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
-            تحقّق
+            {t("تحقّق", "Check")}
           </button>
         </div>
 
@@ -139,7 +161,7 @@ export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) =
       </form>
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm">
-        <span className="text-ink-soft">جرّب:</span>
+        <span className="text-ink-soft">{t("جرّب:", "Try:")}</span>
         {[CLUSTERS[0]?.name ?? "", UNAPPROVED[0].name, "مكتب السفر الذهبي"].filter(Boolean).map((n) => (
           <button key={n} onClick={() => run(n)} className="rounded-full border border-gold/50 bg-white px-3 py-1.5 text-ink transition hover:border-green-light hover:text-green">
             {n}
@@ -167,14 +189,19 @@ const panel = {
 };
 
 function Hint() {
+  const t = useT();
   return (
     <motion.div {...panel} className="grid gap-4 sm:grid-cols-3">
       {[
-        { icon: ShieldCheck, t: "ابحث قبل أن تدفع", d: "لا تدفع أي مبلغ لجهة قبل التأكد أنها معتمدة للموسم الحالي." },
-        { icon: Ban, t: "لا يوجد مقعد مضمون", d: "القبول يتم فقط وفق الأكبر سناً أو بالقرعة الرسمية." },
-        { icon: Megaphone, t: "أبلغ عن المخالفين", d: `الخط الساخن ${HOTLINE} أو نموذج الإبلاغ في هذه الصفحة.` },
-      ].map((x) => (
-        <div key={x.t} className="rounded-3xl border border-gold/40 bg-white p-5">
+        {
+          icon: ShieldCheck,
+          t: t("ابحث قبل أن تدفع", "Check before you pay"),
+          d: t("لا تدفع أي مبلغ لجهة قبل التأكد أنها معتمدة للموسم الحالي.", "Do not pay any organisation anything until you are sure it is approved for the current season."),
+        },
+        { icon: Ban, t: t("لا يوجد مقعد مضمون", "There is no guaranteed place"), d: t("القبول يتم فقط وفق الأكبر سناً أو بالقرعة الرسمية.", "Acceptance is only by age, oldest first, or by the official lottery.") },
+        { icon: Megaphone, t: t("أبلغ عن المخالفين", "Report offenders"), d: t(`الخط الساخن ${HOTLINE} أو نموذج الإبلاغ في هذه الصفحة.`, `The ${HOTLINE} hotline, or the report form on this page.`) },
+      ].map((x, i) => (
+        <div key={i} className="rounded-3xl border border-gold/40 bg-white p-5">
           <x.icon className="size-7 text-green" />
           <p className="mt-3 font-bold text-ink">{x.t}</p>
           <p className="mt-1 text-sm leading-7 text-ink-soft">{x.d}</p>
@@ -185,6 +212,7 @@ function Hint() {
 }
 
 function Checking() {
+  const t = useT();
   return (
     <motion.div {...panel} className="flex flex-col items-center py-10 text-center">
       <div className="relative h-24 w-64 overflow-hidden rounded-2xl border border-gold/50 bg-white p-4">
@@ -200,12 +228,13 @@ function Checking() {
           transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
         />
       </div>
-      <p className="mt-5 font-semibold text-green-dark">نبحث في سجل الجهات المعتمدة لموسم 1448…</p>
+      <p className="mt-5 font-semibold text-green-dark">{t("نبحث في سجل الجهات المعتمدة لموسم 1448…", "Searching the register of organisations approved for the 1448 season…")}</p>
     </motion.div>
   );
 }
 
 function Stamp({ text, tone }: { text: string; tone: "green" | "red" | "amber" }) {
+  const t = useT();
   const colors = { green: "border-green text-green", red: "border-red-600 text-red-600", amber: "border-amber-600 text-amber-600" }[tone];
   return (
     <div className="pointer-events-none relative">
@@ -217,7 +246,7 @@ function Stamp({ text, tone }: { text: string; tone: "green" | "red" | "amber" }
         style={{ maskImage: "radial-gradient(circle at 30% 40%, black 60%, rgba(0,0,0,.75) 100%)" }}
       >
         {text}
-        <span className="block text-[11px] font-sans tracking-normal">موسم 1448هـ</span>
+        <span className="block text-[11px] font-sans tracking-normal">{t("موسم 1448هـ", "1448 AH season")}</span>
       </motion.div>
       <motion.span
         className={cn("absolute inset-0 rounded-2xl border-4", colors)}
@@ -230,34 +259,45 @@ function Stamp({ text, tone }: { text: string; tone: "green" | "red" | "amber" }
 }
 
 function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "approved" }>; onOpen: (slug: string) => void }) {
+  const t = useT();
   const c = match.cluster;
   const facts = [
-    { icon: CalendarDays, k: "يعمل منذ", v: `${c.since}هـ` },
-    { icon: Users, k: "المجموعات والحجاج", v: `${c.groupsCount} مجموعة · نحو ${formatNumber(c.pilgrims)} حاج` },
-    { icon: Hotel, k: "السكن في مكة", v: `${c.makkah.hotel} – ${c.makkah.area} · ${c.makkah.distance}` },
-    { icon: MapPin, k: "السكن في المدينة", v: `${c.madinah.hotel} · ${c.madinah.distance}` },
-    { icon: Building, k: "المكتب المشرف", v: c.office },
-    { icon: BadgeCheck, k: "اعتماد البرنامج", v: `${c.approvedOn} — لجنة الإعلانات ومدير المكتب` },
+    { icon: CalendarDays, k: t("يعمل منذ", "Working since"), v: t(`${c.since}هـ`, `${c.since} AH`) },
+    { icon: Users, k: t("المجموعات والحجاج", "Groups and pilgrims"), v: t(`${c.groupsCount} مجموعة · نحو ${formatNumber(c.pilgrims)} حاج`, `${c.groupsCount} groups · about ${formatNumber(c.pilgrims)} pilgrims`) },
+    { icon: Hotel, k: t("السكن في مكة", "Housing in Makkah"), v: (
+        <>
+          <bdi>{c.makkah.hotel}</bdi> – {c.makkah.area} · {c.makkah.distance}
+        </>
+      ),
+    },
+    { icon: MapPin, k: t("السكن في المدينة", "Housing in Madinah"), v: (
+        <>
+          <bdi>{c.madinah.hotel}</bdi> · {c.madinah.distance}
+        </>
+      ),
+    },
+    { icon: Building, k: t("المكتب المشرف", "Supervising office"), v: c.office },
+    { icon: BadgeCheck, k: t("اعتماد البرنامج", "Programme approved"), v: t(`${c.approvedOn} — لجنة الإعلانات ومدير المكتب`, `${c.approvedOn} — by the Announcements Committee and the office director`) },
   ];
   return (
     <motion.div {...panel} className="relative overflow-hidden rounded-[2rem] border border-green-light/30 bg-white shadow-[0_40px_80px_-50px_rgba(0,89,79,.7)]">
       <div className="relative flex flex-col gap-6 bg-gradient-to-br from-green-light/10 via-white to-white p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
         <div>
           <span className="inline-flex items-center gap-1.5 text-sm font-bold text-green">
-            <CircleCheck className="size-4" /> جهة معتمدة من إدارة الحج والعمرة
+            <CircleCheck className="size-4" /> {t("جهة معتمدة من إدارة الحج والعمرة", "Approved by the Hajj and Umrah Administration")}
           </span>
           <h3 className="mt-2 font-display text-3xl font-bold text-green-dark">{c.name}</h3>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Badge tone="gold">مستوى الخدمة: {c.level}</Badge>
+            <Badge tone="gold">{t(`مستوى الخدمة: ${c.level}`, `Service level: ${levelEn(c.level)}`)}</Badge>
             <Badge>{c.specialty}</Badge>
           </div>
         </div>
-        <Stamp text="معتمدة" tone="green" />
+        <Stamp text={t("معتمدة", "Approved")} tone="green" />
       </div>
       <dl className="grid gap-px bg-gold/30 sm:grid-cols-2">
         {facts.map((f, i) => (
           <motion.div
-            key={f.k}
+            key={i}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 + i * 0.06 }}
@@ -272,12 +312,17 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
         ))}
       </dl>
       <div className="flex flex-wrap items-center justify-between gap-3 p-5 md:px-8">
-        <p className="text-sm text-ink-soft">الالتحاق بعد القبول بعقد مع المجموعة يرفعه رئيسها أو منسقها ويعتمده المكتب — لا من المنصة نفسها.</p>
+        <p className="text-sm text-ink-soft">
+          {t(
+            "الالتحاق بعد القبول بعقد مع المجموعة يرفعه رئيسها أو منسقها ويعتمده المكتب — لا من المنصة نفسها.",
+            "After acceptance, you join through a contract with the group, submitted by its leader or coordinator and approved by the office — not through the platform itself.",
+          )}
+        </p>
         <button
           onClick={() => onOpen(c.slug)}
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"
         >
-          <Hotel className="size-4" /> عرض البرنامج في دليل الخدمات
+          <Hotel className="size-4" /> {t("عرض البرنامج في دليل الخدمات", "View the programme in the services directory")}
         </button>
       </div>
     </motion.div>
@@ -285,6 +330,7 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
 }
 
 function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved" }> }) {
+  const t = useT();
   const push = useToast();
   const entity = match.kind === "unapproved" ? match.entity : null;
   const [source, setSource] = useState("واتساب");
@@ -296,8 +342,11 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
     const ticket = `BL-1448-${String(10000 + Math.floor(Math.random() * 89999))}`;
     setSent(ticket);
     push({
-      title: "تم استلام بلاغك",
-      body: `رقم التذكرة ${ticket}. يتابع فريق الرقابة البلاغ، ولن نشارك بياناتك مع الجهة المُبلَّغ عنها.`,
+      title: t("تم استلام بلاغك", "Your report has been received"),
+      body: t(
+        `رقم التذكرة ${ticket}. يتابع فريق الرقابة البلاغ، ولن نشارك بياناتك مع الجهة المُبلَّغ عنها.`,
+        `Ticket number ${ticket}. The monitoring team will follow up, and we will not share your details with the organisation you reported.`,
+      ),
       tone: "success",
       icon: <ShieldCheck className="size-5 text-green" />,
     });
@@ -319,28 +368,30 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
         <div className="relative flex flex-col gap-6 bg-gradient-to-br from-red-50 to-white p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
           <div>
             <span className="inline-flex items-center gap-1.5 text-sm font-bold text-red-700">
-              <ShieldAlert className="size-4" /> {entity ? "جهة غير معتمدة — احذر" : "غير مدرجة في سجل الجهات المعتمدة"}
+              <ShieldAlert className="size-4" /> {entity ? t("جهة غير معتمدة — احذر", "Not approved — beware") : t("غير مدرجة في سجل الجهات المعتمدة", "Not in the register of approved organisations")}
             </span>
             <h3 className="mt-2 font-display text-3xl font-bold text-ink">{match.kind === "unapproved" ? match.entity.name : match.query}</h3>
-            {entity && <p className="mt-2 text-sm text-ink-soft">بلاغات سابقة من المواطنين: <span className="font-bold text-red-700">{entity.reports}</span></p>}
+            {entity && <p className="mt-2 text-sm text-ink-soft">{t("بلاغات سابقة من المواطنين:", "Earlier reports from citizens:")} <span className="font-bold text-red-700">{entity.reports}</span></p>}
           </div>
-          <Stamp text={entity ? "غير معتمدة" : "غير مدرجة"} tone={entity ? "red" : "amber"} />
+          <Stamp text={entity ? t("غير معتمدة", "Not approved") : t("غير مدرجة", "Not listed")} tone={entity ? "red" : "amber"} />
         </div>
 
         <div className="relative grid gap-6 p-6 md:grid-cols-2 md:p-8">
           <div>
             <div className="rounded-2xl bg-red-50 p-5 ring-1 ring-red-100">
               <p className="flex items-center gap-2 font-bold text-red-800">
-                <TriangleAlert className="size-5" /> تحذير مهم
+                <TriangleAlert className="size-5" /> {t("تحذير مهم", "Important warning")}
               </p>
               <p className="mt-2 text-sm leading-7 text-red-900/80">
-                لا توجد أي جهة تستطيع ضمان مقعد حج. القبول يتم فقط وفق الأكبر سناً أو بالقرعة الرسمية، ولا تُدفع تكاليف الحج إلا بعد القبول
-                وبإيصال رقمي صادر عن المنصة.
+                {t(
+                  "لا توجد أي جهة تستطيع ضمان مقعد حج. القبول يتم فقط وفق الأكبر سناً أو بالقرعة الرسمية، ولا تُدفع تكاليف الحج إلا بعد القبول وبإيصال رقمي صادر عن المنصة.",
+                  "No organisation can guarantee a Hajj place. Acceptance is only by age, oldest first, or by the official lottery, and Hajj costs are paid only after acceptance, against a digital receipt issued by the platform.",
+                )}
               </p>
             </div>
             {entity && (
               <div className="mt-4">
-                <p className="text-sm font-bold text-ink">ما تدّعيه هذه الجهة:</p>
+                <p className="text-sm font-bold text-ink">{t("ما تدّعيه هذه الجهة:", "What this organisation claims:")}</p>
                 <ul className="mt-2 space-y-2">
                   {entity.claims.map((c, i) => (
                     <motion.li
@@ -350,7 +401,7 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
                       transition={{ delay: 0.5 + i * 0.1 }}
                       className="flex items-start gap-2 text-sm text-ink-soft"
                     >
-                      <Ban className="mt-0.5 size-4 shrink-0 text-red-600" /> {c}
+                      <Ban className="mt-0.5 size-4 shrink-0 text-red-600" /> {t(c, CLAIMS_EN[c] ?? c)}
                     </motion.li>
                   ))}
                 </ul>
@@ -364,7 +415,7 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
                 <Phone className="size-5" />
               </span>
               <span>
-                <span className="block text-xs text-white/70">الخط الساخن للإبلاغ — مجاني على مدار الساعة</span>
+                <span className="block text-xs text-white/70">{t("الخط الساخن للإبلاغ — مجاني على مدار الساعة", "Reporting hotline — free, 24 hours a day")}</span>
                 <span className="block font-display text-3xl font-bold tracking-widest text-gold">{HOTLINE}</span>
               </span>
             </a>
@@ -381,8 +432,8 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
                 <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
                   <CircleCheck className="size-14 text-green-light" />
                 </motion.span>
-                <p className="mt-3 font-display text-xl font-bold text-green-dark">شكراً لك، وصل بلاغك</p>
-                <p className="mt-1 text-sm text-ink-soft">رقم التذكرة</p>
+                <p className="mt-3 font-display text-xl font-bold text-green-dark">{t("شكراً لك، وصل بلاغك", "Thank you, your report has arrived")}</p>
+                <p className="mt-1 text-sm text-ink-soft">{t("رقم التذكرة", "Ticket number")}</p>
                 <p className="mt-1 font-mono text-xl font-bold text-ink" dir="ltr">
                   {sent}
                 </p>
@@ -390,10 +441,10 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
             ) : (
               <motion.form key="form" onSubmit={report} className="rounded-2xl border border-gold/40 bg-sand/60 p-5">
                 <p className="flex items-center gap-2 font-bold text-ink">
-                  <Megaphone className="size-5 text-maroon" /> أبلغ عن هذه الجهة
+                  <Megaphone className="size-5 text-maroon" /> {t("أبلغ عن هذه الجهة", "Report this organisation")}
                 </p>
                 <label className="mt-4 block text-sm font-semibold text-ink" htmlFor="rep-src">
-                  أين وصلك الإعلان؟
+                  {t("أين وصلك الإعلان؟", "Where did you see the advert?")}
                 </label>
                 <select
                   id="rep-src"
@@ -401,28 +452,30 @@ function NotApproved({ match }: { match: Exclude<EntityMatch, { kind: "approved"
                   onChange={(e) => setSource(e.target.value)}
                   className="mt-1.5 h-11 w-full rounded-xl border border-gold/50 bg-white px-3 text-sm outline-none focus:border-green-light focus:ring-4 focus:ring-green-light/15"
                 >
-                  {["واتساب", "فيسبوك", "اتصال هاتفي", "مكتب أو لافتة", "شخص وسيط", "أخرى"].map((s) => (
-                    <option key={s}>{s}</option>
+                  {SOURCES.map(([ar, en]) => (
+                    <option key={ar} value={ar}>
+                      {t(ar, en)}
+                    </option>
                   ))}
                 </select>
                 <label className="mt-3 block text-sm font-semibold text-ink" htmlFor="rep-details">
-                  التفاصيل <span className="font-normal text-hint">(اختياري)</span>
+                  {t("التفاصيل", "Details")} <span className="font-normal text-hint">{t("(اختياري)", "(optional)")}</span>
                 </label>
                 <textarea
                   id="rep-details"
                   rows={3}
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
-                  placeholder="مثال: طلبوا 500 دولار مقابل مقعد مضمون"
+                  placeholder={t("مثال: طلبوا 500 دولار مقابل مقعد مضمون", "e.g. they asked for 500 dollars for a guaranteed place")}
                   className="mt-1.5 w-full resize-none rounded-xl border border-gold/50 bg-white p-3 text-sm outline-none focus:border-green-light focus:ring-4 focus:ring-green-light/15"
                 />
                 <button
                   type="submit"
                   className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-maroon font-bold text-white transition hover:bg-maroon-dark active:scale-[.98]"
                 >
-                  <Megaphone className="size-4" /> إرسال البلاغ
+                  <Megaphone className="size-4" /> {t("إرسال البلاغ", "Send the report")}
                 </button>
-                <p className="mt-2 text-center text-[11px] text-hint">يمكنك الإبلاغ دون ذكر اسمك</p>
+                <p className="mt-2 text-center text-[11px] text-hint">{t("يمكنك الإبلاغ دون ذكر اسمك", "You can report without giving your name")}</p>
               </motion.form>
             )}
           </AnimatePresence>

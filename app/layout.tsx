@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri } from "next/font/google";
+import { Amiri, Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { DemoClock } from "@/components/app/demo-clock";
 import { GuidedTour } from "@/components/app/tour";
@@ -9,6 +9,8 @@ import { PreviewBar } from "@/components/cms/bits";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
 import { ToastProvider } from "@/components/ui/widgets";
+import { LangSync } from "@/lib/i18n";
+import { LANG_SCRIPT } from "@/lib/lang-script";
 import { THEME_SCRIPT } from "@/lib/theme-script";
 import { asset } from "@/lib/utils";
 import "./globals.css";
@@ -28,6 +30,14 @@ const amiri = Amiri({
   variable: "--font-amiri",
   subsets: ["arabic"],
   weight: ["400", "700"],
+  display: "swap",
+});
+
+/** The English site's Latin letters (Qomra is drawn for Arabic); Arabic names inside English text keep Qomra */
+const inter = Inter({
+  variable: "--font-latin",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
   display: "swap",
 });
 
@@ -55,12 +65,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // The visitor's display size is set on <html> (`--user-zoom`, lib/store applyScale) as the store loads, which is
     // before React checks <html> while hydrating: that one attribute is the browser's, not a mismatch
-    <html lang="ar" dir="rtl" data-scroll-behavior="smooth" className={`${qomra.variable} ${amiri.variable} antialiased`} suppressHydrationWarning>
+    <html lang="ar" dir="rtl" data-scroll-behavior="smooth" className={`${qomra.variable} ${amiri.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
       <head>
         {/* Light or dark before the first paint: no white flash on a dark page */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* Arabic or English before the first paint, and its direction */}
+        <script dangerouslySetInnerHTML={{ __html: LANG_SCRIPT }} />
       </head>
       <body className="flex min-h-[calc(100dvh/var(--zoom))] flex-col">
+        <LangSync />
         <Splash />
         <ToastProvider>
           <Header />

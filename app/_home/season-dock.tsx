@@ -3,6 +3,7 @@
 import { motion, useInView, useReducedMotion } from "motion/react";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type SeasonDate = { hijri: string; gregorian: string; title: string; who: string };
@@ -18,6 +19,9 @@ const STEP_MS = 3600;
  * pointed at or focused; the arrows, the dots, a click on a date or a swipe bring any date to the middle.
  */
 export function SeasonDock({ dates }: { dates: SeasonDate[] }) {
+  const t = useT();
+  // The next date sits to the left in Arabic, to the right in English
+  const ahead = useLang() === "en" ? -1 : 1;
   const n = dates.length;
   const [active, setActive] = useState(0);
   const [hold, setHold] = useState(false);
@@ -61,22 +65,22 @@ export function SeasonDock({ dates }: { dates: SeasonDate[] }) {
       ref={box}
       role="region"
       aria-roledescription="carousel"
-      aria-label="مواعيد الموسم"
+      aria-label={t("مواعيد الموسم", "Season dates")}
       tabIndex={0}
       onMouseEnter={() => setHold(true)}
       onMouseLeave={() => setHold(false)}
       onFocus={() => setHold(true)}
       onBlur={() => setHold(false)}
       onKeyDown={(e) => {
-        // In Arabic the next date is to the left
-        if (e.key === "ArrowLeft") go(active + 1);
-        if (e.key === "ArrowRight") go(active - 1);
+        // In Arabic the next date is to the left, in English to the right
+        if (e.key === "ArrowLeft") go(active + ahead);
+        if (e.key === "ArrowRight") go(active - ahead);
       }}
       onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
         if (touch.current === null) return;
         const dx = e.changedTouches[0].clientX - touch.current;
-        if (Math.abs(dx) > 40) go(active + (dx < 0 ? 1 : -1));
+        if (Math.abs(dx) > 40) go(active + (dx < 0 ? ahead : -ahead));
         touch.current = null;
       }}
       className="relative outline-none"
@@ -96,11 +100,11 @@ export function SeasonDock({ dates }: { dates: SeasonDate[] }) {
               aria-current={centre ? "step" : undefined}
               aria-label={`${i + 1}. ${d.title} — ${d.hijri}`}
               initial={false}
-              animate={{ x: `calc(-50% + ${-Math.sign(off) * k.x[far]}px)`, scale: k.scale[far], opacity: k.opacity[far] }}
+              animate={{ x: `calc(-50% + ${-Math.sign(off) * ahead * k.x[far]}px)`, scale: k.scale[far], opacity: k.opacity[far] }}
               transition={still ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 30, mass: 0.9 }}
               style={{ zIndex: 10 - far, pointerEvents: far > 2 ? "none" : undefined }}
               className={cn(
-                "absolute left-1/2 top-1/2 w-64 -translate-y-1/2 rounded-3xl border p-6 text-right shadow-sm transition-colors md:w-72",
+                "absolute left-1/2 top-1/2 w-64 -translate-y-1/2 rounded-3xl border p-6 text-start shadow-sm transition-colors md:w-72",
                 centre ? "border-gold bg-white shadow-[0_30px_60px_-30px_rgba(0,89,79,.55)] ring-4 ring-gold/15" : "border-gold/30 bg-sand hover:border-gold/60",
               )}
             >
@@ -115,10 +119,10 @@ export function SeasonDock({ dates }: { dates: SeasonDate[] }) {
       </div>
 
       <div className="mt-4 flex items-center justify-center gap-3">
-        <button type="button" onClick={() => go(active - 1)} aria-label="الموعد السابق" className="grid size-10 place-items-center rounded-full border border-gold/40 text-green-dark transition hover:border-gold-dark hover:bg-sand">
+        <button type="button" onClick={() => go(active - 1)} aria-label={t("الموعد السابق", "Previous date")} className="grid size-10 place-items-center rounded-full border border-gold/40 text-green-dark transition hover:border-gold-dark hover:bg-sand">
           <ChevronRight className="size-5" />
         </button>
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="اختر موعداً">
+        <div className="flex items-center gap-1.5" role="tablist" aria-label={t("اختر موعداً", "Choose a date")}>
           {dates.map((d, i) => (
             <button
               key={i}
@@ -131,11 +135,11 @@ export function SeasonDock({ dates }: { dates: SeasonDate[] }) {
             />
           ))}
         </div>
-        <button type="button" onClick={() => go(active + 1)} aria-label="الموعد التالي" className="grid size-10 place-items-center rounded-full border border-gold/40 text-green-dark transition hover:border-gold-dark hover:bg-sand">
+        <button type="button" onClick={() => go(active + 1)} aria-label={t("الموعد التالي", "Next date")} className="grid size-10 place-items-center rounded-full border border-gold/40 text-green-dark transition hover:border-gold-dark hover:bg-sand">
           <ChevronLeft className="size-5" />
         </button>
         {!still && (
-          <button type="button" onClick={() => setPaused((x) => !x)} aria-label={paused ? "تشغيل الحركة" : "إيقاف الحركة"} title={paused ? "تشغيل الحركة" : "إيقاف الحركة"} className="grid size-10 place-items-center rounded-full text-hint transition hover:bg-sand hover:text-green-dark">
+          <button type="button" onClick={() => setPaused((x) => !x)} aria-label={paused ? t("تشغيل الحركة", "Play") : t("إيقاف الحركة", "Pause")} title={paused ? t("تشغيل الحركة", "Play") : t("إيقاف الحركة", "Pause")} className="grid size-10 place-items-center rounded-full text-hint transition hover:bg-sand hover:text-green-dark">
             {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
           </button>
         )}

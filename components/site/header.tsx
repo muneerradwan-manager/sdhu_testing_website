@@ -26,9 +26,11 @@ import { CITIES, nextPrayer } from "@/lib/prayer";
 import { getPerson } from "@/lib/registry";
 import { useScrollLock } from "@/lib/scroll-lock";
 import { setTheme, useTheme } from "@/lib/theme";
+import { isArabicOnly, setLang, useChosenLang, useLang, useT } from "@/lib/i18n";
 import { getStaff } from "@/lib/staff";
 import { useNav } from "@/lib/cms/site";
-import { cn, hijriDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { PRAYER_EN, hijriDateIn } from "./en-format";
 
 type Area = "pilgrim" | "admin" | "staff";
 type Identity = { initial: string; name: string; role: string; href: string; area: Area };
@@ -42,26 +44,34 @@ function areaOf(pathname: string): Area | null {
 }
 
 /** Sign-in links for each area when nobody from that role is signed in */
-const SIGN_IN: Record<Area, { login: { href: string; label: string }; join?: { href: string; label: string } }> = {
-  pilgrim: { login: { href: "/login", label: "دخول" }, join: { href: "/register", label: "إنشاء حساب" } },
-  admin: { login: { href: "/administrator/login", label: "دخول الإداري" }, join: { href: "/administrator/register", label: "تسجيل إداري" } },
-  staff: { login: { href: "/staff/login", label: "دخول الموظفين" } },
+/** `enShort`: the English on a phone, where the longer words push the menu button off the bar */
+type Label = { ar: string; en: string; enShort?: string };
+const SIGN_IN: Record<Area, { login: { href: string; label: Label }; join?: { href: string; label: Label } }> = {
+  pilgrim: { login: { href: "/login", label: { ar: "دخول", en: "Sign in" } }, join: { href: "/register", label: { ar: "إنشاء حساب", en: "Create account", enShort: "Sign up" } } },
+  admin: {
+    login: { href: "/administrator/login", label: { ar: "دخول الإداري", en: "Administrator sign-in" } },
+    join: { href: "/administrator/register", label: { ar: "تسجيل إداري", en: "Register as administrator" } },
+  },
+  staff: { login: { href: "/staff/login", label: { ar: "دخول الموظفين", en: "Staff sign-in" } } },
 };
 
 function SoonBadge() {
+  const t = useT();
   return (
-    <span className="rounded-full bg-gold/35 px-2 py-0.5 text-[11px] font-bold text-maroon">
-      قريباً
+    <span className="whitespace-nowrap rounded-full bg-gold/35 px-2 py-0.5 text-[11px] font-bold text-maroon">
+      {t("قريباً", "Soon")}
     </span>
   );
 }
 
 function TopBar() {
+  const t = useT();
+  const lang = useLang();
   const hydrated = useHydrated();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
   }, []);
   const damascus = CITIES[0];
   const next = hydrated ? nextPrayer(damascus, now) : null;
@@ -78,42 +88,43 @@ function TopBar() {
             <span className="absolute inset-0 animate-ping rounded-full bg-gold" />
             <span className="relative size-2 rounded-full bg-gold" />
           </span>
-          <span className="font-bold text-gold">نسخة تجريبية</span>
+          <span className="font-bold text-gold">{t("نسخة تجريبية", "Demo version")}</span>
           <span className="hidden sm:inline">
-            — جميع الأسماء والأرقام والبيانات وهمية لأغراض العرض
+            {t("— جميع الأسماء والأرقام والبيانات وهمية لأغراض العرض", "— all names, numbers and data are fictitious, for demonstration only")}
           </span>
         </p>
         <div className="flex items-center gap-4">
           {hydrated && (
             <>
               <span className="hidden md:inline">
-                {hijriDate(now, { weekday: "long" })}
+                {hijriDateIn(lang, now, true)}
               </span>
               {next && (
                 <Link
                   href="/prayer-times"
                   className="hidden items-center gap-1.5 hover:text-gold lg:flex"
                 >
-                  <span className="text-white/60">دمشق:</span> {next.name} بعد
+                  <span className="text-white/60">{t("دمشق:", "Damascus:")}</span> {t(`${next.name} بعد`, `${PRAYER_EN[next.key]} in`)}
                   <span className="font-bold text-gold tabular-nums">
                     {mins >= 60
-                      ? `${Math.floor(mins / 60)} س ${mins % 60} د`
-                      : `${mins} د`}
+                      ? t(`${Math.floor(mins / 60)} س ${mins % 60} د`, `${Math.floor(mins / 60)} h ${mins % 60} min`)
+                      : t(`${mins} د`, `${mins} min`)}
                   </span>
                 </Link>
               )}
             </>
           )}
+          <LangToggle />
           <ThemeToggle />
           <div
             className="flex items-center gap-1 rounded-full bg-white/10 p-0.5"
-            aria-label="حجم العرض"
-            title="حجم العرض — صغّر على الشاشات الكبيرة، وكبّر لقراءة أوضح"
+            aria-label={t("حجم العرض", "Display size")}
+            title={t("حجم العرض — صغّر على الشاشات الكبيرة، وكبّر لقراءة أوضح", "Display size — make it smaller on large screens, larger for easier reading")}
           >
             <button
               onClick={() => actions.setDisplayScale(scale - 0.1)}
               className="grid size-6 place-items-center rounded-full hover:bg-white/15 disabled:opacity-40"
-              aria-label="تصغير حجم العرض"
+              aria-label={t("تصغير حجم العرض", "Decrease display size")}
               disabled={scale <= 0.7}
             >
               <Minus className="size-3" />
@@ -121,14 +132,14 @@ function TopBar() {
             <button
               onClick={() => actions.setDisplayScale(1)}
               className="min-w-10 rounded-full px-1 font-bold tabular-nums hover:bg-white/15"
-              aria-label="إعادة حجم العرض إلى الوضع الطبيعي"
+              aria-label={t("إعادة حجم العرض إلى الوضع الطبيعي", "Reset display size")}
             >
-              {scale === 1 ? "أ" : `${Math.round(scale * 100)}%`}
+              {scale === 1 ? t("أ", "A") : `${Math.round(scale * 100)}%`}
             </button>
             <button
               onClick={() => actions.setDisplayScale(scale + 0.1)}
               className="grid size-6 place-items-center rounded-full hover:bg-white/15 disabled:opacity-40"
-              aria-label="تكبير حجم العرض"
+              aria-label={t("تكبير حجم العرض", "Increase display size")}
               disabled={scale >= 1.4}
             >
               <Plus className="size-3" />
@@ -140,8 +151,32 @@ function TopBar() {
   );
 }
 
+/**
+ * العربية or English, in the top bar beside the theme: it names the other language, in that language. The
+ * portals are in Arabic only for now, so it does not show there.
+ */
+function LangToggle() {
+  const path = usePathname();
+  const lang = useChosenLang();
+  if (isArabicOnly(path)) return null;
+  const to = lang === "en" ? "ar" : "en";
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(to)}
+      lang={to}
+      className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-bold hover:bg-white/20"
+      aria-label={to === "en" ? "English" : "العربية"}
+      title={to === "en" ? "Switch to English" : "التحويل إلى العربية"}
+    >
+      {to === "en" ? "English" : "العربية"}
+    </button>
+  );
+}
+
 /** Light or dark, in the top bar beside the display size */
 function ThemeToggle() {
+  const t = useT();
   const theme = useTheme();
   const dark = theme === "dark";
   return (
@@ -149,9 +184,9 @@ function ThemeToggle() {
       type="button"
       onClick={() => setTheme(dark ? "light" : "dark")}
       className="grid size-7 place-items-center rounded-full bg-white/10 hover:bg-white/20"
-      aria-label={dark ? "الوضع الفاتح" : "الوضع الداكن"}
+      aria-label={dark ? t("الوضع الفاتح", "Light mode") : t("الوضع الداكن", "Dark mode")}
       aria-pressed={dark}
-      title={dark ? "الوضع الفاتح" : "الوضع الداكن"}
+      title={dark ? t("الوضع الفاتح", "Light mode") : t("الوضع الداكن", "Dark mode")}
     >
       {dark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
     </button>
@@ -159,6 +194,8 @@ function ThemeToggle() {
 }
 
 export function Header() {
+  const t = useT();
+  const lang = useLang();
   const pathname = usePathname();
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
@@ -174,11 +211,11 @@ export function Header() {
   const identities: Partial<Record<Area, Identity>> = {};
   if (hydrated) {
     const pilgrim = sessionId ? getPerson(sessionId) : null;
-    if (pilgrim) identities.pilgrim = { initial: pilgrim.firstName[0], name: pilgrim.firstName, role: "حاج", href: "/portal", area: "pilgrim" };
+    if (pilgrim) identities.pilgrim = { initial: pilgrim.firstName[0], name: pilgrim.firstName, role: t("حاج", "Pilgrim"), href: "/portal", area: "pilgrim" };
     const admin = adminId ? getPerson(adminId) : null;
-    if (admin) identities.admin = { initial: admin.firstName[0], name: admin.firstName, role: "إداري", href: "/administrator/dashboard", area: "admin" };
+    if (admin) identities.admin = { initial: admin.firstName[0], name: admin.firstName, role: t("إداري", "Administrator"), href: "/administrator/dashboard", area: "admin" };
     const staff = getStaff(staffId);
-    if (staff) identities.staff = { initial: staff.initials, name: staff.name.split(" ")[0], role: staff.title, href: "/staff/dashboard", area: "staff" };
+    if (staff) identities.staff = { initial: staff.initials, name: staff.name.split(" ")[0], role: t(staff.title, "Staff"), href: "/staff/dashboard", area: "staff" };
   }
   const area = areaOf(pathname);
   const who = area ? identities[area] : (identities.pilgrim ?? identities.admin ?? identities.staff);
@@ -210,7 +247,7 @@ export function Header() {
         {open && (
           <motion.button
             type="button"
-            aria-label="إغلاق القائمة"
+            aria-label={t("إغلاق القائمة", "Close the menu")}
             tabIndex={-1}
             onClick={() => setOpen(false)}
             initial={{ opacity: 0 }}
@@ -247,8 +284,8 @@ export function Header() {
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:h-20 sm:gap-4 md:px-8">
-          <Link href="/" aria-label="الصفحة الرئيسية">
-            <Logo light={!solid} />
+          <Link href="/" className="min-w-0" aria-label={t("الصفحة الرئيسية", "Home page")}>
+            <Logo light={!solid} name={t("المنصة الوطنية للحج", "National Hajj Platform")} authority={t("إدارة الحج والعمرة السورية", "Syrian Hajj and Umrah Administration")} />
           </Link>
 
           <nav className="hidden items-center gap-1 xl:flex">
@@ -257,7 +294,7 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative rounded-full px-3.5 py-2 text-[15px] font-semibold transition-colors",
+                  "relative whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-semibold transition-colors ltr:px-2.5",
                   solid
                     ? "text-ink-soft hover:text-green-dark"
                     : "text-white/85 hover:text-white",
@@ -286,11 +323,11 @@ export function Header() {
               <button
                 onClick={() => setMore((v) => !v)}
                 className={cn(
-                  "flex items-center gap-1 rounded-full px-3.5 py-2 text-[15px] font-semibold",
+                  "flex items-center gap-1 rounded-full px-3.5 py-2 text-[15px] font-semibold ltr:px-2.5",
                   solid ? "text-ink-soft" : "text-white/85",
                 )}
               >
-                المزيد{" "}
+                {t("المزيد", "More")}{" "}
                 <ChevronDown
                   className={cn("size-4 transition", more && "rotate-180")}
                 />
@@ -301,7 +338,7 @@ export function Header() {
                     initial={{ opacity: 0, y: 8, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                    className="absolute left-0 top-full w-72 pt-2"
+                    className="absolute end-0 top-full w-72 pt-2"
                   >
                     <div className="overflow-hidden rounded-2xl border border-gold/30 bg-white p-2 shadow-2xl">
                       {MORE.map((m) => (
@@ -330,7 +367,7 @@ export function Header() {
                 href={who.href}
                 title={`${who.name} — ${who.role}`}
                 className={cn(
-                  "flex items-center gap-2 rounded-2xl py-1.5 pl-4 pr-1.5 text-sm font-bold transition",
+                  "flex items-center gap-2 rounded-2xl py-1.5 pe-4 ps-1.5 text-sm font-bold transition",
                   solid
                     ? "bg-green-dark text-white hover:bg-green"
                     : "bg-white/15 text-white backdrop-blur hover:bg-white/25",
@@ -361,7 +398,7 @@ export function Header() {
                         : "flex bg-gold px-3 py-2 text-[13px] text-ink shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white sm:px-4 sm:py-2.5 sm:text-sm",
                     )}
                   >
-                    <LogIn className="size-4" /> {signIn.login.label}
+                    <LogIn className="size-4" /> {signIn.login.label[lang]}
                   </Link>
                 )}
                 {signIn.join && !here(signIn.join.href) && (
@@ -369,7 +406,15 @@ export function Header() {
                     href={signIn.join.href}
                     className="flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-gold px-3 py-2 text-[13px] font-bold text-ink sm:px-4 sm:py-2.5 sm:text-sm shadow-lg shadow-gold-dark/20 transition hover:bg-gold-dark hover:text-white"
                   >
-                    <UserRound className="size-4" /> {signIn.join.label}
+                    <UserRound className="size-4" />{" "}
+                    {lang === "en" && signIn.join.label.enShort ? (
+                      <>
+                        <span className="sm:hidden">{signIn.join.label.enShort}</span>
+                        <span className="hidden sm:inline">{signIn.join.label.en}</span>
+                      </>
+                    ) : (
+                      signIn.join.label[lang]
+                    )}
                   </Link>
                 )}
               </>
@@ -382,7 +427,7 @@ export function Header() {
                   ? "text-green-dark hover:bg-green-dark/5"
                   : "text-white hover:bg-white/10",
               )}
-              aria-label="القائمة"
+              aria-label={t("القائمة", "Menu")}
               aria-expanded={open}
             >
               {open ? <X /> : <Menu />}
@@ -406,7 +451,7 @@ export function Header() {
                   (item, i) => (
                     <motion.div
                       key={item.href}
-                      initial={{ opacity: 0, x: 20 }}
+                      initial={{ opacity: 0, x: lang === "en" ? -20 : 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
                     >
@@ -432,7 +477,7 @@ export function Header() {
                     href={signIn.login.href}
                     className="mt-2 rounded-2xl border-2 border-green-dark/15 px-4 py-3.5 text-center text-lg font-bold text-green-dark"
                   >
-                    {area === "staff" ? "دخول الموظفين" : area === "admin" ? "دخول الإداري" : "تسجيل الدخول"}
+                    {area === "staff" ? t("دخول الموظفين", "Staff sign-in") : area === "admin" ? t("دخول الإداري", "Administrator sign-in") : t("تسجيل الدخول", "Sign in")}
                   </Link>
                 )}
               </div>

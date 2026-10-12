@@ -5,10 +5,11 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ChevronLeft, Clock, Layers, ListVideo } from "lucide-react";
 import { useHydrated, useStore } from "@/lib/store";
-import { LESSON_FORMS, arabicCount, type TrackIcon as TrackIconName } from "@/lib/data/academy";
+import type { TrackIcon as TrackIconName } from "@/lib/data/academy";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "./progress-ring";
 import { TrackIcon } from "./track-icon";
+import { useAcademyText } from "./i18n";
 
 export type TrackCardData = {
   slug: string;
@@ -22,8 +23,6 @@ export type TrackCardData = {
   lessonSlugs: string[];
 };
 
-const LEVEL_FORMS = { one: "مستوى واحد", two: "مستويان", few: "مستويات", many: "مستوى" };
-
 const TONES = {
   green: "from-green-dark via-green-dark/75",
   maroon: "from-maroon-dark via-maroon/70",
@@ -31,6 +30,7 @@ const TONES = {
 };
 
 export function TrackGrid({ tracks }: { tracks: TrackCardData[] }) {
+  const x = useAcademyText();
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
   const academy = useStore((s) => s.academy);
@@ -68,7 +68,7 @@ export function TrackGrid({ tracks }: { tracks: TrackCardData[] }) {
                     <span className="text-xs font-bold tabular-nums">{Math.round(pct * 100)}%</span>
                   </ProgressRing>
                 ) : (
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">{featured ? "المسار الأساسي" : "مجاني"}</span>
+                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold backdrop-blur">{featured ? x.t("المسار الأساسي", "Core track") : x.t("مجاني", "Free")}</span>
                 )}
               </span>
 
@@ -77,18 +77,18 @@ export function TrackGrid({ tracks }: { tracks: TrackCardData[] }) {
                 <span className="mt-2 block text-sm leading-7 text-white/80">{t.short}</span>
                 <span className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/85">
                   <span className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur">
-                    <ListVideo className="size-3.5 text-gold" /> {arabicCount(t.lessonSlugs.length, LESSON_FORMS)}
+                    <ListVideo className="size-3.5 text-gold" /> {x.lessons(t.lessonSlugs.length)}
                   </span>
                   <span className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur">
-                    <Layers className="size-3.5 text-gold" /> {arabicCount(t.levels, LEVEL_FORMS)}
+                    <Layers className="size-3.5 text-gold" /> {x.levels(t.levels)}
                   </span>
-                  <span className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur" dir="rtl">
-                    <Clock className="size-3.5 text-gold" /> {Math.floor(t.minutes / 60)} س {t.minutes % 60} د
+                  <span className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur" dir={x.en ? "ltr" : "rtl"}>
+                    <Clock className="size-3.5 text-gold" /> {x.duration(t.minutes)}
                   </span>
                 </span>
                 <span className="mt-5 flex items-center justify-between border-t border-white/15 pt-4 text-sm font-bold">
-                  <span className="text-gold">{loggedIn ? (done ? `أتممت ${done} من ${t.lessonSlugs.length}` : "ابدأ المسار") : "تصفح الدروس"}</span>
-                  <span className="grid size-9 place-items-center rounded-full bg-white/10 transition group-hover:-translate-x-1 group-hover:bg-gold group-hover:text-ink">
+                  <span className="text-gold">{loggedIn ? (done ? x.t(`أتممت ${done} من ${t.lessonSlugs.length}`, `${done} of ${t.lessonSlugs.length} done`) : x.t("ابدأ المسار", "Start the track")) : x.t("تصفح الدروس", "Browse the lessons")}</span>
+                  <span className="grid size-9 place-items-center rounded-full bg-white/10 transition group-hover:-translate-x-1 group-hover:bg-gold ltr:group-hover:translate-x-1 group-hover:text-ink">
                     <ChevronLeft className="size-5" />
                   </span>
                 </span>

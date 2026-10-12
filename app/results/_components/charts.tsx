@@ -4,17 +4,20 @@ import { AnimatePresence, motion, useInView } from "motion/react";
 import { useRef, useState } from "react";
 import { governorateStats, RESULTS_SUMMARY as S } from "@/lib/data/public-results";
 import { drawTotals, usePublishedDraw } from "@/lib/lottery";
+import { placeEn } from "@/app/conditions/_lib/en";
+import { useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
 
 /** People, not applications: accepted directly, accepted by the published draw, and the lottery's others */
 function useSegments() {
+  const t = useT();
   const draw = usePublishedDraw();
-  const t = drawTotals(draw?.picks ?? []);
-  const won = draw ? t.seats : 0;
+  const totals = drawTotals(draw?.picks ?? []);
+  const won = draw ? totals.seats : 0;
   const parts = [
-    { key: "direct", label: "قُبلوا مباشرة (الأكبر سناً)", value: S.direct, color: "#00594F" },
-    { key: "lottery", label: draw ? "قُبلوا بالقرعة" : "القرعة — لم تُنشر نتائجها بعد", value: won, color: "#289E92" },
-    { key: "rest", label: "لم يُقبلوا في القرعة", value: t.poolSeats - won, color: "#E4DDD3" },
+    { key: "direct", label: t("قُبلوا مباشرة (الأكبر سناً)", "Accepted directly (oldest first)"), value: S.direct, color: "#00594F" },
+    { key: "lottery", label: draw ? t("قُبلوا بالقرعة", "Accepted by lottery") : t("القرعة — لم تُنشر نتائجها بعد", "Lottery — results not yet published"), value: won, color: "#289E92" },
+    { key: "rest", label: t("لم يُقبلوا في القرعة", "Not accepted in the lottery"), value: totals.poolSeats - won, color: "#E4DDD3" },
   ].filter((x) => x.value > 0);
   const total = parts.reduce((a, x) => a + x.value, 0);
   return { segments: parts.map((x) => ({ ...x, pct: Math.round((x.value / total) * 100) })), total, won };
@@ -24,6 +27,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 /** Donut + stacked bar: applications accepted directly + eligible applications registered in the lottery */
 export function OutcomeDonut() {
+  const t = useT();
   const [active, setActive] = useState<string | null>(null);
   const { segments: SEGMENTS, total } = useSegments();
   const R = 80;
@@ -34,14 +38,17 @@ export function OutcomeDonut() {
 
   return (
     <div className="relative h-full overflow-hidden rounded-3xl border border-gold/40 bg-white p-6 shadow-[0_20px_60px_-35px_rgba(0,89,79,.45)] md:p-8">
-      <h3 className="font-display text-2xl font-bold text-green-dark">من بين {formatNumber(total)} شخصاً</h3>
+      <h3 className="font-display text-2xl font-bold text-green-dark">{t(`من بين ${formatNumber(total)} شخصاً`, `Out of ${formatNumber(total)} people`)}</h3>
       <p className="mt-1 text-sm text-ink-soft">
-        المقبولون مباشرة ({formatNumber(S.direct)}) ومن سجّلوا تسجيلاً أولياً على القرعة ({formatNumber(S.lotteryRegisteredSeats)}، في {formatNumber(S.lotteryEligible)} طلباً). مرّر المؤشر أو اضغط على أي جزء لرؤية تفاصيله.
+        {t(
+          `المقبولون مباشرة (${formatNumber(S.direct)}) ومن سجّلوا تسجيلاً أولياً على القرعة (${formatNumber(S.lotteryRegisteredSeats)}، في ${formatNumber(S.lotteryEligible)} طلباً). مرّر المؤشر أو اضغط على أي جزء لرؤية تفاصيله.`,
+          `Those accepted directly (${formatNumber(S.direct)}) and those pre-registered for the lottery (${formatNumber(S.lotteryRegisteredSeats)}, in ${formatNumber(S.lotteryEligible)} applications). Hover over or tap any part to see its details.`,
+        )}
       </p>
 
       <div className="mt-6 grid items-center gap-8 sm:grid-cols-[220px_1fr]">
         <div className="relative mx-auto size-56">
-          <svg viewBox="0 0 200 200" className="size-full -rotate-90" role="img" aria-label="توزيع المسجلين حسب النتيجة">
+          <svg viewBox="0 0 200 200" className="size-full -rotate-90" role="img" aria-label={t("توزيع المسجلين حسب النتيجة", "Registrants by outcome")}>
             <circle cx="100" cy="100" r={R} fill="none" stroke="#F7F4EF" strokeWidth="26" />
             {SEGMENTS.map((s, i) => {
               const len = (s.value / total) * C - GAP;
@@ -80,7 +87,7 @@ export function OutcomeDonut() {
                 transition={{ duration: 0.2 }}
               >
                 <p className="font-display text-3xl font-bold text-green-dark tabular-nums">{shown ? `${shown.pct}%` : formatNumber(total)}</p>
-                <p className="max-w-28 text-xs leading-5 text-ink-soft">{shown ? shown.label : "شخصاً"}</p>
+                <p className="max-w-28 text-xs leading-5 text-ink-soft">{shown ? shown.label : t("شخصاً", "people")}</p>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -129,7 +136,7 @@ export function OutcomeDonut() {
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-hint">
           <span>0</span>
-          <span>{formatNumber(total)} شخصاً</span>
+          <span>{t(`${formatNumber(total)} شخصاً`, `${formatNumber(total)} people`)}</span>
         </div>
       </div>
     </div>
@@ -137,12 +144,13 @@ export function OutcomeDonut() {
 }
 
 const BAR_KEYS = [
-  { key: "direct", label: "مباشر", color: "bg-green-dark" },
-  { key: "lottery", label: "قرعة", color: "bg-green-light" },
+  { key: "direct", label: "مباشر", en: "Direct", color: "bg-green-dark" },
+  { key: "lottery", label: "قرعة", en: "Lottery", color: "bg-green-light" },
 ] as const;
 
 /** Aggregated accepted numbers per governorate */
 export function GovernorateChart() {
+  const t = useT();
   const [mode, setMode] = useState<"accepted" | "share">("accepted");
   const [hover, setHover] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -155,14 +163,14 @@ export function GovernorateChart() {
     <div className="h-full rounded-3xl border border-gold/40 bg-white p-6 shadow-[0_20px_60px_-35px_rgba(0,89,79,.45)] md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="font-display text-2xl font-bold text-green-dark">حسب المحافظة</h3>
-          <p className="mt-1 text-sm text-ink-soft">أرقام مجمّعة فقط، دون أي بيانات شخصية</p>
+          <h3 className="font-display text-2xl font-bold text-green-dark">{t("حسب المحافظة", "By governorate")}</h3>
+          <p className="mt-1 text-sm text-ink-soft">{t("أرقام مجمّعة فقط، دون أي بيانات شخصية", "Aggregated figures only, with no personal data")}</p>
         </div>
         <div className="relative flex rounded-full bg-sand p-1 text-xs font-bold" role="tablist">
           {(
             [
-              ["accepted", "المقبولون"],
-              ["share", "مقارنة بالمؤهلين"],
+              ["accepted", t("المقبولون", "Accepted")],
+              ["share", t("مقارنة بالمؤهلين", "Compared with eligible")],
             ] as const
           ).map(([k, label]) => (
             <button
@@ -182,12 +190,12 @@ export function GovernorateChart() {
       <div className="mt-5 flex flex-wrap gap-3 text-xs text-ink-soft">
         {BAR_KEYS.map((k) => (
           <span key={k.key} className="flex items-center gap-1.5">
-            <span className={cn("size-2.5 rounded", k.color)} /> {k.label}
+            <span className={cn("size-2.5 rounded", k.color)} /> {t(k.label, k.en)}
           </span>
         ))}
         {mode === "share" && (
           <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded bg-gold-light" /> مؤهل لم يُقبل
+            <span className="size-2.5 rounded bg-gold-light" /> {t("مؤهل لم يُقبل", "Eligible, not accepted")}
           </span>
         )}
       </div>
@@ -199,11 +207,11 @@ export function GovernorateChart() {
           return (
             <li
               key={r.governorate}
-              className="grid grid-cols-[76px_1fr_64px] items-center gap-3"
+              className="grid grid-cols-[76px_1fr_64px] items-center gap-3 ltr:grid-cols-[96px_1fr_64px]"
               onMouseEnter={() => setHover(r.governorate)}
               onMouseLeave={() => setHover(null)}
             >
-              <span className="truncate text-sm font-semibold text-ink">{r.governorate}</span>
+              <span className="truncate text-sm font-semibold text-ink">{t(r.governorate, placeEn(r.governorate))}</span>
               <div className="relative h-7">
                 <motion.div
                   className="flex h-full overflow-hidden rounded-lg bg-gold-light/60"
@@ -228,9 +236,9 @@ export function GovernorateChart() {
                       exit={{ opacity: 0, y: 6, scale: 0.95 }}
                       className="pointer-events-none absolute bottom-full start-0 z-10 mb-2 w-max rounded-xl bg-ink px-3 py-2 text-[11px] leading-5 text-white shadow-xl"
                     >
-                      <p className="font-bold text-gold">{r.governorate}</p>
-                      <p>مباشر {formatNumber(r.direct)} · قرعة {formatNumber(r.lottery)}</p>
-                      <p className="text-white/60">طلبات مؤهلة: {formatNumber(r.eligible)}</p>
+                      <p className="font-bold text-gold">{t(r.governorate, placeEn(r.governorate))}</p>
+                      <p>{t(`مباشر ${formatNumber(r.direct)} · قرعة ${formatNumber(r.lottery)}`, `Direct ${formatNumber(r.direct)} · Lottery ${formatNumber(r.lottery)}`)}</p>
+                      <p className="text-white/60">{t(`طلبات مؤهلة: ${formatNumber(r.eligible)}`, `Eligible applications: ${formatNumber(r.eligible)}`)}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { BadgeCheck, QrCode, ShieldAlert } from "lucide-react";
 import { CmsPageHero } from "@/components/cms/page-hero";
+import { HeroBadges } from "./_components/hero-badges";
 import { VerifyTabs } from "./_components/verify-tabs";
 
 export const metadata: Metadata = {
@@ -12,17 +12,7 @@ export default function VerifyPage() {
   return (
     <>
       <CmsPageHero page="verify">
-        <div className="mt-7 flex flex-wrap gap-2 text-sm">
-          {[
-            { icon: BadgeCheck, t: "تكتلات معتمدة لموسم 1448 بالقائمة الكاملة" },
-            { icon: QrCode, t: "مسح رمز QR للإيصالات والشهادات" },
-            { icon: ShieldAlert, t: "إبلاغ فوري عن الجهات المخالفة" },
-          ].map((x) => (
-            <span key={x.t} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 ring-1 ring-white/15 backdrop-blur">
-              <x.icon className="size-4 text-gold" /> {x.t}
-            </span>
-          ))}
-        </div>
+        <HeroBadges />
       </CmsPageHero>
 
       <section className="bg-pattern-dark">

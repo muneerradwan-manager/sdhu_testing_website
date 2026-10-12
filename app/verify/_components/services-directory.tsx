@@ -8,6 +8,8 @@ import { useState } from "react";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { normalizeArabic, type Cluster, type ServiceLevel } from "@/lib/data/clusters";
 import { groupName } from "@/lib/groups";
+import { LEVELS as LEVEL_EN } from "@/app/conditions/_lib/en";
+import { useLang, useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
 
 const LEVELS: ("الكل" | ServiceLevel)[] = ["الكل", "عادي", "محسّن", "خمس نجوم"];
@@ -29,11 +31,12 @@ const LEVEL_STYLE: Record<ServiceLevel, string> = {
 };
 
 export function ServicesDirectory() {
+  const t = useT();
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("الكل");
   const [q, setQ] = useState("");
   const CLUSTERS = useClusterDirectory();
   const list = CLUSTERS.filter(
-    (c) => (level === "الكل" || c.level === level) && (!q.trim() || normalizeArabic(`${c.name} ${c.governorate} ${c.specialty}`).includes(normalizeArabic(q))),
+    (c) => (level === "الكل" || c.level === level) && (!q.trim() || normalizeArabic(`${c.name} ${c.governorate} ${c.specialty}`).toLowerCase().includes(normalizeArabic(q).toLowerCase())),
   ).sort((a, b) => b.rating - a.rating);
 
   return (
@@ -47,25 +50,28 @@ export function ServicesDirectory() {
               className={cn("relative shrink-0 rounded-2xl px-4 py-2 text-sm font-bold transition", level === l ? "text-white" : "text-ink-soft hover:bg-sand")}
             >
               {level === l && <motion.span layoutId="level-pill" className="absolute inset-0 rounded-2xl bg-green-dark" />}
-              <span className="relative">{l}</span>
+              <span className="relative">{t(l, l === "الكل" ? "All" : LEVEL_EN[l])}</span>
             </button>
           ))}
         </div>
         <label className="relative flex-1">
-          <span className="sr-only">ابحث في الدليل</span>
-          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
+          <span className="sr-only">{t("ابحث في الدليل", "Search the directory")}</span>
+          <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث باسم التكتل أو المحافظة"
-            className="h-11 w-full rounded-2xl bg-sand pr-9 pl-3 text-sm outline-none transition focus:ring-4 focus:ring-green-light/15"
+            placeholder={t("ابحث باسم التكتل أو المحافظة", "Search by cluster name or governorate")}
+            className="h-11 w-full rounded-2xl bg-sand ps-9 pe-3 text-sm outline-none transition focus:ring-4 focus:ring-green-light/15"
           />
         </label>
       </div>
 
       <p className="mt-4 flex items-start gap-2 rounded-2xl bg-gold/20 px-4 py-3 text-sm leading-7 text-ink">
         <EyeOff className="mt-1 size-4 shrink-0 text-maroon" />
-        برامج منشورة بعد اعتماد لجنة الإعلانات ومدير المكتب. لا تظهر للعامة أرقام الغرف، ولا أسماء الحجاج الآخرين، ولا خطط النقل التفصيلية.
+        {t(
+          "برامج منشورة بعد اعتماد لجنة الإعلانات ومدير المكتب. لا تظهر للعامة أرقام الغرف، ولا أسماء الحجاج الآخرين، ولا خطط النقل التفصيلية.",
+          "Programmes published after approval by the Announcements Committee and the office director. Room numbers, other pilgrims' names and detailed transport plans are never shown to the public.",
+        )}
       </p>
 
       <motion.div layout className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -90,38 +96,38 @@ export function ServicesDirectory() {
                   className="object-cover transition duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
-                <span className={cn("absolute right-3 top-3 rounded-full px-3 py-1 text-xs font-bold shadow", LEVEL_STYLE[c.level])}>
+                <span className={cn("absolute start-3 top-3 rounded-full px-3 py-1 text-xs font-bold shadow", LEVEL_STYLE[c.level])}>
                   {c.level === "خمس نجوم" && <Sparkles className="me-1 inline size-3" />}
-                  {c.level}
+                  {t(c.level, LEVEL_EN[c.level] ?? c.level)}
                 </span>
-                <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-bold text-green shadow">
-                  <BadgeCheck className="size-3.5" /> معتمد
+                <span className="absolute end-3 top-3 flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-bold text-green shadow">
+                  <BadgeCheck className="size-3.5" /> {t("معتمد", "Approved")}
                 </span>
                 <div className="absolute inset-x-4 bottom-3 text-white">
                   <h3 className="font-display text-xl font-bold leading-tight">{c.name}</h3>
                   <p className="text-xs text-white/75">
-                    {c.governorate} · منذ {c.since}هـ
+                    {t(`${c.governorate} · منذ ${c.since}هـ`, `${c.governorate} · since ${c.since} AH`)}
                   </p>
                 </div>
               </div>
               <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-center justify-between">
                   <Rating value={c.rating} />
-                  <span className="text-xs text-ink-soft">{formatNumber(c.reviews)} تقييماً</span>
+                  <span className="text-xs text-ink-soft">{t(`${formatNumber(c.reviews)} تقييماً`, `${formatNumber(c.reviews)} reviews`)}</span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-ink-soft">{c.specialty}</p>
                 <ul className="mt-3 space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <Hotel className="mt-0.5 size-4 shrink-0 text-gold-dark" />
                     <span>
-                      <span className="font-semibold text-ink">{c.makkah.hotel}</span>
+                      <bdi className="font-semibold text-ink">{c.makkah.hotel}</bdi>
                       <span className="text-ink-soft"> · {c.makkah.distance}</span>
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <MapPin className="mt-0.5 size-4 shrink-0 text-gold-dark" />
                     <span>
-                      <span className="font-semibold text-ink">{c.madinah.hotel}</span>
+                      <bdi className="font-semibold text-ink">{c.madinah.hotel}</bdi>
                       <span className="text-ink-soft"> · {c.madinah.distance}</span>
                     </span>
                   </li>
@@ -135,20 +141,21 @@ export function ServicesDirectory() {
                   href={`/verify/clusters/${c.slug}`}
                   className="mt-5 flex h-11 items-center justify-center gap-2 rounded-2xl border-2 border-green-dark/15 font-bold text-green-dark transition group-hover:border-green-dark group-hover:bg-green-dark group-hover:text-white"
                 >
-                  عرض البرنامج الكامل <ArrowLeft className="size-4" />
+                  {t("عرض البرنامج الكامل", "View the full programme")} <ArrowLeft className="size-4" />
                 </Link>
               </div>
             </motion.article>
           ))}
         </AnimatePresence>
       </motion.div>
-      {list.length === 0 && <p className="py-16 text-center text-ink-soft">لا توجد تكتلات مطابقة.</p>}
+      {list.length === 0 && <p className="py-16 text-center text-ink-soft">{t("لا توجد تكتلات مطابقة.", "No matching clusters.")}</p>}
 
     </div>
   );
 }
 
 function Rating({ value }: { value: number }) {
+  const t = useT();
   return (
     <span className="flex items-center gap-1.5">
       <span className="flex" dir="ltr" aria-hidden>
@@ -162,18 +169,21 @@ function Rating({ value }: { value: number }) {
         ))}
       </span>
       <span className="text-sm font-bold text-ink">{value.toFixed(1)}</span>
-      <span className="sr-only">من 5</span>
+      <span className="sr-only">{t("من 5", "out of 5")}</span>
     </span>
   );
 }
 
-function seatsLeft(n: number) {
+function seatsLeft(n: number, en: boolean) {
+  if (en) return n === 1 ? "1 place left" : `${n} places left`;
   if (n === 1) return "بقي مقعد واحد";
   if (n === 2) return "بقي مقعدان";
   return `بقي ${n} ${n <= 10 ? "مقاعد" : "مقعداً"}`;
 }
 
 function SeatBar({ group }: { group: Cluster["groups"][number] }) {
+  const t = useT();
+  const en = useLang() === "en";
   const taken = group.capacity - group.remaining;
   const full = group.remaining === 0;
   return (
@@ -181,12 +191,15 @@ function SeatBar({ group }: { group: Cluster["groups"][number] }) {
       <div className="flex items-center justify-between text-xs">
         <span className="font-semibold text-ink">{groupName(group.no)}</span>
         <span className={cn("font-bold", full ? "text-maroon" : group.remaining <= 6 ? "text-amber-700" : "text-green")}>
-          {full ? "مكتملة" : seatsLeft(group.remaining)}
+          {full ? t("مكتملة", "Full") : seatsLeft(group.remaining, en)}
         </span>
       </div>
       <div className="mt-1 h-2 overflow-hidden rounded-full bg-sand">
         <motion.div
-          className={cn("h-full rounded-full", full ? "bg-maroon" : group.remaining <= 6 ? "bg-gradient-to-l from-amber-500 to-gold-dark" : "bg-gradient-to-l from-green-light to-green-dark")}
+          className={cn(
+            "h-full rounded-full",
+            full ? "bg-maroon" : group.remaining <= 6 ? "bg-gradient-to-l from-amber-500 to-gold-dark ltr:bg-gradient-to-r" : "bg-gradient-to-l from-green-light to-green-dark ltr:bg-gradient-to-r",
+          )}
           initial={{ width: 0 }}
           whileInView={{ width: `${(taken / group.capacity) * 100}%` }}
           viewport={{ once: true }}

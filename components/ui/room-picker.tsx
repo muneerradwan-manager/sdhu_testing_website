@@ -2,7 +2,15 @@
 
 import { Bed, Minus, Plus } from "lucide-react";
 import { ROOM_BEDS, ROOM_LABEL, bedsOf, type RoomCounts, type RoomPrices } from "@/lib/rooms";
+import { useT } from "@/lib/i18n";
 import { cn, formatUSD } from "@/lib/utils";
+
+const ROOM_EN: Record<number, string> = {
+  1: "Single room with one bed and its own bathroom",
+  2: "Room with two beds",
+  3: "Room with three beds",
+  4: "Room with four beds",
+};
 
 /**
  * How a request spreads over private rooms: a count for each room type, as long as every member has a bed and
@@ -25,6 +33,7 @@ export function RoomPicker({
   /** On the calculator's dark green */
   dark?: boolean;
 }) {
+  const t = useT();
   const beds = bedsOf(rooms);
   const left = people - beds;
 
@@ -39,13 +48,13 @@ export function RoomPicker({
               ))}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">{ROOM_LABEL[b]}</span>
-              <span className="block text-xs text-ink-soft">{formatUSD(prices[b])} للفرد</span>
+              <span className="block text-sm font-bold">{t(ROOM_LABEL[b], ROOM_EN[b])}</span>
+              <span className="block text-xs text-ink-soft">{t(`${formatUSD(prices[b])} للفرد`, `${formatUSD(prices[b])} per person`)}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <button
                 type="button"
-                aria-label={`إنقاص: ${ROOM_LABEL[b]}`}
+                aria-label={t(`إنقاص: ${ROOM_LABEL[b]}`, `Fewer: ${ROOM_EN[b]}`)}
                 disabled={disabled || rooms[b] === 0}
                 onClick={() => onChange({ ...rooms, [b]: rooms[b] - 1 })}
                 className="flex size-8 items-center justify-center rounded-xl bg-sand transition hover:bg-gold-light active:scale-90 disabled:opacity-30"
@@ -55,7 +64,7 @@ export function RoomPicker({
               <span className="w-6 text-center font-display text-lg font-bold tabular-nums">{rooms[b]}</span>
               <button
                 type="button"
-                aria-label={`زيادة: ${ROOM_LABEL[b]}`}
+                aria-label={t(`زيادة: ${ROOM_LABEL[b]}`, `More: ${ROOM_EN[b]}`)}
                 disabled={disabled || beds + b > people}
                 onClick={() => onChange({ ...rooms, [b]: rooms[b] + 1 })}
                 className="flex size-8 items-center justify-center rounded-xl bg-sand transition hover:bg-gold-light active:scale-90 disabled:opacity-30"
@@ -73,7 +82,17 @@ export function RoomPicker({
           ))}
         </span>
         <span className={cn("text-xs font-bold", left === 0 ? (dark ? "text-gold" : "text-green") : dark ? "text-white/80" : "text-maroon")}>
-          {left === 0 ? (people === 1 ? "سرير لك وحدك" : people === 2 ? "سريران لفردين — لكل فرد سرير" : `${people} أسرّة لـ${people} أفراد — لكل فرد سرير`) : left === 1 ? "بقي فرد واحد دون سرير" : left === 2 ? "بقي فردان دون سرير" : `بقي ${left} أفراد دون سرير`}
+          {left === 0
+            ? people === 1
+              ? t("سرير لك وحدك", "A bed for you alone")
+              : people === 2
+                ? t("سريران لفردين — لكل فرد سرير", "Two beds for two people — a bed each")
+                : t(`${people} أسرّة لـ${people} أفراد — لكل فرد سرير`, `${people} beds for ${people} people — a bed each`)
+            : left === 1
+              ? t("بقي فرد واحد دون سرير", "One person still has no bed")
+              : left === 2
+                ? t("بقي فردان دون سرير", "Two people still have no bed")
+                : t(`بقي ${left} أفراد دون سرير`, `${left} people still have no bed`)}
         </span>
       </div>
     </div>

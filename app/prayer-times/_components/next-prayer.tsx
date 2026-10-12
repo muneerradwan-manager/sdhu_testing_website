@@ -2,10 +2,12 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { BellRing, CalendarDays, MapPin } from "lucide-react";
+import { useLang, useT } from "@/lib/i18n";
 import type { City } from "@/lib/prayer";
 import { cn } from "@/lib/utils";
+import { cityName, prayerName } from "./names";
 import { PrayerIcon } from "./prayer-icon";
-import { countdown, dateFmt, humanRemaining, timeParts, type schedule } from "./time";
+import { countdown, datesIn, humanRemaining, timeParts, type schedule } from "./time";
 
 const R = 118;
 const C = 2 * Math.PI * R;
@@ -31,28 +33,32 @@ function FlipDigit({ char }: { char: string }) {
 }
 
 export function NextPrayerHero({ city, nowMs, sched }: { city: City; nowMs: number; sched: ReturnType<typeof schedule> }) {
+  const t = useT();
+  const lang = useLang();
+  const dates = datesIn(lang);
+  const city_ = cityName(city, lang);
   const { next, prev, progress, remaining } = sched;
   const soon = remaining < 15 * 60_000;
-  const nt = timeParts(next.time);
-  const pt = timeParts(prev.time);
-  const clock = timeParts(new Date(nowMs), true);
+  const nt = timeParts(next.time, false, lang);
+  const pt = timeParts(prev.time, false, lang);
+  const clock = timeParts(new Date(nowMs), true, lang);
   const now = new Date(nowMs);
 
   return (
     <div className="relative isolate flex h-full flex-col justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-green-dark via-green-dark to-ink p-6 text-white shadow-[0_30px_80px_-30px_rgba(0,89,79,.8)] ring-1 ring-gold/25 md:p-10">
       <div className="bg-pattern absolute inset-0 -z-10 opacity-20 [mask-image:radial-gradient(circle_at_30%_40%,black,transparent_75%)]" />
-      <div className="absolute -left-24 -top-24 -z-10 size-72 rounded-full bg-gold/15 blur-3xl" />
-      <div className="absolute -bottom-32 right-10 -z-10 size-80 rounded-full bg-green-light/20 blur-3xl" />
+      <div className="absolute -start-24 -top-24 -z-10 size-72 rounded-full bg-gold/15 blur-3xl" />
+      <div className="absolute -bottom-32 end-10 -z-10 size-80 rounded-full bg-green-light/20 blur-3xl" />
 
       <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:justify-between">
         {/* Text side */}
         <div className="order-2 w-full text-center lg:order-1 lg:text-start">
           <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-gold ring-1 ring-white/15">
-              <MapPin className="size-3.5" /> {city.name}
+              <MapPin className="size-3.5" /> {city_}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80 ring-1 ring-white/15">
-              <CalendarDays className="size-3.5" /> {dateFmt.weekday.format(now)}
+              <CalendarDays className="size-3.5" /> {dates.weekday.format(now)}
             </span>
             <AnimatePresence>
               {soon && (
@@ -62,13 +68,13 @@ export function NextPrayerHero({ city, nowMs, sched }: { city: City; nowMs: numb
                   exit={{ opacity: 0, scale: 0.8 }}
                   className="animate-pulse-ring inline-flex items-center gap-1.5 rounded-full bg-maroon px-3 py-1 text-xs font-bold text-white"
                 >
-                  <BellRing className="size-3.5" /> اقترب موعد الأذان
+                  <BellRing className="size-3.5" /> {t("اقترب موعد الأذان", "The call to prayer is near")}
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
 
-          <p className="mt-6 text-sm font-semibold text-white/60">الصلاة القادمة</p>
+          <p className="mt-6 text-sm font-semibold text-white/60">{t("الصلاة القادمة", "Next prayer")}</p>
           <AnimatePresence mode="wait">
             <motion.h2
               key={next.key + next.day}
@@ -78,25 +84,33 @@ export function NextPrayerHero({ city, nowMs, sched }: { city: City; nowMs: numb
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="font-display text-6xl font-bold leading-tight md:text-7xl"
             >
-              <span className="text-gold-shine">{next.name}</span>
+              <span className="text-gold-shine">{prayerName(next.key, lang)}</span>
             </motion.h2>
           </AnimatePresence>
           <p className="mt-2 text-lg text-white/80">
-            {next.day === 1 ? "غداً " : ""}الساعة <span className="font-bold tabular-nums text-white">{nt.time}</span> {nt.period === "ص" ? "صباحاً" : "مساءً"}
+            {lang === "en" ? (
+              <>
+                {next.day === 1 ? "Tomorrow " : ""}at <span className="font-bold tabular-nums text-white">{nt.time}</span> {nt.period}
+              </>
+            ) : (
+              <>
+                {next.day === 1 ? "غداً " : ""}الساعة <span className="font-bold tabular-nums text-white">{nt.time}</span> {nt.period === "ص" ? "صباحاً" : "مساءً"}
+              </>
+            )}
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl bg-white/[.07] p-4 ring-1 ring-white/10 backdrop-blur">
-              <p className="text-xs text-white/55">التاريخ الهجري</p>
-              <p className="mt-1 font-display text-lg text-gold">{dateFmt.hijri.format(now)}</p>
+              <p className="text-xs text-white/55">{t("التاريخ الهجري", "Hijri date")}</p>
+              <p className="mt-1 font-display text-lg text-gold">{dates.hijri.format(now)}</p>
             </div>
             <div className="rounded-2xl bg-white/[.07] p-4 ring-1 ring-white/10 backdrop-blur">
-              <p className="text-xs text-white/55">التاريخ الميلادي</p>
-              <p className="mt-1 font-display text-lg">{dateFmt.gregorian.format(now)}</p>
+              <p className="text-xs text-white/55">{t("التاريخ الميلادي", "Gregorian date")}</p>
+              <p className="mt-1 font-display text-lg">{dates.gregorian.format(now)}</p>
             </div>
           </div>
           <p className="mt-4 text-sm text-white/60">
-            الوقت الآن في {city.name}:{" "}
+            {t(`الوقت الآن في ${city_}:`, `Time now in ${city_}:`)}{" "}
             <span dir="ltr" className="font-semibold tabular-nums text-white/90">
               {clock.time}
             </span>{" "}
@@ -147,13 +161,13 @@ export function NextPrayerHero({ city, nowMs, sched }: { city: City; nowMs: numb
 
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
             <PrayerIcon prayer={next.key} className="mb-2 size-8 text-gold" />
-            <p className="text-xs font-semibold text-white/60">يتبقى على الأذان</p>
+            <p className="text-xs font-semibold text-white/60">{t("يتبقى على الأذان", "Until the call to prayer")}</p>
             <p
               dir="ltr"
               className="mt-1 flex font-display text-4xl font-bold tabular-nums tracking-tight md:text-5xl"
               role="timer"
               aria-live="off"
-              aria-label={`يتبقى ${humanRemaining(remaining)}`}
+              aria-label={t(`يتبقى ${humanRemaining(remaining)}`, `${humanRemaining(remaining, "en")} left`)}
             >
               {countdown(remaining)
                 .split("")
@@ -161,16 +175,16 @@ export function NextPrayerHero({ city, nowMs, sched }: { city: City; nowMs: numb
                   <FlipDigit key={i} char={ch} />
                 ))}
             </p>
-            <p className="mt-2 text-xs text-white/60">{humanRemaining(remaining)}</p>
+            <p className="mt-2 text-xs text-white/60">{humanRemaining(remaining, lang)}</p>
             <div className="mt-4 flex items-center gap-2 text-[11px] text-white/55">
               <span>
-                {prev.name} {pt.time}
+                {prayerName(prev.key, lang)} {pt.time}
               </span>
               <span className="h-px w-5 bg-gold/50" />
               <span className={cn("font-bold text-gold")}>{Math.round(progress * 100)}%</span>
               <span className="h-px w-5 bg-gold/50" />
               <span>
-                {next.name} {nt.time}
+                {prayerName(next.key, lang)} {nt.time}
               </span>
             </div>
           </div>
