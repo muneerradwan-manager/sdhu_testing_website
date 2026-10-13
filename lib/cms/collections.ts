@@ -14,13 +14,9 @@ import { CLUSTERS } from "@/lib/data/clusters";
 import { DAYS, GUIDE_DUAS } from "@/lib/data/guide";
 import { FAQS, FAQ_CATEGORIES } from "@/lib/data/faq";
 import { ARTICLES, CATEGORIES } from "@/lib/data/news";
-import { groupName } from "@/lib/groups";
 import type { CollectionDef, Field, SelectOption } from "./types";
 
 const opts = (values: readonly string[]): SelectOption[] => values.map((v) => ({ value: v, label: v }));
-
-/** The groups a cluster may list, by name: the number is only the stored key, never shown to the staff */
-const GROUP_OPTIONS: SelectOption[] = Array.from({ length: 120 }, (_, i) => ({ value: String(i + 1), label: groupName(i + 1) }));
 
 /** حقل قائمة نصوص بسيطة (وسوم، نقاط، مهام...) */
 const textList = (key: string, label: string, itemName: string, def: readonly string[] = [], rows?: number): Field => ({
@@ -214,14 +210,13 @@ const CLUSTER_COLLECTION: CollectionDef = {
   itemsName: "التكتلات",
   icon: "ShieldCheck",
   group: "مجموعات المحتوى",
-  description: "الجهات المعتمدة للموسم كما تظهر في صفحة التحقق: برامجها وسكنها ونقلها وتقييمها.",
+  description: "برامج التكتلات المعتمدة كما تظهر في «التكتلات والمجموعات»: سكنها ونقلها وإعاشتها وتقييمها. أما مستوى التكتل ومجموعاته ورؤساؤها وفريقه فتأتي من طلبه المعتمد في «إدارة الإداريين»، ولا يظهر في الدليل إلا تكتل طلبُه معتمد.",
   path: "/verify",
   titleKey: "name",
   subtitleKey: "about",
-  badgeKey: "level",
+  badgeKey: "governorate",
   fields: [
     { key: "name", label: "اسم التكتل", kind: "text", def: "", wide: true },
-    { key: "level", label: "مستوى الخدمة", kind: "select", options: opts(["عادي", "محسّن", "خمس نجوم"]), def: "عادي" },
     { key: "tone", label: "لون البطاقة", kind: "select", options: TONES, def: "green" },
     { key: "since", label: "يعمل منذ (هجري)", kind: "number", def: 1440, min: 1300, max: 1500 },
     { key: "approvedOn", label: "تاريخ الاعتماد", kind: "text", def: "", wide: true },
@@ -231,8 +226,6 @@ const CLUSTER_COLLECTION: CollectionDef = {
     { key: "about", label: "نبذة", kind: "textarea", rows: 3, def: "", wide: true },
     { key: "rating", label: "التقييم", kind: "number", def: 4.5, min: 0, max: 5, step: 0.1 },
     { key: "reviews", label: "عدد المقيّمين", kind: "number", def: 0, min: 0 },
-    { key: "groupsCount", label: "عدد المجموعات", kind: "number", def: 0, min: 0 },
-    { key: "pilgrims", label: "عدد الحجاج", kind: "number", def: 0, min: 0 },
     { key: "room1", label: "السكن الخاص — غرفة مفردة ($ للفرد)", kind: "number", def: 0, min: 0 },
     { key: "room2", label: "السكن الخاص — غرفة بسريرين ($ للفرد)", kind: "number", def: 0, min: 0 },
     { key: "room3", label: "السكن الخاص — غرفة بثلاثة أسرّة ($ للفرد)", kind: "number", def: 0, min: 0 },
@@ -248,21 +241,6 @@ const CLUSTER_COLLECTION: CollectionDef = {
     textList("transport", "المواصلات", "خدمة"),
     textList("meals", "الإعاشة", "خدمة"),
     textList("programs", "البرامج", "برنامج"),
-    {
-      key: "groups",
-      label: "المجموعات",
-      kind: "list",
-      itemName: "مجموعة",
-      itemTitleKey: "leader",
-      wide: true,
-      item: [
-        { key: "no", label: "المجموعة", kind: "select", options: GROUP_OPTIONS, def: "1", hint: "تُعرف المجموعة باسمها في كل صفحات الموقع" },
-        { key: "leader", label: "رئيس المجموعة", kind: "text", def: "", wide: true },
-        { key: "capacity", label: "السعة", kind: "number", def: 50, min: 1 },
-        { key: "remaining", label: "المتبقي", kind: "number", def: 0, min: 0 },
-      ],
-      def: [],
-    },
   ],
   // Reserved URLs, so a cluster the staff add opens its own full page in the exported site
   slots: Array.from({ length: 6 }, (_, i) => `cluster-${i + 1}`),
@@ -270,7 +248,6 @@ const CLUSTER_COLLECTION: CollectionDef = {
     id: c.slug,
     values: {
       name: c.name,
-      level: c.level,
       tone: c.tone,
       since: c.since,
       approvedOn: c.approvedOn,
@@ -280,8 +257,6 @@ const CLUSTER_COLLECTION: CollectionDef = {
       about: c.about,
       rating: c.rating,
       reviews: c.reviews,
-      groupsCount: c.groupsCount,
-      pilgrims: c.pilgrims,
       room1: c.rooms[1],
       room2: c.rooms[2],
       room3: c.rooms[3],
@@ -297,7 +272,6 @@ const CLUSTER_COLLECTION: CollectionDef = {
       transport: c.transport.map((text) => ({ text })),
       meals: c.meals.map((text) => ({ text })),
       programs: c.programs.map((text) => ({ text })),
-      groups: c.groups.map((g) => ({ no: g.no, leader: g.leader, capacity: g.capacity, remaining: g.remaining })),
     },
   })),
 };

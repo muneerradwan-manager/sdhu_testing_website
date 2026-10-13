@@ -6,7 +6,7 @@ import { DemoJump } from "@/components/app/operation-closed";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { attachByStaff, decideContract, groupInfo } from "@/lib/assignment";
-import { useClusters } from "@/lib/cms/content";
+import { useClusterDirectory } from "@/lib/cluster-profile";
 import { groupName } from "@/lib/groups";
 import { outcomeOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
@@ -178,7 +178,8 @@ function AttachForm({ initial, onDone }: { initial: string; onDone: () => void }
   const toast = useToast();
   const post = useStore((s) => s.post);
   const applications = useStore((s) => s.applications);
-  const clusters = useClusters();
+  // The groups as the administrators' platform holds them: every approved cluster's, with its head and capacity
+  const clusters = useClusterDirectory();
   const draw = usePublishedDraw();
   const { acceptedDirectAge } = useSeason();
   const isAccepted = (sid: string) => outcomeOf(applications[sid], draw, acceptedDirectAge).accepted;

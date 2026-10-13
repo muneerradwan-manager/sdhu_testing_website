@@ -1,4 +1,7 @@
 import { useMemo } from "react";
+import { requestNow } from "@/app/administrator/_lib/directory";
+import { acceptedGroups, asGroup } from "@/app/administrator/_lib/cluster";
+import { structureNow } from "@/app/administrator/_lib/structure";
 import { CLUSTERS } from "./data/clusters";
 import { groupName, groupShort } from "./groups";
 import { SEASON } from "./season";
@@ -255,31 +258,27 @@ export const FLIGHTS_SEED: Flight[] = [
 
 // ───────────────────────── Groups and families ─────────────────────────
 
-export type GroupRef = { clusterId: string; clusterName: string; number: number; head: string; pilgrims: number; capacity: number };
-
-/**
- * تكتل النور as the demo administrators see it (clusterGroupsOf for the head and his deputy): the
- * head's group 31, أحمد's 27, the deputy's 5, and the three pool groups. The other clusters come from the
- * public directory.
- */
-export const NOUR_GROUPS: Omit<GroupRef, "clusterId" | "clusterName">[] = [
-  { number: 31, head: "عبد الرحمن العلي", pilgrims: 45, capacity: 50 },
-  { number: 27, head: "أحمد سليمان الحمصي", pilgrims: 44, capacity: 50 },
-  { number: 5, head: "بسام درويش", pilgrims: 42, capacity: 50 },
-  { number: 18, head: "طارق الحوراني", pilgrims: 48, capacity: 50 },
-  { number: 33, head: "نزار الشيخ", pilgrims: 40, capacity: 45 },
-  { number: 47, head: "صالح العلي", pilgrims: 45, capacity: 50 },
-];
+/** `headId`: its head's id in the cluster's request, when the request names him */
+export type GroupRef = { clusterId: string; clusterName: string; number: number; head: string; headId?: string; pilgrims: number; capacity: number };
 
 export function clusterName(clusterId: string) {
   return CLUSTERS.find((c) => c.slug === clusterId)?.name ?? clusterId;
 }
 
+/**
+ * A cluster's groups as its approved request in the administrators' platform holds them (the head's own first):
+ * their heads, their pilgrims and their capacity under the cluster's tier — the same groups as the services
+ * directory and the administrators' screens. A cluster whose request is not approved has no group on a flight.
+ */
 export function groupsOfCluster(clusterId: string): GroupRef[] {
-  const c = CLUSTERS.find((x) => x.slug === clusterId);
-  const name = c?.name ?? clusterId;
-  if (clusterId === "al-nour") return NOUR_GROUPS.map((g) => ({ ...g, clusterId, clusterName: name }));
-  return (c?.groups ?? []).map((g) => ({ clusterId, clusterName: name, number: g.no, head: g.leader, pilgrims: g.capacity - g.remaining, capacity: g.capacity }));
+  const r = requestNow(clusterId);
+  if (r?.cluster.status !== "approved") return [];
+  const s = structureNow();
+  const name = clusterName(clusterId);
+  return acceptedGroups(r.cluster)
+    .map((g) => asGroup(s, r.cluster, g, g.number === r.headGroup))
+    .sort((a, b) => Number(b.own) - Number(a.own))
+    .map((g) => ({ clusterId, clusterName: name, number: g.number, head: g.head, headId: g.headId, pilgrims: g.pilgrims, capacity: g.capacity }));
 }
 
 export const allClusterIds = () => CLUSTERS.map((c) => c.slug);
@@ -339,9 +338,14 @@ export function teamOfGroup(g: GroupRef, admins: Record<string, AdminProfile>): 
   if (g.clusterId === "al-nour" && g.number === 27) {
     return [base("01033300871", "أحمد سليمان الحمصي"), base("01033300872", "ياسر عبد الله"), base("01033300873", "الشيخ خالد الرفاعي"), base("01033300874", "سامر نبيل نجار")];
   }
-  // a group formed live: its head, and the team its cluster's head assigned to it
+  // its head, and the team its cluster's head assigned to it: from a cluster formed live, else the cluster's request
   const head = Object.entries(admins).find(([, p]) => p.group?.number === g.number);
-  const cluster = Object.values(admins).find((p) => p.cluster && Object.values(p.cluster.groups).some((x) => x.number === g.number && x.status === "accepted"))?.cluster;
+  const cluster =
+    Object.values(admins).find((p) => p.cluster && Object.values(p.cluster.groups).some((x) => x.number === g.number && x.status === "accepted"))?.cluster ??
+    (() => {
+      const c = requestNow(g.clusterId)?.cluster;
+      return c && Object.values(c.groups).some((x) => x.number === g.number && x.status === "accepted") ? c : undefined;
+    })();
   if (head || cluster) {
     // The people in its seats, and the coordinator its cluster's head sorted to it
     const team = cluster
@@ -350,9 +354,9 @@ export function teamOfGroup(g: GroupRef, admins: Record<string, AdminProfile>): 
           ...cluster.coordinators.filter((m) => m.status === "accepted" && m.id === cluster.sorting[g.number]).map((m) => base(m.id, m.name)),
         ]
       : [];
-    return [base(head?.[0] ?? `adm-${g.clusterId}-${g.number}-h`, g.head), ...team];
+    return [base(head?.[0] ?? g.headId ?? `adm-${g.clusterId}-${g.number}-h`, g.head), ...team];
   }
-  // every other group: a stable generated team, the same whoever is signed in
+  // a group no request holds (a cluster the content team added): a stable generated team, the same whoever is signed in
   const rnd = seeded(`team-${g.clusterId}-${g.number}`);
   const pick = () => `${MEN[Math.floor(rnd() * MEN.length)]} ${LASTS[Math.floor(rnd() * LASTS.length)]}`;
   return [base(`adm-${g.clusterId}-${g.number}-h`, g.head), base(`adm-${g.clusterId}-${g.number}-d`, pick()), base(`adm-${g.clusterId}-${g.number}-g`, pick()), base(`adm-${g.clusterId}-${g.number}-t`, pick())];
@@ -388,6 +392,7 @@ function seatsFor(flight: Flight, travelers: Traveler[], atTs: number, by = SEED
 }
 
 /** Groups the demo starts with on their flights: the officer already placed them (the rest are the demo's work) */
+/** «first2»: its first two groups that fit the flight, the head's own first */
 const SEED_PLAN: { clusterId: string; groups: number[] | "first2"; out: string; back: string }[] = [
   { clusterId: "al-nour", groups: [31, 18, 33], out: "f48-07", back: "f48-r07" },
   { clusterId: "al-safa", groups: "first2", out: "f48-01", back: "f48-r01" },
@@ -409,10 +414,18 @@ function seeds() {
   const t0 = at("2027-04-10", "09:00");
   const byId = (id: string) => FLIGHTS_SEED.find((f) => f.id === id)!;
   for (const plan of SEED_PLAN) {
-    const all = groupsOfCluster(plan.clusterId);
-    const chosen = plan.groups === "first2" ? all.slice(0, 2) : all.filter((g) => (plan.groups as number[]).includes(g.number));
-    chosen.forEach((g, gi) => {
-      const travelers = [...familiesOfGroup(g, {}, {}).flatMap((f) => f.members), ...teamOfGroup(g, {})];
+    const all = groupsOfCluster(plan.clusterId).map((g) => ({ g, travelers: [...familiesOfGroup(g, {}, {}).flatMap((f) => f.members), ...teamOfGroup(g, {})] }));
+    let room = Math.min(...[plan.out, plan.back].map((fid) => byId(fid).capacity - byId(fid).staffReserve));
+    const chosen: typeof all = [];
+    if (plan.groups === "first2") {
+      for (const x of all) {
+        if (chosen.length === 2) break;
+        if (x.travelers.length > room) continue;
+        chosen.push(x);
+        room -= x.travelers.length;
+      }
+    } else chosen.push(...all.filter((x) => (plan.groups as number[]).includes(x.g.number)));
+    chosen.forEach(({ g, travelers }, gi) => {
       for (const [fid, dt] of [[plan.out, 0], [plan.back, 10 * 60_000]] as const) {
         const when = t0 + gi * HOUR + dt;
         assignments.push(...seatsFor(byId(fid), travelers, when));

@@ -10,10 +10,36 @@ export type ServiceLevel = "عادي" | "محسّن" | "خمس نجوم";
 
 export type ClusterGroup = { no: number; leader: string; capacity: number; remaining: number };
 
+/**
+ * One of the cluster's administrators as the public may know him: his place in the cluster, his role this season,
+ * his experience on the platform and the rating of his last season. Never his phone, his id or his age.
+ */
+export type TeamMember = { id: string; name: string; post: string; role: string; seasons: number; rating: number | null; branch: string; female?: boolean };
+
+/** A group as the public page shows it: its head, the guides and assistants in its seats, and the cluster's coordinator and female guide sorted to it */
+export type TeamGroup = { no: number; category: string; capacity: number; pilgrims: number; own: boolean; head: TeamMember; guides: TeamMember[]; assistants: TeamMember[]; coordinator?: string; femaleGuide?: string };
+
+/** The cluster's people, read from its approved request in the administrators' platform */
+export type ClusterTeam = {
+  tier: string;
+  head: TeamMember;
+  deputy?: TeamMember;
+  accountant?: TeamMember;
+  assistants: TeamMember[];
+  coordinators: TeamMember[];
+  femaleGuides: TeamMember[];
+  groups: TeamGroup[];
+  /** Everyone in the cluster's cadre, each once */
+  size: number;
+  badges: { age: boolean; guidance: boolean; timeliness: boolean };
+  ageAvg: number | null;
+};
+
 export type Cluster = {
   slug: string;
   name: string;
   since: number;
+  /** The cluster's tier, from its approved request (اقتصادي ← عادي، اقتصادي محسن ← محسّن، خمس نجوم) */
   level: ServiceLevel;
   rating: number;
   reviews: number;
@@ -22,6 +48,7 @@ export type Cluster = {
   specialty: string;
   about: string;
   approvedOn: string;
+  /** Its groups and their pilgrims, from its approved request */
   groupsCount: number;
   pilgrims: number;
   makkah: { hotel: string; area: string; distance: string; rooms: string; features: string[] };
@@ -31,16 +58,25 @@ export type Cluster = {
   programs: string[];
   /** What each private room type adds per person (the shared accommodation adds nothing) — see lib/rooms */
   rooms: RoomPrices;
+  /** Its groups with their heads and the seats left, from its approved request */
   groups: ClusterGroup[];
   tone: "green" | "gold" | "maroon";
+  /** Its head, deputy, accountant and cadre, from its approved request («التكتلات والمجموعات» and its pages) */
+  team?: ClusterTeam;
 };
 
-export const CLUSTERS: Cluster[] = [
+/**
+ * What the content team publishes of a cluster: its programme. Its tier, groups and people are not written here:
+ * they come from its approved request in the administrators' platform (app/administrator/_lib/directory), under
+ * the same id, so the directory never shows a head or a group the administrators do not have.
+ */
+export type ClusterProgramme = Omit<Cluster, "level" | "groupsCount" | "pilgrims" | "groups" | "team">;
+
+export const CLUSTERS: ClusterProgramme[] = [
   {
     slug: "al-nour",
     name: "تكتل النور لخدمة الحجاج",
     since: 1440,
-    level: "محسّن",
     rating: 4.8,
     reviews: 1240,
     governorate: "دمشق",
@@ -48,8 +84,6 @@ export const CLUSTERS: Cluster[] = [
     specialty: "خدمة كبار السن والعائلات",
     about: "تكتل يعمل منذ 1440، متخصص في خدمة كبار السن والعائلات، ويرافق حجاجه فريق طبي دائم.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 12,
-    pilgrims: 600,
     makkah: {
       hotel: "فندق أبراج النور",
       area: "العزيزية الشمالية",
@@ -62,19 +96,12 @@ export const CLUSTERS: Cluster[] = [
     meals: ["ثلاث وجبات يومياً (بوفيه)", "وجبات خاصة لمرضى السكري والضغط عند الطلب"],
     programs: ["درس ديني يومي بعد العشاء", "رحلة إلى معالم مكة والمدينة", "مرافقة طبية دائمة"],
     rooms: { 1: 300, 2: 175, 3: 100, 4: 50 },
-    groups: [
-      { no: 27, leader: "أحمد سليمان", capacity: 50, remaining: 6 },
-      { no: 31, leader: "ياسر عبد الله", capacity: 50, remaining: 14 },
-      { no: 34, leader: "حسن الرفاعي", capacity: 50, remaining: 21 },
-      { no: 38, leader: "مازن العطار", capacity: 50, remaining: 0 },
-    ],
     tone: "green",
   },
   {
     slug: "al-safa",
     name: "تكتل الصفا والمروة",
     since: 1436,
-    level: "خمس نجوم",
     rating: 4.9,
     reviews: 860,
     governorate: "دمشق",
@@ -82,8 +109,6 @@ export const CLUSTERS: Cluster[] = [
     specialty: "سكن قريب من الحرم وخدمة متميزة",
     about: "من أقدم التكتلات المعتمدة، يوفّر سكناً مطلاً على الساحات الشمالية للحرم وبرنامجاً علمياً مكثفاً.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 8,
-    pilgrims: 400,
     makkah: {
       hotel: "فندق إطلالة الصفا",
       area: "الشبيكة",
@@ -96,27 +121,19 @@ export const CLUSTERS: Cluster[] = [
     meals: ["بوفيه مفتوح ثلاث مرات يومياً", "ركن ضيافة على مدار اليوم"],
     programs: ["دروس يومية مع نخبة من العلماء", "زيارة مجمع كسوة الكعبة", "جلسات تهيئة قبل كل منسك"],
     rooms: { 1: 450, 2: 275, 3: 160, 4: 90 },
-    groups: [
-      { no: 5, leader: "عبد الرحمن القباني", capacity: 50, remaining: 3 },
-      { no: 9, leader: "فراس البيطار", capacity: 50, remaining: 11 },
-      { no: 12, leader: "منذر الشامي", capacity: 50, remaining: 0 },
-    ],
     tone: "gold",
   },
   {
     slug: "al-yaqeen",
     name: "تكتل اليقين",
     since: 1443,
-    level: "عادي",
     rating: 4.5,
     reviews: 2130,
-    governorate: "ريف دمشق",
-    office: "ريف دمشق",
+    governorate: "دمشق",
+    office: "دمشق",
     specialty: "تكلفة مناسبة وخدمة منظمة",
     about: "تكتل يركّز على التنظيم الجيد بتكلفة أساسية، مع متابعة يومية من رؤساء المجموعات.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 16,
-    pilgrims: 800,
     makkah: {
       hotel: "فندق منازل اليقين",
       area: "العوالي",
@@ -129,18 +146,12 @@ export const CLUSTERS: Cluster[] = [
     meals: ["وجبتان يومياً (فطور وعشاء)", "وجبة غداء في أيام المشاعر"],
     programs: ["درس أسبوعي في فقه المناسك", "مرشد ميداني لكل مجموعة"],
     rooms: { 1: 220, 2: 130, 3: 75, 4: 40 },
-    groups: [
-      { no: 41, leader: "رضوان الزعبي", capacity: 50, remaining: 18 },
-      { no: 44, leader: "غسان النحاس", capacity: 50, remaining: 27 },
-      { no: 47, leader: "عدنان الكردي", capacity: 50, remaining: 9 },
-    ],
     tone: "green",
   },
   {
     slug: "al-shahba",
     name: "تكتل الشهباء للحج والعمرة",
     since: 1438,
-    level: "محسّن",
     rating: 4.7,
     reviews: 1510,
     governorate: "حلب",
@@ -148,8 +159,6 @@ export const CLUSTERS: Cluster[] = [
     specialty: "خبرة طويلة مع حجاج الشمال",
     about: "تكتل حلبي معروف بدقة مواعيده، ويضم فريقاً نسائياً لخدمة الحاجّات.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 14,
-    pilgrims: 700,
     makkah: {
       hotel: "فندق قمم الشهباء",
       area: "ششة",
@@ -162,17 +171,12 @@ export const CLUSTERS: Cluster[] = [
     meals: ["ثلاث وجبات يومياً بمطبخ شامي", "وجبات خاصة عند الطلب"],
     programs: ["درس يومي بعد الفجر", "زيارة معالم المدينة المنورة"],
     rooms: { 1: 300, 2: 175, 3: 100, 4: 50 },
-    groups: [
-      { no: 52, leader: "حسام الساعاتي", capacity: 50, remaining: 4 },
-      { no: 55, leader: "ماهر الجابي", capacity: 50, remaining: 16 },
-    ],
     tone: "maroon",
   },
   {
     slug: "al-asi",
     name: "تكتل العاصي",
     since: 1441,
-    level: "عادي",
     rating: 4.4,
     reviews: 980,
     governorate: "حمص",
@@ -180,8 +184,6 @@ export const CLUSTERS: Cluster[] = [
     specialty: "رعاية الحجاج لأول مرة",
     about: "تكتل من حمص وحماة، يقدّم برنامج تهيئة متكاملاً للحجاج الذين يسافرون لأول مرة.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 10,
-    pilgrims: 500,
     makkah: {
       hotel: "فندق ضيافة العاصي",
       area: "النسيم",
@@ -194,26 +196,19 @@ export const CLUSTERS: Cluster[] = [
     meals: ["وجبتان يومياً", "مياه ومشروبات في الحافلات"],
     programs: ["ورشة تهيئة قبل السفر", "مرشد لكل 25 حاجاً"],
     rooms: { 1: 200, 2: 120, 3: 70, 4: 35 },
-    groups: [
-      { no: 61, leader: "صالح العلي", capacity: 50, remaining: 22 },
-      { no: 64, leader: "رشيد الحموي", capacity: 50, remaining: 31 },
-    ],
     tone: "green",
   },
   {
     slug: "bawabat-al-haramain",
     name: "تكتل بوابة الحرمين",
     since: 1444,
-    level: "خمس نجوم",
     rating: 4.8,
     reviews: 540,
-    governorate: "اللاذقية",
-    office: "اللاذقية",
+    governorate: "اسطنبول",
+    office: "اسطنبول",
     specialty: "راحة كاملة وغرف خاصة",
-    about: "تكتل يوفّر غرفاً ثنائية وخدمة كونسيرج ومرافقين طبيين، مناسب لمن يحتاج راحة خاصة.",
+    about: "تكتل حجاج المكاتب الخارجية (اسطنبول وغازي عنتاب ومصر)، يوفّر غرفاً ثنائية وخدمة كونسيرج ومرافقين طبيين، مناسب لمن يحتاج راحة خاصة.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 6,
-    pilgrims: 300,
     makkah: {
       hotel: "فندق بوابة الملك عبد العزيز",
       area: "جبل عمر",
@@ -226,17 +221,12 @@ export const CLUSTERS: Cluster[] = [
     meals: ["ثلاث وجبات بقائمة متنوعة", "وجبات صحية خاصة"],
     programs: ["برنامج علمي يومي", "جولات تاريخية مصحوبة بمرشد", "متابعة طبية فردية"],
     rooms: { 1: 500, 2: 300, 3: 180, 4: 100 },
-    groups: [
-      { no: 70, leader: "نزار الشيخ", capacity: 50, remaining: 2 },
-      { no: 72, leader: "وائل السعدي", capacity: 50, remaining: 12 },
-    ],
     tone: "gold",
   },
   {
     slug: "hawran",
     name: "تكتل سهل حوران",
     since: 1442,
-    level: "محسّن",
     rating: 4.6,
     reviews: 720,
     governorate: "درعا",
@@ -244,8 +234,6 @@ export const CLUSTERS: Cluster[] = [
     specialty: "العائلات الكبيرة",
     about: "تكتل من الجنوب يجمع أفراد العائلة الواحدة في طابق واحد قدر الإمكان.",
     approvedOn: "25 جمادى الآخرة 1448",
-    groupsCount: 9,
-    pilgrims: 450,
     makkah: {
       hotel: "فندق سنابل حوران",
       area: "العزيزية الجنوبية",
@@ -258,10 +246,6 @@ export const CLUSTERS: Cluster[] = [
     meals: ["ثلاث وجبات يومياً", "وجبات للأطفال والكبار عند الطلب"],
     programs: ["درس يومي بعد العشاء", "برنامج خاص للشباب المرافقين"],
     rooms: { 1: 280, 2: 160, 3: 90, 4: 45 },
-    groups: [
-      { no: 81, leader: "طارق الحوراني", capacity: 50, remaining: 8 },
-      { no: 83, leader: "خالد المصري", capacity: 50, remaining: 19 },
-    ],
     tone: "maroon",
   },
 ];
@@ -294,10 +278,10 @@ export function normalizeArabic(s: string) {
     .replace(/\s+/g, " ");
 }
 
-export type EntityMatch = { kind: "approved"; cluster: Cluster } | { kind: "unapproved"; entity: UnapprovedEntity } | { kind: "unknown"; query: string };
+export type EntityMatch<C extends ClusterProgramme = Cluster> = { kind: "approved"; cluster: C } | { kind: "unapproved"; entity: UnapprovedEntity } | { kind: "unknown"; query: string };
 
-/** `clusters` تأتي من لوحة المحتوى؛ وتبقى قائمة الشيفرة افتراضاً لمن لا يمرّرها */
-export function findEntity(query: string, clusters: Cluster[] = CLUSTERS): EntityMatch {
+/** `clusters`: «التكتلات والمجموعات» — the approved clusters only, as the administrators' platform holds them */
+export function findEntity<C extends ClusterProgramme>(query: string, clusters: C[]): EntityMatch<C> {
   const q = normalizeArabic(query);
   if (!q) return { kind: "unknown", query };
   const cluster = clusters.find((c) => normalizeArabic(c.name) === q) ?? clusters.find((c) => q.length >= 3 && normalizeArabic(c.name).includes(q));
@@ -307,7 +291,7 @@ export function findEntity(query: string, clusters: Cluster[] = CLUSTERS): Entit
   return { kind: "unknown", query };
 }
 
-export function suggestEntities(query: string, clusters: Cluster[] = CLUSTERS) {
+export function suggestEntities(query: string, clusters: ClusterProgramme[]) {
   const q = normalizeArabic(query);
   const all = [...clusters.map((c) => c.name), ...UNAPPROVED.map((u) => u.name)];
   if (!q) return all.slice(0, 5);

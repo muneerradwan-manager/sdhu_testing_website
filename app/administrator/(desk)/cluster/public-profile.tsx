@@ -58,7 +58,7 @@ export function ClusterPublicProfile() {
       <Card className="md:p-7">
         <h3 className="font-display text-xl font-bold text-green-dark">صفحة تكتلك العامة</h3>
         <p className="mt-2 leading-8 text-ink-soft">
-          تُنشأ صفحة التكتل في دليل الخدمات بعد أن تدرجه الإدارة في دليل الموسم المعتمد. حين تُدرج، تظهر لك هنا لتكتب برنامجك وسكنك ونقلك وإعاشتك، وتُرسلها للاعتماد.
+          تُنشأ صفحة التكتل في «التكتلات والمجموعات» بعد أن تدرجه الإدارة في دليل الموسم المعتمد. حين تُدرج، تظهر لك هنا لتكتب برنامجك وسكنك ونقلك وإعاشتك، وتُرسلها للاعتماد.
         </p>
       </Card>
     );
@@ -83,12 +83,12 @@ export function ClusterPublicProfile() {
       <Card className="md:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="font-display text-2xl font-bold text-green-dark">صفحة {view.name} في دليل الخدمات</h3>
+            <h3 className="font-display text-2xl font-bold text-green-dark">صفحة {view.name} في «التكتلات والمجموعات»</h3>
             <p className="mt-1 max-w-2xl leading-7 text-ink-soft">
               هذه الصفحة يقرأها الحاج قبل أن يختار تكتله. أنت من تعاقد على الفنادق والحافلات، فأنت من يكتب تفاصيلها. وللصفحة ختم «معتمد من الإدارة»، فلا يظهر تعديلك للحجاج قبل اعتماده.
             </p>
           </div>
-          <Link href={`/verify/clusters/${view.id}`} target="_blank" className="flex items-center gap-1.5 rounded-full bg-sand px-3 py-2 text-sm font-bold text-green-dark">
+          <Link href={`/clusters/${view.id}`} target="_blank" className="flex items-center gap-1.5 rounded-full bg-sand px-3 py-2 text-sm font-bold text-green-dark">
             <ExternalLink className="size-4" /> عرض الصفحة كما يراها الحاج
           </Link>
         </div>
@@ -227,7 +227,7 @@ export function ClusterPublicProfile() {
           <Button disabled={!changes.length} onClick={submit}>
             <Send className="size-4" /> أرسل للاعتماد
           </Button>
-          <Link href={`/verify/clusters/${view.id}`} target="_blank" className="flex items-center gap-1.5 self-center text-sm font-semibold text-maroon underline">
+          <Link href={`/clusters/${view.id}`} target="_blank" className="flex items-center gap-1.5 self-center text-sm font-semibold text-maroon underline">
             معاينة الصفحة <ArrowLeft className="size-4" />
           </Link>
         </div>

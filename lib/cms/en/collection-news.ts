@@ -396,21 +396,21 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
   },
 
   "clusters-programs-approved": {
-    title: "Cluster and group programmes approved and published in the services directory",
+    title: "Cluster and group programmes approved and published in Clusters and groups",
     hijri: "28 Jumada al-Akhirah 1448 AH",
     gregorian: "8 December 2026",
     excerpt:
-      "The announcements committee and the office director have approved the programmes of 36 approved clusters, among them “تكتل النور لخدمة الحجاج”, and their profile pages are now published in the services directory for everyone to see.",
-    tags: tags("Clusters", "Services directory", "Programmes"),
+      "The announcements committee and the office director have approved the programmes of 36 approved clusters, among them “تكتل النور لخدمة الحجاج”, and their profile pages are now published in Clusters and groups for everyone to see.",
+    tags: tags("Clusters", "Clusters and groups", "Programmes"),
     author: "Damascus Office",
     department: "Seasons Management",
-    ticker: "Approved cluster programmes are available in the services directory",
+    ticker: "Approved cluster programmes are available in Clusters and groups",
     body: [
       {
         type: "p",
-        text: "After the clusters were approved at the deadline and the brochures submitted by their leaders were reviewed, the announcements committee and the office director approved the cluster and group programmes for the 1448 AH season, and they are published in the services directory on the public portal.",
+        text: "After the clusters were approved at the deadline and the brochures submitted by their leaders were reviewed, the announcements committee and the office director approved the cluster and group programmes for the 1448 AH season, and they are published in Clusters and groups on the public portal.",
       },
-      { type: "h", text: "What does the services directory show?" },
+      { type: "h", text: "What does Clusters and groups show?" },
       {
         type: "list",
         items: [
@@ -428,7 +428,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
       },
       {
         type: "p",
-        text: "After the season, clusters and groups are evaluated as entities across nine stages, and the results affect their ranking in the services directory and whether they are contracted for the following season.",
+        text: "After the season, clusters and groups are evaluated as entities across nine stages, and the results affect their ranking in Clusters and groups and whether they are contracted for the following season.",
       },
     ],
   },

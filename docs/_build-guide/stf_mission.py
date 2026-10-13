@@ -367,7 +367,7 @@ if run("fl"):
 
     # ── the dispatch
     s.nav("التفويج", 2000)
-    grow = "main tbody tr:has-text('مجموعة القادر'):has(button:text-is('إسناد'))"
+    grow = "main tbody tr:has-text('مجموعة ركب ذي النورين'):has(button:text-is('إسناد'))"
     p.locator("main select[aria-label='التكتل']").first.select_option(label="تكتل سهل حوران"); c.settle(800)
     c.shot("fl-dispatch", "التفويج: كل مجموعة ورحلتاها، و«إسناد» لمن ليست على رحلة في أحد الاتجاهين",
            hl=[(side("/staff/flights/manage/dispatch"), "1"), ("main [role=radiogroup][aria-label='التفويج']", "2"), ("main select[aria-label='التكتل']", "3"), (f"{grow} >> td >> nth=0", "4")], section=S)

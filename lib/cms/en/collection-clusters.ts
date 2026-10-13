@@ -2,7 +2,8 @@ import type { CollectionsEn } from "./index";
 
 /**
  * The approved clusters in English (see ./index.ts). Names stay Arabic — the cluster's, the hotels' and the
- * group leaders' — as do the service level (a fixed choice, shown in English by the pages) and the groups.
+ * group leaders'. The service level, the groups and the people come from the administrators' platform, and
+ * the pages show the level in English themselves.
  */
 const APPROVED_ON = "25 Jumada al-Akhirah 1448";
 const list = (...items: string[]) => items.map((text) => ({ text }));
@@ -42,8 +43,8 @@ export const CLUSTERS_EN: CollectionsEn = {
       programs: list("Daily lessons with leading scholars", "Visit to the Kaaba Kiswa factory", "Briefing sessions before every rite"),
     },
     "al-yaqeen": {
-      governorate: "Rural Damascus",
-      office: "Rural Damascus",
+      governorate: "Damascus",
+      office: "Damascus",
       specialty: "Affordable cost and well-organised service",
       about: "A cluster focused on good organisation at a basic cost, with daily follow-up from the group leaders.",
       approvedOn: APPROVED_ON,
@@ -90,10 +91,10 @@ export const CLUSTERS_EN: CollectionsEn = {
       programs: list("Preparation workshop before travel", "A guide for every 25 pilgrims"),
     },
     "bawabat-al-haramain": {
-      governorate: "Latakia",
-      office: "Latakia",
+      governorate: "Istanbul",
+      office: "Istanbul",
       specialty: "Complete comfort and private rooms",
-      about: "A cluster offering double rooms, a concierge service and medical companions — suited to anyone who needs extra comfort.",
+      about: "The cluster of the offices abroad (Istanbul, Gaziantep and Egypt), offering double rooms, a concierge service and medical companions — suited to anyone who needs extra comfort.",
       approvedOn: APPROVED_ON,
       makkahArea: "Jabal Omar",
       makkahDistance: "350 m from the Haram",

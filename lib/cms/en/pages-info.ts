@@ -284,4 +284,15 @@ export const PAGES_EN_INFO: PagesEn = {
       crumb: "Verify organisations and documents",
     },
   },
+
+  // ═══════════════════════════ Clusters and groups ═══════════════════════════
+  services: {
+    hero: {
+      title: "Clusters",
+      highlight: "and groups",
+      description:
+        "The clusters approved for the 1448 AH season: their programmes, housing and transport, each cluster's head and team, and its groups with their heads, guides and the places left — as the cluster's approved request holds them on the administrators' platform.",
+      crumb: "Clusters and groups",
+    },
+  },
 };

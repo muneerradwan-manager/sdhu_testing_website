@@ -3,12 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, BadgeCheck, BookOpen, Bus, CalendarCheck, Hotel, MapPin, ShieldCheck, Sparkles, Star, Users, Utensils, Wallet } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BookOpen, Bus, CalendarCheck, Hotel, MapPin, ShieldCheck, Sparkles, Star, Utensils, Wallet } from "lucide-react";
 import { Card } from "@/components/portal/shell";
+import { ClusterGroupsCard, ClusterTeamCard } from "./cluster-team";
 import { ButtonLink } from "@/components/ui/button";
-import { Badge } from "@/components/ui/widgets";
 import { useClusterDirectory } from "@/lib/cluster-profile";
-import { groupName } from "@/lib/groups";
 import { ROOM_BEDS, ROOM_LABEL, priceRange } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
 import type { ServiceLevel } from "@/lib/data/clusters";
@@ -72,8 +71,8 @@ export function ClusterPage({ slug }: { slug: string }) {
             `The link may be out of date, or the cluster not approved yet. Browse the clusters approved for the ${SEASON.hijriYear} AH season.`,
           )}
         </p>
-        <ButtonLink href="/verify?tab=services" className="mt-6">
-          {t("دليل الخدمات", "Services directory")} <ArrowLeft className="size-5" />
+        <ButtonLink href="/clusters" className="mt-6">
+          {t("التكتلات والمجموعات", "Clusters and groups")} <ArrowLeft className="size-5" />
         </ButtonLink>
       </div>
     );
@@ -98,7 +97,7 @@ export function ClusterPage({ slug }: { slug: string }) {
             <nav aria-label={t("مسار التنقل", "Breadcrumb")} className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-white/70">
               <Link href="/" className="hover:text-gold">{t("الرئيسية", "Home")}</Link>
               <span>/</span>
-              <Link href="/verify?tab=services" className="hover:text-gold">{t("دليل الخدمات", "Services directory")}</Link>
+              <Link href="/clusters" className="hover:text-gold">{t("التكتلات والمجموعات", "Clusters and groups")}</Link>
               <span>/</span>
               <span className="text-white">{c.name}</span>
             </nav>
@@ -113,6 +112,18 @@ export function ClusterPage({ slug }: { slug: string }) {
             </div>
             <h1 className="mt-3 font-display text-4xl font-bold text-white md:text-5xl">{c.name}</h1>
             <p className="mt-2 max-w-2xl leading-8 text-white/85">{c.specialty}</p>
+            {c.team && (
+              <p className="mt-1 text-sm font-semibold text-gold">
+                {t("رئيس التكتل: ", "Head of the cluster: ")}
+                <bdi>{c.team.head.name}</bdi>
+                {c.team.deputy && (
+                  <span className="font-normal text-white/75">
+                    {t(" · نائبه: ", " · deputy: ")}
+                    <bdi>{c.team.deputy.name}</bdi>
+                  </span>
+                )}
+              </p>
+            )}
             <p className="mt-2 text-sm text-white/70">
               {t(`${c.governorate} · ${c.office} · برنامج معتمد في ${c.approvedOn}`, `${c.governorate} · ${c.office} office · programme approved on ${c.approvedOn}`)}
             </p>
@@ -128,7 +139,9 @@ export function ClusterPage({ slug }: { slug: string }) {
             {
               k: t("المجموعات", "Groups"),
               v: <span className="font-display text-2xl font-bold text-green-dark">{c.groupsCount}</span>,
-              hint: t(`${formatNumber(c.pilgrims)} حاجاً هذا الموسم`, `${formatNumber(c.pilgrims)} pilgrims this season`),
+              hint: c.team
+                ? t(`${formatNumber(c.pilgrims)} حاجاً هذا الموسم، ويخدمهم ${c.team.size} إدارياً`, `${formatNumber(c.pilgrims)} pilgrims this season, served by ${c.team.size} administrators`)
+                : t(`${formatNumber(c.pilgrims)} حاجاً هذا الموسم`, `${formatNumber(c.pilgrims)} pilgrims this season`),
             },
             { k: t("المقاعد المتاحة", "Places available"), v: <span className="font-display text-2xl font-bold text-green-dark">{seats}</span>, hint: t("تتغير مع تسجيل الحجاج", "Changes as pilgrims register") },
             {
@@ -211,44 +224,9 @@ export function ClusterPage({ slug }: { slug: string }) {
               ))}
             </div>
 
-            {/* Groups */}
-            <Card className="md:p-7">
-              <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
-                <Users className="size-6 text-gold-dark" /> {t("مجموعات التكتل", "The cluster's groups")}
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-ink-soft">
-                {t(
-                  "للاطلاع: الالتحاق بمجموعة لا يكون من المنصة. تتفق مع المجموعة، وتوقّع عقدك معها في المكتب، فيلحقك موظف المكتب بها. لكل مجموعة رئيسها وسعتها.",
-                  "For information: you do not join a group through the platform. You agree with the group and sign your contract with it at the office, and the office staff add you to it. Each group has its own leader and capacity.",
-                )}
-              </p>
-              <ul className="mt-4 space-y-3">
-                {c.groups.map((g, i) => {
-                  const taken = g.capacity - g.remaining;
-                  const pct = Math.round((taken / g.capacity) * 100);
-                  const full = g.remaining === 0;
-                  return (
-                    <motion.li key={g.no} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="rounded-2xl border-2 border-gold/30 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-bold text-ink">{groupName(g.no)}</p>
-                          <p className="text-xs text-ink-soft">{t(`رئيسها: ${g.leader}`, `Leader: ${g.leader}`)}</p>
-                        </div>
-                        <Badge tone={full ? "maroon" : g.remaining <= 5 ? "gold" : "green"}>
-                          {full ? t("مكتملة", "Full") : g.remaining === 1 ? t("بقي مقعد واحد", "1 place left") : t(`بقي ${g.remaining} مقعداً`, `${g.remaining} places left`)}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-sand">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: i * 0.05 }} className={cn("h-full", full ? "bg-maroon" : "bg-green-light")} />
-                      </div>
-                      <p className="mt-1 text-xs text-hint">
-                        {t(`${taken} من ${g.capacity} مقعداً مشغولة`, `${taken} of ${g.capacity} places taken`)}
-                      </p>
-                    </motion.li>
-                  );
-                })}
-              </ul>
-            </Card>
+            {/* The team and the groups, from the cluster's approved request in the administrators' platform */}
+            {c.team && <ClusterTeamCard team={c.team} />}
+            {c.team && <ClusterGroupsCard groups={c.team.groups} />}
           </div>
 
           {/* Aside */}
@@ -263,7 +241,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                   `This cluster is licensed by the Hajj and Umrah Administration for the ${SEASON.hijriYear} AH season, and the programme above is what it has committed to. Any organisation outside this directory is not approved: do not register or pay through it.`,
                 )}
               </p>
-              <ButtonLink href="/verify?tab=services" variant="gold" size="sm" className="mt-4 w-full">
+              <ButtonLink href="/clusters" variant="gold" size="sm" className="mt-4 w-full">
                 {t("بقية التكتلات المعتمدة", "The other approved clusters")}
               </ButtonLink>
             </div>

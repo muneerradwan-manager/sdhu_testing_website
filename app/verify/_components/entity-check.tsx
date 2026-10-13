@@ -16,11 +16,12 @@ import {
   ShieldAlert,
   ShieldCheck,
   TriangleAlert,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Badge, useToast } from "@/components/ui/widgets";
-import { useClusters } from "@/lib/cms/content";
+import { useClusterDirectory } from "@/lib/cluster-profile";
 import { findEntity, HOTLINE, suggestEntities, UNAPPROVED, type EntityMatch } from "@/lib/data/clusters";
 import { levelEn } from "@/app/conditions/_lib/en";
 import { useT } from "@/lib/i18n";
@@ -47,7 +48,8 @@ const SOURCES: [string, string][] = [
 
 export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) => void }) {
   const t = useT();
-  const CLUSTERS = useClusters();
+  // The approved clusters only, as the administrators' platform holds them
+  const CLUSTERS = useClusterDirectory();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -263,6 +265,7 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
   const c = match.cluster;
   const facts = [
     { icon: CalendarDays, k: t("يعمل منذ", "Working since"), v: t(`${c.since}هـ`, `${c.since} AH`) },
+    ...(c.team ? [{ icon: UserRound, k: t("رئيس التكتل", "Head of the cluster"), v: <bdi>{c.team.head.name}</bdi> }] : []),
     { icon: Users, k: t("المجموعات والحجاج", "Groups and pilgrims"), v: t(`${c.groupsCount} مجموعة · نحو ${formatNumber(c.pilgrims)} حاج`, `${c.groupsCount} groups · about ${formatNumber(c.pilgrims)} pilgrims`) },
     { icon: Hotel, k: t("السكن في مكة", "Housing in Makkah"), v: (
         <>
@@ -322,7 +325,7 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
           onClick={() => onOpen(c.slug)}
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-green-dark px-5 font-bold text-white transition hover:bg-green active:scale-95"
         >
-          <Hotel className="size-4" /> {t("عرض البرنامج في دليل الخدمات", "View the programme in the services directory")}
+          <Hotel className="size-4" /> {t("عرض التكتل في «التكتلات والمجموعات»", "View the cluster in Clusters and groups")}
         </button>
       </div>
     </motion.div>

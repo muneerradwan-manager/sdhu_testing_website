@@ -5,7 +5,7 @@ import { VerifyTabs } from "./_components/verify-tabs";
 
 export const metadata: Metadata = {
   title: "التحقق من الجهات والوثائق",
-  description: "تحقّق من اعتماد التكتلات والحملات، ومن صحة الإيصالات وشهادات الحج عبر رقمها أو رمز QR، وتصفّح دليل الخدمات المعتمد — بيانات تجريبية.",
+  description: "تحقّق من اعتماد التكتلات والحملات، ومن صحة الإيصالات وشهادات الحج عبر رقمها أو رمز QR — بيانات تجريبية.",
 };
 
 export default function VerifyPage() {

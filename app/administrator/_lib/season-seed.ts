@@ -132,17 +132,21 @@ type Plan = {
   counted?: number;
 };
 
-/** In the administration's order: the requests of the season, every branch, every tier, every state */
+/**
+ * In the administration's order: the requests of the season, every branch, every tier, every state. The approved
+ * clusters of «التكتلات والمجموعات» (lib/data/clusters: الصفا والمروة، اليقين، الشهباء، العاصي، بوابة الحرمين، سهل
+ * حوران) are among them under the same ids, so the directory shows the people these requests hold.
+ */
 const PLANS: Plan[] = [
-  { id: "as-salam", name: "تكتل السلام", branch: "دمشق", tier: "eco", cats: [3, 2, 2, 1, 1, 2, 1, 2, 3], status: "approved", merged: true, counted: 1 },
-  { id: "al-amana", name: "تكتل الأمانة", branch: "حلب", tier: "eco-plus", cats: [2, 2, 3, 1, 1, 2, 1], status: "approved" },
+  { id: "al-yaqeen", name: "تكتل اليقين", branch: "دمشق", tier: "eco", cats: [3, 2, 2, 1, 1, 2, 1, 2, 3], status: "approved", merged: true, counted: 1 },
+  { id: "al-shahba", name: "تكتل الشهباء للحج والعمرة", branch: "حلب", tier: "eco-plus", cats: [2, 2, 3, 1, 1, 2, 1], status: "approved" },
   { id: "al-manara", name: "تكتل المنارة", branch: "إدلب", tier: "eco", cats: [2, 1, 1, 1, 2, 1, 1, 2, 1, 1], status: "approved", counted: 2 },
   { id: "ar-riyada", name: "تكتل الريادة", branch: "حلب", tier: "eco", cats: [4, 3, 2, 4, 2, 1, 2, 2, 1, 1], status: "approved" },
-  { id: "al-yanabee", name: "تكتل الينابيع", branch: "دمشق", tier: "eco-plus", cats: [3, 3, 2, 2, 1, 1, 2, 1, 2], status: "approved", merged: true },
-  { id: "al-ghaith", name: "تكتل الغيث", branch: "درعا", tier: "eco", cats: [1, 1, 2, 1, 1, 1, 1], status: "approved" },
+  { id: "al-safa", name: "تكتل الصفا والمروة", branch: "دمشق", tier: "eco-plus", cats: [3, 3, 2, 2, 1, 1, 2, 1, 2], status: "approved", merged: true },
+  { id: "hawran", name: "تكتل سهل حوران", branch: "درعا", tier: "eco", cats: [1, 1, 2, 1, 1, 1, 1], status: "approved" },
   { id: "as-sanabel", name: "تكتل السنابل", branch: "دير الزور", extra: ["الرقة"], tier: "eco", cats: [2, 1, 1, 2, 1, 1, 3], status: "approved" },
-  { id: "al-ahd", name: "تكتل العهد", branch: "اسطنبول", extra: ["غازي عنتاب", "مصر"], tier: "five", cats: [2, 1, 2, 1, 1, 2], status: "approved" },
-  { id: "al-fajr", name: "تكتل الفجر", branch: "حمص", extra: ["حماة"], tier: "eco", cats: [3, 2, 1, 1, 2, 1, 2], status: "pending" },
+  { id: "bawabat-al-haramain", name: "تكتل بوابة الحرمين", branch: "اسطنبول", extra: ["غازي عنتاب", "مصر"], tier: "five", cats: [2, 1, 2, 1, 1, 2], status: "approved" },
+  { id: "al-asi", name: "تكتل العاصي", branch: "حمص", extra: ["حماة"], tier: "eco", cats: [3, 2, 1, 1, 2, 1, 2], status: "approved" },
   { id: "al-wafaa", name: "تكتل الوفاء", branch: "حماة", tier: "eco-plus", cats: [2, 1, 2, 1, 1, 2], status: "reviewing" },
   { id: "al-ishraq", name: "تكتل الإشراق", branch: "دمشق", tier: "eco", cats: [2, 2, 1, 1, 3, 1, 2, 1], status: "rejected", note: "النظام الإداري يشترط تفرّغ المنسق التقني في مراحل العمل الأساسية، وأحد منسقيكم موظف بدوام كامل في الموسم. استبدله بمنسق متفرّغ ثم أعد الإرسال قبل الموعد النهائي." },
   { id: "al-asala", name: "تكتل الأصالة", branch: "اللاذقية", tier: "eco", cats: [2, 1, 1, 2, 1], status: "draft", unfinished: true },
@@ -274,4 +278,30 @@ const FREE_PEOPLE: Record<string, number> = { "guide-m": 2, murshid: 1, "guide-f
 for (const branch of Object.keys(FREE_GROUPS)) {
   const big = branch === "دمشق" || branch === "حلب";
   for (const [role, count] of Object.entries(FREE_PEOPLE)) for (let i = 0; i < (big ? count * 2 : count); i++) person(role, branch);
+}
+
+/**
+ * The demo's two grade «ج» guides who finished their journey (app/administrator/_lib/admin DEMO_ADMINS) serve in
+ * تكتل الصفا والمروة: each takes the place of the generated person who held it — a group's guide seat, and one of
+ * its female guides with the groups sorted to her — so every other draw of the season stays as it was.
+ */
+const DEMO_SEATS: { cluster: string; place: (c: ClusterRecord) => string | undefined; who: { id: string; name: string } }[] = [
+  { cluster: "al-safa", place: (c) => c.seats[110]?.find((x) => x.kind === "guide" && !x.free)?.who?.id, who: { id: "01033300966", name: "الشيخ أسامة الجبان" } },
+  { cluster: "al-safa", place: (c) => c.femaleGuides[0]?.id, who: { id: "01033300987", name: "رنا الشهابي" } },
+];
+for (const d of DEMO_SEATS) {
+  const c = GEN_CLUSTERS.find((x) => x.cluster.id === d.cluster)?.cluster;
+  const old = c && d.place(c);
+  if (!c || !old) continue;
+  const swap = (x?: ClusterInvite) => (x?.id === old ? { ...x, ...d.who } : x);
+  for (const seats of Object.values(c.seats)) for (const seat of seats) seat.who = swap(seat.who);
+  c.assistants = c.assistants.map((x) => swap(x)!);
+  c.coordinators = c.coordinators.map((x) => swap(x)!);
+  c.femaleGuides = c.femaleGuides.map((x) => swap(x)!);
+  c.deputy = swap(c.deputy);
+  c.accountant = swap(c.accountant);
+  for (const map of [c.sorting, c.guideSorting ?? {}]) for (const k of Object.keys(map)) if (map[Number(k)] === old) map[Number(k)] = d.who.id;
+  // The generated person leaves the season: the demo account is in the roster already (./people)
+  GEN_ROSTER.splice(GEN_ROSTER.findIndex((x) => x.id === old), 1);
+  delete GEN_PEOPLE[old];
 }

@@ -3,18 +3,16 @@
 import { useRouter } from "next/navigation";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Building, FileSearch, Hotel } from "lucide-react";
+import { Building, FileSearch } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { useLang, useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { EntityCheck } from "./entity-check";
 import { DocumentCheck } from "./document-check";
-import { ServicesDirectory } from "./services-directory";
 
 const TABS = [
   { key: "entity", label: "التحقق من جهة", sub: "هل التكتل أو الحملة معتمدة؟", en: "Check an organisation", subEn: "Is the cluster or campaign approved?", icon: Building },
   { key: "document", label: "التحقق من وثيقة", sub: "إيصال أو شهادة أو رمز QR", en: "Check a document", subEn: "Receipt, certificate or QR code", icon: FileSearch },
-  { key: "directory", label: "دليل الخدمات", sub: "برامج التكتلات المعتمدة", en: "Services directory", subEn: "Programmes of the approved clusters", icon: Hotel },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -45,7 +43,7 @@ export function VerifyTabs() {
         role="tablist"
         aria-label={t("أدوات التحقق", "Verification tools")}
         onKeyDown={onKey}
-        className="relative mx-auto grid max-w-4xl grid-cols-3 gap-1.5 rounded-3xl border border-gold/40 bg-white p-1.5 shadow-[0_24px_60px_-40px_rgba(0,89,79,.6)]"
+        className="relative mx-auto grid max-w-3xl grid-cols-2 gap-1.5 rounded-3xl border border-gold/40 bg-white p-1.5 shadow-[0_24px_60px_-40px_rgba(0,89,79,.6)]"
       >
         {TABS.map((item, i) => {
           const active = item.key === tab;
@@ -104,10 +102,9 @@ export function VerifyTabs() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
             {tab === "entity" && (
-              <EntityCheck onOpenCluster={(slug) => router.push(`/verify/clusters/${slug}`)} />
+              <EntityCheck onOpenCluster={(slug) => router.push(`/clusters/${slug}`)} />
             )}
             {tab === "document" && <DocumentCheck />}
-            {tab === "directory" && <ServicesDirectory />}
           </motion.div>
         </AnimatePresence>
       </div>

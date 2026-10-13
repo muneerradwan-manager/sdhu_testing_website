@@ -9,6 +9,7 @@
  * - الانتقال إلى مجموعة أخرى بعقد جديد يلحقه به موظف المكتب، والطلب العائلي ينتقل كاملاً أو لا ينتقل.
  * - عقود رفعتها المجموعات قبل ذلك (`submitContract`) ما زال المكتب يعتمدها أو يعيدها (`decideContract`).
  */
+import { directoryNow, requestNow } from "@/app/administrator/_lib/directory";
 import { clustersNow } from "./cms/content";
 import { syncFamily } from "./flights";
 import { groupName } from "./groups";
@@ -30,35 +31,35 @@ export type GroupInfo = GroupRef & {
   team: { role: string; name: string; phone: string; note: string }[];
 };
 
-/** Coordinators of the directory's clusters: each cluster's head sorts its groups among them */
-const COORDINATORS = ["لؤي الكيلاني", "هيثم الأحمد", "مهند الفرات", "نور الدين حجار", "أيمن الخطيب", "قصي الزعبي", "رامز العطار", "باسل الشيخ", "مجد القباني", "أنس الحمصي", "طلال الأيوبي", "زاهر النحاس"];
-
-/** تكتل النور's two coordinators in the demo, and how its head sorted its groups among them */
-const NOUR_COORDINATOR_NAMES: Record<string, { name: string; phone: string }> = {
+/** تكتل النور's two coordinators as the pilgrim guide shows them, with their phones */
+const KNOWN_COORDINATORS: Record<string, { name: string; phone: string }> = {
   "01033300874": { name: "سامر نجار", phone: "0944 274 449" },
   "01033300961": { name: "لؤي العظمة", phone: "0944 961 449" },
 };
-const NOUR_SORTING: Record<number, string> = { 31: "01033300874", 27: "01033300874", 5: "01033300874", 18: "01033300961", 33: "01033300961", 47: "01033300961" };
 
-/** The cluster's coordinator sorted to a group: in the directory's clusters, every three groups share one */
-function clusterCoordinator(slug: string, groups: { no: number }[], no: number, phone: string) {
-  const known = slug === "al-nour" ? NOUR_COORDINATOR_NAMES[NOUR_SORTING[no] ?? ""] : undefined;
-  if (known) return known;
-  const seed = [...slug].reduce((n, ch) => n + ch.charCodeAt(0), 0);
-  const share = Math.floor(Math.max(0, groups.findIndex((g) => g.no === no)) / 3);
-  return { name: COORDINATORS[(seed + share) % COORDINATORS.length], phone };
+/** The cluster's coordinator its head sorted to this group, as the cluster's request holds it */
+function clusterCoordinator(slug: string, no: number, phone: string) {
+  const c = requestNow(slug)?.cluster;
+  const id = c?.sorting[no];
+  const who = c?.coordinators.find((x) => x.id === id && x.status === "accepted");
+  if (!who) return { name: "يسمّيه رئيس التكتل", phone };
+  return KNOWN_COORDINATORS[who.id] ?? { name: who.name, phone };
 }
 
-/** Everything the pilgrim sees about a group: cluster, office and the team, with the coordinator to contact */
+/**
+ * Everything the pilgrim sees about a group: cluster, office and the team, with the coordinator to contact — the
+ * cluster and its groups as the administrators' platform holds them (app/administrator/_lib/directory)
+ */
 export function groupInfo(clusterId: string | undefined, number: number | undefined): GroupInfo {
   const no = number ?? GROUP.number;
-  const clusters = clustersNow();
+  const linked = directoryNow();
+  const clusters = linked.length ? linked : clustersNow();
   const cluster = clusters.find((c) => c.slug === clusterId) ?? clusters.find((c) => c.groups.some((g) => g.no === no)) ?? clusters[0];
   const group = cluster.groups.find((g) => g.no === no);
   const leader = group?.leader ?? GROUP.team[0].name;
   const phone = (k: number) => `0944 ${String(no).padStart(2, "0")}${k} 449`;
   // The coordinator is the cluster's, sorted to this group by the cluster's head
-  const coordinator = clusterCoordinator(cluster.slug, cluster.groups, no, phone(4));
+  const coordinator = clusterCoordinator(cluster.slug, no, phone(4));
   const coordinatorEntry = { role: "المنسق التقني", name: coordinator.name, phone: coordinator.phone, note: `منسق ${cluster.name} المسند إلى هذه المجموعة: يرفع عقود حجاجها، ويأخذ معلوماتهم الصحية` };
   const team =
     no === GROUP.number && cluster.slug === "al-nour"

@@ -75,8 +75,10 @@ c.scroll_to("div[role='tablist']", 110)
 c.shot("verify-entity", "التحقق من جهة معتمدة", section="A")
 c.click("button#tab-document")
 c.shot("verify-document", "التحقق من إيصال أو شهادة", section="A")
-c.click("button#tab-directory")
-c.shot("verify-directory", "دليل الخدمات المعتمد", section="A")
+# the services directory: a page of its own in the top bar
+c.goto("/clusters")
+c.scroll_to("main article", 140)
+c.shot("verify-directory", "التكتلات والمجموعات: التكتلات المعتمدة برؤسائها وفرقها ومجموعاتها", hl=[("header a[href='/clusters']", "")], section="A")
 # about, umrah
 c.goto("/about")
 c.shot("about", "صفحة من نحن", section="A")

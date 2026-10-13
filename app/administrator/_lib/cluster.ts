@@ -56,7 +56,7 @@ const sorting = (map: Record<string, number[]>) => Object.fromEntries(Object.ent
 
 /**
  * The requests the season already has, filed by heads who are not on this device (and تكتل النور, whose head
- * عبد الرحمن العلي signs in with it). تكتل النور is approved; تكتل الشهباء was sent and waits for its
+ * عبد الرحمن العلي signs in with it). تكتل النور is approved; تكتل ابن الوليد was sent and waits for its
  * review; تكتل الياسمين was sent back with notes to fix; a dozen more are generated over the branches.
  */
 export const SEED_CLUSTERS: SeedCluster[] = [
@@ -105,8 +105,8 @@ export const SEED_CLUSTERS: SeedCluster[] = [
     headName: "حسام الساعاتي",
     headGroup: 52,
     cluster: {
-      id: "al-shahba",
-      name: "تكتل الشهباء",
+      id: "ibn-al-walid",
+      name: "تكتل ابن الوليد",
       createdAt: at(12),
       tier: "eco-plus",
       status: "pending",

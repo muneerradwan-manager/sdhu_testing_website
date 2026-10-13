@@ -57,7 +57,7 @@ if ONLY in (None, "a"):
     c.shot("adm-dash-parts", "حال كل جزء من الملف بترتيب العمل، ولكل جزء رابط «إدارتها»", hl=[("main a:has-text('إدارتها')", "")], section=S_DASH)
     c.scroll_top()
     s.btn("رفع أمر إلى المدير", 900)
-    p.locator(f"{D} textarea[aria-label='الأمر المرفوع']").first.fill("رئيس تكتل الشهباء يطلب مهلة يومين بعد الموعد النهائي ليستبدل منسقاً اعتذر. نحتاج قراراً قبل إغلاق الطلبات."); c.settle(300)
+    p.locator(f"{D} textarea[aria-label='الأمر المرفوع']").first.fill("رئيس تكتل ابن الوليد يطلب مهلة يومين بعد الموعد النهائي ليستبدل منسقاً اعتذر. نحتاج قراراً قبل إغلاق الطلبات."); c.settle(300)
     c.shot("adm-escalate", "رفع أمر إلى المدير: ما لا تحسمه وحدك يصل إلى مديرة الموسم طلبَ تدخّل", hl=[(f"{D} button:has-text('إرسال')", "")], section=S_DASH)
     esc(c, p)
 
@@ -270,7 +270,7 @@ if ONLY in (None, "d"):
     # an approved cluster out of the season's work
     view(p, c, "الطلبات")
     filt(p, c, "معتمد")
-    p.locator("main tr:has-text('تكتل الأمانة') a:text-is('فتح')").first.click(); c.settle(1800)
+    p.locator("main tr:has-text('تكتل الشهباء للحج والعمرة') a:text-is('فتح')").first.click(); c.settle(1800)
     box(p, c, "الأرشيف")
     c.shot("cl-archive", "الأرشيف: التكتل المعتمد يُؤرشف فيخرج من عمل الموسم ويبقى بموسمه", hl=[("main aside button:has-text('أرشفة')", "")], section=S_CL)
     p.locator("main aside button:has-text('أرشفة')").first.click(); c.settle(1500)
@@ -286,7 +286,7 @@ if ONLY in (None, "d"):
     c.shot("prof-diff", "برنامج تكتل ينتظر اعتمادك: قبل وبعد لكل حقل عدّله رئيس التكتل", hl=[(f"{D} button:has-text('اعتماد ونشر')", "1"), (f"{D} button:has-text('إعادة مع السبب')", "2")], section=S_CL)
     p.locator(f"{D} button:has-text('اعتماد ونشر')").first.click(); c.settle(1600)
     filt(p, c, "المنشورة")
-    c.shot("prof-published", "البرامج المنشورة: يراها الحجاج في دليل الخدمات", section=S_CL)
+    c.shot("prof-published", "البرامج المنشورة: يراها الحجاج في «التكتلات والمجموعات»", section=S_CL)
     s.close()
 
 # ═════════════ E. the directory, the letters, the evaluation, the classification ═════════════

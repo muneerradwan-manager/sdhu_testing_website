@@ -747,7 +747,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
   const decide = (slug: string, name: string, decision: "approved" | "rejected", why?: string) => {
     actions.decideClusterProfile(slug, decision, user.name, why);
     logAdmins(user, "clusters", { action: decision === "approved" ? "اعتماد برنامج تكتل ونشره للحجاج" : "إعادة برنامج تكتل إلى رئيسه", target: name, detail: why, ref: slug });
-    toast(decision === "approved" ? { title: "اعتُمد البرنامج ونُشر", body: `${name} — يراه الحجاج الآن في دليل الخدمات.`, tone: "success", icon: "✅" } : { title: "أُعيد إلى رئيس التكتل", body: why, tone: "info", icon: "↩️" });
+    toast(decision === "approved" ? { title: "اعتُمد البرنامج ونُشر", body: `${name} — يراه الحجاج الآن في «التكتلات والمجموعات».`, tone: "success", icon: "✅" } : { title: "أُعيد إلى رئيس التكتل", body: why, tone: "info", icon: "↩️" });
     setRejecting(null);
     setOpen(null);
   };
@@ -755,7 +755,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
   return (
     <div className="space-y-4">
       <Title>برامج التكتلات</Title>
-      <Lead>حين يعدّل رئيس تكتل صفحته العامة في دليل الخدمات يصل التعديل هنا قبل أن يراه أحد.</Lead>
+      <Lead>حين يعدّل رئيس تكتل صفحته العامة في «التكتلات والمجموعات» يصل التعديل هنا قبل أن يراه أحد.</Lead>
       <Filters
         label="البرامج"
         value={filter}
@@ -809,7 +809,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
       >
         {sheet && (
           <div className="space-y-4 text-sm">
-            <Link href={`/verify/clusters/${sheet.cluster.slug}`} target="_blank" className="inline-flex items-center gap-1.5 font-bold text-gold hover:underline">
+            <Link href={`/clusters/${sheet.cluster.slug}`} target="_blank" className="inline-flex items-center gap-1.5 font-bold text-gold hover:underline">
               <ExternalLink className="size-3.5" /> الصفحة الحالية كما يراها الحاج
             </Link>
             {sheet.state?.pending ? (

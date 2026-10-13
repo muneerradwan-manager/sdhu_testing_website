@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import { structureFacts } from "@/app/administrator/_lib/directory";
+import { teamOf } from "@/app/administrator/_lib/directory-team";
+import { useClusterRequests } from "@/app/administrator/_lib/formation";
+import { useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useClusters } from "./cms/content";
 import type { Cluster } from "./data/clusters";
 import { useStore } from "./store";
@@ -111,9 +115,27 @@ export function diffFields(before: ClusterProfileFields, after: ClusterProfileFi
     .filter((x) => x.changed);
 }
 
-/** The clusters as the pilgrims see them: the approved programme of each cluster, if its head published one */
+/**
+ * The clusters as the pilgrims see them: each published programme (the version its head published, once the
+ * administration approved it), joined to the cluster's request in the administrators' platform under the same id —
+ * its level, its groups with their heads and the seats left, and its people. Only clusters whose request is
+ * approved (and not archived) are in the directory.
+ */
 export function useClusterDirectory(): Cluster[] {
   const clusters = useClusters();
   const profiles = useStore((s) => s.clusterProfiles);
-  return useMemo(() => clusters.map((c) => (profiles[c.slug]?.approved ? withFields(c, profiles[c.slug].approved!.fields) : c)), [clusters, profiles]);
+  const admins = useStore((s) => s.admins);
+  const requests = useClusterRequests();
+  const structure = useStructure();
+  const cadre = useCadre();
+  return useMemo(
+    () =>
+      clusters.flatMap((c) => {
+        const r = requests.find((x) => x.cluster.id === c.slug && x.status === "approved" && !x.archived);
+        if (!r) return [];
+        const published = profiles[c.slug]?.approved ? withFields(c, profiles[c.slug].approved!.fields) : c;
+        return [{ ...published, ...structureFacts(structure, r), team: teamOf(structure, cadre, admins, r) }];
+      }),
+    [clusters, profiles, requests, structure, cadre, admins],
+  );
 }

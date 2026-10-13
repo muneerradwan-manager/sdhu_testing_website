@@ -95,7 +95,7 @@ export function StepGroup({ app, post, sessionId, stepLabel }: StepProps) {
         <div className="mt-5 rounded-3xl bg-sand p-5">
           <p className="font-bold text-green-dark">{joining.open ? "لم تُلحقوا بمجموعة بعد" : joining.status === "upcoming" ? `يبدأ الإلحاق بالمجموعات ${rangeLabel(joining.start, joining.end)}` : "انتهت مدة الإلحاق بالمجموعات"}</p>
           <p className="mt-1 text-sm leading-7 text-ink-soft">
-            يمكنكم الاطلاع على التكتلات المعتمدة ومجموعاتها في صفحة <Link href="/verify" className="font-bold text-green-dark underline">التحقق من الجهات</Link>، ثم الاتفاق مع المجموعة التي تناسبكم، ومراجعة المكتب لتوقيع العقد والإلحاق.
+            يمكنكم الاطلاع على التكتلات المعتمدة وفرقها ومجموعاتها برؤسائها في <Link href="/clusters" className="font-bold text-green-dark underline">التكتلات والمجموعات</Link>، ثم الاتفاق مع المجموعة التي تناسبكم، ومراجعة المكتب لتوقيع العقد والإلحاق.
           </p>
           {joining.open ? (
             <button type="button" onClick={attach} className="mt-3 rounded-full border border-dashed border-gold-dark px-3 py-1 text-sm font-semibold text-maroon">

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, BadgeCheck, EyeOff, Hotel, MapPin, Search, Sparkles, Star } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Crown, EyeOff, Hotel, MapPin, Search, Sparkles, Star } from "lucide-react";
 import { useState } from "react";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { normalizeArabic, type Cluster, type ServiceLevel } from "@/lib/data/clusters";
@@ -30,7 +30,7 @@ const LEVEL_STYLE: Record<ServiceLevel, string> = {
   "خمس نجوم": "bg-gradient-to-l from-gold-dark to-gold text-ink",
 };
 
-export function ServicesDirectory() {
+export function ClustersDirectory() {
   const t = useT();
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("الكل");
   const [q, setQ] = useState("");
@@ -88,7 +88,7 @@ export function ServicesDirectory() {
             >
               <div className="relative h-40 overflow-hidden">
                 <Image
-                  src={IMAGES[c.slug]}
+                  src={IMAGES[c.slug] ?? "/images/kaaba-hajj.jpg"}
                   alt=""
                   fill
                   sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
@@ -116,6 +116,18 @@ export function ServicesDirectory() {
                   <span className="text-xs text-ink-soft">{t(`${formatNumber(c.reviews)} تقييماً`, `${formatNumber(c.reviews)} reviews`)}</span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-ink-soft">{c.specialty}</p>
+                {c.team && (
+                  <p className="mt-2 flex items-start gap-2 text-sm">
+                    <Crown className="mt-0.5 size-4 shrink-0 text-gold-dark" />
+                    <span>
+                      <span className="text-ink-soft">{t("رئيس التكتل: ", "Head: ")}</span>
+                      <bdi className="font-semibold text-ink">{c.team.head.name}</bdi>
+                      <span className="block text-xs text-ink-soft">
+                        {t(`${c.groupsCount} مجموعات · فريق من ${c.team.size} إدارياً`, `${c.groupsCount} groups · a team of ${c.team.size} administrators`)}
+                      </span>
+                    </span>
+                  </p>
+                )}
                 <ul className="mt-3 space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <Hotel className="mt-0.5 size-4 shrink-0 text-gold-dark" />
@@ -138,7 +150,7 @@ export function ServicesDirectory() {
                   ))}
                 </div>
                 <Link
-                  href={`/verify/clusters/${c.slug}`}
+                  href={`/clusters/${c.slug}`}
                   className="mt-5 flex h-11 items-center justify-center gap-2 rounded-2xl border-2 border-green-dark/15 font-bold text-green-dark transition group-hover:border-green-dark group-hover:bg-green-dark group-hover:text-white"
                 >
                   {t("عرض البرنامج الكامل", "View the full programme")} <ArrowLeft className="size-4" />
@@ -189,7 +201,10 @@ function SeatBar({ group }: { group: Cluster["groups"][number] }) {
   return (
     <div>
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-ink">{groupName(group.no)}</span>
+        <span className="min-w-0 truncate">
+          <span className="font-semibold text-ink">{groupName(group.no)}</span>
+          <span className="text-ink-soft"> · <bdi>{group.leader}</bdi></span>
+        </span>
         <span className={cn("font-bold", full ? "text-maroon" : group.remaining <= 6 ? "text-amber-700" : "text-green")}>
           {full ? t("مكتملة", "Full") : seatsLeft(group.remaining, en)}
         </span>

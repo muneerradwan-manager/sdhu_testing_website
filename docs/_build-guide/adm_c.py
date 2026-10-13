@@ -137,7 +137,7 @@ if ONLY in (None, "head"):
     c.scroll_top()
     c.shot("head-plan-sent", "قُدّمت الخطة: تنتظر قرار الإدارة، ويصلك هنا وفي الإشعارات", section=S)
     tab(p, c, "الصفحة العامة")
-    c.shot("head-profile", "صفحة التكتل العامة في دليل الخدمات: التعديل", section=S)
+    c.shot("head-profile", "صفحة التكتل العامة في «التكتلات والمجموعات»: التعديل", section=S)
     ta = p.locator("main textarea").first
     if ta.count():
         ta.fill(ta.input_value() + " ونوفّر حافلة خاصة لكبار السن إلى الحرم.")

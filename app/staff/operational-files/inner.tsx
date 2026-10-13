@@ -3,7 +3,7 @@
 import { AlertTriangle, BedDouble, Info, Trash2, UserPlus, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { useClusters } from "@/lib/cms/content";
+import { useClusterDirectory } from "@/lib/cluster-profile";
 import { fullName, rolesAt, staffIn, useEmployees, type Assignment, type FileType, type InnerNode, type OpFile, type Place, type Role } from "@/lib/ops";
 import { cn, formatNumber } from "@/lib/utils";
 import { Drawer, Meter } from "../_components/kit";
@@ -145,7 +145,8 @@ export function InnerDrawer({
   onRemove: (role: Role, employeeId: string) => void;
   onDelete: () => void;
 }) {
-  const clusters = useClusters();
+  // The approved clusters with their pilgrims, as the administrators' platform holds them
+  const clusters = useClusterDirectory();
   const isCamp = type.inner.ref === "camps";
   return (
     <Drawer open={open && !!node && !!place} onClose={onClose} title={place ? `${place.name} — ${outerName}` : ""} width="max-w-xl">

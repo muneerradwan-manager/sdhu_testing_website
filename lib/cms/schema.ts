@@ -1232,6 +1232,21 @@ const VERIFY = heroOnly(
   "التحقق من الحملات المعتمدة والإيصالات والشهادات.",
 );
 
+const SERVICES = heroOnly(
+  "services",
+  "التكتلات والمجموعات",
+  "/clusters",
+  "Building2",
+  pageHero(
+    "التكتلات",
+    "والمجموعات",
+    "التكتلات المعتمدة لموسم 1448هـ: برامجها وسكنها ونقلها، ورئيس كل تكتل وفريقه، ومجموعاته برؤسائها وموجّهيها والمقاعد المتبقية فيها — كما يحملها طلب التكتل المعتمد في منصة الإداريين.",
+    "/images/clock-tower.jpg",
+    "التكتلات والمجموعات",
+  ),
+  "برامج التكتلات المعتمدة وفرقها ومجموعاتها.",
+);
+
 // ═══════════════════════════ إعدادات عامة ═══════════════════════════
 
 const GLOBAL: PageDef = {
@@ -1277,7 +1292,7 @@ const GLOBAL: PageDef = {
             { href: "/guide", label: "دليل المناسك" },
             { href: "/prayer-times", label: "مواقيت الصلاة" },
             { href: "/news", label: "الأخبار" },
-            { href: "/results", label: "نتائج القبول" },
+            { href: "/clusters", label: "التكتلات والمجموعات" },
             { href: "/about", label: "من نحن" },
           ],
         },
@@ -1296,11 +1311,10 @@ const GLOBAL: PageDef = {
           ],
           def: [
             { href: "/umrah", label: "العمرة", note: "خدمات العمرة على المنصة", soon: true },
+            { href: "/results", label: "نتائج القبول", note: "ابحث برقمك الوطني", soon: false },
             { href: "/conditions", label: "شروط التسجيل والتكاليف", note: "مع فحص أهلية مبدئي", soon: false },
             { href: "/verify", label: "التحقق من الجهات والوثائق", note: "حملات معتمدة، إيصالات، شهادات", soon: false },
             { href: "/3d", label: "جولة ثلاثية الأبعاد", note: "الحرمان والمشاعر ومسجدا عائشة وقباء", soon: false },
-            { href: "/administrator", label: "بوابة الإداريين", note: "التقديم، الاختبار، تشكيل المجموعة", soon: false },
-            { href: "/staff", label: "بوابة الموظفين", note: "المراجعة، القرعة، غرفة العمليات", soon: false },
           ],
         },
       ],
@@ -1337,6 +1351,8 @@ const GLOBAL: PageDef = {
             { label: "إنشاء حساب حاج", href: "/register" },
             { label: "تقديم طلب حج", href: "/portal/apply" },
             { label: "متابعة الطلب", href: "/portal/application" },
+            { label: "بوابة الإداريين", href: "/administrator" },
+            { label: "بوابة الموظفين", href: "/staff" },
           ],
         },
         { key: "contactTitle", label: "عنوان عمود التواصل", kind: "text", def: "تواصل معنا" },
@@ -1387,7 +1403,7 @@ const GLOBAL: PageDef = {
   ],
 };
 
-export const CMS_PAGES: PageDef[] = [HOME, ABOUT, CONDITIONS, GUIDE, ACADEMY, NEWS_PAGE, PRAYER, RESULTS, VERIFY, UMRAH, GLOBAL];
+export const CMS_PAGES: PageDef[] = [HOME, ABOUT, CONDITIONS, GUIDE, ACADEMY, NEWS_PAGE, PRAYER, RESULTS, VERIFY, SERVICES, UMRAH, GLOBAL];
 
 export const CMS_GROUPS = [...new Set(CMS_PAGES.map((p) => p.group))];
 

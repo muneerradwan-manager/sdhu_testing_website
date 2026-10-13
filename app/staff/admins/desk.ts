@@ -238,7 +238,7 @@ export function useAdminsDesk() {
           ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات معتمدة خارج كل تكتل`, hint: "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضفها إلى تكتل بتعديل استثنائي بسببه.", href: `${M}/clusters?v=outside`, action: "أضفها" }]
           : []),
         ...(pendingProgrammes.length
-          ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في دليل الخدمات قبل أن يُعتمد.", href: `${M}/clusters?v=programmes`, action: "راجعها" }]
+          ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في «التكتلات والمجموعات» قبل أن يُعتمد.", href: `${M}/clusters?v=programmes`, action: "راجعها" }]
           : []),
       ],
       evaluation: behind.length
