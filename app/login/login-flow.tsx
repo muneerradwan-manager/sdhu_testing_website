@@ -69,7 +69,8 @@ export function LoginFlow() {
     const p = getPerson(nationalId);
     const seed = DEMO_SCENARIOS.find((s) => s.id === nationalId)?.seed;
     toast({ title: t(`مرحباً ${p?.firstName}`, `Welcome, ${p?.firstName}`), body: seed ? t("دخول تجريبي — طلبك جاهز في «متابعة الطلب»", "Demo sign-in: your application is ready in “Track application”") : t("دخول تجريبي سريع", "Quick demo sign-in"), icon: "⚡", tone: "success" });
-    router.push(seed === "accepted" || seed === "lotteryAccepted" ? "/portal/application" : seed === "notAccepted" ? "/portal/apply" : next);
+    // Every step done: straight into the season
+    router.push(seed === "complete" ? "/portal/season" : seed === "accepted" || seed === "lotteryAccepted" ? "/portal/application" : seed === "notAccepted" ? "/portal/apply" : next);
   };
 
   const enter = () => {

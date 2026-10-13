@@ -18,21 +18,21 @@ import {
   Search,
   Send,
   Siren,
-  Star,
   UserRoundCheck,
   UsersRound,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { flightsActions, isActive, useFlightsData } from "@/lib/flights";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { groupName } from "@/lib/groups";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
-import { cn, seeded } from "@/lib/utils";
-import { logAdmin, resultOf, useAdmin } from "../../_lib/admin";
-import { MISSING_ID, buildRoster, type RosterEntry } from "../../_lib/group";
+import { cn, nowMs, seeded } from "@/lib/utils";
+import { effectiveRole, logAdmin, positionLabelOf, useAdmin } from "../../_lib/admin";
+import { acceptedGroups, headRecordOf } from "../../_lib/cluster";
+import { MISSING_ID, buildRoster, groupCount, type RosterEntry } from "../../_lib/group";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
 
 const TABS = [
@@ -41,29 +41,110 @@ const TABS = [
   { key: "roster", label: "الحجاج", icon: UsersRound },
   { key: "ticket", label: "بلاغ لغرفة العمليات", icon: Siren },
   { key: "day", label: "يومي", icon: CalendarClock },
-  { key: "evaluation", label: "تقييماتي", icon: Star },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
+/** The group the field's tools work on: picked by whoever works in several, his own for a group head */
+const FieldGroup = createContext<{ number: number; home?: number }>({ number: 0 });
+const useFieldGroup = () => useContext(FieldGroup);
+
+/** His musters of one group (a muster kept before groups were picked is his own group's) */
+const mustersOf = <T extends { groupNumber?: number }>(all: T[], number: number, home?: number) => all.filter((m) => (m.groupNumber ?? home) === number);
+
+/**
+ * The groups he works in the field: a group head his own; the cluster's head and deputy, and its assistant, every
+ * group of the cluster; a coordinator, a guide or a female guide the groups the cluster's head sorted to him —
+ * each with as many pilgrims as its cluster counts for it.
+ */
+function useFieldGroups() {
+  const admin = useAdmin()!;
+  const p = admin.profile;
+  const admins = useStore((x) => x.admins);
+  const overrides = useStore((x) => x.formation.overrides);
+  const post = useStore((x) => x.post);
+  const applications = useStore((x) => x.applications);
+  return useMemo(() => {
+    const rec = headRecordOf(p, admins, overrides);
+    const all = rec ? acceptedGroups(rec.cluster).map((g) => ({ number: g.number, head: g.name, pilgrims: g.pilgrims })).sort((a, b) => Number(b.number === rec.headGroup) - Number(a.number === rec.headGroup)) : [];
+    const pick = (ns: number[]) => all.filter((g) => ns.includes(g.number));
+    const groups =
+      p?.cluster || p?.deputyOf
+        ? all
+        : p?.coordinatorIn
+          ? pick(p.coordinatorIn.groups)
+          : p?.servesIn
+            ? p.servesIn.role === "cluster-assistant"
+              ? all
+              : pick(p.servesIn.groups)
+            : p?.group?.approvedAt
+              ? [{ number: p.group.number, head: admin.name, pilgrims: 0 }]
+              : [];
+    const home = p?.group?.number;
+    return groups.map((g) => ({ ...g, size: g.number === home && !all.length ? undefined : groupCount(g.number, post, applications, all.find((x) => x.number === g.number), home) }));
+  }, [p, admins, overrides, post, applications, admin.name]);
+}
+
 export function AdminField() {
   const admin = useAdmin()!;
-  const g = admin.profile?.group;
+  const home = admin.profile?.group?.number;
   const applications = useStore((s) => s.applications);
   const post = useStore((s) => s.post);
-  const roster = useMemo(() => buildRoster(admin.profile, applications, post), [admin.profile, applications, post]);
+  const groups = useFieldGroups();
+  // One group is his without asking; whoever works in several picks the group first
+  const [picked, setPicked] = useState<number | null>(null);
+  const g = groups.length === 1 ? groups[0] : groups.find((x) => x.number === picked);
+  const roster = useMemo(() => (g ? buildRoster(admin.profile, applications, post, { groupNumber: g.number, size: g.size }) : []), [admin.profile, applications, post, g]);
   const [tab, setTab] = useState<TabKey>("muster");
   // A report opened from a pilgrim's details starts on him
   const [reportOn, setReportOn] = useState<string>();
 
-  if (!g?.approvedAt) {
+  if (!groups.length) {
     return (
-      <AdminShell title="الميدان" subtitle="أدوات رئيس المجموعة في الموسم: التجمّع والحضور، الإعلانات، البلاغات، والتقرير اليومي.">
-        <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان تلقائياً بعد اعتماد مجموعتك." href="/administrator/groups" cta="إدارة المجموعة" />
+      <AdminShell title="الميدان" subtitle="أدوات الميدان في الموسم: التجمّع والحضور، قناة المجموعة، البلاغات، والتقرير اليومي.">
+        <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان بعد اعتماد مجموعتك، أو حين يوزّعك رئيس تكتلك على مجموعات منه." href="/administrator/groups" cta="إدارة المجموعة" />
+      </AdminShell>
+    );
+  }
+
+  const several = groups.length > 1;
+  const picker = several && (
+    <Card className="mb-6 md:p-6">
+      <h2 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
+        <UsersRound className="size-6 text-gold-dark" /> {g ? "المجموعة التي تعمل عليها الآن" : "اختر المجموعة أولاً"}
+      </h2>
+      <p className="mt-1 text-sm text-ink-soft">تعمل في {groups.length} مجموعات: لكل مجموعة تجمّعاتها وقناتها وحجاجها. اختر المجموعة، ثم افتح لها التجمّع أو اكتب في قناتها.</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="المجموعة">
+        {groups.map((x) => (
+          <button
+            key={x.number}
+            type="button"
+            role="radio"
+            aria-checked={g?.number === x.number}
+            onClick={() => { setPicked(x.number); setReportOn(undefined); }}
+            className={cn("rounded-2xl border-2 p-3 text-start transition", g?.number === x.number ? "border-green-dark bg-green-dark text-white" : "border-gold/40 hover:border-green-dark/40")}
+          >
+            <span className="block font-bold">{groupName(x.number)}</span>
+            <span className={cn("block text-xs", g?.number === x.number ? "text-white/75" : "text-ink-soft")}>
+              رئيسها: {x.head}
+              {x.size !== undefined && ` — ${x.size} حاجاً`}
+              {mustersOf(admin.profile?.musters ?? [], x.number, home).some((m) => !m.closedAt) && " — تجمّع مفتوح"}
+            </span>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+
+  if (!g) {
+    return (
+      <AdminShell image="/images/tawaf-night.jpg" title="الميدان" subtitle="لكل مجموعة تجمّعاتها وقناتها وحجاجها: اختر المجموعة التي تعمل عليها.">
+        {picker}
       </AdminShell>
     );
   }
 
   return (
+    <FieldGroup.Provider value={{ number: g.number, home }}>
     <AdminShell
       image="/images/tawaf-night.jpg"
       title={
@@ -75,8 +156,9 @@ export function AdminField() {
           </span>
         </span>
       }
-      subtitle="يوم في حياة رئيس المجموعة: لكل خطوة أثر يظهر في المنصة."
+      subtitle={several ? `تعمل الآن على ${groupName(g.number)}، رئيسها ${g.head}. كل ما تفتحه هنا لها وحدها.` : "يوم في حياة رئيس المجموعة: لكل خطوة أثر يظهر في المنصة."}
     >
+      {picker}
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { k: "حاجاً في المجموعة", v: roster.length, icon: UsersRound },
@@ -113,16 +195,56 @@ export function AdminField() {
           {tab === "roster" && <Roster roster={roster} onReport={(name) => { setReportOn(name); setTab("ticket"); }} />}
           {tab === "ticket" && <TicketDesk roster={roster} about={reportOn} />}
           {tab === "day" && <DayPlan />}
-          {tab === "evaluation" && <Evaluations />}
         </motion.div>
       </AnimatePresence>
     </AdminShell>
+    </FieldGroup.Provider>
   );
 }
 
 // ───────────────────────── Muster ─────────────────────────
 
-const MUSTER_PRESETS = ["ساحة المزة ← المطار", "صعود الحافلة 32 إلى مكة", "الفندق ← منى", "الانطلاق إلى الجمرات", "بهو الفندق — العمرة الأولى"];
+/**
+ * Why the group gathers, in the season's order — the Umrahs first, as most musters are for them — each with where
+ * it usually gathers, which the head changes to wherever his group meets. The muster to Damascus airport boards
+ * the group's outbound flight.
+ */
+type MusterKind = { key: string; label: string; place: string; flight?: true };
+const MUSTER_KINDS: { title: string; items: MusterKind[] }[] = [
+  { title: "العمرات", items: [{ key: "umrah", label: "عمرة", place: "بهو الفندق في مكة" }] },
+  {
+    title: "السفر والتنقّل",
+    items: [
+      { key: "to-airport", label: "السفر: إلى مطار دمشق", place: "مطار دمشق الدولي — صالة الحجاج", flight: true },
+      { key: "to-makkah", label: "الوصول: من مطار جدة إلى الفندق في مكة", place: "صالة الحجاج في مطار جدة" },
+      { key: "to-madinah", label: "الانتقال: من مكة إلى المدينة المنورة", place: "بهو الفندق في مكة" },
+      { key: "return", label: "العودة: إلى مطار المدينة المنورة", place: "بهو الفندق في المدينة" },
+    ],
+  },
+  {
+    title: "المشاعر",
+    items: [
+      { key: "mina", label: "يوم التروية: إلى منى", place: "بهو الفندق في مكة" },
+      { key: "arafat", label: "يوم عرفة: من منى إلى عرفات", place: "مخيم المجموعة في منى" },
+      { key: "muzdalifa", label: "النفرة: من عرفات إلى مزدلفة", place: "مخيم المجموعة في عرفات" },
+      { key: "jamarat", label: "رمي الجمرات", place: "مخيم المجموعة في منى" },
+      { key: "ifada", label: "طواف الإفاضة", place: "مخيم المجموعة في منى" },
+      { key: "farewell", label: "طواف الوداع", place: "بهو الفندق في مكة" },
+    ],
+  },
+  {
+    title: "في المدينة المنورة",
+    items: [
+      { key: "nabawi", label: "زيارة المسجد النبوي والروضة الشريفة", place: "بهو الفندق في المدينة" },
+      { key: "ziyarat", label: "زيارة قباء والمعالم", place: "بهو الفندق في المدينة" },
+    ],
+  },
+];
+const MUSTER_KIND = (key: string) => MUSTER_KINDS.flatMap((x) => x.items).find((x) => x.key === key);
+
+/** The group's Umrahs in order: the first is the Umrah of tamattu', then the ones its pilgrims choose to make */
+const UMRAH_ORDINALS = ["عمرة التمتّع", "العمرة الثانية", "العمرة الثالثة", "العمرة الرابعة", "العمرة الخامسة"];
+const umrahLabel = (done: number) => UMRAH_ORDINALS[done] ?? `العمرة رقم ${done + 1}`;
 
 function AnimatedNumber({ value }: { value: number }) {
   const mv = useMotionValue(value);
@@ -137,8 +259,9 @@ function AnimatedNumber({ value }: { value: number }) {
 function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () => void }) {
   const admin = useAdmin()!;
   const toast = useToast();
-  const g = admin.profile!.group!;
-  const musters = admin.profile!.musters;
+  const g = useFieldGroup();
+  const all = admin.profile!.musters;
+  const musters = mustersOf(all, g.number, g.home);
   const open = [...musters].reverse().find((m) => !m.closedAt);
   // the group's outbound flight, so the muster to the airport doubles as boarding
   const fd = useFlightsData();
@@ -147,7 +270,18 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
     return a ? fd.flights.find((f) => f.id === a.flightId) : undefined;
   }, [fd, g.number]);
   const boardsFlight = open?.flightId ? fd.flights.find((f) => f.id === open.flightId) : undefined;
-  const [title, setTitle] = useState(MUSTER_PRESETS[0]);
+  const [kind, setKind] = useState("umrah");
+  const [place, setPlace] = useState(MUSTER_KINDS[0].items[0].place);
+  const [other, setOther] = useState("");
+  // The Umrahs this group gathered for already: the next one takes its place in the order
+  const umrahs = musters.filter((m) => m.kind === "umrah").length;
+  const labelOf = (k: string) => (k === "umrah" ? umrahLabel(umrahs) : k === "other" ? other.trim() : (MUSTER_KIND(k)?.label ?? ""));
+  const pick = (k: string) => {
+    setKind(k);
+    const def = MUSTER_KIND(k);
+    if (def) setPlace(def.place);
+  };
+  const title = labelOf(kind);
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState<string[]>(open?.present ?? []);
   const [scanKey, setScanKey] = useState(open?.id);
@@ -167,7 +301,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
 
   const persist = (present: string[]) => {
     if (!open) return;
-    actions.upsertAdmin(admin.id, { musters: musters.map((m) => (m.id === open.id ? { ...m, present } : m)) });
+    actions.upsertAdmin(admin.id, { musters: all.map((m) => (m.id === open.id ? { ...m, present } : m)) });
   };
 
   useEffect(() => {
@@ -191,11 +325,13 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
   }, [scanning, scanned, targets, open?.id]);
 
   const create = () => {
-    const toAirport = (title.trim() || MUSTER_PRESETS[0]) === MUSTER_PRESETS[0] ? outFlight : undefined;
-    const m = { id: `m-${Date.now().toString(36)}`, title: title.trim() || MUSTER_PRESETS[0], at: Date.now(), present: [] as string[], ...(toAirport ? { flightId: toAirport.id } : {}) };
-    actions.upsertAdmin(admin.id, { musters: [...musters, m] });
-    logAdmin(admin.id, `فتح تجمّع «${m.title}»`, groupName(g.number), `المتوقع: ${expected}${toAirport ? ` — الرحلة ${toAirport.flightNo}` : ""}`);
-    toast({ title: "فُتح التجمّع", body: `«${m.title}» — المتوقع ${expected} حاجاً.${toAirport ? ` مسح البطاقة يسجّل الصعود على الرحلة ${toAirport.flightNo}.` : " ابدأ مسح البطاقات."}`, icon: "📍", tone: "info" });
+    if (!title || !place.trim()) return;
+    const toAirport = MUSTER_KIND(kind)?.flight ? outFlight : undefined;
+    const at = nowMs();
+    const m = { id: `m-${at.toString(36)}`, title, kind, place: place.trim(), at, groupNumber: g.number, present: [] as string[], ...(toAirport ? { flightId: toAirport.id } : {}) };
+    actions.upsertAdmin(admin.id, { musters: [...all, m] });
+    logAdmin(admin.id, `فتح تجمّع «${m.title}» في ${m.place}`, groupName(g.number), `المتوقع: ${expected}${toAirport ? ` — الرحلة ${toAirport.flightNo}` : ""}`);
+    toast({ title: "فُتح التجمّع", body: `«${m.title}» في ${m.place} — المتوقع ${expected} حاجاً.${toAirport ? ` مسح البطاقة يسجّل الصعود على الرحلة ${toAirport.flightNo}.` : " ابدأ مسح البطاقات."}`, icon: "📍", tone: "info" });
   };
 
   const arrive = (r: RosterEntry) => {
@@ -208,9 +344,9 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
 
   const close = () => {
     if (!open) return;
-    actions.upsertAdmin(admin.id, { musters: musters.map((m) => (m.id === open.id ? { ...m, present: scanned, closedAt: Date.now() } : m)) });
+    actions.upsertAdmin(admin.id, { musters: all.map((m) => (m.id === open.id ? { ...m, present: scanned, closedAt: Date.now() } : m)) });
     logAdmin(admin.id, `إغلاق تجمّع «${open.title}» وإرسال «انطلقنا» للجميع`, groupName(g.number), `الحاضرون ${scanned.length} من ${expected}`);
-    if (open.flightId) flightsActions.markBoarded(open.flightId, scanned, { name: admin.name, role: "رئيس مجموعة" });
+    if (open.flightId) flightsActions.markBoarded(open.flightId, scanned, { name: admin.name, role: positionLabelOf(effectiveRole(admin.profile)) || "رئيس مجموعة" });
     toast({ title: "انطلقنا 🚌", body: `وصل إلى ${expected} حاجاً: «انطلقت حافلة ${groupName(g.number)}.»`, icon: "📣", tone: "success" });
     confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 }, colors: ["#D9C89E", "#00594F", "#289E92"] });
   };
@@ -220,7 +356,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
       name: r.name,
       kind: "missing",
       severity: "high",
-      location: `${groupName(g.number)} — تجمّع «${open?.title ?? ""}»`,
+      location: `${groupName(g.number)} — تجمّع «${open?.title ?? ""}»${open?.place ? ` في ${open.place}` : ""}`,
       text: `تأخر ${r.name} (${r.age} عاماً، الغرفة ${r.room}) عن التجمّع، والهاتف لا يرد. أبلغ عنه رئيس المجموعة خلال 5 دقائق من اكتشاف الغياب.`,
       assignee: "غرفة العمليات — فادي سلوم",
     });
@@ -235,16 +371,40 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
       <Card className="relative overflow-hidden md:p-8">
         {!open ? (
           <div>
-            <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><Plus className="size-6 text-gold-dark" /> فتح تجمّع جديد</h2>
-            <p className="mt-1 text-ink-soft">يُمسح كل حاج عند وصوله، فترى المتوقع والحاضر والغائب مباشرة.</p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {MUSTER_PRESETS.map((p) => (
-                <button key={p} type="button" onClick={() => setTitle(p)} className={cn("rounded-full border-2 px-3.5 py-1.5 text-sm font-bold transition", title === p ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>{p}</button>
-              ))}
-            </div>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-4 h-14 w-full rounded-2xl border-2 border-gold/50 px-4 text-lg outline-none focus:border-green-light" aria-label="عنوان التجمّع" />
-            <Button size="lg" className="mt-5" onClick={create}>
-              <UserRoundCheck className="size-5" /> فتح التجمّع — المتوقع {expected}
+            <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><Plus className="size-6 text-gold-dark" /> فتح تجمّع جديد — {groupName(g.number)}</h2>
+            <p className="mt-1 text-ink-soft">اختر سبب التجمّع، ثم اكتب مكانه كما ستجتمع مجموعتك فعلاً. يُمسح كل حاج عند وصوله، فترى المتوقع والحاضر والغائب مباشرة.</p>
+            {/* The Umrahs first: most musters are for them */}
+            <button type="button" onClick={() => pick("umrah")} aria-pressed={kind === "umrah"} className={cn("mt-5 flex w-full items-center justify-between gap-3 rounded-3xl border-2 p-4 text-start transition", kind === "umrah" ? "border-green-dark bg-green-dark text-white" : "border-gold/50 hover:border-green-dark/40")}>
+              <span>
+                <span className="block font-display text-xl font-bold">{umrahLabel(umrahs)}</span>
+                <span className={cn("block text-sm", kind === "umrah" ? "text-white/75" : "text-ink-soft")}>{umrahs ? `أدّت المجموعة ${umrahs === 1 ? "عمرة واحدة" : `${umrahs} عمرات`} — هذه التالية` : "أول عمرة للمجموعة بعد الوصول إلى مكة"}</span>
+              </span>
+              <span className={cn("rounded-full px-3 py-1 text-xs font-bold", kind === "umrah" ? "bg-gold text-ink" : "bg-gold/30 text-maroon")}>الأكثر</span>
+            </button>
+            {MUSTER_KINDS.slice(1).map((sec) => (
+              <div key={sec.title} className="mt-4">
+                <p className="mb-2 text-xs font-bold text-hint">{sec.title}</p>
+                <div className="flex flex-wrap gap-2">
+                  {sec.items.map((x) => (
+                    <button key={x.key} type="button" onClick={() => pick(x.key)} aria-pressed={kind === x.key} className={cn("rounded-full border-2 px-3.5 py-1.5 text-sm font-bold transition", kind === x.key ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>
+                      {x.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={() => setKind("other")} aria-pressed={kind === "other"} className={cn("mt-4 rounded-full border-2 border-dashed px-3.5 py-1.5 text-sm font-bold transition", kind === "other" ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>
+              تجمّع آخر
+            </button>
+            {kind === "other" && <input value={other} onChange={(e) => setOther(e.target.value)} placeholder="سبب التجمّع، مثل: درس في قاعة الفندق" className="mt-3 h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" aria-label="سبب التجمّع" />}
+            <label className="mt-5 block">
+              <span className="mb-1 block font-bold">مكان التجمّع</span>
+              <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="أين تجتمع المجموعة؟" className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 text-lg outline-none focus:border-green-light" aria-label="مكان التجمّع" />
+              <span className="mt-1 block text-xs text-hint">اقتراح بحسب السبب — غيّره إلى حيث تجتمع مجموعتك: باب في الفندق، أو موقف حافلات، أو مدخل المخيم.</span>
+            </label>
+            {MUSTER_KIND(kind)?.flight && outFlight && <p className="mt-3 rounded-2xl bg-gold/20 p-3 text-sm font-bold text-maroon">مرتبط برحلة المجموعة <span dir="ltr" className="font-mono">{outFlight.flightNo}</span>: كل بطاقة تُمسح تسجّل الصعود في ملف الطيران.</p>}
+            <Button size="lg" className="mt-5" onClick={create} disabled={!title || !place.trim()}>
+              <UserRoundCheck className="size-5" /> فتح تجمّع «{title || "…"}» — المتوقع {expected}
             </Button>
           </div>
         ) : (
@@ -253,6 +413,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
               <div>
                 <p className="text-sm text-hint">تجمّع مفتوح منذ {new Date(open.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p>
                 <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">تجمّع: {open.title}</h2>
+                {open.place && <p className="mt-1 font-bold text-ink-soft">المكان: {open.place}</p>}
                 {boardsFlight && <p className="mt-1 text-sm font-bold text-gold-dark">مرتبط بالرحلة <span dir="ltr" className="font-mono">{boardsFlight.flightNo}</span>: كل بطاقة تُمسح تسجّل الصعود في ملف الطيران.</p>}
               </div>
               <Badge tone={complete ? "green" : "gold"}>{complete ? "اكتمل الحضور" : scanning ? "المسح جارٍ..." : "مفتوح"}</Badge>
@@ -318,7 +479,7 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
                       <Button size="sm" variant="outline" onClick={() => { logAdmin(admin.id, `اتصال بالحاج ${r.name}`, `تجمّع «${open.title}»`); toast({ title: `جارٍ الاتصال بـ ${r.name}...`, body: "لا يرد. جرّب إرسال تنبيه أو الإبلاغ عن التأخر.", icon: "📞", tone: "info" }); }}>
                         <Phone className="size-4" /> اتصال
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { logAdmin(admin.id, `إرسال تنبيه إلى ${r.name}`, `تجمّع «${open.title}»`); toast({ title: "أُرسل تنبيه", body: `إلى ${r.name} وجهة اتصاله للطوارئ: «الحافلة تنتظرك في ${open.title.split("←")[0].trim()}».`, icon: "🔔", tone: "gold" }); }}>
+                      <Button size="sm" variant="outline" onClick={() => { logAdmin(admin.id, `إرسال تنبيه إلى ${r.name}`, `تجمّع «${open.title}»`); toast({ title: "أُرسل تنبيه", body: `إلى ${r.name} وجهة اتصاله للطوارئ: «المجموعة تنتظرك في ${open.place ?? open.title}».`, icon: "🔔", tone: "gold" }); }}>
                         <BellRing className="size-4" /> إرسال تنبيه
                       </Button>
                       <Button size="sm" variant="maroon" onClick={() => report(r)}>
@@ -352,7 +513,10 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
             <ul className="mt-3 space-y-2">
               {[...musters].reverse().map((m) => (
                 <li key={m.id} className="flex items-center justify-between gap-2 rounded-xl bg-sand px-3 py-2 text-sm">
-                  <span className="min-w-0 truncate font-semibold">{m.title}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{m.title}</span>
+                    {m.place && <span className="block truncate text-xs text-hint">{m.place}</span>}
+                  </span>
                   <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-bold", m.closedAt ? "bg-green-light/15 text-green" : "bg-gold/40 text-maroon")}>
                     {m.closedAt ? `أُغلق ${m.present.length}/${expected}` : "مفتوح"}
                   </span>
@@ -397,7 +561,7 @@ function ReadCounter({ to }: { to: number }) {
 function Channel({ count }: { count: number }) {
   const admin = useAdmin()!;
   const toast = useToast();
-  const g = admin.profile!.group!;
+  const g = useFieldGroup();
   const [text, setText] = useState("");
   const [audience, setAudience] = useState("المجموعة كاملة");
   const [posts, setPosts] = useState<Post[]>([{ id: "welcome", text: "مرحباً بكم. العمرة الليلة: تجمّع في بهو الفندق 21:00. الحافلة 21:30.", audience: "المجموعة كاملة", at: 0, reach: count }]);
@@ -481,7 +645,8 @@ function Roster({ roster, onReport }: { roster: RosterEntry[]; onReport: (name: 
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [needsOnly, setNeedsOnly] = useState(false);
-  const last = [...admin.profile!.musters].reverse().find((m) => m.present.length > 0);
+  const fg = useFieldGroup();
+  const last = [...mustersOf(admin.profile!.musters, fg.number, fg.home)].reverse().find((m) => m.present.length > 0);
   const shown = roster.filter((r) => (!q || r.name.includes(q) || r.room.includes(q)) && (!needsOnly || r.needs.length > 0));
   return (
     <Card className="md:p-7">
@@ -538,7 +703,7 @@ const KIN = ["ابنه", "ابنته", "زوجته", "أخوه", "ابن أخي�
 function PilgrimSheet({ entry, onClose, onReport }: { entry: RosterEntry | null; onClose: () => void; onReport: (name: string) => void }) {
   const admin = useAdmin()!;
   const toast = useToast();
-  const g = admin.profile!.group!;
+  const g = useFieldGroup();
   const applications = useStore((s) => s.applications);
   const tickets = useStore((s) => s.tickets);
   const fd = useFlightsData();
@@ -569,9 +734,9 @@ function PilgrimSheet({ entry, onClose, onReport }: { entry: RosterEntry | null;
       contact,
       flights: [flightOf("outbound"), flightOf("return")].filter((x): x is NonNullable<typeof x> => !!x),
       reports: tickets.filter((t) => t.name === entry.name),
-      musters: admin.profile!.musters.filter((m) => m.present.length > 0 || !m.closedAt),
+      musters: mustersOf(admin.profile!.musters, g.number, g.home).filter((m) => m.present.length > 0 || !m.closedAt),
     };
-  }, [entry, applications, tickets, fd, g.number, admin.profile]);
+  }, [entry, applications, tickets, fd, g.number, g.home, admin.profile]);
 
   return (
     <Modal open={!!entry} onClose={onClose} className="max-w-2xl! md:p-8">
@@ -710,7 +875,7 @@ const STATUS: Record<Ticket["status"], string> = { open: "مفتوح", in_progre
 function TicketDesk({ roster, about }: { roster: RosterEntry[]; about?: string }) {
   const admin = useAdmin()!;
   const toast = useToast();
-  const g = admin.profile!.group!;
+  const g = useFieldGroup();
   const tickets = useStore((s) => s.tickets);
   const mine = useMemo(() => tickets.filter((t) => t.location.startsWith(`${groupName(g.number)} —`)), [tickets, g.number]);
   const [form, setForm] = useState({ kind: "room" as TicketKind, severity: "medium" as Ticket["severity"], name: about ?? "المجموعة كاملة", place: about ? `${HOTEL} — الغرفة ${roster.find((r) => r.name === about)?.room ?? ""}` : `${HOTEL} — الغرفة 1214`, text: about ? "" : "التكييف في الغرفة 1214 لا يعمل منذ الصباح، والحاج كبير في السن." });
@@ -815,7 +980,7 @@ const DAY = [
 function DayPlan() {
   const admin = useAdmin()!;
   const toast = useToast();
-  const g = admin.profile!.group!;
+  const g = useFieldGroup();
   const [sent, setSent] = useState(false);
   const [report, setReport] = useState({ general: "مستقرة", health: "حالتان في العيادة — مستقرتان", complaints: "3 مفتوحة (تكييف 1214، وجبة خاصة، مصعد)", notes: "" });
 
@@ -860,138 +1025,6 @@ function DayPlan() {
         <Button size="lg" className="mt-5 w-full" variant={sent ? "outline" : "primary"} onClick={send} disabled={sent}>
           {sent ? <><Check className="size-5" /> أُرسل التقرير — 22:30</> : <><Send className="size-5" /> إرسال التقرير بضغطة زر</>}
         </Button>
-      </Card>
-    </div>
-  );
-}
-
-// ───────────────────────── Evaluations ─────────────────────────
-
-const STAFF_RATINGS = [
-  { who: "مازن الحلبي", scope: "شؤون الإداريين", item: "اكتمال طلب المشاركة من أول مرة", v: 5 },
-  { who: "مازن الحلبي", scope: "شؤون الإداريين", item: "طلب التشكيل كامل والعقود خلال 48 ساعة", v: 5 },
-  { who: "رنا حداد", scope: "إدارة التسجيل", item: "الاستجابة قبل الموسم — الرد على استفسارات التفويج خلال 3 ساعات", v: 5 },
-  { who: "نادر قاسم", scope: "مشرف القطاع", item: "التحضير قبل السفر — الدروس 4 من 4، اللقاء 96%", v: 5 },
-  { who: "هيثم زيدان", scope: "المواصلات", item: "انضباط التجمّع — أُغلق 01:32 قبل الانطلاق", v: 5 },
-  { who: "نادر قاسم وفادي سلوم", scope: "المشاعر", item: "دقة التجمّعات، المفقود خلال 5 دقائق، سلامة كبار السن", v: 5 },
-];
-
-const WEIGHTS = [
-  { src: "الموظفون", what: "تقييمات المراحل", score: "4.9 من 5", pct: 98, w: 40 },
-  { src: "الحجاج", what: "التقييم الشامل + التعليقات", score: "4.8 من 5", pct: 96, w: 25 },
-  { src: "رئيس التكتل", what: "القيادة والالتزام", score: "5 من 5", pct: 100, w: 10 },
-  { src: "مؤشرات آلية", what: "دقة التجمّعات، سرعة الرد، التقرير اليومي", score: "97%", pct: 97, w: 15 },
-];
-
-function Evaluations() {
-  const admin = useAdmin()!;
-  const r = resultOf(admin.profile);
-  const qual = r.score ?? 84.4;
-  const rows = [...WEIGHTS, { src: "التأهيل", what: "نتيجة الاختبار المؤتمت", score: `${qual}%`, pct: qual, w: 10 }];
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-        <Card className="md:p-8">
-          <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark"><Star className="size-6 text-gold-dark" /> تقييمات الموظفين — كلٌّ في نطاق عمله</h3>
-          <ul className="mt-5 space-y-4">
-            {STAFF_RATINGS.map((s, i) => (
-              <li key={s.item}>
-                <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                  <span className="font-semibold text-ink">{s.item}</span>
-                  <span className="font-bold text-maroon">{s.v} من 5</span>
-                </div>
-                <div className="mt-1.5 flex gap-1" dir="ltr">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <motion.span key={n} className="h-2.5 flex-1 rounded-full bg-sand" initial={{ backgroundColor: "#F7F4EF" }} animate={{ backgroundColor: n <= s.v ? "#00594F" : "#F7F4EF" }} transition={{ delay: 0.15 + i * 0.12 + n * 0.06 }} />
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-hint">{s.who} — {s.scope}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card className="md:p-8">
-          <h3 className="font-display text-xl font-bold text-green-dark">تقييم الحجاج</h3>
-          <div className="mt-4 flex items-center gap-5">
-            <p className="font-display text-6xl font-bold text-gold-dark">4.8</p>
-            <div>
-              <p className="text-2xl text-gold-dark">★★★★★</p>
-              <p className="text-sm text-hint">46 من 48 قيّموا</p>
-            </div>
-          </div>
-          <ul className="mt-5 space-y-2">
-            {[
-              { s: 5, n: 38 },
-              { s: 4, n: 7 },
-              { s: 3, n: 1 },
-              { s: 2, n: 0 },
-              { s: 1, n: 0 },
-            ].map((x, i) => (
-              <li key={x.s} className="flex items-center gap-3 text-sm">
-                <span className="w-8 text-hint">{x.s}★</span>
-                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-sand">
-                  <motion.span className="block h-full rounded-full bg-gold-dark" initial={{ width: 0 }} animate={{ width: `${(x.n / 46) * 100}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.8 }} />
-                </span>
-                <span className="w-6 text-left font-bold tabular-nums">{x.n}</span>
-              </li>
-            ))}
-          </ul>
-          <ul className="mt-5 space-y-2">
-            {[`«${groupName(admin.profile!.group!.number)} كانت كالعائلة»`, "«موجود دائماً»", "«عرفنا كل شيء قبل أن نسافر»"].map((c) => (
-              <li key={c} className="rounded-2xl bg-sand px-4 py-2 text-sm italic text-ink-soft">{c}</li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <Card className="md:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <h3 className="font-display text-xl font-bold text-green-dark">درجة الأداء في الموسم</h3>
-            <p className="text-sm text-hint">بأوزان تحددها الإدارة في إعدادات الموسم</p>
-          </div>
-          <div className="flex items-center gap-3 rounded-3xl bg-green-dark px-6 py-4 text-white">
-            <p className="font-display text-5xl font-bold text-gold"><AnimatedNumber value={93} /></p>
-            <p className="text-sm leading-5 text-white/75">من 100<br />1448 — رئيس مجموعة</p>
-          </div>
-        </div>
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-right text-sm">
-            <thead>
-              <tr className="border-b-2 border-gold-light text-hint">
-                <th className="py-2 font-semibold">المصدر</th>
-                <th className="py-2 font-semibold">ما يُقاس</th>
-                <th className="py-2 font-semibold">درجتك</th>
-                <th className="w-40 py-2 font-semibold">الوزن</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((x, i) => (
-                <tr key={x.src} className="border-b border-gold-light/60">
-                  <td className="py-3 font-bold">{x.src}</td>
-                  <td className="py-3 text-ink-soft">{x.what}</td>
-                  <td className="py-3 font-bold text-green">{x.score}</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-sand">
-                        <motion.span className="block h-full bg-maroon" initial={{ width: 0 }} animate={{ width: `${x.w * 2.5}%` }} transition={{ delay: 0.2 + i * 0.1 }} />
-                      </span>
-                      <span className="w-9 font-bold">{x.w}%</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-5 rounded-2xl bg-gold/15 p-4 text-sm leading-7">
-          <b>ملاحظة مشرف القطاع:</b> «من أفضل رؤساء المجموعات في القطاع. يستحق أن يُدعى نائباً لرئيس تكتل في 1449.»
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <ButtonLink href="/administrator/dashboard" variant="outline">ملفي كإداري</ButtonLink>
-        </div>
       </Card>
     </div>
   );

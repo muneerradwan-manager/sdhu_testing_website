@@ -12,6 +12,7 @@ import { groupName } from "@/lib/groups";
 import { GROUP } from "@/lib/journey";
 import { fullName, relationLabel } from "@/lib/registry";
 import { actions, useStore, type PostAcceptance } from "@/lib/store";
+import { directoryNow } from "@/app/administrator/_lib/directory";
 import { cn } from "@/lib/utils";
 import { EVALUATION } from "../_data";
 import type { SeasonCtx } from "./ctx";
@@ -44,8 +45,11 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
       }),
     );
 
+  // Optional and general: the trip, the group and the cluster — no one rated by name, nothing counted in the administrators' evaluation
+  const clusterName = directoryNow().find((c) => c.slug === (post.clusterId ?? "al-nour"))?.name ?? "تكتلك";
+  const total = EVALUATION.length;
   const answered = EVALUATION.filter((e) => ctx.ratings[`eval-${e.key}`] !== undefined).length;
-  const complete = answered === EVALUATION.length;
+  const complete = answered === total;
 
   const rate = (key: string, v: number) => actions.setInSeason(ctx.sessionId, { ratings: { ...ctx.ratings, [`eval-${key}`]: v } });
 
@@ -75,9 +79,9 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
             <p className="mt-1 max-w-2xl text-lg leading-8 text-ink-soft">نظرة كلية على رحلتك. بجانب كل بند متوسط تقييماتك السابقة للمراحل المرتبطة به.</p>
           </div>
           <div className="text-center">
-            <p className="font-display text-4xl font-bold text-green-dark">{answered}<span className="text-xl text-hint"> / {EVALUATION.length}</span></p>
+            <p className="font-display text-4xl font-bold text-green-dark">{answered}<span className="text-xl text-hint"> / {total}</span></p>
             <div className="mt-1 h-2 w-40 overflow-hidden rounded-full bg-gold-light">
-              <motion.div className="h-full rounded-full bg-green-light" animate={{ width: `${(answered / EVALUATION.length) * 100}%` }} />
+              <motion.div className="h-full rounded-full bg-green-light" animate={{ width: `${(answered / total) * 100}%` }} />
             </div>
           </div>
         </div>
@@ -92,7 +96,7 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
                 <div className="flex items-center gap-3">
                   <span className={cn("grid size-10 shrink-0 place-items-center rounded-full font-bold transition-colors", value !== undefined ? "bg-green-light text-white" : "bg-sand text-gold-dark")}>{i + 1}</span>
                   <div>
-                    <p className="text-lg font-bold">{e.label}</p>
+                    <p className="text-lg font-bold">{e.key === "recommend" ? `هل توصي ب${clusterName}؟` : e.label}</p>
                     <p className="text-sm text-hint">متوسط تقييماتك للمراحل: {past === null ? "—" : past.toFixed(1)}</p>
                   </div>
                 </div>
@@ -125,13 +129,13 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
             logPilgrimSeason(
               ctx,
               "التقييم الشامل بعد العودة",
-              EVALUATION.map((e) => `${e.label}: ${e.yesNo ? (ctx.ratings[`eval-${e.key}`] === 5 ? "نعم" : "لا") : ctx.ratings[`eval-${e.key}`]}${comments[e.key] ? ` «${comments[e.key]}»` : ""}`).join(" | "),
+              EVALUATION.map((e) => `${e.key === "recommend" ? `هل توصي ب${clusterName}؟` : e.label}: ${e.yesNo ? (ctx.ratings[`eval-${e.key}`] === 5 ? "نعم" : "لا") : ctx.ratings[`eval-${e.key}`]}${comments[e.key] ? ` «${comments[e.key]}»` : ""}`).join(" | "),
             );
             toast({ title: "شكراً لك — أُرسل تقييمك الشامل", body: "أُغلقت حالتك على «اكتمل الموسم».", icon: "🌟", tone: "gold" });
             confetti({ particleCount: 120, spread: 90, origin: { y: 0.7 }, colors: ["#D9C89E", "#00594F", "#289E92", "#ffffff"] });
           }}
         >
-          <Send className="size-6" /> {sent ? "أُرسل التقييم ✓" : complete ? "إرسال التقييم الشامل" : `أكمل البنود (${answered} من ${EVALUATION.length})`}
+          <Send className="size-6" /> {sent ? "أُرسل التقييم ✓" : complete ? "إرسال التقييم الشامل" : `أكمل البنود (${answered} من ${total})`}
         </Button>
       </section>
 

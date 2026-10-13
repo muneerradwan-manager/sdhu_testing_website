@@ -9,6 +9,10 @@ import { matches } from "@/lib/ops";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
+import { REFLECTION, avgOf, round1 as r1, useEvaluationOf } from "@/app/administrator/_lib/evaluation";
+
+/** The scored sections of a self-evaluation beside its stages */
+const SELF_LABELS: Record<string, string> = { stages: "مراحل الموسم", axes: "محاور الأداء", role: "مهام صفته", support: "ما قدّمته له الإدارة والبعثة" };
 import { roleLabel, type AdminRow } from "../../_components/data";
 import { fmtDateTime, Meter, stamp, textareaClass, useStaffUser } from "../../_components/kit";
 import { Chip, SearchBox } from "../../_components/ops-ui";
@@ -32,6 +36,7 @@ export function EvaluationTab() {
   const id = useOpenId();
   const hrefWith = useHrefWith();
   const evaluations = useStore((s) => s.evaluations);
+  const objections = useStore((s) => s.evaluationObjections);
   const stages = useEvaluationStages();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -75,7 +80,14 @@ export function EvaluationTab() {
                   </RowActions>
                 }
               />
-              <td className="p-3 align-top text-white/80">{roleLabel(r)}</td>
+              <td className="p-3 align-top text-white/80">
+                {roleLabel(r)}
+                {objections[r.id]?.status === "pending" && (
+                  <span className="ms-2">
+                    <Tag tone="gold">اعتراض ينتظر قرارك</Tag>
+                  </span>
+                )}
+              </td>
               <td className="p-3 align-top">
                 <Tag tone={done >= stages.length ? "green" : done ? "gold" : "muted"}>
                   {done} من {stages.length}
@@ -287,11 +299,105 @@ function EvaluationForm({ row }: { row: AdminRow }) {
             </Button>
             <p className="text-xs text-white/55">{saved ? `آخر حفظ: ${saved.by} — ${fmtDateTime(saved.at)}` : "لم يُقيَّم بعد."} يرى الإداري المتوسط فقط، لا اسم المقيّم.</p>
           </Box>
+          <OthersBox id={row.id} name={row.name} />
           <Box title="سجلّه" open={false}>
             <RecordHistory system="admins" refId={row.id} bare />
           </Box>
         </>
       }
     />
+  );
+}
+
+/**
+ * Beside the administration's own scores: the two parts of his season's evaluation, side by side (never one
+ * number) — his self-evaluation with its sections and his written summary, and the staff's with every rater by
+ * name — the stages where they are a point or more apart, and his objection to the staff's, which the
+ * administration decides here.
+ */
+function OthersBox({ id, name }: { id: string; name: string }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const r = useEvaluationOf(id);
+  const [reply, setReply] = useState("");
+  if (!r) return null;
+  const gaps = r.stages.filter((x) => x.gap);
+  const o = r.objection;
+  const label = (k: string) => r.stages.find((x) => x.key === k)?.label ?? k;
+  const decide = (status: "accepted" | "rejected") => {
+    if (reply.trim().length < 5) return;
+    actions.decideObjection(id, { status, reply: reply.trim(), decidedBy: user.name });
+    logAdmins(user, "evaluation", { action: status === "accepted" ? "قبول اعتراض على التقييم" : "رفض اعتراض على التقييم", target: name, detail: `${o!.stages.map(label).join("، ")} — ${reply.trim()}`, ref: id });
+    toast({ title: status === "accepted" ? "قُبل الاعتراض" : "رُفض الاعتراض", body: status === "accepted" ? "عدّل درجات المراحل المعترض عليها في النموذج ثم احفظ." : "يصله ردّك في «التقييم بعد الموسم».", icon: status === "accepted" ? "✅" : "📨", tone: status === "accepted" ? "success" : "info" });
+    setReply("");
+  };
+  return (
+    <Box title="التقييم بعد الموسم">
+      <div className="grid grid-cols-2 gap-2 text-center">
+        <p className="rounded-xl bg-white/[.06] p-2">
+          <span className="block text-[11px] text-white/60">تقييمه لنفسه</span>
+          <span className="font-display text-2xl font-bold text-white">{r.selfAvg ?? "—"}</span>
+        </p>
+        <p className="rounded-xl bg-green-light/15 p-2 ring-1 ring-green-light/30">
+          <span className="block text-[11px] text-white/60">تقييم الموظفين</span>
+          <span className="font-display text-2xl font-bold text-gold">{r.staffAvg ?? "—"}</span>
+        </p>
+      </div>
+      {r.raters.length > 0 && (
+        <ul className="space-y-1 text-xs text-white/70">
+          {r.raters.map((x, i) => (
+            <li key={i}>
+              {x.by} — {x.role}
+              {x.place ? ` — ${x.place}` : ""}: <b className="text-white">{x.avg ?? "—"}</b>
+            </li>
+          ))}
+        </ul>
+      )}
+      {r.self?.submittedAt ? (
+        <div className="space-y-1.5 border-t border-white/10 pt-2 text-xs text-white/80">
+          <p className="font-bold text-gold">تقييمه الذاتي بالأقسام</p>
+          {Object.entries(SELF_LABELS).map(([k, l]) => (
+            <p key={k} className="flex justify-between gap-2">
+              <span>{l}</span>
+              <b className="text-white">{r1(avgOf(k === "stages" ? r.self!.stages : r.self!.sections?.[k])) ?? "—"}</b>
+            </p>
+          ))}
+          {REFLECTION.filter((q) => r.self!.answers?.[q.key]).map((q) => (
+            <p key={q.key} className="rounded-lg bg-white/[.06] p-2 leading-6">
+              <b className="block text-white">{q.label}</b>
+              {r.self!.answers![q.key]}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-white/55">لم يرسل تقييمه الذاتي بعد.</p>
+      )}
+      {gaps.length > 0 && <p className="rounded-xl bg-gold/20 p-2 text-xs font-bold text-gold ring-1 ring-gold/40">فرق نقطة أو أكثر بين تقييمه لنفسه وتقييم الموظفين في: {gaps.map((g) => g.label).join("، ")}.</p>}
+      {o && (
+        <div className="space-y-2 rounded-xl bg-maroon/30 p-3 text-xs text-white ring-1 ring-gold/40">
+          <p className="flex items-center justify-between gap-2 font-bold text-gold">
+            <span>اعتراضه على تقييم الموظفين</span>
+            <span>{o.status === "pending" ? "ينتظر قرارك" : o.status === "accepted" ? "قُبل" : "رُفض"}</span>
+          </p>
+          <p>المراحل: {o.stages.map(label).join("، ")}</p>
+          <p className="leading-6 text-white/85">{o.reason}</p>
+          {o.status === "pending" ? (
+            <>
+              <textarea rows={2} value={reply} onChange={(e) => setReply(e.target.value)} aria-label="ردّك على الاعتراض" placeholder="ردّك، يصله مع القرار" className={cn(textareaClass, "text-xs")} />
+              <div className="flex gap-2">
+                <Button size="sm" variant="gold" disabled={reply.trim().length < 5} onClick={() => decide("accepted")}>
+                  قبول وإعادة التقييم
+                </Button>
+                <Button size="sm" variant="outline" disabled={reply.trim().length < 5} onClick={() => decide("rejected")}>
+                  رفض
+                </Button>
+              </div>
+            </>
+          ) : (
+            o.reply && <p className="text-white/75">ردّ {o.decidedBy}: {o.reply}</p>
+          )}
+        </div>
+      )}
+    </Box>
   );
 }

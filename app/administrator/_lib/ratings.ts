@@ -6,15 +6,14 @@ import type { SeasonRecord } from "./admin";
 
 /**
  * Where an administrator's season rating (out of 5) comes from. He accepted it with the commitment
- * «قبول التقييم»: the pilgrims, the staff and the cluster head rate him, and the platform's own record
- * of his conduct is the fourth part — it starts at 5 and every recorded violation takes points off it.
- * The rating is the weighted sum of the four, so every season in «السجل الموسمي» can say how it was
- * reached and what happened in it, not only the number.
+ * «قبول التقييم»: the pilgrims and the staff rate him — administrators do not rate one another; each rates
+ * only himself, beside the others' — and the platform's own record of his conduct is the third part: it
+ * starts at 5 and every recorded violation takes points off it. The rating is the weighted sum of the
+ * three, so every season in «السجل الموسمي» can say how it was reached and what happened in it.
  */
 export const RATING_SOURCES = [
   { key: "pilgrims", label: "تقييم الحجاج", weight: 0.4, how: "في التقييم الشامل بعد العودة إلى دمشق" },
-  { key: "cluster", label: "تقييم رئيس التكتل", weight: 0.25, how: "في نهاية الموسم، لكل إداري في تكتله" },
-  { key: "staff", label: "تقييم الموظفين", weight: 0.2, how: "موظفو المكتب والمطار والميدان" },
+  { key: "staff", label: "تقييم الموظفين", weight: 0.45, how: "موظفو البعثة المفروزون حيث سكن تكتله، وإدارة الإداريين" },
   { key: "conduct", label: "الانضباط — من سجل المنصة", weight: 0.15, how: "يبدأ من 5، وتنقص منه كل مخالفة مسجّلة" },
 ] as const;
 
@@ -72,23 +71,21 @@ const QUOTES = {
   ],
 };
 
-/** Notes of the cluster head and the staff, by how the season went */
+/** The staff's note, by how the season went */
 const NOTES = {
-  high: { cluster: "التزم ببرنامج التكتل، وكان سنداً لبقية المجموعات.", staff: "تعاون كامل مع المكتب والمطار، ومواعيده دقيقة." },
-  mid: { cluster: "أداء جيد، ويحتاج إلى متابعة أدق للمواعيد.", staff: "متعاون، وتأخرت بعض متابعاته." },
+  high: { staff: "تعاون كامل مع المكتب والمطار والبرج، ومواعيده دقيقة." },
+  mid: { staff: "متعاون، وتأخرت بعض متابعاته." },
 };
 
 /**
  * The seasons the demo tells in full. The others follow from the rating: the better the season, the
  * fewer the violations, but every number still adds up to the rating on record.
  */
-const TOLD: Record<string, Partial<Omit<SeasonRating, "sources">> & { cluster: number; clusterBy?: string; notes: { cluster: string; staff: string } }> = {
+const TOLD: Record<string, Partial<Omit<SeasonRating, "sources">> & { notes: { staff: string } }> = {
   // Walid Al-Qassab, group 44 in the Aleppo office: the season that kept him from renewing his role
   "01033300884:1447": {
     stars: [6, 9, 10, 8, 5],
     pilgrims: 45,
-    cluster: 3.5,
-    clusterBy: "فراس البيطار — رئيس تكتل الإخاء",
     deductions: [
       { text: "تأخر تجمّع مجموعة السكينة في مطار حلب 55 دقيقة عن موعده، فتأخر صعود 12 حاجاً", by: "موظف المطار", points: 0.6 },
       { text: "سبعة بلاغات من الحجاج عن توزيع الغرف في فندق مكة، ثلاثة منها أُغلقت بعد أكثر من 24 ساعة", by: "مركز الدعم", points: 0.8 },
@@ -102,8 +99,7 @@ const TOLD: Record<string, Partial<Omit<SeasonRating, "sources">> & { cluster: n
       { stars: 5, text: "جزاه الله خيراً، كان معنا في المشاعر خطوة بخطوة." },
     ],
     notes: {
-      cluster: "التزم ببرنامج التكتل في المشاعر، وتأخر توزيع الغرف في مكة يومين حتى تدخّلتُ.",
-      staff: "تجمّع مطار حلب تأخر، وفاته اجتماع التنسيق قبل السفر.",
+      staff: "تجمّع مطار حلب تأخر، وفاته اجتماع التنسيق قبل السفر، وتأخر توزيع الغرف في مكة يومين حتى تدخّل مشرف البرج.",
     },
   },
 };
@@ -142,21 +138,19 @@ export function seasonRating(id: string, h: SeasonRecord): SeasonRating | null {
 
   const deductions = told?.deductions ?? (r >= 4.7 ? [] : r >= 4.4 ? DEDUCTIONS[kind]?.slice(0, 1) ?? [] : DEDUCTIONS[kind] ?? []);
   const conduct = round1(5 - deductions.reduce((t, d) => t + d.points, 0));
-  const cluster = told?.cluster ?? clamp(round1(r + [0.1, 0, -0.1, 0.2][seed % 4]));
   // The pilgrims of his group (a technical coordinator answers to those of all the groups assigned to him)
   const pilgrims = told?.pilgrims ?? (kind === "tech" ? 128 + (seed % 9) : 40 + (seed % 8));
   const raters = told?.stars ? told.stars.reduce((a, b) => a + b, 0) : Math.round(pilgrims * 0.85);
-  // The pilgrims' part is whatever the other three leave to the rating; their stars are drawn around it
-  const target = clamp((r - 0.25 * cluster - 0.2 * clamp(r + 0.1) - 0.15 * conduct) / 0.4);
+  // The pilgrims' part is whatever the other two leave to the rating; their stars are drawn around it
+  const target = clamp((r - 0.45 * clamp(r + [0.1, 0, -0.1, 0.2][seed % 4]) - 0.15 * conduct) / 0.4);
   const stars = told?.stars ?? starsAround(target, raters);
   const pilgrimsAvg = round1((stars[0] * 5 + stars[1] * 4 + stars[2] * 3 + stars[3] * 2 + stars[4]) / raters);
-  // The staff's part closes the sum, so the four add up to the rating on record
-  const staff = clamp(round1((r - 0.4 * pilgrimsAvg - 0.25 * cluster - 0.15 * conduct) / 0.2));
+  // The staff's part closes the sum, so the three add up to the rating on record
+  const staff = clamp(round1((r - 0.4 * pilgrimsAvg - 0.15 * conduct) / 0.45));
   const notes = told?.notes ?? (r >= 4.5 ? NOTES.high : NOTES.mid);
 
   const values: Record<RatingSourceKey, { value: number; who: string; note?: string }> = {
     pilgrims: { value: pilgrimsAvg, who: `قيّمه ${countOf(raters, PILGRIMS)} من ${pilgrims}` },
-    cluster: { value: cluster, who: told?.clusterBy ?? "", note: notes.cluster },
     staff: { value: staff, who: `متوسط ${countOf(3 + (seed % 4), STAFF)}`, note: notes.staff },
     conduct: { value: conduct, who: countOf(deductions.length, VIOLATIONS) },
   };

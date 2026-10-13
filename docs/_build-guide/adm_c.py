@@ -211,6 +211,10 @@ if ONLY in (None, "members"):
         c.goto("/administrator/field", wait=1800)
         c.shot(f"{key}-field", f"{cap}: الميدان", section=S)
         c.close()
+    # The field of someone who works in several groups: the group first
+    c, p = session("01033300874", "/administrator/field")
+    c.shot("field-pick", "الميدان لمن يعمل في أكثر من مجموعة: اختر المجموعة أولاً", hl=[("main [role=radiogroup][aria-label='المجموعة']", "")], section=S)
+    c.close()
     # The cluster's public page: its team writes it, not its head alone
     c, p = session("01033300872", "/administrator/cluster-page")
     c.shot("team-page", "صفحة التكتل العامة لفريق التكتل: معاون المجموعة يكتب فيها ويرسلها للاعتماد", hl=[("aside a[href='/administrator/cluster-page']", "")], section=S)

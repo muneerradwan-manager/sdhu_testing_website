@@ -43,7 +43,9 @@ class Staff:
 
     def nav(self, label, wait=1500):
         """An entry of the sidebar (the staff portal's menu)"""
-        a = self.p.locator(f"aside a:has-text('{label}'), nav a:has-text('{label}')").filter(visible=True).first
+        # The sidebar first: the site's top bar may carry a link of the same name («التكتلات والمجموعات»)
+        side = self.p.locator(f"aside a:has-text('{label}')").filter(visible=True)
+        a = side.first if side.count() else self.p.locator(f"nav a:has-text('{label}')").filter(visible=True).first
         a.click(); self.c.settle(wait)
 
     def close(self):

@@ -23,6 +23,7 @@ import {
   MessagesSquare,
   Plane,
   ScrollText,
+  Star,
   UserRoundPlus,
   UsersRound,
   type LucideIcon,
@@ -146,6 +147,8 @@ const NAV: NavItem[] = [
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
+  // After the season: his self-evaluation, his cadre's if he heads a cluster, and his result
+  { href: "/administrator/evaluation", label: "التقييم بعد الموسم", icon: Star, ops: ["self-evaluation", "peer-evaluation"], show: serving },
 ];
 
 function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Record<AdminPermission, string[]>, inChannel: boolean): NavCtx {

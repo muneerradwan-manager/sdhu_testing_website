@@ -90,6 +90,8 @@ export const STAFF: StaffUser[] = [
   { id: "ghassan", username: "ghassan", name: "غسان العمر", title: "مدير شؤون البعثة — الملفات التشغيلية", travels: true, initials: "غ", permissions: ["ops.files"] },
   { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مديرة موسم مساعدة — لا تملك صلاحية النشر", travels: false, initials: "ل", permissions: ["season.settings"] },
   // No permission: her hall comes from the holder of «إدارة الامتحانات» assigning her to a centre (app/administrator/_lib/halls.ts)
+  // No permission: posted by the holder of «الملفات التشغيلية» as the supervisor of فندق أبراج النور, where تكتل النور lived; after the season he rates its administrators
+  { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف برج — فندق أبراج النور", travels: true, initials: "و", permissions: [] },
   { id: "nisreen", username: "nisreen", name: "نسرين الحكيم", title: "مشرفة قاعة امتحانية — مركز دمشق", travels: false, initials: "ن", permissions: [] },
 ];
 

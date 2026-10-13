@@ -490,7 +490,7 @@ export type AdminProfile = {
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
    */
   joinDecisions: Record<string, "accepted" | "rejected">;
-  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string }[];
+  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string; /** The group it gathers (one kept before groups were picked is his own group's) */ groupNumber?: number; /** Why it gathers (field.tsx MUSTER_KINDS: «umrah»…) and where */ kind?: string; place?: string }[];
 };
 
 /**
@@ -604,6 +604,24 @@ export type ApplyDraft = {
 /** Simulated in-season position for the pilgrim "حالتي الآن" mode */
 export type InSeason = { day: number; ratings: Record<string, number>; lostReports: number };
 
+/** A score out of 5 for each evaluation stage that was scored, with a note when there is one */
+export type StageScores = Record<string, { score: number; note?: string }>;
+
+/**
+ * An administrator's self-evaluation, in its sections (app/administrator/_lib/evaluation SELF_SECTIONS): the season's
+ * stages, then the other scored sections by key, and the written answers of «خلاصة موسمك»
+ */
+export type SelfEvaluation = { stages: StageScores; sections?: Record<string, StageScores>; answers?: Record<string, string>; savedAt: number; submittedAt?: number; note?: string };
+
+/**
+ * An administrator's objection to the staff's evaluation: the stages he objects to and why; the administration
+ * accepts it (and revises the evaluation) or rejects it, with its reply
+ */
+export type EvaluationObjection = { stages: string[]; reason: string; at: number; status: "pending" | "accepted" | "rejected"; reply?: string; decidedBy?: string; decidedAt?: number };
+
+/** One staff member's scores of an administrator, a group or a cluster that lived where he was posted */
+export type PeerEvaluation = { kind: "staff"; by: string; role: string; place?: string; stages: StageScores; note?: string; at: number };
+
 export type State = {
   accounts: Record<string, Account>;
   sessionId: string | null;
@@ -696,6 +714,20 @@ export type State = {
   clusterProfiles: Record<string, import("./cluster-profile").ClusterProfileState>;
   /** What the staff scored each administrator at the end of the season, by national id */
   evaluations: Record<string, { avg: number; at: number; by: string; stages: Record<string, { score: number; note?: string; file?: string }> }>;
+  /**
+   * The season's evaluation after the pilgrims are home (app/administrator/_lib/evaluation.ts). Each administrator's
+   * self-evaluation, stage by stage — saved as he goes, sent once.
+   */
+  selfEvaluations: Record<string, SelfEvaluation>;
+  /**
+   * What the staff posted in a tower or a camp gave, stage by stage, besides the administration's own
+   * (`evaluations`): to each administrator of the clusters that lived there (by his id), to each of their groups
+   * («g-<group>») and to each cluster («c-<cluster>»); then by the staff member («staff:<staff id>»).
+   * Administrators do not rate one another.
+   */
+  peerEvaluations: Record<string, Record<string, PeerEvaluation>>;
+  /** An administrator's objection to the staff's evaluation of him, and the administration's decision */
+  evaluationObjections: Record<string, EvaluationObjection>;
   /** Employees, reference data and operational files as the staff edited them (lib/ops.ts); a missing list means the seed */
   ops: import("./ops").OpsState;
   /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
@@ -830,6 +862,9 @@ const initial: State = {
   adminRules: {},
   clusterProfiles: {},
   evaluations: {},
+  selfEvaluations: {},
+  peerEvaluations: {},
+  evaluationObjections: {},
   ops: {},
   flights: {},
   examHalls: { runs: {} },
@@ -1245,6 +1280,22 @@ export const actions = {
   },
   setEvaluation(id: string, value: State["evaluations"][string]) {
     setState((s) => ({ ...s, evaluations: { ...s.evaluations, [id]: value } }));
+  },
+  saveSelfEvaluation(id: string, value: Pick<SelfEvaluation, "stages" | "sections" | "answers">, opts: { submit?: boolean } = {}) {
+    setState((s) => {
+      if (s.selfEvaluations[id]?.submittedAt) return s;
+      const at = Date.now();
+      return { ...s, selfEvaluations: { ...s.selfEvaluations, [id]: { ...value, savedAt: at, ...(opts.submit ? { submittedAt: at } : {}) } } };
+    });
+  },
+  setPeerEvaluation(adminId: string, evaluator: string, value: PeerEvaluation) {
+    setState((s) => ({ ...s, peerEvaluations: { ...s.peerEvaluations, [adminId]: { ...s.peerEvaluations[adminId], [evaluator]: value } } }));
+  },
+  objectToEvaluation(id: string, value: Pick<EvaluationObjection, "stages" | "reason">) {
+    setState((s) => (s.evaluationObjections[id] ? s : { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...value, at: Date.now(), status: "pending" } } }));
+  },
+  decideObjection(id: string, decision: Pick<EvaluationObjection, "status" | "reply" | "decidedBy">) {
+    setState((s) => (s.evaluationObjections[id] ? { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...s.evaluationObjections[id], ...decision, decidedAt: Date.now() } } } : s));
   },
   setGrading(patch: State["grading"]) {
     setState((s) => ({ ...s, grading: { ...s.grading, ...patch } }));

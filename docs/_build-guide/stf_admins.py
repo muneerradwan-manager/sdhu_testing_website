@@ -292,7 +292,7 @@ if ONLY in (None, "d"):
 # ═════════════ E. the directory, the letters, the evaluation, the classification ═════════════
 if ONLY in (None, "e"):
     s, c, p = start(today="2026-11-25", time="10:00")
-    s.nav("التكتلات والمجموعات", 2000)
+    c.goto(M + "/directory", wait=2000)
     c.shot("dir-clusters", "التكتلات: كل تكتل معتمد بموسمه وأرقامه، وأعضاؤه وملاحظة الإدارة", hl=[("main tbody tr >> nth=0 >> button:has-text('الأعضاء')", "")], section=S_DIR)
     p.locator("main tbody tr").first.locator("button:has-text('الأعضاء')").first.click(); c.settle(1400)
     c.shot("dir-members", "أعضاء تكتل: كل فرد بصفته في التكتل ومجموعته", section=S_DIR)

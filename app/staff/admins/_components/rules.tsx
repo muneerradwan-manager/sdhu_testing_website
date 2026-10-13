@@ -43,7 +43,7 @@ export function RulesTab() {
   return (
     <div className="space-y-6">
       <Views param="s" value={section} items={[...SECTIONS]} tabs label="أقسام القواعد" />
-      {section === "operations" && <OperationsPanel keys={["admin-registration", "admin-exams", "group-formation", "cluster-formation", "group-management", "cluster-management"]} system="admins" area="rules" title="عمليات الإداريين: حالتها ومواعيدها" />}
+      {section === "operations" && <OperationsPanel keys={["admin-registration", "admin-exams", "group-formation", "cluster-formation", "group-management", "cluster-management", "pilgrim-evaluation", "self-evaluation", "peer-evaluation", "evaluation-objection"]} system="admins" area="rules" title="عمليات الإداريين: حالتها ومواعيدها" />}
       {section === "permissions" && <RolePermissionsPanel />}
       {section === "commitments" && <Commitments />}
       {section === "documents" && <Documents />}

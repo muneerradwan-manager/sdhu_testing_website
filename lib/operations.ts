@@ -29,7 +29,11 @@ export type OperationKey =
   | "cluster-formation"
   | "cluster-approval"
   | "group-management"
-  | "cluster-management";
+  | "cluster-management"
+  | "pilgrim-evaluation"
+  | "self-evaluation"
+  | "peer-evaluation"
+  | "evaluation-objection";
 
 export type OperationDef = {
   key: OperationKey;
@@ -63,6 +67,11 @@ export const OPERATIONS: OperationDef[] = [
   { key: "cluster-approval", label: "مراجعة طلبات التكتلات واعتمادها", desc: "يراجع موظف إدارة الإداريين كل طلب يُرسل: يعتمده، أو يعيده بملاحظات يصلحها رئيسه قبل الموعد النهائي. وما بقي خارج التكتلات يُضاف بتعديل استثنائي.", start: "2026-11-12", end: "2026-12-05", control: "admins.manage", estimate: true },
   { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها والفريق في مقاعدها. دائمة ما دامت المجموعة قائمة.", control: "admins.manage" },
   { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع منسقيه وموجّهاته على مجموعاته وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
+  // After the season: the pilgrims rate as they come home; the administrators rate themselves once the last of them landed; then the staff and the clusters' heads rate them
+  { key: "pilgrim-evaluation", label: "تقييم الحجاج بعد العودة", desc: "اختياري: يقيّم الحاج بعد عودته رحلته كلها، ومجموعته وتكتله عموماً. لا يقيّم أشخاصاً بأسمائهم، ولا يدخل في تقييم الإداريين.", start: "2027-05-22", end: "2027-06-15", control: "admins.manage", estimate: true },
+  { key: "self-evaluation", label: "التقييم الذاتي للإداريين", desc: "بعد هبوط آخر رحلات العودة في دمشق: يقيّم كل إداري نفسه في كل مرحلة من مراحل الموسم، ويرسل تقييمه مرة واحدة.", start: "2027-06-04", end: "2027-06-10", control: "admins.manage", estimate: true },
+  { key: "peer-evaluation", label: "تقييم الموظفين للإداريين والمجموعات والتكتلات", desc: "بعد انتهاء التقييم الذاتي: يقيّم موظفو البعثة المفروزون على البرج أو المخيم التكتلات التي سكنت فيه — كل تكتل، وكل مجموعة منه، وكل إداري فيه — مرحلة مرحلة. الإداريون لا يقيّم بعضهم بعضاً.", start: "2027-06-11", end: "2027-06-20", control: "admins.manage", estimate: true },
+  { key: "evaluation-objection", label: "الاعتراض على التقييم", desc: "بعد تقييم الموظفين: يرى الإداري تقييمه لنفسه وتقييم الموظفين له، وله أن يعترض على تقييم الموظفين في مراحل يحددها وبسببه، فتقبل إدارة الإداريين اعتراضه وتعيد التقييم أو ترفضه بردّها.", start: "2027-06-21", end: "2027-06-27", control: "admins.manage", estimate: true },
 ];
 
 export const OPERATION_KEYS = OPERATIONS.map((o) => o.key);

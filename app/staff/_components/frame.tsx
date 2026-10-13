@@ -60,6 +60,7 @@ import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
 import { PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
 import { actions, useHydrated, useStore } from "@/lib/store";
+import { useEvaluatees } from "../evaluate/view";
 import { SYSTEMS, SYSTEM_KEYS, useOwnedSystems, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
@@ -91,6 +92,8 @@ type NavItem = {
   work?: true;
   hall?: true;
   airport?: true;
+  /** Shown to whoever was posted in a tower or a camp that clusters lived in: he rates their administrators after the season */
+  evaluate?: true;
   system?: SystemKey;
   area?: string;
   group?: string;
@@ -157,6 +160,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
   { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: [], hall: true, badge: "hall" },
   { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: [], airport: true, badge: "airport" },
+  { href: "/staff/evaluate", label: "تقييم الإداريين", icon: <Star />, perms: [], evaluate: true },
   // Task permissions in the order the season is worked: set up first, then run, then looked back on
   { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: ["season.settings"] },
   { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: ["ops.files"] },
@@ -259,6 +263,7 @@ function Sidebar({ user }: { user: StaffUser }) {
   const unseen = useSystemsUnseen();
   const flights = useFlightsData();
   const myAirports = useAirportReps().airportsOf(user.id);
+  const evaluatees = useEvaluatees(user).items.length;
   const counts = useMemo(
     () => ({
       // Applications that need a decision, and pilgrims' contracts with groups waiting for the office
@@ -287,7 +292,7 @@ function Sidebar({ user }: { user: StaffUser }) {
     [reviews, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
   );
   const items = STAFF_NAV.filter((n) =>
-    n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),
+    n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.evaluate ? evaluatees > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),
   );
 
   const logout = () => {

@@ -11,7 +11,7 @@ import type { Graded } from "../grading";
 /** The score is a weighted composite the administration defines; these are its parts */
 export const SCORE_PARTS = [
   { label: "تقييم الحجاج", weight: 0.4 },
-  { label: "تقييم الموظفين ورئيس التكتل", weight: 0.25 },
+  { label: "تقييم الموظفين", weight: 0.25 },
   { label: "الالتزام بالمراحل التسع", weight: 0.25 },
   { label: "البلاغات والمخالفات", weight: 0.1 },
 ] as const;

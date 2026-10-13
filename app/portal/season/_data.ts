@@ -307,7 +307,11 @@ export const MASHAER_ITEMS = [
   { key: "mashaer-elderly", label: "التعامل مع كبار السن" },
 ];
 
-/** Spec phase 21 — 13 items. `related` lists rating keys (post:*, app:*, season:*) averaged next to each item */
+/**
+ * Spec phase 21 — the trip's items, optional and general: the pilgrim rates no one by name, and nothing here counts
+ * in the administrators' evaluation (their own and the staff's). `related` lists rating keys (post:*, app:*,
+ * season:*) averaged next to each item.
+ */
 export const EVALUATION: { key: string; label: string; related: string[]; yesNo?: boolean }[] = [
   { key: "registration", label: "التسجيل والقرعة", related: ["app:acceptance", "post:confirm"] },
   { key: "payment", label: "الدفع والوثائق", related: ["post:documents", "post:payment"] },
@@ -317,9 +321,7 @@ export const EVALUATION: { key: string; label: string; related: string[]; yesNo?
   { key: "madinah", label: "الفندق في المدينة", related: ["season:stage-madinah"] },
   { key: "food", label: "الطعام", related: ["season:meal-*", "season:mashaer-meals"] },
   { key: "group", label: "المجموعة والتنظيم", related: ["post:group"] },
-  { key: "leader", label: "رئيس المجموعة (أحمد سليمان)", related: [] },
-  { key: "guide", label: "الموجّه (الشيخ خالد الرفاعي)", related: ["season:mashaer-guidance", "season:stage-tawaf"] },
   { key: "programs", label: "البرامج الدينية", related: ["season:stage-tawaf"] },
   { key: "support", label: "الدعم والطوارئ", related: ["tickets:*"] },
-  { key: "recommend", label: "هل توصي بتكتل النور؟", related: [], yesNo: true },
+  { key: "recommend", label: "هل توصي بتكتلك؟", related: [], yesNo: true },
 ];

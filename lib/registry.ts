@@ -141,6 +141,10 @@ const PEOPLE: Person[] = [
   P({ id: "01099900440", firstName: "حسن", fatherName: "عبد الوهاب", motherName: "نظيرة", lastName: "الطباع", gender: "M", birthDate: "1957-01-25", birthPlace: "دمشق", governorate: "دمشق", registry: "القيمرية 0440", maritalStatus: "متزوج", familyBookNo: "99900440", spouseIds: ["01099900441"], phoneTail: "440" }),
   P({ id: "01099900441", firstName: "هيام", fatherName: "صبحي", motherName: "روضة", lastName: "المالح", gender: "F", birthDate: "1963-05-08", birthPlace: "دمشق", governorate: "دمشق", registry: "القيمرية 0440", maritalStatus: "متزوجة", familyBookNo: "99900440", spouseIds: ["01099900440"], phoneTail: "441" }),
 
+  // ── يوسف القطان (70) وزوجته سميرة — مقبولان مباشرة وأنهيا كل الخطوات: يبدأان من الموسم نفسه ──
+  P({ id: "01044400750", firstName: "يوسف", fatherName: "عبد الرحمن", motherName: "نديمة", lastName: "القطان", gender: "M", birthDate: "1956-02-20", birthPlace: "دمشق", governorate: "دمشق", registry: "المهاجرين 0750", maritalStatus: "متزوج", familyBookNo: "44400750", spouseIds: ["01044400751"], phoneTail: "750" }),
+  P({ id: "01044400751", firstName: "سميرة", fatherName: "خالد", motherName: "رجاء", lastName: "السباعي", gender: "F", birthDate: "1960-07-08", birthPlace: "دمشق", governorate: "دمشق", registry: "المهاجرين 0750", maritalStatus: "متزوجة", familyBookNo: "44400750", spouseIds: ["01044400750"], phoneTail: "751" }),
+
   // ── ياسين، جار محمد — مسجّل في طلب آخر هذا الموسم ──
   P({ id: "01011100208", firstName: "ياسين", fatherName: "خليل", motherName: "مريم", lastName: "العمر", gender: "M", birthDate: "1970-03-21", birthPlace: "دمشق", governorate: "دمشق", registry: "المزة 3981", maritalStatus: "متزوج", familyBookNo: "12003981", otherApplication: "3981", phoneTail: "208" }),
 ];
@@ -163,11 +167,12 @@ export type DemoScenario = {
   title: string;
   note: string;
   /** Opens the account with an application already in place (lib/demo-scenarios) */
-  seed?: "notAccepted" | "accepted" | "lotteryAccepted";
+  seed?: "notAccepted" | "accepted" | "lotteryAccepted" | "complete";
 };
 
 /** Scenario shortcuts shown in the "demo data" helper — one per case the platform handles */
 export const DEMO_SCENARIOS: DemoScenario[] = [
+  { id: "01044400750", book: "", title: "يوسف القطان — كل شيء جاهز: جرّب الموسم", note: "70 عاماً مع زوجته سميرة: استوفيا الشروط، وسجّلا على القبول المباشر فقُبلا، وأنهيا الخطوات السبع كلها — الصور، ومجموعة اللطيف في تكتل النور بعقدها، والدفعة الثانية والهدي، والجوازات، والملف الطبي، والتأشيرة والرحلة. يدخل مباشرة إلى «حالتي الآن» ليجرّب الموسم.", seed: "complete" },
   { id: "01012345412", book: "45112233", title: "محمد الخطيب — المثال الكامل", note: "رب أسرة (58) — زوجته، ابنه عمر، ووالدته خديجة (78) من خارج الدفتر. إضافة خديجة تنقل الطلب إلى اسمها لأنها الأكبر" },
   { id: "01099900440", book: "99900440", title: "حسن الطباع — القبول المباشر", note: "69 عاماً مع زوجته هيام: ضمن القبول المباشر (مواليد 1958 فما قبل)، فيدفع رسم التسجيل والدفعة الأولى" },
   { id: "01077700351", book: "", title: "كريم الشامي — الطلب باسم الأب", note: "شاب (35) يسجّل ويضيف والده عادل (64) بالرقم الوطني، فيصبح الأب صاحب الطلب تلقائياً" },
