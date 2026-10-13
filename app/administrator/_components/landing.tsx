@@ -65,7 +65,7 @@ function rolesByLevel(s: Structure) {
       ],
     },
     { level: "مستوى المجموعة", tone: "from-green-dark to-green", items: live.filter((r) => r.level === "group").map(card) },
-    { level: "مشترك: مجموعة أو تكتل", tone: "from-gold-dark to-gold", items: live.filter((r) => r.level === "shared").map(card) },
+    { level: "مشترك: مجموعة أو تكتل", tone: "from-gold-dark to-gold text-ink", items: live.filter((r) => r.level === "shared").map(card) },
   ];
 }
 

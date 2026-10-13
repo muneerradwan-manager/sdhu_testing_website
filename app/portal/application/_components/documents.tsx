@@ -146,7 +146,7 @@ function PassportView({ m }: { m: Member }) {
   ];
   const mrz = `P<SYR${p.id.slice(0, 9)}<<<<<<<<<<<<<<<<<<<<<<<<<<`.slice(0, 44);
   return (
-    <div className="overflow-hidden rounded-2xl border border-green-dark/30 bg-gradient-to-br from-[#eef4ef] to-[#f7f1e3] shadow-lg">
+    <div className="on-paper overflow-hidden rounded-2xl border border-green-dark/30 bg-gradient-to-br from-[#eef4ef] to-[#f7f1e3] shadow-lg">
       <div className="flex items-center justify-between bg-green-dark px-4 py-2 text-xs font-bold text-gold">
         <span>جواز سفر — صفحة البيانات</span>
         <span className="rounded bg-white/15 px-2 py-0.5 text-white">تجريبي</span>
@@ -185,7 +185,7 @@ function VisaView({ app, m, i, at }: { app: Application; m: Member; i: number; a
     ["صالحة للدخول", "1 ذو القعدة – 30 ذو الحجة 1448"],
   ];
   return (
-    <div className="overflow-hidden rounded-2xl border border-gold/50 bg-gradient-to-br from-white to-[#f7f1e3] shadow-lg">
+    <div className="on-paper overflow-hidden rounded-2xl border border-gold/50 bg-gradient-to-br from-white to-[#f7f1e3] shadow-lg">
       <div className="flex items-center justify-between bg-gradient-to-l from-gold-dark to-gold px-4 py-2 text-xs font-bold text-ink">
         <span className="flex items-center gap-1.5">
           <Stamp className="size-4" /> تأشيرة حج

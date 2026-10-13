@@ -304,7 +304,7 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 + i * 0.06 }}
-            className="flex gap-3 bg-white p-5"
+            className="flex gap-3 bg-white p-5 sm:odd:last:col-span-2"
           >
             <f.icon className="mt-0.5 size-5 shrink-0 text-gold-dark" />
             <div>

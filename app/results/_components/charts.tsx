@@ -17,7 +17,7 @@ function useSegments() {
   const parts = [
     { key: "direct", label: t("قُبلوا مباشرة (الأكبر سناً)", "Accepted directly (oldest first)"), value: S.direct, color: "#00594F" },
     { key: "lottery", label: draw ? t("قُبلوا بالقرعة", "Accepted by lottery") : t("القرعة — لم تُنشر نتائجها بعد", "Lottery — results not yet published"), value: won, color: "#289E92" },
-    { key: "rest", label: t("لم يُقبلوا في القرعة", "Not accepted in the lottery"), value: totals.poolSeats - won, color: "#E4DDD3" },
+    { key: "rest", label: t("لم يُقبلوا في القرعة", "Not accepted in the lottery"), value: totals.poolSeats - won, color: "var(--chart-rest)" },
   ].filter((x) => x.value > 0);
   const total = parts.reduce((a, x) => a + x.value, 0);
   return { segments: parts.map((x) => ({ ...x, pct: Math.round((x.value / total) * 100) })), total, won };
@@ -49,7 +49,7 @@ export function OutcomeDonut() {
       <div className="mt-6 grid items-center gap-8 sm:grid-cols-[220px_1fr]">
         <div className="relative mx-auto size-56">
           <svg viewBox="0 0 200 200" className="size-full -rotate-90" role="img" aria-label={t("توزيع المسجلين حسب النتيجة", "Registrants by outcome")}>
-            <circle cx="100" cy="100" r={R} fill="none" stroke="#F7F4EF" strokeWidth="26" />
+            <circle cx="100" cy="100" r={R} fill="none" stroke="var(--chart-track)" strokeWidth="26" />
             {SEGMENTS.map((s, i) => {
               const len = (s.value / total) * C - GAP;
               const dashOffset = -starts[i];

@@ -109,9 +109,9 @@ export function Faq() {
                       <span className={cn("block font-bold leading-7 transition-colors", isOpen ? "text-green-dark" : "text-ink")}>{highlight(f.q, q)}</span>
                     </span>
                     <motion.span
-                      animate={{ rotate: isOpen ? 45 : 0, backgroundColor: isOpen ? "#00594F" : "#F7F4EF", color: isOpen ? "#D9C89E" : "#00594F" }}
+                      animate={{ rotate: isOpen ? 45 : 0 }}
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-full"
+                      className={cn("flex size-9 shrink-0 items-center justify-center rounded-full transition-colors", isOpen ? "bg-green-dark text-gold" : "bg-sand text-green-dark")}
                     >
                       <Plus className="size-5" />
                     </motion.span>

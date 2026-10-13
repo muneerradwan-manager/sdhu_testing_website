@@ -69,6 +69,9 @@
   --zoom: calc(var(--auto-zoom) * var(--user-zoom));
   /* Fallback for browsers without CSS zoom: the top-bar control scales the root font instead */
   --text-scale: 1;
+  /* The results' chart: the share left unaccepted and the ring's empty track (dark theme below) */
+  --chart-rest: #e4ddd3;
+  --chart-track: #f7f4ef;
   color-scheme: light;
 }
 
@@ -218,6 +221,8 @@ html[data-theme="dark"] {
   --tx-green: #79d4c7;
   --tx-maroon: #f3a9c6;
   --tx-golddark: #d9c89e;
+  --chart-rest: #3d4f48;
+  --chart-track: #0b1614;
 }
 html[data-theme="dark"] body {
   background: var(--color-sand);
@@ -225,7 +230,7 @@ html[data-theme="dark"] body {
 }
 /* Always light: the original colours come back inside them. .on-light marks an element whose light background
    is a sibling rather than its own (a sliding gold pill behind the selected menu item or tab) */
-html[data-theme="dark"] :where(.print-sheet, .bg-gold, .bg-gold-light, .from-gold, .on-light) {
+html[data-theme="dark"] :where(.print-sheet, .on-paper, .bg-gold, .from-gold, .from-gold-dark, .on-light) {
   --tx-ink: #021526;
   --tx-soft: #4a4a4a;
   --tx-hint: #62748e;
@@ -233,7 +238,8 @@ html[data-theme="dark"] :where(.print-sheet, .bg-gold, .bg-gold-light, .from-gol
   --tx-maroon: #672146;
   --tx-golddark: #ad9e6e;
 }
-html[data-theme="dark"] .print-sheet {
+/* .on-paper: a document drawn on the screen (a passport page, a visa) stays paper, its white fields with it */
+html[data-theme="dark"] :where(.print-sheet, .on-paper) {
   --color-sand: #f7f4ef;
   --surface: #ffffff;
 }
@@ -252,7 +258,11 @@ html[data-theme="dark"] .print-sheet {
   :where(html[data-theme="dark"]) .bg-white\/50 {
     background-color: color-mix(in oklab, var(--surface) 70%, transparent);
   }
-  /* A translucent light gold laid over the page is a faint gold tint on the dark one, not a grey veil */
+  /* Light gold — chips, tracks, image wells, a row on hover — is a gold-tinted dark surface, its text light; the
+     translucent light gold laid over the page is a faint gold tint on the dark one, not a grey veil */
+  :where(html[data-theme="dark"]) .bg-gold-light {
+    background-color: color-mix(in oklab, var(--color-gold) 16%, var(--surface));
+  }
   :where(html[data-theme="dark"]) .bg-gold-light\/30,
   :where(html[data-theme="dark"]) .bg-gold-light\/40,
   :where(html[data-theme="dark"]) .bg-gold-light\/50,
@@ -312,6 +322,30 @@ html[data-theme="dark"] .print-sheet {
   :where(html[data-theme="dark"]) .border-green-dark {
     border-color: var(--color-green-light);
   }
+  /* Warnings: the pale red and amber boxes become a red or amber tint on the dark surface, their text light red
+     or amber */
+  :where(html[data-theme="dark"]) .bg-red-50 {
+    background-color: color-mix(in oklab, var(--color-red-500) 14%, var(--surface));
+  }
+  :where(html[data-theme="dark"]) .from-red-50 {
+    --tw-gradient-from: color-mix(in oklab, var(--color-red-500) 16%, var(--surface));
+  }
+  :where(html[data-theme="dark"]) .from-amber-50 {
+    --tw-gradient-from: color-mix(in oklab, var(--color-amber-500) 14%, var(--surface));
+  }
+  :where(html[data-theme="dark"]) .ring-red-100,
+  :where(html[data-theme="dark"]) .ring-red-50\/50 {
+    --tw-ring-color: color-mix(in oklab, var(--color-red-500) 30%, transparent);
+  }
+  :where(html[data-theme="dark"]) .border-red-200 {
+    border-color: color-mix(in oklab, var(--color-red-500) 45%, transparent);
+  }
+  :where(html[data-theme="dark"]) .text-red-600 { color: #f87171; }
+  :where(html[data-theme="dark"]) .text-red-700,
+  :where(html[data-theme="dark"]) .text-red-800 { color: #fca5a5; }
+  :where(html[data-theme="dark"]) .text-red-900\/80 { color: color-mix(in oklab, #fecaca 85%, transparent); }
+  :where(html[data-theme="dark"]) .text-amber-600,
+  :where(html[data-theme="dark"]) .text-amber-700 { color: #fcd34d; }
   :where(html[data-theme="dark"]) .from-white {
     --tw-gradient-from: var(--surface);
   }
@@ -324,6 +358,14 @@ html[data-theme="dark"] .print-sheet {
   html[data-theme="dark"] .hover\:bg-white\/60:hover,
   html[data-theme="dark"] .group:hover .group-hover\:bg-white {
     background-color: color-mix(in oklab, var(--surface) 82%, white);
+  }
+  html[data-theme="dark"] .hover\:bg-gold-light:hover,
+  html[data-theme="dark"] .group:hover .group-hover\:bg-gold-light {
+    background-color: color-mix(in oklab, var(--color-gold) 16%, var(--surface));
+  }
+  html[data-theme="dark"] .hover\:bg-gold-light\/30:hover,
+  html[data-theme="dark"] .hover\:bg-gold-light\/40:hover {
+    background-color: color-mix(in oklab, var(--color-gold) 10%, transparent);
   }
   html[data-theme="dark"] .focus\:bg-white:focus {
     background-color: var(--surface);
