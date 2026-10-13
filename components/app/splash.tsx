@@ -73,12 +73,13 @@ export function Splash() {
           </svg>
         </div>
         <p className="sp-title" aria-hidden>
-          <span className="sp-ar">المنصة الوطنية للحج</span>
-          <span className="sp-en">National Hajj Platform</span>
+          <span className="sp-ar">إدارة الحج والعمرة</span>
+          <span className="sp-en">Hajj and Umrah Administration</span>
         </p>
         <p className="sp-sub" aria-hidden>
-          <span className="sp-ar">إدارة الحج والعمرة السورية</span>
-          <span className="sp-en">Syrian Hajj and Umrah Administration</span>
+          {/* As wide as the name above it, measured in Qomra at these sizes (28px / 14px): the splash is drawn before any script runs */}
+          <span className="sp-ar">{`الس${"ـ".repeat(63)}ورية`}</span>
+          <span className="sp-en">Syria</span>
         </p>
         <div className="sp-bar">
           <i />

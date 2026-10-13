@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { BrandLockup } from "./lockup";
 
 /**
  * Original emblem: an 8-point khatam star framing the Kaaba, ringed in gold. `gradientId` gives a second emblem
@@ -37,11 +38,14 @@ export function Emblem({ className, animated = false, gradientId = "emblem-gold"
 }
 
 /** The platform's name and authority beside the emblem; the header passes them in the page's language */
+/** The lockup's two lines: the administration's name large, and «السورية» small beneath it, as wide as the name (./lockup) */
+export const BRAND = { name: "إدارة الحج والعمرة", country: "السورية" } as const;
+
 export function Logo({
   className,
   light = false,
-  name = "المنصة الوطنية للحج",
-  authority = "إدارة الحج والعمرة السورية",
+  name = BRAND.name,
+  authority = BRAND.country,
 }: {
   className?: string;
   light?: boolean;
@@ -51,14 +55,12 @@ export function Logo({
   return (
     <span className={cn("flex items-center gap-3", className)}>
       <Emblem className="size-10 sm:size-11" />
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className={cn("whitespace-nowrap font-display text-base font-bold sm:text-lg", light ? "text-white" : "text-green-dark")}>
-          {name}
-        </span>
-        <span className={cn("hidden truncate whitespace-nowrap text-[11px] font-medium min-[360px]:block", light ? "text-gold" : "text-gold-dark")}>
-          {authority}
-        </span>
-      </span>
+      <BrandLockup
+        name={name}
+        country={authority}
+        nameClass={cn("font-display text-base font-bold sm:text-lg", light ? "text-white" : "text-green-dark")}
+        countryClass={cn("hidden text-xs font-semibold min-[360px]:block", light ? "text-gold" : "text-gold-dark")}
+      />
     </span>
   );
 }

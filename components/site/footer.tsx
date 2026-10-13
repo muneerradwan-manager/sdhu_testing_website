@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { Emblem } from "@/components/brand/logo";
-import { SOCIAL_PATHS, useFooter, useNav, useSiteIdentity } from "@/lib/cms/site";
+import { BRAND, Emblem } from "@/components/brand/logo";
+import { BrandLockup } from "@/components/brand/lockup";
+import { SOCIAL_PATHS, useFooter, useNav } from "@/lib/cms/site";
 import { useT } from "@/lib/i18n";
 
 /** كل نصوص التذييل وروابطه تأتي من لوحة المحتوى (الإعدادات العامة ← تذييل الموقع) */
 export function Footer() {
   const t = useT();
-  const identity = useSiteIdentity();
   const { nav, more } = useNav();
   const f = useFooter();
 
@@ -21,10 +21,7 @@ export function Footer() {
         <div>
           <div className="flex items-center gap-3">
             <Emblem className="size-14" />
-            <div>
-              <p className="font-display text-xl font-bold text-white">{identity.name}</p>
-              <p className="text-sm text-gold">{identity.authority}</p>
-            </div>
+            <BrandLockup name={t(BRAND.name, "Hajj and Umrah Administration")} country={t(BRAND.country, "Syria")} nameClass="font-display text-xl font-bold text-white" countryClass="text-sm font-semibold text-gold" />
           </div>
           {f.about && <p className="mt-5 max-w-sm leading-8">{f.about}</p>}
           {f.social.length > 0 && (

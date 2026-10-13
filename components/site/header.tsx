@@ -20,7 +20,7 @@ import {
   Sun,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Logo } from "@/components/brand/logo";
+import { BRAND, Logo } from "@/components/brand/logo";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { CITIES, nextPrayer } from "@/lib/prayer";
 import { getPerson } from "@/lib/registry";
@@ -285,7 +285,7 @@ export function Header() {
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:h-20 sm:gap-4 md:px-8">
           <Link href="/" className="min-w-0" aria-label={t("الصفحة الرئيسية", "Home page")}>
-            <Logo light={!solid} name={t("المنصة الوطنية للحج", "National Hajj Platform")} authority={t("إدارة الحج والعمرة السورية", "Syrian Hajj and Umrah Administration")} />
+            <Logo light={!solid} name={t(BRAND.name, "Hajj and Umrah Administration")} authority={t(BRAND.country, "Syria")} />
           </Link>
 
           <nav className="hidden items-center gap-1 xl:flex">
