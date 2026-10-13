@@ -43,7 +43,7 @@ export function VerifyTabs() {
         role="tablist"
         aria-label={t("أدوات التحقق", "Verification tools")}
         onKeyDown={onKey}
-        className="relative mx-auto grid max-w-3xl grid-cols-2 gap-1.5 rounded-3xl border border-gold/40 bg-white p-1.5 shadow-[0_24px_60px_-40px_rgba(0,89,79,.6)]"
+        className="relative grid w-full grid-cols-2 gap-1.5 rounded-3xl border border-gold/40 bg-white p-1.5 shadow-[0_24px_60px_-40px_rgba(0,89,79,.6)]"
       >
         {TABS.map((item, i) => {
           const active = item.key === tab;

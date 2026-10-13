@@ -13,7 +13,7 @@ import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
 import { useClusterRequests, useFormationWindow, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { roleKeyOf } from "@/app/administrator/_lib/halls";
-import { useClusters } from "@/lib/cms/content";
+import { useClusterProgrammes } from "@/lib/cluster-profile";
 import { letterState, useLetters } from "@/app/administrator/_lib/letters";
 import { useAdminRows, type AdminRow } from "../_components/data";
 import { logAs } from "../_components/kit";
@@ -90,7 +90,8 @@ export function useAdminsDesk() {
   const evaluations = useStore((s) => s.evaluations);
   const grading = useStore((s) => s.grading);
   const profiles = useStore((s) => s.clusterProfiles);
-  const directory = useClusters();
+  // Every approved cluster's programme: the published one, or the blank one its team is writing
+  const directory = useClusterProgrammes();
   const gradedGroups = useGraded("groups");
   const gradedClusters = useGraded("clusters");
   const letters = useLetters();
@@ -181,7 +182,7 @@ export function useAdminsDesk() {
       .filter((g) => !held.has(g.number))
       .map((g) => ({ ...g, from: requests.find((r) => r.groups.some((x) => x.number === g.number))?.cluster.name }))
       .sort((a, b) => a.number - b.number);
-    const programmes = directory.map((c) => ({ cluster: c, state: profiles[c.slug] })).filter((x) => x.state?.pending || x.state?.approved || x.state?.rejected);
+    const programmes = directory.map(({ cluster: c }) => ({ cluster: c, state: profiles[c.slug] })).filter((x) => x.state?.pending || x.state?.approved || x.state?.rejected);
     const pendingProgrammes = programmes.filter((x) => x.state?.pending);
 
     // ── Evaluation ── of everyone who works this season, stage by stage

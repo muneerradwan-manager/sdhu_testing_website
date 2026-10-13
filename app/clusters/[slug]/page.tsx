@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCollectionDef } from "@/lib/cms/collections";
+import { SEED_CLUSTERS } from "@/app/administrator/_lib/cluster";
 import { CLUSTERS } from "@/lib/data/clusters";
 import { ClusterPage } from "./cluster-page";
 
@@ -16,7 +17,9 @@ export function generateStaticParams() {
   const def = getCollectionDef("clusters");
   const built = def?.builtIn.map((c) => c.id) ?? CLUSTERS.map((c) => c.slug);
   const slots = def?.slots ?? [];
-  return [...built, ...slots].map((slug) => ({ slug }));
+  // Every approved cluster of the season has a page its team writes, published or not yet
+  const approved = SEED_CLUSTERS.filter((x) => x.cluster.status === "approved").map((x) => x.cluster.id);
+  return [...new Set([...built, ...approved, ...slots])].map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

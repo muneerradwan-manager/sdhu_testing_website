@@ -422,7 +422,7 @@ function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mod
           )}
           {tab === "report" && <ReportStep req={req} editable={editable && mode === "request"} />}
           {tab === "plan" && <PlanStep req={req} editable={mode === "manage"} />}
-          {tab === "page" && <ClusterPublicProfile />}
+          {tab === "page" && <ClusterPublicProfile clusterId={req.cluster.id} clusterName={req.cluster.name} />}
         </motion.div>
       </AnimatePresence>
     </div>

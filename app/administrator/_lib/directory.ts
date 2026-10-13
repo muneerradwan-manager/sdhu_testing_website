@@ -3,7 +3,7 @@
 import { clustersNow } from "@/lib/cms/content";
 import type { Cluster, ServiceLevel } from "@/lib/data/clusters";
 import { fullName, getPerson } from "@/lib/registry";
-import { getState, type ClusterRecord } from "@/lib/store";
+import { getState, type AdminProfile, type ClusterRecord } from "@/lib/store";
 import { SEED_CLUSTERS, acceptedGroups, asGroup } from "./cluster";
 import { structureNow, type Structure } from "./structure";
 
@@ -55,4 +55,24 @@ export function directoryNow(): Cluster[] {
     const r = requestNow(c.slug);
     return r?.cluster.status === "approved" ? [{ ...c, ...structureFacts(s, r) }] : [];
   });
+}
+
+/** Who writes a cluster's public page, and as what */
+export type PageWriter = { clusterId: string; clusterName: string; post: string };
+
+/**
+ * A cluster's public page is written by its team once the cluster is approved: its head and deputy, its
+ * assistants and technical coordinators, and its groups' heads and their assistants (not its guides). Whatever
+ * any of them sends waits for the administration, under the sender's name.
+ */
+export function pageWriterOf(p: AdminProfile | undefined): PageWriter | null {
+  if (!p) return null;
+  if (p.cluster) return { clusterId: p.cluster.id, clusterName: p.cluster.name, post: "رئيس التكتل" };
+  if (p.deputyOf) return { clusterId: p.deputyOf.clusterId, clusterName: p.deputyOf.clusterName, post: "نائب رئيس التكتل" };
+  if (p.coordinatorIn) return { clusterId: p.coordinatorIn.clusterId, clusterName: p.coordinatorIn.clusterName, post: "منسق تقني" };
+  if (p.servesIn?.role === "cluster-assistant") return { clusterId: p.servesIn.clusterId, clusterName: p.servesIn.clusterName, post: "معاون التكتل" };
+  if (p.servesIn?.role === "assistant") return { clusterId: p.servesIn.clusterId, clusterName: p.servesIn.clusterName, post: "معاون مجموعة" };
+  const own = p.group?.approvedAt ? p.group.clusterId : undefined;
+  if (p.positions[0] === "group-head" && own) return { clusterId: own, clusterName: requestNow(own)?.cluster.name ?? own, post: "رئيس مجموعة" };
+  return null;
 }

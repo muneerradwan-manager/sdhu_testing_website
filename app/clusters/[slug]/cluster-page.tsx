@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft, BadgeCheck, BookOpen, Bus, CalendarCheck, Hotel, MapPin, ShieldCheck, Sparkles, Star, Utensils, Wallet } from "lucide-react";
 import { Card } from "@/components/portal/shell";
-import { ClusterGroupsCard, ClusterTeamCard } from "./cluster-team";
+import { ClusterFactsCard, ClusterGroupsCard, ClusterTeamCard } from "./cluster-team";
 import { ButtonLink } from "@/components/ui/button";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { ROOM_BEDS, ROOM_LABEL, priceRange } from "@/lib/rooms";
@@ -92,7 +92,7 @@ export function ClusterPage({ slug }: { slug: string }) {
         <Image src={IMAGES[c.slug] ?? "/images/kaaba-hajj.jpg"} alt="" fill priority sizes="100vw" quality={75} className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-green-dark via-green-dark/70 to-green-dark/20" />
         <div className="bg-pattern absolute inset-0 opacity-15" />
-        <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col justify-end px-4 pb-8">
+        <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col justify-end px-4 pb-8 md:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
             <nav aria-label={t("مسار التنقل", "Breadcrumb")} className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-white/70">
               <Link href="/" className="hover:text-gold">{t("الرئيسية", "Home")}</Link>
@@ -131,11 +131,11 @@ export function ClusterPage({ slug }: { slug: string }) {
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-5xl px-4 py-10">
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 md:px-8">
         {/* Numbers */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { k: t("التقييم", "Rating"), v: <Stars value={c.rating} />, hint: t(`${formatNumber(c.reviews)} تقييماً من حجاج سابقين`, `${formatNumber(c.reviews)} reviews from past pilgrims`) },
+            { k: t("التقييم", "Rating"), v: c.reviews ? <Stars value={c.rating} /> : <span className="font-display text-xl font-bold text-gold-dark">{t("تكتل جديد", "New cluster")}</span>, hint: !c.reviews ? t("لا تقييمات بعد: يقيّمه حجاجه بعد موسمه الأول", "No reviews yet: its pilgrims rate it after its first season") : t(`${formatNumber(c.reviews)} تقييماً من حجاج سابقين`, `${formatNumber(c.reviews)} reviews from past pilgrims`) },
             {
               k: t("المجموعات", "Groups"),
               v: <span className="font-display text-2xl font-bold text-green-dark">{c.groupsCount}</span>,
@@ -162,7 +162,7 @@ export function ClusterPage({ slug }: { slug: string }) {
           ))}
         </div>
 
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-6">
             <Card className="md:p-7">
               <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
@@ -230,7 +230,8 @@ export function ClusterPage({ slug }: { slug: string }) {
           </div>
 
           {/* Aside */}
-          <aside className="space-y-4 lg:sticky lg:top-28">
+          <aside className="space-y-4">
+            {c.team && <ClusterFactsCard cluster={c} team={c.team} />}
             <div className="rounded-[2rem] bg-green-dark p-6 text-white">
               <p className="flex items-center gap-2 font-display text-lg font-bold text-gold">
                 <ShieldCheck className="size-5" /> {t("ما معنى «معتمد»؟", "What does «approved» mean?")}

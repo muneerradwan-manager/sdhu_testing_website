@@ -4,8 +4,9 @@ import { useMemo } from "react";
 import { structureFacts } from "@/app/administrator/_lib/directory";
 import { teamOf } from "@/app/administrator/_lib/directory-team";
 import { useClusterRequests } from "@/app/administrator/_lib/formation";
-import { useCadre, useStructure } from "@/app/administrator/_lib/structure";
+import { branchOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useClusters } from "./cms/content";
+import { SEASON } from "./season";
 import type { Cluster } from "./data/clusters";
 import { useStore } from "./store";
 import { formatRoomPrices, type RoomPrices } from "./rooms";
@@ -115,14 +116,64 @@ export function diffFields(before: ClusterProfileFields, after: ClusterProfileFi
     .filter((x) => x.changed);
 }
 
+/** A blank programme for an approved cluster that has none yet: its team writes it (app/administrator/(desk)/cluster-page) */
+function blankProgramme(id: string, name: string, branch: string): Cluster {
+  return {
+    slug: id,
+    name,
+    since: SEASON.hijriYear,
+    level: "عادي",
+    rating: 0,
+    reviews: 0,
+    governorate: branch,
+    office: branch,
+    specialty: "",
+    about: "",
+    approvedOn: "",
+    groupsCount: 0,
+    pilgrims: 0,
+    makkah: { hotel: "", area: "", distance: "", rooms: "", features: [] },
+    madinah: { hotel: "", area: "", distance: "" },
+    transport: [],
+    meals: [],
+    programs: [],
+    rooms: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    groups: [],
+    tone: "green",
+  };
+}
+
+/**
+ * The programme of every approved cluster, as its team writes it and the administration approves it: the version
+ * the content team published (lib/data/clusters), else a blank one. `listed`: it has a published programme — the
+ * content team's, or one its team wrote and the administration approved — so it shows in the directory.
+ */
+export function useClusterProgrammes(): { cluster: Cluster; listed: boolean }[] {
+  const clusters = useClusters();
+  const profiles = useStore((s) => s.clusterProfiles);
+  const requests = useClusterRequests();
+  const cadre = useCadre();
+  return useMemo(
+    () =>
+      requests
+        .filter((r) => r.status === "approved" && !r.archived)
+        .map((r) => {
+          const own = clusters.find((c) => c.slug === r.cluster.id);
+          const branch = branchOf(r.headId, cadre);
+          return { cluster: own ?? blankProgramme(r.cluster.id, r.cluster.name, branch), listed: !!own || !!profiles[r.cluster.id]?.approved };
+        }),
+    [clusters, profiles, requests, cadre],
+  );
+}
+
 /**
  * The clusters as the pilgrims see them: each published programme (the version its head published, once the
  * administration approved it), joined to the cluster's request in the administrators' platform under the same id —
  * its level, its groups with their heads and the seats left, and its people. Only clusters whose request is
- * approved (and not archived) are in the directory.
+ * approved (and not archived) and that have a published programme are in the directory.
  */
 export function useClusterDirectory(): Cluster[] {
-  const clusters = useClusters();
+  const programmes = useClusterProgrammes();
   const profiles = useStore((s) => s.clusterProfiles);
   const admins = useStore((s) => s.admins);
   const requests = useClusterRequests();
@@ -130,12 +181,12 @@ export function useClusterDirectory(): Cluster[] {
   const cadre = useCadre();
   return useMemo(
     () =>
-      clusters.flatMap((c) => {
-        const r = requests.find((x) => x.cluster.id === c.slug && x.status === "approved" && !x.archived);
-        if (!r) return [];
+      programmes.flatMap(({ cluster: c, listed }) => {
+        const r = requests.find((x) => x.cluster.id === c.slug);
+        if (!r || !listed) return [];
         const published = profiles[c.slug]?.approved ? withFields(c, profiles[c.slug].approved!.fields) : c;
         return [{ ...published, ...structureFacts(structure, r), team: teamOf(structure, cadre, admins, r) }];
       }),
-    [clusters, profiles, requests, structure, cadre, admins],
+    [programmes, profiles, requests, structure, cadre, admins],
   );
 }

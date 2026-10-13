@@ -68,7 +68,7 @@ export function DocumentCheck() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
         <form onSubmit={submit} className="relative">
           <label htmlFor="doc-no" className="sr-only">

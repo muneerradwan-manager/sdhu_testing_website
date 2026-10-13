@@ -83,7 +83,7 @@ export function EntityCheck({ onOpenCluster }: { onOpenCluster: (slug: string) =
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="w-full">
       <form onSubmit={submit} className="relative" role="search">
         <label htmlFor="entity-q" className="sr-only">
           {t("اسم التكتل أو الحملة", "Name of the cluster or campaign")}

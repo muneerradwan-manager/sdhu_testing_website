@@ -5,10 +5,10 @@ import { Award, BookOpen, Calculator, Crown, Laptop, Medal, Star, Timer, UserRou
 import type { ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { Badge } from "@/components/ui/widgets";
-import type { ClusterTeam, TeamGroup, TeamMember } from "@/lib/data/clusters";
+import type { Cluster, ClusterTeam, TeamGroup, TeamMember } from "@/lib/data/clusters";
 import { groupName } from "@/lib/groups";
 import { useT } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 /** The roles and posts in English; the names stay Arabic */
 const EN: Record<string, string> = {
@@ -174,6 +174,48 @@ export function ClusterTeamCard({ team }: { team: ClusterTeam }) {
         {t(`مستوى التكتل في طلبه المعتمد: ${team.tier}.`, `The cluster's tier in its approved request: ${team.tier}.`)}
       </p>
     </Card>
+  );
+}
+
+/** The cluster at a glance, beside its programme: who leads it, its tier and office, its groups, pilgrims and team, its badges */
+export function ClusterFactsCard({ cluster, team }: { cluster: Cluster; team: ClusterTeam }) {
+  const t = useT();
+  const earned = BADGES.filter((b) => team.badges[b.key]);
+  const rows: { k: string; v: ReactNode }[] = [
+    { k: t("رئيس التكتل", "Head"), v: <bdi>{team.head.name}</bdi> },
+    ...(team.deputy ? [{ k: t("نائبه", "Deputy"), v: <bdi>{team.deputy.name}</bdi> }] : []),
+    ...(team.accountant ? [{ k: t("محاسبه", "Accountant"), v: <bdi>{team.accountant.name}</bdi> }] : []),
+    { k: t("المستوى", "Tier"), v: team.tier },
+    { k: t("المكتب", "Office"), v: cluster.office },
+    { k: t("المجموعات", "Groups"), v: formatNumber(cluster.groupsCount) },
+    { k: t("الحجاج", "Pilgrims"), v: formatNumber(cluster.pilgrims) },
+    { k: t("الإداريون", "Administrators"), v: formatNumber(team.size) },
+    { k: t("المنسقون والموجّهات", "Coordinators and female guides"), v: `${formatNumber(team.coordinators.length)} · ${formatNumber(team.femaleGuides.length)}` },
+  ];
+  return (
+    <div className="rounded-[2rem] border border-gold/30 bg-white p-6">
+      <p className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
+        <Crown className="size-5 text-gold-dark" /> {t("بطاقة التكتل", "The cluster at a glance")}
+      </p>
+      <dl className="mt-3 space-y-2 text-sm">
+        {rows.map((r) => (
+          <div key={r.k} className="flex justify-between gap-3 rounded-xl bg-sand px-3 py-2">
+            <dt className="text-ink-soft">{r.k}</dt>
+            <dd className="text-end font-bold text-ink">{r.v}</dd>
+          </div>
+        ))}
+      </dl>
+      {earned.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {earned.map((b) => (
+            <span key={b.key} title={t(b.hintAr, b.hintEn)} className="inline-flex items-center gap-1 rounded-full bg-green-dark px-2.5 py-1 text-[11px] font-bold text-white">
+              <b.icon className="size-3 text-gold" /> {t(b.ar, b.en)}
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="mt-3 text-xs leading-6 text-hint">{t("من طلب التكتل الذي اعتمدته الإدارة في منصة الإداريين.", "From the cluster's request as the Administration approved it on the administrators' platform.")}</p>
+    </div>
   );
 }
 

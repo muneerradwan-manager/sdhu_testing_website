@@ -112,8 +112,8 @@ export function ClustersDirectory() {
               </div>
               <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-center justify-between">
-                  <Rating value={c.rating} />
-                  <span className="text-xs text-ink-soft">{t(`${formatNumber(c.reviews)} تقييماً`, `${formatNumber(c.reviews)} reviews`)}</span>
+                  {c.reviews ? <Rating value={c.rating} /> : <span className="text-sm font-bold text-gold-dark">{t("تكتل جديد", "New cluster")}</span>}
+                  <span className="text-xs text-ink-soft">{c.reviews ? t(`${formatNumber(c.reviews)} تقييماً`, `${formatNumber(c.reviews)} reviews`) : t("لا تقييمات بعد", "No reviews yet")}</span>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-ink-soft">{c.specialty}</p>
                 {c.team && (

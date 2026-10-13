@@ -7,13 +7,13 @@ import { useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { useClusters } from "@/lib/cms/content";
-import { diffFields, fieldsOf, type ClusterProfileFields } from "@/lib/cluster-profile";
+import { diffFields, fieldsOf, useClusterProgrammes, type ClusterProfileFields } from "@/lib/cluster-profile";
 import { ROOM_BEDS, ROOM_LABEL, type RoomPrices } from "@/lib/rooms";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, nowMs, useAdmin } from "../../_lib/admin";
-import { clusterViewOf } from "../../_lib/cluster";
+import { pageWriterOf } from "../../_lib/directory";
+import { useClusterRequest } from "../../_lib/formation";
 
 const TEXT_FIELDS: { key: keyof ClusterProfileFields; label: string; hint?: string; area?: boolean }[] = [
   { key: "specialty", label: "سطر التعريف تحت الاسم", hint: "جملة قصيرة يقرأها الحاج أولاً" },
@@ -38,27 +38,31 @@ const LISTS: { key: keyof ClusterProfileFields; label: string; icon: typeof Bus;
 ];
 
 /**
- * The public page of the cluster, written by its head. He contracted the hotels and the buses, so he
- * is the one who describes them — but the page carries the administration's approval, so what he
- * writes waits for the administration before it reaches the pilgrims.
+ * The public page of the cluster, written by its team once the cluster is approved (../../_lib/directory
+ * pageWriterOf): they contracted the hotels and the buses and run the programme, so they describe them — but
+ * the page carries the administration's approval, so what any of them sends waits for the administration
+ * before it reaches the pilgrims. Its groups, their heads and its people are not written here: the page reads
+ * them from the approved request.
  */
-export function ClusterPublicProfile() {
+export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: string; clusterName: string }) {
   const admin = useAdmin()!;
   const toast = useToast();
-  const view = clusterViewOf(admin.profile, admin.name)!;
-  const clusters = useClusters();
+  const view = { id: clusterId, name: clusterName };
+  const writer = pageWriterOf(admin.profile);
+  const request = useClusterRequest(clusterId);
+  const programme = useClusterProgrammes().find((x) => x.cluster.slug === clusterId);
   const state = useStore((s) => s.clusterProfiles[view.id]);
-  const listed = clusters.find((c) => c.slug === view.id);
+  const listed = programme?.cluster;
   const live = listed ? (state?.approved ? { ...fieldsOf(listed), ...state.approved.fields } : fieldsOf(listed)) : null;
   const [draft, setDraft] = useState<ClusterProfileFields | null>(null);
   const [note, setNote] = useState("");
 
-  if (!listed || !live) {
+  if (!listed || !live || request?.status !== "approved") {
     return (
       <Card className="md:p-7">
-        <h3 className="font-display text-xl font-bold text-green-dark">صفحة تكتلك العامة</h3>
+        <h3 className="font-display text-xl font-bold text-green-dark">صفحة {clusterName} العامة</h3>
         <p className="mt-2 leading-8 text-ink-soft">
-          تُنشأ صفحة التكتل في «التكتلات والمجموعات» بعد أن تدرجه الإدارة في دليل الموسم المعتمد. حين تُدرج، تظهر لك هنا لتكتب برنامجك وسكنك ونقلك وإعاشتك، وتُرسلها للاعتماد.
+          تُفتح صفحة التكتل بعد أن تعتمد الإدارة طلب تشكيله. حينها يكتب فريقه هنا لمحته وسكنه في مكة والمدينة وأسعار السكن الخاص ونقله وإعاشته وبرامجه، ويرسلها للاعتماد. أما مجموعاته ورؤساؤها وفريقه وتقييمه فتظهر في الصفحة وحدها من طلبه المعتمد.
         </p>
       </Card>
     );
@@ -71,7 +75,7 @@ export function ClusterPublicProfile() {
 
   const submit = () => {
     if (!changes.length) return;
-    actions.submitClusterProfile(view.id, { fields: values, at: nowMs(), by: admin.name, note: note.trim() || undefined });
+    actions.submitClusterProfile(view.id, { fields: values, at: nowMs(), by: writer ? `${admin.name} — ${writer.post}` : admin.name, note: note.trim() || undefined });
     logAdmin(admin.id, `إرسال برنامج ${view.name} للاعتماد`, `${changes.length} تعديلات`, changes.map((c) => c.label).join("، "), { area: "clusters", ref: view.id });
     toast({ title: "أُرسل للاعتماد", body: "لا يظهر للحجاج قبل أن تعتمده الإدارة.", icon: "📨", tone: "info" });
     setDraft(null);
@@ -84,9 +88,10 @@ export function ClusterPublicProfile() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="font-display text-2xl font-bold text-green-dark">صفحة {view.name} في «التكتلات والمجموعات»</h3>
-            <p className="mt-1 max-w-2xl leading-7 text-ink-soft">
-              هذه الصفحة يقرأها الحاج قبل أن يختار تكتله. أنت من تعاقد على الفنادق والحافلات، فأنت من يكتب تفاصيلها. وللصفحة ختم «معتمد من الإدارة»، فلا يظهر تعديلك للحجاج قبل اعتماده.
+            <p className="mt-1 max-w-3xl leading-7 text-ink-soft">
+              هذه الصفحة يقرأها الحاج قبل أن يختار تكتله. يكتبها فريق التكتل — رئيسه ونائبه ومعاونوه ومنسقوه ورؤساء مجموعاته ومعاونوها — لأنهم من تعاقد على الفنادق والحافلات ويدير البرنامج. وللصفحة ختم «معتمد من الإدارة»، فلا يظهر أي تعديل للحجاج قبل اعتماده، ويصل إلى الإدارة باسم من أرسله.
             </p>
+            <p className="mt-2 text-sm text-hint">مجموعات التكتل ورؤساؤها وفريقه وتقييمه لا تُكتب هنا: تظهر في الصفحة وحدها من طلبه المعتمد.</p>
           </div>
           <Link href={`/clusters/${view.id}`} target="_blank" className="flex items-center gap-1.5 rounded-full bg-sand px-3 py-2 text-sm font-bold text-green-dark">
             <ExternalLink className="size-4" /> عرض الصفحة كما يراها الحاج
@@ -95,17 +100,17 @@ export function ClusterPublicProfile() {
 
         {state?.pending && (
           <p className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-gold/20 p-4 text-sm font-semibold text-maroon">
-            <CircleDashed className="size-4 animate-spin" /> تعديلك عند الإدارة للاعتماد — {diffFields(live, state.pending.fields).length} حقلاً. ما يراه الحاج الآن هو النسخة المعتمدة السابقة.
+            <CircleDashed className="size-4 animate-spin" /> تعديل أرسله {state.pending.by} عند الإدارة للاعتماد — {diffFields(live, state.pending.fields).length} حقلاً. ما يراه الحاج الآن هو النسخة المعتمدة السابقة.
           </p>
         )}
         {state?.rejected && (
           <p className="mt-4 rounded-2xl bg-maroon/10 p-4 text-sm leading-7 text-maroon">
-            أعادت الإدارة تعديلك: <b>{state.rejected.reason}</b>. عدّله وأعد إرساله.
+            أعادت الإدارة آخر تعديل: <b>{state.rejected.reason}</b>. عدّله وأعد إرساله.
           </p>
         )}
         {state?.approved && !state.pending && (
           <p className="mt-4 flex items-center gap-2 rounded-2xl bg-green-light/10 p-4 text-sm font-semibold text-green">
-            <BadgeCheck className="size-4" /> برنامجك المعتمد منشور — اعتمدته الإدارة ({state.approved.approvedBy}).
+            <BadgeCheck className="size-4" /> برنامج التكتل المعتمد منشور — أرسله {state.approved.by}، واعتمدته الإدارة ({state.approved.approvedBy}).
           </p>
         )}
       </Card>
