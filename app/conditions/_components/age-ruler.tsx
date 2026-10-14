@@ -4,13 +4,19 @@ import { AnimatePresence, motion } from "motion/react";
 import { CircleCheck, CircleX, Info, Mars, Venus } from "lucide-react";
 import { useState } from "react";
 import { useLang, useT } from "@/lib/i18n";
+import { MONTHS, usePublishedDraw, type DrawPick } from "@/lib/lottery";
+import { DEMO_START, dayLabel, useOperation, useToday, type OperationState } from "@/lib/operations";
 import { SEASON } from "@/lib/season";
 import { cn } from "@/lib/utils";
+import { dateEn } from "../_lib/en";
 
 const MIN = 1930;
 const MAX = 2012;
 const R = SEASON.rules;
 const pct = (y: number) => ((y - MIN) / (MAX - MIN)) * 100;
+/** Born this year or earlier: accepted directly, oldest first */
+const DIRECT_MAX = SEASON.referenceYear - SEASON.acceptedDirectAge;
+const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const ZONES = [
   { from: MIN, to: R.elderlyNeedsCompanionMaxBirthYear + 0.5, label: "يحتاج مرافقاً", en: "Needs a companion", color: "bg-maroon" },
@@ -93,13 +99,91 @@ function evaluateEn(year: number, gender: "M" | "F"): { verdict: string; tone: "
   return { verdict, tone, rules };
 }
 
+type Route = "direct" | "lottery";
+
+/**
+ * Where this person stands in the registration route shown: direct acceptance (by age), or the lottery —
+ * before the draw who may enter it, after it whether the main applicant's birth year (and month) was drawn.
+ */
+function routeRule(route: Route, year: number, month: number, gender: "M" | "F", picks: DrawPick[] | null, en: boolean): Rule | null {
+  if (year > R.companionMaxBirthYear) return null;
+  const f = gender === "F";
+  const key = `route-${route}`;
+  if (route === "direct") {
+    if (year <= DIRECT_MAX)
+      return { key, state: "ok", text: en ? `Accepted directly, without the lottery (born ${DIRECT_MAX} or earlier)` : `${f ? "تُقبل" : "يُقبل"} في القبول المباشر دون قرعة (مواليد ${DIRECT_MAX} فما قبل)` };
+    const lottery = year <= R.applicantMaxBirthYear;
+    return {
+      key,
+      state: "need",
+      text: en
+        ? `Not of the direct-acceptance ages (born ${DIRECT_MAX} or earlier): only as a companion of an applicant of those ages${lottery ? ", or register for the lottery" : ""}`
+        : `ليس من أعمار القبول المباشر (مواليد ${DIRECT_MAX} فما قبل): ${f ? "تدخله مرافقةً" : "يدخله مرافقاً"} لصاحب طلب منها فقط${lottery ? `، أو ${f ? "تسجّل" : "يسجّل"} على القرعة` : ""}`,
+    };
+  }
+  if (year <= DIRECT_MAX)
+    return { key, state: "need", text: en ? `Born ${DIRECT_MAX} or earlier: accepted directly, so the lottery is not needed` : `من مواليد ${DIRECT_MAX} فما قبل: ${f ? "تُقبل" : "يُقبل"} في القبول المباشر، فلا ${f ? "تحتاج" : "يحتاج"} إلى القرعة` };
+  if (year > R.applicantMaxBirthYear)
+    return {
+      key,
+      state: "need",
+      text: en
+        ? "Enters the lottery as a companion only: the application is accepted if its main applicant's birth year is drawn"
+        : `${f ? "تدخل القرعة مرافقةً" : "يدخل القرعة مرافقاً"} فقط: يُقبل الطلب إن سُحبت سنة ميلاد صاحبه، لا سنة ميلاد${f ? "ها" : "ه"}`,
+    };
+  if (!picks)
+    return {
+      key,
+      state: "ok",
+      text: en
+        ? "Can register for the lottery as the main applicant; the application is accepted if the birth year is drawn"
+        : `${f ? "يمكنها" : "يمكنه"} التسجيل على القرعة ${f ? "صاحبةَ" : "صاحبَ"} طلب، ويُقبل الطلب إن سُحبت سنة ميلاد${f ? "ها" : "ه"}`,
+    };
+  const pick = picks.find((p) => p.year === year);
+  if (!pick)
+    return { key: `${key}-out`, state: "no", text: en ? `${year} was not drawn: an application with this person as main applicant is not accepted` : `لم تُسحب سنة ${year} في القرعة، فلا يُقبل طلبٌ ${f ? "هي صاحبته" : "هو صاحبه"}` };
+  if (pick.months === "all")
+    return { key: `${key}-in`, state: "ok", text: en ? `${year} was drawn in full: the application is accepted with everyone in it` : `سُحبت سنة ${year} بكل أشهرها: يُقبل الطلب بكل من فيه` };
+  const list = en ? pick.months.map((m) => MONTHS_EN[m - 1]).join(", ") : pick.months.map((m) => MONTHS[m - 1]).join("، ");
+  const name = en ? MONTHS_EN[month - 1] : MONTHS[month - 1];
+  return pick.months.includes(month)
+    ? { key: `${key}-in`, state: "ok", text: en ? `${year} was drawn for ${list} only, and ${name} is one of them: the application is accepted` : `سُحبت سنة ${year} لمواليد ${list}، و${name} منها: يُقبل الطلب بكل من فيه` }
+    : { key: `${key}-out`, state: "no", text: en ? `${year} was drawn for ${list} only, not ${name}: the application is not accepted` : `سُحبت سنة ${year} لمواليد ${list} فقط، وليس ${name} منها: لا يُقبل الطلب` };
+}
+
+/** «مفتوح الآن»، «يفتح 26 آب»، «انتهى» — the state of one registration, on the route's tab */
+function routeBadge(s: OperationState, drawOut: boolean, en: boolean) {
+  if (s.open) return en ? "Open now" : "مفتوح الآن";
+  if (s.status === "upcoming") return en ? `Opens ${dateEn(dayLabel(s.start))}` : `يفتح ${dayLabel(s.start)}`;
+  if (drawOut) return en ? "Results out" : "النتائج منشورة";
+  if (s.status === "off") return en ? "Stopped" : "أوقفته الإدارة";
+  return en ? "Ended" : "انتهى";
+}
+
 export function AgeRuler() {
   const [year, setYear] = useState(1990);
   const [gender, setGender] = useState<"M" | "F">("F");
   const t = useT();
   const en = useLang() === "en";
   const age = SEASON.referenceYear - year;
-  const { verdict, tone, rules } = en ? evaluateEn(year, gender) : evaluate(year, gender);
+  const { verdict, tone, rules: ageRules } = en ? evaluateEn(year, gender) : evaluate(year, gender);
+
+  // Registering on the Hajj: direct acceptance opens first, then the lottery; the switch shows from the first
+  // opening until the accepted have confirmed, and follows whichever is open unless the visitor picks the other
+  const today = useToday();
+  const direct = useOperation("hajj-direct");
+  const lottery = useOperation("hajj-lottery");
+  const draw = usePublishedDraw();
+  const [picked, setPicked] = useState<Route | null>(null);
+  const [month, setMonth] = useState(1);
+  const registering = direct.open || lottery.open || (today >= (direct.start ?? DEMO_START) && today <= SEASON.windows.lottery.confirmTo);
+  const route: Route | null = registering ? (picked ?? (direct.open ? "direct" : lottery.open || today > (direct.end ?? "") ? "lottery" : "direct")) : null;
+  // The drawn years are shown once the lottery's registration is over (or when the demo opens everything)
+  const drawOut = !!draw && (lottery.status === "closed" || lottery.status === "off" || lottery.status === "all");
+  const picks = route === "lottery" && drawOut && draw ? draw.picks : null;
+  const byMonths = picks?.find((p) => p.year === year && p.months !== "all");
+  const extra = route ? routeRule(route, year, month, gender, picks, en) : null;
+  const rules = extra ? [extra, ...ageRules] : ageRules;
   const toneCls = { green: "from-green-dark to-green", gold: "from-gold-dark to-[#8f8156]", maroon: "from-maroon-dark to-maroon" }[tone];
 
   return (
@@ -152,6 +236,43 @@ export function AgeRuler() {
         </div>
       </motion.div>
 
+      {route && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gold/30 px-6 py-4 md:px-8">
+          <div className="flex rounded-2xl bg-sand p-1" role="radiogroup" aria-label={t("طريقة القبول", "Route of acceptance")}>
+            {(
+              [
+                ["direct", t("القبول المباشر", "Direct acceptance"), direct],
+                ["lottery", t("القرعة", "Lottery"), lottery],
+              ] as const
+            ).map(([r, label, op]) => (
+              <button
+                key={r}
+                role="radio"
+                aria-checked={route === r}
+                onClick={() => setPicked(r)}
+                className={cn("relative flex flex-col items-start rounded-xl px-4 py-1.5 text-start transition", route === r ? "text-white" : "text-green-dark hover:bg-white/60")}
+              >
+                {route === r && <motion.span layoutId="route-pill" className="absolute inset-0 rounded-xl bg-green-dark" transition={{ type: "spring", damping: 24, stiffness: 320 }} />}
+                <span className="relative text-sm font-bold">{label}</span>
+                <span className={cn("relative text-[11px]", route === r ? "text-gold" : op.open ? "font-semibold text-green" : "text-ink-soft")}>
+                  {routeBadge(op, r === "lottery" && drawOut, en)}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="min-w-0 flex-1 text-xs leading-6 text-ink-soft">
+            {route === "direct"
+              ? t(`القبول المباشر: مواليد ${DIRECT_MAX} فما قبل ومرافقوهم، الأكبر سناً أولاً.`, `Direct acceptance: born ${DIRECT_MAX} or earlier and their companions, oldest first.`)
+              : picks
+                ? t("نتائج القرعة منشورة: يُقبل الطلب إن سُحبت سنة ميلاد صاحبه، ولبعض السنوات أشهر محددة.", "The lottery results are out: an application is accepted if its main applicant's birth year was drawn, for some years only certain months.")
+                : t(
+                    `القرعة: طلب مستقل لأصحاب الطلبات من مواليد ${DIRECT_MAX + 1}–${R.applicantMaxBirthYear}، تُسحب فيه سنوات ميلاد ولبعضها أشهر.`,
+                    `The lottery: a separate application for main applicants born ${DIRECT_MAX + 1}–${R.applicantMaxBirthYear}; birth years are drawn, some by months.`,
+                  )}
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[1.4fr_1fr]">
         {/* Ruler */}
         <div>
@@ -198,20 +319,25 @@ export function AgeRuler() {
               )}
             </AnimatePresence>
 
-            {/* Zones */}
-            <div className="relative flex h-5 overflow-hidden rounded-full">
+            {/* Zones — the bar is what comes into view: a zone still at scale 0 on its clipped edge never would */}
+            <motion.div className="relative flex h-5 overflow-hidden rounded-full" initial="hidden" whileInView="shown" viewport={{ once: true }}>
               {ZONES.map((z, i) => (
                 <motion.div
                   key={z.label}
                   className={cn("h-full", z.color)}
-                  style={{ width: `${pct(z.to) - pct(z.from)}%` }}
-                  initial={{ scaleX: 0, originX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: i * 0.15 }}
+                  style={{ width: `${pct(z.to) - pct(z.from)}%`, originX: 0 }}
+                  variants={{ hidden: { scaleX: 0 }, shown: { scaleX: 1, transition: { duration: 0.6, delay: i * 0.15 } } }}
                 />
               ))}
-            </div>
+              {/* Drawn years: solid when drawn in full, faded when only some of their months were */}
+              {picks?.map((p) => (
+                <span
+                  key={p.year}
+                  className={cn("absolute inset-y-0 bg-white", p.months === "all" ? "opacity-90" : "opacity-50")}
+                  style={{ left: `${pct(p.year - 0.5)}%`, width: `${100 / (MAX - MIN)}%` }}
+                />
+              ))}
+            </motion.div>
 
             {/* Thumb bubble */}
             <input
@@ -260,7 +386,40 @@ export function AgeRuler() {
                 <span className={cn("size-2.5 rounded", z.color)} /> {t(z.label, z.en)}
               </span>
             ))}
+            {picks && (
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded bg-green-dark ring-2 ring-inset ring-white/90" /> {t("سنة مسحوبة في القرعة (الباهتة: بعض أشهرها)", "Year drawn in the lottery (faded: some of its months)")}
+              </span>
+            )}
           </div>
+
+          {byMonths && byMonths.months !== "all" && (
+            <div className="mt-5 rounded-2xl border border-gold/40 bg-sand/50 p-4">
+              <p className="text-xs font-bold text-green-dark">
+                {t(`سُحبت سنة ${year} بأشهر محددة — اختر شهر الميلاد`, `${year} was drawn by months — choose the month of birth`)}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("شهر الميلاد", "Month of birth")}>
+                {MONTHS.map((m, i) => {
+                  const drawn = (byMonths.months as number[]).includes(i + 1);
+                  return (
+                    <button
+                      key={m}
+                      role="radio"
+                      aria-checked={month === i + 1}
+                      onClick={() => setMonth(i + 1)}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1 text-xs font-semibold transition",
+                        month === i + 1 ? "border-green-dark bg-green-dark text-white" : drawn ? "border-green-light bg-green-light/10 text-green" : "border-gold/50 bg-white text-ink-soft hover:border-green-light",
+                      )}
+                    >
+                      {t(m, MONTHS_EN[i])}
+                      {drawn && <span className="ms-1">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-2">
             {PRESETS.map((p) => {
@@ -314,7 +473,11 @@ export function AgeRuler() {
               ))}
             </AnimatePresence>
           </motion.ul>
-          <p className="mt-4 text-xs leading-6 text-ink-soft">{t("تُحسب الشروط بسنة الميلاد فقط، وتضبطها الإدارة لكل موسم.", "The rules go by year of birth only, and the Administration sets them for each season.")}</p>
+          <p className="mt-4 text-xs leading-6 text-ink-soft">
+            {picks
+              ? t("تُحسب شروط العمر بسنة الميلاد، والقرعة بسنة ميلاد صاحب الطلب وشهره للسنوات المسحوبة بأشهر.", "The age rules go by year of birth; the lottery by the main applicant's birth year, and month for the years drawn by months.")
+              : t("تُحسب الشروط بسنة الميلاد فقط، وتضبطها الإدارة لكل موسم.", "The rules go by year of birth only, and the Administration sets them for each season.")}
+          </p>
         </div>
       </div>
     </div>

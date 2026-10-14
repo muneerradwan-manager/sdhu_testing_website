@@ -29,7 +29,7 @@ export const SEASON = {
    */
   windows: {
     direct: { hijri: "12 – 25 آب", gregorian: "12 – 25 آب 2026 (29 صفر – 12 ربيع الأول 1448)", announce: "26 آب" },
-    lottery: { hijri: "26 آب – 10 أيلول", gregorian: "26 آب – 10 أيلول 2026 (13 – 28 ربيع الأول 1448)", draw: "السبت 26 أيلول", results: "26 أيلول", confirm: "11 – 27 تشرين الأول" },
+    lottery: { hijri: "26 آب – 10 أيلول", gregorian: "26 آب – 10 أيلول 2026 (13 – 28 ربيع الأول 1448)", draw: "السبت 26 أيلول", results: "26 أيلول", confirm: "11 – 27 تشرين الأول", confirmTo: "2026-10-27" },
   },
 
   rules: {

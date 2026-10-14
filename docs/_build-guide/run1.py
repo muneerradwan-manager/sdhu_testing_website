@@ -46,6 +46,18 @@ c.scroll_top()
 # conditions
 c.goto("/conditions")
 c.shot("conditions-top", "صفحة شروط التسجيل والتكاليف", section="A")
+# the age ruler on a day after the draw (its switch shows from the direct registration until the confirming
+# ends): «القرعة» chosen by itself, 1972 drawn for four months only, March one of them
+was = p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}'); const was = s.clock?.today ?? null;
+  s.clock = { ...(s.clock || {}), today: '2026-10-14', time: undefined }; localStorage.setItem(k, JSON.stringify(s)); return was; }""")
+c.goto("/conditions")
+c.scroll_to("#ages [role=radiogroup][aria-label='طريقة القبول']", 270)
+p.locator("#ages input[type=range]").fill("1972"); c.settle(500)
+p.locator("[role=radiogroup][aria-label='شهر الميلاد'] button:has-text('آذار')").click(); c.settle(600)
+c.shot("conditions-ruler", "المسطرة التفاعلية: القبول المباشر والقرعة", hl=[("[role=radiogroup][aria-label='طريقة القبول']", "1"), ("#ages input[type=range]", "2"), ("[role=radiogroup][aria-label='شهر الميلاد']", "3")], section="A")
+p.evaluate("""(was) => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
+  s.clock = { ...(s.clock || {}), today: was ?? undefined }; localStorage.setItem(k, JSON.stringify(s)); }""", was)
+c.goto("/conditions")
 c.scroll_to("#precheck", 90)
 c.shot("conditions-precheck", "فحص الأهلية المبدئي", section="A")
 # news
