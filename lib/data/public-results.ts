@@ -7,7 +7,7 @@
 import { SEASON, OFFICES } from "../season";
 import { OFFICIAL_DRAW, drawTotals, lotteryAccepted, type PublishedDraw } from "../lottery";
 import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "../registry";
-import { maskNationalId, seeded } from "../utils";
+import { seeded } from "../utils";
 
 const OFFICIAL = drawTotals(OFFICIAL_DRAW);
 
@@ -118,115 +118,4 @@ export function searchResult(id: string, draw: PublishedDraw | null): SearchResu
     return { ...base, found: true, outcome: won ? "lottery" : "notDrawn", label: OUTCOME_LABEL[won ? "lottery" : "notDrawn"], campaign: "القرعة" };
   }
   return { found: false };
-}
-
-// ───────────────────────── Public lists ─────────────────────────
-
-export type PublicMember = { maskedId: string; name: string };
-
-export type PublicApplication = {
-  applicationNo: string;
-  governorate: string;
-  office: string;
-  campaign: Campaign;
-  members: PublicMember[];
-};
-
-const GOV_CODES: Record<string, string> = {
-  "دمشق": "010",
-  "ريف دمشق": "030",
-  "حلب": "020",
-  "حمص": "060",
-  "حماة": "050",
-  "اللاذقية": "070",
-  "إدلب": "080",
-  "درعا": "120",
-  "دير الزور": "090",
-  // Registry codes of the governorates most residents of each country come from
-  "تركيا": "020",
-  "مصر": "010",
-  "الأردن": "120",
-};
-
-const MALE = ["خالد", "بلال", "أنس", "طارق", "مصطفى", "إبراهيم", "علي", "نزار", "وائل", "هشام", "سليم", "زياد", "عبد الرحمن", "حسام", "فراس", "ماهر", "غسان", "عدنان", "رضوان", "منذر"];
-const FEMALE = ["سلمى", "رغد", "آلاء", "نور", "ميساء", "لبنى", "دعاء", "رهف", "سمر", "إيمان", "هالة", "بشرى", "وفاء", "نجوى", "سهام", "ابتسام", "رباب", "غادة"];
-const FATHERS = ["عبد الكريم", "محمود", "حسن", "عبد الرزاق", "جميل", "ماجد", "فايز", "نبيل", "صالح", "عبد القادر", "ياسر", "رشيد"];
-const LASTS = ["الأحمد", "الحموي", "الدمشقي", "السعدي", "العلي", "الحسين", "الشيخ", "الإدلبي", "الحوراني", "المصري", "البيطار", "الساعاتي", "القباني", "الزعبي", "الرفاعي", "العطار", "النحاس", "الشامي", "الجابي", "الكردي"];
-
-let cache: PublicApplication[] | null = null;
-
-function pickGovernorate(r: number) {
-  let acc = 0;
-  for (const o of OFFICES) {
-    acc += GOV_WEIGHTS[o.governorate];
-    if (r <= acc) return o;
-  }
-  return OFFICES[0];
-}
-
-/**
- * The direct-acceptance list — applications with their members, ~people count equal to the seats. The
- * lottery publishes no list of names: its results are the table of drawn birth years and months.
- */
-export function getDirectList(): PublicApplication[] {
-  if (cache) return cache;
-
-  const rnd = seeded("public-list:direct");
-  const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rnd() * arr.length)];
-  const rows: PublicApplication[] = [];
-  let people = 0;
-  let appNo = 1000;
-  // Seats taken by the guide's example family, set in by hand below
-  const target = SEASON.directSeats - 4;
-
-  while (people < target) {
-    appNo += 3 * (1 + Math.floor(rnd() * 2));
-    if (appNo === 4512) appNo += 3;
-    const govEntry = pickGovernorate(rnd());
-    const gov = govEntry.governorate;
-    const office = govEntry.office;
-    const code = GOV_CODES[gov];
-    const campaign: Campaign = rnd() < 0.063 ? "المنحة" : "القبول المباشر";
-
-    // family size: the direct list skews to couples
-    const r = rnd();
-    let size = r < 0.45 ? 1 : r < 0.9 ? 2 : 3;
-    size = Math.min(size, target - people);
-
-    const last = pick(LASTS);
-    const headMale = rnd() < 0.72;
-    const headFirst = headMale ? pick(MALE) : pick(FEMALE);
-    const headFather = pick(FATHERS);
-    const id = () => `${code}${String(Math.floor(rnd() * 1e8)).padStart(8, "0")}`;
-    const members: PublicMember[] = [{ maskedId: maskNationalId(id()), name: `${headFirst} ${headFather} ${last}` }];
-    for (let i = 1; i < size; i++) {
-      if (i === 1 && headMale) {
-        members.push({ maskedId: maskNationalId(id()), name: `${pick(FEMALE)} ${pick(FATHERS)} ${pick(LASTS)}` });
-      } else {
-        const male = rnd() < 0.5;
-        members.push({ maskedId: maskNationalId(id()), name: `${male ? pick(MALE) : pick(FEMALE)} ${headMale ? headFirst : pick(FATHERS)} ${last}` });
-      }
-    }
-    rows.push({ applicationNo: String(appNo), governorate: gov, office, campaign, members });
-    people += size;
-  }
-
-  // The guide's example family — application 4512 under Khadija (78), Damascus office
-  const idx = rows.findIndex((a) => Number(a.applicationNo) > 4512);
-  const khatib: PublicApplication = {
-    applicationNo: "4512",
-    governorate: "دمشق",
-    office: "مكتب دمشق",
-    campaign: "القبول المباشر",
-    members: [
-      { maskedId: maskNationalId("01012340078"), name: "خديجة سعيد الخطيب" },
-      { maskedId: maskNationalId("01012345412"), name: "محمد أحمد الخطيب" },
-      { maskedId: maskNationalId("01012345413"), name: "فاطمة يوسف الحلبي" },
-      { maskedId: maskNationalId("01012345414"), name: "عمر محمد الخطيب" },
-    ],
-  };
-  rows.splice(idx < 0 ? rows.length : idx, 0, khatib);
-
-  cache = rows;
-  return rows;
 }

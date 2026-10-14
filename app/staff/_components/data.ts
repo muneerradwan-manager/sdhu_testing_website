@@ -10,13 +10,30 @@ import {
   type ReviewFlag,
   type Zone,
 } from "@/lib/data/staff-seed";
-import { fullName, getPerson } from "@/lib/registry";
+import { fullName, getPerson, type Person } from "@/lib/registry";
 import { evaluate, type EligibilityResult, type Member } from "@/lib/rules";
 import { useSeason } from "@/lib/season-live";
-import { setState, useStore, type AdminProfile, type AuditEvent, type Review, type Ticket } from "@/lib/store";
+import { setState, useStore, type AdminProfile, type AuditEvent, type CivilClaim, type Review, type Ticket } from "@/lib/store";
 import { effectiveRole, positionLabelOf } from "@/app/administrator/_lib/admin";
 
 // ───────────────────────── Reviews ─────────────────────────
+
+export type CivilItem = { id: string; person: Person; claim: CivilClaim };
+
+/** Pilgrims who said at account creation that the civil registry got their details wrong, newest first */
+export function useCivilClaims(): CivilItem[] {
+  const accounts = useStore((s) => s.accounts);
+  return useMemo(
+    () =>
+      Object.values(accounts)
+        .flatMap((a) => {
+          const person = a.civil ? getPerson(a.nationalId) : null;
+          return person && a.civil ? [{ id: a.nationalId, person, claim: a.civil }] : [];
+        })
+        .sort((x, y) => y.claim.at - x.claim.at),
+    [accounts],
+  );
+}
 
 export type ReviewItem = {
   key: string;

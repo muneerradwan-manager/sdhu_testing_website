@@ -5,11 +5,11 @@ import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
 import { ArrowLeft, Award, Briefcase, CalendarClock, FileSignature, FolderLock, GraduationCap, PencilLine, Star, UserRound } from "lucide-react";
 import { useCallback, useState } from "react";
-import { AuthShell, CivilRecordCard, EmailField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
+import { AuthShell, CivilRecordCard, EmailField, FirstNameField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
 import { DEMO_OTP, ProgressChecklist } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { Badge, SpeakButton, useToast } from "@/components/ui/widgets";
-import { ageOf, getPerson, isValidNationalId, type Person } from "@/lib/registry";
+import { FIRST_NAME_TRIES, ageOf, firstNameMatches, getPerson, isValidNationalId, type Person } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { maskNationalId } from "@/lib/utils";
 import { logAdmin, seasonHistory } from "../_lib/admin";
@@ -32,8 +32,11 @@ export function AdminRegisterFlow() {
   const admins = useStore((s) => s.admins);
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
-  const [form, setForm] = useState({ nationalId: "", phone: "", email: "", password: "" });
+  const [form, setForm] = useState({ nationalId: "", firstName: "", phone: "", email: "", password: "" });
   const [touched, setTouched] = useState(false);
+  /** Wrong first names typed so far, and whether the last one was wrong */
+  const [tries, setTries] = useState(0);
+  const [mismatch, setMismatch] = useState(false);
   const [person, setPerson] = useState<Person | null>(null);
   const [fetched, setFetched] = useState(false);
 
@@ -44,10 +47,14 @@ export function AdminRegisterFlow() {
   };
 
   const validId = isValidNationalId(form.nationalId);
-  const pilgrimConflict = validId && !!accounts[form.nationalId];
-  const adminExists = validId && !!admins[form.nationalId];
+  // Nothing about a national number — not even that it has an account — until its first name matches
+  const owner = validId && firstNameMatches(form.nationalId, form.firstName);
+  const pilgrimConflict = touched && owner && !!accounts[form.nationalId];
+  const adminExists = touched && owner && !!admins[form.nationalId];
+  const locked = tries >= FIRST_NAME_TRIES;
   const errors = {
     nationalId: !validId && "الرقم الوطني يتكون من 11 رقماً",
+    firstName: !form.firstName.trim() && "اكتب اسمك الأول كما في البطاقة الشخصية",
     phone: !/^09\d{8}$/.test(form.phone) && "رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام",
     email: form.email && !/^\S+@\S+\.\S+$/.test(form.email) && "صيغة البريد غير صحيحة",
     password: form.password.length < 6 && "كلمة المرور 6 أحرف على الأقل",
@@ -55,7 +62,13 @@ export function AdminRegisterFlow() {
 
   const sendOtp = () => {
     setTouched(true);
-    if (Object.values(errors).some(Boolean) || pilgrimConflict || adminExists) return;
+    if (Object.values(errors).some(Boolean) || locked) return;
+    if (!owner) {
+      setTries(tries + 1);
+      setMismatch(true);
+      return;
+    }
+    if (accounts[form.nationalId] || admins[form.nationalId]) return;
     go(1);
     setTimeout(() => toast({ title: "رسالة نصية جديدة", body: `منصة الحج الوطنية — حساب إداري: رمز التحقق ${DEMO_OTP}. لا تشاركه مع أحد.`, icon: "💬", tone: "gold" }), 900);
   };
@@ -108,16 +121,44 @@ export function AdminRegisterFlow() {
               }}
               className="space-y-6"
             >
-              <StepTitle action={<SpeakButton text="أدخل الرقم الوطني ورقم الهاتف والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />}>البيانات الأساسية</StepTitle>
-              <NationalIdField value={form.nationalId} onChange={(v) => setForm({ ...form, nationalId: v })} placeholder="01033300871" hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية" error={touched && errors.nationalId} />
+              <StepTitle action={<SpeakButton text="أدخل الرقم الوطني واسمك الأول كما في البطاقة الشخصية، ثم رقم الهاتف، والبريد الإلكتروني إن رغبت، ثم كلمة المرور." />}>البيانات الأساسية</StepTitle>
+              <NationalIdField
+                value={form.nationalId}
+                onChange={(v) => {
+                  setForm({ ...form, nationalId: v });
+                  setMismatch(false);
+                }}
+                placeholder="01033300871"
+                hint="مفتاحك في المنصة كلها — تجده على البطاقة الشخصية"
+                error={touched && errors.nationalId}
+              />
+              <FirstNameField
+                value={form.firstName}
+                onChange={(v) => {
+                  setForm({ ...form, firstName: v });
+                  setMismatch(false);
+                }}
+                error={touched && errors.firstName}
+                demoName={validId ? getPerson(form.nationalId)?.firstName : undefined}
+              />
               <FormError
-                text={pilgrimConflict ? "هذا الرقم الوطني لديه حساب حاج، ولكل شخص نوع حساب واحد: لا يكون حاجاً وإدارياً في الموسم نفسه." : adminExists ? "لديك حساب إداري بالفعل." : null}
-                link={pilgrimConflict ? { href: "/login", label: "الدخول إلى حساب الحاج" } : adminExists ? { href: "/administrator/login", label: "سجّل الدخول" } : undefined}
+                text={
+                  locked
+                    ? `أُدخل اسم أول لا يطابق الرقم الوطني ${FIRST_NAME_TRIES} مرات، فأُوقف إنشاء الحساب. إن كان الرقم رقمك فراجع مكتب التسجيل في محافظتك ومعك بطاقتك الشخصية.`
+                    : mismatch
+                      ? `الاسم الأول لا يطابق الرقم الوطني في سجل الشؤون المدنية. اكتبه كما في بطاقتك الشخصية (بقي ${FIRST_NAME_TRIES - tries} محاولات).`
+                      : pilgrimConflict
+                        ? "هذا الرقم الوطني لديه حساب حاج، ولكل شخص نوع حساب واحد: لا يكون حاجاً وإدارياً في الموسم نفسه."
+                        : adminExists
+                          ? "لديك حساب إداري بالفعل."
+                          : null
+                }
+                link={locked || mismatch ? undefined : pilgrimConflict ? { href: "/login", label: "الدخول إلى حساب الحاج" } : adminExists ? { href: "/administrator/login", label: "سجّل الدخول" } : undefined}
               />
               <PhoneField value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} error={touched && errors.phone} />
               <EmailField value={form.email} onChange={(v) => setForm({ ...form, email: v })} hint="للإيصالات والعقود إن رغبت" error={touched && errors.email} />
               <PasswordField value={form.password} onChange={(v) => setForm({ ...form, password: v })} error={touched && errors.password} strength autoComplete="new-password" />
-              <Button type="submit" size="lg" className="w-full">
+              <Button type="submit" size="lg" className="w-full" disabled={locked}>
                 إرسال رمز التحقق <ArrowLeft className="size-5" />
               </Button>
               <SwitchLine text="لديك حساب إداري؟" href="/administrator/login" label="سجّل الدخول" />
@@ -139,7 +180,7 @@ export function AdminRegisterFlow() {
               <StepTitle sub={fetched ? "راجعها وأكّدها — ونجلب معها سجلك الموسمي من المنصة." : "يستغرق ذلك ثوانيَ قليلة."}>{fetched ? "بياناتك كما وردت من الشؤون المدنية" : "نجلب بياناتك الرسمية..."}</StepTitle>
               <div className="mt-8">
                 {!fetched ? (
-                  <ProgressChecklist onDone={onFetched} steps={["الاتصال الآمن بالشؤون المدنية", "التحقق من الرقم الوطني", "التأكد من عدم وجود حساب آخر للشخص نفسه", "جلب السجل الموسمي من المنصة"]} />
+                  <ProgressChecklist onDone={onFetched} steps={["الاتصال الآمن بالشؤون المدنية", "مطابقة الرقم الوطني والاسم الأول", "التأكد من عدم وجود حساب آخر للشخص نفسه", "جلب السجل الموسمي من المنصة"]} />
                 ) : (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <CivilRecordCard

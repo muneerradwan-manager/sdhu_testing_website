@@ -20,7 +20,7 @@ export function HeroLinks() {
         href="#lists"
         className="inline-flex h-12 items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-6 font-semibold text-white backdrop-blur-md transition hover:bg-white/20"
       >
-        <ListChecks className="size-5" /> {t("نتائج القرعة والقوائم", "Lottery results and lists")}
+        <ListChecks className="size-5" /> {t("جدول نتائج القرعة", "Lottery results table")}
       </a>
       <span className="inline-flex items-center gap-2 rounded-full bg-ink/30 px-3 py-1.5 text-xs text-white/85 ring-1 ring-white/15">
         <ShieldCheck className="size-4 text-gold" /> {t(`آخر تحديث: ${RESULTS_SUMMARY.lastUpdate}`, `Last updated: ${dateEn(RESULTS_SUMMARY.lastUpdate)}`)}

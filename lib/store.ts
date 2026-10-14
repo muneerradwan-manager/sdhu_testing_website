@@ -16,6 +16,22 @@ export type Account = {
   emergencyPhone?: string;
   altPhone?: string;
   rating?: number;
+  /** Details the pilgrim says the civil registry got wrong: «غير مؤكدة» until a registration officer decides */
+  civil?: CivilClaim;
+};
+
+/**
+ * A correction of the civil record, asked when the account is created: each field with what the registry
+ * holds and what the pilgrim says is right, and the document that proves it. The officer of «مراجعة الطلبات»
+ * approves or rejects it with a reason the pilgrim reads.
+ */
+export type CivilClaim = {
+  fields: { key: string; label: string; registry: string; claimed: string }[];
+  doc: { kind: string; name: string };
+  note?: string;
+  at: number;
+  status: "pending" | "approved" | "rejected";
+  decision?: { note: string; by: string; at: number };
 };
 
 export type Application = {
@@ -1041,6 +1057,14 @@ export const actions = {
    */
   createAccountFor(account: Account) {
     setState((s) => (s.accounts[account.nationalId] ? s : { ...s, accounts: { ...s.accounts, [account.nationalId]: account } }));
+  },
+  /** The registration officer's decision on a civil correction, with the reason the pilgrim reads */
+  decideCivil(id: string, status: "approved" | "rejected", decision: { note: string; by: string; at: number }) {
+    setState((s) => {
+      const a = s.accounts[id];
+      if (!a?.civil) return s;
+      return { ...s, accounts: { ...s.accounts, [id]: { ...a, civil: { ...a.civil, status, decision } } } };
+    });
   },
   updateAccount(id: string, patch: Partial<Account>) {
     setState((s) => ({ ...s, accounts: { ...s.accounts, [id]: { ...s.accounts[id], ...patch } } }));

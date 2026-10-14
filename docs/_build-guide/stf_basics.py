@@ -40,7 +40,8 @@ def register_one(s):
     c.goto("/staff/registration", wait=1800)
     jump(s)
     btn_role(s, "بدء طلب جديد")
-    p.locator("label:has-text('الرقم الوطني') input").first.fill("01066600620"); c.settle(200)
+    p.locator("label:has-text('الرقم الوطني') input").first.fill("01066600620")
+    p.locator("label:has-text('الاسم الأول') input").first.fill("غسان"); c.settle(200)
     btn_role(s, "بحث", 2500)
     p.get_by_label("رقم هاتف المواطن").fill("0933123456"); c.settle(200)
     btn_role(s, "إرسال رمز التحقق")
@@ -138,6 +139,18 @@ if ONLY in (None, "b"):
     p.locator("main button:has-text('اعتماد')").first.click(); c.settle(1800)
     p.locator("main button:has-text('معتمدة')").first.click(); c.settle(900)
     c.shot("rev-approved", "الطلب في «معتمدة»، وتحته «عرض القرار»", hl=[("main button:has-text('معتمدة')", "")], section=S)
+    # a civil correction sent at account creation (عمر الخطيب: his mother's name), as the pilgrim's flow saves it
+    p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
+      s.accounts = { ...(s.accounts || {}), '01012345414': { nationalId: '01012345414', phone: '0944345414', password: 'Hajj@1448', createdAt: Date.now() - 3600e3,
+        civil: { fields: [{ key: 'motherName', label: 'اسم الأم', registry: 'فاطمة', claimed: 'فاطمة الزهراء' }], doc: { kind: 'بيان قيد مدني', name: 'qaid-omar.pdf' },
+          note: 'اسم والدتي في البطاقة مركّب', at: Date.now() - 3600e3, status: 'pending' } } };
+      localStorage.setItem(k, JSON.stringify(s)); }""")
+    c.goto("/staff/reviews?view=civil", wait=2000)
+    c.shot("rev-civil-list", "تصحيح البيانات المدنية: ما أرسله الحجاج، وتحت كل منها «مراجعة»", hl=[("main a:has-text('عمر محمد الخطيب')", "")], section=S)
+    p.locator("main a:has-text('عمر محمد الخطيب')").first.click(); c.settle(1800)
+    p.locator("main textarea").first.fill("اسم الأم في بيان القيد المرفوع «فاطمة الزهراء»، مطابق لما كتبه الحاج.")
+    c.settle(300)
+    c.shot("rev-civil-screen", "السجل المدني مقابل ما يقوله الحاج، والوثيقة، والقرار في الجانب", hl=[("main button:has-text('اعتماد')", "1"), ("main button:has-text('رفض')", "2")], section=S)
     s.close()
     # attaching an accepted application to a group: سعاد الحموي was accepted (her portal seeds it)
     s = new(); c, p = s.c, s.p

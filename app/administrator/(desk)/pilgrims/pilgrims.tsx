@@ -34,7 +34,7 @@ import { groupName } from "@/lib/groups";
 import { firstPayment, seasonPlan } from "@/lib/installments";
 import { applicationNumberFor } from "@/lib/journey";
 import { useSeason } from "@/lib/season-live";
-import { ageOf, fullName, isValidNationalId, lookupPerson, type Person } from "@/lib/registry";
+import { FIRST_NAME_TRIES, ageOf, firstNameMatches, fullName, getPerson, isValidNationalId, lookupPerson, type Person } from "@/lib/registry";
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { useStore } from "@/lib/store";
 import { cn, countOf, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
@@ -109,6 +109,11 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
 
   const [step, setStep] = useState<Step>("citizen");
   const [id, setId] = useState("");
+  // The citizen's first name, as on his ID card: the civil registry confirms it belongs to the number before
+  // anything of his record shows. Wrong ones in a row are counted and logged; at the limit the search stops.
+  const [firstName, setFirstName] = useState("");
+  const [misses, setMisses] = useState(0);
+  const stopped = misses >= FIRST_NAME_TRIES;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [citizen, setCitizen] = useState<Person | null>(null);
@@ -147,6 +152,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
   const reset = () => {
     setStep("citizen");
     setId("");
+    setFirstName("");
     setError("");
     setCitizen(null);
     setOtp("");
@@ -163,6 +169,19 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
   const lookup = async () => {
     setError("");
     if (!isValidNationalId(id)) return setError("الرقم الوطني يتكون من 11 رقماً.");
+    if (!firstName.trim()) return setError("اكتب الاسم الأول للمواطن كما في بطاقته الشخصية.");
+    if (stopped) return;
+    if (!firstNameMatches(id, firstName)) {
+      const n = misses + 1;
+      setMisses(n);
+      registrar.log("اسم أول لا يطابق الرقم الوطني", maskNationalId(id), `المحاولة ${n} من ${FIRST_NAME_TRIES} — لم تُعرض أي بيانات`);
+      return setError(
+        n >= FIRST_NAME_TRIES
+          ? `توقف البحث: ${FIRST_NAME_TRIES} أسماء متتالية لا تطابق أرقامها، وكلها مسجّلة في سجل الأحداث باسمك.`
+          : `الاسم الأول لا يطابق الرقم الوطني في سجل الشؤون المدنية. اطلب من المواطن بطاقته الشخصية (بقي ${FIRST_NAME_TRIES - n} محاولات).`,
+      );
+    }
+    setMisses(0);
     const block = blockFor(id, registrar.id, { applications, admins });
     if (block.kind !== "ok") return setError(block.text);
     setBusy(true);
@@ -254,7 +273,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
               <Pane key="citizen">
                 <Card>
                   <SectionTitle icon={SearchCheck}>ابحث عن المواطن في الشؤون المدنية</SectionTitle>
-                  <p className="mt-2 leading-8 text-ink-soft">أدخل الرقم الوطني كما هو في هويته. تظهر بياناته من السجل المدني، ولا تُدخلها يدوياً.</p>
+                  <p className="mt-2 leading-8 text-ink-soft">أدخل الرقم الوطني والاسم الأول كما في هويته. يؤكد السجل المدني أنهما لشخص واحد، ثم تظهر بياناته منه، ولا تُدخلها يدوياً.</p>
                   <div className="mt-6 flex flex-wrap items-end gap-3">
                     <div className="min-w-64 flex-1">
                       <Field label="الرقم الوطني" error={error}>
@@ -268,7 +287,12 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                         />
                       </Field>
                     </div>
-                    <Button size="lg" onClick={() => void lookup()} disabled={busy || id.length !== 11}>
+                    <div className="min-w-48 flex-1">
+                      <Field label="الاسم الأول" hint="كما في بطاقته الشخصية">
+                        <input value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="off" className={inputClass} />
+                      </Field>
+                    </div>
+                    <Button size="lg" onClick={() => void lookup()} disabled={busy || stopped || id.length !== 11 || !firstName.trim()}>
                       {busy ? <Loader2 className="size-5 animate-spin" /> : <SearchCheck className="size-5" />}
                       {busy ? "نسأل الشؤون المدنية…" : "بحث"}
                     </Button>
@@ -288,6 +312,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                             type="button"
                             onClick={() => {
                               setId(x.id);
+                              setFirstName(getPerson(x.id)?.firstName ?? "");
                               setError("");
                             }}
                             className="w-full rounded-xl bg-white p-2.5 text-right shadow-sm transition hover:shadow-md"

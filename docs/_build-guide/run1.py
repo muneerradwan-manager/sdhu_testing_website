@@ -108,11 +108,12 @@ c.shot("academy-guest", "الأكاديمية للزائر دون حساب", sec
 
 # ───────── B. إنشاء حساب ─────────
 c.goto("/register")
-c.shot("reg-1-empty", "إنشاء حساب — البيانات الأساسية", hl=[("input[placeholder='01012345412']", "1"), ("input[placeholder='09xxxxxxxx']", "2"), ("input[type='email']", "3"), ("input[type='password']", "4"), ("button[type='submit']", "5")], section="B")
+c.shot("reg-1-empty", "إنشاء حساب — البيانات الأساسية", hl=[("input[placeholder='01012345412']", "1"), ("input[autocomplete='given-name']", "2"), ("input[placeholder='09xxxxxxxx']", "3"), ("input[type='email']", "4"), ("input[type='password']", "5"), ("button[type='submit']", "6")], section="B")
 # validation errors
 c.click("button[type='submit']")
 c.shot("reg-1-errors", "رسائل التحقق عند ترك الحقول فارغة", section="B")
 c.fill("input[placeholder='01012345412']", "01012345412")
+c.fill("input[autocomplete='given-name']", "محمد")
 c.fill("input[placeholder='09xxxxxxxx']", "0944345412")
 c.fill("input[type='email']", "mohammad@example.com")
 c.fill("input[type='password']", "Hajj@1448")
@@ -126,6 +127,12 @@ c.shot("reg-3-fetching", "جلب البيانات من الشؤون المدني
 p.wait_for_selector("text=هذه بياناتك كما وردت من الشؤون المدنية", timeout=15000)
 c.settle(1200)
 c.shot("reg-3-data", "بياناتك كما وردت من الشؤون المدنية", hl=[("button:has-text('نعم، بياناتي صحيحة')", "1"), ("button:has-text('البيانات غير صحيحة')", "2")], section="B")
+# the correction form, then back: the guide's account keeps the registry's details
+c.click("button:has-text('البيانات غير صحيحة')", wait=900)
+p.locator("li:has-text('اسم الأم') input[type=checkbox]").first.check()
+c.fill("input[aria-label='اسم الأم الصحيح']", "خديجة سعيد")
+c.shot("reg-3-correction", "تصحيح البيانات المدنية: الحقل الخاطئ وقيمته الصحيحة، والوثيقة", hl=[("li:has-text('اسم الأم')", "1"), ("label:has-text('نوع الوثيقة')", "2"), ("button:has-text('إرسال للمراجعة ومتابعة')", "3")], full=True, section="B")
+c.click("button:has-text('رجوع: بياناتي صحيحة')", wait=900)
 c.click("button:has-text('نعم، بياناتي صحيحة')", wait=900)
 c.shot("reg-4-extra", "معلومات إضافية اختيارية", section="B")
 c.fill("input[placeholder='مثال: سارة (ابنتي)']", "سارة (ابنتي)")

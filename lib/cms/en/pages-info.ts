@@ -264,7 +264,7 @@ export const PAGES_EN_INFO: PagesEn = {
       title: "Acceptance results",
       highlight: "1448 AH",
       description:
-        "The results of both registrations are approved and published for everyone: direct acceptance by age, oldest first, and the table of birth years and months drawn in the lottery. Search with your national number, or browse the table and the public lists.",
+        "The results of both registrations are approved and published for everyone: direct acceptance by age, oldest first, and the table of birth years and months drawn in the lottery. Search with your national number, or browse the lottery table.",
       crumb: "Acceptance results",
     },
     search: {
@@ -279,9 +279,9 @@ export const PAGES_EN_INFO: PagesEn = {
     },
     lists: {
       eyebrow: "Public results",
-      title: "Lottery results and direct acceptances",
+      title: "Lottery results",
       description:
-        "The lottery is published as a table of birth years and months, and direct acceptance as a list of names under each application number. National numbers are masked, and no other details are shown.",
+        "No names are drawn in the lottery: its results are published as a table of the birth years and months drawn. No list of the accepted's names or national numbers is published, to protect their privacy; each pilgrim finds their own result by searching with their national number.",
     },
   },
 

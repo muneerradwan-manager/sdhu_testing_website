@@ -165,7 +165,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
         type: "list",
         ordered: true,
         items: [
-          "Create an account with your national number and just four fields.",
+          "Create an account with your national number and just five fields.",
           "Submit an application for yourself or for someone else, and add the companions.",
           "No papers at registration: the personal photo comes after acceptance and the first instalment, and the passport after the second instalment.",
           "Pay the registration fee of $25 per person, and keep the digital receipt.",
@@ -324,17 +324,17 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
       { type: "h", text: "Publication rules" },
       {
         type: "table",
-        head: ["Shown in the public lists", "Never shown"],
+        head: ["Published for everyone", "Never published"],
         rows: [
-          ["Name", "Phone number"],
-          ["Result", "Address"],
-          ["Campaign and governorate", "Age and reason for non-acceptance"],
-          ["National number (masked)", "Any other personal data"],
+          ["The accepted ages and the numbers accepted", "Lists of the accepted's names or national numbers"],
+          ["The numbers by governorate", "Phone number and address"],
+          ["The table of birth years and months drawn in the lottery", "Age and reason for non-acceptance"],
+          ["Your own result, when you search with your national number", "Any other personal data"],
         ],
       },
       {
         type: "p",
-        text: "Every publication of the lists is recorded in the event log with the name of the person who carried it out and the time, and an objection can be submitted from your account within the set deadline.",
+        text: "Every publication of the results is recorded in the event log with the name of the person who carried it out and the time, and an objection can be submitted from your account within the set deadline.",
       },
     ],
   },
@@ -438,7 +438,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
     hijri: "17 Jumada al-Ula 1448 AH",
     gregorian: "28 October 2026",
     excerpt:
-      "Some accepted applicants did not pay within the deadline and their acceptance lapsed, so the Administration has decided to accept new ages (66 and over, born in 1960 or earlier) from the direct acceptance applications for the places left free, with the public lists updated automatically.",
+      "Some accepted applicants did not pay within the deadline and their acceptance lapsed, so the Administration has decided to accept new ages (66 and over, born in 1960 or earlier) from the direct acceptance applications for the places left free, with the published results updated automatically.",
     tags: tags("Reserve round", "Accepted ages", "Payment"),
     author: "Seasons Management",
     department: "Finance",
@@ -468,7 +468,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
       },
       {
         type: "p",
-        text: "The public list has been updated automatically, with the date of the last update. Those who did not pay are refunded the amounts due, with refund receipts linked to the original payment receipts.",
+        text: "The published results have been updated automatically, with the date of the last update. Those who did not pay are refunded the amounts due, with refund receipts linked to the original payment receipts.",
       },
     ],
   },

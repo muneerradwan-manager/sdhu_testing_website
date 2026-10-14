@@ -189,6 +189,28 @@ export function UsernameField({ value, onChange, error, placeholder }: { value: 
 }
 
 /** `label` and `hint` change when the number typed is someone else's (a citizen at a registration desk) */
+/**
+ * The first name on the ID card, typed after the national number: the civil registry confirms the two belong
+ * together before anything of the record is shown. `demoName`: the demo's «fill it» button (its registry is made up).
+ */
+export function FirstNameField({ value, onChange, error, hint, demoName }: { value: string; onChange: (v: string) => void; error?: string | false; hint?: ReactNode; demoName?: string }) {
+  const t = useT();
+  const ar = useAr();
+  return (
+    <Field label={t("الاسم الأول", "First name")} hint={hint ?? t("كما في البطاقة الشخصية — به نتأكد أن الرقم الوطني رقمك", "As on your ID card: it confirms the national ID is yours")} error={error}>
+      <div className="relative">
+        <UserRound className={icon} />
+        <input autoComplete="given-name" value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, ar ? "pr-12" : "pl-12")} />
+      </div>
+      {demoName && !value && (
+        <button type="button" onClick={() => onChange(demoName)} className="mt-2 rounded-full border border-dashed border-gold-dark bg-gold/15 px-3 py-1 text-xs font-semibold text-maroon">
+          {t(`تجريبي: الاسم الأول لهذا الرقم «${demoName}»`, `Demo: this number's first name is «${demoName}»`)}
+        </button>
+      )}
+    </Field>
+  );
+}
+
 export function PhoneField({
   value,
   onChange,

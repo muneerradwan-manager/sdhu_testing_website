@@ -31,9 +31,9 @@ c.shot("landing", "بوابة الإداريين: الصفحة الأولى", hl
 S = "B"
 c.goto("/administrator/register", wait=1500)
 c.shot("reg-basic", "إنشاء حساب إداري: البيانات الأساسية", section=S)
-field("الرقم الوطني").fill(ID); field("رقم الهاتف").fill("0944300885"); field("كلمة المرور").fill("Admin@1448"); c.settle(300)
+field("الرقم الوطني").fill(ID); field("الاسم الأول").fill("مروان"); field("رقم الهاتف").fill("0944300885"); field("كلمة المرور").fill("Admin@1448"); c.settle(300)
 c.scroll_to("button:has-text('إرسال رمز التحقق')", 640)
-c.shot("reg-basic-filled", "بعد إدخال الرقم الوطني ورقم الهاتف وكلمة المرور", hl=[("button:has-text('إرسال رمز التحقق')", "")], section=S)
+c.shot("reg-basic-filled", "بعد إدخال الرقم الوطني والاسم الأول ورقم الهاتف وكلمة المرور", hl=[("button:has-text('إرسال رمز التحقق')", "")], section=S)
 btn("إرسال رمز التحقق", wait=1500)
 c.otp("1448")
 c.shot("reg-otp", "رمز التحقق", hl=[("button:has-text('تحقق')", "")], section=S)

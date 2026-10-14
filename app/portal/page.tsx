@@ -22,6 +22,7 @@ import {
 import { useEffect, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { PilgrimShell } from "./_components/pilgrim-shell";
+import { CivilNotice } from "./_components/civil-notice";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
@@ -147,6 +148,7 @@ export default function PortalHome() {
         </Card>
 
         <div className="space-y-6">
+          {account?.civil && <CivilNotice claim={account.civil} />}
           {/* Application CTA / status */}
           {app ? (
             <Link href="/portal/application" className="group relative block overflow-hidden rounded-[2rem] bg-green-dark p-7 text-white shadow-2xl md:p-9">
@@ -198,7 +200,7 @@ export default function PortalHome() {
               { href: "/academy", icon: BookOpen, label: "الأكاديمية", sub: "تتبع تقدمك" },
               { href: "/guide", icon: NotebookTabs, label: "دليل المناسك", sub: "يوماً بيوم" },
               { href: "/prayer-times", icon: Clock3, label: "مواقيت الصلاة", sub: "مدينتك" },
-              { href: "/results", icon: FileSearch, label: "نتائج القبول", sub: "القوائم العامة" },
+              { href: "/results", icon: FileSearch, label: "نتائج القبول", sub: "جدول القرعة والبحث برقمك" },
               { href: "/verify", icon: ShieldCheck, label: "التحقق", sub: "الجهات والإيصالات" },
               { href: "/faq", icon: HeartHandshake, label: "الأسئلة الشائعة", sub: "أجوبة معتمدة" },
             ].map((t, i) => (

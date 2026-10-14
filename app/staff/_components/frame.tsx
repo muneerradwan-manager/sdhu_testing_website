@@ -71,7 +71,7 @@ import { useExamDesk } from "../exam/_components/desk";
 import { useFlightsDesk } from "../flights/desk";
 import { useRegistrationDesk } from "../hajj/desk";
 import { useSystemsUnseen } from "./system";
-import { useReviewQueue, useTicketQueue } from "./data";
+import { useCivilClaims, useReviewQueue, useTicketQueue } from "./data";
 import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
 
 /**
@@ -254,6 +254,7 @@ function Sidebar({ user }: { user: StaffUser }) {
   const toast = useToast();
   const [showPerms, setShowPerms] = useState(false);
   const reviews = useReviewQueue();
+  const civil = useCivilClaims().filter((c) => c.claim.status === "pending").length;
   const contracts = useStore((s) => Object.values(s.post).filter((p) => p.contract?.status === "pending").length);
   const tickets = useTicketQueue();
   const halls = useHalls();
@@ -266,8 +267,8 @@ function Sidebar({ user }: { user: StaffUser }) {
   const evaluatees = useEvaluatees(user).items.length;
   const counts = useMemo(
     () => ({
-      // Applications that need a decision, and pilgrims' contracts with groups waiting for the office
-      reviews: reviews.filter((r) => !r.review).length + contracts,
+      // Applications that need a decision, civil corrections waiting, and pilgrims' contracts with groups waiting for the office
+      reviews: reviews.filter((r) => !r.review).length + civil + contracts,
       tickets: tickets.filter((t) => t.status !== "resolved").length,
       // In my halls' sittings that are open or running: devices asking to enter, and submissions waiting for my confirmation
       hall: Object.entries(halls.runs)
@@ -289,7 +290,7 @@ function Sidebar({ user }: { user: StaffUser }) {
       exams: 0,
       flights: 0,
     }),
-    [reviews, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
+    [reviews, civil, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
   );
   const items = STAFF_NAV.filter((n) =>
     n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.evaluate ? evaluatees > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),

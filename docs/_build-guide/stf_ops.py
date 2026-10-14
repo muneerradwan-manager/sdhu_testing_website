@@ -32,6 +32,7 @@ def prep_pilgrim():
     # the account (run1.py, chapter B)
     c.goto("/register", wait=1200)
     c.fill("input[placeholder='01012345412']", "01012345412")
+    c.fill("input[autocomplete='given-name']", "محمد")
     c.fill("input[placeholder='09xxxxxxxx']", "0944345412")
     c.fill("input[type='email']", "mohammad@example.com")
     c.fill("input[type='password']", "Hajj@1448")

@@ -10,10 +10,11 @@ import { ageOf, relationLabel } from "@/lib/registry";
 import type { CheckStatus } from "@/lib/rules";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
-import { useReviewQueue, type ReviewItem } from "../_components/data";
+import { useCivilClaims, useReviewQueue, type ReviewItem } from "../_components/data";
 import { fmtDateTime, Gate, logAs, PageHeader, textareaClass, useStaffUser } from "../_components/kit";
 import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
+import { CivilClaims } from "./civil";
 import { ContractsScreen } from "./contracts";
 
 type Filter = "pending" | "approved" | "rejected" | "all";
@@ -29,17 +30,21 @@ export function ReviewsView() {
 }
 
 /**
- * Two lists, as a site's admin: the applications the platform could not decide alone, each reviewed on its
- * own screen (`?id=`), and the pilgrims attached to the groups (`?view=groups`). Their numbers are on «لوحتي».
+ * Three lists, as a site's admin: the applications the platform could not decide alone, each reviewed on its
+ * own screen (`?id=`), the civil details pilgrims corrected at account creation (`?view=civil`, one by `&id=`),
+ * and the pilgrims attached to the groups (`?view=groups`). Their numbers are on «لوحتي».
  */
 function Reviews() {
   const params = useSearchParams();
   const router = useRouter();
   const queue = useReviewQueue();
+  const civil = useCivilClaims();
   const post = useStore((s) => s.post);
   const id = params.get("id");
-  const view = params.get("view") === "groups" ? "groups" : "reviews";
+  const v = params.get("view");
+  const view = v === "groups" || v === "civil" ? v : "reviews";
 
+  if (view === "civil" && id) return <CivilClaims key={id} id={id} />;
   if (id) return <ReviewScreen key={id} id={id} />;
 
   const pending = queue.filter((q) => !q.review).length;
@@ -50,14 +55,15 @@ function Reviews() {
       <PageHeader title="مراجعة الطلبات" icon={<ClipboardCheck />} description="ما لم تحسمه المنصة وحدها يحتاج قرارك مع سبب مكتوب، والإلحاق بالمجموعات يجري من هنا." />
       <Segments
         value={view}
-        onChange={(v) => router.replace(v === "groups" ? `${BASE}?view=groups` : BASE, { scroll: false })}
+        onChange={(v) => router.replace(v === "reviews" ? BASE : `${BASE}?view=${v}`, { scroll: false })}
         label="الأقسام"
         items={[
           { value: "reviews", label: "طلبات تحتاج قراراً", count: pending, tone: "maroon" },
+          { value: "civil", label: "تصحيح البيانات المدنية", count: civil.filter((c) => c.claim.status === "pending").length, tone: "maroon" },
           { value: "groups", label: "الإلحاق بالمجموعات", count: contracts, tone: "maroon" },
         ]}
       />
-      {view === "groups" ? <ContractsScreen /> : <ReviewList queue={queue} />}
+      {view === "groups" ? <ContractsScreen /> : view === "civil" ? <CivilClaims id={null} /> : <ReviewList queue={queue} />}
     </div>
   );
 }

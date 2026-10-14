@@ -230,6 +230,28 @@ export function getPerson(id: string): Person | null {
   return BY_ID.get(id) ?? generate(id);
 }
 
+/** A name as people write it: no diacritics or tatweel, one alef, ya and ha, spaces ignored («عبدالله» = «عبد الله») */
+const nameKey = (s: string) =>
+  s
+    .replace(/[ً-ٰٟـ]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/\s+/g, "");
+
+/**
+ * Proof that whoever typed a national number holds it: the first name on its civil record. Asked wherever a
+ * national number is tied to an account or an application, before any of its data is shown. The civil
+ * registry answers only «matches» or «does not match», never the name itself.
+ */
+export function firstNameMatches(id: string, firstName: string) {
+  const p = getPerson(id);
+  return !!p && !!nameKey(firstName) && nameKey(p.firstName) === nameKey(firstName);
+}
+
+/** Wrong first names allowed before the form stops (the real platform counts them per number, on its server) */
+export const FIRST_NAME_TRIES = 5;
+
 export function fullName(p: Person) {
   return `${p.firstName} ${p.fatherName} ${p.lastName}`;
 }
