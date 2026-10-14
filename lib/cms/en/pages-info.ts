@@ -1,6 +1,6 @@
 import type { PagesEn } from "./index";
 
-/** «من نحن», «شروط التسجيل والتكاليف», «نتائج القبول», «التحقق» in English (see ./index.ts) */
+/** «من نحن», «شروط التسجيل والتكاليف», «الأسئلة الشائعة», «نتائج القبول», «التحقق» in English (see ./index.ts) */
 export const PAGES_EN_INFO: PagesEn = {
   // ═══════════════════════════ About ═══════════════════════════
   about: {
@@ -244,6 +244,17 @@ export const PAGES_EN_INFO: PagesEn = {
       eyebrow: "The same every season",
       title: "The basic conditions",
       description: "Four conditions that never change from one season to the next, and apply to every person in the application.",
+    },
+  },
+
+  // ═══════════════════════════ FAQ ═══════════════════════════
+  faq: {
+    hero: {
+      title: "Frequently asked",
+      highlight: "questions",
+      description:
+        "Answers approved by the Administration on registration, the conditions, acceptance and the lottery, costs and services, sorted by topic and searchable.",
+      crumb: "FAQ",
     },
   },
 

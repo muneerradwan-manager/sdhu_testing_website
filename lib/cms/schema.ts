@@ -1091,7 +1091,7 @@ const CONDITIONS = heroOnly(
     "/images/pilgrim-elder.jpg",
     "الشروط والتكاليف",
   ),
-  "شروط التسجيل، الرسوم، الأهلية المبدئية، والأسئلة الشائعة.",
+  "شروط التسجيل، الرسوم، طريقة القبول، والأهلية المبدئية.",
   [
     {
       id: "basics",
@@ -1102,6 +1102,21 @@ const CONDITIONS = heroOnly(
       ],
     },
   ],
+);
+
+const FAQ_PAGE = heroOnly(
+  "faq",
+  "الأسئلة الشائعة",
+  "/faq",
+  "MessageSquare",
+  pageHero(
+    "الأسئلة",
+    "الشائعة",
+    "أجوبة معتمدة من الإدارة عن التسجيل والشروط والقبول والقرعة والتكاليف والخدمات، مصنّفة وقابلة للبحث.",
+    "/images/aisha-mosque.jpg",
+    "الأسئلة الشائعة",
+  ),
+  "ترويسة صفحة الأسئلة الشائعة؛ الأسئلة وأجوبتها في مجموعة «الأسئلة الشائعة».",
 );
 
 const GUIDE = heroOnly(
@@ -1313,6 +1328,7 @@ const GLOBAL: PageDef = {
             { href: "/umrah", label: "العمرة", note: "خدمات العمرة على المنصة", soon: true },
             { href: "/results", label: "نتائج القبول", note: "ابحث برقمك الوطني", soon: false },
             { href: "/conditions", label: "شروط التسجيل والتكاليف", note: "مع فحص أهلية مبدئي", soon: false },
+            { href: "/faq", label: "الأسئلة الشائعة", note: "أجوبة معتمدة، مصنّفة وقابلة للبحث", soon: false },
             { href: "/verify", label: "التحقق من الجهات والوثائق", note: "حملات معتمدة، إيصالات، شهادات", soon: false },
             { href: "/3d", label: "جولة ثلاثية الأبعاد", note: "الحرمان والمشاعر ومسجدا عائشة وقباء", soon: false },
           ],
@@ -1403,7 +1419,7 @@ const GLOBAL: PageDef = {
   ],
 };
 
-export const CMS_PAGES: PageDef[] = [HOME, ABOUT, CONDITIONS, GUIDE, ACADEMY, NEWS_PAGE, PRAYER, RESULTS, VERIFY, SERVICES, UMRAH, GLOBAL];
+export const CMS_PAGES: PageDef[] = [HOME, ABOUT, CONDITIONS, FAQ_PAGE, GUIDE, ACADEMY, NEWS_PAGE, PRAYER, RESULTS, VERIFY, SERVICES, UMRAH, GLOBAL];
 
 export const CMS_GROUPS = [...new Set(CMS_PAGES.map((p) => p.group))];
 

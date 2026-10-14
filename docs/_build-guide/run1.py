@@ -60,6 +60,9 @@ p.evaluate("""(was) => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localSto
 c.goto("/conditions")
 c.scroll_to("#precheck", 90)
 c.shot("conditions-precheck", "فحص الأهلية المبدئي", section="A")
+# the FAQ, a page of its own (from «المزيد»)
+c.goto("/faq")
+c.shot("faq-page", "صفحة الأسئلة الشائعة", hl=[("main input[placeholder^='ابحث في الأسئلة']", "1"), ("main button:has-text('القبول والقرعة')", "2")], section="A")
 # news
 c.goto("/news")
 c.shot("news", "صفحة الأخبار", section="A")

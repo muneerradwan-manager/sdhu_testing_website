@@ -29,7 +29,6 @@ import { FeesCalculator } from "./fees-calculator";
 import { AcceptanceSplit } from "./acceptance-split";
 import { SeasonTimeline } from "./season-timeline";
 import { PrecheckForm } from "./precheck-form";
-import { Faq } from "./faq";
 
 const R = SEASON.rules;
 
@@ -70,7 +69,8 @@ export function ConditionsBody() {
     ["#acceptance", t("طريقة القبول", "How acceptance works")],
     ["#calendar", t("التقويم", "Calendar")],
     ["#precheck", t("فحص الأهلية", "Eligibility check")],
-    ["#faq", t("الأسئلة الشائعة", "FAQ")],
+    // The questions have a page of their own; the chip takes the visitor there
+    ["/faq", t("الأسئلة الشائعة", "FAQ")],
   ];
 
   return (
@@ -256,16 +256,6 @@ export function ConditionsBody() {
         <Reveal data-tour-target>
           <PrecheckForm />
         </Reveal>
-      </section>
-
-      {/* FAQ */}
-      <section id="faq" className="mx-auto max-w-7xl scroll-mt-24 px-4 pt-20 md:px-8 md:pt-28">
-        <SectionHeading
-          eyebrow={t("أجوبة معتمدة", "Approved answers")}
-          title={t("الأسئلة الشائعة", "Frequently asked questions")}
-          description={t("أجوبة معتمدة من الإدارة، مصنّفة وقابلة للبحث.", "Answers approved by the Administration, sorted by topic and searchable.")}
-        />
-        <Faq />
       </section>
 
       {/* CTA */}

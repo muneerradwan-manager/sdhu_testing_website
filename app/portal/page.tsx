@@ -200,7 +200,7 @@ export default function PortalHome() {
               { href: "/prayer-times", icon: Clock3, label: "مواقيت الصلاة", sub: "مدينتك" },
               { href: "/results", icon: FileSearch, label: "نتائج القبول", sub: "القوائم العامة" },
               { href: "/verify", icon: ShieldCheck, label: "التحقق", sub: "الجهات والإيصالات" },
-              { href: "/conditions", icon: HeartHandshake, label: "الأسئلة الشائعة", sub: "أجوبة معتمدة" },
+              { href: "/faq", icon: HeartHandshake, label: "الأسئلة الشائعة", sub: "أجوبة معتمدة" },
             ].map((t, i) => (
               <motion.div key={t.href} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.05 }}>
                 <Link href={t.href} className="group flex h-full flex-col rounded-3xl border border-gold/30 bg-white p-5 transition hover:-translate-y-1 hover:shadow-lg">

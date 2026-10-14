@@ -22,6 +22,7 @@ export const PAGES_EN_SITE: PagesEn = {
         { href: "/umrah", label: "Umrah", note: "Umrah services on the platform", soon: true },
         { href: "/results", label: "Admission results", note: "Search with your national number", soon: false },
         { href: "/conditions", label: "Conditions and costs", note: "With a quick eligibility check", soon: false },
+        { href: "/faq", label: "FAQ", note: "Approved answers, sorted and searchable", soon: false },
         { href: "/verify", label: "Verify agencies and documents", note: "Approved campaigns, receipts, certificates", soon: false },
         { href: "/3d", label: "3D tour", note: "The Two Holy Mosques, the holy sites, Aisha and Quba mosques", soon: false },
       ],
