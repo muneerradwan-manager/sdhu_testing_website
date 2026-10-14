@@ -76,13 +76,13 @@ const UMRAH: Record<string, FieldsEn> = {
     "Entering Ihram for Umrah at the Miqat",
     [
       "The pilgrim enters Ihram at the Miqat on their route. Anyone already in Makkah who wants to perform Umrah goes out to the nearest point outside the Haram, such as Masjid al-Tan'im (Masjid Aisha) or al-Ji'ranah, and enters Ihram there.",
-      "Men wear the two Ihram cloths (izar and rida'); women wear their usual modest clothes and hijab. The pilgrim then makes the intention, says «لبيك عمرة» (Here I am for Umrah) and begins the Talbiyah.",
+      "Men wear the two Ihram cloths (izar and rida'); women wear their usual modest clothes and hijab. The pilgrim then makes the intention, says «لَبَّيْكَ عُمْرَةً» (Here I am for Umrah) and begins the Talbiyah.",
       "From the moment of intention, the pilgrim avoids everything forbidden in Ihram until leaving it by shaving or shortening the hair after Sa'i.",
     ],
     [
       "Ihram at the Miqat for those coming from outside Makkah",
       "People in Makkah enter Ihram at al-Tan'im or al-Ji'ranah",
-      "Make the intention, then say: «لبيك عمرة»",
+      "Make the intention, then say: «لَبَّيْكَ عُمْرَةً»",
       "Avoid what is forbidden in Ihram until Tahallul",
     ],
     [
@@ -140,13 +140,13 @@ const UMRAH: Record<string, FieldsEn> = {
     [
       "Umrah may be repeated. Scholars differ about repeating it on the same journey; on crowded days it is better to perform more Tawaf than to keep going out to al-Tan'im.",
       "Umrah may be performed on behalf of someone who has died, or someone permanently unable to go, such as a very elderly person or a sick person with no hope of recovery — provided the person performing it has already performed Umrah for themselves.",
-      "Whoever performs Umrah for someone else makes the intention at Ihram and says «لبيك عمرة عن فلان», naming the person. It carries a great reward, God willing.",
+      "Whoever performs Umrah for someone else makes the intention at Ihram and says «لَبَّيْكَ عُمْرَةً عَنْ فُلَانٍ», naming the person. It carries a great reward, God willing.",
     ],
     [
       "Repeating Umrah is allowed; more Tawaf is better when it is crowded",
       "Umrah for the deceased and for those unable to go is allowed",
       "Perform your own Umrah first",
-      "The intention at Ihram: «لبيك عمرة عن فلان»",
+      "The intention at Ihram: «لَبَّيْكَ عُمْرَةً عَنْ فُلَانٍ»",
     ],
     [
       [
@@ -165,7 +165,7 @@ const ETHICS: Record<string, FieldsEn> = {
   "journey-ethics/patience": lesson(
     "Patience and Good Character on Hajj",
     [
-      "Allah says: «فمن فرض فيهن الحج فلا رفث ولا فسوق ولا جدال في الحج» — whoever undertakes Hajj, let there be no indecency, no wrongdoing and no quarrelling. Hajj is a school of character, where the pilgrim learns patience and self-control.",
+      "Allah says: «فَمَن فَرَضَ فِيهِنَّ الْحَجَّ فَلَا رَفَثَ وَلَا فُسُوقَ وَلَا جِدَالَ فِي الْحَجِّ» — whoever undertakes Hajj, let there be no indecency, no wrongdoing and no quarrelling. Hajj is a school of character, where the pilgrim learns patience and self-control.",
       "Hajj brings long waits, crowds, heat and fatigue. The successful pilgrim meets all of this with contentment, remembering that the reward matches the hardship and that anger robs worship of its spirit.",
       "One sign of an accepted Hajj is that the pilgrim comes home with better character than before: gentler in speech and kinder to people.",
     ],
@@ -330,7 +330,7 @@ const MADINAH: Record<string, FieldsEn> = {
   "madinah/greeting-prophet": lesson(
     "Greeting the Prophet ﷺ and His Two Companions",
     [
-      "It is recommended for the visitor to greet the Prophet ﷺ at his grave with good manners and a lowered voice, saying «السلام عليك يا رسول الله ورحمة الله وبركاته» (Peace be upon you, O Messenger of Allah, and the mercy of Allah and His blessings), and to send blessings upon him.",
+      "It is recommended for the visitor to greet the Prophet ﷺ at his grave with good manners and a lowered voice, saying «السَّلَامُ عَلَيْكَ يَا رَسُولَ اللَّهِ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ» (Peace be upon you, O Messenger of Allah, and the mercy of Allah and His blessings), and to send blessings upon him.",
       "Then he moves a little forward and greets Abu Bakr al-Siddiq (may Allah be pleased with him), then a little further and greets Umar ibn al-Khattab (may Allah be pleased with him), and prays for them both.",
       "To make dua for himself, he faces the Qiblah. Rubbing or kissing the chamber, raising the voice there, or walking around it is not part of the Sunnah.",
     ],
@@ -355,7 +355,7 @@ const MADINAH: Record<string, FieldsEn> = {
   "madinah/quba": lesson(
     "Quba Mosque and the Virtue of Praying There",
     [
-      "Quba Mosque is the first mosque built in Islam. The Prophet ﷺ founded it when he arrived in Madinah as an emigrant, and the verse «لمسجد أُسس على التقوى من أول يوم أحق أن تقوم فيه» (a mosque founded on piety from the first day is more worthy of your standing in it) was revealed about it.",
+      "Quba Mosque is the first mosque built in Islam. The Prophet ﷺ founded it when he arrived in Madinah as an emigrant, and the verse «لَمَسْجِدٌ أُسِّسَ عَلَى التَّقْوَى مِنْ أَوَّلِ يَوْمٍ أَحَقُّ أَن تَقُومَ فِيهِ» (a mosque founded on piety from the first day is more worthy of your standing in it) was revealed about it.",
       "The Prophet ﷺ said: “Whoever purifies himself at home, then comes to Quba Mosque and prays a prayer in it, will have a reward like that of an Umrah.” The Prophet ﷺ used to visit it every Saturday, walking or riding.",
       "It is recommended to make wudu where you are staying, then go to Quba and pray two rak'ahs there. It is about three kilometres from the Prophet's Mosque, with a shaded walkway between them.",
     ],
@@ -379,7 +379,7 @@ const MADINAH: Record<string, FieldsEn> = {
     [
       "Mount Uhud lies north of Madinah. The Prophet ﷺ said of it: “Uhud is a mountain that loves us and we love it.” The Battle of Uhud took place there in the third year after the Hijrah.",
       "Seventy Companions were martyred in the battle, among them Hamzah ibn Abd al-Muttalib, the Prophet's uncle, and Mus'ab ibn Umayr (may Allah be pleased with them). They were buried where the battle was fought.",
-      "It is recommended to visit the martyrs' cemetery and greet them, saying: «السلام عليكم أهل الديار من المؤمنين والمسلمين، وإنا إن شاء الله بكم لاحقون». The visitor learns from the battle the lesson of obedience and the cost of disobeying orders, as happened with the archers on Mount Aynayn.",
+      "It is recommended to visit the martyrs' cemetery and greet them, saying: «السَّلَامُ عَلَيْكُمْ أَهْلَ الدِّيَارِ مِنَ الْمُؤْمِنِينَ وَالْمُسْلِمِينَ، وَإِنَّا إِنْ شَاءَ اللَّهُ بِكُمْ لَاحِقُونَ». The visitor learns from the battle the lesson of obedience and the cost of disobeying orders, as happened with the archers on Mount Aynayn.",
     ],
     [
       "Uhud is a mountain that loves us and we love it",
@@ -394,7 +394,7 @@ const MADINAH: Record<string, FieldsEn> = {
       ],
       [
         "What is the dua for visiting graves?",
-        "«السلام عليكم أهل الديار من المؤمنين والمسلمين، وإنا إن شاء الله بكم لاحقون، نسأل الله لنا ولكم العافية» — Peace be upon you, people of these dwellings, believers and Muslims; we will join you, God willing. We ask Allah for well-being for us and for you.",
+        "«السَّلَامُ عَلَيْكُمْ أَهْلَ الدِّيَارِ مِنَ الْمُؤْمِنِينَ وَالْمُسْلِمِينَ، وَإِنَّا إِنْ شَاءَ اللَّهُ بِكُمْ لَاحِقُونَ، نَسْأَلُ اللَّهَ لَنَا وَلَكُمُ الْعَافِيَةَ» — Peace be upon you, people of these dwellings, believers and Muslims; we will join you, God willing. We ask Allah for well-being for us and for you.",
       ],
     ],
     ["Mount Uhud", "Martyrs of Uhud", "Hamzah", "Visiting graves"],
@@ -433,17 +433,17 @@ const DUAS: Record<string, FieldsEn> = {
     "The Dua for Travel and Riding",
     [
       "The pilgrim begins the journey by remembering Allah. On boarding the bus or the plane, he says the travel dua that the Prophet ﷺ taught his Companions, which asks for righteousness, piety and an easy journey.",
-      "The pilgrim bids his family farewell with «أستودعكم الله الذي لا تضيع ودائعه» (I entrust you to Allah, whose trusts are never lost), and his family reply «أستودع الله دينك وأمانتك وخواتيم عملك» (I entrust to Allah your faith, your trust and the last of your deeds).",
+      "The pilgrim bids his family farewell with «أَسْتَوْدِعُكُمُ اللَّهَ الَّذِي لَا تَضِيعُ وَدَائِعُهُ» (I entrust you to Allah, whose trusts are never lost), and his family reply «أَسْتَوْدِعُ اللَّهَ دِينَكَ وَأَمَانَتَكَ وَخَوَاتِيمَ عَمَلِكَ» (I entrust to Allah your faith, your trust and the last of your deeds).",
     ],
     [
       "The travel dua when setting off",
       "Bid your family farewell with the reported dua",
-      "Say «الله أكبر» going up and «سبحان الله» going down",
+      "Say «اللَّهُ أَكْبَرُ» going up and «سُبْحَانَ اللَّهِ» going down",
     ],
     [
       [
         "Do I say the travel dua every time I ride inside Makkah?",
-        "The travel dua is said at the start of the journey. For short trips the riding dua is enough: «سبحان الذي سخر لنا هذا وما كنا له مقرنين».",
+        "The travel dua is said at the start of the journey. For short trips the riding dua is enough: «سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ».",
       ],
       [
         "Does the pilgrim shorten the prayer on the plane?",
@@ -454,10 +454,10 @@ const DUAS: Record<string, FieldsEn> = {
     [
       [
         "The travel dua",
-        "الله أكبر، الله أكبر، الله أكبر، سبحان الذي سخّر لنا هذا وما كنا له مقرنين، وإنا إلى ربنا لمنقلبون. اللهم إنا نسألك في سفرنا هذا البر والتقوى، ومن العمل ما ترضى، اللهم هوّن علينا سفرنا هذا واطوِ عنا بُعده، اللهم أنت الصاحب في السفر، والخليفة في الأهل.",
+        "اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ. اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى، اللَّهُمَّ هَوِّنْ عَلَيْنَا سَفَرَنَا هَذَا وَاطْوِ عَنَّا بُعْدَهُ، اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ، وَالْخَلِيفَةُ فِي الْأَهْلِ.",
         "Narrated by Muslim",
       ],
-      ["When bidding farewell to the family", "أستودعكم الله الذي لا تضيع ودائعه.", "Narrated by Ibn Majah"],
+      ["When bidding farewell to the family", "أَسْتَوْدِعُكُمُ اللَّهَ الَّذِي لَا تَضِيعُ وَدَائِعُهُ.", "Narrated by Ibn Majah"],
     ],
   ),
   "duas/talbiyah": lesson(
@@ -471,14 +471,14 @@ const DUAS: Record<string, FieldsEn> = {
       ["When does the Umrah pilgrim stop the Talbiyah?", "When he begins Tawaf."],
       [
         "Can words be added to the Talbiyah?",
-        "Yes. Some Companions used to add «لبيك وسعديك، والخير في يديك، والرغباء إليك والعمل», and the Prophet ﷺ approved of it.",
+        "Yes. Some Companions used to add «لَبَّيْكَ وَسَعْدَيْكَ، وَالْخَيْرُ فِي يَدَيْكَ، وَالرَّغْبَاءُ إِلَيْكَ وَالْعَمَلُ», and the Prophet ﷺ approved of it.",
       ],
     ],
     ["Talbiyah", "Remembrances of Ihram", "Labbayk Allahumma Labbayk"],
     [
       [
         "The Talbiyah",
-        "لبيك اللهم لبيك، لبيك لا شريك لك لبيك، إن الحمد والنعمة لك والملك، لا شريك لك.",
+        "لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ.",
         "Agreed upon (al-Bukhari and Muslim)",
       ],
     ],
@@ -486,13 +486,13 @@ const DUAS: Record<string, FieldsEn> = {
   "duas/tawaf-duas": lesson(
     "Remembrances of Tawaf and Sa'i",
     [
-      "On touching or pointing to the Black Stone, the pilgrim says «بسم الله، والله أكبر» (In the name of Allah; Allah is the Greatest). Between the Yemeni Corner and the Black Stone he says «ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار» (Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire).",
+      "On touching or pointing to the Black Stone, the pilgrim says «بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ» (In the name of Allah; Allah is the Greatest). Between the Yemeni Corner and the Black Stone he says «رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ» (Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire).",
       "No specific dua is established for each circuit, so the pilgrim asks for whatever he wishes of the good of this world and the next, in his own language and with a present heart.",
-      "In Sa'i, on reaching Safa the first time, he recites «إن الصفا والمروة من شعائر الله» (Safa and Marwah are among the symbols of Allah). On Safa and on Marwah he glorifies Allah, declares His oneness and makes dua, three times.",
+      "In Sa'i, on reaching Safa the first time, he recites «إِنَّ الصَّفَا وَالْمَرْوَةَ مِن شَعَائِرِ اللَّهِ» (Safa and Marwah are among the symbols of Allah). On Safa and on Marwah he glorifies Allah, declares His oneness and makes dua, three times.",
     ],
     [
-      "«بسم الله، والله أكبر» at the Black Stone",
-      "«ربنا آتنا في الدنيا حسنة» between the two corners",
+      "«بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ» at the Black Stone",
+      "«رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً» between the two corners",
       "No set dua for each circuit",
       "Remembrance on Safa and Marwah",
     ],
@@ -505,10 +505,10 @@ const DUAS: Record<string, FieldsEn> = {
     ],
     ["Duas of Tawaf", "Duas of Sa'i", "The Black Stone", "Safa"],
     [
-      ["Between the Yemeni Corner and the Black Stone", "ربنا آتنا في الدنيا حسنة، وفي الآخرة حسنة، وقنا عذاب النار.", "Narrated by Abu Dawud"],
+      ["Between the Yemeni Corner and the Black Stone", "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً، وَفِي الْآخِرَةِ حَسَنَةً، وَقِنَا عَذَابَ النَّارِ.", "Narrated by Abu Dawud"],
       [
         "On Safa and Marwah",
-        "الله أكبر، الله أكبر، الله أكبر، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير، لا إله إلا الله وحده، أنجز وعده، ونصر عبده، وهزم الأحزاب وحده.",
+        "اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، اللَّهُ أَكْبَرُ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ، أَنْجَزَ وَعْدَهُ، وَنَصَرَ عَبْدَهُ، وَهَزَمَ الْأَحْزَابَ وَحْدَهُ.",
         "Narrated by Muslim",
       ],
     ],
@@ -516,8 +516,8 @@ const DUAS: Record<string, FieldsEn> = {
   "duas/zamzam-maqam": lesson(
     "At the Station of Ibrahim and Zamzam",
     [
-      "After Tawaf, the pilgrim goes to the Station of Ibrahim and recites «واتخذوا من مقام إبراهيم مصلى» (And take the Station of Ibrahim as a place of prayer), then prays two rak'ahs behind it if possible: Surat al-Kafirun in the first and Surat al-Ikhlas in the second.",
-      "Then he drinks Zamzam. The Prophet ﷺ said: “Zamzam water is for whatever it is drunk for.” So he says «بسم الله», drinks, and asks for whatever he wishes of the good of this world and the next.",
+      "After Tawaf, the pilgrim goes to the Station of Ibrahim and recites «وَاتَّخِذُوا مِن مَّقَامِ إِبْرَاهِيمَ مُصَلًّى» (And take the Station of Ibrahim as a place of prayer), then prays two rak'ahs behind it if possible: Surat al-Kafirun in the first and Surat al-Ikhlas in the second.",
+      "Then he drinks Zamzam. The Prophet ﷺ said: “Zamzam water is for whatever it is drunk for.” So he says «بِسْمِ اللَّهِ», drinks, and asks for whatever he wishes of the good of this world and the next.",
     ],
     ["Recite the verse at the Station", "Two rak'ahs: al-Kafirun, then al-Ikhlas", "Zamzam is for whatever it is drunk for", "Do not crowd behind the Station"],
     [
@@ -530,30 +530,30 @@ const DUAS: Record<string, FieldsEn> = {
   "duas/day-tarwiyah": lesson(
     "Remembrances of the Day of Tarwiyah (8 Dhu al-Hijjah)",
     [
-      "On the Day of Tarwiyah the Tamattu' pilgrim enters Ihram for Hajj, saying «لبيك حجاً» (Here I am for Hajj). In Mina the pilgrim repeats the Talbiyah often, glorifies Allah, declares His oneness and recites the Quran.",
-      "The first ten days of Dhu al-Hijjah are the best days of the year, so it is recommended to say often: «لا إله إلا الله، والله أكبر، والحمد لله».",
+      "On the Day of Tarwiyah the Tamattu' pilgrim enters Ihram for Hajj, saying «لَبَّيْكَ حَجًّا» (Here I am for Hajj). In Mina the pilgrim repeats the Talbiyah often, glorifies Allah, declares His oneness and recites the Quran.",
+      "The first ten days of Dhu al-Hijjah are the best days of the year, so it is recommended to say often: «لَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ، وَالْحَمْدُ لِلَّهِ».",
     ],
-    ["«لبيك حجاً» on entering Ihram", "Repeat the Talbiyah often in Mina", "Glorify Allah and declare His oneness in the ten days"],
+    ["«لَبَّيْكَ حَجًّا» on entering Ihram", "Repeat the Talbiyah often in Mina", "Glorify Allah and declare His oneness in the ten days"],
     [
       [
         "Is there a special dua on arriving in Mina?",
         "No specific dua is established. The pilgrim repeats the Talbiyah, remembers Allah often and asks for whatever he wishes.",
       ],
-      ["What are the words of the Takbir in the ten days?", "One form is: «الله أكبر الله أكبر، لا إله إلا الله، والله أكبر الله أكبر ولله الحمد»."],
+      ["What are the words of the Takbir in the ten days?", "One form is: «اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ، لَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ وَلِلَّهِ الْحَمْدُ»."],
     ],
     ["Day of Tarwiyah", "Remembrances in Mina", "8 Dhu al-Hijjah", "Labbayk Hajjan"],
-    [["The Takbir of the ten days", "الله أكبر الله أكبر، لا إله إلا الله، والله أكبر الله أكبر، ولله الحمد.", "Reported from the Companions"]],
+    [["The Takbir of the ten days", "اللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ، لَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ اللَّهُ أَكْبَرُ، وَلِلَّهِ الْحَمْدُ.", "Reported from the Companions"]],
   ),
   "duas/day-arafah": lesson(
     "The Dua of the Day of Arafah (9 Dhu al-Hijjah)",
     [
-      "The Day of Arafah is the day of dua. The Prophet ﷺ said: “The best dua is the dua of the Day of Arafah, and the best of what I and the prophets before me have said is: «لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير».” (There is no god but Allah alone, with no partner; His is the dominion and His is the praise, and He has power over all things.)",
+      "The Day of Arafah is the day of dua. The Prophet ﷺ said: “The best dua is the dua of the Day of Arafah, and the best of what I and the prophets before me have said is: «لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ».” (There is no god but Allah alone, with no partner; His is the dominion and His is the praise, and He has power over all things.)",
       "After praying Dhuhr and Asr, the pilgrim devotes himself to dua, facing the Qiblah with hands raised, asking Allah earnestly for himself, his parents, his family, his country and all Muslims, until sunset.",
       "There is no day on which Allah frees more of His servants from the Fire than the Day of Arafah, so the pilgrim should make the most of these hours and not waste them chatting or taking photos.",
     ],
     [
       "The best dua is the dua of the Day of Arafah",
-      "Say often: «لا إله إلا الله وحده لا شريك له»",
+      "Say often: «لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ»",
       "Make dua facing the Qiblah with hands raised",
       "Do not waste the hours chatting or taking photos",
     ],
@@ -563,17 +563,17 @@ const DUAS: Record<string, FieldsEn> = {
     ],
     ["Dua of the Day of Arafah", "Arafah", "9 Dhu al-Hijjah"],
     [
-      ["The best words on the Day of Arafah", "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد، وهو على كل شيء قدير.", "Narrated by al-Tirmidhi"],
-      ["A comprehensive dua", "اللهم إنك عفوٌّ كريم تحب العفو فاعفُ عني.", "Narrated by al-Tirmidhi"],
+      ["The best words on the Day of Arafah", "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ.", "Narrated by al-Tirmidhi"],
+      ["A comprehensive dua", "اللَّهُمَّ إِنَّكَ عَفُوٌّ كَرِيمٌ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي.", "Narrated by al-Tirmidhi"],
     ],
   ),
   "duas/days-eid-tashreeq": lesson(
     "Remembrances of the Day of Sacrifice and the Days of Tashreeq",
     [
-      "The Day of Sacrifice is the greatest day of Eid. The pilgrim says «الله أكبر» with each pebble he throws, and when slaughtering the Hady he says «بسم الله، والله أكبر، اللهم هذا منك ولك» (In the name of Allah; Allah is the Greatest. O Allah, this is from You and for You).",
+      "The Day of Sacrifice is the greatest day of Eid. The pilgrim says «اللَّهُ أَكْبَرُ» with each pebble he throws, and when slaughtering the Hady he says «بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ، اللَّهُمَّ هَذَا مِنْكَ وَلَكَ» (In the name of Allah; Allah is the Greatest. O Allah, this is from You and for You).",
       "The Days of Tashreeq are days of eating, drinking and remembering Allah. The pilgrim glorifies Allah often in the tents and after the prayers, and after stoning the small and middle Jamarat he stands facing the Qiblah and makes dua.",
     ],
-    ["«الله أكبر» with each pebble", "«بسم الله والله أكبر» when slaughtering", "The Days of Tashreeq are days of remembrance", "Dua after the first and second Jamarat"],
+    ["«اللَّهُ أَكْبَرُ» with each pebble", "«بِسْمِ اللَّهِ وَاللَّهُ أَكْبَرُ» when slaughtering", "The Days of Tashreeq are days of remembrance", "Dua after the first and second Jamarat"],
     [
       ["Does the pilgrim make dua after Jamrat al-Aqabah?", "No. He stones it and leaves without stopping for dua, as the Prophet ﷺ did."],
       [
@@ -583,8 +583,8 @@ const DUAS: Record<string, FieldsEn> = {
     ],
     ["Day of Sacrifice", "Days of Tashreeq", "Takbir", "Stoning the Jamarat"],
     [
-      ["When slaughtering the Hady", "بسم الله، والله أكبر، اللهم هذا منك ولك.", "Narrated by Abu Dawud"],
-      ["With each pebble", "الله أكبر.", "Narrated by Muslim"],
+      ["When slaughtering the Hady", "بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ، اللَّهُمَّ هَذَا مِنْكَ وَلَكَ.", "Narrated by Abu Dawud"],
+      ["With each pebble", "اللَّهُ أَكْبَرُ.", "Narrated by Muslim"],
     ],
   ),
 };

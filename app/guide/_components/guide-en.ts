@@ -26,7 +26,7 @@ export const NUSUK_EN: Record<NusukId, { name: string; tagline: string; how: str
 
 /** NUSUK_ROWS in English, row by row (the values in the order Tamattu', Qiran, Ifrad) */
 export const NUSUK_ROWS_EN: { label: string; values: [string, string, string] }[] = [
-  { label: "Intention at the Miqat", values: ["«لبيك عمرة» (for Umrah)", "«لبيك عمرة وحجاً» (for Umrah and Hajj)", "«لبيك حجاً» (for Hajj)"] },
+  { label: "Intention at the Miqat", values: ["«لَبَّيْكَ عُمْرَةً» (for Umrah)", "«لَبَّيْكَ عُمْرَةً وَحَجًّا» (for Umrah and Hajj)", "«لَبَّيْكَ حَجًّا» (for Hajj)"] },
   { label: "Time in Ihram", values: ["Short: leave Ihram after Umrah", "Long, until the Day of Sacrifice", "Long, until the Day of Sacrifice"] },
   { label: "Hady (sacrifice)", values: ["Required", "Required", "Not required"] },
   { label: "Tawaf of arrival", values: ["Replaced by the Umrah Tawaf", "Sunnah", "Sunnah"] },
@@ -51,7 +51,7 @@ export const WHO_EN = { الجميع: "Everyone", الرجال: "Men", النس�
 
 /** The hint of each Tawaf round in English (the duas stay in Arabic) */
 export const TAWAF_HINTS_EN = [
-  "Start from the Black Stone line and say: «بسم الله، والله أكبر» (In the name of Allah, Allah is the Greatest). Men walk briskly (raml) in the first three rounds.",
+  "Start from the Black Stone line and say: «بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ» (In the name of Allah, Allah is the Greatest). Men walk briskly (raml) in the first three rounds.",
   "Carry on with the Kaaba on your left, and ask Allah for the good of this world and the next.",
   "The last round with brisk walking for men, in the Tawaf of arrival and of Umrah.",
   "Walk normally from now on, and remember Allah often.",
@@ -62,11 +62,11 @@ export const TAWAF_HINTS_EN = [
 
 /** Each Sa'i lap in English */
 export const SAI_LAPS_EN = [
-  "From Safa to Marwah. The first time, recite: «إن الصفا والمروة من شعائر الله», and say: «أبدأ بما بدأ الله به» (I begin with what Allah began with).",
+  "From Safa to Marwah. The first time, recite: «إِنَّ الصَّفَا وَالْمَرْوَةَ مِن شَعَائِرِ اللَّهِ», and say: «أَبْدَأُ بِمَا بَدَأَ اللَّهُ بِهِ» (I begin with what Allah began with).",
   "From Marwah to Safa. Men hurry between the two green markers.",
   "From Safa to Marwah. Ask for whatever you wish of the good of this world and the next.",
   "From Marwah to Safa. Take a short rest if you are tired; there is no harm in it.",
-  "From Safa to Marwah. «رب اغفر وارحم إنك أنت الأعز الأكرم» (My Lord, forgive and have mercy).",
+  "From Safa to Marwah. «رَبِّ اغْفِرْ وَارْحَمْ إِنَّكَ أَنْتَ الْأَعَزُّ الْأَكْرَمُ» (My Lord, forgive and have mercy).",
   "From Marwah to Safa. One lap left.",
   "From Safa to Marwah. The Sa'i ends here; then shave or shorten your hair.",
 ];

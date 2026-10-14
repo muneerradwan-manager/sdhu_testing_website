@@ -178,7 +178,7 @@ export const QUIZZES_EN: Record<string, QuizEn> = {
   "أي هذه منهي عنه في الحج صراحة في القرآن؟": {
     q: "Which of these does the Quran explicitly forbid during Hajj?",
     options: ["Arguing", "Sleeping", "Buying", "Cooking"],
-    explain: "«فلا رفث ولا فسوق ولا جدال في الحج» (no obscenity, no wrongdoing and no arguing during Hajj).",
+    explain: "«فَلَا رَفَثَ وَلَا فُسُوقَ وَلَا جِدَالَ فِي الْحَجِّ» (no obscenity, no wrongdoing and no arguing during Hajj).",
   },
   "ماذا تفعل عند الزحام الشديد؟": {
     q: "What should you do in a very heavy crowd?",
@@ -287,7 +287,7 @@ export const QUIZZES_EN: Record<string, QuizEn> = {
   "ماذا يقول عند استلام الحجر الأسود؟": {
     q: "What does the pilgrim say when touching the Black Stone?",
     options: ["سبحان الله", "بسم الله، والله أكبر", "لبيك عمرة", "الحمد لله"],
-    explain: "«بسم الله، والله أكبر» (In the name of God, God is the Greatest).",
+    explain: "«بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ» (In the name of God, God is the Greatest).",
   },
   "ماذا يقرأ في ركعتي الطواف؟": {
     q: "What does the pilgrim recite in the two rak'ahs after Tawaf?",

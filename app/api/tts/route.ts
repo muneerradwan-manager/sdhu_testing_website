@@ -34,7 +34,8 @@ export async function GET(request: Request) {
   if (!audio) {
     try {
       audio = await synthesize(text, voice);
-    } catch {
+    } catch (err) {
+      console.error("[tts]", err);
       return new Response("tts unavailable", { status: 503 });
     }
     if (!audio.length) return new Response("tts unavailable", { status: 503 });

@@ -80,7 +80,7 @@ export const ACADEMY_EN_A: CollectionsEn = {
     "hajj-fiqh/hajj-intro": lesson({
       title: "Hajj: its virtue and who must perform it",
       summary: [
-        "Hajj is the fifth pillar of Islam. God made it obligatory once in a lifetime on every Muslim who is able. God says: «ولله على الناس حج البيت من استطاع إليه سبيلاً» (meaning: pilgrimage to the House is a duty owed to God by all who are able to make the journey). Any Hajj after the first is voluntary.",
+        "Hajj is the fifth pillar of Islam. God made it obligatory once in a lifetime on every Muslim who is able. God says: «وَلِلَّهِ عَلَى النَّاسِ حِجُّ الْبَيْتِ مَنِ اسْتَطَاعَ إِلَيْهِ سَبِيلًا» (meaning: pilgrimage to the House is a duty owed to God by all who are able to make the journey). Any Hajj after the first is voluntary.",
         "Hajj carries a great reward. The Prophet ﷺ said: \"Whoever performs Hajj without obscene talk or wrongdoing returns as on the day his mother bore him.\" He also said: \"An accepted Hajj has no reward but Paradise.\"",
         "Hajj becomes obligatory under five conditions: being Muslim, sane, adult, free, and able. Being able means having the physical and financial means to reach Makkah and return, while leaving enough for the family you support. Most scholars also require a woman to travel with a mahram.",
       ],
@@ -231,8 +231,8 @@ export const ACADEMY_EN_A: CollectionsEn = {
       title: "Recommended acts of Ihram and the Talbiyah",
       summary: [
         "Whoever intends to enter Ihram is encouraged to bathe and clean himself, trim his moustache and cut his nails if needed, then put perfume on his body, not on the Ihram garments. A man wears two clean white sheets, a lower wrap and an upper wrap, with sandals.",
-        "The pilgrim makes the intention in his heart and says «لبيك عمرة» (Here I am for Umrah) for Tamattu', «لبيك حجاً» (Here I am for Hajj) for Ifrad, or «لبيك عمرة وحجاً» (Here I am for Umrah and Hajj) for Qiran. Whoever fears that illness or an obstacle may stop him from completing the rite adds a condition: «فإن حبسني حابس فمحلي حيث حبستني» (if I am held back, I leave Ihram wherever I am held back).",
-        "The Talbiyah is a strongly recommended Sunnah. Its words are: «لبيك اللهم لبيك، لبيك لا شريك لك لبيك، إن الحمد والنعمة لك والملك، لا شريك لك». Men raise their voices with it and women keep theirs low. A pilgrim doing Tamattu' continues it until he starts Tawaf, and the pilgrim in Hajj until he stones Jamrat al-Aqabah on the Day of Sacrifice.",
+        "The pilgrim makes the intention in his heart and says «لَبَّيْكَ عُمْرَةً» (Here I am for Umrah) for Tamattu', «لَبَّيْكَ حَجًّا» (Here I am for Hajj) for Ifrad, or «لَبَّيْكَ عُمْرَةً وَحَجًّا» (Here I am for Umrah and Hajj) for Qiran. Whoever fears that illness or an obstacle may stop him from completing the rite adds a condition: «فَإِنْ حَبَسَنِي حَابِسٌ فَمَحِلِّي حَيْثُ حَبَسْتَنِي» (if I am held back, I leave Ihram wherever I am held back).",
+        "The Talbiyah is a strongly recommended Sunnah. Its words are: «لَبَّيْكَ اللَّهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيكَ لَكَ». Men raise their voices with it and women keep theirs low. A pilgrim doing Tamattu' continues it until he starts Tawaf, and the pilgrim in Hajj until he stones Jamrat al-Aqabah on the Day of Sacrifice.",
       ],
       points: [
         "Bathe, clean yourself and perfume your body before Ihram",
@@ -313,15 +313,15 @@ export const ACADEMY_EN_A: CollectionsEn = {
       title: "How to perform Tawaf, step by step",
       summary: [
         "The pilgrim enters Masjid al-Haram with his right foot and says the dua for entering the mosque. In the Arrival Tawaf and the Tawaf of Umrah, a man uncovers his right shoulder; this is called Idtiba'.",
-        "Start at the line of the Black Stone: touch and kiss it if you easily can; otherwise point to it with your hand and say «بسم الله، والله أكبر» (In the name of God, God is the Greatest). Then walk with the Kaaba on your left. In the first three circuits men walk briskly with short steps; this is called Raml.",
-        "When you reach the Yemeni Corner, touch it with your hand if you easily can, without kissing it; do not point to it when it is crowded. Between it and the Black Stone say: «ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار» (Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire).",
+        "Start at the line of the Black Stone: touch and kiss it if you easily can; otherwise point to it with your hand and say «بِسْمِ اللَّهِ، وَاللَّهُ أَكْبَرُ» (In the name of God, God is the Greatest). Then walk with the Kaaba on your left. In the first three circuits men walk briskly with short steps; this is called Raml.",
+        "When you reach the Yemeni Corner, touch it with your hand if you easily can, without kissing it; do not point to it when it is crowded. Between it and the Black Stone say: «رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ» (Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire).",
         "After the seven circuits, cover your shoulder and pray two rak'ahs behind the Station of Ibrahim if you easily can, or anywhere in the mosque, then drink Zamzam water.",
       ],
       points: [
         "Idtiba' for men in the Arrival Tawaf and the Tawaf of Umrah",
         "Start at the Black Stone with the takbir, pointing to it when crowded",
         "Raml in the first three circuits, for men",
-        "Say «ربنا آتنا في الدنيا حسنة» between the two corners",
+        "Say «رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً» between the two corners",
         "Two rak'ahs behind the Station of Ibrahim, then drink Zamzam",
       ],
       faq: [
@@ -368,7 +368,7 @@ export const ACADEMY_EN_A: CollectionsEn = {
       title: "Sa'i between Safa and Marwah",
       summary: [
         "Sa'i is seven laps that start at Safa and end at Marwah: going from Safa to Marwah is one lap, and coming back to Safa is another. It must come after a valid Tawaf.",
-        "When you first approach Safa, recite «إن الصفا والمروة من شعائر الله» (Safa and Marwah are among the symbols of God) and say «أبدأ بما بدأ الله به» (I begin with what God began with). Then climb Safa, face the Kaaba, say «الله أكبر» three times and say: «لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير، لا إله إلا الله وحده، أنجز وعده، ونصر عبده، وهزم الأحزاب وحده». Make dua, and do the same on Marwah.",
+        "When you first approach Safa, recite «إِنَّ الصَّفَا وَالْمَرْوَةَ مِن شَعَائِرِ اللَّهِ» (Safa and Marwah are among the symbols of God) and say «أَبْدَأُ بِمَا بَدَأَ اللَّهُ بِهِ» (I begin with what God began with). Then climb Safa, face the Kaaba, say «اللَّهُ أَكْبَرُ» three times and say: «لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ، أَنْجَزَ وَعْدَهُ، وَنَصَرَ عَبْدَهُ، وَهَزَمَ الْأَحْزَابَ وَحْدَهُ». Make dua, and do the same on Marwah.",
         "Men hurry between the two green markers; women walk normally. Ritual purity is not a condition for Sa'i, though it is better. So a woman who did Tawaf while clean and then got her period may still do Sa'i.",
       ],
       points: [
@@ -479,7 +479,7 @@ export const ACADEMY_EN_A: CollectionsEn = {
       summary: [
         "The Prophet ﷺ said: \"Hajj is Arafah.\" Standing at Arafah is the greatest pillar; whoever misses it has missed Hajj. Its time runs from midday (when the sun passes its zenith) on the 9th until dawn on the Day of Sacrifice; whoever is there for any part of this time has made his Hajj.",
         "Pilgrims pray Dhuhr and Asr combined and shortened, with one adhan and two iqamahs, then devote themselves to dua. All of Arafah is a place of standing except Batn Uranah, so make sure you are inside the boundaries of Arafah, which are marked by signs.",
-        "Whoever arrives during the day must stay until sunset. The best dua is the dua of the Day of Arafah, and the best words said by the Prophet ﷺ and the prophets before him are: «لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير».",
+        "Whoever arrives during the day must stay until sunset. The best dua is the dua of the Day of Arafah, and the best words said by the Prophet ﷺ and the prophets before him are: «لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ».",
         "You do not need to climb Jabal al-Rahmah (the Mount of Mercy), and going there to seek blessing is not part of the rite. Face the qiblah, not the mountain, when making dua. Beware of sunstroke: stay in the tent and drink water.",
       ],
       points: [
@@ -536,14 +536,14 @@ export const ACADEMY_EN_A: CollectionsEn = {
     "hajj-fiqh/jamarat": lesson({
       title: "Stoning the Jamarat",
       summary: [
-        "On the Day of Sacrifice, the pilgrim stones Jamrat al-Aqabah only, with seven pebbles, saying «الله أكبر» with each one. A pebble is small, a little bigger than a chickpea; large stones and shoes are not thrown.",
+        "On the Day of Sacrifice, the pilgrim stones Jamrat al-Aqabah only, with seven pebbles, saying «اللَّهُ أَكْبَرُ» with each one. A pebble is small, a little bigger than a chickpea; large stones and shoes are not thrown.",
         "On the Days of Tashriq, he stones all three Jamarat after midday: first the small one near Masjid al-Khayf, then the middle one, then the large one, which is Jamrat al-Aqabah. After the small and the middle ones, he stands facing the qiblah and makes a long dua.",
         "A pilgrim who wants to leave early stones on the 12th and leaves Mina before sunset. If the sun sets while he is still in Mina, he must stay the night and stone on the 13th. Elderly, sick and pregnant pilgrims may appoint someone to stone for them, provided that person is performing Hajj the same year.",
       ],
       points: [
         "Day of Sacrifice: Jamrat al-Aqabah only, with seven pebbles",
         "Days of Tashriq: all three after midday, in order",
-        "Say «الله أكبر» with each pebble; make dua after the small and middle ones",
+        "Say «اللَّهُ أَكْبَرُ» with each pebble; make dua after the small and middle ones",
         "If leaving early, leave Mina before sunset on the 12th",
         "Those with an excuse, such as the elderly, may appoint someone to stone for them",
       ],
