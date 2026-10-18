@@ -60,13 +60,14 @@ export function AdminFlights() {
   const p = admin.profile;
   const g = p?.group;
   const coord = useCoordinatorPost(admin.id, p);
-  // The coordinator has no group: he sees the flights of the groups sorted to him
-  if (isTechCoordinator(p)) {
-    return coord?.groups.length ? (
+  // Whoever works in groups he does not head — the coordinator, the guide or the assistant in a group's seat, the
+  // cluster's female guide or assistant — sees the flights of the groups he works in
+  if (coord && !p?.group?.approvedAt) {
+    return coord.groups.length ? (
       <ClusterFlights />
     ) : (
-      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة للمجموعات التي وُزّعت عليها.">
-        <LockedCard title="الرحلات تظهر بعد توزيعك على مجموعات" text="المنسق التقني للتكتل: حين يُشكَّل التكتل في المكتب ويوزّعك رئيسه على مجموعات منه، ترى هنا رحلاتها." href="/administrator/groups" cta="إدارة المجموعات" />
+      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة للمجموعات التي تعمل فيها.">
+        <LockedCard title="الرحلات تظهر بعد مكانك في مجموعة" text={isTechCoordinator(p) ? "المنسق التقني للتكتل: حين يُشكَّل التكتل في المكتب ويوزّعك رئيسه على مجموعات منه، ترى هنا رحلاتها." : "حين يُجلسك المكتب في مقعد في مجموعة، أو يوزّعك رئيس التكتل على مجموعات منه، ترى هنا رحلاتها."} href="/administrator/groups" cta="إدارة المجموعات" />
       </AdminShell>
     );
   }
@@ -144,7 +145,7 @@ function ClusterFlights() {
   return (
     <AdminShell
       image="/images/haram-2022.jpg"
-      title={coord ? "رحلات مجموعاتي" : `رحلات ${view.name}`}
+      title={coord ? (coord.groups.length === 1 ? `رحلات ${groupName(coord.groups[0].number)}` : "رحلات مجموعاتي") : `رحلات ${view.name}`}
       subtitle={`${coord ? `${view.name} — ` : ""}${groups.length} مجموعات — ${formatNumber(total)} حاجاً وإدارياً. ${head ? "ضع مجموعاتك على أيام رحلات تكتلك ذهاباً وعودة." : "رحلة كل مجموعة ذهاباً وعودة كما وضعها رئيس التكتل."}`}
     >
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">

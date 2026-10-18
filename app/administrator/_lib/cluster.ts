@@ -142,11 +142,13 @@ export const SEED_CLUSTERS: SeedCluster[] = [
       feePaidAt: at(15, 12),
       accountant: acc("seed-09", "غسان النحاس"),
       groups: byNumber([poolGroup("seed-01"), poolGroup("seed-08"), poolGroup("seed-09")]),
+      // five stars: no seats in its groups, one coordinator and one female guide for its six units, sorted on all three
       seats: { 61: [], 55: [], 44: [] },
       assistants: [],
-      coordinators: [],
-      femaleGuides: [],
-      sorting: {},
+      coordinators: [acc("01033300971", "محمد خير الصواف")],
+      femaleGuides: [acc("01033300983", "ريم القدسي")],
+      sorting: sorting({ "01033300971": [61, 55, 44] }),
+      guideSorting: sorting({ "01033300983": [61, 55, 44] }),
     },
   },
   {
@@ -177,7 +179,9 @@ export const SEED_CLUSTERS: SeedCluster[] = [
       assistants: [acc("01033300893", "حسن اللبابيدي"), acc("01033300894", "ماهر الشربجي")],
       coordinators: [acc("01033300895", "خلدون الصيرفي")],
       femaleGuides: [acc("01033300897", "سوسن الحفار")],
-      sorting: {},
+      // five units: its one coordinator and its one female guide take all three groups
+      sorting: sorting({ "01033300895": [65, 64, 66] }),
+      guideSorting: sorting({ "01033300897": [65, 64, 66] }),
     },
   },
   // The season's other requests, over every branch, tier and state (./season-seed)
