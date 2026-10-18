@@ -389,6 +389,9 @@ export type ClusterChannel = {
   reads?: Record<string, number>;
 };
 
+/** An administrator's oral exam: the slot he booked (app/administrator/_lib/oral.ts), then its committee's result */
+export type OralState = { slotId: string; bookedAt: number; status: "booked" | "passed" | "failed" | "absent"; score?: number; note?: string; by?: string; at?: number };
+
 /** A pilgrim's visa as his group's head uploaded it from the email of the Saudi foreign ministry */
 export type PilgrimVisa = { number: string; ref?: string; name?: string; type?: string; at: number; by: string };
 
@@ -470,8 +473,11 @@ export type AdminProfile = {
    * by the exam's role; `exam` stays the paper of the role's own exam (its `examAs`)
    */
   exams?: Record<string, NonNullable<AdminProfile["exam"]>>;
-  /** Kept from before the test had no oral: never read */
-  oral?: { score: number; by: string; at: number; note?: string };
+  /**
+   * His oral exam after the written one: the time he booked among the administration's oral days, then its
+   * committee's result. Qualified only once he passed both (a renewal exempt from the written one is exempt from both)
+   */
+  oral?: OralState;
   resultPublishedAt?: number;
   /** Formed alone, without a team and without a cluster: a cluster takes it later, and its head assigns its team */
   group?: {

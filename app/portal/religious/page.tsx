@@ -84,13 +84,17 @@ function ActivityCard({ a, i, members, by, target }: { a: Activity; i: number; m
               </div>
               {inIt ? (
                 a.kind === "khatma" ? (
-                  <p className="mt-2 text-sm">{st.count ? `قرأ: ${Object.keys(progressOf(a, m.id)).map((u) => unitLabel(a.kind, u)).join("، ")}` : "لم يُسجَّل له جزء بعد."}</p>
+                  <>
+                    <p className="mt-2 text-sm">{st.count ? `قرأ: ${Object.keys(progressOf(a, m.id)).map((u) => unitLabel(a.kind, u)).join("، ")}` : "لم يُسجَّل له جزء بعد."}</p>
+                    <History a={a} personId={m.id} />
+                  </>
                 ) : (
                   <>
                     <div className="mt-2 flex items-center justify-between text-sm"><span>حفظ {st.count} من {st.total}</span><span className="font-bold text-green">{pct}%</span></div>
                     <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-gold-light"><div className="h-full rounded-full bg-green-light" style={{ width: `${pct}%` }} /></div>
                     <p className="mt-2 text-sm text-ink-soft">{st.last ? <>آخر ما سمّعه: <b>{unitLabel(a.kind, st.last.unit)}</b> — {GRADE_LABEL[st.last.grade]} ({fmtDay(st.last.at)})</> : "لم يسمّع بعد."}</p>
                     {st.next ? <p className="text-sm text-ink-soft">التالي: {unitLabel(a.kind, st.next)}</p> : <p className="text-sm font-bold text-green">أتمّ الحفظ، بارك الله فيه.</p>}
+                    <History a={a} personId={m.id} />
                   </>
                 )
               ) : (
@@ -110,5 +114,26 @@ function ActivityCard({ a, i, members, by, target }: { a: Activity; i: number; m
         })}
       </ul>
     </motion.div>
+  );
+}
+
+/** His record in an activity: every unit recited, its grade and its date, newest first, as his guide recorded them */
+function History({ a, personId }: { a: Activity; personId: string }) {
+  const rows = Object.entries(progressOf(a, personId)).sort((x, y) => y[1].at - x[1].at);
+  const notes = a.sittings.filter((x) => x.personId === personId && x.note);
+  if (!rows.length) return null;
+  return (
+    <details className="mt-3 rounded-xl bg-white/80 p-2 text-sm">
+      <summary className="cursor-pointer font-bold text-green-dark">سجل {a.kind === "khatma" ? "القراءة" : "التسميع"} ({rows.length})</summary>
+      <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+        {rows.map(([u, d]) => (
+          <li key={u} className="flex flex-wrap items-center justify-between gap-2 border-t border-gold/15 pt-1">
+            <span>{unitLabel(a.kind, u)}</span>
+            <span className="text-xs text-hint">{a.kind === "khatma" ? "" : `${GRADE_LABEL[d.grade]} — `}{fmtDay(d.at)}</span>
+          </li>
+        ))}
+      </ul>
+      {notes.length > 0 && <p className="mt-2 text-xs text-ink-soft">ملاحظات الموجّه: {notes.map((x) => x.note).join(" · ")}</p>}
+    </details>
   );
 }

@@ -262,7 +262,7 @@ export function Exams() {
       </ListTable>
 
       <Box title="مواعيد فتح الاختبار للإداريين" open={false}>
-        <OperationsPanel keys={["admin-exams"]} system="exams" area="exams" title="مدة الاختبارات وتفعيلها" />
+        <OperationsPanel keys={["admin-exams", "admin-orals"]} system="exams" area="exams" title="مدة الاختبارات وتفعيلها" />
       </Box>
       <ResetToOriginal />
       <Records area="exams" />

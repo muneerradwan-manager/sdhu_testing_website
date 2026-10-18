@@ -40,7 +40,8 @@ export function standingOf(r: AdminRow, halls: Halls): Standing {
   const p = r.profile;
   if (p.examExempt) return "exempt";
   const res = resultOf(p);
-  if (res.confirmed) return res.passed ? "passed" : "failed";
+  // the written test's standing (the oral one has its own page)
+  if (res.confirmed) return res.written ? "passed" : "failed";
   const st = res.parts.map((x) => x.status);
   if (st.includes("unconfirmed")) return "review";
   if (st.includes("voided")) return "voided";
@@ -184,7 +185,7 @@ export function useExamDesk() {
       live,
       alerts,
       high: alerts.filter((a) => a.level === "high"),
-      passed: rows.filter((r) => resultOf(r.profile).passed && !r.profile.examExempt).length,
+      passed: rows.filter((r) => resultOf(r.profile).written && !r.profile.examExempt).length,
       badges: {
         centers: unsupervised.length + new Set(crowded.map((c) => c.center.id)).size,
         people: noCenter.length,

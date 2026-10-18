@@ -35,6 +35,7 @@ const nextSteps = (w: Written, cluster = false): Record<string, { title: string;
   fee: { title: "أنت مؤهل — بقي رسم التسجيل", text: "استوفى ملفك شروط الصفة التي اخترتها. سدّد رسم 30 $ ليُقدَّم طلبك.", cta: "تسديد الرسم" },
   test: { title: "اختبارك المؤتمت في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر ببطاقتك وهويتك: يسجّل المشرف حضورك، وتدخل الاختبار من جهازك برقمك الوطني بموافقته.`, cta: "قاعتي وموعدي" },
   result: { title: "نتيجتك", text: "تُحتسب بعد أن يؤكد مشرف القاعة تسليمك: تنجح باجتياز كل قسم من أقسام الاختبار بالنسبة المطلوبة فيه.", cta: "عرض النتيجة" },
+  oral: { title: "امتحانك الشفهي", text: "نجحت في الاختبار المؤتمت: اختر موعدك أمام لجنة صفتك في مركزك، في مدة الامتحانات الشفهية. لا تتأهل إلا بنجاحك فيه.", cta: "موعدي الشفهي" },
   group: { title: "تُشكَّل مجموعتك في المكتب", text: "احضر مع فريقك إلى المكتب في مدة تشكيل المجموعات: باسم مجموعتك (لا تحمله مجموعة أخرى)، ورسمها 200 $، فيشكّلها الموظف بفئتك ويُجلس فيها موجّهها ومعاونها، وتوقّعون عقدها.", cta: "العقود" },
   team: { title: "مكانك يُحدَّد في المكتب", text: "يُجلسك المكتب في مقعد مجموعة عند تشكيلها، أو يختارك رئيس تكتل للتكتل كله (منسقاً أو موجّهة أو معاوناً أو محاسباً) عند تشكيله في المكتب. لكل شخص مكان واحد في الموسم.", cta: "ملفي" },
   approval: { title: "مجموعتك عند المكتب", text: "يكمل الموظف تشكيلها بفئتك وفريقها.", cta: "العقود" },
@@ -59,7 +60,8 @@ export function AdminDashboard() {
   const steps = useMemo(() => journeyOf(profile, joinCount, written), [profile, joinCount, written]);
   const current = steps.find((s) => s.state === "current");
   const result = resultOf(profile);
-  const failed = !!result.published && !result.exempt && !result.passed;
+  // Failed the written test, or its oral exam after it
+  const failed = !!result.published && !result.exempt && (!result.written || result.oral?.status === "failed" || result.oral?.status === "absent");
   const history = seasonHistory(admin.id);
   const [openSeason, setOpenSeason] = useState<SeasonRecord | null>(null);
   const next = current ? nextSteps(written, isClusterRole(profile))[current.key] : null;
@@ -74,7 +76,9 @@ export function AdminDashboard() {
     : result.exempt
       ? `مجدَّد في الصفة نفسها — دون اختبار`
       : result.passed
-        ? `ناجح في التأهيل${result.score !== undefined ? ` (${result.score}%)` : ""}`
+        ? `مؤهل: ناجح في المؤتمت${result.score !== undefined ? ` (${result.score}%)` : ""} والشفهي`
+      : result.written && result.published
+        ? `ناجح في المؤتمت — ${result.oral ? "امتحانه الشفهي محجوز" : "بقي الامتحان الشفهي"}`
       : profile?.feePaidAt
         ? "متقدم — قيد التأهيل"
         : profile?.eligibleAt
@@ -136,7 +140,7 @@ export function AdminDashboard() {
             {failed ? (
               <>
                 <p className="mt-4 font-display text-3xl font-bold">لم تجتز التأهيل هذا الموسم</p>
-                <p className="mt-2 leading-8 text-white/75">لم تبلغ النسبة المطلوبة في كل أقسام الاختبار المؤتمت. يبقى ملفك وسجلك مرجعاً في أي تأهيل لاحق.</p>
+                <p className="mt-2 leading-8 text-white/75">{result.written ? "لم تجتز الامتحان الشفهي أمام لجنة صفتك." : "لم تبلغ النسبة المطلوبة في كل أقسام الاختبار المؤتمت."} يبقى ملفك وسجلك مرجعاً في أي تأهيل لاحق.</p>
                 <ButtonLink href="/administrator/exam" variant="gold" size="lg" className="mt-6">عرض التفاصيل <ArrowLeft className="size-5" /></ButtonLink>
               </>
             ) : next && current ? (

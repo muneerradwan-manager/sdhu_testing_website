@@ -138,7 +138,7 @@ const NAV: NavItem[] = [
   // Registering a pilgrim on the Hajj never puts him in a group
   { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
   { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
-  { href: "/administrator/exam", label: "الاختبار المؤتمت", icon: GraduationCap, ops: ["admin-exams"] },
+  { href: "/administrator/exam", label: "الاختبار المؤتمت والشفهي", icon: GraduationCap, ops: ["admin-exams", "admin-orals"] },
   { href: "/administrator/groups", label: groupsTab, icon: UsersRound, ops: ["group-management"], show: ownGroups },
   { href: "/administrator/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
   // The groups and the clusters are formed at the office, each with its paper contract that everyone in it signs

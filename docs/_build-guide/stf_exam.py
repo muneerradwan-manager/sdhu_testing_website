@@ -206,6 +206,15 @@ c.shot("ex-results", "النتائج: المحاولات المؤكَّدة قس
 p.locator("main tr:has-text('مروان') button:has-text('مراجعة الإجابات')").first.click(); c.settle(1200)
 c.shot("ex-answers", "إجابات محاولة سؤالاً سؤالاً تحت أقسامها", section=EX)
 esc(c, p)
+# the oral exam after it: the applicants who passed, their booked times, one result recorded
+s.nav("الامتحان الشفهي", 1800)
+c.shot("ex-oral", "الامتحان الشفهي: مواعيد الناجحين في المؤتمت أمام لجان صفاتهم، ونتائجهم", hl=[("aside a[href$='/staff/exam/manage/oral']", "1"), ("main [role=radiogroup][aria-label='حال الامتحان الشفهي']", "2")], section=EX)
+rec = p.locator("main button:has-text('تسجيل النتيجة')").first
+if rec.count():
+    rec.click(); c.settle(900)
+    p.locator(f"{D} textarea").first.fill("يعرف مجموعته ويحسن التصرف في مواقفها، ويحتاج مراجعة تعليمات التفويج."); c.settle(300)
+    c.shot("ex-oral-record", "تسجيل نتيجة الامتحان الشفهي: النتيجة والعلامة وملاحظة اللجنة", hl=[(f"{D} button:has-text('حفظ النتيجة')", "")], section=EX)
+    p.locator(f"{D} button:has-text('حفظ النتيجة')").last.click(); c.settle(1200)
 s.nav("الإحصائيات", 1800)
 p.locator("main select[aria-label='الاختبار']").first.select_option("group-head"); c.settle(1300)
 c.shot("ex-stats", "الإحصائيات: المؤدّون والناجحون والمتوسط والوسيط ونسبة النجاح لاختبار واحد", hl=[("main select[aria-label='الاختبار']", "")], section=EX)

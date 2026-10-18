@@ -31,7 +31,7 @@ import { getStaff } from "@/lib/staff";
 import { useNav } from "@/lib/cms/site";
 import { cn } from "@/lib/utils";
 import { PRAYER_EN, hijriDateIn } from "./en-format";
-import { ACCOUNT_MENUS, AccountMenu } from "./account-menu";
+import { ACCOUNT_MENUS, AccountMenu, useOpenRegistrations } from "./account-menu";
 
 type Area = "pilgrim" | "admin" | "staff";
 type Identity = { initial: string; name: string; role: string; href: string; area: Area };
@@ -206,6 +206,9 @@ export function Header() {
   const sessionId = useStore((s) => s.sessionId);
   const staffId = useStore((s) => s.staffSessionId);
   const adminId = useStore((s) => s.adminSessionId);
+  // The home page's opening holds «تسجيل الدخول» while both registrations are closed: the bar does not repeat it
+  const regs = useOpenRegistrations();
+  const heroLogin = pathname === "/" && !regs.hajj && !regs.admin;
 
   // Each role has its own identity: the pilgrim never shows up inside the staff or administrator areas, and
   // vice versa. Shared public pages show whoever is signed in (pilgrim first), else the pilgrim sign-in.
@@ -388,8 +391,9 @@ export function Header() {
                 </span>
               </Link>
             ) : !area ? (
-              // The public pages: signing in, asking as whom (each platform has its own address)
-              <AccountMenu kind="login" variant="bar" />
+              // The public pages: signing in, asking as whom (each platform has its own address) — but for the home
+              // page while its opening holds the same button
+              !heroLogin && <AccountMenu kind="login" variant="bar" />
             ) : (
               <>
                 {!here(signIn.login.href) && (

@@ -9,7 +9,8 @@ import { SEASON } from "@/lib/season";
 import { seedCoordinatorWork } from "./coordinator";
 import { SEED_CLUSTERS } from "./cluster";
 import { DEFAULT_ROLES, examRoleOf, examRolesOf, roleKeyByName, roleName, seasonalOf, structureNow } from "./structure";
-import { actions, getState, useStore, type AdminProfile, type AdminRecord, type AdminRules, type Attempt, type AttemptStatus, type ClusterRecord, type VaultDoc } from "@/lib/store";
+import { demoOral } from "./oral";
+import { actions, getState, useStore, type AdminProfile, type AdminRecord, type AdminRules, type Attempt, type AttemptStatus, type ClusterRecord, type OralState, type VaultDoc } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
 
@@ -62,7 +63,7 @@ export const DEMO_ADMINS: DemoAdmin[] = [
   { id: "01033300881", phone: "0944281449", position: "group-head", section: "رئيس تكتل", mode: "done", title: "عبد الرحمن العلي — رئيس تكتل النور", note: "58 عاماً — رئيس مجموعة الخبير ثلاثة مواسم متتالية (4.6 – 4.8)، فئتها الثالثة. جدّد صفته معفى من الاختبار، ومنحته الإدارة صفة «رئيس تكتل» موسمية، فشُكّل تكتل النور (اقتصادي) في المكتب: ست مجموعات مجموع فئاتها 11 بفرقها، ومعاون التكتل، ومنسقان وموجّهتان، ومحاسبه، ووقّعوا عقده." },
   { id: "01033300882", phone: "0944282449", position: "group-head", section: "رئيس تكتل", mode: "ready", title: "نبيل الساعاتي — رئيس مجموعة منحته الإدارة صفة رئيس تكتل", note: "54 عاماً — رئيس مجموعة الميزان ثلاثة مواسم متتالية بتقييم 4.3 – 4.6، فئتها الثالثة. جدّد صفته، وشُكّلت مجموعته ولم تدخل تكتلاً. منحته الإدارة صفة «رئيس تكتل» موسمية للزيادة العددية: يحضر إلى المكتب مع رؤساء المجموعات وكادره، فيُشكَّل تكتله هناك." },
   { id: "01033300883", phone: "0944283449", position: "group-head", section: "رئيس مجموعة", mode: "done", title: "بسام درويش — رئيس مجموعة في تكتل النور", note: "51 عاماً — رئيس مجموعة أحفاد بني هاشم (الفئة الثانية) في 1446 و1447 (4.4). دخلت مجموعته تكتل النور حين شُكّل في المكتب." },
-  { id: "01033300884", phone: "0944284449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "45 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالاختبار المؤتمت. لم يبدأ." },
+  { id: "01033300884", phone: "0944284449", position: "group-head", section: "رئيس مجموعة", mode: "start", title: "وليد القصاب — رئيس مجموعة", note: "46 عاماً — رئيس مجموعة في 1447 بتقييم 3.2 دون الحد: لا يُجدَّد في صفته، وتبقى له الصفات الأخرى بالاختبار المؤتمت. لم يبدأ." },
   { id: "01033300871", phone: "0944271449", position: "group-head", section: "رئيس مجموعة", mode: "done", title: "أحمد سليمان الحمصي — رئيس مجموعة", note: "36 عاماً — معاون مجموعة في 1446 (4.6) ولم يشارك في 1447. انتقل إلى رئاسة مجموعة بالاختبار المؤتمت، وشكّل مجموعته «مجموعة اللطيف» وحده، وأعطته الإدارة الفئة الثانية (90 حاجاً في الاقتصادي، بموجّه ومعاون). قبل دعوة تكتل النور لها. يرى حجاجها حين يلحقهم المكتب بها، ويرحّب بالعائلات ويفتح التجمّعات." },
   { id: "01033300885", phone: "0944285449", position: "group-head", section: "رئيس مجموعة", mode: "ready", title: "مروان الحلبي — رئيس مجموعة", note: "42 عاماً — أول موسم له رئيساً: نجح في الاختبار المؤتمت، ولم تُشكَّل مجموعته بعد: يراجع المكتب باسمها ورسمها، فيشكّلها موظف إدارة الإداريين بفئته." },
   { id: "01033300872", phone: "0944272449", position: "group-deputy", section: "معاون", mode: "done", title: "ياسر عبد الله — معاون", note: "40 عاماً — معاون مجموعة اللطيف في 1447 (4.1). جدّد الصفة نفسها معفى من الاختبار، وأجلسه المكتب في مقعد المعاون في مجموعة اللطيف حين شكّلها. أنهى رحلته." },
@@ -533,10 +534,12 @@ export function papersOf(p: AdminProfile | undefined) {
 export type PartResult = { role: string; status?: AttemptStatus; sent: boolean; score?: number; sections: SectionResult[]; passed: boolean; confirmedAt?: number; showResult: boolean };
 
 /**
- * His result, as the administration's exam platform judges it: a test counts once its submission is confirmed (by
- * the hall's supervisor, or approved by the administration), and he passes it by passing every one of its sections
- * at its own pass mark — no overall mark to reach, no weights, no oral. A role that sits two tests («معاون ومنسق
- * تقني») passes when it passes both. `published` is when he sees it: confirmed, in a test that shows results.
+ * His result, as the administration's exam platform judges it: a written test counts once its submission is
+ * confirmed (by the hall's supervisor, or approved by the administration), and he passes it by passing every one of
+ * its sections at its own pass mark — no overall mark to reach, no weights. A role that sits two tests («معاون ومنسق
+ * تقني») passes the written part when it passes both. `published` is when he sees it: confirmed, in a test that
+ * shows results. Then the oral exam before its committee (`oral`): he is qualified (`passed`) only once he passed
+ * the written part (`written`) and the oral one. A renewal exempt from the written test is exempt from both.
  */
 export function resultOf(p: AdminProfile | undefined): {
   parts: PartResult[];
@@ -545,6 +548,11 @@ export function resultOf(p: AdminProfile | undefined): {
   score?: number;
   published?: number;
   exempt: boolean;
+  /** The written part passed (every test, every section) */
+  written: boolean;
+  /** His oral exam, once the written part is passed */
+  oral?: OralState;
+  /** Qualified: exempt, or passed the written part and the oral exam */
   passed: boolean;
 } {
   const parts: PartResult[] = papersOf(p).map(({ role, paper }) => {
@@ -566,7 +574,9 @@ export function resultOf(p: AdminProfile | undefined): {
     score: scored ? Math.round((parts.reduce((a, x) => a + x.score!, 0) / parts.length) * 10) / 10 : undefined,
     published: exempt ? p?.feePaidAt : confirmed && parts.every((x) => x.showResult) ? confirmedAt : undefined,
     exempt,
-    passed: exempt || (confirmed && parts.every((x) => x.passed)),
+    written: exempt || (confirmed && parts.every((x) => x.passed)),
+    oral: p?.oral,
+    passed: exempt || (confirmed && parts.every((x) => x.passed) && p?.oral?.status === "passed"),
   };
 }
 
@@ -593,7 +603,8 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0, written?: 
     { key: "apply", title: "التسجيل كإداري والتحقق من الأهلية", date: when("admin-registration"), href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
     { key: "fee", title: "رسم التسجيل", date: when("admin-registration"), href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
     { key: "test", title: "الاختبار المؤتمت", date: written?.date ? written.date.replace(" 1448", "") : when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.confirmed ? `سُلّم وأكّده المشرف${r.parts.length > 1 ? " — الاختباران" : ""}` : r.parts.some((x) => x.status === "submitted") ? "سُلّم — بانتظار تأكيد المشرف" : r.parts.some((x) => x.status === "unconfirmed") ? "لم يُؤكَّد تسليمك — تقرر فيه الإدارة" : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || r.confirmed },
-    { key: "result", title: "النتيجة", date: when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون اختبار" : r.published ? `${r.score ?? "—"}% — ${r.passed ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}` : r.confirmed ? "تظهر حين تعرضها الإدارة" : "النجاح ببلوغ النسبة المطلوبة في كل قسم", done: !!r.published && r.passed },
+    { key: "result", title: "نتيجة الاختبار المؤتمت", date: when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون اختبار" : r.published ? `${r.score ?? "—"}% — ${r.written ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}` : r.confirmed ? "تظهر حين تعرضها الإدارة" : "النجاح ببلوغ النسبة المطلوبة في كل قسم", done: !!r.published && r.written },
+    { key: "oral", title: "الامتحان الشفهي", date: when("admin-orals"), href: "/administrator/exam", detail: r.exempt ? "معفى بالتجديد" : r.oral?.status === "passed" ? `ناجح أمام اللجنة${r.oral.score !== undefined ? ` — ${r.oral.score}%` : ""}` : r.oral?.status === "failed" ? "لم يجتزه هذا الموسم" : r.oral?.status === "absent" ? "غاب عن موعده" : r.oral ? "موعده محجوز" : "بعد نجاحك في المؤتمت: تختار موعدك أمام لجنة صفتك", done: r.passed },
     teamMember
       ? { key: "team", title: tech ? "مكانك في تكتل منسقاً تقنياً" : "مكانك في تكتل", date: when("cluster-formation"), href: "/administrator/dashboard", detail: post ? posted : tech ? "يختارك رئيس تكتل في المكتب عند تشكيله، ويوزّعك على مجموعات منه" : "في مقعد مجموعة يُجلسك فيه المكتب عند تشكيلها، أو يختارك رئيس تكتل للتكتل كله عند تشكيله في المكتب", done: !!post }
       : { key: "group", title: "تشكيل المجموعة في المكتب", date: when("group-formation"), href: "/administrator/my-contracts", detail: g?.approvedAt ? `${groupName(g.number)} — شكّلها ${g.approvedBy ?? "موظف المكتب"}، ووقّعتم عقدها` : "تحضر مع فريقك إلى المكتب: اسمها الذي تختاره، ورسمها 200 $، وعقدها الذي توقّعونه", done: !!g?.approvedAt },
@@ -672,6 +683,8 @@ export function demoAdminLogin(
       receipt: adminReceipt(id, "A"),
       eligibleAt: now - 80 * min,
       exam: keep ? undefined : passedAttempt(id, examRoleOf(position), now - 70 * min, now - 55 * min),
+      // and the oral exam after it, before his role's committee
+      oral: keep ? undefined : demoOral(examRoleOf(position), now - 50 * min),
       // A role that sits two tests («معاون ومنسق تقني») passed the other one too, two days before
       exams: keep ? undefined : Object.fromEntries(examRolesOf(position).filter((r) => r !== examRoleOf(position)).map((r) => [r, passedAttempt(id, r, now - 2 * 24 * 60 * min, now - 2 * 24 * 60 * min + 15 * min)])),
       // Only a group head has a group of his own; a guide, an assistant or a coordinator works in the groups

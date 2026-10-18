@@ -77,6 +77,50 @@ export default function LessonsPage() {
         </div>
       )}
 
+      {given.length > 0 && (
+        <section id="record" className="mb-10">
+          <h2 className="mb-1 font-display text-2xl font-bold text-green-dark">سجل حضور العائلة</h2>
+          <p className="mb-4 text-ink-soft">كل درس أُعطي ومن حضره من عائلتك، كما سجّله الموجّه في الدرس.</p>
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {members.map((m) => {
+              const mine = given.filter((l) => fits(l.audience, m.gender));
+              const n = mine.filter((l) => attended(l, m.id)).length;
+              return (
+                <div key={m.id} className="rounded-[1.5rem] border border-gold/30 bg-white p-4">
+                  <p className="font-bold text-ink">{m.firstName}</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-green-dark">{n}<span className="text-base font-normal text-hint"> / {mine.length}</span></p>
+                  <p className="text-sm text-ink-soft">{mine.length ? `حضر ${Math.round((n / mine.length) * 100)}% من دروسه` : "لا دروس له بعد"}</p>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-gold-light"><div className="h-full rounded-full bg-green-light" style={{ width: `${mine.length ? (n / mine.length) * 100 : 0}%` }} /></div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="overflow-x-auto rounded-[1.5rem] border border-gold/30 bg-white">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead className="bg-sand text-right text-xs text-hint">
+                <tr>
+                  <th className="p-3">الدرس</th>
+                  {members.map((m) => <th key={m.id} className="p-3 text-center">{m.firstName}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {[...given].reverse().map((l) => (
+                  <tr key={l.id} className="border-t border-gold/15">
+                    <td className="p-3"><span className="font-bold text-ink">{l.title}</span><span className="block text-xs text-hint">{fmtWhen(l.at)} — {l.byName} — {AUDIENCE_LABEL[l.audience]}</span></td>
+                    {members.map((m) => (
+                      <td key={m.id} className="p-3 text-center">
+                        {!fits(l.audience, m.gender) ? <span className="text-hint">—</span> : attended(l, m.id) ? <span className="inline-flex items-center gap-1 font-bold text-green"><CheckCircle2 className="size-4" /> حضر</span> : <span className="inline-flex items-center gap-1 font-bold text-maroon"><XCircle className="size-4" /> لم يحضر</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-hint">«—»: الدرس لغيره (درس للنساء أو للرجال).</p>
+        </section>
+      )}
+
       {past.length > 0 && (
         <>
           <h2 className="mb-4 font-display text-2xl font-bold text-green-dark">الدروس السابقة</h2>

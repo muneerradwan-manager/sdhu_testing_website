@@ -206,7 +206,8 @@ function FileSheet({ f }: { f: FileState }) {
   const { all: skills } = useSkills();
   const p = f.row.profile;
   const res = resultOf(p);
-  const result = res.exempt ? "معفى بالتجديد في صفته" : res.confirmed ? `${res.score ?? "—"}% — ${res.passed ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}${res.published ? "" : " (لم تُعرض عليه)"}` : res.parts.some((x) => x.status === "submitted") ? "سلّم — بانتظار تأكيد المشرف" : res.parts.some((x) => x.status === "unconfirmed") ? "غير مؤكَّد — بانتظار قرار الإدارة" : p.feePaidAt ? "لم يختبر بعد" : "";
+  const oral = !res.written ? "" : res.oral?.status === "passed" ? ` — ناجح في الشفهي${res.oral.score !== undefined ? ` (${res.oral.score}%)` : ""}` : res.oral?.status === "failed" ? " — راسب في الشفهي" : res.oral?.status === "absent" ? " — غائب عن الشفهي" : res.oral ? " — الشفهي محجوز" : " — بقي الشفهي"
+  const result = res.exempt ? "معفى بالتجديد في صفته" : res.confirmed ? `${res.score ?? "—"}% — ${res.written ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}${res.published ? "" : " (لم تُعرض عليه)"}${oral}` : res.parts.some((x) => x.status === "submitted") ? "سلّم — بانتظار تأكيد المشرف" : res.parts.some((x) => x.status === "unconfirmed") ? "غير مؤكَّد — بانتظار قرار الإدارة" : p.feePaidAt ? "لم يختبر بعد" : "";
 
   return (
     <div className="space-y-5">

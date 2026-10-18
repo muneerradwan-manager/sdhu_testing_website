@@ -137,8 +137,8 @@ const DEMO_PEOPLE: Record<string, { category?: string; branch: string; extra?: s
   "seed-16": { category: "c2", branch: "دمشق", age: 55, seasonal: granted("cluster-head", "رئيس مجموعة البشرى أربعة مواسم بتقييم 4.5: تكتل جديد لحجاج دمشق") },
   // The staff's own records of the same heads (lib/data/staff-seed), under the ids they were filed with
   "01033300955": { category: "c2", branch: "دمشق" },
-  "02041700533": { category: "c1", branch: "دمشق" },
-  "05022400319": { category: "c1", branch: "دمشق" },
+  "02041700545": { category: "c1", branch: "دمشق" },
+  "05022400335": { category: "c1", branch: "دمشق" },
 };
 
 /** Everyone's seed, by national id (or seed id); `primary`: a base role the administration set, over the one applied for */

@@ -37,6 +37,7 @@ const OP_EN: Record<OperationKey, string> = {
   "hajj-lottery": "Hajj registration — lottery pre-registration",
   "admin-registration": "Registering as an administrator",
   "admin-exams": "Exams",
+  "admin-orals": "Oral exams",
   "group-formation": "Forming groups",
   "group-joining": "Pilgrims joining groups",
   "cluster-formation": "Forming clusters",

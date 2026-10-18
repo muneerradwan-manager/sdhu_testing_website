@@ -326,6 +326,7 @@ export const SEED_ADMINS: SeedAdmin[] = [
       receipt: "1448-A-000871",
       eligibleAt: at(2026, 9, 28),
       exam: satAttempt({ id: "01033300871", role: "group-head", hall: "group-head@damascus", startedAt: at(2026, 10, 7, 9, 2), submittedAt: at(2026, 10, 7, 9, 21), by: SUPERVISOR }),
+      oral: { slotId: "oral-group-head-damascus-2026-10-17-0900", bookedAt: at(2026, 10, 11, 10), status: "passed", score: 88, by: "مازن الحلبي", at: at(2026, 10, 17, 9, 25), note: "يعرف مجموعته وحجاجها، ويحسن التصرف في المواقف اليومية." },
       group: { number: 27, capacity: 50, requestedAt: at(2026, 11, 3, 12), feePaidAt: at(2026, 11, 3, 12, 20) },
     }),
   },
@@ -337,6 +338,7 @@ export const SEED_ADMINS: SeedAdmin[] = [
       positions: ["معاون"],
       feePaidAt: at(2026, 9, 22),
       exam: satAttempt({ id: "01033300872", role: "group-deputy", hall: "group-deputy@damascus", startedAt: at(2026, 10, 6, 9, 1), submittedAt: at(2026, 10, 6, 9, 24), wrong: 3, by: SUPERVISOR }),
+      oral: { slotId: "oral-group-deputy-damascus-2026-10-14-1030", bookedAt: at(2026, 10, 11, 12), status: "passed", score: 81, by: "مازن الحلبي", at: at(2026, 10, 14, 10, 50) },
     }),
   },
   {
@@ -346,35 +348,38 @@ export const SEED_ADMINS: SeedAdmin[] = [
       positions: ["موجّه ديني"],
       feePaidAt: at(2026, 9, 23),
       exam: satAttempt({ id: "01033301105", role: "guide-m", hall: "guide-m@daraa", startedAt: at(2026, 10, 4, 9, 3), submittedAt: at(2026, 10, 4, 9, 19), wrong: 1, by: "مشرف قاعة درعا" }),
+      oral: { slotId: "oral-guide-m-daraa-2026-10-12-0900", bookedAt: at(2026, 10, 11, 9), status: "passed", score: 93, by: "الشيخ محمد الحسني", at: at(2026, 10, 12, 9, 30), note: "تلاوة متقنة وحفظ جيد، وأحكام المناسك حاضرة." },
     }),
   },
   {
     name: "سامر نجار",
     position: "منسق تقني",
-    profile: admin("01033301217", {
+    profile: admin("01033301261", {
       positions: ["منسق تقني"],
       feePaidAt: at(2026, 9, 24),
       // Left the hall before the supervisor typed his PIN: the administration decides on his attempt
-      exam: satAttempt({ id: "01033301217", role: "tech", hall: "tech@latakia", startedAt: at(2026, 10, 8, 9, 2), submittedAt: at(2026, 10, 8, 9, 23), wrong: 3, status: "unconfirmed", reason: "غادر القاعة قبل أن يكتب المشرف رمزه على جهازه" }),
+      exam: satAttempt({ id: "01033301261", role: "tech", hall: "tech@latakia", startedAt: at(2026, 10, 8, 9, 2), submittedAt: at(2026, 10, 8, 9, 23), wrong: 3, status: "unconfirmed", reason: "غادر القاعة قبل أن يكتب المشرف رمزه على جهازه" }),
     }),
   },
   {
     name: "وليد السعدي",
     position: "رئيس مجموعة",
-    profile: admin("05022400319", {
+    profile: admin("05022400335", {
       positions: ["رئيس مجموعة"],
       feePaidAt: at(2026, 9, 25),
       // Below the pass mark in the administrative section: not passed
-      exam: satAttempt({ id: "05022400319", role: "group-head", hall: "group-head@latakia", startedAt: at(2026, 10, 7, 9, 1), submittedAt: at(2026, 10, 7, 9, 25), wrong: 8, by: "مشرف قاعة اللاذقية" }),
+      exam: satAttempt({ id: "05022400335", role: "group-head", hall: "group-head@latakia", startedAt: at(2026, 10, 7, 9, 1), submittedAt: at(2026, 10, 7, 9, 25), wrong: 8, by: "مشرف قاعة اللاذقية" }),
     }),
   },
   {
     name: "لؤي حمدان",
     position: "رئيس مجموعة",
-    profile: admin("02041700533", {
+    profile: admin("02041700545", {
       positions: ["رئيس مجموعة"],
       feePaidAt: at(2026, 9, 21),
-      exam: satAttempt({ id: "02041700533", role: "group-head", hall: "group-head@hama", startedAt: at(2026, 10, 7, 9, 4), submittedAt: at(2026, 10, 7, 9, 22), wrong: 1, by: "مشرف قاعة حماة" }),
+      exam: satAttempt({ id: "02041700545", role: "group-head", hall: "group-head@hama", startedAt: at(2026, 10, 7, 9, 4), submittedAt: at(2026, 10, 7, 9, 22), wrong: 1, by: "مشرف قاعة حماة" }),
+      // booked for the second day of the heads' oral exams: its committee has still to record his result
+      oral: { slotId: "oral-group-head-hama-2026-10-18-1030", bookedAt: at(2026, 10, 12, 18), status: "booked" },
       group: { number: 8, capacity: 45, requestedAt: at(2026, 11, 4, 15), feePaidAt: at(2026, 11, 4, 15, 12) },
     }),
   },

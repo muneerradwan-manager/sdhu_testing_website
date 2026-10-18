@@ -32,7 +32,7 @@ p.keyboard.press("Escape"); c.settle(300)
 # no registration open (15 September): «تسجيل الدخول» in the opening, in place of the registrations' buttons
 day("2026-09-15")
 c.goto("/")
-c.shot("home-hero-closed", "حين لا يكون التسجيل مفتوحاً: «تسجيل الدخول» في الواجهة مكان زرّي التسجيل", hl=[("main button:has-text('تسجيل الدخول')", "")], section="A")
+c.shot("home-hero-closed", "حين لا يكون التسجيل مفتوحاً: «تسجيل الدخول» في الواجهة مكان زرّي التسجيل، ولا يتكرر في الشريط", hl=[("main button:has-text('تسجيل الدخول')", "")], section="A")
 day(was_day)
 c.goto("/")
 # the live stream from the Two Holy Mosques (YouTube needs a few seconds to start)

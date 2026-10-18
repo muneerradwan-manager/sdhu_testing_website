@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { logAdmin, paperOf, paperPatch, papersOf, positionLabelOf, resultOf, statusOf, useAdmin, type PartResult } from "../../_lib/admin";
 import { ATTEMPT_LABEL, barcodeOf, hallActions, openWindow, roleLabelOf, scheduledAt, sourceOf, useDemoNow, useHalls, useMyHall } from "../../_lib/halls";
 import { AdminShell, LockedCard, SimButton } from "../../_components/ui";
+import { OralStage } from "./oral";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { dayLabel, dayTimeLabel, rangeLabel, useOperation } from "@/lib/operations";
 
@@ -76,7 +77,7 @@ function simLog(by: string, action: string, key: string, target: string, detail?
  * at home. The supervisor opens the hall and checks him in by his card; on his device he types his national id, and
  * the supervisor matches the pairing code on his screen and lets him in; the test starts, his time from his own
  * entry; he submits, raises his hand, and the supervisor confirms the submission by typing his PIN on the device. He
- * passes by passing every section at its own pass mark — no overall mark, no weights, no oral.
+ * passes by passing every section at its own pass mark — no overall mark, no weights; then the oral exam (./oral).
  */
 export function AdminExam() {
   const admin = useAdmin()!;
@@ -1027,7 +1028,8 @@ function Results() {
 
   return (
     <div className="space-y-6">
-      {r.published && <Verdict passed={r.passed} failedIn={failedIn} two={two} />}
+      {r.published && <Verdict passed={r.written} qualified={r.passed} failedIn={failedIn} two={two} />}
+      {r.published && r.written && !r.exempt && <OralStage />}
 
       <div className={cn("grid gap-6", two && "lg:grid-cols-2")}>
         {r.parts.map((x) => (
@@ -1063,7 +1065,7 @@ function Results() {
  * Passed or not, and what comes next for this role: a group head's group is formed at the office; every other role
  * waits for a cluster's head to invite him to his place.
  */
-function Verdict({ passed, failedIn, two }: { passed: boolean; failedIn: string[]; two: boolean }) {
+function Verdict({ passed, qualified, failedIn, two }: { passed: boolean; qualified: boolean; failedIn: string[]; two: boolean }) {
   const admin = useAdmin()!;
   const role = admin.profile?.positions[0] ?? "";
   const head = role === "group-head";
@@ -1098,13 +1100,15 @@ function Verdict({ passed, failedIn, two }: { passed: boolean; failedIn: string[
         </motion.div>
         <div>
           <p className="text-sm text-gold">نتيجة الاختبار المؤتمت — موسم 1448</p>
-          <h2 className="mt-2 font-display text-3xl font-bold md:text-4xl">{passed ? "تهانينا، اجتزت الاختبار المؤتمت!" : "لم تجتز الاختبار المؤتمت هذا الموسم"}</h2>
+          <h2 className="mt-2 font-display text-3xl font-bold md:text-4xl">{qualified ? "تهانينا، تأهّلت لهذا الموسم!" : passed ? "تهانينا، اجتزت الاختبار المؤتمت!" : "لم تجتز الاختبار المؤتمت هذا الموسم"}</h2>
           <p className="mt-2 leading-8 text-white/80">
-            {passed
-              ? `اجتزت كل أقسام ${two ? "الاختبارين" : "الاختبار"} بالنسبة المطلوبة فيها، واسمك في قائمة الناجحين لصفة «${positionLabelOf(role)}».`
-              : `لم تبلغ النسبة المطلوبة في: ${failedIn.join("، ")}. النجاح باجتياز كل قسم، ويبقى سجلك مرجعاً في أي تأهيل لاحق.`}
+            {qualified
+              ? `اجتزت الاختبار المؤتمت والامتحان الشفهي، واسمك في قائمة المؤهلين لصفة «${positionLabelOf(role)}».`
+              : passed
+                ? `اجتزت كل أقسام ${two ? "الاختبارين" : "الاختبار"} بالنسبة المطلوبة فيها. بقي الامتحان الشفهي أمام لجنة صفتك: اختر موعدك أدناه، ولا تتأهل إلا بنجاحك فيه.`
+                : `لم تبلغ النسبة المطلوبة في: ${failedIn.join("، ")}. النجاح باجتياز كل قسم، ويبقى سجلك مرجعاً في أي تأهيل لاحق.`}
           </p>
-          {passed && (
+          {qualified && (
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <ButtonLink href={next.href} variant="gold" size="lg">
                 <BadgeCheck className="size-5" /> {next.label}

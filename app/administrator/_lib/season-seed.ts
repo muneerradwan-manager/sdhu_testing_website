@@ -49,16 +49,16 @@ const AREAS: Record<string, string[]> = {
 };
 const SKILLS = ["first-aid", "computer", "elderly", "bus", "sign"];
 
-/** Ages, seasons and a sheikh's title by role */
+/** Ages (within each role's limits in the administration's conditions table), and a sheikh's title by role */
 const PROFILE: Record<string, { lo: number; hi: number; title?: string; female?: boolean }> = {
-  "group-head": { lo: 36, hi: 62 },
-  "cluster-head": { lo: 44, hi: 63 },
+  "group-head": { lo: 36, hi: 60 },
+  "cluster-head": { lo: 44, hi: 60 },
   "guide-m": { lo: 30, hi: 58, title: "الشيخ" },
-  murshid: { lo: 44, hi: 66, title: "الشيخ" },
+  murshid: { lo: 44, hi: 65, title: "الشيخ" },
   "guide-f": { lo: 28, hi: 56, female: true },
   murshida: { lo: 40, hi: 62, female: true },
-  "group-deputy": { lo: 24, hi: 50 },
-  "assistant-tech": { lo: 24, hi: 46 },
+  "group-deputy": { lo: 25, hi: 50 },
+  "assistant-tech": { lo: 25, hi: 46 },
   "assistant-count": { lo: 30, hi: 55 },
   tech: { lo: 23, hi: 44 },
 };

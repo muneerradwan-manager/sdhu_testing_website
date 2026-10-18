@@ -5,7 +5,8 @@
  * one or two (the guides' rulings, the coordinator's desk, the deputy's attendance).
  * A role's test is built in sections (القسم الإداري، القسم الشرعي…): each draws so many questions for every
  * paper and has its own pass mark, and passing the test means passing every section. There are no written
- * (تحريرية) questions and no oral exam: every question is chosen from options and marked by the platform.
+ * (تحريرية) questions: every question is chosen from options and marked by the platform. The oral exam follows it, before
+ * each role's committee (app/administrator/_lib/oral.ts).
  */
 
 import type { Attempt } from "@/lib/store";
