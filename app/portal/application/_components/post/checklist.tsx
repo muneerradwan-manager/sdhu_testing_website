@@ -23,6 +23,7 @@ import { MyGroup, StepGroup } from "./step-group";
 import { StepMedical } from "./step-medical";
 import { SignatureChain, StepPayment } from "./step-payment";
 import { StepVisa } from "./step-visa";
+import { demoVisaNumber } from "@/lib/visas";
 
 const fmt = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(at) : "");
 
@@ -93,7 +94,8 @@ export function PostChecklist({ app, post, sessionId, lines }: { app: Applicatio
       [2400, () => actions.setPost(sessionId, { custom: Object.fromEntries(STEPS.filter((x) => x.kind === "acknowledge" || x.kind === "form").map((x) => [x.id, { at: base + 2400 }])) })],
       [2800, () => recordHealth(sessionId, paidApp, { ...health, confirmedAt: base + 2800 })],
       [3200, () => actions.setPost(sessionId, { medical: Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const]))) })],
-      [4200, () => actions.setPost(sessionId, { visaAt: base + 4200 })],
+      // the group's head adds each member's visa as the Saudi foreign ministry emails it to him
+      [4200, () => actions.setPost(sessionId, { visaAt: base + 4200, visas: Object.fromEntries(app.members.map((m, i) => [m.person.id, { number: demoVisaNumber(app.number, i), at: base + 4200, by: `${info.leader} (محاكاة)` }])) })],
     ];    plan.forEach(([at, run]) => setTimeout(run, at));
     setTimeout(() => {
       setDemoRunning(false);

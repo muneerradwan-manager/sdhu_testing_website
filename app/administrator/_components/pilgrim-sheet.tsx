@@ -89,7 +89,7 @@ export function PilgrimSheet({ family, memberId, groupLabel, onClose }: { family
         docs: [
           { label: "الصورة الشخصية", state: docStatus(post, m, "photo") },
           { label: "جواز السفر", state: docStatus(post, m, "passport") },
-          { label: "التأشيرة", state: post.visaAt ? "issued" : "waiting" },
+          { label: "التأشيرة", state: post.visas?.[memberId] || post.visaAt ? "issued" : "waiting" },
         ],
         health: rec ? { conditions: rec.conditions, needs: rec.needs, medications: rec.medications, by: h!.by.name, confirmed: !!h!.confirmedAt } : null,
         stay: stay && { room: stay.room, madinahRoom: stay.madinahRoom, bus: stay.bus, tent: stay.tent, bracelet: stay.bracelet },

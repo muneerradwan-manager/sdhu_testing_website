@@ -7,7 +7,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, SpeakButton, useToast } from "@/components/ui/widgets";
 import { cn } from "@/lib/utils";
-import { TRIPS, lessonsFor, type Trip } from "../_data";
+import { TRIPS, type Trip } from "../_data";
+import { AUDIENCE_LABEL, fits, lessonsActions, lessonsOfGroups, useLessons } from "@/lib/lessons";
+import { fullName } from "@/lib/registry";
+import { useStore } from "@/lib/store";
 import type { SeasonCtx } from "./ctx";
 import { logPilgrimSeason } from "./meals";
 
@@ -105,10 +108,24 @@ export function TripsSection({ ctx }: { ctx: SeasonCtx }) {
   );
 }
 
+/** Day 0 of the season (24 ذو القعدة) is 1 May 2027, Damascus time */
+const SEASON_DAY0 = new Date("2027-05-01T00:00:00+03:00").getTime();
+const DAY_MS = 86_400_000;
+const clock = (ts: number) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Damascus" }).format(ts);
+
+/**
+ * The day's lessons and the next day's: those the group's guide and the cluster's female guide set for the
+ * family's members (lib/lessons.ts), the same as in «الدروس الدينية». The family says it will come; its guide
+ * records who came at the lesson.
+ */
 export function LessonsSection({ ctx }: { ctx: SeasonCtx }) {
   const toast = useToast();
-  const lessons = lessonsFor(ctx.day.i, ctx.where);
-  const [attend, setAttend] = useState<string[]>([]);
+  const post = useStore((s) => s.post[ctx.sessionId]);
+  const all = useLessons();
+  const start = SEASON_DAY0 + ctx.day.i * DAY_MS;
+  const members = ctx.app.members.map((m) => m.person);
+  const invited = (audience: "all" | "men" | "women") => members.filter((m) => fits(audience, m.gender));
+  const lessons = post?.groupNumber !== undefined ? lessonsOfGroups(all, [post.groupNumber], post.clusterId).filter((l) => !l.cancelledAt && l.at >= start && l.at < start + 2 * DAY_MS && invited(l.audience).length > 0) : [];
   const [ask, setAsk] = useState(false);
   const [question, setQuestion] = useState(ctx.elderly?.person.gender === "F" ? `ما حكم تغطية ${ctx.elderly.person.firstName} رأسها في الإحرام؟` : "");
   const defaultQuestion = ctx.elderly?.person.gender === "F";
@@ -124,40 +141,46 @@ export function LessonsSection({ ctx }: { ctx: SeasonCtx }) {
           <Button variant="outline" onClick={() => setAsk(true)}>
             <MessageCircleQuestion className="size-5" /> سؤال شرعي خاص
           </Button>
+          <Link href="/portal/lessons" className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-semibold text-green-dark hover:bg-green-dark/8">
+            <BookOpen className="size-5" /> كل الدروس الدينية
+          </Link>
           <Link href="/academy" className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-semibold text-green-dark hover:bg-green-dark/8">
             <Headphones className="size-5" /> تسجيلات الدروس
           </Link>
         </div>
       </div>
       {lessons.length === 0 ? (
-        <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-lg text-ink-soft">لا دروس مجدولة في هذا اليوم.</p>
+        <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-lg text-ink-soft">لا دروس لعائلتك اليوم ولا غداً. كل دروس مجموعتك في «الدروس الدينية».</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {lessons.map((l, i) => {
-            const on = attend.includes(l.id);
+            const ids = invited(l.audience).map((m) => m.id);
+            const on = ids.every((id) => l.interested.includes(id));
+            const when = `${l.at < start + DAY_MS ? "اليوم" : "غداً"} ${clock(l.at)}`;
             return (
               <motion.div key={l.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} className="flex flex-col rounded-[1.75rem] border border-gold/40 bg-white p-5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-bold text-gold-dark">{l.when}</span>
-                  {l.scope && <span className="rounded-full bg-gold/30 px-2.5 py-0.5 text-xs font-bold text-maroon">على مستوى التكتل</span>}
+                  <span className="text-sm font-bold text-gold-dark">{when}</span>
+                  <span className="rounded-full bg-gold/30 px-2.5 py-0.5 text-xs font-bold text-maroon">{AUDIENCE_LABEL[l.audience]}</span>
                 </div>
                 <p className="mt-1 font-display text-xl font-bold leading-8 text-green-dark">{l.title}</p>
-                <p className="mt-1 text-ink-soft">{l.place} — {l.by}</p>
-                <SpeakButton text={`${l.title}. ${l.when}. ${l.place}. المحاضر ${l.by}.`} className="mt-3 w-fit" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAttend((a) => (on ? a.filter((x) => x !== l.id) : [...a, l.id]));
-                    if (!on) {
-                      logPilgrimSeason(ctx, `سأحضر درس: ${l.title}`, l.when);
-                      toast({ title: "سجّلنا اهتمامك", body: "يُسجَّل الحضور بمسح البطاقة عند باب القاعة.", icon: "📖", tone: "success" });
-                    }
-                  }}
-                  className={cn("mt-4 flex items-center justify-center gap-2 rounded-2xl py-3.5 text-lg font-bold transition", on ? "bg-green-light/15 text-green" : "bg-green-dark text-white hover:bg-green")}
-                >
-                  {on ? <CheckCircle2 className="size-5" /> : <HandHelping className="size-5" />} {on ? "✓ سأحضر" : "سأحضر"}
-                  <span className={cn("rounded-full px-2 py-0.5 text-sm", on ? "bg-white" : "bg-white/15")}>{l.interested + (on ? 1 : 0)} مهتماً</span>
-                </button>
+                <p className="mt-1 text-ink-soft">{l.place} — {l.byName}</p>
+                <SpeakButton text={`${l.title}. ${when}. ${l.place}. ${l.byName}.`} className="mt-3 w-fit" />
+                {l.closedAt ? (
+                  <p className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-sand py-3.5 font-bold text-green"><CheckCircle2 className="size-5" /> سُجّل حضور الدرس</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      lessonsActions.setInterest(l.id, ids, !on, { name: fullName(ctx.self.person), target: `طلب ${ctx.app.number}` });
+                      if (!on) toast({ title: "سجّلنا أنكم ستحضرون", body: "يسجّل الموجّه الحضور في الدرس.", icon: "📖", tone: "success" });
+                    }}
+                    className={cn("mt-4 flex items-center justify-center gap-2 rounded-2xl py-3.5 text-lg font-bold transition", on ? "bg-green-light/15 text-green" : "bg-green-dark text-white hover:bg-green")}
+                  >
+                    {on ? <CheckCircle2 className="size-5" /> : <HandHelping className="size-5" />} {on ? "✓ سنحضر" : "سنحضر"}
+                    <span className={cn("rounded-full px-2 py-0.5 text-sm", on ? "bg-white" : "bg-white/15")}>{l.interested.length} قالوا سيحضرون</span>
+                  </button>
+                )}
               </motion.div>
             );
           })}

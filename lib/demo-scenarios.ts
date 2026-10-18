@@ -16,6 +16,7 @@ import { attachByStaff, DEMO_ATTACHER, demoContractFile } from "./assignment";
 import { costLines, docKey, medicalDocsFor, medicalKey } from "./registration/post";
 import { actions, type Application, type StoreState } from "./store";
 import { COORDINATOR_ID, demoHealth, recordHealth } from "@/app/portal/application/_components/post/model";
+import { demoVisaNumber } from "@/lib/visas";
 
 const member = (p: Person, relation: Member["relation"], extra: Partial<Member> = {}): Member => ({ person: p, relation, relationVerified: true, needs: [], ...extra });
 
@@ -101,5 +102,7 @@ function completeSteps(id: string, app: Application, now: number) {
   const medical = Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const])));
   const lines = costLines(app, { hajjCost: SEASON.fees.hajjCost, firstInstallment: SEASON.fees.firstInstallment, hady: SEASON.fees.hady });
   const payments = Object.fromEntries(lines.filter((l) => l.key !== "i1").map((l) => [l.key, now - 40 * day]));
-  actions.setPost(id, { medical, payments, visaAt: now - 10 * day });
+  // the group's head added each member's visa as it reached him from the Saudi foreign ministry
+  const visas = Object.fromEntries(app.members.map((m, i) => [m.person.id, { number: demoVisaNumber(app.number, i), at: now - 10 * day, by: "رئيس المجموعة" }]));
+  actions.setPost(id, { medical, payments, visaAt: now - 10 * day, visas });
 }

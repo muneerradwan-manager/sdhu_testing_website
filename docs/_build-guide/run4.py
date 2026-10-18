@@ -40,11 +40,19 @@ if b.count():
     c.shot("season-trip-joined", "بعد تأكيد الرغبة في رحلة", section=S)
 c.scroll_to("#lessons", 120)
 c.shot("season-lessons", "الدروس اليومية وسؤال شرعي خاص", section=S)
-if p.locator("button:has-text('سأحضر')").count():
-    btn("سأحضر", wait=800)
+if p.locator("#lessons button:has-text('سنحضر')").count():
+    p.locator("#lessons button:has-text('سنحضر')").first.click(); c.settle(800)
 btn("سؤال شرعي خاص", wait=800)
 c.shot("season-ask", "إرسال سؤال إلى الموجّه الديني", section=S)
 btn("إرسال السؤال", wait=800)
+# the group's lessons and activities, each its page
+c.goto("/portal/lessons", wait=1800)
+c.shot("lessons-page", "الدروس الدينية: القادمة لعائلتك، ومن يُدعى إليها", hl=[("main button:has-text('سنحضر') >> nth=0", "")], section=S)
+c.scroll_to("text=الدروس السابقة", 120)
+c.shot("lessons-past", "الدروس السابقة: من حضر من عائلتك", section=S)
+c.goto("/portal/religious", wait=1800)
+c.shot("religious-page", "النشاطات الدينية: ما حفظه كل فرد، والتالي", hl=[("main button:has-text('انضمام') >> nth=0", "")], section=S)
+c.goto("/portal/season", wait=1800)
 c.scroll_to("#lost", 120)
 c.shot("season-lost", "قسم المفقودات", section=S)
 btn("فقدتُ شيئاً", wait=800)

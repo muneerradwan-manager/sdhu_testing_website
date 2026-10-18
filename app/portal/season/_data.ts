@@ -170,7 +170,7 @@ export function nextMeal(meals: Meal[], time: string) {
   return meals.find((m) => m.start > time) ?? null;
 }
 
-// ───────────────────────── Trips & lessons ─────────────────────────
+// ───────────────────────── Trips ─────────────────────────
 
 export type Trip = { id: string; title: string; when: string; gather: string; back: string; seats: number; booked: number; lead: string; days: number[]; mandatory?: boolean; note?: string };
 
@@ -184,25 +184,6 @@ export const TRIPS: Trip[] = [
   { id: "rawdah", title: "زيارة الروضة الشريفة", when: "18 ذو الحجة — 02:00 رجال / 10:00 سيدات", gather: "بهو الفندق قبل الموعد بنصف ساعة", back: "بعد الزيارة", seats: 50, booked: 46, lead: "أحمد سليمان", days: [21, 22, 23], note: "اطلب الكرسي المتحرك مسبقاً من هنا" },
   { id: "quba", title: "قباء وأحد والقبلتين", when: "19 ذو الحجة 08:00", gather: "بهو الفندق", back: "12:30", seats: 50, booked: 43, lead: "ياسر + الشيخ خالد", days: [22, 23, 24] },
 ];
-
-export type Lesson = { id: string; title: string; when: string; place: string; by: string; interested: number; scope?: "تكتل" };
-
-export function lessonsFor(i: number, where: Where): Lesson[] {
-  if (where === "makkah" && i <= 12) {
-    const list: Lesson[] = [
-      { id: `tawaf-${i}`, title: i < 6 ? "أحكام الطواف والسعي للمتمتّع" : "ما يُباح وما يُحظر على المحرم", when: "اليوم 20:30", place: "قاعة الطابق (م)", by: "الشيخ خالد الرفاعي", interested: 63 },
-      { id: `next-${i}`, title: i < 6 ? "ما يُباح وما يُحظر على المحرم" : "أعمال يوم التروية", when: "غداً 20:30", place: "القاعة نفسها", by: "الشيخ خالد الرفاعي", interested: 41 },
-    ];
-    if (i >= 9) list.push({ id: "arafah", title: "يوم عرفة: فضله وأدعيته", when: "7 ذو الحجة 20:00", place: "قاعة البرج (أ) الكبرى", by: "الشيخ عبد الرحمن العلي", interested: 212, scope: "تكتل" });
-    return list;
-  }
-  if (where === "mina" && i === 13) return [{ id: "arafah-deeds", title: "أعمال يوم عرفة", when: "بعد العصر", place: "الخيمة 12", by: "الشيخ خالد الرفاعي", interested: 48 }];
-  if (where === "mina") return [{ id: `rami-${i}`, title: "أحكام رمي الجمرات والتعجّل", when: "قبل الظهر", place: "الخيمة 12", by: "الشيخ خالد الرفاعي", interested: 45 }];
-  if (where === "arafat") return [{ id: "khutbah", title: "خطبة عرفة وصلاة الظهر والعصر جمعاً", when: "12:15", place: "الخيمة 12", by: "الشيخ خالد الرفاعي", interested: 48 }];
-  if (where === "makkah" && i >= 17) return [{ id: `wada-${i}`, title: "أحكام طواف الوداع", when: "15 ذو الحجة 20:30", place: "قاعة الطابق (م)", by: "الشيخ خالد الرفاعي", interested: 44 }];
-  if (where === "madinah") return [{ id: `madinah-${i}`, title: i < 23 ? "آداب زيارة المسجد النبوي والروضة" : "سيرة غزوة أحد — قبل الرحلة", when: "اليوم بعد العشاء", place: "قاعة الفندق", by: "الشيخ خالد الرفاعي", interested: 39 }];
-  return [];
-}
 
 // ───────────────────────── Zone notifications ─────────────────────────
 

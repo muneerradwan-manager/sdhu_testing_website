@@ -11,6 +11,7 @@ import { groupsLabel, useCoordinatorPost } from "./coordinators";
 import { useClusterGroupsOf } from "./formation";
 import { useMyHall } from "./halls";
 import { unreadReplies, useLetters } from "./letters";
+import { lessonRoleOf, useLessons } from "@/lib/lessons";
 
 export type AdminNote = { t: string; who: string; href?: string; urgent?: boolean };
 
@@ -29,6 +30,7 @@ export function useAdminNotes(): AdminNote[] {
   const letters = useLetters();
   const plans = useStore((s) => s.plans);
   const channel = useClusterChannel(admin.id, profile);
+  const lessons = useLessons();
   return useMemo(() => {
     // What the administration sent him: the bot's messages (newest first), replies he has not read, his cluster's plan
     const fromBot = [...telegram]
@@ -41,10 +43,14 @@ export function useAdminNotes(): AdminNote[] {
     const plan = profile?.cluster ? plans[profile.cluster.id] : undefined;
     const planNote = plan?.decision && { t: plan.status === "accepted" ? `قبلت الإدارة الخطة التشغيلية ل${plan.clusterName}.` : `أعادت الإدارة الخطة التشغيلية ل${plan.clusterName} بملاحظات: ${plan.decision.note}`, who: "إدارة الإداريين", href: "/administrator/clusters?tab=plan", urgent: plan.status === "returned" };
     const result = resultOf(profile);
+    // A guide's next lesson, and how many of his pilgrims said they will come
+    const next = lessonRoleOf(profile) ? lessons.filter((l) => l.byId === admin.id && !l.closedAt && !l.cancelledAt && !l.openedAt).sort((a, b) => a.at - b.at)[0] : undefined;
+    const lessonNote = next && { t: `درسك القادم «${next.title}» ${new Intl.DateTimeFormat("ar-SY-u-nu-latn", { weekday: "long", day: "numeric", month: "long" }).format(next.at)}: قال ${next.interested.length} من المدعوين إنهم سيحضرون.`, who: "الدروس الدينية", href: "/administrator/lessons" };
     const unread = channel?.unread ?? 0;
     const channelNote = unread > 0 && { t: `${countOf(unread, { zero: "", one: "رسالة جديدة", two: "رسالتان جديدتان", few: "رسائل جديدة", many: "رسالة جديدة" })} في قناة ${channel!.clusterName}.`, who: "قناة التكتل", href: "/administrator/channel", urgent: true };
     const notes = [
       channelNote,
+      lessonNote,
       ...replies,
       ...fromBot,
       planNote,
@@ -61,5 +67,5 @@ export function useAdminNotes(): AdminNote[] {
       { t: `التسجيل كإداري لموسم 1448: ${rangeLabel(regOp.start, regOp.end)}.`, who: "الإدارة", href: "/administrator/apply" },
     ];
     return notes.filter(Boolean) as AdminNote[];
-  }, [profile, clusterGroups, coord, hall.exam, hall.session, hall.center, regOp.start, regOp.end, telegram, letters, plans, admin.id, channel]);
+  }, [profile, clusterGroups, coord, hall.exam, hall.session, hall.center, regOp.start, regOp.end, telegram, letters, plans, admin.id, channel, lessons]);
 }

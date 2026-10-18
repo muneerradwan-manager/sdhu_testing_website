@@ -98,7 +98,7 @@ const TASKS = [
   { key: "training", t: "إكمال التدريب الإلزامي (6 وحدات)" },
   { key: "requests", t: "استلام الحجاج المفوَّجين", href: "/administrator/requests" },
   { key: "needs", t: "مراجعة الاحتياجات الخاصة" },
-  { key: "lessons", t: "خطة الدروس قبل السفر (4 دروس)" },
+  { key: "lessons", t: "خطة الدروس قبل السفر (4 دروس) مع موجّه المجموعة", href: "/administrator/lessons" },
   { key: "intro", t: "تحضير اللقاء التعريفي (10 ذو القعدة)" },
 ];
 

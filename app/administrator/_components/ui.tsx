@@ -7,6 +7,8 @@ import { QRCodeSVG } from "qrcode.react";
 import {
   BellRing,
   ClipboardList,
+  BookMarked,
+  BookOpenText,
   FileSignature,
   FlaskConical,
   FolderOpen,
@@ -23,6 +25,7 @@ import {
   MessagesSquare,
   Plane,
   ScrollText,
+  Stamp,
   Star,
   UserRoundPlus,
   UsersRound,
@@ -38,6 +41,7 @@ import { cn, formatUSD } from "@/lib/utils";
 import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
 import { useClusterChannel } from "../_lib/channel";
 import { groupPagesOf, myGroupNumbers, pageWriterOf } from "../_lib/directory";
+import { lessonRoleOf } from "@/lib/lessons";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -146,8 +150,14 @@ const NAV: NavItem[] = [
   // The groups' own: their pictures, words and galleries — the cluster's head all its groups', a group's head or assistant his
   { href: "/administrator/group-page", label: (c) => ((groupPagesOf(c.p)?.groups.length ?? 0) > 1 ? "صفحات المجموعات العامة" : "صفحة المجموعة العامة"), icon: Images, show: (c) => !!groupPagesOf(c.p) },
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
+  // The visas the Saudi foreign ministry emails to the group's head, added by him to each of his pilgrims
+  { href: "/administrator/visas", label: "التأشيرات", icon: Stamp, show: (c) => !!c.p?.group?.approvedAt },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
+  // The guides' lessons to their groups' pilgrims, with who came; the heads follow them
+  { href: "/administrator/lessons", label: "الدروس الدينية", icon: BookOpenText, show: (c) => !!lessonRoleOf(c.p) || (c.head && c.inGroup) || c.cluster },
+  // What they follow pilgrim by pilgrim: memorising the Quran and hadith, the supplications, a shared reading
+  { href: "/administrator/activities", label: "النشاطات الدينية", icon: BookMarked, show: (c) => !!lessonRoleOf(c.p) || (c.head && c.inGroup) || c.cluster },
   // After the season: his self-evaluation, his cadre's if he heads a cluster, and his result
   { href: "/administrator/evaluation", label: "التقييم بعد الموسم", icon: Star, ops: ["self-evaluation", "peer-evaluation"], show: serving },
 ];

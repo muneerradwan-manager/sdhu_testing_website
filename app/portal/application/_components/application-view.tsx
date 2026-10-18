@@ -768,7 +768,7 @@ function VisaPanel({ app, post, lines }: { app: Application; post: PostAcceptanc
       ) : (
         <Card className="md:p-8">
           <p className="font-display text-2xl font-bold text-green-dark">لم تصدر التأشيرة بعد</p>
-          <p className="mt-2 leading-8 text-ink-soft">تُطلب التأشيرة لأفراد طلبكم كلهم بعد اكتمال هذه الخطوات، وتظهر هنا حين تصدر.</p>
+          <p className="mt-2 leading-8 text-ink-soft">بعد اكتمال هذه الخطوات تصدر تأشيرة كل فرد من وزارة الخارجية السعودية وتصل بالبريد إلى رئيس مجموعتكم، فيضيفها إليكم وتظهر هنا.</p>
           <ul className="mt-5 grid gap-2 md:grid-cols-2">
             {before.map((st) => (
               <li key={st.id} className={cn("flex items-center gap-3 rounded-2xl p-3 text-sm font-bold", done[st.id] ? "bg-green-light/10 text-green" : "bg-sand text-ink-soft")}>

@@ -132,6 +132,7 @@ const PHRASES: Record<string, string> = {
   "الحاج": "The pilgrim",
   "الحاج + المجموعة + المكتب": "Pilgrim + group + office",
   "الموظفون": "Staff",
+  "رؤساء المجموعات والتكتلات": "Group and cluster heads",
   // The installments (lib/installments, SEASON.installments)
   "الدفعة الأولى": "First instalment",
   "الدفعة الثانية": "Second instalment",

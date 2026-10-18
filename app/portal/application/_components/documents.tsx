@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge, Modal } from "@/components/ui/widgets";
 import type { Member } from "@/lib/rules";
 import { relationLabel } from "@/lib/registry";
-import type { Application, DocStatus, PostAcceptance } from "@/lib/store";
+import { useMediaUrl } from "@/lib/cms/media";
+import type { Application, DocStatus, PilgrimVisa, PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { docStatus } from "./post/model";
 
@@ -42,7 +43,7 @@ const visaNo = (app: Application, i: number) => `HV-1448-${app.number}-${i + 1}`
 
 export function FamilyDocuments({ app, post }: { app: Application; post: PostAcceptance }) {
   const [open, setOpen] = useState<{ m: Member; i: number; kind: Kind } | null>(null);
-  const stateOf = (m: Member, kind: Kind) => (kind === "visa" ? (post.visaAt ? "issued" : "waiting") : docStatus(post, m, kind));
+  const stateOf = (m: Member, kind: Kind) => (kind === "visa" ? (post.visas?.[m.person.id] || post.visaAt ? "issued" : "waiting") : docStatus(post, m, kind));
   const viewable = (s: string) => s === "approved" || s === "uploaded" || s === "issued";
   return (
     <Card className="md:p-8">
@@ -98,9 +99,9 @@ export function FamilyDocuments({ app, post }: { app: Application; post: PostAcc
             <div className="mt-3">
               {open.kind === "photo" && <PhotoView m={open.m} />}
               {open.kind === "passport" && <PassportView m={open.m} />}
-              {open.kind === "visa" && <VisaView app={app} m={open.m} i={open.i} at={post.visaAt!} />}
+              {open.kind === "visa" && <VisaView app={app} m={open.m} i={open.i} visa={post.visas?.[open.m.person.id]} at={post.visas?.[open.m.person.id]?.at ?? post.visaAt!} />}
             </div>
-            <p className="mt-3 text-center text-[11px] text-hint">نسخة تجريبية: رسم للوثيقة من بيانات وهمية، لا صورة حقيقية.</p>
+            {!(open.kind === "visa" && post.visas?.[open.m.person.id]?.ref) && <p className="mt-3 text-center text-[11px] text-hint">نسخة تجريبية: رسم للوثيقة من بيانات وهمية، لا صورة حقيقية.</p>}
             <div className="mt-4 flex justify-end">
               <Button variant="outline" onClick={() => setOpen(null)}>
                 إغلاق
@@ -173,15 +174,33 @@ function PassportView({ m }: { m: Member }) {
   );
 }
 
-function VisaView({ app, m, i, at }: { app: Application; m: Member; i: number; at: number }) {
+/** The visa as the group's head added it: the file he uploaded from the ministry's email, else the demo's drawing of it */
+function VisaView({ app, m, i, at, visa }: { app: Application; m: Member; i: number; at: number; visa?: PilgrimVisa }) {
+  const url = useMediaUrl(visa?.ref);
   const p = m.person;
-  const no = visaNo(app, i);
+  const no = visa?.number ?? visaNo(app, i);
+  if (visa?.ref && url) {
+    return (
+      <div>
+        <p className="mb-2 text-sm text-ink-soft">رقم التأشيرة <b dir="ltr" className="font-mono">{no}</b> — أضافها {visa.by} في {date(visa.at)}</p>
+        {visa.type?.startsWith("image/") ? (
+          // eslint-disable-next-line @next/next/no-img-element -- the file the group's head uploaded, kept in the browser
+          <img src={url} alt={`تأشيرة ${p.firstName}`} className="max-h-[70vh] w-full rounded-2xl border border-gold/40 object-contain" />
+        ) : (
+          <a href={url} download={visa.name} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-2xl bg-green-dark px-4 py-3 font-bold text-white">
+            <Stamp className="size-5" /> فتح ملف التأشيرة ({visa.name})
+          </a>
+        )}
+      </div>
+    );
+  }
   const rows: [string, string][] = [
     ["الاسم", `${p.firstName} ${p.fatherName} ${p.lastName}`],
     ["رقم التأشيرة", no],
     ["رقم الجواز", passportNo(m)],
     ["النوع", "حج — موسم 1448هـ"],
     ["تاريخ الإصدار", date(at)],
+    ...(visa ? ([["أضافها", visa.by]] as [string, string][]) : []),
     ["صالحة للدخول", "1 ذو القعدة – 30 ذو الحجة 1448"],
   ];
   return (

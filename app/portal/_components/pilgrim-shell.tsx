@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { BedDouble, ClipboardList, LayoutDashboard, Lock, LogOut, MapPinned, Plane, Receipt, Route, ScrollText, Stamp, UsersRound, type LucideIcon } from "lucide-react";
+import { BedDouble, BookMarked, BookOpenText, ClipboardList, LayoutDashboard, Lock, LogOut, MapPinned, Plane, Receipt, Route, ScrollText, Stamp, UsersRound, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { PortalShell } from "@/components/portal/shell";
 import { getPerson } from "@/lib/registry";
@@ -32,6 +32,8 @@ function usePilgrimNav(): Item[] {
     { href: "/portal/application/hotels", label: "الفنادق والسكن", icon: BedDouble, open: !!post?.visaAt, hint: "بعد صدور التأشيرة" },
     { href: "/portal/application/trip", label: "الرحلة والبطاقات", icon: Plane, open: !!post?.visaAt, hint: "بعد صدور التأشيرة" },
     { href: "/portal/application/payments", label: "الدفعات والإيصالات", icon: Receipt, open: confirmed, hint: "بعد تأكيد القبول" },
+    { href: "/portal/lessons", label: "الدروس الدينية", icon: BookOpenText, open: !!post?.groupApprovedAt, hint: "بعد إلحاقك بمجموعة" },
+    { href: "/portal/religious", label: "النشاطات الدينية", icon: BookMarked, open: !!post?.groupApprovedAt, hint: "بعد إلحاقك بمجموعة" },
     { href: "/portal/season", label: "حالتي الآن", icon: MapPinned, open: !!post?.visaAt, hint: "في الموسم، بعد التأشيرة" },
     { href: "/portal/activity", label: "سجل نشاطي", icon: ScrollText, open: true },
     { href: "/portal/journey", label: "رحلتي في محطات", icon: Route, open: true },

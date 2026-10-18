@@ -298,7 +298,13 @@ export type PostAcceptance = {
   /** Paid moments, by line key: i1..i3 (installments), hady, room */
   payments: Partial<Record<string, number>>;
   contractSignedAt?: number;
+  /** When the last member's visa was added: the visa step is done */
   visaAt?: number;
+  /**
+   * Each member's visa as his group's head added it, by national number: the Saudi foreign ministry emails the
+   * head each pilgrim's visa, and he uploads it here (a picture or a PDF), with its number
+   */
+  visas?: Record<string, PilgrimVisa>;
   ratings: Record<string, number>;
   /** Steps the administration added (an acknowledgement, questions): when done, and what was answered */
   custom?: Record<string, { at: number; answers?: Answers; memberAnswers?: Record<string, Answers> }>;
@@ -382,6 +388,9 @@ export type ClusterChannel = {
   /** When each member last read the channel */
   reads?: Record<string, number>;
 };
+
+/** A pilgrim's visa as his group's head uploaded it from the email of the Saudi foreign ministry */
+export type PilgrimVisa = { number: string; ref?: string; name?: string; type?: string; at: number; by: string };
 
 /** A paper contract signed at the office, as the employee uploaded it (a picture or a file in the media library) */
 export type SignedContract = { ref: string; name: string; type: string; at: number; by: string };
@@ -756,6 +765,10 @@ export type State = {
   ops: import("./ops").OpsState;
   /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
   flights: import("./flights").FlightsState;
+  /** The religious guides' lessons to their groups, and who came (lib/lessons.ts); a missing list means the seed */
+  lessons: import("./lessons").LessonsState;
+  /** Their activities followed pilgrim by pilgrim: Quran, hadith, supplications, a shared reading (lib/religious.ts) */
+  activities: import("./religious").ActivitiesState;
   /** The written exam's halls: who supervises each centre, who sits where, and each sitting as its supervisor runs it */
   examHalls: ExamHalls;
   /**
@@ -906,6 +919,8 @@ const initial: State = {
   evaluationObjections: {},
   ops: {},
   flights: {},
+  lessons: {},
+  activities: {},
   examHalls: { runs: {} },
   systems: {},
   registration: { drafts: {}, versions: [], ledger: {} },
