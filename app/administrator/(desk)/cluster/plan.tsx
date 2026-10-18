@@ -23,7 +23,7 @@ const when = (at: number) => new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "
 /**
  * «الخطة التشغيلية»: the head of an approved cluster files his cluster's plan — its housing, transport, meals,
  * dispatch, stages of work and emergencies — with its file. The administration accepts it or sends it back with
- * notes; he fixes and files it again. His deputy reads it.
+ * notes; he fixes and files it again.
  */
 export function PlanStep({ req, editable }: { req: ClusterRequest; editable: boolean }) {
   const admin = useAdmin()!;

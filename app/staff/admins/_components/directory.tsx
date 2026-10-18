@@ -44,7 +44,7 @@ export function DirectoryTab() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Season formed={formed} />
         <Help>
-          <p>من التشكيلات المعتمدة، والمؤرشفة منها بموسمها. لا يُعدَّل هنا إلا ملاحظة الإدارة؛ أعضاء التكتل يتغيرون بتعديل استثنائي في «طلبات التكتلات».</p>
+          <p>من التشكيلات المعتمدة، والمؤرشفة منها بموسمها. لا يُعدَّل هنا إلا ملاحظة الإدارة؛ أعضاء التكتل يتغيرون بتعديل استثنائي في «التكتلات».</p>
           <p>يُختم كل تشكيل جديد بموسمه الهجري. وفي ختام الموسم «بدء موسم جديد» يؤرشف تشكيلات الموسم المعتمدة.</p>
         </Help>
       </div>
@@ -177,7 +177,7 @@ function Members({ r }: { r: ClusterRequest }) {
   return (
     <div className="space-y-3 text-sm">
       <p className="rounded-2xl bg-white/5 p-3 text-xs leading-6 text-white/70 ring-1 ring-white/10">
-        {places.length} من الكادر في {r.groups.length} مجموعات — موسم {r.season}. لتغيير أحد: «طلبات التكتلات» ← {r.cluster.name} ← تعديل استثنائي بسببه، فيُكتب في أحداث ملفه.
+        {places.length} من الكادر في {r.groups.length} مجموعات — موسم {r.season}. لتغيير أحد: «التكتلات» ← {r.cluster.name} ← تعديل استثنائي بسببه، فيُكتب في أحداث ملفه.
       </p>
       <ListTable head={["الاسم", "موقعه"]} minWidth="20rem">
         {places.map(([id, p]) => (

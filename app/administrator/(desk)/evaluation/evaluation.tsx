@@ -12,7 +12,7 @@ import { actions, useStore, type StageScores } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { effectiveRole, logAdmin, positionKeyOf, positionLabelOf, useAdmin } from "../../_lib/admin";
 import { useEvaluationStages } from "../../_lib/admin-rules";
-import { avgOf, round1, sectionScores, selfSections, useEvaluationOf } from "../../_lib/evaluation";
+import { SELF_ROLE_LABEL, avgOf, round1, sectionScores, selfRoleOf, selfSections, useEvaluationOf } from "../../_lib/evaluation";
 import { examRoleOf } from "../../_lib/structure";
 import { AdminShell } from "../../_components/ui";
 import { StageScoresForm, cleanScores, scoresReady } from "../../_components/stage-scores";
@@ -20,8 +20,9 @@ import { StageScoresForm, cleanScores, scoresReady } from "../../_components/sta
 type Tab = "self" | "result";
 
 /**
- * «التقييم بعد الموسم»: once the pilgrims are home, the administrator rates himself, in sections, and sends it —
- * the only rating an administrator gives: administrators do not rate one another. Then the staff posted where his
+ * «التقييم بعد الموسم»: once the pilgrims are home, a group's head, a cluster's head and the religious guides rate
+ * themselves, stage by stage, and send it — the only rating an administrator gives: administrators do not rate one
+ * another. The coordinators and the assistants have no self-evaluation: the staff rate them, as everyone. Then the staff posted where his
  * cluster lived rate him; he sees both side by side and may object to the staff's (../../_lib/evaluation).
  */
 export function AdminEvaluation() {
@@ -73,13 +74,13 @@ function Windows() {
 
 // ───────────────────────── His own ─────────────────────────
 
-/** The sections of his self-evaluation, for his role and his place in a cluster */
+/** The sections of his self-evaluation, for his role (none for a coordinator or an assistant) */
 function useSelfSections() {
   const admin = useAdmin()!;
   const p = admin.profile;
   const stages = useEvaluationStages();
-  const examRole = examRoleOf(positionKeyOf(p?.positions[0]) || "group-head");
-  return selfSections(stages, examRole, p?.cluster ? "head" : p?.deputyOf ? "deputy" : null);
+  const role = selfRoleOf(examRoleOf(positionKeyOf(p?.positions[0]) || "group-head"), !!p?.cluster);
+  return { role, sections: role ? selfSections(stages, role) : [] };
 }
 
 /**
@@ -90,7 +91,7 @@ function SelfEvaluation() {
   const admin = useAdmin()!;
   const toast = useToast();
   const op = useOperation("self-evaluation");
-  const sections = useSelfSections();
+  const { role, sections } = useSelfSections();
   const saved = useStore((s) => s.selfEvaluations[admin.id]);
   const sent = !!saved?.submittedAt;
   const [scores, setScores] = useState<Record<string, StageScores>>(() => Object.fromEntries(sections.filter((x) => x.items).map((x) => [x.key, sectionScores(saved, x.key)])));
@@ -101,6 +102,18 @@ function SelfEvaluation() {
   const review = at === sections.length;
   const current = sections[at];
 
+  if (!role) {
+    return (
+      <Card className="md:p-8">
+        <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
+          <ClipboardCheck className="size-6 text-gold-dark" /> لا تقييم ذاتي لصفتك
+        </p>
+        <p className="mt-2 max-w-3xl leading-8 text-ink-soft">
+          يقيّم نفسه رئيس المجموعة، ورئيس التكتل، والموجّهون الدينيون والموجّهات الدينيات. أما صفتك «{post}» فيقيّمك فيها موظفو البعثة الذين كانوا مع تكتلك، مرحلة مرحلة، وترى تقييمهم في «نتيجتي» ولك أن تعترض عليه.
+        </p>
+      </Card>
+    );
+  }
   if (!op.open && !sent) return <OperationClosed state={op} text="تقييمك الذاتي يُفتح بعد هبوط آخر رحلات العودة في دمشق، لأسبوع، ثم يقيّمك الموظفون." />;
 
   const value = (key: string) => (sent ? sectionScores(saved, key) : (scores[key] ?? {}));
@@ -114,9 +127,16 @@ function SelfEvaluation() {
     return { done: r.ok, label: `${r.scored} من ${sec.items!.length}` };
   };
   const allDone = sections.every((_, i) => stateOf(i).done);
+  // Each stage's questions, and the stage's score their average (shown beside the staff's)
+  const stageSections = sections.filter((x) => x.items);
   const payload = () => ({
-    stages: cleanScores(scores.stages ?? {}),
-    sections: Object.fromEntries(sections.filter((x) => x.items && x.key !== "stages").map((x) => [x.key, cleanScores(scores[x.key] ?? {})])),
+    stages: Object.fromEntries(
+      stageSections.flatMap((x) => {
+        const avg = round1(avgOf(cleanScores(scores[x.key] ?? {})));
+        return avg === null ? [] : [[x.key, { score: avg }]];
+      }),
+    ),
+    sections: Object.fromEntries(stageSections.map((x) => [x.key, cleanScores(scores[x.key] ?? {})])),
     answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)),
   });
 
@@ -125,7 +145,7 @@ function SelfEvaluation() {
     if (submit && !allDone) return;
     const data = payload();
     actions.saveSelfEvaluation(admin.id, data, { submit });
-    const avg = round1(avgOf({ ...data.stages, ...Object.assign({}, ...Object.values(data.sections)) }));
+    const avg = round1(avgOf(Object.assign({}, ...Object.values(data.sections))));
     logAdmin(admin.id, submit ? "إرسال التقييم الذاتي" : "حفظ مسودة التقييم الذاتي", `${post} — موسم 1448`, `${sections.filter((_, i) => stateOf(i).done).length} من ${sections.length} أقسام${avg !== null ? ` — المتوسط ${avg}` : ""}`);
     toast(submit ? { title: "أُرسل تقييمك الذاتي", body: "لا يتغيّر بعد إرساله. يُعرض بجانب ما يعطيك الموظفون، ولا يدخل في نتيجتك.", icon: "✅", tone: "success" } : { title: "حُفظت المسودة", body: "تكمل متى شئت قبل نهاية المدة.", icon: "💾", tone: "info" });
   };
@@ -134,7 +154,7 @@ function SelfEvaluation() {
     <div className="grid items-start gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
       <Card className="md:p-5">
         <p className="flex items-center gap-2 font-bold text-green-dark">
-          <ClipboardCheck className="size-5 text-gold-dark" /> تقييمي الذاتي — {post}
+          <ClipboardCheck className="size-5 text-gold-dark" /> تقييمي الذاتي — {SELF_ROLE_LABEL[role]}
         </p>
         <ol className="mt-4 space-y-1.5" aria-label="أقسام التقييم الذاتي">
           {[...sections.map((x, i) => ({ title: x.title, i, st: stateOf(i) })), { title: "المراجعة والإرسال", i: sections.length, st: { done: sent, label: sent ? "أُرسل" : "" } }].map((x) => (

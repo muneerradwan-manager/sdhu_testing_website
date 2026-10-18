@@ -1,7 +1,7 @@
 /**
  * The rest of the season, generated: a dozen more cluster requests over the branches, tiers and states, every
  * one composed by the administration's numbers (./structure-defaults) — its groups of every category with
- * their heads and seats, its cluster assistants, coordinators and female guides, its deputy and accountant —
+ * their heads and seats, its cluster assistants, coordinators and female guides, its accountant —
  * then the approved groups no request took yet and the qualified people still free in each branch. The names
  * are invented from common first and family names, the same on every load (a seeded generator); none is a
  * real person's, and no cluster carries a real cluster's name.
@@ -147,8 +147,9 @@ const PLANS: Plan[] = [
   { id: "as-sanabel", name: "تكتل السنابل", branch: "دير الزور", extra: ["الرقة"], tier: "eco", cats: [2, 1, 1, 2, 1, 1, 3], status: "approved" },
   { id: "bawabat-al-haramain", name: "تكتل بوابة الحرمين", branch: "اسطنبول", extra: ["غازي عنتاب", "مصر"], tier: "five", cats: [2, 1, 2, 1, 1, 2], status: "approved" },
   { id: "al-asi", name: "تكتل العاصي", branch: "حمص", extra: ["حماة"], tier: "eco", cats: [3, 2, 1, 1, 2, 1, 2], status: "approved" },
-  { id: "al-wafaa", name: "تكتل الوفاء", branch: "حماة", tier: "eco-plus", cats: [2, 1, 2, 1, 1, 2], status: "reviewing" },
-  { id: "al-ishraq", name: "تكتل الإشراق", branch: "دمشق", tier: "eco", cats: [2, 2, 1, 1, 3, 1, 2, 1], status: "rejected", note: "النظام الإداري يشترط تفرّغ المنسق التقني في مراحل العمل الأساسية، وأحد منسقيكم موظف بدوام كامل في الموسم. استبدله بمنسق متفرّغ ثم أعد الإرسال قبل الموعد النهائي." },
+  // begun at the office, their heads and cadre to come back for the fee and the contract
+  { id: "al-wafaa", name: "تكتل الوفاء", branch: "حماة", tier: "eco-plus", cats: [2, 1, 2, 1, 1, 2], status: "draft" },
+  { id: "al-ishraq", name: "تكتل الإشراق", branch: "دمشق", tier: "eco", cats: [2, 2, 1, 1, 3, 1, 2, 1], status: "draft" },
   { id: "al-asala", name: "تكتل الأصالة", branch: "اللاذقية", tier: "eco", cats: [2, 1, 1, 2, 1], status: "draft", unfinished: true },
 ];
 
@@ -233,7 +234,6 @@ function build(plan: Plan) {
   const sorting = distribute(units, accepted.map((x) => x.id), comp.perCoordinator).map;
   const guideSorting = distribute(units, femaleGuides.filter((x) => x.status === "accepted").map((x) => x.id), comp.perGuide).map;
 
-  const deputy = heads[1] ? acc(heads[1], at, plan.unfinished ? "pending" : "accepted") : undefined;
   const pool = [...heads.slice(1), ...accepted, ...Object.values(seats).flat().flatMap((x) => (x.who?.status === "accepted" ? [x.who] : []))];
   const accountant = plan.unfinished ? undefined : acc(pick(pool), at);
 
@@ -247,7 +247,6 @@ function build(plan: Plan) {
     ...((plan.status === "approved" || plan.status === "rejected" || plan.status === "reviewing") && { review: { at: sent + 20 * 3_600_000, by: "مازن الحلبي" } }),
     ...(plan.status === "approved" && { decision: { status: "approved" as const, at: sent + 2 * 86_400_000, by: "مازن الحلبي" }, feePaidAt: sent + 3 * 86_400_000 }),
     ...(plan.status === "rejected" && { decision: { status: "rejected" as const, at: sent + 86_400_000, by: "مازن الحلبي", note: plan.note } }),
-    deputy,
     accountant,
     groups: Object.fromEntries(groups.map((g) => [g.number, g])),
     seats,
@@ -298,7 +297,6 @@ for (const d of DEMO_SEATS) {
   c.assistants = c.assistants.map((x) => swap(x)!);
   c.coordinators = c.coordinators.map((x) => swap(x)!);
   c.femaleGuides = c.femaleGuides.map((x) => swap(x)!);
-  c.deputy = swap(c.deputy);
   c.accountant = swap(c.accountant);
   for (const map of [c.sorting, c.guideSorting ?? {}]) for (const k of Object.keys(map)) if (map[Number(k)] === old) map[Number(k)] = d.who.id;
   // The generated person leaves the season: the demo account is in the roster already (./people)

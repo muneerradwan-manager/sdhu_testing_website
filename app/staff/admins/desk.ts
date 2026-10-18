@@ -44,7 +44,7 @@ export const EXAM_KEYS = ["blueprints", "questionsAdded", "questionsOff", "quest
  */
 export function appliedRole(r: AdminRow) {
   const key = roleKeyOf(r.profile.positions[0] ?? r.position);
-  return key === "cluster-head" || key === "cluster-deputy" ? "group-head" : key;
+  return key === "cluster-head" ? "group-head" : key;
 }
 
 /** Qualified to work this season: his confirmed test passed in every section and shown to him, or he renewed his role without a test */
@@ -163,7 +163,7 @@ export function useAdminsDesk() {
     // Qualified group heads whose group the office has not formed yet: they come to it in its dates
     const toForm = withRole.filter((r) => appliedRole(r) === "group-head" && isQualified(r) && !r.profile.group?.approvedAt);
 
-    // ── The cluster requests ── filed by whoever holds a cluster-leading role, reviewed one by one once sent
+    // ── The clusters ── formed at the office (a draft while its head and cadre are there, approved once created); a sent or reviewed request is a season's leftover
     const deadlinePassed = formationWindow.state === "closed";
     // The archive keeps earlier seasons' formations (and any the administration set aside): the season's work is the rest
     const archivedClusters = requests.filter((r) => r.archived);
@@ -239,11 +239,9 @@ export function useAdminsDesk() {
         ? [{ id: "requests", level: "work", title: `${waiting.length} طلبات تشكيل تنتظر قرارك`, hint: `${waiting.filter((x) => x.complete).length} منها مكتملة الشروط: اعتمدها، أو أعد الناقص إلى رئيسه مع ما يصلحه.`, href: `${M}/groups`, action: "قرّر" }]
         : [],
       clusters: [
-        ...(sent.length
-          ? [{ id: "sent", level: (deadlinePassed ? "high" : "work") as Alert["level"], title: `${sent.length} طلبات تكتل أُرسلت للمراجعة`, hint: `ابدأ مراجعة كل طلب، ثم اعتمده أو أعده إلى رئيسه بملاحظات${deadlinePassed ? " — انتهى الموعد النهائي، فلا تعديل بعد إعادته" : ""}.`, href: `${M}/clusters`, action: "راجعها" }]
-          : []),
-        ...(reviewing.length
-          ? [{ id: "reviewing", level: "work" as const, title: `${reviewing.length} طلبات قيد مراجعتك`, hint: "اعتمد الطلب أو أعده بملاحظات يصلحها رئيسه ويعيد إرساله.", href: `${M}/clusters`, action: "أكمل المراجعة" }]
+        // a cluster begun at the office and not created yet: its head and cadre left before the contract and fee
+        ...(drafts.length
+          ? [{ id: "forming", level: "work" as const, title: `${drafts.length} تكتلات بدأ تشكيلها في المكتب ولم تُنشأ`, hint: "أكمل كل تكتل بحضور رئيسه وكادره: رسمه وعقده الموقّع، ثم «إنشاء التكتل»، أو ألغِ تشكيله.", href: `${M}/clusters?f=draft`, action: "أكملها" }]
           : []),
         ...(deadlinePassed && outside.length
           ? [{ id: "outside", level: "work" as const, title: `${outside.length} مجموعات معتمدة خارج كل تكتل`, hint: "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضفها إلى تكتل بتعديل استثنائي بسببه.", href: `${M}/clusters?v=outside`, action: "أضفها" }]
@@ -317,8 +315,8 @@ export function useAdminsStatus(): SystemStatus {
   const desk = useAdminsDesk();
   return {
     state:
-      desk.sent.length + desk.reviewing.length
-        ? { label: `طلبات تكتل تنتظر المراجعة: ${desk.sent.length + desk.reviewing.length}`, tone: "maroon", icon: createElement(Timer, { className: "size-4" }) }
+      desk.drafts.length
+        ? { label: `تكتلات قيد التشكيل في المكتب: ${desk.drafts.length}`, tone: "maroon", icon: createElement(Timer, { className: "size-4" }) }
         : desk.high.length
           ? { label: `تحتاج متابعة (${desk.high.length})`, tone: "maroon", icon: createElement(AlertTriangle, { className: "size-4" }) }
           : { label: "تسير بانتظام", tone: "green", icon: createElement(CheckCircle2, { className: "size-4" }) },
@@ -326,7 +324,7 @@ export function useAdminsStatus(): SystemStatus {
       { k: "المتقدمون", v: desk.totals.applied, hint: `${desk.totals.paid} سددوا الرسم` },
       { k: "مؤهَّلون للعمل", v: desk.totals.qualified, hint: `${desk.totals.exempt} بالتجديد دون اختبار` },
       { k: "مجموعات معتمدة", v: desk.approved.length, hint: desk.waiting.length ? `${desk.waiting.length} طلبات تنتظر` : undefined },
-      { k: "تكتلات معتمدة", v: desk.approvedClusters.length, hint: desk.live.length ? `من ${desk.live.length} طلبات — ${desk.sent.length + desk.reviewing.length} قيد المراجعة` : undefined },
+      { k: "تكتلات معتمدة", v: desk.approvedClusters.length, hint: desk.drafts.length ? `و${desk.drafts.length} قيد التشكيل في المكتب` : undefined },
     ],
     high: desk.high,
   };

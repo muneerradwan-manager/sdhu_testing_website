@@ -22,28 +22,27 @@ export const POOLS: Record<TeamPool, { label: string; one: string; title: string
   "cluster-assistant": { label: "معاونو التكتل", one: "معاون التكتل", title: "معاون التكتل", note: "للتكتل كله: المطارات والمخيمات والطوارئ" },
 };
 
-export const DEPUTY_TITLE = "نائب رئيس التكتل";
 export const ACCOUNTANT_TITLE = "محاسب التكتل";
 
 export const STATUS: Record<ClusterStatus, { label: string; tone: "green" | "gold" | "maroon" | "ink" }> = {
-  draft: { label: "مسودة", tone: "ink" },
+  draft: { label: "قيد التشكيل في المكتب", tone: "ink" },
   pending: { label: "قيد المراجعة", tone: "gold" },
   reviewing: { label: "جاري المراجعة", tone: "gold" },
-  approved: { label: "معتمد", tone: "green" },
+  approved: { label: "شُكّل في المكتب", tone: "green" },
   rejected: { label: "مرفوض — بملاحظات", tone: "maroon" },
 };
 
 /**
- * The request's steps, in the administration's order: the groups come in with their heads, then «الإداريون» —
- * everyone else, each to his place: every group's guides and assistants in its seats, the cluster's assistant,
- * its coordinators and female guides (shared, distributed on the groups) — then the deputy and the accountant
+ * A cluster is formed at the office, its head and everyone in it present: the employee enters it in the
+ * administration's order — the groups come in with their heads and the guides and assistants the office seated in
+ * them, then «الإداريون» the head chooses there: the cluster's assistant, its coordinators and female guides
+ * (shared, distributed on the groups) — then its accountant. Everyone placed is there, so nobody is invited.
  */
-export type Step = "tier" | "groups" | "staff" | "deputy" | "accountant" | "report";
+export type Step = "tier" | "groups" | "staff" | "accountant" | "report";
 export const STEPS: { key: Step; label: string }[] = [
   { key: "tier", label: "المستوى" },
   { key: "groups", label: "المجموعات" },
   { key: "staff", label: "الإداريون" },
-  { key: "deputy", label: "النائب" },
   { key: "accountant", label: "المحاسب" },
   { key: "report", label: "التقرير" },
 ];
@@ -135,7 +134,7 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
   const coords = c.coordinators.filter(yes);
   const guides = c.femaleGuides.filter(yes);
   const people = cadreOf(r.headId, c);
-  const pendingAny = [...Object.values(c.groups), ...Object.values(c.seats).flat().map((x) => x.who).filter((x): x is ClusterInvite => !!x), ...c.assistants, ...c.coordinators, ...c.femaleGuides, c.deputy, c.accountant].some((x) => x?.status === "pending");
+  const pendingAny = [...Object.values(c.groups), ...Object.values(c.seats).flat().map((x) => x.who).filter((x): x is ClusterInvite => !!x), ...c.assistants, ...c.coordinators, ...c.femaleGuides, c.accountant].some((x) => x?.status === "pending");
   const clusterWord = c.name.replace(/^تكتل\s+/, "").trim();
   const sameName = groups.find((g) => groupShort(g.number).trim() === clusterWord);
 
@@ -161,9 +160,9 @@ function analyse(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile
       .map(({ x, map, quota }) => ({ x, quota, load: loadOf(units, map, x.id) }))
       .filter((r) => r.load > r.quota)
       .map((r): Check => ({ key: `over-${r.x.id}`, step: "staff", label: `${r.x.name}: موزَّع على ${r.load} وحدات، وحدّه ${r.quota}`, ok: false })),
-    { key: "deputy", step: "deputy", label: yes(c.deputy) ? `${DEPUTY_TITLE}: ${c.deputy!.name}` : `${DEPUTY_TITLE} من رؤساء المجموعات لم يقبل بعد`, ok: yes(c.deputy) && groups.some((g) => g.headId === c.deputy!.id) },
-    { key: "accountant", step: "accountant", label: yes(c.accountant) ? `${ACCOUNTANT_TITLE}: ${c.accountant!.name}` : `${ACCOUNTANT_TITLE} لم يقبل بعد`, ok: yes(c.accountant) && people.includes(c.accountant!.id) && !c.femaleGuides.some((x) => x.id === c.accountant!.id) },
-    { key: "answers", step: "report", label: pendingAny ? "دعوات لم يُرد عليها بعد" : "رُدّ على كل الدعوات", ok: !pendingAny },
+    { key: "accountant", step: "accountant", label: yes(c.accountant) ? `${ACCOUNTANT_TITLE}: ${c.accountant!.name}` : `${ACCOUNTANT_TITLE} لم يُحدَّد بعد`, ok: yes(c.accountant) && people.includes(c.accountant!.id) && !c.femaleGuides.some((x) => x.id === c.accountant!.id) },
+    // A request kept from before the office formed the clusters may still hold an unanswered invitation
+    ...(pendingAny ? [{ key: "answers", step: "report" as Step, label: "أماكن بانتظار التأكيد", ok: false }] : []),
   ];
   // A guide's grade counts at its fixed age («عمر مثبَّت»), whatever his own
   const ages = people.map((id) => badgeAgeOf(id, role(id), s)).filter((a): a is number => a !== undefined);
@@ -298,7 +297,7 @@ export function usePicks(req: ClusterRequest | undefined) {
 }
 
 /** A group a head may invite: an approved group, its head's category and branch, and where it stands */
-export type PoolGroup = { headId: string; headName: string; number: number; branch: string; category?: string; pilgrims: number; onDevice: boolean; takenBy?: string };
+export type PoolGroup = { headId: string; headName: string; number: number; branch: string; category?: string; pilgrims: number; onDevice: boolean; takenBy?: string; seats?: Seat[] };
 
 /** The season's approved groups other than the inviter's, in his branches; a group another request holds says which */
 export function useGroupPool(req: ClusterRequest | undefined): PoolGroup[] {
@@ -314,7 +313,7 @@ export function useGroupPool(req: ClusterRequest | undefined): PoolGroup[] {
       .map((a) => {
         const n = a.group!.number;
         const pilgrims = assignedRealFamilies(n, post, applications).reduce((k, f) => k + f.members.length, 0);
-        return { headId: a.nationalId, headName: adminName(a.nationalId), number: n, branch: branchesOf(a.nationalId, cadre)[0], category: categoryOf(a.nationalId, cadre), pilgrims, onDevice: true };
+        return { headId: a.nationalId, headName: adminName(a.nationalId), number: n, branch: branchesOf(a.nationalId, cadre)[0], category: categoryOf(a.nationalId, cadre), pilgrims, onDevice: true, seats: a.group!.seats };
       });
     const seeds = HEADS_POOL.filter((h) => h.id !== req?.headId && !live.some((l) => l.number === h.group)).map((h) => ({ headId: h.id, headName: h.name, number: h.group, branch: branchesOf(h.id, cadre)[0], category: categoryOf(h.id, cadre), pilgrims: h.pilgrims, onDevice: false }));
     const mine = new Set(req?.branches ?? []);
@@ -327,13 +326,12 @@ export function useGroupPool(req: ClusterRequest | undefined): PoolGroup[] {
 
 // ───────────────────────── Invitations ─────────────────────────
 
-export type InviteKind = "group" | "deputy" | "accountant" | TeamPool;
+export type InviteKind = "group" | "accountant" | TeamPool;
 export type Inbound = { req: ClusterRequest; kind: InviteKind; invite: ClusterInvite; number?: number; seat?: number };
 
 /** «موجّه ديني في مجموعة اللطيف»، «منسق تقني» — what an invitation asks of him */
 export function inviteWhat(x: { kind: InviteKind; number?: number }) {
   if (x.kind === "group") return `${groupName(x.number!)} وحجاجها`;
-  if (x.kind === "deputy") return DEPUTY_TITLE;
   if (x.kind === "accountant") return ACCOUNTANT_TITLE;
   if (x.kind === "guide" || x.kind === "assistant") return `${POOLS[x.kind].one} في ${groupName(x.number!)}`;
   return POOLS[x.kind].one;
@@ -350,7 +348,6 @@ export function invitationsFor(id: string, requests: ClusterRequest[]): Inbound[
     for (const x of c.assistants) if (x.id === id) out.push({ req, kind: "cluster-assistant", invite: x });
     for (const x of c.coordinators) if (x.id === id) out.push({ req, kind: "tech", invite: x });
     for (const x of c.femaleGuides) if (x.id === id) out.push({ req, kind: "guide-f", invite: x });
-    if (c.deputy?.id === id) out.push({ req, kind: "deputy", invite: c.deputy });
     if (c.accountant?.id === id) out.push({ req, kind: "accountant", invite: c.accountant });
     return out;
   });
@@ -377,7 +374,7 @@ export function guidedBy(c: Cluster, id: string) {
 
 /**
  * Writes a request where it lives — the head's record on this device, or the seeded request's override — and
- * tells everyone on this device where he now works: the deputy and the accountant their secondary role, a
+ * tells everyone on this device where he now works: the accountant his secondary role, a
  * seat's holder his group, a coordinator the groups sorted to him, a female guide or a cluster assistant the
  * cluster. Whoever left loses his post; a group head whose group joined sees its cluster.
  */
@@ -389,8 +386,6 @@ export function writeCluster(req: Pick<ClusterRequest, "headId" | "headName" | "
   for (const [id, a] of Object.entries(admins)) {
     if (id === req.headId) continue;
     const patch: Partial<AdminProfile> = {};
-    const deputy = next.deputy?.id === id && yes(next.deputy);
-    if (deputy || a.deputyOf?.clusterId === next.id) patch.deputyOf = deputy ? { ...base, headGroup: req.headGroup ?? 0 } : undefined;
     const accountant = next.accountant?.id === id && yes(next.accountant);
     if (accountant || a.accountantOf?.clusterId === next.id) patch.accountantOf = accountant ? base : undefined;
     const coordinator = next.coordinators.find((x) => x.id === id && yes(x));
@@ -425,8 +420,6 @@ function answered(c: Cluster, x: Inbound, id: string, status: ClusterInvite["sta
       return { ...c, coordinators: c.coordinators.map(mark) };
     case "guide-f":
       return { ...c, femaleGuides: c.femaleGuides.map(mark) };
-    case "deputy":
-      return { ...c, deputy: c.deputy && mark(c.deputy) };
     case "accountant":
       return { ...c, accountant: c.accountant && mark(c.accountant) };
   }
@@ -434,8 +427,8 @@ function answered(c: Cluster, x: Inbound, id: string, status: ClusterInvite["sta
 
 /**
  * The invited person answers. Accepting a place declines whatever else is pending for the same: a group
- * joins one cluster, a person serves in one place in the season. The deputy's and the accountant's roles are
- * secondary — given to someone already in the same cluster — and decline nothing.
+ * joins one cluster, a person serves in one place in the season. The accountant's role is secondary — given to
+ * someone already in the same cluster — and declines nothing.
  */
 export function answerInvitation(me: { id: string; name: string }, inbound: Inbound, status: "accepted" | "declined", admins: Record<string, AdminProfile>, requests: ClusterRequest[], reason?: string) {
   const at = Date.now();
@@ -445,7 +438,7 @@ export function answerInvitation(me: { id: string; name: string }, inbound: Inbo
     touched.set(x.req.cluster.id, { req: x.req, c: answered(cur, x, me.id, s, at, why) });
   };
   apply(inbound, status, reason);
-  const secondary = (k: InviteKind) => k === "deputy" || k === "accountant";
+  const secondary = (k: InviteKind) => k === "accountant";
   if (status === "accepted" && !secondary(inbound.kind)) {
     for (const other of invitationsFor(me.id, requests)) {
       if (other.invite.status !== "pending" || secondary(other.kind)) continue;
@@ -499,7 +492,7 @@ export function personLine(id: string, name: string, admins: Record<string, Admi
   return `${name} — ${roleName(roleOfPerson(id, admins, cadre), structureNow())}`;
 }
 
-/** The cluster's groups for its head or its deputy, as the cluster's screens show them */
+/** The cluster's groups for its head, as the cluster's screens show them */
 export function useClusterGroupsOf(p: AdminProfile | undefined) {
   const admins = useStore((s) => s.admins);
   const overrides = useStore((s) => s.formation.overrides);
@@ -507,7 +500,7 @@ export function useClusterGroupsOf(p: AdminProfile | undefined) {
   return useMemo(() => clusterGroupsOf(s, p, admins, overrides), [s, p, admins, overrides]);
 }
 
-/** Every invitation of a request through one function: its groups, its seats, its lists, its deputy and accountant */
+/** Every place of a cluster through one function: its groups, its seats, its lists, its accountant */
 export function mapInvites(c: Cluster, fn: <T extends ClusterInvite>(x: T) => T): Cluster {
   return {
     ...c,
@@ -516,12 +509,11 @@ export function mapInvites(c: Cluster, fn: <T extends ClusterInvite>(x: T) => T)
     assistants: c.assistants.map(fn),
     coordinators: c.coordinators.map(fn),
     femaleGuides: c.femaleGuides.map(fn),
-    deputy: c.deputy && fn(c.deputy),
     accountant: c.accountant && fn(c.accountant),
   };
 }
 
-/** A fresh invitation */
+/** A place given at the office: its holder is there and agrees, so it is accepted at once */
 export function invite(id: string, name: string): ClusterInvite {
-  return { id, name, at: Date.now(), status: "pending" };
+  return { id, name, at: Date.now(), status: "accepted" };
 }

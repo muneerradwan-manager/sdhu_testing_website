@@ -1071,7 +1071,7 @@ function Verdict({ passed, failedIn, two }: { passed: boolean; failedIn: string[
   const clusters = useOperation("cluster-formation");
   const next = head
     ? { href: "/administrator/group", label: "التالي: تشكيل مجموعتك في المكتب", when: rangeLabel(formation.start, formation.end) }
-    : { href: "/administrator/cluster", label: "التالي: دعوات التكتلات", when: `يدعوك رؤساء التكتلات إلى مكانك ${rangeLabel(clusters.start, clusters.end)}` };
+    : { href: "/administrator/cluster", label: "التالي: مكانك في تكتل", when: `يختارك رئيس تكتل لمكانك، فتحضر إلى المكتب حين يُشكَّل تكتله ${rangeLabel(clusters.start, clusters.end)}` };
   const fired = useRef(false);
   useEffect(() => {
     if (!passed || fired.current) return;

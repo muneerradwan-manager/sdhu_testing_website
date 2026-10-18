@@ -351,10 +351,10 @@ export type TeamPool = "guide" | "assistant" | "tech" | "guide-f" | "cluster-ass
 /** A cluster request: a draft, sent (قيد المراجعة), under review (جاري المراجعة), approved, or sent back (مرفوض) with notes */
 export type ClusterStatus = "draft" | "pending" | "reviewing" | "approved" | "rejected";
 /**
- * The cluster its head asked to form — with the administration's structure (app/administrator/_lib/structure):
+ * The cluster formed at the office — with the administration's structure (app/administrator/_lib/structure):
  * its name and tier, its groups (each with its seats, filled by the category under the tier), its cluster
- * assistants, coordinators and female guides by the sum of the groups' categories, its deputy (one of its
- * group heads) and its accountant (one of its people). Everyone picked answers his own invitation.
+ * assistants, coordinators and female guides by the sum of the groups' categories, and its accountant (one of its
+ * people). Everyone in it is placed there in person, and signs its contract.
  */
 /**
  * «قناة التكتل»: the channel of a cluster's administrators. Everyone in the cluster reads it; who writes is
@@ -374,7 +374,7 @@ export type ChannelMessage = {
   removed?: { by: string; at: number };
 };
 export type ClusterChannel = {
-  /** The roles that write; absent = the channel's default (the head and his deputy) */
+  /** The roles that write; absent = the channel's default (the head) */
   writers?: string[];
   /** Members the head stopped from writing, whatever their role */
   muted?: Record<string, { by: string; at: number; reason?: string }>;
@@ -382,6 +382,9 @@ export type ClusterChannel = {
   /** When each member last read the channel */
   reads?: Record<string, number>;
 };
+
+/** A paper contract signed at the office, as the employee uploaded it (a picture or a file in the media library) */
+export type SignedContract = { ref: string; name: string; type: string; at: number; by: string };
 
 export type ClusterRecord = {
   id: string;
@@ -403,8 +406,10 @@ export type ClusterRecord = {
   reopened?: { at: number; by: string };
   /** Created or edited by the administration on its head's behalf */
   byAdministration?: { by: string; reason: string; at: number };
+  /** The cluster formation fee, paid at the office */
   feePaidAt?: number;
-  deputy?: ClusterInvite;
+  /** The paper contract everyone in the cluster signed at the office, as the employee uploaded it */
+  contract?: SignedContract;
   accountant?: ClusterInvite;
   /** Every group invited, by number */
   groups: Record<number, GroupInvite>;
@@ -477,12 +482,13 @@ export type AdminProfile = {
     approvedBy?: string;
     /** Sent back to the head by the holder of «إدارة الإداريين», with what to fix; cleared when he sends it again */
     returned?: { at: number; by: string; note: string };
+    /** Its seats as the office filled them when it formed the group (its guide, its assistant), carried into its cluster */
+    seats?: Seat[];
+    /** «معاون بعدد» the office added to a group whose category has no assistant seat: he adds pilgrims to its cluster */
+    countAssistant?: ClusterInvite;
+    /** The paper contract its head and its team signed at the office */
+    contract?: SignedContract;
   };
-  /**
-   * The cluster's deputy head («نائب رئيس التكتل»), who accepted its head's invitation. Like the head, his
-   * role for the season becomes a cluster role: he sees the cluster's groups and its information.
-   */
-  deputyOf?: { clusterId: string; clusterName: string; headId: string; headName: string; headGroup: number };
   /**
    * The cluster he asked to form. Nobody is elected: whoever holds a role that leads a cluster this season
    * (granted by the administration) files the request, and is its head from then on. He sends it for review
@@ -506,7 +512,7 @@ export type AdminProfile = {
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
    */
   joinDecisions: Record<string, "accepted" | "rejected">;
-  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string; /** The group it gathers (one kept before groups were picked is his own group's) */ groupNumber?: number; /** Why it gathers (field.tsx MUSTER_KINDS: «umrah»…) and where */ kind?: string; place?: string }[];
+  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string; /** The group it gathers (one kept before groups were picked is his own group's) */ groupNumber?: number; /** Why it gathers (field.tsx MUSTER_KINDS: «umrah»…) and where */ kind?: string; place?: string; /** A required muster (the travel, the rites): everyone not there has a reason */ required?: boolean; /** Why each pilgrim not ticked was not there, by his id */ absent?: Record<string, string> }[];
 };
 
 /**
@@ -916,6 +922,18 @@ const listeners = new Set<() => void>();
  * A browser may hold state saved by an older build under the same keys in another shape (an earlier take
  * on cluster formation saved its own `formation`): the slices read here are made whole before use.
  */
+/** The cluster's deputy is no post any more: a record saved with one (or a profile that was one) drops it */
+function withoutDeputy(c: ClusterRecord): ClusterRecord {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { deputy: _gone, ...rest } = c as ClusterRecord & { deputy?: unknown };
+  return rest;
+}
+function noDeputy(p: AdminProfile): AdminProfile {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { deputyOf: _gone, ...rest } = p as AdminProfile & { deputyOf?: unknown };
+  return rest;
+}
+
 function normalize(s: State): State {
   const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
   const f = obj(s.formation);
@@ -930,18 +948,18 @@ function normalize(s: State): State {
       const p = a as AdminProfile;
       if (!p.cluster || !current(p.cluster)) {
         const gone = (x?: { clusterId: string }) => !!x && stale.has(x.clusterId);
-        return [id, { ...p, cluster: undefined, deputyOf: gone(p.deputyOf) ? undefined : p.deputyOf, coordinatorIn: gone(p.coordinatorIn) ? undefined : p.coordinatorIn, servesIn: gone(p.servesIn) ? undefined : p.servesIn }];
+        return [id, { ...noDeputy(p), cluster: undefined, coordinatorIn: gone(p.coordinatorIn) ? undefined : p.coordinatorIn, servesIn: gone(p.servesIn) ? undefined : p.servesIn }];
       }
-      const k = p.cluster;
-      return [id, { ...p, cluster: { ...k, groups: obj(k.groups), seats: obj(k.seats), assistants: list(k.assistants), coordinators: list(k.coordinators), femaleGuides: list(k.femaleGuides), sorting: obj(k.sorting), guideSorting: obj(k.guideSorting) } as ClusterRecord }];
+      const k = withoutDeputy(p.cluster);
+      return [id, { ...noDeputy(p), cluster: { ...k, groups: obj(k.groups), seats: obj(k.seats), assistants: list(k.assistants), coordinators: list(k.coordinators), femaleGuides: list(k.femaleGuides), sorting: obj(k.sorting), guideSorting: obj(k.guideSorting) } as ClusterRecord }];
     }),
   ) as State["admins"];
   return {
     ...s,
     admins,
     formation: {
-      overrides: obj(f.overrides) as State["formation"]["overrides"],
-      created: list(f.created) as State["formation"]["created"],
+      overrides: Object.fromEntries(Object.entries(obj(f.overrides)).map(([k, v]) => [k, withoutDeputy(v as ClusterRecord)])) as State["formation"]["overrides"],
+      created: (list(f.created) as State["formation"]["created"]).map((x) => ({ ...x, cluster: withoutDeputy(x.cluster) })),
       archived: obj(f.archived) as State["formation"]["archived"],
       notes: obj(f.notes) as State["formation"]["notes"],
       season: typeof f.season === "number" ? f.season : undefined,

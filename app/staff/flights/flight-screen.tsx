@@ -14,6 +14,7 @@ import {
   carrierOf,
   acceptsAssignment,
   clusterName,
+  clusterSeats,
   familiesOnFlight,
   groupsOnFlight,
   flightWarnings,
@@ -51,6 +52,7 @@ type Dialog = null | { kind: "postpone" } | { kind: "reschedule" } | { kind: "di
 const ASSIGN_TONE: Record<FlightAssignment["status"], "green" | "gold" | "maroon" | "muted"> = { assigned: "green", locked: "gold", boarded: "green", arrived: "muted", noShow: "maroon", cancelled: "maroon", moved: "muted" };
 
 export const FLIGHTS_LIST = "/staff/flights/manage/flights";
+export const ALLOTMENTS = "/staff/flights/manage/allotments";
 export const flightHref = (id: string) => `${FLIGHTS_LIST}?f=${id}`;
 
 /** A flight opened from the list (`?f=`): found, or said not to be */
@@ -112,6 +114,7 @@ function Screen({ f }: { f: Flight }) {
   const to = airportOf(data, f.toId);
   const alt = airportOf(data, f.divertedToId);
   const legs = groupsOnFlight(f.id, data.groups);
+  const allots = data.allotments.filter((x) => x.flightId === f.id);
   const paired = data.flights.find((x) => x.id === f.pairedFlightId);
   const sameWay = data.flights.filter((x) => x.id !== f.id && x.direction === f.direction && isOpenForAssignment(x) && x.audience === f.audience);
   const editable = ["draft", "published", "full", "locked"].includes(f.status);
@@ -271,6 +274,35 @@ function Screen({ f }: { f: Flight }) {
             <div className="mb-4 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-bold text-gold">
+                  التكتلات التي أُعطيت الرحلة <span className="font-normal text-white/60">({allots.length})</span>
+                </p>
+                {officer && (
+                  <Link href={ALLOTMENTS} className="text-sm font-bold text-gold hover:underline">
+                    أيام التكتلات
+                  </Link>
+                )}
+              </div>
+              {allots.length === 0 ? (
+                <p className="mt-2 text-sm text-white/60">لم تُعطَ هذه الرحلة لتكتل بعد. أعطها من «أيام التكتلات»، فيضع رئيس التكتل مجموعاته عليها.</p>
+              ) : (
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {allots.map((x) => {
+                    const c = clusterSeats(f, x.clusterId, data);
+                    return (
+                      <li key={x.id} className="rounded-xl bg-white/10 px-3 py-1 text-sm">
+                        <span className="font-bold text-white">{clusterName(x.clusterId)}</span>{" "}
+                        <span className="text-xs tabular-nums text-white/60">
+                          {c.used}/{c.quota} {c.whole ? "— الرحلة كلها" : "مقعداً"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+            <div className="mb-4 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-bold text-gold">
                   المجموعات على الرحلة <span className="font-normal text-white/60">({legs.length})</span>
                 </p>
                 {officer && acceptsAssignment(f) && (
@@ -280,7 +312,7 @@ function Screen({ f }: { f: Flight }) {
                 )}
               </div>
               {legs.length === 0 ? (
-                <p className="mt-2 text-sm text-white/60">لا مجموعات بعد. يضيفها مسؤول الطيران بعد التنسيق مع رئيس التكتل.</p>
+                <p className="mt-2 text-sm text-white/60">لا مجموعات بعد. يضعها رئيس التكتل الذي أُعطي الرحلة، ولك أن تضيف منها عند الحاجة.</p>
               ) : (
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {legs.map((g) => (
@@ -307,7 +339,7 @@ function Screen({ f }: { f: Flight }) {
                 <button type="button" className="text-white/70 hover:text-white" onClick={() => setSelected([])}>إلغاء التحديد</button>
               </div>
             )}
-            {families.length === 0 && <p className="rounded-2xl bg-white/5 px-4 py-6 text-center text-sm text-white/60">لم يُسند أحد بعد. أضف المجموعات من «إضافة مجموعات» أعلاه، أو من «التفويج».</p>}
+            {families.length === 0 && <p className="rounded-2xl bg-white/5 px-4 py-6 text-center text-sm text-white/60">لم يُسند أحد بعد. يضع رؤساء التكتلات مجموعاتهم على أيام تكتلاتهم، ولك أن تضيف من «إضافة مجموعات» أعلاه أو من «التفويج».</p>}
             {(() => {
               let lastGroup = "";
               return families.map((fam) => {

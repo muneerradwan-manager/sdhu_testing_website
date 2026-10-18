@@ -32,7 +32,7 @@ export function coordinatorPostOf(s: Structure, id: string, p: AdminProfile | un
   const c = p?.coordinatorIn ?? p?.servesIn;
   if (!c) return null;
   const role: TeamPool = p?.coordinatorIn ? "tech" : p!.servesIn!.role;
-  const rec = headRecordOf({ ...p!, cluster: undefined, deputyOf: undefined, accountantOf: undefined }, admins, overrides);
+  const rec = headRecordOf({ ...p!, cluster: undefined, accountantOf: undefined }, admins, overrides);
   if (rec && rec.cluster.id === c.clusterId) {
     const all = groupsFromCluster(s, rec.cluster, rec.headGroup);
     const mine =

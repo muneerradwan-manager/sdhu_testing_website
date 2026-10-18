@@ -2,34 +2,35 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, BadgeCheck, Bus, CircleDashed, ExternalLink, Hotel, Images, Plus, RotateCcw, Send, Sparkles, Trash2, Utensils } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bus, CircleDashed, ExternalLink, Hotel, ImageIcon, Images, Plus, RotateCcw, Send, Sparkles, Trash2, Utensils } from "lucide-react";
 import { useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf, useClusterProgrammes, type ClusterProfileFields } from "@/lib/cluster-profile";
 import { ROOM_BEDS, ROOM_LABEL, type RoomPrices } from "@/lib/rooms";
+import { HARAM, NABAWI } from "@/lib/data/clusters";
+import { MapPicker, distanceLabel, distanceM, mapsLink } from "@/components/ui/map-picker";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { pageWriterOf } from "../../_lib/directory";
 import { useClusterRequest } from "../../_lib/formation";
-import { GalleryEditor } from "../../_components/gallery-editor";
+import { CoverPicker, GalleryEditor } from "../../_components/gallery-editor";
 
 const TEXT_FIELDS: { key: keyof ClusterProfileFields; label: string; hint?: string; area?: boolean }[] = [
   { key: "specialty", label: "سطر التعريف تحت الاسم", hint: "جملة قصيرة يقرأها الحاج أولاً" },
   { key: "about", label: "نبذة عن التكتل", area: true },
 ];
 
-const HOUSING: { key: keyof ClusterProfileFields; label: string }[] = [
-  { key: "makkahHotel", label: "فندق مكة" },
-  { key: "makkahArea", label: "منطقة السكن في مكة" },
-  { key: "makkahDistance", label: "المسافة عن الحرم" },
-  { key: "makkahRooms", label: "نوع الغرف" },
-  { key: "madinahHotel", label: "فندق المدينة" },
-  { key: "madinahArea", label: "منطقة السكن في المدينة" },
-  { key: "madinahDistance", label: "المسافة عن المسجد النبوي" },
-];
+/**
+ * The two hotels, each with its map: the team types the hotel's name and area and taps its place, and the distance
+ * to the mosque is measured from the pin (they may still write it themselves).
+ */
+const HOTELS = [
+  { city: "مكة المكرمة", name: "makkahHotel", area: "makkahArea", distance: "makkahDistance", at: "makkahAt", mosque: { at: HARAM, label: "المسجد الحرام" }, from: "عن الحرم" },
+  { city: "المدينة المنورة", name: "madinahHotel", area: "madinahArea", distance: "madinahDistance", at: "madinahAt", mosque: { at: NABAWI, label: "المسجد النبوي" }, from: "عن المسجد النبوي" },
+] as const;
 
 const LISTS: { key: keyof ClusterProfileFields; label: string; icon: typeof Bus; item: string }[] = [
   { key: "makkahFeatures", label: "مزايا سكن مكة", icon: Hotel, item: "ميزة" },
@@ -63,7 +64,7 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
       <Card className="md:p-7">
         <h3 className="font-display text-xl font-bold text-green-dark">صفحة {clusterName} العامة</h3>
         <p className="mt-2 leading-8 text-ink-soft">
-          تُفتح صفحة التكتل بعد أن تعتمد الإدارة طلب تشكيله. حينها يكتب فريقه هنا لمحته وسكنه في مكة والمدينة وأسعار السكن الخاص ونقله وإعاشته وبرامجه، ويرسلها للاعتماد. أما مجموعاته ورؤساؤها وفريقه وتقييمه فتظهر في الصفحة وحدها من طلبه المعتمد.
+          تُفتح صفحة التكتل بعد أن يُشكَّل في المكتب. حينها يكتب فريقه هنا لمحته وسكنه في مكة والمدينة وأسعار السكن الخاص ونقله وإعاشته وبرامجه، ويرسلها للاعتماد. أما مجموعاته ورؤساؤها وفريقه وتقييمه فتظهر في الصفحة وحدها من طلبه المعتمد.
         </p>
       </Card>
     );
@@ -90,7 +91,7 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
           <div>
             <h3 className="font-display text-2xl font-bold text-green-dark">صفحة {view.name} في «التكتلات والمجموعات»</h3>
             <p className="mt-1 max-w-3xl leading-7 text-ink-soft">
-              هذه الصفحة يقرأها الحاج قبل أن يختار تكتله. يكتبها فريق التكتل — رئيسه ونائبه ومعاونوه ومنسقوه ورؤساء مجموعاته ومعاونوها — لأنهم من تعاقد على الفنادق والحافلات ويدير البرنامج. وللصفحة ختم «معتمد من الإدارة»، فلا يظهر أي تعديل للحجاج قبل اعتماده، ويصل إلى الإدارة باسم من أرسله.
+              هذه الصفحة يقرأها الحاج قبل أن يختار تكتله. يكتبها فريق التكتل — رئيسه ومعاونوه ومنسقوه ورؤساء مجموعاته ومعاونوها — لأنهم من تعاقد على الفنادق والحافلات ويدير البرنامج. وللصفحة ختم «معتمد من الإدارة»، فلا يظهر أي تعديل للحجاج قبل اعتماده، ويصل إلى الإدارة باسم من أرسله.
             </p>
             <p className="mt-2 text-sm text-hint">مجموعات التكتل ورؤساؤها وفريقه وتقييمه لا تُكتب هنا: تظهر في الصفحة وحدها من طلبه المعتمد.</p>
           </div>
@@ -147,15 +148,54 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
         <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
           <Hotel className="size-5 text-gold-dark" /> السكن
         </h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          {HOUSING.map((f) => (
-            <label key={f.key} className="block">
-              <span className="mb-1 block text-sm font-bold">{f.label}</span>
-              <input value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)} aria-label={f.label} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-            </label>
-          ))}
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          {HOTELS.map((h) => {
+            const at = values[h.at];
+            // It opens on the hotel and the mosque together (or on the mosque, before a pin)
+            const far = at ? Math.max(Math.abs(at.lat - h.mosque.at.lat), Math.abs(at.lng - h.mosque.at.lng)) : 0;
+            return (
+              <fieldset key={h.city} className="space-y-3 rounded-2xl border-2 border-gold/30 p-4">
+                <legend className="px-1 font-display font-bold text-green-dark">{h.city}</legend>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-bold">اسم الفندق</span>
+                  <input value={String(values[h.name])} onChange={(e) => set(h.name, e.target.value)} aria-label={`فندق ${h.city}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-bold">المنطقة</span>
+                  <input value={String(values[h.area])} onChange={(e) => set(h.area, e.target.value)} aria-label={`منطقة السكن في ${h.city}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
+                </label>
+                <div>
+                  <span className="mb-1 block text-sm font-bold">موقع الفندق على الخريطة</span>
+                  <MapPicker
+                    label={`موقع فندق ${h.city}`}
+                    value={at}
+                    center={at ? { lat: (at.lat + h.mosque.at.lat) / 2, lng: (at.lng + h.mosque.at.lng) / 2 } : h.mosque.at}
+                    zoom={!at ? 15 : far > 0.04 ? 12 : far > 0.015 ? 13 : far > 0.006 ? 14 : 15}
+                    landmark={h.mosque}
+                    prompt="قرّب الخريطة واضغط على موقع الفندق"
+                    onChange={(v) => setDraft({ ...values, [h.at]: v, [h.distance]: `${distanceLabel(distanceM(v, h.mosque.at))} ${h.from}` } as ClusterProfileFields)}
+                    className="h-72"
+                  />
+                  {at && (
+                    <a href={mapsLink(at)} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-green-dark underline">
+                      افتح الموقع في الخرائط
+                    </a>
+                  )}
+                </div>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-bold">المسافة {h.from}</span>
+                  <input value={String(values[h.distance])} onChange={(e) => set(h.distance, e.target.value)} aria-label={`المسافة ${h.from}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
+                  <span className="mt-1 block text-xs text-hint">تُحسب من موقع الفندق على الخريطة كلما غيّرته، ويمكنك تعديلها.</span>
+                </label>
+              </fieldset>
+            );
+          })}
+          <label className="block lg:col-span-2">
+            <span className="mb-1 block text-sm font-bold">نوع الغرف في مكة</span>
+            <input value={String(values.makkahRooms)} onChange={(e) => set("makkahRooms", e.target.value)} aria-label="نوع الغرف" className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
+          </label>
           {/* The shared accommodation adds nothing; each private room type adds its price per person */}
-          <fieldset className="sm:col-span-2">
+          <fieldset className="lg:col-span-2">
             <legend className="mb-1 text-sm font-bold">السكن الخاص — ما تضيفه كل غرفة للفرد ($)</legend>
             <p className="mb-2 text-xs text-hint">سعر الفرد في كل نوع غرفة. يتوزع أفراد الطلب على الغرف كما يشاؤون، لكل فرد سرير، وكلما قلّت أسرّة الغرفة ارتفع السعر. السكن العام (الرجال وحدهم والنساء وحدهن) دون كلفة.</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -206,6 +246,14 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
           </Card>
         );
       })}
+
+      <Card className="md:p-7">
+        <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
+          <ImageIcon className="size-5 text-gold-dark" /> الصورة الرئيسية
+        </h3>
+        <p className="mb-3 mt-1 text-sm text-ink-soft">تظهر أعلى صفحة التكتل، وعلى بطاقته في «التكتلات والمجموعات» وفي الصفحة الرئيسية.</p>
+        <CoverPicker label="الصورة الرئيسية" value={values.cover ?? ""} onChange={(v) => set("cover", v)} by={writer ? `${admin.name} — ${writer.post}` : admin.name} />
+      </Card>
 
       <Card className="md:p-7">
         <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">

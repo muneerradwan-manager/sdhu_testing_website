@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { requestNow } from "@/app/administrator/_lib/directory";
-import { acceptedGroups, asGroup } from "@/app/administrator/_lib/cluster";
+import { SEED_CLUSTERS, acceptedGroups, asGroup } from "@/app/administrator/_lib/cluster";
 import { structureNow } from "@/app/administrator/_lib/structure";
 import { CLUSTERS } from "./data/clusters";
 import { groupName, groupShort } from "./groups";
 import { SEASON } from "./season";
-import { actions, setState, useStore, type AdminProfile, type Application, type PostAcceptance } from "./store";
+import { actions, getState, setState, useStore, type AdminProfile, type Application, type PostAcceptance } from "./store";
 import { fullName, ageOf } from "./registry";
 import { seeded } from "./utils";
 import { EMPLOYEES_SEED } from "./data/employees-seed";
@@ -14,11 +14,14 @@ import { EMPLOYEES_SEED } from "./data/employees-seed";
  * ملف الطيران — flights for the employees and for the pilgrims.
  *
  * A flight goes one way (outbound or return) and is a resource with a capacity: some seats are kept for
- * the escorting employees, the rest are the pilgrims'. The flight officer (a staff member) does all of it:
- * he creates the flights (one way, or outbound and return together), assigns employees one by one or many
- * at once, and puts whole groups of pilgrims on flights — every member of the group travels on that flight,
- * including families that join the group later. Cluster heads coordinate with him outside the platform and
- * only see the result. Outbound and return are paired in the traveller's record, not in the flight.
+ * the escorting employees, the rest are the pilgrims'. The flight officer (a staff member) creates the flights
+ * (one way, or outbound and return together) and assigns the employees, and gives each cluster its days: the
+ * flights its pilgrims travel on, each with the seats it holds there (an allotment). The cluster's head then
+ * puts his groups on those flights — every member of a group travels on its flight, including families that
+ * join it later — and adds pilgrims one by one for the rare one who travels apart from his group.
+ * The outbound takes off from home (Damascus or Aleppo) to Makkah (Jeddah) or Madinah; the return lands where
+ * the airport he took off from allows (`returnsTo`: Damascus or Aleppo, or Latakia). Outbound and return are
+ * paired in the traveller's record, not in the flight, and every assign path checks the pair.
  * The design is in projects/docs/ملف-الطيران.
  */
 
@@ -26,7 +29,20 @@ export const FLIGHT_SEASON: number = SEASON.hijriYear;
 
 // ───────────────────────── Types ─────────────────────────
 
-export type Airport = { id: string; code: string; name: string; city: string; country: string; archived?: boolean };
+export type Airport = {
+  id: string;
+  code: string;
+  name: string;
+  city: string;
+  country: string;
+  /** The holy city a Saudi airport serves: Jeddah's is Makkah */
+  serves?: string;
+  /** Where a return may land for those who took off from here (absent: here only) */
+  returnsTo?: string[];
+  /** Returns land here, no outbound takes off from it (Latakia) */
+  arrivalsOnly?: boolean;
+  archived?: boolean;
+};
 export type Carrier = { id: string; code: string; name: string; phone?: string; archived?: boolean };
 
 export type Direction = "outbound" | "return";
@@ -125,12 +141,19 @@ export type GroupLeg = {
   endReason?: string;
 };
 
+/**
+ * A flight the officer gave a cluster: one of its days. `seats` is what the cluster holds on it; absent, the
+ * whole flight is the cluster's. The cluster's head puts his groups and pilgrims on it, up to those seats.
+ */
+export type Allotment = { id: string; clusterId: string; flightId: string; seats?: number; by: string; at: number };
+
 export type FlightsState = {
   airports?: Airport[];
   carriers?: Carrier[];
   flights?: Flight[];
   assignments?: FlightAssignment[];
   groups?: GroupLeg[];
+  allotments?: Allotment[];
   manifests?: Manifest[];
   /** Travellers who go by other means, so they leave the "no flight" lists (and may take a return without an outbound) */
   otherMeans?: Record<string, { reason: string; at: number; by: string }>;
@@ -192,13 +215,14 @@ export const isoTime = (ts: number) => fmtClock(ts);
 // ───────────────────────── Seeds ─────────────────────────
 
 export const AIRPORTS_SEED: Airport[] = [
-  { id: "ap-dam", code: "DAM", name: "مطار دمشق الدولي", city: "دمشق", country: "سوريا" },
-  { id: "ap-alp", code: "ALP", name: "مطار حلب الدولي", city: "حلب", country: "سوريا" },
+  { id: "ap-dam", code: "DAM", name: "مطار دمشق الدولي", city: "دمشق", country: "سوريا", returnsTo: ["ap-dam", "ap-ltk"] },
+  { id: "ap-alp", code: "ALP", name: "مطار حلب الدولي", city: "حلب", country: "سوريا", returnsTo: ["ap-alp", "ap-ltk"] },
+  { id: "ap-ltk", code: "LTK", name: "مطار اللاذقية الدولي", city: "اللاذقية", country: "سوريا", arrivalsOnly: true },
   { id: "ap-ist", code: "IST", name: "مطار إسطنبول", city: "إسطنبول", country: "تركيا" },
   { id: "ap-gzt", code: "GZT", name: "مطار غازي عنتاب", city: "غازي عنتاب", country: "تركيا" },
   { id: "ap-cai", code: "CAI", name: "مطار القاهرة الدولي", city: "القاهرة", country: "مصر" },
-  { id: "ap-jed", code: "JED", name: "مطار الملك عبد العزيز — صالة الحجاج", city: "جدة", country: "السعودية" },
-  { id: "ap-med", code: "MED", name: "مطار الأمير محمد بن عبد العزيز", city: "المدينة المنورة", country: "السعودية" },
+  { id: "ap-jed", code: "JED", name: "مطار الملك عبد العزيز — صالة الحجاج", city: "جدة", country: "السعودية", serves: "مكة المكرمة" },
+  { id: "ap-med", code: "MED", name: "مطار الأمير محمد بن عبد العزيز", city: "المدينة المنورة", country: "السعودية", serves: "المدينة المنورة" },
   { id: "ap-amm", code: "AMM", name: "مطار الملكة علياء الدولي", city: "عمّان", country: "الأردن" },
 ];
 
@@ -224,7 +248,8 @@ const sf = (f: SeedFlight): Flight => ({
 
 /**
  * Season 1448 in the pattern of 1447: departures over two weeks from Damascus and Aleppo (and one from
- * Istanbul) to Jeddah, returns from Madinah two weeks later. Each outbound is created with its return.
+ * Istanbul) to Jeddah for Makkah, and some to Madinah; returns three weeks later from Madinah, or from Jeddah for
+ * those who began in Madinah, to the city they left — and one to Latakia. Each outbound is created with its return.
  */
 export const FLIGHTS_SEED: Flight[] = [
   // ── advance party of the mission (staff only)
@@ -239,6 +264,9 @@ export const FLIGHTS_SEED: Flight[] = [
   // ── outbound, Aleppo → Jeddah
   sf({ id: "f48-04", direction: "outbound", audience: "pilgrims", flightNo: "RB 521", carrierId: "ca-rb", fromId: "ap-alp", toId: "ap-jed", departAt: at("2027-04-26", "06:30"), arriveAt: at("2027-04-26", "09:00"), capacity: 300, staffReserve: 8, gate: "البوابة 1", gathering: "ساحة الجامعة — الحافلات 02:00", pairedFlightId: "f48-r04" }),
   sf({ id: "f48-05", direction: "outbound", audience: "pilgrims", flightNo: "XY 2214", carrierId: "ca-xy", fromId: "ap-alp", toId: "ap-jed", departAt: at("2027-04-29", "07:00"), arriveAt: at("2027-04-29", "09:30"), capacity: 186, staffReserve: 6, gate: "البوابة 2", gathering: "ساحة الجامعة — الحافلات 02:30", pairedFlightId: "f48-r05" }),
+  // ── outbound to Madinah: these pilgrims begin with the Prophet's city, and return from Jeddah
+  sf({ id: "f48-11", pairedFlightId: "f48-r11", direction: "outbound", audience: "pilgrims", flightNo: "RB 515", carrierId: "ca-rb", fromId: "ap-dam", toId: "ap-med", departAt: at("2027-05-03", "07:00"), arriveAt: at("2027-05-03", "09:40"), capacity: 186, staffReserve: 6, gate: "البوابة 4", gathering: "ساحة المزة — الحافلات 02:30" }),
+  sf({ id: "f48-12", pairedFlightId: "f48-r12", direction: "outbound", audience: "pilgrims", flightNo: "XY 2218", carrierId: "ca-xy", fromId: "ap-alp", toId: "ap-med", departAt: at("2027-04-28", "06:30"), arriveAt: at("2027-04-28", "09:20"), capacity: 186, staffReserve: 6, gate: "البوابة 2", gathering: "ساحة الجامعة — الحافلات 02:00" }),
   // ── outbound, Istanbul → Jeddah
   sf({ id: "f48-06", direction: "outbound", audience: "pilgrims", flightNo: "SV 3501", carrierId: "ca-sv", fromId: "ap-ist", toId: "ap-jed", departAt: at("2027-04-30", "10:00"), arriveAt: at("2027-04-30", "14:00"), capacity: 280, staffReserve: 6, gate: "البوابة D4", gathering: "مكتب تركيا — 06:00", notes: "للمقيمين في تركيا" }),
   // ── return, Madinah → Damascus / Aleppo
@@ -249,6 +277,10 @@ export const FLIGHTS_SEED: Flight[] = [
   sf({ id: "f48-r08", direction: "return", audience: "pilgrims", flightNo: "SV 3428", carrierId: "ca-sv", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-05-30", "16:00"), arriveAt: at("2027-05-30", "19:10"), capacity: 300, staffReserve: 8, gate: "صالة الحجاج", gathering: "بهو الفندق — 11:00" , pairedFlightId: "f48-08"}),
   sf({ id: "f48-r04", direction: "return", audience: "pilgrims", flightNo: "RB 522", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-alp", departAt: at("2027-05-24", "13:30"), arriveAt: at("2027-05-24", "16:50"), capacity: 300, staffReserve: 8, gate: "صالة الحجاج", gathering: "بهو الفندق — 08:30" , pairedFlightId: "f48-04"}),
   sf({ id: "f48-r05", direction: "return", audience: "pilgrims", flightNo: "XY 2215", carrierId: "ca-xy", fromId: "ap-med", toId: "ap-alp", departAt: at("2027-05-27", "12:00"), arriveAt: at("2027-05-27", "15:20"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق — 07:00" , pairedFlightId: "f48-05"}),
+  // ── return, Jeddah → Damascus / Aleppo (for those who began in Madinah), and Madinah → Latakia
+  sf({ id: "f48-r11", pairedFlightId: "f48-11", direction: "return", audience: "pilgrims", flightNo: "RB 516", carrierId: "ca-rb", fromId: "ap-jed", toId: "ap-dam", departAt: at("2027-05-31", "13:00"), arriveAt: at("2027-05-31", "15:50"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق في مكة — 06:00" }),
+  sf({ id: "f48-r12", pairedFlightId: "f48-12", direction: "return", audience: "pilgrims", flightNo: "XY 2219", carrierId: "ca-xy", fromId: "ap-jed", toId: "ap-alp", departAt: at("2027-05-26", "12:00"), arriveAt: at("2027-05-26", "15:00"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق في مكة — 05:30" }),
+  sf({ id: "f48-r13", direction: "return", audience: "pilgrims", flightNo: "RB 538", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-ltk", departAt: at("2027-05-29", "16:00"), arriveAt: at("2027-05-29", "19:00"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق — 10:00", notes: "عودة لأهل الساحل ممن أقلعوا من دمشق أو حلب" }),
   sf({ id: "f48-r09", pairedFlightId: "f48-09", direction: "return", audience: "pilgrims", flightNo: "RB 512", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-06-03", "14:00"), arriveAt: at("2027-06-03", "17:10"), capacity: 340, staffReserve: 10, gate: "صالة الحجاج", gathering: "بهو الفندق — 09:00", notes: "آخر رحلات العودة" }),
   // ── a draft the officer has not published yet
   sf({ id: "f48-10", direction: "outbound", audience: "pilgrims", flightNo: "RB 531", carrierId: "ca-rb", fromId: "ap-gzt", toId: "ap-jed", departAt: at("2027-05-03", "11:00"), arriveAt: at("2027-05-03", "14:30"), capacity: 180, staffReserve: 4, status: "draft", publishedAt: undefined, notes: "للمقيمين في جنوب تركيا — بانتظار تأكيد الناقل" }),
@@ -262,7 +294,7 @@ export const FLIGHTS_SEED: Flight[] = [
 export type GroupRef = { clusterId: string; clusterName: string; number: number; head: string; headId?: string; pilgrims: number; capacity: number };
 
 export function clusterName(clusterId: string) {
-  return CLUSTERS.find((c) => c.slug === clusterId)?.name ?? clusterId;
+  return CLUSTERS.find((c) => c.slug === clusterId)?.name ?? requestNow(clusterId)?.cluster.name ?? clusterId;
 }
 
 /**
@@ -281,7 +313,20 @@ export function groupsOfCluster(clusterId: string): GroupRef[] {
     .map((g) => ({ clusterId, clusterName: name, number: g.number, head: g.head, headId: g.headId, pilgrims: g.pilgrims, capacity: g.capacity }));
 }
 
-export const allClusterIds = () => CLUSTERS.map((c) => c.slug);
+/** Every cluster the office formed (its request approved), on this device or in the season's seed */
+export function allClusterIds(): string[] {
+  const { admins, formation } = getState();
+  const ids = [...Object.values(admins).flatMap((a) => (a.cluster ? [a.cluster.id] : [])), ...SEED_CLUSTERS.map((x) => x.cluster.id), ...formation.created.map((x) => x.cluster.id)];
+  return [...new Set(ids)].filter((id) => requestNow(id)?.cluster.status === "approved");
+}
+/** Two digits for a cluster in the generated pilgrims' ids: the directory's order, or a stable number past it */
+const clusterDigits = (clusterId: string) => {
+  const i = CLUSTERS.findIndex((c) => c.slug === clusterId);
+  if (i >= 0) return String(i).padStart(2, "0");
+  let h = 0;
+  for (const ch of clusterId) h = (h * 31 + ch.charCodeAt(0)) % 89;
+  return String(10 + h);
+};
 export const allGroups = () => allClusterIds().flatMap(groupsOfCluster);
 
 const MEN = ["خالد", "بلال", "أنس", "طارق", "مصطفى", "إبراهيم", "علي", "نزار", "وائل", "هشام", "زياد", "عماد", "فراس", "ماهر", "عدنان", "رياض", "محمود", "سامر", "أحمد", "يوسف"];
@@ -321,7 +366,7 @@ export function familiesOfGroup(g: GroupRef, post: Record<string, PostAcceptance
       const age = j === 0 ? 58 + Math.floor(rnd() * 18) : 22 + Math.floor(rnd() * 40);
       const needs = age >= 72 ? ["مرافقة كبير سن"] : rnd() < 0.08 ? ["كرسي متحرك"] : rnd() < 0.15 ? ["سكري"] : [];
       // cluster + group + family + member: the same group number exists in more than one cluster
-      const id = `02${String(Math.max(0, CLUSTERS.findIndex((c) => c.slug === g.clusterId))).padStart(2, "0")}${String(g.number).padStart(3, "0")}${String(i).padStart(2, "0")}${String(j).padStart(2, "0")}`;
+      const id = `02${clusterDigits(g.clusterId)}${String(g.number).padStart(3, "0")}${String(i).padStart(2, "0")}${String(j).padStart(2, "0")}`;
       members.push({ id, name: `${first} ${last}`, kind: "pilgrim", gender: woman ? "F" : "M", age, needs, requestId: fid, groupNumber: g.number, clusterId: g.clusterId });
     }
     out.push({ id: fid, real: false, applicant: members[0].name, members });
@@ -391,7 +436,39 @@ function seatsFor(flight: Flight, travelers: Traveler[], atTs: number, by = SEED
   }));
 }
 
-/** Groups the demo starts with on their flights: the officer already placed them (the rest are the demo's work) */
+/**
+ * The days the officer gave the clusters: whole flights, and two shared by several clusters, each its seats (SV 3427
+ * and its return, and Latakia's return). The makeup RB 511 and its return are given to no one yet, nor are the
+ * clusters without days: the demo's work (the staff guide gives them to سهل حوران).
+ */
+const SEED_ALLOT: { clusterId: string; flightId: string; seats?: number }[] = [
+  { clusterId: "al-nour", flightId: "f48-07" },
+  { clusterId: "al-nour", flightId: "f48-11" },
+  { clusterId: "al-nour", flightId: "f48-r07" },
+  { clusterId: "al-nour", flightId: "f48-r11" },
+  { clusterId: "al-nour", flightId: "f48-r13", seats: 60 },
+  { clusterId: "al-safa", flightId: "f48-01" },
+  { clusterId: "al-safa", flightId: "f48-r01" },
+  { clusterId: "al-yaqeen", flightId: "f48-02" },
+  { clusterId: "al-yaqeen", flightId: "f48-r02" },
+  { clusterId: "bawabat-al-haramain", flightId: "f48-03" },
+  { clusterId: "bawabat-al-haramain", flightId: "f48-r03" },
+  { clusterId: "al-shahba", flightId: "f48-04" },
+  { clusterId: "al-shahba", flightId: "f48-r04" },
+  { clusterId: "al-asi", flightId: "f48-05" },
+  { clusterId: "al-asi", flightId: "f48-r05" },
+  { clusterId: "ibn-al-walid", flightId: "f48-12" },
+  { clusterId: "ibn-al-walid", flightId: "f48-r12" },
+  { clusterId: "ibn-al-walid", flightId: "f48-r13", seats: 60 },
+  { clusterId: "al-yasmin", flightId: "f48-08", seats: 150 },
+  { clusterId: "al-yasmin", flightId: "f48-r08", seats: 150 },
+  { clusterId: "al-bayan", flightId: "f48-08", seats: 142 },
+  { clusterId: "al-bayan", flightId: "f48-r08", seats: 142 },
+  { clusterId: "al-bayan", flightId: "f48-r13", seats: 50 },
+];
+export const ALLOTMENTS_SEED: Allotment[] = SEED_ALLOT.map((x, i) => ({ id: `al-${x.clusterId}-${x.flightId}`, ...x, by: SEEDER, at: FLIGHT_SEED_AT + DAY + i }));
+
+/** Groups the demo starts with on their flights: their clusters' heads put them there (the rest are the demo's work) */
 /** «first2»: its first two groups that fit the flight, the head's own first */
 const SEED_PLAN: { clusterId: string; groups: number[] | "first2"; out: string; back: string }[] = [
   { clusterId: "al-nour", groups: [31, 18, 33], out: "f48-07", back: "f48-r07" },
@@ -414,6 +491,8 @@ function seeds() {
   const t0 = at("2027-04-10", "09:00");
   const byId = (id: string) => FLIGHTS_SEED.find((f) => f.id === id)!;
   for (const plan of SEED_PLAN) {
+    const head = requestNow(plan.clusterId)?.headName ?? SEEDER;
+    const role = `رئيس ${clusterName(plan.clusterId)}`;
     const all = groupsOfCluster(plan.clusterId).map((g) => ({ g, travelers: [...familiesOfGroup(g, {}, {}).flatMap((f) => f.members), ...teamOfGroup(g, {})] }));
     let room = Math.min(...[plan.out, plan.back].map((fid) => byId(fid).capacity - byId(fid).staffReserve));
     const chosen: typeof all = [];
@@ -428,8 +507,8 @@ function seeds() {
     chosen.forEach(({ g, travelers }, gi) => {
       for (const [fid, dt] of [[plan.out, 0], [plan.back, 10 * 60_000]] as const) {
         const when = t0 + gi * HOUR + dt;
-        assignments.push(...seatsFor(byId(fid), travelers, when));
-        groups.push({ id: `sg-${fid}-${g.clusterId}-${g.number}`, flightId: fid, clusterId: g.clusterId, groupNumber: g.number, by: SEEDER, at: when, active: true });
+        assignments.push(...seatsFor(byId(fid), travelers, when, head, role));
+        groups.push({ id: `sg-${fid}-${g.clusterId}-${g.number}`, flightId: fid, clusterId: g.clusterId, groupNumber: g.number, by: head, at: when, active: true });
       }
     });
   }
@@ -455,6 +534,7 @@ export const useCarriers = () => useStore((s) => s.flights.carriers) ?? CARRIERS
 export const useFlights = () => useStore((s) => s.flights.flights) ?? FLIGHTS_SEED;
 export const useAssignments = () => useStore((s) => s.flights.assignments) ?? assignmentsSeed();
 export const useGroupLegs = () => useStore((s) => s.flights.groups) ?? groupLegsSeed();
+export const useAllotments = () => useStore((s) => s.flights.allotments) ?? ALLOTMENTS_SEED;
 export const useManifests = () => useStore((s) => s.flights.manifests) ?? EMPTY_MANIFESTS;
 export const useOtherMeans = () => useStore((s) => s.flights.otherMeans) ?? EMPTY_OTHER;
 
@@ -479,9 +559,10 @@ export function useFlightsData() {
   const flights = useFlights();
   const assignments = useAssignments();
   const groups = useGroupLegs();
+  const allotments = useAllotments();
   const manifests = useManifests();
   const otherMeans = useOtherMeans();
-  return useMemo(() => ({ airports, carriers, flights, assignments, groups, manifests, otherMeans }), [airports, carriers, flights, assignments, groups, manifests, otherMeans]);
+  return useMemo(() => ({ airports, carriers, flights, assignments, groups, allotments, manifests, otherMeans }), [airports, carriers, flights, assignments, groups, allotments, manifests, otherMeans]);
 }
 export type FlightsData = ReturnType<typeof useFlightsData>;
 
@@ -492,6 +573,7 @@ function current(s: { flights: FlightsState }) {
     flights: s.flights.flights ?? FLIGHTS_SEED,
     assignments: s.flights.assignments ?? assignmentsSeed(),
     groups: s.flights.groups ?? groupLegsSeed(),
+    allotments: s.flights.allotments ?? ALLOTMENTS_SEED,
     manifests: s.flights.manifests ?? [],
     otherMeans: s.flights.otherMeans ?? {},
     reps: s.flights.reps ?? {},
@@ -523,6 +605,58 @@ export const newFlightId = (prefix: string) => `${prefix}-${Date.now().toString(
 export const airportOf = (d: Pick<FlightsData, "airports">, id: string | undefined) => d.airports.find((a) => a.id === id);
 export const carrierOf = (d: Pick<FlightsData, "carriers">, id: string | undefined) => d.carriers.find((c) => c.id === id);
 export const routeLabel = (d: Pick<FlightsData, "airports">, f: Flight) => `${airportOf(d, f.fromId)?.city ?? "?"} ← ${airportOf(d, f.divertedToId ?? f.toId)?.city ?? "?"}`;
+
+/** The Saudi airports: where an outbound of pilgrims lands and their return takes off */
+export const isHoly = (a: Airport | undefined) => a?.country === "السعودية";
+/** An airport as the pilgrims know it: Jeddah is «جدة (مكة المكرمة)» */
+export const placeOf = (a: Airport | undefined) => (!a ? "?" : a.serves && a.serves !== a.city ? `${a.city} (${a.serves})` : a.city);
+/** A flight's route for the pilgrims, by the holy city it goes to or comes from */
+export const tripLabel = (d: Pick<FlightsData, "airports">, f: Flight) => `${placeOf(airportOf(d, f.fromId))} ← ${placeOf(airportOf(d, f.divertedToId ?? f.toId))}`;
+
+/** Where a return may land for someone whose outbound took off from `fromId` */
+export function returnAirportsFor(d: Pick<FlightsData, "airports">, fromId: string): string[] {
+  const a = airportOf(d, fromId);
+  return a?.returnsTo?.length ? a.returnsTo : [fromId];
+}
+
+/**
+ * Why a pilgrim or administrator cannot take this flight with the other half of his trip: the return takes off
+ * after the outbound lands, and lands where the airport he took off from allows. Null when he can.
+ */
+export function tripProblem(t: Pick<Traveler, "id" | "name" | "kind">, f: Flight, d: Pick<FlightsData, "flights" | "assignments" | "airports">): string | null {
+  if (t.kind === "employee") return null;
+  const other = d.assignments
+    .filter((a) => a.travelerId === t.id && isActive(a))
+    .map((a) => d.flights.find((x) => x.id === a.flightId))
+    .find((x) => x && x.direction !== f.direction);
+  if (!other) return null;
+  const [out, back] = f.direction === "outbound" ? [f, other] : [other, f];
+  if (back.departAt <= out.arriveAt) return `${t.name}: العودة ${back.flightNo} قبل وصول الذهاب ${out.flightNo}`;
+  const allowed = returnAirportsFor(d, out.fromId);
+  const city = (id: string) => airportOf(d, id)?.city ?? id;
+  if (!allowed.includes(back.toId)) return `${t.name}: أقلع من ${city(out.fromId)}، فتهبط عودته في ${allowed.map(city).join(" أو ")} لا في ${city(back.toId)}`;
+  return null;
+}
+
+// ───────────────────────── The clusters' days ─────────────────────────
+
+/** A cluster's days: the flights the officer gave it, in date order */
+export function allotmentsOf(clusterId: string, d: Pick<FlightsData, "allotments" | "flights">) {
+  return d.allotments
+    .filter((a) => a.clusterId === clusterId)
+    .map((a) => ({ a, f: d.flights.find((x) => x.id === a.flightId) }))
+    .filter((x): x is { a: Allotment; f: Flight } => !!x.f)
+    .sort((x, y) => x.f.departAt - y.f.departAt);
+}
+
+/** What a cluster holds on a flight: its seats there, how many of them are taken, and how many it can still fill */
+export function clusterSeats(f: Flight, clusterId: string, d: Pick<FlightsData, "allotments" | "assignments">) {
+  const a = d.allotments.find((x) => x.flightId === f.id && x.clusterId === clusterId);
+  const s = seatStats(f, d.assignments);
+  const quota = a ? (a.seats ?? s.pilgrimSeats) : 0;
+  const used = s.byCluster[clusterId] ?? 0;
+  return { allotted: !!a, whole: !!a && a.seats === undefined, quota, used, remaining: Math.max(0, Math.min(quota - used, s.remaining)) };
+}
 
 // ───────────────────────── Seats ─────────────────────────
 
@@ -606,9 +740,15 @@ export function familiesOnFlight(flightId: string, assignments: FlightAssignment
 }
 
 /** Warnings the officer should see about a flight */
-export function flightWarnings(f: Flight, d: Pick<FlightsData, "assignments" | "flights" | "otherMeans">) {
+export function flightWarnings(f: Flight, d: Pick<FlightsData, "assignments" | "flights" | "otherMeans" | "allotments">) {
   const out: string[] = [];
   const mine = d.assignments.filter((a) => a.flightId === f.id && isActive(a));
+  // the clusters on it: each within the seats the officer gave it
+  for (const [cid, n] of Object.entries(seatStats(f, d.assignments).byCluster)) {
+    const a = d.allotments.find((x) => x.flightId === f.id && x.clusterId === cid);
+    if (!a) out.push(`${n} من ${clusterName(cid)} على رحلة ليست من أيام تكتلهم`);
+    else if (a.seats !== undefined && n > a.seats) out.push(`${clusterName(cid)} فوق حصته: ${n} من ${a.seats}`);
+  }
   const groups = new Set(mine.filter((a) => a.groupNumber !== undefined).map((a) => `${a.clusterId}:${a.groupNumber}`));
   for (const key of groups) {
     const [cid, num] = key.split(":");
@@ -631,7 +771,7 @@ const fail = (error: string): Result => ({ ok: false, error });
 const OK: Result = { ok: true };
 
 /** Where an event shows: the management tab it belongs to, the flight it concerns, and whether the director sees it */
-type Meta = { area: "flights" | "dispatch"; ref?: string; important?: boolean };
+type Meta = { area: "flights" | "dispatch" | "allotments"; ref?: string; important?: boolean };
 
 function log(actor: Actor, action: string, target: string | undefined, detail: string | undefined, extra: { before?: string; after?: string } | undefined, meta: Meta) {
   later(() => actions.logEvent({ actor: actor.name, role: actor.role, action, target, detail, ...extra, system: "flights", ...meta }));
@@ -639,22 +779,46 @@ function log(actor: Actor, action: string, target: string | undefined, detail: s
 
 const groupLabel = (g: { clusterId: string; groupNumber: number }) => `${groupName(g.groupNumber)} (${clusterName(g.clusterId)})`;
 
+/**
+ * Who assigns: the officer (no scope), or a cluster's head (`asCluster`), who places only his cluster's people,
+ * only on its days, within its seats there, and only before the officer locks the flight.
+ */
+export type Scope = { asCluster?: string };
+
+/** Why a cluster's head cannot change this flight for his cluster, if he cannot */
+function clusterBlock(d: Full, f: Flight, clusterId: string): string | null {
+  if (!d.allotments.some((a) => a.flightId === f.id && a.clusterId === clusterId)) return "هذه الرحلة ليست من أيام تكتلك";
+  if (!isOpenForAssignment(f)) return `الرحلة ${STATUS_LABEL[f.status]}: التعديل عليها عند مسؤول الطيران`;
+  return null;
+}
+
 /** One set of travellers on one flight, checked and written together. Used by every assign path. */
-function seatTravelers(d: Full, flightId: string, travelers: Traveler[], actor: Actor, reason?: string): { error: string } | { flights: Flight[]; assignments: FlightAssignment[]; flight: Flight; added: FlightAssignment[] } {
+function seatTravelers(d: Full, flightId: string, travelers: Traveler[], actor: Actor, reason?: string, scope: Scope = {}): { error: string } | { flights: Flight[]; assignments: FlightAssignment[]; flight: Flight; added: FlightAssignment[] } {
   const f = d.flights.find((x) => x.id === flightId);
   if (!f) return { error: "الرحلة غير موجودة" };
   if (!travelers.length) return { error: "لم يُختر أحد" };
   const staffOnly = travelers.every((t) => t.kind === "employee");
   if (f.audience === "staff" && !staffOnly) return { error: "هذه رحلة موظفين فقط" };
+  if (scope.asCluster) {
+    const block = clusterBlock(d, f, scope.asCluster);
+    if (block) return { error: block };
+    if (travelers.some((t) => t.clusterId !== scope.asCluster)) return { error: "من بين المختارين من ليس في تكتلك" };
+  }
   if (!acceptsAssignment(f)) return { error: `الرحلة ${STATUS_LABEL[f.status]} — لا يُسند إليها` };
   if (f.status === "locked" && !reason) return { error: "الرحلة مقفلة: الإسناد إليها يحتاج سبباً، ثم كشفاً بإصدار جديد" };
   const dup = travelers.filter((t) => d.assignments.some((a) => a.travelerId === t.id && isActive(a) && d.flights.find((x) => x.id === a.flightId)?.direction === f.direction));
   if (dup.length) return { error: `${dup.length === 1 ? dup[0].name : `${dup.length} مسافرين`} على رحلة ${DIRECTION_LABEL[f.direction]} أخرى — ألغِ الإسناد القديم أولاً` };
+  const trip = travelers.map((t) => tripProblem(t, f, d)).filter((x): x is string => !!x);
+  if (trip.length) return { error: trip.length === 1 ? trip[0] : `${trip[0]} — و${trip.length - 1} غيره` };
   const s = seatStats(f, d.assignments);
   const nStaff = travelers.filter((t) => t.kind === "employee").length;
   const nPil = travelers.length - nStaff;
   if (nStaff > s.remainingStaff) return { error: `مقاعد الموظفين المتبقية ${s.remainingStaff} والمختارون ${nStaff}` };
   if (nPil > s.remaining) return { error: `المقاعد المتبقية ${s.remaining} وعدد المسافرين ${nPil}` };
+  if (scope.asCluster) {
+    const c = clusterSeats(f, scope.asCluster, d);
+    if (nPil > c.remaining) return { error: `بقي من مقاعد تكتلك على ${f.flightNo} ${c.remaining} والمختارون ${nPil}` };
+  }
   const now = Date.now();
   const added: FlightAssignment[] = travelers.map((t, i) => ({
     id: newFlightId("as"),
@@ -865,16 +1029,17 @@ export const flightsActions = {
    * and families that join the group later follow it on its own (syncFamily). All or nothing: if the groups
    * do not fit, nothing is written.
    */
-  assignGroups(flightId: string, groups: { ref: GroupRef; members: Traveler[] }[], actor: Actor, reason?: string): Result {
+  assignGroups(flightId: string, groups: { ref: GroupRef; members: Traveler[] }[], actor: Actor, reason?: string, scope: Scope = {}): Result {
     let r: Result = OK;
     patch((d) => {
       const f = d.flights.find((x) => x.id === flightId);
       if (!f) return (r = fail("الرحلة غير موجودة")), {};
+      if (scope.asCluster && groups.some((g) => g.ref.clusterId !== scope.asCluster)) return (r = fail("المجموعة ليست من تكتلك")), {};
       const taken = groups.filter((g) => flightOfGroup(g.ref.clusterId, g.ref.number, f.direction, d));
       if (taken.length) return (r = fail(`${taken.map((g) => groupLabel({ clusterId: g.ref.clusterId, groupNumber: g.ref.number })).join("، ")} على رحلة ${DIRECTION_LABEL[f.direction]} أخرى — أزلها منها أولاً`)), {};
       // members already seated individually this way (a moved pilgrim) keep their own seat
       const members = groups.flatMap((g) => g.members).filter((t) => !d.assignments.some((a) => a.travelerId === t.id && isActive(a) && d.flights.find((x) => x.id === a.flightId)?.direction === f.direction));
-      const res = seatTravelers(d, flightId, members, actor, reason);
+      const res = seatTravelers(d, flightId, members, actor, reason, scope);
       if ("error" in res) return (r = fail(res.error)), {};
       const now = Date.now();
       const legs: GroupLeg[] = groups.map((g, i) => ({ id: newFlightId("gl"), flightId, clusterId: g.ref.clusterId, groupNumber: g.ref.number, by: actor.name, at: now + i, active: true }));
@@ -885,28 +1050,32 @@ export const flightsActions = {
   },
 
   /** Take a whole group off a flight: its members' seats are freed and the group needs a flight again */
-  unassignGroup(legId: string, actor: Actor, reason?: string): Result {
+  unassignGroup(legId: string, actor: Actor, reason?: string, scope: Scope = {}): Result {
     let r: Result = OK;
     patch((d) => {
       const leg = d.groups.find((g) => g.id === legId && g.active);
       if (!leg) return (r = fail("المجموعة ليست على هذه الرحلة")), {};
       const f = d.flights.find((x) => x.id === leg.flightId)!;
+      if (scope.asCluster) {
+        const block = leg.clusterId !== scope.asCluster ? "المجموعة ليست من تكتلك" : clusterBlock(d, f, scope.asCluster);
+        if (block) return (r = fail(block)), {};
+      }
       if (!isOpenForAssignment(f) && !reason) return (r = fail("الرحلة مقفلة: الإزالة تحتاج سبباً")), {};
       const now = Date.now();
       const hit = (a: FlightAssignment) => a.flightId === leg.flightId && a.clusterId === leg.clusterId && a.groupNumber === leg.groupNumber && isActive(a);
       const n = d.assignments.filter(hit).length;
       const assignments = d.assignments.map((a) => (hit(a) ? { ...a, status: "cancelled" as const, cancelledAt: now, reason: `إزالة المجموعة من الرحلة${reason ? ` — ${reason}` : ""}` } : a));
       log(actor, "إزالة مجموعة من رحلة", f.flightNo, `${groupLabel(leg)} — ${n} مقعداً عادت متاحة${reason ? ` — ${reason}` : ""}`, undefined, { area: "dispatch", ref: f.id });
-      return { flights: upsert(d.flights, refreshFull(f, assignments)), assignments, groups: d.groups.map((g) => (g.id === legId ? { ...g, active: false, endedAt: now, endReason: reason ?? "إزالة من مسؤول الطيران" } : g)) };
+      return { flights: upsert(d.flights, refreshFull(f, assignments)), assignments, groups: d.groups.map((g) => (g.id === legId ? { ...g, active: false, endedAt: now, endReason: reason ?? (scope.asCluster ? "إزالة من رئيس التكتل" : "إزالة من مسؤول الطيران") } : g)) };
     });
     return r;
   },
 
   /** Seat a set of travellers (employees, or one pilgrim who lost his seat) on a flight */
-  assign(flightId: string, travelers: Traveler[], actor: Actor, reason?: string): Result {
+  assign(flightId: string, travelers: Traveler[], actor: Actor, reason?: string, scope: Scope = {}): Result {
     let r: Result = OK;
     patch((d) => {
-      const res = seatTravelers(d, flightId, travelers, actor, reason);
+      const res = seatTravelers(d, flightId, travelers, actor, reason, scope);
       if ("error" in res) return (r = fail(res.error)), {};
       const nStaff = travelers.filter((t) => t.kind === "employee").length;
       const nPil = travelers.length - nStaff;
@@ -917,12 +1086,16 @@ export const flightsActions = {
   },
 
   /** Cancel individual assignments (before the lock freely; after it with a reason) */
-  unassign(ids: string[], actor: Actor, reason?: string): Result {
+  unassign(ids: string[], actor: Actor, reason?: string, scope: Scope = {}): Result {
     let r: Result = OK;
     patch((d) => {
       const targets = d.assignments.filter((a) => ids.includes(a.id) && isActive(a));
       if (!targets.length) return (r = fail("لا إسناد نشطاً")), {};
       const f = d.flights.find((x) => x.id === targets[0].flightId)!;
+      if (scope.asCluster) {
+        const block = targets.some((a) => a.clusterId !== scope.asCluster) ? "من بين المختارين من ليس في تكتلك" : clusterBlock(d, f, scope.asCluster);
+        if (block) return (r = fail(block)), {};
+      }
       if (!isOpenForAssignment(f) && !reason) return (r = fail("الرحلة مقفلة: الإلغاء يحتاج سبباً")), {};
       const now = Date.now();
       const assignments = d.assignments.map((a) => (ids.includes(a.id) && isActive(a) ? { ...a, status: "cancelled" as const, cancelledAt: now, reason } : a));
@@ -933,7 +1106,7 @@ export const flightsActions = {
   },
 
   /** Move travellers to another flight the same way: the old assignment stays, marked moved, pointing at the new one */
-  move(ids: string[], toFlightId: string, actor: Actor, reason?: string): Result {
+  move(ids: string[], toFlightId: string, actor: Actor, reason?: string, scope: Scope = {}): Result {
     let r: Result = OK;
     patch((d) => {
       const targets = d.assignments.filter((a) => ids.includes(a.id) && isActive(a));
@@ -941,10 +1114,13 @@ export const flightsActions = {
       const from = d.flights.find((x) => x.id === targets[0].flightId)!;
       const to = d.flights.find((x) => x.id === toFlightId);
       if (!to || to.direction !== from.direction) return (r = fail("النقل إلى رحلة في الاتجاه نفسه فقط")), {};
+      // his head moves only his cluster's people, off a flight still open (seatTravelers checks the new one)
+      if (scope.asCluster && targets.some((a) => a.clusterId !== scope.asCluster)) return (r = fail("من بين المختارين من ليس في تكتلك")), {};
+      if (scope.asCluster && !isOpenForAssignment(from)) return (r = fail(`رحلته ${from.flightNo} ${STATUS_LABEL[from.status]}: النقل منها عند مسؤول الطيران`)), {};
       if (!isOpenForAssignment(from) && !reason) return (r = fail("الرحلة مقفلة: النقل يحتاج سبباً")), {};
       const freed = d.assignments.map((a) => (ids.includes(a.id) && isActive(a) ? { ...a, status: "moved" as const, reason } : a));
       const travelers: Traveler[] = targets.map((a) => ({ id: a.travelerId, name: a.name, kind: a.travelerKind, gender: a.gender, age: a.age, needs: a.needs, requestId: a.requestId, groupNumber: a.groupNumber, clusterId: a.clusterId }));
-      const res = seatTravelers({ ...d, assignments: freed }, toFlightId, travelers, actor, reason ?? (to.status === "locked" ? `نقل من ${from.flightNo}` : undefined));
+      const res = seatTravelers({ ...d, assignments: freed }, toFlightId, travelers, actor, reason ?? (to.status === "locked" ? `نقل من ${from.flightNo}` : undefined), scope);
       if ("error" in res) return (r = fail(res.error)), {};
       const byTraveler = new Map(res.added.map((a) => [a.travelerId, a.id]));
       const assignments = res.assignments.map((a) => (ids.includes(a.id) && a.status === "moved" ? { ...a, movedTo: byTraveler.get(a.travelerId) } : a));
@@ -964,6 +1140,52 @@ export const flightsActions = {
       log(actor, "سفر بوسيلة أخرى", name, reason, undefined, { area: "dispatch", ref: travelerId });
       return { otherMeans: { ...d.otherMeans, [travelerId]: { reason, at: Date.now(), by: actor.name } } };
     });
+  },
+
+  /**
+   * Give a cluster a flight among its days, with the seats it holds there (absent: the whole flight), or change
+   * its seats. The seats never fall under the cluster's people already on it, and the clusters' seats on a
+   * flight never pass its pilgrims' seats.
+   */
+  allot(clusterId: string, flightId: string, seats: number | undefined, actor: Actor): Result {
+    let r: Result = OK;
+    patch((d) => {
+      const f = d.flights.find((x) => x.id === flightId);
+      if (!f || f.audience !== "pilgrims") return (r = fail("تُعطى التكتلاتِ رحلاتُ الحجاج فقط")), {};
+      if (["departed", "arrived", "cancelled"].includes(f.status)) return (r = fail(`الرحلة ${STATUS_LABEL[f.status]}`)), {};
+      const s = seatStats(f, d.assignments);
+      const others = d.allotments.filter((a) => a.flightId === flightId && a.clusterId !== clusterId);
+      const whole = others.find((a) => a.seats === undefined);
+      if (whole) return (r = fail(`الرحلة كلها لـ${clusterName(whole.clusterId)}: حدّد مقاعده عليها أولاً`)), {};
+      if (seats === undefined && others.length) return (r = fail("على الرحلة تكتلات أخرى: حدّد عدد مقاعد هذا التكتل")), {};
+      if (seats !== undefined && seats < 1) return (r = fail("عدد المقاعد رقم أكبر من صفر")), {};
+      const used = s.byCluster[clusterId] ?? 0;
+      if (seats !== undefined && seats < used) return (r = fail(`على الرحلة ${used} من التكتل: لا تقلّ مقاعده عنهم`)), {};
+      // the others' seats, and the people of clusters seated here without a day of their own
+      const held = others.reduce((n, a) => n + (a.seats ?? 0), 0) + Object.entries(s.byCluster).filter(([c]) => c !== clusterId && !others.some((a) => a.clusterId === c)).reduce((n, [, k]) => n + k, 0);
+      if ((seats ?? s.pilgrimSeats) + held > s.pilgrimSeats) return (r = fail(`مقاعد الحجاج على الرحلة ${s.pilgrimSeats}، والمحجوز لغير هذا التكتل ${held}: يبقى له ${Math.max(0, s.pilgrimSeats - held)}`)), {};
+      const before = d.allotments.find((a) => a.flightId === flightId && a.clusterId === clusterId);
+      const item: Allotment = { id: before?.id ?? newFlightId("al"), clusterId, flightId, seats, by: actor.name, at: Date.now() };
+      const n = (x: Allotment | undefined) => (x ? (x.seats === undefined ? "الرحلة كلها" : `${x.seats} مقعداً`) : "—");
+      log(actor, before ? "تعديل مقاعد تكتل على رحلة" : "إعطاء تكتل يوم رحلة", f.flightNo, `${clusterName(clusterId)} — ${DIRECTION_LABEL[f.direction]} ${fmtHijriShort(f.departAt)}`, { before: before ? n(before) : undefined, after: n(item) }, { area: "allotments", ref: f.id });
+      return { allotments: upsert(d.allotments, item) };
+    });
+    return r;
+  },
+
+  /** Take a day back from a cluster: only when none of its people is on that flight */
+  unallot(clusterId: string, flightId: string, actor: Actor): Result {
+    let r: Result = OK;
+    patch((d) => {
+      const f = d.flights.find((x) => x.id === flightId);
+      const a = d.allotments.find((x) => x.flightId === flightId && x.clusterId === clusterId);
+      if (!f || !a) return (r = fail("الرحلة ليست من أيام هذا التكتل")), {};
+      const used = seatStats(f, d.assignments).byCluster[clusterId] ?? 0;
+      if (used) return (r = fail(`على الرحلة ${used} من ${clusterName(clusterId)}: يُزالون عنها أولاً`)), {};
+      log(actor, "سحب يوم رحلة من تكتل", f.flightNo, `${clusterName(clusterId)} — ${DIRECTION_LABEL[f.direction]} ${fmtHijriShort(f.departAt)}`, undefined, { area: "allotments", ref: f.id });
+      return { allotments: d.allotments.filter((x) => x.id !== a.id) };
+    });
+    return r;
   },
 
   /** Back to the seed */
@@ -1019,6 +1241,9 @@ export function manifestCsv(m: Manifest, f: Flight, d: Pick<FlightsData, "airpor
 
 // ───────────────────────── Pilgrim-facing cards ─────────────────────────
 
+/** Where the cluster's buses leave the pilgrims back home, by the airport the return lands at */
+const HOME_YARD: Record<string, string> = { "ap-dam": "ساحة المزة", "ap-alp": "ساحة الجامعة في حلب", "ap-ltk": "ساحة اليمن في اللاذقية" };
+
 /** The shape the boarding-pass card in the pilgrim portal draws */
 export type PassCard = {
   code: string;
@@ -1061,30 +1286,29 @@ export function passCardOf(f: Flight, d: Pick<FlightsData, "airports" | "carrier
       ? `حُوّلت الرحلة إلى ${to?.city}: حافلات التكتل تنقلكم إلى ${airportOf(d, f.toId)?.city}`
       : outbound
         ? "حافلة التكتل في ساحة المطار — مهيأة للكرسي المتحرك — إلى الفندق مباشرة"
-        : "حافلة التكتل من المطار إلى ساحة المزة",
+        : `حافلة التكتل من المطار إلى ${HOME_YARD[f.toId] ?? "نقطة تجمع التكتل"}`,
   };
 }
 
 /**
- * The demo pilgrim's family, at the visa step: if the officer already put its group on flights the family
- * follows the group (syncFamily); if not, the officer's work is simulated — the whole group goes on the
- * first outbound and return flights that can take it.
+ * The demo pilgrim's family, at the visa step: if its cluster's head already put its group on flights the family
+ * follows the group (syncFamily); if not, his work is simulated — the whole group goes on the first of its
+ * cluster's days that can take it, outbound then the return its outbound allows.
  */
 export function simulateGroupFlights(sid: string, app: Application, post: PostAcceptance, admins: Record<string, AdminProfile>, allPost: Record<string, PostAcceptance>, applications: Record<string, Application>) {
   if (!post.clusterId || post.groupNumber === undefined) return;
   const ref = allGroups().find((g) => g.clusterId === post.clusterId && g.number === post.groupNumber) ?? { clusterId: post.clusterId, clusterName: clusterName(post.clusterId), number: post.groupNumber, head: "", pilgrims: app.members.length, capacity: 50 };
   const members = membersOfGroup(ref, allPost, applications, admins);
-  const actor: Actor = { name: `${SEEDER} (محاكاة)`, role: SEED_ROLE };
-  let snap: Full | null = null;
-  patch((d) => ((snap = d), {}));
-  const d = snap as Full | null;
-  if (!d) return;
+  const actor: Actor = { name: `${requestNow(ref.clusterId)?.headName ?? SEEDER} (محاكاة)`, role: `رئيس ${clusterName(ref.clusterId)}` };
   for (const dir of ["outbound", "return"] as Direction[]) {
-    if (flightOfGroup(ref.clusterId, ref.number, dir, d)) continue;
-    const f = d.flights
-      .filter((x) => x.direction === dir && x.audience === "pilgrims" && isOpenForAssignment(x) && seatStats(x, d.assignments).remaining >= members.length)
-      .sort((a, b) => a.departAt - b.departAt)[0];
-    if (f) flightsActions.assignGroups(f.id, [{ ref, members }], actor);
+    const now = current(getState());
+    if (flightOfGroup(ref.clusterId, ref.number, dir, now)) continue;
+    const out = dir === "return" ? flightOfGroup(ref.clusterId, ref.number, "outbound", now) : undefined;
+    const f = allotmentsOf(ref.clusterId, now)
+      .map((x) => x.f)
+      .filter((x) => x.direction === dir && isOpenForAssignment(x) && clusterSeats(x, ref.clusterId, now).remaining >= members.length)
+      .find((x) => !out || (returnAirportsFor(now, out.fromId).includes(x.toId) && x.departAt > out.arriveAt));
+    if (f) flightsActions.assignGroups(f.id, [{ ref, members }], actor, undefined, { asCluster: ref.clusterId });
   }
   syncFamily(sid, app, post);
 }

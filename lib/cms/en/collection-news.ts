@@ -478,7 +478,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
     hijri: "5 Dhu al-Qa'dah 1448 AH",
     gregorian: "12 April 2027",
     excerpt:
-      "The contracts committee has signed the flight contracts for the 1448 AH season, and the transport team has started assigning clusters to flights. The first Damascus → Jeddah flights are on 24 Dhu al-Qa'dah.",
+      "The contracts committee has signed the flight contracts for the 1448 AH season, and the transport team has given each cluster its flight days; the cluster heads put their groups on them. The first Damascus → Jeddah flights are on 24 Dhu al-Qa'dah.",
     tags: tags("Aviation", "Flights", "Transport", "Travel"),
     author: "Transport",
     department: "Transport",
@@ -486,14 +486,14 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
     body: [
       {
         type: "p",
-        text: "The Administration's contracts committee has signed the flight contracts for the 1448 AH Hajj season, and the transport team has started assigning clusters and groups to flights, alongside the issuing of visas between 1 and 15 Dhu al-Qa'dah.",
+        text: "The Administration's contracts committee has signed the flight contracts for the 1448 AH Hajj season, and the transport team has given each cluster its flight days each way and its seats on each flight; the cluster's head puts his groups on them from the administrators' platform, alongside the issuing of visas between 1 and 15 Dhu al-Qa'dah.",
       },
       { type: "h", text: "How flights are assigned" },
       {
         type: "list",
         items: [
-          "A whole cluster travels on two consecutive flights.",
-          "Each group travels on a single flight with its administrators.",
+          "A cluster travels on the days it was given, each group on a single flight with its administrators; whoever travels alone is added by the cluster's head to another flight of its days.",
+          "Outbound from Damascus or Aleppo to Makkah (Jeddah airport) or Madinah; the return lands in the city the pilgrim left from, or in Latakia.",
           "Seating gives priority to the elderly and people with special needs.",
           "Any changes to flights can be followed directly on the platform.",
         ],

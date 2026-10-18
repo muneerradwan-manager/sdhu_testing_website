@@ -23,8 +23,8 @@ import { useStore } from "@/lib/store";
 import type { Alert } from "../_components/system";
 
 /**
- * The flights system seen whole, for its owner and for the director: every group and the flights it is
- * on, who lost a seat, which flights need his hand, which airports have no representative. Every screen of
+ * The flights system seen whole, for its owner and for the director: every cluster's days and every group and
+ * the flights it is on, who lost a seat, which flights need his hand, which airports have no representative. Every screen of
  * the system reads from here, so a number is the same on the owner's summary, his tabs and the director's board.
  */
 
@@ -128,6 +128,24 @@ export function useFlightsDesk() {
     const noOut = groups.filter((r) => r.total && !r.flightOut);
     const noBack = groups.filter((r) => r.total && !r.flightBack);
 
+    // Each cluster's days: the seats the officer gave it each way, against its travellers
+    const totals = clusters.map((c) => {
+      const days = data.allotments.filter((a) => a.clusterId === c.cluster).map((a) => ({ a, f: flightById.get(a.flightId) })).filter((x): x is { a: (typeof data.allotments)[number]; f: Flight } => !!x.f && x.f.status !== "cancelled");
+      const seatsOf = (dir: Direction) => days.filter((x) => x.f.direction === dir).reduce((n, x) => n + (x.a.seats ?? seatStats(x.f, data.assignments).pilgrimSeats), 0);
+      return {
+        cluster: c.cluster,
+        name: clusterName(c.cluster),
+        groups: c.rows.length,
+        total: c.rows.reduce((n, r) => n + r.total, 0),
+        out: c.rows.reduce((n, r) => n + r.out, 0),
+        back: c.rows.reduce((n, r) => n + r.back, 0),
+        days,
+        outSeats: seatsOf("outbound"),
+        backSeats: seatsOf("return"),
+      };
+    });
+    const shortDays = totals.filter((t) => t.total && (t.outSeats < t.total || t.backSeats < t.total));
+
     // Blockers first, then the rest; each group in the order the work is done: airports, flights, dispatch
     const alerts: Alert[] = [
       ...postponed.map((f) => ({ id: `post-${f.id}`, level: "high" as const, title: `الرحلة ${f.flightNo} مؤجلة بلا موعد جديد`, hint: `${f.postponeReason ?? ""} — ينتظر مسافروها موعدها.`, href: `/staff/flights/manage/flights?f=${f.id}`, action: "حدّد الموعد" })),
@@ -140,8 +158,11 @@ export function useFlightsDesk() {
       ...noRep.map((x) => ({ id: `rep-${x.a.id}`, level: "work" as const, title: `${x.a.name} بلا مندوب`, hint: `${x.departures} رحلات تغادر منه و${x.arrivals} تصل إليه، ولا أحد هناك يسجل إقلاعها وهبوطها غيرك.`, href: "/staff/flights/manage?filter=norep", action: "أسند مندوباً" })),
       ...(drafts.length ? [{ id: "drafts", level: "work" as const, title: `${drafts.length} رحلات مسودة لم تُنشر`, hint: drafts.map((f) => f.flightNo).join("، "), href: "/staff/flights/manage/flights", action: "راجعها" }] : []),
       ...stale.map((f) => ({ id: `stale-${f.id}`, level: "work" as const, title: `كشف ركاب ${f.flightNo} تغيّر بعد إصداره`, hint: "أُسند أحد أو أُلغي إسناده بعد إقفال الرحلة.", href: `/staff/flights/manage/flights?f=${f.id}`, action: "أصدر كشفاً جديداً" })),
-      ...(noOut.length ? [{ id: "no-out", level: "work" as const, title: `${noOut.length} مجموعات بلا رحلة ذهاب`, hint: `${noOut.reduce((n, r) => n + r.total, 0)} مسافراً، بعد التنسيق مع رؤساء تكتلاتها.`, href: "/staff/flights/manage/dispatch?state=noOut", action: "أسندها" }] : []),
-      ...(noBack.length ? [{ id: "no-back", level: "work" as const, title: `${noBack.length} مجموعات بلا رحلة عودة`, hint: `${noBack.reduce((n, r) => n + r.total, 0)} مسافراً.`, href: "/staff/flights/manage/dispatch?state=noBack", action: "أسندها" }] : []),
+      ...(shortDays.length
+        ? [{ id: "days", level: "work" as const, title: `${shortDays.length} تكتلات أيامها لا تتسع لمسافريها`, hint: `${shortDays.slice(0, 3).map((t) => `${t.name}: ${t.total} مسافراً، ${t.outSeats} مقعد ذهاب و${t.backSeats} عودة`).join(" · ")}${shortDays.length > 3 ? ` · و${shortDays.length - 3} غيرها` : ""}`, href: "/staff/flights/manage/allotments", action: "أعطها أياماً" }]
+        : []),
+      ...(noOut.length ? [{ id: "no-out", level: "work" as const, title: `${noOut.length} مجموعات بلا رحلة ذهاب`, hint: `${noOut.reduce((n, r) => n + r.total, 0)} مسافراً. يضعها رؤساء تكتلاتها على أيامهم.`, href: "/staff/flights/manage/dispatch?state=noOut", action: "تابعها" }] : []),
+      ...(noBack.length ? [{ id: "no-back", level: "work" as const, title: `${noBack.length} مجموعات بلا رحلة عودة`, hint: `${noBack.reduce((n, r) => n + r.total, 0)} مسافراً. يضعها رؤساء تكتلاتها على أيامهم.`, href: "/staff/flights/manage/dispatch?state=noBack", action: "تابعها" }] : []),
       ...(staffNoFlight.length ? [{ id: "staff", level: "work" as const, title: `${staffNoFlight.length} موظفين بلا رحلة ذهاب`, hint: "مشاركون في الموسم ولهم منصب في ملف تشغيلي.", href: "/staff/flights/manage/dispatch?view=staff", action: "أسندهم" }] : []),
     ];
 
@@ -167,15 +188,9 @@ export function useFlightsDesk() {
       withBack,
       alerts,
       high: alerts.filter((a) => a.level === "high"),
-      badges: { flights: postponed.length + stale.length, dispatch: needsFlight.length, refs: noRep.length },
-      clusterTotals: clusters.map((c) => ({
-        cluster: c.cluster,
-        name: clusterName(c.cluster),
-        groups: c.rows.length,
-        total: c.rows.reduce((n, r) => n + r.total, 0),
-        out: c.rows.reduce((n, r) => n + r.out, 0),
-        back: c.rows.reduce((n, r) => n + r.back, 0),
-      })),
+      badges: { flights: postponed.length + stale.length, dispatch: needsFlight.length, refs: noRep.length, allotments: shortDays.length },
+      clusterTotals: totals,
+      shortDays,
     };
   }, [data, post, applications, admins, employees, files, places, reps]);
 }

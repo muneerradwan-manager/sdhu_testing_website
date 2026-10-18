@@ -15,7 +15,6 @@ export const CLUSTER = {
   level: "اقتصادي محسن",
   since: 1440,
   head: "الحاج عبد الرحمن العلي",
-  deputy: "بسام درويش",
   groups: 12,
   pilgrims: 600,
 };

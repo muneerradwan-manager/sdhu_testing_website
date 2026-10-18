@@ -33,7 +33,7 @@ const PILGRIMS: Want[] = [
   { key: "woman-young", title: "امرأة دون 44 عاماً", note: "تحتاج محرماً في طلبها: زوجها أو أخاها أو أباها.", gender: "F", born: [1984, 1995] },
 ];
 
-/** Every role open for application (the cluster's head, deputy and accountant are places a cluster gives, not roles applied for) */
+/** Every role open for application (the cluster's head and accountant are places a cluster gives, not roles applied for) */
 const ADMINS: Want[] = [
   { key: "group-head", section: "رئاسة المجموعة", title: "رئيس مجموعة", note: "من 30 إلى 60 عاماً: يشكّل مجموعته ويقودها.", gender: "M", born: [1972, 1990] },
   { key: "group-deputy", section: "المعاونون", title: "معاون", note: "من 25 إلى 60 عاماً: مقعد المعاون في مجموعة، أو معاون التكتل.", gender: "M", born: [1975, 1995] },

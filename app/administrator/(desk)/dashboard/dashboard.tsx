@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/widgets";
 import { questionCount } from "@/lib/data/admin-exam";
 import { ageOf } from "@/lib/registry";
 import { cn, maskNationalId } from "@/lib/utils";
-import { effectiveRole, journeyOf, positionLabelOf, resultOf, seasonHistory, useAdmin, type SeasonRecord } from "../../_lib/admin";
+import { effectiveRole, isClusterRole, journeyOf, positionLabelOf, resultOf, seasonHistory, useAdmin, type SeasonRecord } from "../../_lib/admin";
 import { useMyHall } from "../../_lib/halls";
 import { POOLS, useClusterGroupsOf } from "../../_lib/formation";
 import { groupsLabel, useCoordinatorPost } from "../../_lib/coordinators";
@@ -26,18 +26,23 @@ import { SeasonSheet } from "./season-sheet";
 
 type Written = { date: string; time: string; questions: number; minutes: number; center?: string };
 
-/** The next step's card; the test's numbers are the season's, as the exam system left them */
-const nextSteps = (w: Written): Record<string, { title: string; text: string; cta: string }> => ({
+/**
+ * The next step's card; the test's numbers are the season's, as the exam system left them. `cluster`: the cluster's
+ * head, who oversees all its groups rather than one.
+ */
+const nextSteps = (w: Written, cluster = false): Record<string, { title: string; text: string; cta: string }> => ({
   apply: { title: "سجّل لموسم 1448", text: "التسجيل يتجدد كل موسم: حدّث وثائقك ومهاراتك، واختر صفة واحدة يستوفي ملفك شروطها، ووافق على الالتزامات. تتحقق المنصة من أهليتك قبل أن تدفع.", cta: "ابدأ الطلب" },
   fee: { title: "أنت مؤهل — بقي رسم التسجيل", text: "استوفى ملفك شروط الصفة التي اخترتها. سدّد رسم 30 $ ليُقدَّم طلبك.", cta: "تسديد الرسم" },
   test: { title: "اختبارك المؤتمت في القاعة", text: `${w.center ?? "قاعة مركزك الامتحاني"} — ${w.date} الساعة ${w.time}: ${w.questions} سؤالاً في ${w.minutes} دقيقة. احضر ببطاقتك وهويتك: يسجّل المشرف حضورك، وتدخل الاختبار من جهازك برقمك الوطني بموافقته.`, cta: "قاعتي وموعدي" },
   result: { title: "نتيجتك", text: "تُحتسب بعد أن يؤكد مشرف القاعة تسليمك: تنجح باجتياز كل قسم من أقسام الاختبار بالنسبة المطلوبة فيه.", cta: "عرض النتيجة" },
-  group: { title: "تُشكَّل مجموعتك في المكتب", text: "راجع المكتب في مدة تشكيل المجموعات باسم مجموعتك (لا تحمله مجموعة أخرى)، وسدّد رسمها 200 $ هناك، فيشكّلها موظف إدارة الإداريين بفئتك: منها عدد حجاجها ومقاعد فريقها. مقاعد فريقها يملؤها رئيس التكتل.", cta: "كيف تُشكَّل" },
-  team: { title: "بانتظار دعوة تكتل", text: "رؤساء التكتلات يدعون كل واحد إلى مكانه: مقعد الموجّه أو المعاون في إحدى مجموعاتهم، أو من منسقي التكتل أو موجّهاته أو معاونيه. تقبل دعوة واحدة: لكل شخص مكان واحد في الموسم.", cta: "دعواتي" },
-  approval: { title: "مجموعتك عند المكتب", text: "يكمل موظف إدارة الإداريين تشكيلها بفئتك.", cta: "تشكيل المجموعة" },
-  cluster: { title: "تشكيل التكتلات", text: "يدعو رؤساء التكتلات المجموعات بحجاجها: تقبل دعوة واحدة لمجموعتك. ومن يحمل صفة «رئيس تكتل» أساسيةً أو موسمية يقدّم طلب تشكيل تكتل. لا انتخاب.", cta: "تشكيل التكتلات" },
-  requests: { title: "حجاج مجموعتك", text: "يلحق المكتب العائلات بمجموعتك بعقودها، فتراها هنا: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي وزّعه رئيس التكتل على مجموعتك.", cta: "حجاج المجموعة" },
-  field: { title: "الميدان: افتح أول تجمّع", text: "«السفر: إلى مطار دمشق» ثم «عمرة التمتّع» — مسح البطاقات وإرسال «انطلقنا» للجميع.", cta: "وضع الميدان" },
+  group: { title: "تُشكَّل مجموعتك في المكتب", text: "احضر مع فريقك إلى المكتب في مدة تشكيل المجموعات: باسم مجموعتك (لا تحمله مجموعة أخرى)، ورسمها 200 $، فيشكّلها الموظف بفئتك ويُجلس فيها موجّهها ومعاونها، وتوقّعون عقدها.", cta: "العقود" },
+  team: { title: "مكانك يُحدَّد في المكتب", text: "يُجلسك المكتب في مقعد مجموعة عند تشكيلها، أو يختارك رئيس تكتل للتكتل كله (منسقاً أو موجّهة أو معاوناً أو محاسباً) عند تشكيله في المكتب. لكل شخص مكان واحد في الموسم.", cta: "ملفي" },
+  approval: { title: "مجموعتك عند المكتب", text: "يكمل الموظف تشكيلها بفئتك وفريقها.", cta: "العقود" },
+  cluster: { title: "يُشكَّل التكتل في المكتب", text: "يحضر من يحمل صفة «رئيس تكتل» ورؤساء المجموعات وكادره إلى المكتب: يُدخل الموظف المجموعات بفرقها، ويختار رئيس التكتل منسقيه وموجّهاته ومعاونه ومحاسبه، ويُدفع رسمه 500 $، ويوقّع الجميع عقده.", cta: "العقود" },
+  requests: cluster
+    ? { title: "حجاج مجموعات التكتل", text: "يلحق المكتب العائلات بمجموعات التكتل بعقودها، فتراها في «إدارة التكتل»: حجاج كل مجموعة ومقاعدها، وملفاتهم الصحية مع منسقي التكتل الموزّعين على المجموعات.", cta: "إدارة التكتل" }
+    : { title: "حجاج مجموعتك", text: "يلحق المكتب العائلات بمجموعتك بعقودها، فتراها هنا: رحّب بها، وتابع ملفاتها الصحية مع المنسق الذي وزّعه رئيس التكتل على مجموعتك.", cta: "حجاج المجموعة" },
+  field: { title: "الميدان: افتح أول تجمّع", text: "«السفر: إلى مطار دمشق» ثم «عمرة التمتّع» — تحدّد من حضر من قائمة المجموعة، ثم ترسل «انطلقنا» للجميع.", cta: "وضع الميدان" },
 });
 
 export function AdminDashboard() {
@@ -57,13 +62,11 @@ export function AdminDashboard() {
   const failed = !!result.published && !result.exempt && !result.passed;
   const history = seasonHistory(admin.id);
   const [openSeason, setOpenSeason] = useState<SeasonRecord | null>(null);
-  const next = current ? nextSteps(written)[current.key] : null;
+  const next = current ? nextSteps(written, isClusterRole(profile))[current.key] : null;
   const clusterName = profile?.cluster?.name ?? (profile?.group?.clusterId ? "تكتل النور" : undefined);
   const clusterGroups = useClusterGroupsOf(profile).length;
   const status1448 = coord
     ? `${POOLS[coord.role].title} في ${coord.clusterName} — ${coord.role === "guide-f" || coord.role === "cluster-assistant" ? "للتكتل كله" : groupsLabel(coord.groups.map((g) => g.number))}${profile?.accountantOf ? ` — ومحاسب التكتل` : ""}`
-    : profile?.deputyOf
-    ? `نائب رئيس ${profile.deputyOf.clusterName} — يتابع ${clusterGroups} مجموعات، منها مجموعته «${profile.group ? groupName(profile.group.number) : ""}»`
     : profile?.cluster
     ? `رئيس ${profile.cluster.name} — يدير ${clusterGroups} مجموعات، منها مجموعته «${profile.group ? groupName(profile.group.number) : ""}»`
     : profile?.group?.approvedAt
@@ -112,7 +115,7 @@ export function AdminDashboard() {
               ["العمر", `${ageOf(admin.person)} عاماً`],
               ["المحافظة", admin.person.governorate],
               ["الهاتف", profile?.phone ? `${profile.phone.slice(0, 4)} ••• ${profile.phone.slice(-3)}` : "—"],
-              ["الصفة لموسم 1448", profile?.positions.length ? `${positionLabelOf(effectiveRole(profile))}${profile.cluster || profile.deputyOf ? " (بتشكيل التكتل)" : profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
+              ["الصفة لموسم 1448", profile?.positions.length ? `${positionLabelOf(effectiveRole(profile))}${profile.cluster ? " (بتشكيل التكتل)" : profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
             ].map(([k, v]) => (
               <div key={k} className="rounded-2xl bg-sand p-3">
                 <dt className="text-xs text-hint">{k}</dt>
@@ -149,7 +152,7 @@ export function AdminDashboard() {
                 <p className="mt-4 flex items-center gap-3 font-display text-3xl font-bold">
                   <PartyPopper className="size-9 text-gold" /> أتممت كل محطات الرحلة
                 </p>
-                <p className="mt-2 leading-8 text-white/75">تابع مجموعتك في الميدان، وتقييماتك تتجمّع من الموظفين والحجاج.</p>
+                <p className="mt-2 leading-8 text-white/75">{isClusterRole(profile) ? "تابع مجموعات التكتل في الميدان" : "تابع مجموعتك في الميدان"}، وتقييماتك تتجمّع من الموظفين والحجاج.</p>
                 <ButtonLink href="/administrator/field" variant="gold" size="lg" className="mt-6">وضع الميدان <ArrowLeft className="size-5" /></ButtonLink>
               </>
             )}

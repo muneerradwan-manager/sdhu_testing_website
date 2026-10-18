@@ -1,12 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { CornerDownLeft, Lock, MessagesSquare, Pin, PinOff, Reply, Send, ShieldCheck, Trash2, UserRoundX, UsersRound, X } from "lucide-react";
+import { CornerDownLeft, Lock, MessagesSquare, Pin, PinOff, Reply, Send, ShieldCheck, Trash2, UserRoundX, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
-import { groupName } from "@/lib/groups";
 import type { ChannelMessage } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useAdmin } from "../../_lib/admin";
@@ -30,15 +29,16 @@ import { AdminShell, SectionTitle } from "../../_components/ui";
 const when = (at: number) => new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(at);
 
 /**
- * «قناة التكتل»: everyone who works in the cluster reads it; who writes is by role, as its head sets it. The head
- * also pins a message on top, stops one member from writing, and takes any message down.
+ * «قناة التكتل»: everyone who works in the cluster reads it — all of them are in it, so it lists no members; who
+ * writes is by role, as its head sets it. The head also pins a message on top, stops one writer from writing (from
+ * one of his messages; «من يكتب» lists who is stopped, to give it back), and takes any message down.
  */
 export function ClusterChannelPage() {
   const admin = useAdmin()!;
   const v = useClusterChannel(admin.id, admin.profile);
   if (!v) {
     return (
-      <AdminShell title="قناة التكتل" subtitle="قناة كادر التكتل: رئيسه ونائبه ومحاسبه، ورؤساء مجموعاته وفرقها، ومنسقوه وموجّهاته ومعاونوه.">
+      <AdminShell title="قناة التكتل" subtitle="قناة كادر التكتل: رئيسه ومحاسبه، ورؤساء مجموعاته وفرقها، ومنسقوه وموجّهاته ومعاونوه.">
         <Card className="md:p-8">
           <p className="rounded-2xl bg-sand p-6 text-center leading-8 text-ink-soft">لست في تكتل بعد. تُفتح لك قناة التكتل حين تقبل دعوة تكتل، أو تنضم مجموعتك إلى تكتل.</p>
         </Card>
@@ -49,10 +49,7 @@ export function ClusterChannelPage() {
     <AdminShell title="قناة التكتل" subtitle={`${v.clusterName} — قناة كادره كله: ${v.members.length} عضواً. يقرؤها الجميع، ويكتب فيها من يحدده رئيس التكتل.`}>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Messages v={v} />
-        <div className="space-y-6">
-          <Writers v={v} />
-          <Members v={v} />
-        </div>
+        <Writers v={v} />
       </div>
     </AdminShell>
   );
@@ -65,6 +62,8 @@ function Messages({ v }: { v: ClusterChannelView }) {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ChannelMessage | null>(null);
   const [removing, setRemoving] = useState<ChannelMessage | null>(null);
+  const [muting, setMuting] = useState<ChannelMember | null>(null);
+  const [reason, setReason] = useState("");
   const list = useRef<HTMLDivElement>(null);
   const byId = useMemo(() => Object.fromEntries(v.messages.map((m) => [m.id, m])), [v.messages]);
   const pinned = v.messages.filter((m) => m.pinned && !m.removed);
@@ -117,7 +116,18 @@ function Messages({ v }: { v: ClusterChannelView }) {
         {v.messages.length === 0 && <p className="rounded-2xl bg-white/70 p-6 text-center text-ink-soft">لا رسائل بعد. {v.canWrite ? "اكتب أول رسالة إلى كادر التكتل." : "تظهر هنا رسائل من يكتب في القناة."}</p>}
         <AnimatePresence initial={false}>
           {v.messages.map((m) => (
-            <Bubble key={m.id} m={m} v={v} quoted={m.replyTo ? byId[m.replyTo] : undefined} onReply={() => setReplyTo(m)} onRemove={() => setRemoving(m)} />
+            <Bubble
+              key={m.id}
+              m={m}
+              v={v}
+              quoted={m.replyTo ? byId[m.replyTo] : undefined}
+              onReply={() => setReplyTo(m)}
+              onRemove={() => setRemoving(m)}
+              onMute={(member) => {
+                setReason("");
+                setMuting(member);
+              }}
+            />
           ))}
         </AnimatePresence>
       </div>
@@ -190,13 +200,41 @@ function Messages({ v }: { v: ClusterChannelView }) {
           </div>
         )}
       </Modal>
+      <Modal open={!!muting} onClose={() => setMuting(null)} className="max-w-md">
+        {muting && (
+          <div>
+            <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
+              <UserRoundX className="size-5 text-maroon" /> إيقاف كتابة {muting.name}
+            </p>
+            <p className="mt-2 text-sm leading-7 text-ink-soft">يبقى يقرأ القناة، ولا يكتب فيها حتى تعيدها له من «من يكتب في القناة»، مهما كانت صفته.</p>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="السبب (اختياري)" aria-label="السبب" className="mt-3 w-full rounded-2xl border-2 border-gold/40 px-4 py-2.5 outline-none focus:border-green-light" />
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="maroon"
+                onClick={() => {
+                  setMuted(v, muting, true, reason);
+                  toast({ title: `أُوقفت كتابة ${muting.name} في القناة`, tone: "info", icon: "🔇" });
+                  setMuting(null);
+                }}
+              >
+                إيقاف الكتابة
+              </Button>
+              <Button variant="outline" onClick={() => setMuting(null)}>
+                تراجع
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Card>
   );
 }
 
-function Bubble({ m, v, quoted, onReply, onRemove }: { m: ChannelMessage; v: ClusterChannelView; quoted?: ChannelMessage; onReply: () => void; onRemove: () => void }) {
+function Bubble({ m, v, quoted, onReply, onRemove, onMute }: { m: ChannelMessage; v: ClusterChannelView; quoted?: ChannelMessage; onReply: () => void; onRemove: () => void; onMute: (member: ChannelMember) => void }) {
   const mine = m.by === v.me.id;
-  const leader = m.role === "head" || m.role === "deputy";
+  // The head stops a writer from one of his messages (never himself, nor another head)
+  const author = v.manager && !mine && m.role !== "head" && !v.channel.muted?.[m.by] ? v.members.find((x) => x.id === m.by) : undefined;
+  const leader = m.role === "head";
   return (
     <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={cn("flex", mine ? "justify-start" : "justify-end")}>
       <div className={cn("group max-w-[88%] rounded-2xl px-4 py-3 shadow-sm", mine ? "rounded-tr-sm bg-white" : leader ? "rounded-tl-sm bg-green-dark/[.07] ring-1 ring-green-dark/15" : "rounded-tl-sm bg-white/90")}>
@@ -240,6 +278,11 @@ function Bubble({ m, v, quoted, onReply, onRemove }: { m: ChannelMessage; v: Clu
                   <Trash2 className="size-3.5" /> حذف
                 </button>
               )}
+              {author && (
+                <button type="button" onClick={() => onMute(author)} className="flex items-center gap-1 font-bold hover:text-maroon">
+                  <UserRoundX className="size-3.5" /> إيقاف كتابته
+                </button>
+              )}
             </span>
           )}
         </div>
@@ -252,6 +295,7 @@ function Bubble({ m, v, quoted, onReply, onRemove }: { m: ChannelMessage; v: Clu
 
 function Writers({ v }: { v: ClusterChannelView }) {
   const toast = useToast();
+  const stopped = v.members.filter((m) => v.channel.muted?.[m.id]);
   const [draft, setDraft] = useState<ChannelRole[] | null>(null);
   const roles = draft ?? v.writers;
   const present = new Set(v.members.map((m) => m.role));
@@ -307,6 +351,33 @@ function Writers({ v }: { v: ClusterChannelView }) {
               </Button>
             )}
           </div>
+          <div className="mt-5 border-t border-gold-light pt-4">
+            <p className="text-sm font-bold text-ink">موقوفون عن الكتابة</p>
+            {stopped.length === 0 ? (
+              <p className="mt-1 text-xs leading-6 text-hint">لا أحد. توقف كتابة أي شخص من رسالة له: «إيقاف كتابته».</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {stopped.map((m) => (
+                  <li key={m.id} className="flex items-center gap-2 text-sm">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">{m.name}</span>
+                      {v.channel.muted?.[m.id]?.reason && <span className="block truncate text-[11px] text-hint">{v.channel.muted[m.id].reason}</span>}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMuted(v, m, false);
+                        toast({ title: `عاد ${m.name} يكتب في القناة`, tone: "success", icon: "✅" });
+                      }}
+                      className="shrink-0 text-xs font-bold text-green-dark hover:underline"
+                    >
+                      إعادة الكتابة
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </>
       ) : (
         <>
@@ -320,92 +391,6 @@ function Writers({ v }: { v: ClusterChannelView }) {
           <p className="mt-3 text-xs leading-6 text-hint">يحدد رئيس التكتل من يكتب في القناة. والجميع يقرأ.</p>
         </>
       )}
-    </Card>
-  );
-}
-
-// ───────────────────────── the members ─────────────────────────
-
-function Members({ v }: { v: ClusterChannelView }) {
-  const toast = useToast();
-  const [muting, setMuting] = useState<ChannelMember | null>(null);
-  const [reason, setReason] = useState("");
-  const byRole = CHANNEL_ROLES.map((r) => ({ ...r, people: v.members.filter((m) => m.role === r.key) })).filter((r) => r.people.length);
-
-  return (
-    <Card className="md:p-6">
-      <SectionTitle icon={UsersRound}>الأعضاء ({v.members.length})</SectionTitle>
-      <div className="mt-3 space-y-4">
-        {byRole.map((r) => (
-          <div key={r.key}>
-            <p className="text-xs font-bold text-gold-dark">
-              {r.plural} {r.people.length > 1 && `(${r.people.length})`}
-            </p>
-            <ul className="mt-1 divide-y divide-gold-light/60">
-              {r.people.map((m) => {
-                const muted = v.channel.muted?.[m.id];
-                const writes = m.role === "head" || (!muted && v.writers.includes(m.role));
-                return (
-                  <li key={m.id} className="flex items-center gap-2 py-1.5 text-sm">
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">
-                        {m.name}
-                        {m.id === v.me.id && <span className="text-xs font-normal text-hint"> (أنت)</span>}
-                      </span>
-                      {m.groups.length > 0 && <span className="block truncate text-[11px] text-hint">{m.groups.map(groupName).join("، ")}</span>}
-                    </span>
-                    {muted ? <Badge tone="maroon">موقوف عن الكتابة</Badge> : writes ? <Badge tone="green">يكتب</Badge> : <Badge tone="ink">يقرأ</Badge>}
-                    {v.manager && m.role !== "head" && (muted || v.writers.includes(m.role)) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (muted) {
-                            setMuted(v, m, false);
-                            toast({ title: `عاد ${m.name} يكتب في القناة`, tone: "success", icon: "✅" });
-                          } else {
-                            setReason("");
-                            setMuting(m);
-                          }
-                        }}
-                        className="shrink-0 text-[11px] font-bold text-hint hover:text-maroon"
-                      >
-                        {muted ? "إعادة الكتابة" : "إيقاف الكتابة"}
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      <Modal open={!!muting} onClose={() => setMuting(null)} className="max-w-md">
-        {muting && (
-          <div>
-            <p className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
-              <UserRoundX className="size-5 text-maroon" /> إيقاف كتابة {muting.name}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-ink-soft">يبقى يقرأ القناة، ولا يكتب فيها حتى تعيدها له، مهما كانت صفته.</p>
-            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="السبب (اختياري)" aria-label="السبب" className="mt-3 w-full rounded-2xl border-2 border-gold/40 px-4 py-2.5 outline-none focus:border-green-light" />
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="maroon"
-                onClick={() => {
-                  setMuted(v, muting, true, reason);
-                  toast({ title: `أُوقفت كتابة ${muting.name} في القناة`, tone: "info", icon: "🔇" });
-                  setMuting(null);
-                }}
-              >
-                إيقاف الكتابة
-              </Button>
-              <Button variant="outline" onClick={() => setMuting(null)}>
-                تراجع
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </Card>
   );
 }

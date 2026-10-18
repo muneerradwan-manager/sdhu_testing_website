@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, CheckCircle2, CornerDownLeft } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CheckCircle2, CornerDownLeft, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -9,14 +9,15 @@ import { useClusters } from "@/lib/cms/content";
 import { groupName, groupNameTaken, groupShort, suggestedGroupName } from "@/lib/groups";
 import { useOperation, rangeLabel } from "@/lib/operations";
 import { useSeason } from "@/lib/season-live";
-import { actions, useStore } from "@/lib/store";
+import { actions, useStore, type ClusterInvite, type Seat, type SignedContract } from "@/lib/store";
+import { uploadMedia } from "@/lib/cms/media";
 import { cn, nowMs } from "@/lib/utils";
 import { adminReceipt } from "@/app/administrator/_lib/admin";
 import { nextGroupNumber } from "@/app/administrator/_lib/capacity";
 import { DemoJump } from "@/components/app/operation-closed";
 import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
-import { STATUS, useClusterRequests, type ClusterRequest } from "@/app/administrator/_lib/formation";
-import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
+import { STATUS, fitSeats, useClusterRequests, usePicks, type ClusterRequest } from "@/app/administrator/_lib/formation";
+import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, roleName, roleOf, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { patchAdmin } from "../../_components/data";
 import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
@@ -65,8 +66,8 @@ export function GroupsTab() {
         <CategoriesBox />
         <Help>
           <p>لا يختار رئيس المجموعة سعتها: فئته تحددها الإدارة وتثبّتها عند تشكيل مجموعته أو اعتمادها، وهي فئة المجموعة. منها عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله.</p>
-          <p>تدخل المجموعة التكتلَ بدعوة يقبلها رئيسها في مدة تشكيل التكتلات. وما بقي خارجها بعد الموعد النهائي تضيفه إلى تكتل بتعديل استثنائي من «طلبات التكتلات».</p>
-          <p>طلب تشكيل قُدّم على المنصة من قبل ينتظر قرارك هنا: اعتمده بفئة رئيسه، أو أعده إليه بما ينقصه.</p>
+          <p>تُشكَّل المجموعة في المكتب بحضور رئيسها وفريقها: اسمها وفئتها، وموجّهها ومعاونها، ورسمها، وعقدها الموقّع. وتدخل التكتل حين يُشكَّل في المكتب، وما بقي خارجه بعد الموعد النهائي تضيفه إلى تكتل بتعديل استثنائي من «التكتلات».</p>
+          <p>طلب تشكيل قديم قُدّم على المنصة من قبل ينتظر قرارك هنا: اعتمده بفئة رئيسه، أو أعده إليه بما ينقصه.</p>
         </Help>
       </div>
       <RecordsBox system="admins" area="groups" title="سجل المجموعات" />
@@ -215,9 +216,11 @@ function GroupsList({ desk, onOpen, onReturn }: { desk: AdminsDesk; onOpen: (n: 
 // ───────────────────────── Forming a group at the office ─────────────────────────
 
 /**
- * A qualified group head at the office: the holder picks him, writes the name he chose (one no other group
- * holds this season), confirms his category, takes the fee and forms the group — approved at once, its number
- * the next of the season. Only in the formation's dates.
+ * A qualified group head at the office, with his team: the holder picks him, writes the name he chose (one no
+ * other group holds this season), confirms his category, seats the guide and the assistant its category gives (or,
+ * with no assistant seat, a «معاون بعدد» if they bring one), takes the fee, and uploads the paper contract the head
+ * and his team signed — and forms the group, approved at once, its number the next of the season. Its seats come
+ * with it into the cluster it is formed in. Only in the formation's dates.
  */
 function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }) {
   const user = useStaffUser()!;
@@ -231,11 +234,28 @@ function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [paid, setPaid] = useState(false);
+  const [seated, setSeated] = useState<Record<number, string>>({});
+  const [counted, setCounted] = useState("");
+  const [contract, setContract] = useState<SignedContract | null>(null);
+  const [signed, setSigned] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const picks = usePicks(undefined);
   const head = desk.toForm.find((r) => r.id === headId);
   const number = head ? (head.profile.group?.number ?? nextGroupNumber(admins, head.id)) : 0;
   const bare = name.trim().replace(/^مجموعة\s+/, "");
   const problem = !bare ? "اكتب اسم المجموعة كما اختاره رئيسها" : bare.split(/\s+/).length > 2 ? "كلمة أو كلمتان" : groupNameTaken(bare, number) ? "تحمله مجموعة أخرى هذا الموسم" : null;
   const cat = category || (head ? categoryOf(head.id, cadre) : "") || "";
+  // The seats its category gives, and who may sit in each: nobody already seated in another group, nor twice here
+  const seats = cat ? fitSeats(s, DEFAULT_TIER, cat) : [];
+  const elsewhere = new Set(Object.values(admins).flatMap((a) => [...(a.group?.seats ?? []).map((x) => x.who?.id), a.group?.countAssistant?.id]).filter((x): x is string => !!x));
+  const free = (id: string, i?: number) => !elsewhere.has(id) && id !== headId && !Object.entries(seated).some(([j, v]) => v === id && Number(j) !== i) && counted !== id;
+  const optionsFor = (seat: Seat, i: number) => {
+    const list = seat.free ? [...picks("guideSeat"), ...picks("assistantSeat")] : picks(seat.kind === "guide" ? "guideSeat" : "assistantSeat");
+    return list.filter((x, k, all) => !x.takenBy && all.findIndex((y) => y.id === x.id) === k && free(x.id, i));
+  };
+  const countable = picks("assistantPool").filter((x) => !x.takenBy && !!roleOf(s, x.role)?.multiplier && free(x.id));
+  const seatsFull = seats.every((_, i) => !!seated[i]);
+  const ready = !!head && !problem && !!cat && paid && seatsFull && !!contract && signed;
 
   const pick = (id: string) => {
     setHeadId(id);
@@ -244,21 +264,52 @@ function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }
     setName(r ? (r.profile.group?.name ?? suggestedGroupName(n)) : "");
     setCategory(r ? (categoryOf(r.id, cadre) ?? "") : "");
     setPaid(false);
+    setSeated({});
+    setCounted("");
+    setContract(null);
+    setSigned(false);
+  };
+
+  // The signed contract, photographed or scanned, into the media library
+  const upload = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    setUploading(true);
+    try {
+      const { ref } = await uploadMedia(f, user.name, { documents: true });
+      setContract({ ref, name: f.name, type: f.type || "application/octet-stream", at: nowMs(), by: user.name });
+    } catch (e) {
+      toast({ title: "لم يُرفع العقد", body: (e as Error).message, tone: "warning", icon: "⚠️" });
+    }
+    setUploading(false);
   };
 
   const form = () => {
-    if (!head || problem || !cat || !paid) return;
+    if (!head || !ready || !contract) return;
     const at = nowMs();
     if (categoryOf(head.id, cadre) !== cat) actions.setCadre("category", head.id, cat);
     const label = categoryOfId(s, cat)?.name ?? "";
     const n = seatsOf(s, DEFAULT_TIER, cat);
-    patchAdmin(head, { group: { number, name: bare, capacity: n.pilgrims, capacityTier: label, requestedAt: head.profile.group?.requestedAt ?? at, feePaidAt: at, approvedAt: at, approvedBy: user.name } }, actions.upsertAdmin);
-    logAdmins(user, "groups", { action: "تشكيل مجموعة في المكتب", target: groupName(number), detail: `رئيسها ${head.name} — ${label}: ${n.pilgrims} حاجاً في الاقتصادي — ${seatsLabel(n)} — رسم ${season.fees.groupFormation} $ بإيصال ${adminReceipt(head.id, "G", number)}`, ref: String(number), important: true });
+    const person = (id: string): ClusterInvite => {
+      const x = [...picks("guideSeat"), ...picks("assistantSeat"), ...picks("assistantPool")].find((y) => y.id === id)!;
+      return { id, name: x.name, at, status: "accepted" };
+    };
+    const team = seats.map((x, i) => ({ ...x, who: person(seated[i]) }));
+    patchAdmin(
+      head,
+      { group: { number, name: bare, capacity: n.pilgrims, capacityTier: label, requestedAt: head.profile.group?.requestedAt ?? at, feePaidAt: at, approvedAt: at, approvedBy: user.name, seats: team, countAssistant: counted ? person(counted) : undefined, contract } },
+      actions.upsertAdmin,
+    );
+    logAdmins(user, "groups", { action: "تشكيل مجموعة في المكتب", target: groupName(number), detail: `رئيسها ${head.name} — ${label}: ${n.pilgrims} حاجاً في الاقتصادي — فريقها: ${team.map((x) => x.who.name).join("، ") || "—"}${counted ? ` ومعاون بعدد ${person(counted).name}` : ""} — رسم ${season.fees.groupFormation} $ بإيصال ${adminReceipt(head.id, "G", number)} — العقد موقّع ومرفوع`, ref: String(number), important: true });
     toast({ title: `شُكّلت مجموعة ${bare}`, body: `${head.name} — ${label}: ${n.pilgrims} حاجاً في الاقتصادي. يراها في بوابة الإداريين الآن.`, tone: "success", icon: "🏛️" });
     setHeadId("");
     setName("");
     setCategory("");
     setPaid(false);
+    setSeated({});
+    setCounted("");
+    setContract(null);
+    setSigned(false);
     onDone();
   };
 
@@ -307,11 +358,68 @@ function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }
                   ))}
                 </select>
               </label>
+              {cat && (
+                <fieldset className="space-y-2 rounded-2xl bg-white/[.04] p-3 ring-1 ring-white/10">
+                  <legend className="px-1 text-xs font-bold text-white/80">فريق المجموعة — {seatsLabel(seatsOf(s, DEFAULT_TIER, cat))}</legend>
+                  {seats.length === 0 && <p className="text-xs text-white/60">لا مقاعد لهذه الفئة في الاقتصادي.</p>}
+                  {seats.map((seat, i) => (
+                    <label key={i} className="block">
+                      <span className="mb-1 block text-xs text-white/70">{seat.free ? "مقعد حر (موجّه أو معاون)" : seat.kind === "guide" ? "الموجّه الديني" : "المعاون"}</span>
+                      <select value={seated[i] ?? ""} onChange={(e) => setSeated((x) => ({ ...x, [i]: e.target.value }))} aria-label={seat.kind === "guide" ? "الموجّه الديني" : "المعاون"} className={cn(smallInputClass, "[&_option]:text-ink")}>
+                        <option value="">اختر من المؤهلين الحاضرين...</option>
+                        {[...(seated[i] ? optionsFor(seat, i).concat([...picks("guideSeat"), ...picks("assistantSeat")].filter((y) => y.id === seated[i]).slice(0, 1)) : optionsFor(seat, i))]
+                          .filter((x, k, all) => all.findIndex((y) => y.id === x.id) === k)
+                          .map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.name} — {roleName(x.role, s)} — {x.branch}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  ))}
+                  {seatsOf(s, DEFAULT_TIER, cat).assistants === 0 && (
+                    <label className="block">
+                      <span className="mb-1 block text-xs text-white/70">معاون بعدد (اختياري) — يضيف حجاجاً إلى تكتلها</span>
+                      <select value={counted} onChange={(e) => setCounted(e.target.value)} aria-label="معاون بعدد" className={cn(smallInputClass, "[&_option]:text-ink")}>
+                        <option value="">بلا معاون بعدد</option>
+                        {[...countable, ...(counted ? picks("assistantPool").filter((y) => y.id === counted) : [])]
+                          .filter((x, k, all) => all.findIndex((y) => y.id === x.id) === k)
+                          .map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.name} — {x.branch}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  )}
+                </fieldset>
+              )}
               <label className="flex items-center gap-2 text-white/85">
                 <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="size-4 accent-[#D9C89E]" />
                 سدّد رسم التشكيل {season.fees.groupFormation} $ في المكتب — الإيصال {adminReceipt(head.id, "G", number)}
               </label>
-              <Button variant="gold" disabled={!!problem || !cat || !paid} onClick={form}>
+              <div className="space-y-2 rounded-2xl bg-white/[.04] p-3 ring-1 ring-white/10">
+                <p className="text-xs font-bold text-white/80">عقد المجموعة</p>
+                <p className="text-xs leading-6 text-white/60">يوقّعه رئيس المجموعة وكل فريقها ورقياً في المكتب. صوّره أو امسحه وارفعه هنا: يراه كل من في المجموعة في «العقود».</p>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+                  <Upload className="size-4" /> {uploading ? "جارٍ الرفع…" : contract ? "استبدال العقد" : "رفع صورة العقد الموقّع"}
+                  <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد المجموعة" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
+                </label>
+                {contract && <p className="text-xs text-green-light">رُفع: {contract.name}</p>}
+                <label className="flex items-center gap-2 text-white/85">
+                  <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} className="size-4 accent-[#D9C89E]" />
+                  وقّع العقدَ رئيسُ المجموعة وكلُّ فريقها
+                </label>
+              </div>
+              {!ready && (
+                <p className="text-xs text-gold">
+                  {!seatsFull ? "اختر من يشغل كل مقعد. " : ""}
+                  {!paid ? "سدّد الرسم. " : ""}
+                  {!contract ? "ارفع العقد. " : ""}
+                  {!signed ? "أكّد توقيع الجميع." : ""}
+                </p>
+              )}
+              <Button variant="gold" disabled={!ready} onClick={form}>
                 <BadgeCheck className="size-4" /> تشكيل مجموعة {bare || "…"}
               </Button>
             </>
@@ -371,7 +479,7 @@ function useDecision() {
       }
       patchAdmin(x.row, { group: { ...x.g, capacity: n.pilgrims, capacityTier: name, approvedAt: Date.now(), approvedBy: user.name, returned: undefined } }, actions.upsertAdmin);
       logAdmins(user, "groups", { action: "اعتماد مجموعة", target: groupName(x.g.number), after: `رئيسها ${x.row.name}`, detail: `${name}: ${n.pilgrims} حاجاً في الاقتصادي — ${seatsLabel(n)}`, ref: String(x.g.number) });
-      toast({ title: `اعتُمدت ${groupName(x.g.number)} — ${name}`, body: "تُلحق بها الحجاج بعقودهم، وتدخل تكتلاً بدعوة يقبلها رئيسها، ومقاعد فريقها يملؤها رئيس التكتل.", tone: "success", icon: "🏅" });
+      toast({ title: `اعتُمدت ${groupName(x.g.number)} — ${name}`, body: "تُلحق بها الحجاج بعقودهم، وتدخل تكتلاً حين يُشكَّل في المكتب، ومقاعد فريقها تُجلسها في المكتب.", tone: "success", icon: "🏅" });
     },
     send(x: GroupRow, note: string) {
       patchAdmin(x.row, { group: { ...x.g, returned: { at: Date.now(), by: user.name, note } } }, actions.upsertAdmin);

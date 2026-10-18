@@ -284,12 +284,12 @@ function FileSheet({ f }: { f: FileState }) {
         </div>
       </div>
 
-      {(p.cluster || p.deputyOf) && (
+      {p.cluster && (
         <p className="flex gap-2 rounded-2xl bg-white/[.06] p-3 text-sm leading-7 text-white/80 ring-1 ring-white/10">
           <Building2 className="mt-1 size-4 shrink-0 text-gold" />
           {p.cluster
-            ? `قدّم طلب تشكيل ${p.cluster.name}، فصارت صفته على مستوى التكتل ويدير ${Object.values(p.cluster.groups).filter((g) => g.status === "accepted").length} مجموعات، ونائبه ${p.cluster.deputy?.status === "accepted" ? p.cluster.deputy.name : "لم يقبل أحد بعد"}.`
-            : `دعاه رئيس ${p.deputyOf!.clusterName} ${p.deputyOf!.headName} نائباً له فقبل، فصارت صفته على مستوى التكتل.`}
+            ? `شُكّل ${p.cluster.name} في المكتب برئاسته، فصارت صفته على مستوى التكتل ويدير ${Object.values(p.cluster.groups).filter((g) => g.status === "accepted").length} مجموعات.`
+            : ""}
         </p>
       )}
 

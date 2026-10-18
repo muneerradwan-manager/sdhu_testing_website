@@ -8,7 +8,7 @@ import { actions, getState, useStore, type CadreContact, type CadreEvent, type C
 import { DEMO_ADMINS } from "./admin";
 import { HEADS_POOL, PEOPLE } from "./people";
 import { acceptedGroups } from "./cluster";
-import { ACCOUNTANT_TITLE, DEPUTY_TITLE, SEASON_FORMED, useClusterRequests, type ClusterRequest } from "./formation";
+import { ACCOUNTANT_TITLE, SEASON_FORMED, useClusterRequests, type ClusterRequest } from "./formation";
 import { ageOfId, roleName, structureNow } from "./structure";
 
 /**
@@ -69,7 +69,6 @@ export function placesOf(req: Pick<ClusterRequest, "headId" | "season">, c: Clus
   for (const x of c.assistants) if (yes(x.status)) put(x.id, "معاون التكتل");
   for (const x of c.coordinators) if (yes(x.status)) put(x.id, "منسق تقني بالتكتل");
   for (const x of c.femaleGuides) if (yes(x.status)) put(x.id, "موجّهة دينية بالتكتل");
-  if (c.deputy && yes(c.deputy.status)) put(c.deputy.id, DEPUTY_TITLE);
   if (c.accountant && yes(c.accountant.status)) put(c.accountant.id, ACCOUNTANT_TITLE);
   return out;
 }
@@ -129,7 +128,7 @@ export function nameOf(id: string, req?: Pick<ClusterRequest, "cluster" | "headI
   if (req) {
     if (req.headId === id) return req.headName;
     const c = req.cluster;
-    const all = [...Object.values(c.groups), ...Object.values(c.seats).flat().flatMap((x) => (x.who ? [x.who] : [])), ...c.assistants, ...c.coordinators, ...c.femaleGuides, c.deputy, c.accountant];
+    const all = [...Object.values(c.groups), ...Object.values(c.seats).flat().flatMap((x) => (x.who ? [x.who] : [])), ...c.assistants, ...c.coordinators, ...c.femaleGuides, c.accountant];
     const hit = all.find((x) => x?.id === id);
     if (hit) return hit.name;
   }

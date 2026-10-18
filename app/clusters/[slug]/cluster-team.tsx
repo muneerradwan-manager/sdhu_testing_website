@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Award, BookOpen, Calculator, Crown, Laptop, Medal, PhoneCall, Star, Timer, UserRound, Users, UsersRound } from "lucide-react";
+import { BookOpen, Calculator, Crown, Laptop, Medal, PhoneCall, Star, Timer, UserRound, Users, UsersRound } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { Badge, Modal } from "@/components/ui/widgets";
@@ -31,7 +31,6 @@ const EN: Record<string, string> = {
   "رئيس التكتل": "Head of the cluster",
   "رئيس التكتل ورئيس مجموعته": "Head of the cluster and of his own group",
   "رئيس المجموعة": "Head of the group",
-  "نائب رئيس التكتل": "Deputy head of the cluster",
   "محاسب التكتل": "Accountant of the cluster",
   "معاون التكتل": "Assistant of the cluster",
   "المنسق التقني": "Technical coordinator",
@@ -139,11 +138,11 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 const BADGES = [
   { key: "guidance", icon: BookOpen, ar: "شارة التميّز في التوجيه الديني", en: "Excellence in religious guidance", hintAr: "في فريقه موجّه أو موجّهة من الدرجة «أ»", hintEn: "A grade-A guide serves in its team" },
   { key: "age", icon: Medal, ar: "شارة العمر", en: "Youthful team", hintAr: "متوسط أعمار فريقه 40 سنة أو أقل", hintEn: "Its team's average age is 40 or under" },
-  { key: "timeliness", icon: Timer, ar: "شارة الالتزام بالمواعيد", en: "On time", hintAr: "قدّم طلب تشكيله قبل الموعد الأول", hintEn: "It filed its request before the early deadline" },
+  { key: "timeliness", icon: Timer, ar: "شارة الالتزام بالمواعيد", en: "On time", hintAr: "شُكّل في المكتب قبل الموعد الأول", hintEn: "It was formed at the office before the early deadline" },
 ] as const;
 
 /**
- * Who serves the cluster's pilgrims, from its approved request in the administrators' platform: its head, deputy
+ * Who serves the cluster's pilgrims, from its approved request in the administrators' platform: its head
  * and accountant, its assistants, technical coordinators and female guides, and the badges its team earned.
  */
 export function ClusterTeamCard({ team }: { team: ClusterTeam }) {
@@ -179,9 +178,8 @@ export function ClusterTeamCard({ team }: { team: ClusterTeam }) {
       <div className="mt-5 grid gap-2">
         <Person m={team.head} icon={<Crown className="size-6" />} big />
       </div>
-      {(team.deputy || team.accountant) && (
+      {team.accountant && (
         <Section title={t("قيادة التكتل", "The cluster's leadership")}>
-          {team.deputy && <Person m={team.deputy} icon={<Award className="size-5" />} />}
           {team.accountant && <Person m={team.accountant} icon={<Calculator className="size-5" />} />}
         </Section>
       )}
@@ -257,7 +255,6 @@ export function ClusterFactsCard({ cluster, team }: { cluster: Cluster; team: Cl
   const earned = BADGES.filter((b) => team.badges[b.key]);
   const rows: { k: string; v: ReactNode }[] = [
     { k: t("رئيس التكتل", "Head"), v: <bdi>{team.head.name}</bdi> },
-    ...(team.deputy ? [{ k: t("نائبه", "Deputy"), v: <bdi>{team.deputy.name}</bdi> }] : []),
     ...(team.accountant ? [{ k: t("محاسبه", "Accountant"), v: <bdi>{team.accountant.name}</bdi> }] : []),
     { k: t("المستوى", "Tier"), v: team.tier },
     { k: t("المكتب", "Office"), v: cluster.office },

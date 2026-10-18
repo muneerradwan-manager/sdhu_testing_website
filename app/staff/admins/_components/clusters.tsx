@@ -1,8 +1,12 @@
 "use client";
 
+import { uploadMedia, useMediaUrl } from "@/lib/cms/media";
+import { seedContract } from "@/app/administrator/_components/contract-view";
+import { useSeason } from "@/lib/season-live";
+import { distribute, fits, loadOf } from "@/app/administrator/_lib/distribution";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, BadgeCheck, Check, CircleDashed, Download, ExternalLink, Eye, Plus, Printer, RotateCcw, Send, UserMinus, X } from "lucide-react";
+import { Archive, ArchiveRestore, BadgeCheck, Check, CircleDashed, Download, ExternalLink, Plus, Printer, UserMinus, X, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
@@ -13,12 +17,12 @@ import { CmsImage } from "@/components/cms/image";
 import { groupName } from "@/lib/groups";
 import { downloadCsv } from "@/lib/csv";
 import { dayLabel, dayTimeLabel } from "@/lib/operations";
-import { actions, getState, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
+import { actions, getState, useStore, type ClusterInvite, type GroupInvite, type Seat, type SignedContract } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
 import { ClusterPrint, ClusterReport, requestLine } from "@/app/administrator/_components/cluster-report";
 import { logCadre, nameOf, placesOf } from "@/app/administrator/_lib/cadre";
 import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
-import { DEPUTY_TITLE, ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, newCluster, reviewCluster, roleOfPerson, useFormingSeason, useGroupPool, usePicks, writeCluster, type Cluster, type ClusterRequest } from "@/app/administrator/_lib/formation";
+import { ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, newCluster, roleOfPerson, useFormingSeason, useGroupPool, usePicks, writeCluster, type Cluster, type ClusterRequest, placedIn, cadreOf, refit } from "@/app/administrator/_lib/formation";
 import { categoryOf, categoryOfId, does, roleName, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useCadreRows } from "./cadre";
 import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
@@ -34,7 +38,7 @@ const CLUSTERS = "/staff/admins/manage/clusters";
 const VIEWS = ["requests", "outside", "programmes", "group-pages", "archived"] as const;
 
 /**
- * «طلبات التكتلات» — the cluster requests as a site's list, each opening on its own review screen (`?id=`): its
+ * «التكتلات» — the clusters formed at the office as a site's list, each opening on its own screen (`?id=`): its
  * report, its checks and the exceptional edits in the middle; the decision, printing and the archive on the side.
  * The page's other views (`?v=`) are the approved groups left outside every cluster, the clusters' programmes
  * waiting for approval, and the archive. The requests' dates wait closed at the end of the page.
@@ -49,9 +53,9 @@ export function ClustersTab() {
       <Views
         param="v"
         value={view}
-        label="طلبات التكتلات"
+        label="التكتلات"
         items={[
-          { key: "requests", label: "الطلبات", count: desk.live.length },
+          { key: "requests", label: "التكتلات", count: desk.live.length },
           { key: "outside", label: "مجموعات خارج التكتلات", count: desk.outside.length },
           { key: "programmes", label: "برامج التكتلات", count: desk.pendingProgrammes.length },
           { key: "group-pages", label: "صفحات المجموعات", count: desk.pendingGroupPages.length },
@@ -65,8 +69,8 @@ export function ClustersTab() {
       <div className="grid gap-4 lg:grid-cols-2">
         <WindowBox desk={desk} />
         <Help>
-          <p>لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات برؤسائها، الإداريون (موجّهو المجموعات ومعاونوها، ومعاون التكتل، والمنسقون والموجّهات يوزَّعون على المجموعات)، النائب، المحاسب — ويرسله بعد اكتماله.</p>
-          <p>تبدأ مراجعة الطلب، ثم تعتمده أو تعيده بملاحظات يصلحها رئيسه ويعيد إرساله قبل الموعد النهائي. وخارج الضوابط تعدّله بنفسك «تعديلاً استثنائياً» بسبب يُكتب في سجله وسجل الشخص.</p>
+          <p>لا انتخاب ولا طلب على المنصة: يحضر من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ومعه رؤساء المجموعات وكادره إلى المكتب. تُدخل التكتل بالترتيب — المستوى، المجموعات بفرقها، كادر التكتل (المنسقون والموجّهات ومعاونه) وتوزيعه، المحاسب — ثم رسمه وعقده الموقّع، فيُنشأ معتمداً.</p>
+          <p>يُنشأ التكتل معتمداً حين تكمل في المكتب رسمه وعقده الموقّع، ولا مراجعة بعده. وما يتغير فيه بعد إنشائه تعدّله أنت في المكتب «تعديلاً استثنائياً» بسبب يُكتب في سجله وسجل الشخص.</p>
           <p>ثم يكتب كل رئيس برنامج تكتله، ويكتب رئيس كل مجموعة صفحتها (صورتها ونبذتها ومعرض صورها)، ولا يصل شيء منها إلى الحجاج قبل أن تعتمده.</p>
         </Help>
       </div>
@@ -87,8 +91,8 @@ function WindowBox({ desk }: { desk: AdminsDesk }) {
   const [earlyTime, setEarlyTime] = useState(s.earlyTime);
   const save = () => {
     actions.setAdminRules({ earlyDeadline: early, earlyTime });
-    logAdmins(user, "clusters", { action: "تعديل الموعد الأول لطلبات التكتلات", target: "شارة الالتزام بالمواعيد", before: dayTimeLabel(s.earlyDeadline, s.earlyTime, true), after: dayTimeLabel(early, earlyTime, true), important: true });
-    toast({ title: "حُفظ الموعد الأول", body: `ما يُرسل حتى ${dayTimeLabel(early, earlyTime, true)} ينال شارة الالتزام بالمواعيد.`, tone: "success", icon: "💾" });
+    logAdmins(user, "clusters", { action: "تعديل الموعد الأول لتشكيل التكتلات", target: "شارة الالتزام بالمواعيد", before: dayTimeLabel(s.earlyDeadline, s.earlyTime, true), after: dayTimeLabel(early, earlyTime, true), important: true });
+    toast({ title: "حُفظ الموعد الأول", body: `ما يُشكَّل حتى ${dayTimeLabel(early, earlyTime, true)} ينال شارة الالتزام بالمواعيد.`, tone: "success", icon: "💾" });
   };
   return (
     <Box title="مواعيد الاستقبال" open={false}>
@@ -108,7 +112,7 @@ function WindowBox({ desk }: { desk: AdminsDesk }) {
         ))}
       </ul>
       <p className="text-xs leading-6 text-white/55">
-        البدء والنهائي من عملية «تشكيل التكتلات» في <Link href="/staff/admins/manage" className="font-bold text-gold hover:underline">«قواعد الإداريين»</Link>. والموعد الأول هنا: ما يُرسل حتى ساعته ينال «شارة الالتزام بالمواعيد».
+        البدء والنهائي من عملية «تشكيل التكتلات» في <Link href="/staff/admins/manage" className="font-bold text-gold hover:underline">«قواعد الإداريين»</Link>. والموعد الأول هنا: التكتل الذي يُشكَّل في المكتب حتى ساعته ينال «شارة الالتزام بالمواعيد».
       </p>
       <div className="flex flex-wrap items-end gap-2">
         <label className="block">
@@ -129,11 +133,8 @@ function WindowBox({ desk }: { desk: AdminsDesk }) {
 
 const FILTERS: { key: "all" | Cluster["status"]; label: string }[] = [
   { key: "all", label: "الكل" },
-  { key: "pending", label: "قيد المراجعة" },
-  { key: "reviewing", label: "جاري المراجعة" },
-  { key: "approved", label: "معتمد" },
-  { key: "rejected", label: "مرفوض بملاحظات" },
-  { key: "draft", label: "مسودة" },
+  { key: "approved", label: "شُكّل في المكتب" },
+  { key: "draft", label: "قيد التشكيل" },
 ];
 
 const TONE: Record<Cluster["status"], "green" | "gold" | "maroon" | "muted"> = { draft: "muted", pending: "gold", reviewing: "gold", approved: "green", rejected: "maroon" };
@@ -142,7 +143,8 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
   const s = useStructure();
   const router = useRouter();
   const hrefWith = useHrefWith();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
+  // «ما ينتظرك» opens the clusters still forming at the office (`?f=draft`)
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("f") === "draft" ? "draft" : "all"));
   const [tier, setTier] = useState("");
   const [creating, setCreating] = useState(false);
   const pool = shelf === "live" ? desk.live : desk.archivedClusters;
@@ -150,8 +152,8 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
   const list = inTier.filter((r) => filter === "all" || r.status === filter);
   return (
     <div className="space-y-4">
-      <Title action={shelf === "live" && <AddButton onClick={() => setCreating(true)}>إنشاء تشكيل نيابة عن قائد</AddButton>}>{shelf === "live" ? "طلبات تشكيل التكتلات" : "التشكيلات المؤرشفة"}</Title>
-      <Lead>{shelf === "live" ? "افتح الطلب لمراجعته: ابدأ المراجعة، ثم اعتمده أو أعده إلى رئيسه بملاحظات." : "تشكيلات أُرشفت واحداً واحداً، أو كلها عند «بدء موسم جديد» في «التكتلات والمجموعات»."}</Lead>
+      <Title action={shelf === "live" && <AddButton onClick={() => setCreating(true)}>تشكيل تكتل في المكتب</AddButton>}>{shelf === "live" ? "التكتلات" : "التشكيلات المؤرشفة"}</Title>
+      <Lead>{shelf === "live" ? "يُشكَّل التكتل في المكتب بحضور رئيسه وكل من فيه: «تشكيل تكتل في المكتب»، ثم أدخل مجموعاته وكادره وتوزيعه، وخذ رسمه، وارفع عقده الموقّع، وأنشئه." : "تشكيلات أُرشفت واحداً واحداً، أو كلها عند «بدء موسم جديد» في «التكتلات والمجموعات»."}</Lead>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Filters label="حال الطلبات" value={filter} onChange={setFilter} items={FILTERS.map((f) => ({ ...f, count: f.key === "all" ? inTier.length : inTier.filter((r) => r.status === f.key).length }))} />
         <select value={tier} onChange={(e) => setTier(e.target.value)} aria-label="المستوى" className={cn(sizedInput, "h-9 w-44 text-sm [&>option]:text-ink")}>
@@ -164,7 +166,7 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
         </select>
       </div>
       <ListTable head={["التكتل", "رئيسه", "المستوى", "الفروع", "الشروط", "الحالة"]} minWidth="52rem">
-        {list.length === 0 && <EmptyRow cols={6}>{shelf === "archived" ? "لا تشكيلات مؤرشفة." : "لا طلبات هنا. يقدّمها من يحمل صفة «رئيس تكتل» في مدة تشكيل التكتلات، أو تنشئها الإدارة نيابة عنه."}</EmptyRow>}
+        {list.length === 0 && <EmptyRow cols={6}>{shelf === "archived" ? "لا تشكيلات مؤرشفة." : "لا تكتلات بعد. يُشكَّل كل تكتل في المكتب بحضور من يحمل صفة «رئيس تكتل» وكل من فيه."}</EmptyRow>}
         {list.map((r) => {
           const href = hrefWith({ id: r.cluster.id });
           return (
@@ -175,23 +177,20 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
                 sub={
                   <>
                     {requestLine(r)}
-                    {(r.cluster.byAdministration || r.badges.timeliness || r.badges.guidance || r.badges.age) && (
-                      <span className="block text-white/45">{[r.cluster.byAdministration && "🛠️ أُنشئ من الإدارة", r.badges.timeliness && "⏱️ ملتزم بالمواعيد", r.badges.guidance && "🧭 التميّز في التوجيه", r.badges.age && "🌟 العمر"].filter(Boolean).join(" · ")}</span>
+                    {(r.badges.timeliness || r.badges.guidance || r.badges.age) && (
+                      <span className="block text-white/45">{[r.badges.timeliness && "⏱️ ملتزم بالمواعيد", r.badges.guidance && "🧭 التميّز في التوجيه", r.badges.age && "🌟 العمر"].filter(Boolean).join(" · ")}</span>
                     )}
                   </>
                 }
                 actions={
                   <RowActions>
-                    <RowLink href={href}>{r.status === "pending" || r.status === "reviewing" ? "مراجعة" : "فتح"}</RowLink>
+                    <RowLink href={href}>{r.status === "draft" ? "متابعة التشكيل" : "فتح"}</RowLink>
                     <RowLink onClick={() => exportCluster(r)}>Excel</RowLink>
                   </RowActions>
                 }
               />
               <td className="p-3 align-top">
                 {r.headName}
-                <span className="block text-xs text-white/55">
-                  {DEPUTY_TITLE}: {r.cluster.deputy?.status === "accepted" ? r.cluster.deputy.name : <b className="text-gold">لم يقبل أحد</b>}
-                </span>
               </td>
               <td className="p-3 align-top text-white/80">{s.tiers.find((t) => t.id === r.cluster.tier)?.name ?? "بلا مستوى"}</td>
               <td className="p-3 align-top text-white/80">{r.branches.join("، ")}</td>
@@ -212,9 +211,9 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
 }
 
 /**
- * «إنشاء تشكيل نيابة عن قائد»: the administration opens a request for a leader who has none — a cluster head by
- * his base or seasonal role — with its name, its tier and its reason. It starts as a draft holding his own group;
- * the holder fills its places by exceptional edits and sends it for review on his behalf.
+ * «تشكيل تكتل في المكتب»: the holder of the cluster-head role comes to the office with everyone in his cluster.
+ * The employee starts it with its head, name and tier — his own group in it from the start, with the seats the
+ * office filled when it formed it — then enters its groups and people on its screen (OfficeDesk) and creates it.
  */
 function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: () => void; desk: AdminsDesk; onCreated: (id: string) => void }) {
   const user = useStaffUser()!;
@@ -227,7 +226,6 @@ function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: 
   const [who, setWho] = useState("");
   const [name, setName] = useState("");
   const [tier, setTier] = useState(s.tiers[0]?.id ?? "");
-  const [reason, setReason] = useState("");
   const busy = new Set(desk.live.map((r) => r.headId));
   const leaders = rows.filter((r) => !r.status && does(s, r.seasonal?.role ?? r.primary, "clusterLeader") && !busy.has(r.id));
   const leader = leaders.find((r) => r.id === who);
@@ -235,40 +233,45 @@ function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: 
     if (!leader) return;
     const at = nowMs();
     const id = `cluster-adm-${at.toString(36)}`;
-    // His own group comes in with him: his approved group on this device, or the season's records of it
+    // His own group comes in with him: his group on this device (with the team the office seated), or the season's records of it
     const live = admins[leader.id]?.group?.approvedAt ? admins[leader.id]!.group : undefined;
     const seed = HEADS_POOL.find((h) => h.id === leader.id);
     const number = live?.number ?? seed?.group;
     const category = categoryOf(leader.id, cadre);
     const own: GroupInvite | undefined = number !== undefined && category ? { id: leader.id, name: leader.name, at, status: "accepted", number, branch: leader.branch, category, pilgrims: seed?.pilgrims ?? 0 } : undefined;
     const base = newCluster(id, name.trim(), at, own, season);
-    const cluster: Cluster = { ...base, tier, seats: own ? { [own.number]: fitSeats(s, tier, own.category) } : {}, byAdministration: { by: user.name, reason: reason.trim(), at } };
+    const cluster: Cluster = {
+      ...base,
+      tier,
+      seats: own ? { [own.number]: fitSeats(s, tier, own.category, live?.seats) } : {},
+      assistants: live?.countAssistant ? [live.countAssistant] : [],
+      byAdministration: { by: user.name, reason: "شُكّل في المكتب", at },
+    };
     if (admins[leader.id]) writeCluster({ headId: leader.id, headName: leader.name, headGroup: number, seed: false }, cluster, admins);
     else actions.setFormation((f) => ({ ...f, created: [...f.created, { headId: leader.id, headName: leader.name, headGroup: number, cluster }] }));
-    logAdmins(user, "clusters", { action: "إنشاء تشكيل نيابة عن قائد", target: cluster.name, detail: `${leader.name} — ${s.tiers.find((t) => t.id === tier)?.name} — ${reason.trim()}`, ref: id, important: true });
-    toast({ title: `أُنشئ ${cluster.name}`, body: `مسودة باسم ${leader.name}: املأ أماكنه بتعديل استثنائي ثم أرسله للمراجعة نيابة عنه.`, tone: "success", icon: "🛠️" });
+    logAdmins(user, "clusters", { action: "بدء تشكيل تكتل في المكتب", target: cluster.name, detail: `${leader.name} — ${s.tiers.find((t) => t.id === tier)?.name}`, ref: id, important: true });
+    toast({ title: `بدأ تشكيل ${cluster.name}`, body: `أدخل مجموعاته وكادره وتوزيعه بحضور ${leader.name}، ثم ارفع العقد الموقّع وأنشئه.`, tone: "success", icon: "🏛️" });
     onClose();
     onCreated(id);
     setWho("");
     setName("");
-    setReason("");
   };
   return (
     <Drawer
       open={open}
       onClose={onClose}
-      title="إنشاء تشكيل نيابة عن قائد"
+      title="تشكيل تكتل في المكتب"
       width="max-w-lg"
       footer={
-        <Button variant="gold" disabled={!leader || name.trim().length < 3 || reason.trim().length < 3} onClick={create}>
-          إنشاء المسودة
+        <Button variant="gold" disabled={!leader || name.trim().length < 3} onClick={create}>
+          بدء التشكيل
         </Button>
       }
     >
-      <p className="mb-4 text-sm leading-7 text-white/70">لمن يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ولم يقدّم طلباً. يبدأ مسودة فيها مجموعته، ويحمل شارة «أُنشئ من الإدارة».</p>
+      <p className="mb-4 text-sm leading-7 text-white/70">يحضر من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ومعه رؤساء المجموعات وكادره. ابدأ التكتل باسمه ومستواه، وتدخل مجموعته معه بفريقها.</p>
       <div className="space-y-3 text-sm">
         <label className="block">
-          <span className="mb-1 block text-xs text-white/60">القائد ({leaders.length})</span>
+          <span className="mb-1 block text-xs text-white/60">رئيس التكتل ({leaders.length})</span>
           <select
             value={who}
             onChange={(e) => {
@@ -278,7 +281,7 @@ function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: 
             }}
             className={cn(smallInputClass, "[&>option]:text-ink")}
           >
-            <option value="">— اختر القائد —</option>
+            <option value="">— اختر رئيس التكتل الحاضر —</option>
             {leaders.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name} — {l.seasonal ? `${roleName(l.seasonal.role, s)} موسمية` : roleName(l.primary, s)} — {l.branch}
@@ -300,42 +303,414 @@ function OnBehalf({ open, onClose, desk, onCreated }: { open: boolean; onClose: 
             ))}
           </select>
         </label>
-        <label className="block">
-          <span className="mb-1 block text-xs text-white/60">السبب (إلزامي)</span>
-          <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="مثال: القائد خارج البلاد، وفوّض الإدارة بكتاب" />
-        </label>
       </div>
     </Drawer>
   );
 }
 
+// ───────────────────────── Forming it at the office ─────────────────────────
+
+/**
+ * A cluster being formed at the office, its head and everyone in it there: the employee enters, as its head
+ * chooses, its groups — each with its head and the seats the office filled when it formed it — the cluster's
+ * assistants, coordinators and female guides, its accountant, and their distribution on the groups. Everyone
+ * placed is present, so each place is taken at once. The conditions say what is still missing.
+ */
+function OfficeDesk({ x }: { x: ClusterRequest }) {
+  const user = useStaffUser()!;
+  const s = useStructure();
+  const admins = useStore((v) => v.admins);
+  const picks = usePicks(x);
+  const c = x.cluster;
+  const placed = placedIn(c);
+  const pool = useGroupPool(x).filter((g) => !g.takenBy && !c.groups[g.number] && !!g.category);
+  const [group, setGroup] = useState("");
+  const write = (next: Cluster, action: string, detail?: string) => {
+    writeCluster(x, next, admins);
+    logAdmins(user, "clusters", { action, target: c.name, detail, ref: c.id });
+  };
+  const here = (id: string, name: string): ClusterInvite => ({ id, name, at: nowMs(), status: "accepted" });
+  const options = (b: "guideSeat" | "assistantSeat" | "assistantPool" | "coordinatorPool" | "guidePool") => picks(b).filter((p) => !p.takenBy && !placed.has(p.id));
+  const units = x.groups.map((g) => ({ number: g.number, units: g.units }));
+  const coords = c.coordinators.filter((v) => v.status === "accepted");
+  const guides = c.femaleGuides.filter((v) => v.status === "accepted");
+  const members = cadreOf(x.headId, c)
+    .filter((id) => !c.femaleGuides.some((v) => v.id === id))
+    .map((id) => ({ id, name: id === x.headId ? x.headName : (Object.values(c.groups).find((g) => g.id === id)?.name ?? Object.values(c.seats).flat().find((v) => v.who?.id === id)?.who?.name ?? [...c.assistants, ...c.coordinators].find((v) => v.id === id)?.name ?? id) }));
+
+  const addGroup = () => {
+    const g = pool.find((y) => String(y.number) === group);
+    if (!g?.category) return;
+    const owner = admins[g.headId]?.group;
+    const inv: GroupInvite = { ...here(g.headId, g.headName), number: g.number, branch: g.branch, category: g.category, pilgrims: g.pilgrims };
+    write(
+      { ...c, groups: { ...c.groups, [g.number]: inv }, seats: { ...c.seats, [g.number]: fitSeats(s, c.tier, g.category, g.seats) }, assistants: owner?.countAssistant ? [...c.assistants, owner.countAssistant] : c.assistants },
+      "إدخال مجموعة إلى التكتل في المكتب",
+      `${groupName(g.number)} — رئيسها ${g.headName}`,
+    );
+    setGroup("");
+  };
+  const removeGroup = (n: number) => {
+    const g = c.groups[n];
+    const seats = { ...c.seats };
+    delete seats[n];
+    const groups = { ...c.groups };
+    delete groups[n];
+    const sorting = { ...c.sorting };
+    delete sorting[n];
+    const guideSorting = { ...(c.guideSorting ?? {}) };
+    delete guideSorting[n];
+    write({ ...c, groups, seats, sorting, guideSorting }, "إخراج مجموعة من التكتل في المكتب", `${groupName(n)} — ${g?.name}`);
+  };
+  const seat = (n: number, i: number, id: string) => {
+    const p = [...picks("guideSeat"), ...picks("assistantSeat")].find((y) => y.id === id);
+    write({ ...c, seats: { ...c.seats, [n]: (c.seats[n] ?? []).map((v, j) => (j === i ? { ...v, who: p ? here(p.id, p.name) : undefined } : v)) } }, p ? "شغل مقعد في مجموعة" : "إخلاء مقعد في مجموعة", `${groupName(n)}${p ? ` — ${p.name}` : ""}`);
+  };
+  const addTo = (list: "assistants" | "coordinators" | "femaleGuides", id: string) => {
+    const behavior = list === "assistants" ? "assistantPool" : list === "coordinators" ? "coordinatorPool" : "guidePool";
+    const p = picks(behavior).find((y) => y.id === id);
+    if (!p) return;
+    write({ ...c, [list]: [...c[list], here(p.id, p.name)] }, list === "assistants" ? "إضافة معاون التكتل" : list === "coordinators" ? "إضافة منسق تقني" : "إضافة موجّهة دينية", p.name);
+  };
+  const dropFrom = (list: "assistants" | "coordinators" | "femaleGuides", id: string) => {
+    const map = list === "coordinators" ? Object.fromEntries(Object.entries(c.sorting).filter(([, w]) => w !== id)) : c.sorting;
+    const gmap = list === "femaleGuides" ? Object.fromEntries(Object.entries(c.guideSorting ?? {}).filter(([, w]) => w !== id)) : c.guideSorting;
+    write({ ...c, [list]: c[list].filter((v) => v.id !== id), sorting: map, guideSorting: gmap }, "إزالة من كادر التكتل", c[list].find((v) => v.id === id)?.name);
+  };
+  const sortOne = (field: "sorting" | "guideSorting", n: number, id: string) => {
+    const map = { ...(c[field] ?? {}) };
+    if (id) map[n] = id;
+    else delete map[n];
+    write({ ...c, [field]: map }, field === "sorting" ? "توزيع منسق على مجموعة" : "توزيع موجّهة على مجموعة", `${groupName(n)}`);
+  };
+  const auto = () => {
+    const a = distribute(units, coords.map((v) => v.id), x.needs.perCoordinator).map;
+    const b = distribute(units, guides.map((v) => v.id), x.needs.perGuide).map;
+    write({ ...c, sorting: a, guideSorting: b }, "توزيع المنسقين والموجّهات تلقائياً");
+  };
+
+  const select = "h-9 w-full rounded-lg bg-white/10 px-2 text-xs text-white outline-none ring-1 ring-white/15 focus:ring-gold/50 [&>option]:text-ink";
+  // A box per list of the cluster's team (a function, not a component: it is drawn inside this one)
+  const listBox = (list: "assistants" | "coordinators" | "femaleGuides", title: string, behavior: "assistantPool" | "coordinatorPool" | "guidePool") => (
+    <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+      <p className="mb-2 text-xs font-bold text-gold">{title} ({c[list].filter((v) => v.status === "accepted").length})</p>
+      <ul className="space-y-1">
+        {c[list].filter((v) => v.status === "accepted").map((v) => (
+          <li key={v.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2 py-1 text-xs text-white">
+            {v.name}
+            <button type="button" onClick={() => dropFrom(list, v.id)} aria-label={`إزالة ${v.name}`} className="text-white/50 hover:text-maroon">
+              <X className="size-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <select value="" onChange={(e) => e.target.value && addTo(list, e.target.value)} aria-label={`إضافة: ${title}`} className={cn(select, "mt-2")}>
+        <option value="">+ إضافة من الحاضرين المؤهلين...</option>
+        {options(behavior).map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name} — {roleName(p.role, s)} — {p.branch}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <Box title="١. الاسم والمستوى">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="block text-xs text-white/60">
+            اسم التكتل
+            <input defaultValue={c.name} onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== c.name && write({ ...c, name: e.target.value.trim() }, "تسمية التكتل", e.target.value.trim())} className={cn(smallInputClass, "mt-1")} />
+          </label>
+          <label className="block text-xs text-white/60">
+            المستوى
+            <select value={c.tier ?? ""} onChange={(e) => write(refit(s, { ...c, tier: e.target.value }), "تغيير مستوى التكتل", s.tiers.find((t) => t.id === e.target.value)?.name)} className={cn(smallInputClass, "mt-1 [&>option]:text-ink")}>
+              {s.tiers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </Box>
+
+      <Box title={`٢. المجموعات (${x.groups.length}) — مجموع الفئات ${x.weight}، المطلوب بين ${x.needs.min} و${x.needs.max}`}>
+        <ul className="space-y-2">
+          {x.groups.map((g) => (
+            <li key={g.number} className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-bold text-white">
+                  {groupName(g.number)} <span className="text-xs font-normal text-white/60">— رئيسها {g.head} — {g.categoryName}</span>
+                </p>
+                {g.number !== x.headGroup && (
+                  <button type="button" onClick={() => removeGroup(g.number)} className="text-xs font-bold text-white/60 hover:text-maroon">
+                    إخراجها
+                  </button>
+                )}
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {(c.seats[g.number] ?? []).map((v, i) => {
+                  const kind = v.free ? "مقعد حر" : v.kind === "guide" ? "الموجّه" : "المعاون";
+                  const list = v.free ? [...options("guideSeat"), ...options("assistantSeat")] : options(v.kind === "guide" ? "guideSeat" : "assistantSeat");
+                  return (
+                    <label key={i} className="block text-[11px] text-white/60">
+                      {kind}
+                      <select value={v.who?.status === "accepted" ? v.who.id : ""} onChange={(e) => seat(g.number, i, e.target.value)} className={cn(select, "mt-1")}>
+                        <option value="">— شاغر —</option>
+                        {v.who?.status === "accepted" && <option value={v.who.id}>{v.who.name}</option>}
+                        {list
+                          .filter((p, k, all) => all.findIndex((y) => y.id === p.id) === k)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} — {roleName(p.role, s)}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  );
+                })}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex gap-2">
+          <select value={group} onChange={(e) => setGroup(e.target.value)} aria-label="مجموعة تدخل التكتل" className={cn(select, "flex-1")}>
+            <option value="">— اختر مجموعة مشكّلة حضر رئيسها ({pool.length}) —</option>
+            {pool.map((g) => (
+              <option key={g.number} value={g.number}>
+                {groupName(g.number)} — {g.headName} — {categoryOfId(s, g.category)?.name} — {g.branch}
+              </option>
+            ))}
+          </select>
+          <Button size="sm" variant="gold" disabled={!group} onClick={addGroup}>
+            <Plus className="size-4" /> إدخالها
+          </Button>
+        </div>
+        <p className="mt-2 text-[11px] leading-5 text-white/50">تدخل كل مجموعة برئيسها وبالموجّه والمعاون اللذين أجلسهما المكتب فيها عند تشكيلها.</p>
+      </Box>
+
+      <Box title="٣. كادر التكتل — يختاره رئيسه">
+        <div className="grid gap-3 lg:grid-cols-3">
+          {listBox("coordinators", `المنسقون التقنيون (المطلوب ${x.needs.coordinators})`, "coordinatorPool")}
+          {listBox("femaleGuides", `الموجّهات الدينيات (المطلوب ${x.needs.femaleGuides})`, "guidePool")}
+          {listBox("assistants", `معاونو التكتل (المطلوب ${x.needs.assistants})`, "assistantPool")}
+        </div>
+        <label className="mt-3 block text-xs text-white/60">
+          {ACCOUNTANT_TITLE} — من أعضاء التكتل
+          <select
+            value={c.accountant?.status === "accepted" ? c.accountant.id : ""}
+            onChange={(e) => {
+              const m = members.find((v) => v.id === e.target.value);
+              write({ ...c, accountant: m ? here(m.id, m.name) : undefined }, m ? "تحديد محاسب التكتل" : "إلغاء محاسب التكتل", m?.name);
+            }}
+            className={cn(select, "mt-1")}
+          >
+            <option value="">— لم يُحدَّد —</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </Box>
+
+      <Box title="٤. توزيع المنسقين والموجّهات على المجموعات">
+        <div className="mb-2 flex justify-end">
+          <Button size="sm" variant="glass" disabled={!coords.length && !guides.length} onClick={auto}>
+            توزيع تلقائي ضمن الحدود
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[34rem] text-xs text-white">
+            <thead>
+              <tr className="text-white/50">
+                <th className="p-2 text-start">المجموعة</th>
+                <th className="p-2 text-start">المنسق التقني (حتى {x.needs.perCoordinator} وحدات)</th>
+                <th className="p-2 text-start">الموجّهة (حتى {x.needs.perGuide} وحدات)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {x.groups.map((g) => (
+                <tr key={g.number} className="border-t border-white/10">
+                  <td className="p-2 font-bold">
+                    {groupName(g.number)} <span className="font-normal text-white/50">({g.units})</span>
+                  </td>
+                  <td className="p-2">
+                    <select value={c.sorting[g.number] ?? ""} onChange={(e) => sortOne("sorting", g.number, e.target.value)} className={select}>
+                      <option value="">—</option>
+                      {coords.map((v) => (
+                        <option key={v.id} value={v.id} disabled={!fits(units, c.sorting, v.id, { number: g.number, units: g.units }, x.needs.perCoordinator)}>
+                          {v.name} ({loadOf(units, c.sorting, v.id)} من {x.needs.perCoordinator})
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-2">
+                    <select value={c.guideSorting?.[g.number] ?? ""} onChange={(e) => sortOne("guideSorting", g.number, e.target.value)} className={select}>
+                      <option value="">—</option>
+                      {guides.map((v) => (
+                        <option key={v.id} value={v.id} disabled={!fits(units, c.guideSorting ?? {}, v.id, { number: g.number, units: g.units }, x.needs.perGuide)}>
+                          {v.name} ({loadOf(units, c.guideSorting ?? {}, v.id)} من {x.needs.perGuide})
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Box>
+    </div>
+  );
+}
+
+/**
+ * Creating it: once its conditions pass, the fee is paid at the office and the paper contract everyone in it signed
+ * is uploaded — then it is formed, approved as it is created, and its head and everyone in it find it at once.
+ */
+function OfficeFinish({ x, onCancel }: { x: ClusterRequest; onCancel: () => void }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const admins = useStore((v) => v.admins);
+  const fee = useSeason().fees.clusterFormation;
+  const c = x.cluster;
+  const [paid, setPaid] = useState(false);
+  const [signed, setSigned] = useState(false);
+  const [contract, setContract] = useState<SignedContract | null>(c.contract ?? null);
+  const [uploading, setUploading] = useState(false);
+  const ready = x.complete && paid && signed && !!contract;
+  const upload = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    setUploading(true);
+    try {
+      const { ref } = await uploadMedia(f, user.name, { documents: true });
+      setContract({ ref, name: f.name, type: f.type || "application/octet-stream", at: nowMs(), by: user.name });
+    } catch (e) {
+      toast({ title: "لم يُرفع العقد", body: (e as Error).message, tone: "warning", icon: "⚠️" });
+    }
+    setUploading(false);
+  };
+  const create = () => {
+    if (!ready || !contract) return;
+    const at = nowMs();
+    writeCluster(x, { ...c, status: "approved", sentAt: at, firstSentAt: c.firstSentAt ?? at, feePaidAt: at, contract, decision: { status: "approved", at, by: user.name } }, admins);
+    logAdmins(user, "clusters", { action: "إنشاء تكتل في المكتب", target: c.name, detail: `${requestLine(x)} — رسم ${fee} $ — العقد موقّع من ${x.cadre} شخصاً ومرفوع`, ref: c.id, important: true });
+    toast({ title: `أُنشئ ${c.name}`, body: `يراه ${x.headName} الآن في «إدارة التكتل»، ويرى كل من فيه مكانه وعقده.`, tone: "success", icon: "🏛️" });
+  };
+  return (
+    <Box title="إنشاء التكتل">
+      <ul className="space-y-1 text-xs">
+        {x.checks.filter((k) => !k.warn).map((k) => (
+          <li key={k.key} className={cn("flex items-start gap-1.5", k.ok ? "text-green-light" : "text-gold")}>
+            {k.ok ? <Check className="mt-0.5 size-3.5 shrink-0" /> : <CircleDashed className="mt-0.5 size-3.5 shrink-0" />} {k.label}
+          </li>
+        ))}
+      </ul>
+      <label className="flex items-center gap-2 text-sm text-white/85">
+        <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="size-4 accent-[#D9C89E]" />
+        سدّد رسم التكتل {fee} $ في المكتب
+      </label>
+      <div className="space-y-2 rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+        <p className="text-xs leading-6 text-white/70">عقد التكتل الورقي: يوقّعه رئيسه وكل من فيه. صوّره أو امسحه وارفعه، فيراه كل أعضاء التكتل في «العقود».</p>
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+          <Upload className="size-4" /> {uploading ? "جارٍ الرفع…" : contract ? "استبدال العقد" : "رفع صورة العقد الموقّع"}
+          <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد التكتل" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
+        </label>
+        {contract && <p className="text-xs text-green-light">رُفع: {contract.name}</p>}
+        <label className="flex items-center gap-2 text-sm text-white/85">
+          <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} className="size-4 accent-[#D9C89E]" />
+          وقّع العقدَ كلُّ من في التكتل ({x.cadre} شخصاً)
+        </label>
+      </div>
+      <Button variant="gold" className="w-full" disabled={!ready} onClick={create}>
+        <BadgeCheck className="size-4" /> إنشاء التكتل
+      </Button>
+      {!x.complete && <p className="text-xs text-gold">أكمل الشروط أعلاه أولاً.</p>}
+      <button type="button" onClick={onCancel} className="w-full text-center text-xs font-bold text-white/50 hover:text-maroon">
+        إلغاء هذا التشكيل
+      </button>
+    </Box>
+  );
+}
+
+/** A cluster's contract on its screen: open it, or replace it with a new scan */
+function ContractBox({ x }: { x: ClusterRequest }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const admins = useStore((v) => v.admins);
+  const c = x.cluster;
+  // a cluster formed before the demo began carries the contract uploaded then, as its members see it
+  const shown = c.contract ?? (c.status === "approved" ? seedContract("cluster", `عقد ${c.name}`) : undefined);
+  const url = useMediaUrl(shown?.ref);
+  const replace = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    try {
+      const { ref } = await uploadMedia(f, user.name, { documents: true });
+      writeCluster(x, { ...c, contract: { ref, name: f.name, type: f.type || "application/octet-stream", at: nowMs(), by: user.name } }, admins);
+      logAdmins(user, "clusters", { action: "رفع عقد التكتل", target: c.name, detail: f.name, ref: c.id, important: true });
+    } catch (e) {
+      toast({ title: "لم يُرفع العقد", body: (e as Error).message, tone: "warning", icon: "⚠️" });
+    }
+  };
+  return (
+    <Box title="عقد التكتل">
+      {shown ? (
+        <>
+          {shown.type.startsWith("image/") ? (
+            <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-white/5">
+              <CmsImage src={shown.ref} alt={`عقد ${c.name}`} fill sizes="320px" className="object-contain" />
+            </div>
+          ) : (
+            <p className="text-xs text-white/70">{shown.name}</p>
+          )}
+          <p className="text-xs text-white/60">
+            رفعه {shown.by} — {fmtDateTime(shown.at)}
+          </p>
+          {url && (
+            <a href={url} target="_blank" rel="noreferrer" download={shown.name} className="text-xs font-bold text-gold hover:underline">
+              فتح العقد
+            </a>
+          )}
+        </>
+      ) : (
+        <p className="text-xs text-gold">لم يُرفع عقده بعد.</p>
+      )}
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+        <Upload className="size-4" /> {c.contract ? "استبدال العقد" : "رفع العقد الموقّع"}
+        <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد التكتل" onChange={(e) => { void replace(e.target.files); e.target.value = ""; }} />
+      </label>
+    </Box>
+  );
+}
+
 // ───────────────────────── One request ─────────────────────────
 
-/** One request on its own screen: its checks, its report and the exceptional edits; the decision, printing and archive on the side */
+/** One cluster on its own screen: being formed, the office's desk; formed, its report, its contract, its exceptional edits, printing and the archive */
 function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const router = useRouter();
   const hrefWith = useHrefWith();
   const admins = useStore((s) => s.admins);
-  const [rejecting, setRejecting] = useState(false);
-  const [note, setNote] = useState("");
   const x = desk.requests.find((r) => r.cluster.id === id);
   const back = hrefWith({ id: null });
-  if (!x) return <NotFound back={back} backLabel="طلبات التكتلات" what="هذا الطلب" />;
+  if (!x) return <NotFound back={back} backLabel="التكتلات" what="هذا التكتل" />;
   const c = x.cluster;
-  const act = (action: "review" | "approve" | "reject" | "reopen", why?: string) => {
-    reviewCluster(x, action, user.name, admins, why);
-    const words = { review: "بدء مراجعة طلب تكتل", approve: "اعتماد تكتل", reject: "إعادة طلب تكتل إلى رئيسه بملاحظات", reopen: "إعادة فتح تكتل معتمد لتعديله" } as const;
-    logAdmins(user, "clusters", { action: words[action], target: c.name, detail: why ?? requestLine(x), ref: c.id, important: action !== "review" });
-    toast({ title: words[action], body: c.name, tone: action === "reject" ? "info" : "success", icon: action === "approve" ? "✅" : action === "reject" ? "↩️" : "🗂️" });
-    setRejecting(false);
-    setNote("");
-  };
-  const sendForHim = () => {
-    const at = nowMs();
-    writeCluster(x, { ...c, status: "pending", sentAt: at, firstSentAt: c.firstSentAt ?? at, review: undefined, decision: undefined }, admins);
-    logAdmins(user, "clusters", { action: "إرسال تشكيل للمراجعة نيابة عن قائده", target: c.name, detail: requestLine(x), ref: c.id, important: true });
-    toast({ title: "أُرسل للمراجعة", body: `${c.name} — نيابة عن ${x.headName}`, tone: "success", icon: "📨" });
+  const forming = c.status !== "approved";
+  // Cancelled before it was created: everyone placed leaves it, and the cluster goes
+  const cancel = () => {
+    writeCluster(x, { ...c, groups: {}, seats: {}, assistants: [], coordinators: [], femaleGuides: [], accountant: undefined, sorting: {}, guideSorting: {} }, admins);
+    if (admins[x.headId]?.cluster?.id === c.id) actions.upsertAdmin(x.headId, { cluster: undefined });
+    actions.setFormation((f) => ({ ...f, created: f.created.filter((v) => v.cluster.id !== c.id) }));
+    logAdmins(user, "clusters", { action: "إلغاء تشكيل تكتل قبل إنشائه", target: c.name, ref: c.id, important: true });
+    toast({ title: `أُلغي تشكيل ${c.name}`, tone: "info", icon: "✖️" });
+    router.push(back);
   };
   const archive = (on: boolean) => {
     actions.setFormation((f) => {
@@ -344,97 +719,61 @@ function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
       else delete archived[c.id];
       return { ...f, archived };
     });
-    logAdmins(user, "clusters", { action: on ? "أرشفة تكتل معتمد" : "استعادة تكتل من الأرشيف", target: c.name, detail: `موسم ${x.season}`, ref: c.id, important: true });
+    logAdmins(user, "clusters", { action: on ? "أرشفة تكتل" : "استعادة تكتل من الأرشيف", target: c.name, detail: `موسم ${x.season}`, ref: c.id, important: true });
     toast({ title: on ? `أُرشف ${c.name}` : `استُعيد ${c.name}`, body: on ? "يبقى في «التكتلات والمجموعات» بموسمه، ويخرج من عمل الموسم." : "عاد إلى التكتلات النشطة.", tone: "info", icon: on ? "🗄️" : "↩️" });
   };
 
   return (
     <div>
-      <EditHeader back={back} backLabel="طلبات التكتلات" title={c.name}>
+      <EditHeader back={back} backLabel="التكتلات" title={c.name}>
         رئيسه {x.headName} — موسم {x.season} — {requestLine(x)}
       </EditHeader>
       <EditLayout
         main={
-          <>
-            {c.decision?.note && <p className="rounded-2xl bg-maroon/25 p-3 text-sm leading-7 text-white ring-1 ring-maroon/50">ملاحظات الإعادة: {c.decision.note}</p>}
-            <section className="space-y-2">
-              <h2 className="font-display text-lg font-bold text-gold">الشروط</h2>
-              <ul className="space-y-1.5 text-sm">
-                {x.checks.map((k) => (
-                  <li key={k.key} className={cn("flex items-start gap-2 rounded-xl px-3 py-2 ring-1", k.ok ? "bg-green-light/10 text-white ring-green-light/30" : k.warn ? "bg-gold/15 text-white ring-gold/40" : "bg-maroon/20 text-white ring-maroon/40")}>
-                    {k.ok ? <Check className="mt-0.5 size-4 shrink-0 text-green-light" /> : <CircleDashed className="mt-0.5 size-4 shrink-0 text-gold" />} {k.label}
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <ClusterReport req={x} dark />
-            <PrintSheet>
-              <ClusterPrint req={x} />
-            </PrintSheet>
-            <Box title="تعديل استثنائي (خارج الضوابط المعتادة)" open={c.status === "draft" && !!c.byAdministration && !x.complete}>
-              <Exceptional x={x} />
-            </Box>
-          </>
+          forming ? (
+            <OfficeDesk x={x} />
+          ) : (
+            <>
+              <ClusterReport req={x} dark />
+              <PrintSheet>
+                <ClusterPrint req={x} />
+              </PrintSheet>
+              <Box title="تعديل استثنائي (بعد إنشائه)" open={false}>
+                <Exceptional x={x} />
+              </Box>
+            </>
+          )
         }
         side={
-          <>
-            <Box title="القرار">
-              <p className="flex flex-wrap gap-1">
-                <Tag tone={TONE[c.status]}>{STATUS[c.status].label}</Tag>
-                {x.archived && <Tag>مؤرشف — موسم {x.archived.season}</Tag>}
-              </p>
-              {c.byAdministration && <p className="text-xs text-gold">🛠️ أُنشئ من الإدارة: {c.byAdministration.reason}</p>}
-              <ul className="space-y-0.5 text-xs text-white/60">
-                {c.sentAt && <li>أُرسل {fmtDateTime(c.sentAt)}</li>}
-                {c.review && c.status !== "pending" && <li>راجعه {c.review.by}</li>}
-                {c.decision && (
-                  <li>
-                    {c.decision.status === "approved" ? "اعتمده" : "أعاده"} {c.decision.by} — {fmtDateTime(c.decision.at)}
-                  </li>
-                )}
-              </ul>
-              {c.status === "pending" && (
-                <Button variant="gold" className="w-full" onClick={() => act("review")}>
-                  <Eye className="size-4" /> بدء المراجعة
-                </Button>
-              )}
-              {c.status === "reviewing" && (
-                <div className="flex flex-col gap-2">
-                  <Button variant="gold" disabled={!x.complete} onClick={() => act("approve")}>
-                    <BadgeCheck className="size-4" /> اعتماد
-                  </Button>
-                  <Button variant="glass" onClick={() => setRejecting(true)}>
-                    <X className="size-4" /> رفض مع ملاحظات
-                  </Button>
-                  {!x.complete && <p className="text-xs text-gold">لا يُعتمد ناقصاً: أعده بملاحظات، أو أكمله بتعديل استثنائي.</p>}
-                </div>
-              )}
-              {c.status === "approved" && (
-                <Button variant="glass" className="w-full" onClick={() => act("reopen")}>
-                  <RotateCcw className="size-4" /> إعادة فتحه لرئيسه للتعديل
-                </Button>
-              )}
-              {c.status === "draft" && c.byAdministration && (
-                <>
-                  <Button variant="gold" className="w-full" disabled={!x.complete} onClick={sendForHim}>
-                    <Send className="size-4" /> إرساله للمراجعة نيابة عنه
-                  </Button>
-                  {!x.complete && <p className="text-xs text-gold">أنشأته الإدارة: املأ أماكنه بالتعديل الاستثنائي حتى يكتمل، ثم أرسله.</p>}
-                </>
-              )}
-              {(c.status === "draft" || c.status === "rejected") && !c.byAdministration && <p className="text-xs text-white/60">عند رئيسه: {c.status === "draft" ? "لم يرسله بعد" : "يصلحه ويعيد إرساله"}.</p>}
-            </Box>
-            <Box title="طباعة وتصدير">
-              <RowActions>
-                <RowLink onClick={() => window.print()}>
-                  <Printer className="me-1 inline size-3.5" /> طباعة التقرير
-                </RowLink>
-                <RowLink onClick={() => exportCluster(x)}>
-                  <Download className="me-1 inline size-3.5" /> Excel
-                </RowLink>
-              </RowActions>
-            </Box>
-            {c.status === "approved" && (
+          forming ? (
+            <OfficeFinish x={x} onCancel={cancel} />
+          ) : (
+            <>
+              <Box title="حاله">
+                <p className="flex flex-wrap gap-1">
+                  <Tag tone="green">{STATUS.approved.label}</Tag>
+                  {x.archived && <Tag>مؤرشف — موسم {x.archived.season}</Tag>}
+                </p>
+                <ul className="space-y-0.5 text-xs text-white/60">
+                  {c.decision && (
+                    <li>
+                      أنشأه {c.decision.by} — {fmtDateTime(c.decision.at)}
+                    </li>
+                  )}
+                  <li>{c.feePaidAt ? "رسم التكتل مدفوع في المكتب" : "رسم التكتل لم يُسجَّل"}</li>
+                </ul>
+              </Box>
+              <ContractBox x={x} />
+              <Box title="طباعة وتصدير">
+                <RowActions>
+                  <RowLink onClick={() => window.print()}>
+                    <Printer className="me-1 inline size-3.5" /> طباعة التقرير
+                  </RowLink>
+                  <RowLink onClick={() => exportCluster(x)}>
+                    <Download className="me-1 inline size-3.5" /> Excel
+                  </RowLink>
+                </RowActions>
+              </Box>
               <Box title="الأرشيف" open={!!x.archived}>
                 <p className="text-xs leading-6 text-white/60">المؤرشف يبقى في «التكتلات والمجموعات» بموسمه، ويخرج من عمل الموسم.</p>
                 {x.archived ? (
@@ -447,28 +786,13 @@ function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
                   </Button>
                 )}
               </Box>
-            )}
-            <Box title="سجلّه" open={false}>
-              <RecordHistory system="admins" refId={c.id} bare />
-            </Box>
-          </>
+              <Box title="سجلّه" open={false}>
+                <RecordHistory system="admins" refId={c.id} bare />
+              </Box>
+            </>
+          )
         }
       />
-
-      <Modal open={rejecting} onClose={() => setRejecting(false)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
-        <p className="text-xs font-bold text-gold">رفض مع ملاحظات</p>
-        <h3 className="mt-1 font-display text-xl font-bold">{c.name}</h3>
-        <p className="mt-1 text-sm leading-7 text-white/70">تظهر ملاحظاتك لرئيس التكتل ليستكمل النواقص ويعيد الإرسال قبل الموعد النهائي.</p>
-        <textarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} className={cn(textareaClass, "mt-4")} placeholder="مثال: أحد المنسقين بلا تفرّغ في مراحل العمل الأساسية — استبدله" aria-label="ملاحظات الرفض" />
-        <div className="mt-4 flex gap-2">
-          <Button variant="gold" disabled={note.trim().length < 5} onClick={() => act("reject", note.trim())}>
-            رفض وإرسال الملاحظات
-          </Button>
-          <Button variant="glass" onClick={() => setRejecting(false)}>
-            إلغاء
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }
@@ -531,7 +855,6 @@ function Exceptional({ x }: { x: ClusterRequest }) {
         { key: `${list}-new`, label: `${label} — إضافة`, remove: (k) => k, fill: { behavior, put: (k, p) => ({ ...k, [list]: [...k[list], p] }) } } as Place,
       ];
     }),
-    ...(c.deputy && yes(c.deputy) ? [{ key: "deputy", label: DEPUTY_TITLE, who: c.deputy, remove: (k: Cluster) => ({ ...k, deputy: undefined }) }] : []),
     ...(c.accountant && yes(c.accountant) ? [{ key: "accountant", label: ACCOUNTANT_TITLE, who: c.accountant, remove: (k: Cluster) => ({ ...k, accountant: undefined }) }] : []),
   ];
 
@@ -676,9 +999,9 @@ function Outside({ desk }: { desk: AdminsDesk }) {
   return (
     <div className="space-y-4">
       <Title>مجموعات معتمدة خارج كل تكتل</Title>
-      <Lead>{desk.deadlinePassed ? "لم يأخذها طلب، أو رُفض طلبها بعد الموعد النهائي: أضف كلاً منها إلى تكتل بتعديل استثنائي بسببه." : `ما دامت الطلبات مفتوحة قد يدعوها رئيس تكتل؛ تُضاف بتعديل استثنائي بعد الموعد النهائي ${dayLabel(desk.formationWindow.op.end, true)}.`}</Lead>
+      <Lead>{desk.deadlinePassed ? "لم تدخل تكتلاً حين شُكّلت التكتلات في المكتب: أضف كلاً منها إلى تكتل بتعديل استثنائي بسببه." : `ما دام تشكيل التكتلات مفتوحاً تدخل تكتلاً حين يُشكَّل في المكتب؛ وبعد الموعد النهائي ${dayLabel(desk.formationWindow.op.end, true)} تُضاف بتعديل استثنائي.`}</Lead>
       <ListTable head={["المجموعة", "الفرع", "الفئة", "الحجاج", "كانت في"]}>
-        {desk.outside.length === 0 && <EmptyRow cols={5}>كل مجموعة معتمدة في طلب تكتل.</EmptyRow>}
+        {desk.outside.length === 0 && <EmptyRow cols={5}>كل مجموعة مشكّلة في تكتل.</EmptyRow>}
         {desk.outside.map((g) => {
           const cat = categoryOfId(s, g.category);
           const can = desk.deadlinePassed && !!g.category && targets.length > 0;

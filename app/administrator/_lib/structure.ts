@@ -70,7 +70,7 @@ export const BEHAVIORS: { key: Behavior; label: string; hint: string }[] = [
   { key: "assistantPool", label: "ضمن مرشّحي معاوني التكتل", hint: "يظهر خياراً عند اختيار معاون التكتل في طلب التشكيل" },
   { key: "coordinatorPool", label: "ضمن مرشّحي منسّقي التكتل", hint: "يظهر خياراً عند اختيار منسّقي التكتل" },
   { key: "guidePool", label: "ضمن مرشّحي موجّهات التكتل", hint: "يظهر خياراً عند اختيار موجّهات التكتل ومرشداته" },
-  { key: "clusterLeader", label: "صفة «قائد التكتل»", hint: "تتيح لصاحبها تقديم طلب تشكيل تكتل ورئاسته" },
+  { key: "clusterLeader", label: "صفة «قائد التكتل»", hint: "يُشكَّل بها في المكتب تكتل ورئاسته" },
   { key: "groupLeader", label: "صفة «قائد المجموعة»", hint: "تجعل صاحبها مرشحاً لرئاسة مجموعة ضمن التكتل" },
   { key: "guidance", label: "تمنح شارة التميّز في التوجيه الديني", hint: "وجود شخص واحد بهذه الصفة في التكتل يمنحه شارة التميّز في التوجيه الديني" },
   { key: "category", label: "تُظهر حقل «الفئة»", hint: "لصاحبها فئة تحددها الإدارة، وهي فئة المجموعة التي يرأسها" },
@@ -108,7 +108,6 @@ export function roleKeyByName(s: Structure, position: string | undefined) {
 
 /** Roles a cluster gives that are not anyone's role for the season («الصفات الثانوية») */
 export const SECONDARY: Record<string, string> = {
-  "cluster-deputy": "نائب رئيس التكتل",
   "cluster-accountant": "محاسب التكتل",
 };
 

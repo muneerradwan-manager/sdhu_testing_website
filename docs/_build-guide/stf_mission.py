@@ -241,6 +241,12 @@ if run("fl"):
     c.scroll_to(jed, 380)
     c.shot("fl-airport-saved", "أُسند المندوب: يظهر اسمه أمام المطار", hl=[(f"{jed} td >> nth=2", "")], section=S)
     quiet(c)
+    dam = "main tbody tr:has-text('DAM')"
+    p.locator(f"{dam} button:text-is('تعديل')").first.click(); c.settle(1200)
+    ret = p.locator(D).last.locator("p:has-text('من يقلع منه يعود إلى')").first
+    ret.scroll_into_view_if_needed(); c.settle(400)
+    c.shot("fl-airport-return", "مطار دمشق: إلى أين يعود من يقلع منه", hl=[(f"{D} div:has(> p:has-text('من يقلع منه يعود إلى'))", "")], section=S)
+    dbtn("إلغاء", 900)
     s.nav("الناقلون الجويون", 1800)
     c.shot("fl-carriers", "الناقلون الجويون: رمز كل ناقل وهاتف التنسيق ورحلاته",
            hl=[(side("/staff/flights/manage/carriers"), "1"), ("main button:has-text('إضافة ناقل')", "2")], section=S)
@@ -278,6 +284,25 @@ if run("fl"):
            hl=[(f"{D} label:has-text('أيضاً') select", "1"), (f"{D} button:has-text('إسناد 4')", "2")], section=S)
     pk.locator("button:has-text('إسناد 4')").first.click(); c.settle(1500)
     c.shot("fl-staff-done", "الموظفون الأربعة على الرحلة، وحالتهم «مسند»", section=S)
+    quiet(c)
+
+    # ── the clusters' days: سهل حوران gets RB 511 and its return
+    s.nav("أيام التكتلات", 2000)
+    hw = "main tbody tr:has-text('تكتل سهل حوران')"
+    c.scroll_to(hw, 300)
+    c.shot("fl-allot", "أيام التكتلات: رحلات كل تكتل ومقاعده عليها مقابل مسافريه",
+           hl=[(side("/staff/flights/manage/allotments"), "1"), (f"{hw} td >> nth=0", "2")], section=S)
+    p.locator(f"{hw} button:has-text('إعطاء أيام')").first.click(); c.settle(1200)
+    m = p.locator(D).last
+    for no in ("RB 511", "RB 512"):
+        box = m.locator(f"input[aria-label^='{no} ']").first
+        box.scroll_into_view_if_needed(); box.check(); c.settle(250)
+    m.locator("input[aria-label^='RB 511 ']").first.scroll_into_view_if_needed(); c.settle(300)
+    c.shot("fl-allot-sheet", "أيام تكتل: الرحلة كلها أو حصة من رحلة مشتركة",
+           hl=[(f"{D} li:has(input[aria-label^='RB 511 '])", "1"), (f"{D} button:has-text('حفظ الأيام')", "2")], section=S)
+    dbtn("حفظ الأيام", 1400)
+    c.scroll_to(hw, 300)
+    c.shot("fl-allot-saved", "أُعطي تكتل سهل حوران يومين: RB 511 ذهاباً وRB 512 عودة", hl=[(hw, "")], section=S)
     quiet(c)
 
     # ── whole groups on a pilgrims' flight, outbound and return at once
@@ -354,7 +379,7 @@ if run("fl"):
     c.scroll_top()
     c.shot("fl-diverted", "الرحلة محوّلة: المرحلة الأرضية بالحافلات", hl=[("main p:has-text('مرحلة أرضية')", "")], section=S)
     quiet(c)
-    open_flight("XY 2214")
+    open_flight("XY 2210")
     emergencies()
     sbtn("إلغاء الرحلة", 900)
     p.locator(f"{D} textarea").last.fill("ألغى الناقل الرحلة"); c.settle(300)

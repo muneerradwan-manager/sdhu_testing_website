@@ -15,7 +15,7 @@ import type { JoinRequest } from "../_lib/group";
 /**
  * One pilgrim of a group, opened from its families by whoever serves the group: its head, the guide and the
  * assistant in its seats, the coordinator it is sorted to, the cluster's female guides and assistants, and the
- * cluster's head and deputy. What he sees is the pilgrim's latest: who he is and how to reach his family, where
+ * cluster's head. What he sees is the pilgrim's latest: who he is and how to reach his family, where
  * his application stands among the seven steps after acceptance, his documents, the health file the
  * coordinator took, his rooms once the trip is ready, and what happened last on his application.
  * A family that came through the pilgrim portal is read from its own records; the demo's seeded families
@@ -245,7 +245,7 @@ export function PilgrimSheet({ family, memberId, groupLabel, onClose }: { family
         )}
       </Block>
 
-      <p className="mt-4 text-xs leading-6 text-hint">يطّلع على الحاج من يخدم مجموعته وحدهم: رئيسها وفريقها في مقاعدها، ومنسقها، وموجّهات التكتل ومعاونه، ورئيس التكتل ونائبه. للاطلاع فقط؛ ما يعدّله الحاج أو المكتب يظهر هنا فوراً.</p>
+      <p className="mt-4 text-xs leading-6 text-hint">يطّلع على الحاج من يخدم مجموعته وحدهم: رئيسها وفريقها في مقاعدها، ومنسقها، وموجّهات التكتل ومعاونه، ورئيس التكتل. للاطلاع فقط؛ ما يعدّله الحاج أو المكتب يظهر هنا فوراً.</p>
       <div className="mt-4 flex justify-end">
         <Button variant="outline" onClick={onClose}>
           إغلاق

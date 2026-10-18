@@ -57,6 +57,15 @@ export function directoryNow(): Cluster[] {
   });
 }
 
+/** The groups he signed a contract with at the office: his own as its head, or the group whose seat the office gave him */
+export function myGroupNumbers(id: string, p: AdminProfile | undefined, admins: Record<string, AdminProfile>): number[] {
+  const out = new Set<number>();
+  if (p?.group?.approvedAt) out.add(p.group.number);
+  if (p?.servesIn && (p.servesIn.role === "guide" || p.servesIn.role === "assistant")) p.servesIn.groups.forEach((n) => out.add(n));
+  for (const a of Object.values(admins)) if (a.group?.approvedAt && (a.group.seats?.some((x) => x.who?.id === id) || a.group.countAssistant?.id === id)) out.add(a.group.number);
+  return [...out];
+}
+
 /** Who writes a group's public page (its picture, its word, its gallery): its head once it is approved, or its assistant */
 export function groupWriterOf(p: AdminProfile | undefined): { no: number; post: string; clusterId?: string; clusterName?: string } | null {
   if (!p) return null;
@@ -68,18 +77,34 @@ export function groupWriterOf(p: AdminProfile | undefined): { no: number; post: 
   return null;
 }
 
+/** The groups' pages someone writes: the cluster's head all its groups, a group's head or assistant his */
+export type GroupPagesAccess = { post: string; clusterId?: string; clusterName?: string; groups: number[] };
+
+export function groupPagesOf(p: AdminProfile | undefined): GroupPagesAccess | null {
+  if (!p) return null;
+  const clusterId = p.cluster?.id;
+  if (clusterId) {
+    const r = requestNow(clusterId);
+    const groups = acceptedGroups(r?.cluster ?? p.cluster)
+      .map((g) => g.number)
+      .sort((a, b) => a - b);
+    if (groups.length) return { post: "رئيس التكتل", clusterId, clusterName: r?.cluster.name ?? p.cluster?.name, groups };
+  }
+  const own = groupWriterOf(p);
+  return own ? { post: own.post, clusterId: own.clusterId, clusterName: own.clusterName, groups: [own.no] } : null;
+}
+
 /** Who writes a cluster's public page, and as what */
 export type PageWriter = { clusterId: string; clusterName: string; post: string };
 
 /**
- * A cluster's public page is written by its team once the cluster is approved: its head and deputy, its
+ * A cluster's public page is written by its team once the cluster is formed: its head, its
  * assistants and technical coordinators, and its groups' heads and their assistants (not its guides). Whatever
  * any of them sends waits for the administration, under the sender's name.
  */
 export function pageWriterOf(p: AdminProfile | undefined): PageWriter | null {
   if (!p) return null;
   if (p.cluster) return { clusterId: p.cluster.id, clusterName: p.cluster.name, post: "رئيس التكتل" };
-  if (p.deputyOf) return { clusterId: p.deputyOf.clusterId, clusterName: p.deputyOf.clusterName, post: "نائب رئيس التكتل" };
   if (p.coordinatorIn) return { clusterId: p.coordinatorIn.clusterId, clusterName: p.coordinatorIn.clusterName, post: "منسق تقني" };
   if (p.servesIn?.role === "cluster-assistant") return { clusterId: p.servesIn.clusterId, clusterName: p.servesIn.clusterName, post: "معاون التكتل" };
   if (p.servesIn?.role === "assistant") return { clusterId: p.servesIn.clusterId, clusterName: p.servesIn.clusterName, post: "معاون مجموعة" };

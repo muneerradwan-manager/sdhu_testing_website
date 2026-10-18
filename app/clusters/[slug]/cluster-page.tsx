@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft, BadgeCheck, BookOpen, Bus, CalendarCheck, Hotel, Images, MapPin, ShieldCheck, Sparkles, Star, Utensils, Wallet } from "lucide-react";
@@ -11,28 +10,38 @@ import { Gallery } from "../_components/gallery";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { ROOM_BEDS, ROOM_LABEL, priceRange } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
-import type { ServiceLevel } from "@/lib/data/clusters";
+import { HARAM, NABAWI, coverOf, type LatLng, type ServiceLevel } from "@/lib/data/clusters";
+import { MapPicker, mapsLink } from "@/components/ui/map-picker";
+import { CmsImage } from "@/components/cms/image";
 import { levelEn } from "@/app/conditions/_lib/en";
 import { useT } from "@/lib/i18n";
 import { cn, formatNumber, formatUSD } from "@/lib/utils";
 
 const ROOM_LABEL_EN = { 1: "single room with one bed and its own bathroom", 2: "two-bed room", 3: "three-bed room", 4: "four-bed room" } as const;
 
-const IMAGES: Record<string, string> = {
-  "al-nour": "/images/clock-tower.jpg",
-  "al-safa": "/images/kaaba-hajj.jpg",
-  "al-yaqeen": "/images/mina-tents.jpg",
-  "al-shahba": "/images/tawaf-night.jpg",
-  "al-asi": "/images/jabal-rahmah.jpg",
-  "bawabat-al-haramain": "/images/nabawi.jpg",
-  hawran: "/images/quba.jpg",
-};
 
 const LEVEL_STYLE: Record<ServiceLevel, string> = {
   "اقتصادي": "bg-white/90 text-green-dark",
   "اقتصادي محسن": "bg-green-light text-white",
   "خمس نجوم": "bg-gradient-to-l from-gold-dark to-gold text-ink",
 };
+
+/** A hotel on the map beside its mosque, and the way to open it in the maps */
+function HotelMap({ at, mosque, label }: { at: LatLng; mosque: { at: LatLng; label: string }; label: string }) {
+  const t = useT();
+  // Zoomed out enough to show both the hotel and the mosque
+  const far = Math.max(Math.abs(at.lat - mosque.at.lat), Math.abs(at.lng - mosque.at.lng));
+  const zoom = far > 0.04 ? 12 : far > 0.015 ? 13 : far > 0.006 ? 14 : 15;
+  const mid = { lat: (at.lat + mosque.at.lat) / 2, lng: (at.lng + mosque.at.lng) / 2 };
+  return (
+    <div className="mt-3">
+      <MapPicker readOnly label={label} value={at} center={mid} zoom={zoom} landmark={mosque} className="h-48" key={`${at.lat},${at.lng}`} />
+      <a href={mapsLink(at)} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-green-dark underline">
+        {t("افتح في الخرائط", "Open in maps")}
+      </a>
+    </div>
+  );
+}
 
 function Stars({ value }: { value: number }) {
   const t = useT();
@@ -90,7 +99,7 @@ export function ClusterPage({ slug }: { slug: string }) {
     <div>
       {/* Hero */}
       <section className="relative h-[22rem] overflow-hidden md:h-[26rem]">
-        <Image src={IMAGES[c.slug] ?? "/images/kaaba-hajj.jpg"} alt="" fill priority sizes="100vw" quality={75} className="object-cover" />
+        <CmsImage src={coverOf(c)} alt="" fill priority sizes="100vw" quality={75} className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-green-dark via-green-dark/70 to-green-dark/20" />
         <div className="bg-pattern absolute inset-0 opacity-15" />
         <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col justify-end px-4 pb-8 md:px-8">
@@ -117,12 +126,6 @@ export function ClusterPage({ slug }: { slug: string }) {
               <p className="mt-1 text-sm font-semibold text-gold">
                 {t("رئيس التكتل: ", "Head of the cluster: ")}
                 <bdi>{c.team.head.name}</bdi>
-                {c.team.deputy && (
-                  <span className="font-normal text-white/75">
-                    {t(" · نائبه: ", " · deputy: ")}
-                    <bdi>{c.team.deputy.name}</bdi>
-                  </span>
-                )}
               </p>
             )}
             <p className="mt-2 text-sm text-white/70">
@@ -197,6 +200,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                   <p className="text-sm text-ink-soft">
                     {c.makkah.area} · {c.makkah.distance}
                   </p>
+                  {c.makkah.at && <HotelMap at={c.makkah.at} mosque={{ at: HARAM, label: t("المسجد الحرام", "Al-Masjid al-Haram") }} label={c.makkah.hotel} />}
                   <p className="mt-1 text-sm text-ink-soft">{c.makkah.rooms}</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {c.makkah.features.map((f) => (
@@ -214,6 +218,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                   <p className="text-sm text-ink-soft">
                     {c.madinah.area} · {c.madinah.distance}
                   </p>
+                  {c.madinah.at && <HotelMap at={c.madinah.at} mosque={{ at: NABAWI, label: t("المسجد النبوي", "The Prophet's Mosque") }} label={c.madinah.hotel} />}
                 </div>
               </div>
             </Card>

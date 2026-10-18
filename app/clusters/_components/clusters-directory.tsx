@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, BadgeCheck, ChevronDown, Crown, EyeOff, Hotel, Landmark, MapPin, Search, Sparkles, Star, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { useClusterDirectory } from "@/lib/cluster-profile";
-import { normalizeArabic, type Cluster, type ServiceLevel, type TeamGroup } from "@/lib/data/clusters";
+import { coverOf, normalizeArabic, type Cluster, type ServiceLevel, type TeamGroup } from "@/lib/data/clusters";
 import { groupName } from "@/lib/groups";
 import { LEVELS as LEVEL_EN } from "@/app/conditions/_lib/en";
 import { useLang, useT } from "@/lib/i18n";
@@ -18,15 +17,6 @@ import { useGroupProfile } from "@/lib/group-profile";
 
 const LEVELS: ("الكل" | ServiceLevel)[] = ["الكل", "اقتصادي", "اقتصادي محسن", "خمس نجوم"];
 
-const IMAGES: Record<string, string> = {
-  "al-nour": "/images/clock-tower.jpg",
-  "al-safa": "/images/kaaba-hajj.jpg",
-  "al-yaqeen": "/images/mina-tents.jpg",
-  "al-shahba": "/images/tawaf-night.jpg",
-  "al-asi": "/images/jabal-rahmah.jpg",
-  "bawabat-al-haramain": "/images/nabawi.jpg",
-  hawran: "/images/quba.jpg",
-};
 
 const LEVEL_STYLE: Record<ServiceLevel, string> = {
   "اقتصادي": "bg-white/90 text-green-dark",
@@ -175,8 +165,8 @@ export function ClusterCard({ c, i }: { c: Cluster; i: number }) {
       className="group flex flex-col overflow-hidden rounded-3xl border border-gold/40 bg-white shadow-[0_20px_50px_-35px_rgba(0,89,79,.6)] transition-shadow hover:shadow-[0_30px_60px_-30px_rgba(0,89,79,.55)]"
     >
       <div className="relative h-40 overflow-hidden">
-        <Image
-          src={IMAGES[c.slug] ?? "/images/kaaba-hajj.jpg"}
+        <CmsImage
+          src={coverOf(c)}
           alt=""
           fill
           sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"

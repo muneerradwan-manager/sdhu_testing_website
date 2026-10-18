@@ -10,7 +10,7 @@
  */
 
 import { TRACKS, type Lesson, type Track } from "@/lib/data/academy";
-import { CLUSTERS, CLUSTER_GALLERY } from "@/lib/data/clusters";
+import { CLUSTERS, CLUSTER_COVER, CLUSTER_GALLERY, CLUSTER_HOTELS } from "@/lib/data/clusters";
 import { DAYS, GUIDE_DUAS } from "@/lib/data/guide";
 import { FAQS, FAQ_CATEGORIES } from "@/lib/data/faq";
 import { ARTICLES, CATEGORIES } from "@/lib/data/news";
@@ -234,13 +234,18 @@ const CLUSTER_COLLECTION: CollectionDef = {
     { key: "makkahArea", label: "منطقة السكن في مكة", kind: "text", def: "" },
     { key: "makkahDistance", label: "المسافة عن الحرم", kind: "text", def: "" },
     { key: "makkahRooms", label: "نوع الغرف", kind: "text", def: "", wide: true },
+    { key: "makkahLat", label: "فندق مكة — خط العرض", kind: "number", def: 0, step: 0.00001 },
+    { key: "makkahLng", label: "فندق مكة — خط الطول", kind: "number", def: 0, step: 0.00001 },
     textList("makkahFeatures", "مزايا سكن مكة", "ميزة"),
     { key: "madinahHotel", label: "فندق المدينة", kind: "text", def: "", wide: true },
     { key: "madinahArea", label: "منطقة السكن في المدينة", kind: "text", def: "" },
     { key: "madinahDistance", label: "المسافة عن المسجد النبوي", kind: "text", def: "" },
+    { key: "madinahLat", label: "فندق المدينة — خط العرض", kind: "number", def: 0, step: 0.00001 },
+    { key: "madinahLng", label: "فندق المدينة — خط الطول", kind: "number", def: 0, step: 0.00001 },
     textList("transport", "المواصلات", "خدمة"),
     textList("meals", "الإعاشة", "خدمة"),
     textList("programs", "البرامج", "برنامج"),
+    { key: "cover", label: "الصورة الرئيسية", kind: "image", def: "", wide: true },
     {
       key: "gallery",
       label: "معرض الصور",
@@ -282,6 +287,11 @@ const CLUSTER_COLLECTION: CollectionDef = {
       transport: c.transport.map((text) => ({ text })),
       meals: c.meals.map((text) => ({ text })),
       programs: c.programs.map((text) => ({ text })),
+      cover: CLUSTER_COVER[c.slug] ?? "",
+      makkahLat: CLUSTER_HOTELS[c.slug]?.makkah.lat ?? 0,
+      makkahLng: CLUSTER_HOTELS[c.slug]?.makkah.lng ?? 0,
+      madinahLat: CLUSTER_HOTELS[c.slug]?.madinah.lat ?? 0,
+      madinahLng: CLUSTER_HOTELS[c.slug]?.madinah.lng ?? 0,
       gallery: (CLUSTER_GALLERY[c.slug] ?? []).map((src) => ({ src })),
     },
   })),

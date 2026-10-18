@@ -2,13 +2,15 @@
 """Staff guide — part «admins»: the «إدارة الإداريين» file, held by مازن الحلبي (mazen) alone.
 Its dashboard (numbers only), then every operation in the menu's order, which is the order of a season:
 the rules and the calendar, the reference lists, the administrative references, the permanent cadre and its
-events, the applicants and their files, forming groups (in their dates: 6 November), the cluster requests and
-their approval (25 November, before the 30 November deadline), the clusters and groups directory, the letters,
+events, the applicants and their files, forming groups at the office (in their dates: 6 November), forming
+clusters at the office (25 November, before the 30 November deadline: a draft entered then cancelled, so the season
+stays as it was, and تكتل الشهباء's contract, exceptional edit and archive), the clusters and groups directory, the letters,
 the evaluation and the classification.
 Screens that need an administrator's own submission — the programme and the operational plan of تكتل النور sent
 by its head — start from admin/state-head-profile.json (adm_c.py head); the rest is the demo's own season.
 Usage: CAP_DIR=<folder> python stf_admins.py [a|b|c|d|e]"""
 import sys
+from cap import ROOT
 from stf_common import Staff, STATE
 
 ONLY = sys.argv[1] if len(sys.argv) > 1 else None
@@ -200,85 +202,127 @@ if ONLY in (None, "b"):
     c.shot("adm-file", "الملف الدائم: وثائقه وصلاحيتها، ومهاراته ولغاته، ونتيجة تأهيله", section=S_APP)
     s.close()
 
-# ═════════════ C. forming groups, in their dates (1–10 November) ═════════════
+# ═════════════ C. forming groups at the office, in their dates (1–10 November) ═════════════
+CONTRACTS = ROOT.parent.parent / "public" / "images" / "contracts"
+
+
+def pick_option(sel, text, fallback=1):
+    """A select's option by part of its text, else its n-th option"""
+    o = sel.locator("option", has_text=text)
+    if o.count():
+        sel.select_option(value=o.first.get_attribute("value"))
+    else:
+        sel.select_option(index=fallback)
+
+
 if ONLY in (None, "c"):
     s, c, p = start(today="2026-11-06", time="10:00")
     s.nav("تشكيل المجموعات", 2000)
-    c.shot("grp-list", "مجموعات الموسم: ما ينتظر قرارك أولاً، و«تشكيل مجموعة» للتشكيل في المكتب", hl=[("main button:has-text('تشكيل مجموعة')", "1"), ("main tr:has-text('اللطيف') button:has-text('مراجعة واعتماد')", "2")], section=S_GRP)
-    p.locator("main tr:has-text('اللطيف') button:has-text('مراجعة واعتماد')").first.click(); c.settle(1400)
-    c.shot("grp-sheet", "طلب تشكيل ينتظر قرارك: فئة رئيسه، وشروطه، والاعتماد أو الإعادة", hl=[(f"{D} button:has-text('اعتماد المجموعة')", "1"), (f"{D} button:has-text('إعادة إلى رئيسها')", "2")], section=S_GRP)
-    p.locator(f"{D} button:has-text('اعتماد المجموعة')").first.click(); c.settle(1600)
-    c.shot("grp-approved", "اعتُمدت المجموعة بفئة رئيسها", section=S_GRP)
-    esc(c, p)
+    c.shot("grp-list", "مجموعات الموسم: «تشكيل مجموعة» للتشكيل في المكتب، وطلب قديم ينتظر قرارك", hl=[("main button:has-text('تشكيل مجموعة')", "1"), ("main tr:has-text('اللطيف') button:has-text('مراجعة واعتماد')", "2")], section=S_GRP)
+    # a group head at the office with his team
     s.btn("تشكيل مجموعة", 1200)
     dlg = p.locator(D).last
-    dlg.locator("select").first.select_option(index=1); c.settle(700)
-    dlg.locator("input[type=checkbox]").first.check(); c.settle(400)
-    c.shot("grp-form", "تشكيل مجموعة في المكتب: رئيسها المؤهل، واسمها، وفئته، ورسم التشكيل", hl=[(f"{D} button:has-text('تشكيل مجموعة')", "")], section=S_GRP)
+    dlg.locator("select").first.select_option(index=1); c.settle(800)
+    cat = dlg.locator("select").nth(1)
+    if not cat.input_value():
+        cat.select_option(index=2); c.settle(600)
+    for lab in ["الموجّه الديني", "المعاون"]:
+        seats = dlg.locator(f"select[aria-label='{lab}']")
+        for i in range(seats.count()):
+            if seats.nth(i).locator("option").count() > 1:
+                seats.nth(i).select_option(index=1); c.settle(400)
+    c.shot("grp-form", "تشكيل مجموعة في المكتب: رئيسها المؤهل، واسمها، وفئته، ومن يشغل كل مقعد من فريقها", section=S_GRP)
+    dlg.locator("label:has-text('سدّد رسم التشكيل') input").first.check(); c.settle(300)
+    dlg.locator("input[type=file][aria-label='عقد المجموعة']").set_input_files(str(CONTRACTS / "group-contract.svg")); c.settle(1800)
+    dlg.locator("label:has-text('وقّع العقدَ') input").first.check(); c.settle(300)
+    dlg.locator("button:has-text('تشكيل مجموعة')").last.scroll_into_view_if_needed(); c.settle(300)
+    c.shot("grp-form-contract", "رسم التشكيل، وعقد المجموعة الموقّع يُرفع صورة، ثم «تشكيل مجموعة …»", hl=[(f"{D} button:has-text('تشكيل مجموعة')", "")], section=S_GRP)
     dlg.locator("button:has-text('تشكيل مجموعة')").last.click(); c.settle(1800)
     filt(p, c, "معتمدة", 1000)
     c.shot("grp-approved-list", "المجموعات المعتمدة: رئيس كل مجموعة وفرعها وفئتها وحجاجها وتكتلها", section=S_GRP)
+    # a request filed on the platform before the office formed the groups
+    filt(p, c, "تنتظر قرارك", 1000)
+    p.locator("main tr:has-text('اللطيف') button:has-text('مراجعة واعتماد')").first.click(); c.settle(1400)
+    c.shot("grp-sheet", "طلب قديم ينتظر قرارك: فئة رئيسه، وشروطه، والاعتماد أو الإعادة", hl=[(f"{D} button:has-text('اعتماد المجموعة')", "1"), (f"{D} button:has-text('إعادة إلى رئيسها')", "2")], section=S_GRP)
+    p.locator(f"{D} button:has-text('اعتماد المجموعة')").first.click(); c.settle(1600)
+    c.shot("grp-approved", "اعتُمدت المجموعة بفئة رئيسها", section=S_GRP)
+    esc(c, p)
     s.close()
 
-# ═════════════ D. the cluster requests and their approval (25 November) ═════════════
+# ═════════════ D. the clusters, formed at the office (25 November, in their dates) ═════════════
 if ONLY in (None, "d"):
     s, c, p = start(today="2026-11-25", time="10:00")
-    s.nav("طلبات التكتلات", 2000)
-    c.shot("cl-list", "طلبات تشكيل التكتلات: حال كل طلب وشروطه، وإنشاء تشكيل نيابة عن قائد", hl=[("main nav:not([aria-label='أقسام بوابة الموظفين']) a:has-text('الطلبات')", "1"), ("main button:has-text('إنشاء تشكيل نيابة عن قائد')", "2")], section=S_CL)
-    filt(p, c, "قيد المراجعة")
-    p.locator("main tbody tr").first.locator("a:text-is('مراجعة')").first.click(); c.settle(2000)
-    c.shot("cl-review", "طلب أُرسل للمراجعة: شروطه، والقرار في المربع الجانبي", hl=[("main button:has-text('بدء المراجعة')", "")], section=S_CL)
-    s.btn("بدء المراجعة", 5000)
-    c.shot("cl-reviewing", "جاري المراجعة: اعتماد، أو رفض مع ملاحظات", hl=[("main aside button:has-text('اعتماد')", "1"), ("main aside button:has-text('رفض مع ملاحظات')", "2")], section=S_CL)
-    c.scroll_to("main h2:has-text('الشروط')", 110)
-    c.scroll_by(650)
-    c.shot("cl-report", "تقرير الطلب: مجموعاته وكادره ومكان كل فرد", section=S_CL)
+    c.goto(M + "/clusters", wait=2000)
+    c.shot("cl-list", "التكتلات: كل تكتل بحاله وشروطه، و«تشكيل تكتل في المكتب»", hl=[("main nav:not([aria-label='أقسام بوابة الموظفين']) a:has-text('التكتلات') >> nth=0", "1"), ("main button:has-text('تشكيل تكتل في المكتب')", "2")], section=S_CL)
+    # its head comes to the office with everyone in it
+    s.btn("تشكيل تكتل في المكتب", 1000)
+    dlg = p.locator(D).last
+    pick_option(dlg.locator("select").first, "نبيل الساعاتي"); c.settle(500)
+    c.shot("cl-onbehalf", "تشكيل تكتل في المكتب: رئيسه الحاضر واسم التكتل ومستواه", hl=[(f"{D} button:has-text('بدء التشكيل')", "")], section=S_CL)
+    dlg.locator("button:has-text('بدء التشكيل')").first.click(); c.settle(2200)
     c.scroll_top()
-    p.locator("main aside button:has-text('اعتماد')").first.click(); c.settle(1600)
-    c.shot("cl-approved", "اعتُمد التكتل: إعادة فتحه لرئيسه، والأرشفة، والطباعة وExcel", section=S_CL)
+    grp = p.locator("main select[aria-label='مجموعة تدخل التكتل']").first
+    if grp.locator("option").count() > 1:
+        grp.select_option(index=1); c.settle(300)
+    grp.scroll_into_view_if_needed(); c.settle(300)
+    c.shot("cl-desk", "قيد التشكيل في المكتب: الاسم والمستوى، والمجموعات بمقاعد فرقها، وإدخال مجموعة حضر رئيسها", hl=[("main button:has-text('إدخالها')", "")], section=S_CL)
+    if grp.input_value():
+        p.locator("main button:has-text('إدخالها')").first.click(); c.settle(1200)
+    for lst in ["المنسقون التقنيون", "الموجّهات الدينيات", "معاونو التكتل"]:
+        sel = p.locator(f"main select[aria-label^='إضافة: {lst}']").first
+        if sel.count() and sel.locator("option").count() > 1:
+            sel.select_option(index=1); c.settle(900)
+    acc = p.locator("main label:has-text('محاسب التكتل') select").first
+    if acc.locator("option").count() > 1:
+        acc.select_option(index=1); c.settle(900)
+    c.scroll_to("main :text('٣. كادر التكتل')", 120)
+    c.shot("cl-desk-team", "كادر التكتل يختاره رئيسه: المنسقون والموجّهات ومعاونو التكتل، والمحاسب من أعضائه", section=S_CL)
+    c.scroll_to("main :text('٤. توزيع المنسقين')", 120)
+    auto = p.locator("main button:has-text('توزيع تلقائي ضمن الحدود')").first
+    c.shot("cl-desk-sort", "توزيع المنسقين والموجّهات على المجموعات، كلٌّ ضمن حدّه من الوحدات", hl=[("main button:has-text('توزيع تلقائي ضمن الحدود')", "")], section=S_CL)
+    if auto.is_enabled():
+        auto.click(); c.settle(1000)
+    side = p.locator("main aside").first
+    side.locator("label:has-text('سدّد رسم التكتل') input").first.check(); c.settle(300)
+    side.locator("input[type=file][aria-label='عقد التكتل']").set_input_files(str(CONTRACTS / "cluster-contract.svg")); c.settle(1800)
+    side.locator("label:has-text('وقّع العقدَ') input").first.check(); c.settle(300)
+    c.scroll_top()
+    c.shot("cl-finish", "إنشاء التكتل: شروطه، ورسمه، وعقده الموقّع، ثم «إنشاء التكتل» أو إلغاء التشكيل", hl=[("main aside button:has-text('إنشاء التكتل')", "")], section=S_CL)
+    # the demo's season stays as it was: the draft is cancelled
+    p.locator("main aside button:has-text('إلغاء هذا التشكيل')").first.click(); c.settle(1800)
+    # a cluster formed at the office: its report, its contract, its exceptional edits, the archive
+    c.goto(M + "/clusters", wait=1800)
+    filt(p, c, "شُكّل في المكتب")
+    p.locator("main tr:has-text('تكتل الشهباء للحج والعمرة') a:text-is('فتح')").first.click(); c.settle(1800)
+    c.shot("cl-formed", "تكتل شُكّل في المكتب: تقريره، وحاله، وعقده، والطباعة وExcel", section=S_CL)
+    up = p.locator("main aside input[type=file][aria-label='عقد التكتل']").first
+    up.set_input_files(str(CONTRACTS / "cluster-contract.svg")); c.settle(1800)
+    c.scroll_to("main aside :text('عقد التكتل')", 120)
+    c.shot("cl-contract", "عقد التكتل: صورته ومن رفعه ومتى، وفتحه أو استبداله", hl=[("main aside label:has-text('استبدال العقد')", "")], section=S_CL)
+    c.scroll_top()
     box(p, c, "تعديل استثنائي")
     p.locator("main button:has-text('منسق التكتل — إضافة')").first.click(); c.settle(700)
     who = p.locator("main select[aria-label='من يُضاف']").first
     if who.count() and who.locator("option").count() > 1:
         who.select_option(index=1); c.settle(300)
-    p.locator("main textarea[aria-label='سبب التعديل الاستثنائي']").first.fill("منسق ثانٍ لكثرة كبار السن في مجموعات التكتل، بكتاب رئيسه"); c.settle(300)
+    p.locator("main textarea[aria-label='سبب التعديل الاستثنائي']").first.fill("منسق ثانٍ لكثرة كبار السن في مجموعات التكتل، بحضور رئيسه في المكتب"); c.settle(300)
     c.scroll_to("main button:has-text('تنفيذ التعديل')", 680)
     c.shot("cl-exceptional", "التعديل الاستثنائي: يُزال الشاغل ويُملأ الشاغر، بسبب يُكتب في ملفه", hl=[("main button:has-text('منسق التكتل — إضافة')", "1"), ("main button:has-text('تنفيذ التعديل')", "2")], section=S_CL)
-    # a request back to its head with notes
-    p.locator("main a:has-text('طلبات التكتلات')").first.click(); c.settle(1600)
-    filt(p, c, "جاري المراجعة")
-    p.locator("main tbody tr").first.locator("a:text-is('مراجعة')").first.click(); c.settle(2000)
-    s.btn("رفض مع ملاحظات", 900)
-    p.locator(f"{D} textarea[aria-label='ملاحظات الرفض']").first.fill("أحد المنسقين بلا تفرّغ في مراحل العمل الأساسية — استبدله وأعد الإرسال قبل الموعد النهائي."); c.settle(300)
-    c.shot("cl-reject", "رفض مع ملاحظات: يصلحها رئيس التكتل ويعيد الإرسال قبل الموعد النهائي", hl=[(f"{D} button:has-text('رفض وإرسال الملاحظات')", "")], section=S_CL)
-    p.locator(f"{D} button:has-text('رفض وإرسال الملاحظات')").first.click(); c.settle(1500)
-    # on behalf of a leader
-    p.locator("main a:has-text('طلبات التكتلات')").first.click(); c.settle(1600)
-    s.btn("إنشاء تشكيل نيابة عن قائد", 1000)
-    dlg = p.locator(D).last
-    dlg.locator("select").first.select_option(index=1); c.settle(400)
-    dlg.locator("textarea").first.fill("القائد خارج البلاد، وفوّض الإدارة بكتاب"); c.settle(300)
-    c.shot("cl-onbehalf", "إنشاء تشكيل نيابة عن قائد: القائد واسم التكتل ومستواه والسبب", hl=[(f"{D} button:has-text('إنشاء المسودة')", "")], section=S_CL)
-    dlg.locator("button:has-text('إنشاء المسودة')").first.click(); c.settle(2200)
-    c.shot("cl-onbehalf-draft", "المسودة باسم قائدها: تُملأ أماكنها بالتعديل الاستثنائي ثم تُرسل نيابة عنه", hl=[("main aside button:has-text('إرساله للمراجعة نيابة عنه')", "")], section=S_CL)
-    p.locator("main a:has-text('طلبات التكتلات')").first.click(); c.settle(1600)
+    c.scroll_top()
+    box(p, c, "الأرشيف")
+    c.shot("cl-archive", "الأرشيف: التكتل المنشأ يُؤرشف فيخرج من عمل الموسم ويبقى بموسمه", hl=[("main aside button:has-text('أرشفة')", "")], section=S_CL)
+    p.locator("main aside button:has-text('أرشفة')").first.click(); c.settle(1500)
+    c.goto(M + "/clusters", wait=1800)
     view(p, c, "مجموعات خارج التكتلات")
     c.shot("cl-outside", "مجموعات معتمدة خارج كل تكتل: تُضاف بتعديل استثنائي بعد الموعد النهائي", section=S_CL)
     box(p, c, "مواعيد الاستقبال")
     c.scroll_to("main button:has-text('مواعيد الاستقبال')", 110)
     c.shot("cl-window", "مواعيد الاستقبال: البدء والموعد الأول والموعد النهائي باليوم والساعة", section=S_CL)
-    # an approved cluster out of the season's work
-    view(p, c, "الطلبات")
-    filt(p, c, "معتمد")
-    p.locator("main tr:has-text('تكتل الشهباء للحج والعمرة') a:text-is('فتح')").first.click(); c.settle(1800)
-    box(p, c, "الأرشيف")
-    c.shot("cl-archive", "الأرشيف: التكتل المعتمد يُؤرشف فيخرج من عمل الموسم ويبقى بموسمه", hl=[("main aside button:has-text('أرشفة')", "")], section=S_CL)
-    p.locator("main aside button:has-text('أرشفة')").first.click(); c.settle(1500)
-    p.locator("main a:has-text('طلبات التكتلات')").first.click(); c.settle(1600)
     view(p, c, "المؤرشفة", 4000)
     c.shot("cl-archived", "التشكيلات المؤرشفة: بموسمها، ويُستعاد أي منها من صفحته", section=S_CL)
     s.close()
 
+if ONLY in (None, "d"):
     # the programme of تكتل النور, sent by its head (administrator run «head»)
     s, c, p = start(STATE / "state-head-profile.json", "2026-11-25", "10:00")
     c.goto(M + "/clusters?v=programmes", wait=2000)

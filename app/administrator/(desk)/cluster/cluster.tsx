@@ -1,398 +1,98 @@
 "use client";
 
-import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, Check, CircleDashed, ClipboardList, Crown, FileSignature, Globe, Inbox, Layers, Printer, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, ClipboardList, FileSignature, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
-import { DemoJump, OperationClosed } from "@/components/app/operation-closed";
-import { PrintSheet } from "@/components/print/print-sheet";
-import { PayMethods, payMethodLabel, type PayMethod } from "@/components/payment/methods";
 import { Button } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
-import { dayTimeLabel, rangeLabel } from "@/lib/operations";
-import { useSeason } from "@/lib/season-live";
-import { actions, useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
-import { cn, formatNumber, formatUSD } from "@/lib/utils";
-import { adminName, logAdmin, nowMs, resultOf, useAdmin } from "../../_lib/admin";
+import { useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
+import { cn, formatNumber } from "@/lib/utils";
+import { ContractView, seedContract } from "../../_components/contract-view";
+import { logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { acceptedGroups, clusterViewOf } from "../../_lib/cluster";
 import { coordinatorsLabel } from "../../_lib/coordinators";
 import { distribute, fits, loadOf } from "../../_lib/distribution";
 import {
   ACCOUNTANT_TITLE,
-  DEPUTY_TITLE,
-  STATUS,
-  STEPS,
-  answerInvitation,
   cadreOf,
-  editableBy,
   fitSeats,
-  invitationsFor,
   invite,
-  inviteWhat,
-  mapInvites,
-  newCluster,
   placedIn,
-  refit,
-  reviewCluster,
   roleOfPerson,
-  sendCluster,
   useClusterRequests,
-  useFormationWindow,
-  useFormingSeason,
   useGroupPool,
-  useMyInvitations,
   usePicks,
   writeCluster,
   type Cluster,
   type ClusterRequest,
-  type Inbound,
   type PickPerson,
-  type Step,
-  type Window,
 } from "../../_lib/formation";
-import { categoryOf, categoryOfId, does, roleName, roleOf, seasonalOf, seatsLabel, seatsOf, useCadre, useStructure } from "../../_lib/structure";
-import { ClusterPrint, ClusterReport } from "../../_components/cluster-report";
+import { categoryOfId, roleName, roleOf, seatsLabel, seatsOf, useCadre, useStructure } from "../../_lib/structure";
 import { StandingCard } from "../../_components/standing";
-import { AdminShell, LockedCard, SectionTitle, SimButton } from "../../_components/ui";
+import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
 import { AdminRequests } from "../requests/requests";
 import { PlanStep } from "./plan";
-import { ClusterPublicProfile } from "./public-profile";
 
 /**
- * Two operations of their own. «تشكيل التكتلات» runs in its dates, alongside the pilgrims joining the
- * groups. Nobody is elected: whoever the administration gave a role that leads a cluster this season files
- * the request and is its head from then on. He fills it in the administration's order — the tier, the
- * groups and their seats, the cluster's assistant, its coordinators and female guides, his deputy and its
- * accountant — everyone answering his own invitation, and sends it once complete. The administration reviews
- * it: it approves it, or sends it back with notes to fix before the final deadline.
- * «إدارة التكتل» is the approved cluster, for its head and his deputy — one cluster, in tabs (RequestDesk).
+ * A cluster is formed at the office, not here: its head and everyone in it come in person, the employee enters
+ * it — its groups with their heads, guides and assistants, the coordinators, female guides, assistant and
+ * accountant its head chose, their distribution on the groups — takes its fee, and uploads the paper contract they
+ * all signed (app/staff/admins/_components/clusters.tsx). It is approved as it is formed, and its head finds it in
+ * «إدارة التكتل» at once: its groups, its team, its contract and its operational plan, in tabs (RequestDesk).
  */
 export function AdminCluster({ part }: { part: "formation" | "manage" }) {
   const admin = useAdmin()!;
   const p = admin.profile;
   const requests = useClusterRequests();
-  const s = useStructure();
-  const cadre = useCadre();
-  const mine = requests.find((r) => r.headId === admin.id);
   const view = clusterViewOf(p, admin.name);
   const theirs = view ? requests.find((r) => r.cluster.id === view.id) : undefined;
-  const leads = does(s, roleOfPerson(admin.id, p ? { [admin.id]: p } : {}, cadre), "clusterLeader");
 
-  if (!p?.positions?.length) {
+  if (part === "formation") {
     return (
-      <AdminShell title={part === "manage" ? "إدارة التكتل" : "تشكيل التكتلات"} subtitle="يشكّل التكتلَ من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويدعو إليه المجموعات وكادره.">
-        <LockedCard title="بعد تسجيلك كإداري" text="سجّل لموسم 1448 في صفة واحدة. رئيس المجموعة يشكّل مجموعته وحده ثم تُدعى إلى تكتل؛ والموجّه والمعاون والمنسق والموجّهة يدعوهم رؤساء التكتلات؛ ومن تمنحه الإدارة صفة «رئيس تكتل» يقدّم طلب التشكيل." href="/administrator/apply" cta="التسجيل كإداري" />
+      <AdminShell title="تشكيل التكتلات" subtitle="يُشكَّل التكتل في المكتب بحضور رئيسه وكل من فيه.">
+        <LockedCard title="يُشكَّل التكتل في المكتب" text="لا يُشكَّل التكتل على المنصة: يحضر رئيس التكتل ورؤساء مجموعاته وكادره إلى المكتب، فيُدخله الموظف بمجموعاته وأماكن كادره، ويُدفع رسمه هناك، ويوقّع الجميع عقده الورقي. ويظهر لرئيسه في «إدارة التكتل» فور إنشائه." href="/administrator/dashboard" cta="ملفي" />
       </AdminShell>
     );
   }
-
-  if (part === "manage") {
-    if (!view || !theirs || theirs.status !== "approved") {
-      return (
-        <AdminShell title="إدارة التكتل" subtitle="التكتل المعتمد: مجموعاته وحجاجها، وكادره، وتقريره، وصفحته العامة — لرئيسه ونائبه.">
-          <LockedCard title="لا تكتل معتمد تديره" text="يُدار التكتل هنا بعد أن تعتمد الإدارة طلبه. الطلب نفسه عملية مستقلة في «تشكيل التكتلات»." href="/administrator/cluster" cta="تشكيل التكتلات" />
-        </AdminShell>
-      );
-    }
+  if (!view?.isHead || !theirs || theirs.status !== "approved") {
     return (
-      <AdminShell title={theirs.cluster.name} subtitle={view.isHead ? "تكتلك المعتمد: مجموعاته وحجاجها، وكادره، وتوزيع منسقيه وموجّهاته على مجموعاته." : `تكتلك الذي دعاك رئيسه ${view.headName} نائباً له. تتابع مجموعاته وكادره وتنوب عنه.`}>
-        {view.isHead ? <ManageCluster req={theirs} /> : <DeputyCluster req={theirs} />}
+      <AdminShell title="إدارة التكتل" subtitle="التكتل كما شُكّل في المكتب: مجموعاته وحجاجها، وكادره، وعقده، وخطته التشغيلية — لرئيسه.">
+        <LockedCard title="لا تكتل تديره بعد" text="يُشكَّل التكتل في المكتب بحضور رئيسه وكل من فيه، ويظهر هنا لرئيسه فور إنشائه." href="/administrator/dashboard" cta="ملفي" />
       </AdminShell>
     );
   }
-
   return (
-    <AdminShell title="تشكيل التكتلات" subtitle="لا انتخاب: يقدّم طلبَ تشكيل التكتل من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بترتيبها، ويرسله فتراجعه.">
-      {mine ? <MyRequest req={mine} /> : leads ? <FileRequest /> : <Invitations />}
+    <AdminShell title={theirs.cluster.name} subtitle="تكتلك كما شُكّل في المكتب: مجموعاته وحجاجها، وكادره وتوزيعه على المجموعات، وعقده الموقّع، وخطته التشغيلية.">
+      <ManageCluster req={theirs} />
     </AdminShell>
   );
 }
 
-// ───────────────────────── Filing a request ─────────────────────────
+type DeskTab = "groups" | "team" | "contract" | "plan";
 
-function WindowNote({ w }: { w: Window }) {
-  const text =
-    w.state === "before"
-      ? `تفتح طلبات التشكيل ${dayTimeLabel(w.op.start, w.op.startTime, true)}.`
-      : w.state === "early"
-        ? `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime, true)}. ما يُرسَل حتى ${dayTimeLabel(w.early, w.earlyTime, true)} ينال «شارة الالتزام بالمواعيد».`
-        : w.state === "open"
-          ? `مفتوحة حتى ${dayTimeLabel(w.op.end, w.op.endTime, true)} — مضى الموعد الأول (${dayTimeLabel(w.early, w.earlyTime)})، فلا شارة التزام لما يُرسَل الآن.`
-          : `انتهى الموعد النهائي ${dayTimeLabel(w.op.end, w.op.endTime, true)}: لا إرسال ولا تعديل بعده.`;
-  return (
-    <div className={cn("flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3 text-sm font-semibold", w.state === "closed" || w.state === "before" ? "bg-gold/20 text-maroon" : "bg-green-light/10 text-green")}>
-      <span>{text}</span>
-      <DemoJump state={w.op} />
-    </div>
-  );
-}
-
-function FileRequest() {
-  const admin = useAdmin()!;
-  const p = admin.profile!;
-  const toast = useToast();
-  const w = useFormationWindow();
-  const s = useStructure();
-  const cadre = useCadre();
-  const admins = useStore((x) => x.admins);
-  const grant = seasonalOf(admin.id, cadre);
-  const qualified = resultOf(p).passed;
-  const g = p.group?.approvedAt ? p.group : undefined;
-  const category = categoryOf(admin.id, cadre);
-  const [name, setName] = useState(`تكتل ${admin.person.firstName}`);
-  const inbox = useMyInvitations(admin.id);
-  const joined = inbox.find((x) => x.kind === "group" && x.invite.status === "accepted");
-  const open = w.state === "early" || w.state === "open";
-  const season = useFormingSeason();
-
-  const file = () => {
-    const at = nowMs();
-    const id = `cluster-${admin.id.slice(-4)}`;
-    const own: GroupInvite | undefined = g && category ? { id: admin.id, name: admin.name, at, status: "accepted", number: g.number, branch: "دمشق", category, pilgrims: 0 } : undefined;
-    const c = newCluster(id, name.trim(), at, own, season);
-    writeCluster({ headId: admin.id, headName: admin.name, headGroup: g?.number, seed: false }, own ? { ...c, seats: { [own.number]: fitSeats(s, undefined, own.category) } } : c, admins);
-    logAdmin(admin.id, `بدء طلب تشكيل ${name.trim()}`, g ? groupName(g.number) : undefined, grant ? `بصفة «${roleName(grant.role, s)}» الموسمية — ${grant.reason}` : undefined, { area: "clusters", ref: id });
-    confetti({ particleCount: 120, spread: 80, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F"] });
-    toast({ title: `بدأتَ طلب ${name.trim()}`, body: "اختر مستواه أولاً، ثم ادعُ مجموعاته برؤسائها، ثم إدارييه.", icon: "🏛️", tone: "success" });
-  };
-
-  return (
-    <div className="grid items-start gap-6 lg:grid-cols-[1.3fr_1fr]">
-      <Card>
-        <SectionTitle icon={Crown}>طلب تشكيل تكتل</SectionTitle>
-        <p className="mt-3 rounded-2xl bg-sand p-3 text-sm leading-7">
-          {grant ? (
-            <>
-              منحتك الإدارة صفة <b>«{roleName(grant.role, s)}»</b> لهذا الموسم{grant.label ? ` (${grant.label})` : ""}: {grant.reason}. منحها {grant.by}.
-            </>
-          ) : (
-            <>صفتك هذا الموسم «{roleName(roleOfPerson(admin.id, admins, cadre), s)}» تتيح لك رئاسة تكتل.</>
-          )}
-        </p>
-        <ol className="mt-4 space-y-2 text-sm">
-          {STEPS.map((st, i) => (
-            <li key={st.key} className="flex gap-2 rounded-xl bg-sand/60 px-3 py-2">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-green-dark text-xs font-bold text-white">{i + 1}</span> {st.label}
-            </li>
-          ))}
-        </ol>
-        <div className="mt-5 space-y-3">
-          {w.state === "before" || w.state === "closed" ? (
-            <OperationClosed state={w.op} />
-          ) : !qualified ? (
-            <p className="rounded-2xl bg-gold/20 p-4 text-sm font-semibold text-maroon">تقدّم الطلب بعد أن تتأهل لموسم 1448: سجّل كإداري، ثم اجتز الاختبار المؤتمت أو جدّد صفتك بتقييمك.</p>
-          ) : joined ? (
-            <p className="rounded-2xl bg-green-light/10 p-4 text-sm font-semibold text-green">قبلتَ دعوة {joined.req.cluster.name} لمجموعتك، فلا تقدّم طلباً آخر.</p>
-          ) : (
-            <>
-              <WindowNote w={w} />
-              <label className="block">
-                <span className="mb-2 block font-bold">اسم التكتل</span>
-                <input value={name} onChange={(e) => setName(e.target.value)} className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-              </label>
-              <p className="text-xs leading-6 text-hint">من كلمة أو كلمتين، لا يشبه اسم تكتل أو مجموعة أخرى، ولا يفيد حصرية الحج (النظام الإداري).</p>
-              <Button size="lg" disabled={!name.trim() || !open} onClick={file}>
-                <FileSignature className="size-5" /> أبدأ طلب تشكيل التكتل
-              </Button>
-              {g && <p className="text-xs text-hint">مجموعتك ({groupName(g.number)}{category ? ` — ${categoryOfId(s, category)?.name}` : ""}) فيه من البداية، وأنت رئيسه من لحظة الطلب.</p>}
-            </>
-          )}
-        </div>
-      </Card>
-      <Invitations compact />
-    </div>
-  );
-}
-
-// ───────────────────────── The invitations an administrator received ─────────────────────────
-
-function Invitations({ compact = false }: { compact?: boolean }) {
-  const admin = useAdmin()!;
-  const toast = useToast();
-  const w = useFormationWindow();
-  const admins = useStore((s) => s.admins);
-  const requests = useClusterRequests();
-  const inbox = useMemo(() => invitationsFor(admin.id, requests), [admin.id, requests]);
-  const open = w.state === "early" || w.state === "open";
-  const answer = (x: Inbound, status: "accepted" | "declined") => {
-    answerInvitation({ id: admin.id, name: admin.name }, x, status, admins, requests, status === "declined" ? "اعتذر من حسابه" : undefined);
-    toast(status === "accepted" ? { title: `قبلتَ: ${inviteWhat(x)}`, body: x.req.cluster.name, icon: "🤝", tone: "success" } : { title: "اعتذرتَ عن الدعوة", body: x.req.cluster.name, icon: "📩", tone: "info" });
-  };
-
-  return (
-    <Card className={compact ? "md:p-6" : undefined}>
-      <SectionTitle icon={Inbox} action={<Badge tone="gold">{inbox.filter((x) => x.invite.status === "pending").length} بانتظار ردك</Badge>}>
-        دعواتي
-      </SectionTitle>
-      <p className="mt-2 text-sm leading-7 text-ink-soft">
-        {compact ? "رؤساء التكتلات يدعون المجموعات إليها. تقبل دعوة واحدة لمجموعتك، فتدخل بحجاجها، وقد يدعوك رئيسها نائباً له أو محاسباً." : "رؤساء التكتلات يدعون كل واحد إلى مكانه: مقعد موجّه أو معاون في إحدى مجموعاتهم، أو من منسقي التكتل أو موجّهاته أو معاونيه. لكل شخص مكان واحد في الموسم."}
-      </p>
-      {!open && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sand p-3 text-sm text-ink-soft">
-          <span>مدة تشكيل التكتلات {rangeLabel(w.op.start, w.op.end)}. الرد على الدعوات في مدتها.</span>
-          <DemoJump state={w.op} />
-        </div>
-      )}
-      <ul className="mt-4 space-y-2">
-        {inbox.length === 0 && <li className="rounded-2xl bg-sand p-4 text-sm text-hint">لا دعوات بعد.</li>}
-        {inbox.map((x) => (
-          <li key={`${x.req.cluster.id}-${x.kind}-${x.number ?? ""}-${x.seat ?? ""}`} className={cn("rounded-2xl border-2 p-3", x.invite.status === "accepted" ? "border-green-light/50 bg-green-light/5" : x.invite.status === "declined" ? "border-ink/10 bg-sand/50" : "border-gold-dark/50")}>
-            <p className="font-bold">{x.req.cluster.name}</p>
-            <p className="text-xs text-ink-soft">
-              رئيسه {x.req.headName} — يدعوك: {inviteWhat(x)}
-            </p>
-            {x.invite.status === "pending" ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Button size="sm" disabled={!open} onClick={() => answer(x, "accepted")}>
-                  <Check className="size-4" /> أقبل
-                </Button>
-                <Button size="sm" variant="outline" disabled={!open} onClick={() => answer(x, "declined")}>
-                  <X className="size-4" /> أعتذر
-                </Button>
-                {!open && <span className="text-xs text-hint">تُجاب في مدة التشكيل</span>}
-              </div>
-            ) : (
-              <Badge tone={x.invite.status === "accepted" ? "green" : "ink"} className="mt-2">
-                {x.invite.status === "accepted" ? "قبلتَها" : `اعتذرت${x.invite.reason ? ` — ${x.invite.reason}` : ""}`}
-              </Badge>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
-
-// ───────────────────────── The head's request ─────────────────────────
-
-/** The off-device people answer by themselves a moment after they are invited: the demo's other administrators */
-const DECLINES: Record<string, string> = { "seed-12": "ارتبطت المجموعة بتكتل آخر", "01033300942": "ظرف صحي في العائلة" };
-
-function AutoAnswers({ req }: { req: ClusterRequest }) {
-  const admins = useStore((s) => s.admins);
-  const c = req.cluster;
-  useEffect(() => {
-    const off = (x: ClusterInvite) => x.status === "pending" && !admins[x.id];
-    let any = false;
-    mapInvites(c, (x) => {
-      if (off(x)) any = true;
-      return x;
-    });
-    if (!any) return;
-    const t = window.setTimeout(() => {
-      writeCluster(req, mapInvites(c, (x) => (off(x) ? { ...x, at: nowMs(), status: DECLINES[x.id] ? "declined" : "accepted", reason: DECLINES[x.id] } : x)), admins);
-    }, 2500);
-    return () => window.clearTimeout(t);
-  }, [c, admins, req]);
-  return null;
-}
-
-function MyRequest({ req }: { req: ClusterRequest }) {
-  const w = useFormationWindow();
-  if (req.status === "approved") {
-    return <LockedCard title={`اعتُمد ${req.cluster.name}`} text={`راجعته الإدارة فاعتمدته${req.cluster.decision?.by ? ` — ${req.cluster.decision.by}` : ""}. يُدار من الآن في «إدارة التكتل».`} href="/administrator/clusters" cta="إدارة التكتل" />;
-  }
-  return <RequestDesk req={req} mode="request" editable={editableBy(req.status, w)} header={<RequestHeader req={req} w={w} />} />;
-}
-
-/**
- * The administration's decision is taken in the staff portal («طلبات التكتلات»); the demo lets the head see either
- * outcome at once: approved (his cluster opens in «إدارة التكتل»), or sent back with a note to fix.
- */
-function ReviewSim({ req }: { req: ClusterRequest }) {
-  const admin = useAdmin()!;
-  const toast = useToast();
-  const admins = useStore((x) => x.admins);
-  const decide = (approve: boolean) => {
-    const by = "مازن الحلبي (محاكاة)";
-    const note = approve ? undefined : "أحد المنسقين بلا تفرّغ في مراحل العمل الأساسية: استبدله بمنسق متفرّغ ثم أعد الإرسال قبل الموعد النهائي.";
-    reviewCluster(req, approve ? "approve" : "reject", by, admins, note);
-    actions.logEvent({ actor: by, role: "موظف", action: approve ? "اعتماد تكتل" : "إعادة طلب تكتل إلى رئيسه بملاحظات", target: req.cluster.name, detail: note, system: "admins", area: "clusters", ref: req.cluster.id, important: true });
-    logAdmin(admin.id, approve ? `اعتمدت الإدارة ${req.cluster.name}` : `أعادت الإدارة ${req.cluster.name} بملاحظات`, undefined, note ?? `اعتمده ${by}`);
-    toast(approve ? { title: `اعتُمد ${req.cluster.name}`, body: "تديره الآن من «إدارة التكتل».", icon: "✅", tone: "success" } : { title: "أُعيد الطلب بملاحظات", body: "أصلحه ثم أرسله من «التقرير».", icon: "↩️", tone: "info" });
-  };
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      <SimButton onClick={() => decide(true)}>محاكاة: اعتمدت الإدارة الطلب</SimButton>
-      <SimButton onClick={() => decide(false)}>محاكاة: أعادته الإدارة بملاحظات</SimButton>
-    </div>
-  );
-}
-
-function RequestHeader({ req, w }: { req: ClusterRequest; w: Window }) {
-  const c = req.cluster;
-  const s = useStructure();
-  return (
-    <Card className="md:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Badge tone={STATUS[c.status].tone}>{STATUS[c.status].label}</Badge>
-          <h2 className="mt-2 font-display text-3xl font-bold text-green-dark">{c.name}</h2>
-          <p className="text-sm text-ink-soft">
-            رئيسه أنت — {s.tiers.find((t) => t.id === c.tier)?.name ?? "لم يُختر مستواه"} — {req.groups.length} مجموعات، مجموع فئاتها {req.weight}
-          </p>
-        </div>
-        <Badge tone={req.complete ? "green" : "maroon"} className="text-sm">
-          {req.complete ? "مكتمل — جاهز للإرسال" : `ناقص: ${req.checks.filter((x) => !x.ok && !x.warn).length}`}
-        </Badge>
-      </div>
-      <div className="mt-4">
-        <WindowNote w={w} />
-      </div>
-      {c.status === "rejected" && c.decision?.note && (
-        <p className="mt-3 rounded-2xl border-2 border-maroon/30 bg-maroon/5 p-4 text-sm leading-7 text-maroon">
-          <b>أعاده {c.decision.by} بملاحظات:</b> {c.decision.note} — أصلحه ثم أرسله ثانية من «التقرير».
-        </p>
-      )}
-      {c.status === "reviewing" && <p className="mt-3 rounded-2xl bg-gold/20 p-3 text-sm font-semibold text-maroon">يراجعه الآن {c.review?.by}: لا تعديل حتى يعتمده أو يعيده إليك.</p>}
-      {c.status === "pending" && <p className="mt-3 rounded-2xl bg-sand p-3 text-sm text-ink-soft">أُرسل للمراجعة. ما زلت تستطيع تعديله قبل أن تبدأ مراجعته، ثم تحدّثه من «التقرير».</p>}
-      {(c.status === "pending" || c.status === "reviewing") && <ReviewSim req={req} />}
-      {c.reopened && c.status !== "approved" && <p className="mt-3 rounded-2xl bg-sand p-3 text-sm text-ink-soft">أعاد {c.reopened.by} فتحه للتعديل بعد اعتماده، محتفظاً بكل بياناته: عدّل ثم أرسله ليُعتمد من جديد.</p>}
-    </Card>
-  );
-}
-
-type DeskTab = Step | "team" | "plan" | "page";
-
-/**
- * One request in tabs, in the administration's order. The head fills it while it is his to edit; once approved
- * the same cluster opens in «إدارة التكتل» with its groups (each opens with its pilgrims), its people, its
- * report and its public page. The deputy sees the same tabs read-only.
- */
-function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mode: "request" | "manage" | "deputy"; editable: boolean; header: ReactNode }) {
+function RequestDesk({ req, header }: { req: ClusterRequest; header: ReactNode }) {
   // «?tab=plan» opens the operational plan (the desk renders on the client only, behind the administrator's gate)
-  const [tab, setTab] = useState<DeskTab>(() => (mode === "request" ? "tier" : typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "plan" ? "plan" : "groups"));
+  const [tab, setTab] = useState<DeskTab>(() => (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "plan" ? "plan" : "groups"));
   const [opened, setOpened] = useState<number | null>(null);
-  const c = req.cluster;
-  const pending = (xs: (ClusterInvite | undefined)[]) => xs.filter((x) => x?.status === "pending").length;
-
-  const tabs: { key: DeskTab; label: string; icon: LucideIcon; done?: boolean; badge?: string }[] =
-    mode === "request"
-      ? STEPS.map((st, i) => ({ key: st.key, label: `${i + 1}. ${st.label}`, icon: [Layers, UsersRound, UserCheck, Crown, Calculator, Printer][i], done: req.stepOk[st.key] }))
-      : [
-          { key: "groups", label: "المجموعات", icon: UsersRound, badge: String(req.groups.length) },
-          { key: "team", label: "كادر التكتل", icon: UserCheck, badge: String(req.cadre) },
-          { key: "report", label: "التقرير", icon: Printer },
-          { key: "plan", label: "الخطة التشغيلية", icon: ClipboardList },
-          ...(mode === "manage" ? [{ key: "page" as const, label: "الصفحة العامة", icon: Globe }] : []),
-        ];
-  const waiting = pending([...Object.values(c.groups), ...Object.values(c.seats).flat().map((x) => x.who), ...c.assistants, ...c.coordinators, ...c.femaleGuides, c.deputy, c.accountant]);
+  const tabs: { key: DeskTab; label: string; icon: LucideIcon; badge?: string }[] = [
+    { key: "groups", label: "المجموعات", icon: UsersRound, badge: String(req.groups.length) },
+    { key: "team", label: "كادر التكتل", icon: UserCheck, badge: String(req.cadre) },
+    { key: "contract", label: "العقد", icon: FileSignature },
+    { key: "plan", label: "الخطة التشغيلية", icon: ClipboardList },
+  ];
 
   return (
     <div className="space-y-6">
-      {mode === "request" && <AutoAnswers req={req} />}
       {header}
-      {waiting > 0 && mode === "request" && <p className="rounded-2xl bg-sand px-4 py-2 text-sm text-ink-soft">{waiting} دعوات بانتظار ردود أصحابها.</p>}
       <div className="scrollbar-none -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <div className="flex w-max gap-1 rounded-2xl border border-gold/30 bg-white p-1" role="tablist" aria-label={c.name}>
+        <div className="flex w-max gap-1 rounded-2xl border border-gold/30 bg-white p-1" role="tablist" aria-label={req.cluster.name}>
           {tabs.map((t) => (
-            <button key={t.key} role="tab" aria-selected={tab === t.key} type="button" onClick={() => { setOpened(null); setTab(t.key); }} className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition", tab === t.key ? "text-white" : "text-ink-soft hover:text-ink")}>
+            <button key={t.key} role="tab" aria-selected={tab === t.key} type="button" onClick={() => { setTab(t.key); setOpened(null); }} className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition", tab === t.key ? "text-white" : "text-ink-soft hover:text-ink")}>
               {tab === t.key && <motion.span layoutId="cluster-tab" className="absolute inset-0 rounded-xl bg-green-dark" transition={{ type: "spring", damping: 28, stiffness: 320 }} />}
               <t.icon className="relative size-4" />
               <span className="relative">{t.label}</span>
-              {t.done !== undefined && (t.done ? <Check className={cn("relative size-4", tab === t.key ? "text-gold" : "text-green-light")} /> : <CircleDashed className={cn("relative size-3.5", tab === t.key ? "text-white/70" : "text-maroon/60")} />)}
               {t.badge && <span className={cn("relative rounded-full px-1.5 text-[11px] tabular-nums", tab === t.key ? "bg-white/20" : "bg-sand")}>{t.badge}</span>}
             </button>
           ))}
@@ -401,31 +101,32 @@ function RequestDesk({ req, mode, editable, header }: { req: ClusterRequest; mod
 
       <AnimatePresence mode="wait">
         <motion.div key={`${tab}-${opened ?? ""}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
-          {tab === "tier" && <TierStep req={req} editable={editable} onNext={() => setTab("groups")} />}
           {tab === "groups" &&
-            (mode !== "request" && opened !== null && req.groups.some((g) => g.number === opened) ? (
-              <GroupDesk req={req} number={opened} onBack={() => setOpened(null)} />
-            ) : (
-              <GroupsStep req={req} editable={editable && mode === "request"} onOpen={mode !== "request" ? setOpened : undefined} />
-            ))}
-          {tab === "staff" && <StaffStep req={req} editable={editable} sortable={editable || mode === "manage"} />}
-          {tab === "deputy" && <DeputyStep req={req} editable={editable} />}
-          {tab === "accountant" && <AccountantStep req={req} editable={editable} />}
+            (opened !== null && req.groups.some((g) => g.number === opened) ? <GroupDesk req={req} number={opened} onBack={() => setOpened(null)} /> : <GroupsStep req={req} editable={false} onOpen={setOpened} />)}
           {tab === "team" && (
             <div className="space-y-6">
-              <StaffStep req={req} editable={false} sortable={mode === "manage"} />
-              <div className="grid gap-6 lg:grid-cols-2">
-                <DeputyStep req={req} editable={false} />
-                <AccountantStep req={req} editable={false} />
-              </div>
+              <StaffStep req={req} editable={false} sortable={false} />
+              <AccountantStep req={req} editable={false} />
             </div>
           )}
-          {tab === "report" && <ReportStep req={req} editable={editable && mode === "request"} />}
-          {tab === "plan" && <PlanStep req={req} editable={mode === "manage"} />}
-          {tab === "page" && <ClusterPublicProfile clusterId={req.cluster.id} clusterName={req.cluster.name} />}
+          {tab === "contract" && <div className="max-w-md"><ContractCard c={req.cluster} people={req.cadre} /></div>}
+          {tab === "plan" && <PlanStep req={req} editable />}
         </motion.div>
       </AnimatePresence>
     </div>
+  );
+}
+
+/** The paper contract everyone in the cluster signed at the office: every member sees it (here, and in «العقود») */
+export function ContractCard({ c, people }: { c: Cluster; people?: number }) {
+  return (
+    <ContractView
+      kind="cluster"
+      title={`عقد ${c.name}`}
+      contract={c.contract ?? (c.status === "approved" ? seedContract("cluster", `عقد ${c.name}`) : undefined)}
+      signers={`رئيس التكتل وكل من فيه${people ? ` (${people} شخصاً)` : ""}`}
+      empty="لم يُرفع العقد بعد. يوقّعه في المكتب رئيس التكتل وكل من فيه، ويرفع الموظف صورته فتظهر هنا."
+    />
   );
 }
 
@@ -441,36 +142,8 @@ function useWrite(req: ClusterRequest) {
   );
 }
 
-function Status({ x }: { x: ClusterInvite }) {
-  return x.status === "accepted" ? (
-    <Badge tone="green">
-      <BadgeCheck className="size-3.5" /> قبِل
-    </Badge>
-  ) : x.status === "declined" ? (
-    <Badge tone="maroon">اعتذر{x.reason ? ` — ${x.reason}` : ""}</Badge>
-  ) : (
-    <Badge tone="gold">
-      <CircleDashed className="size-3.5 animate-spin" /> بانتظار رده
-    </Badge>
-  );
-}
-
-/** Lets the tester answer for an invitee whose account is on this device, as he would from his own */
-function SimAnswer({ req, id }: { req: ClusterRequest; id: string }) {
-  const admins = useStore((s) => s.admins);
-  const requests = useClusterRequests();
-  if (!admins[id]) return null;
-  const inbound = invitationsFor(id, requests).find((x) => x.req.cluster.id === req.cluster.id && x.invite.status === "pending");
-  if (!inbound) return null;
-  return (
-    <SimButton className="px-3 py-1.5 text-xs" onClick={() => answerInvitation({ id, name: adminName(id) }, inbound, "accepted", admins, requests)}>
-      محاكاة: قبِل من حسابه
-    </SimButton>
-  );
-}
-
-/** One invited person: his role, his answer, and the head's withdrawal */
-function InviteRow({ req, x, note, editable, onRemove }: { req: ClusterRequest; x: ClusterInvite; note?: string; editable: boolean; onRemove?: () => void }) {
+/** One person in his place: his name and role (placed at the office, so nothing to answer) */
+function InviteRow({ x, note, editable, onRemove }: { req?: ClusterRequest; x: ClusterInvite; note?: string; editable: boolean; onRemove?: () => void }) {
   const admins = useStore((s) => s.admins);
   const cadre = useCadre();
   const s = useStructure();
@@ -480,8 +153,6 @@ function InviteRow({ req, x, note, editable, onRemove }: { req: ClusterRequest; 
         <span className="block font-bold">{x.name}</span>
         <span className="block text-[11px] text-hint">{note ?? roleName(roleOfPerson(x.id, admins, cadre), s)}</span>
       </span>
-      <Status x={x} />
-      <SimAnswer req={req} id={x.id} />
       {editable && onRemove && (
         <button type="button" onClick={onRemove} aria-label={`سحب دعوة ${x.name}`} className="grid size-8 place-items-center rounded-lg text-hint hover:bg-maroon/10 hover:text-maroon">
           <UserMinus className="size-4" />
@@ -539,65 +210,6 @@ function StepNote({ title, desc }: { title: string; desc: string }) {
   );
 }
 
-// ───────────────────────── 1. The tier ─────────────────────────
-
-function TierStep({ req, editable, onNext }: { req: ClusterRequest; editable: boolean; onNext: () => void }) {
-  const s = useStructure();
-  const write = useWrite(req);
-  const c = req.cluster;
-  const [name, setName] = useState(c.name);
-  const saveName = () => name.trim() && name.trim() !== c.name && write({ ...c, name: name.trim() }, `تسمية التكتل «${name.trim()}»`);
-  return (
-    <Card className="space-y-5">
-      <StepNote title="اسم التكتل ومستواه" desc="اختر اسم التكتل ومستواه أولاً: يحدد المستوى عدد حجاج كل فئة من المجموعات ومقاعد فريقها، وحدود مجموع الفئات وعدد المنسقين والموجّهات." />
-      <label className="block">
-        <span className="mb-2 block font-bold">اسم التكتل</span>
-        <input value={name} disabled={!editable} onChange={(e) => setName(e.target.value)} onBlur={saveName} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light disabled:bg-sand" />
-      </label>
-      <div className="grid gap-3 lg:grid-cols-3">
-        {s.tiers.map((t) => {
-          const comp = s.composition[t.id];
-          const picked = c.tier === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              disabled={!editable}
-              onClick={() => !picked && write(refit(s, { ...c, tier: t.id }), `اختيار مستوى ${t.name} لـ${c.name}`)}
-              className={cn("rounded-2xl border-2 p-4 text-right transition", picked ? "border-green-light bg-green-light/5" : "border-gold/30 hover:border-gold-dark", !editable && "cursor-default")}
-            >
-              <p className="flex items-center justify-between font-display text-lg font-bold text-green-dark">
-                {t.name} {picked && <Check className="size-5 text-green-light" />}
-              </p>
-              {comp && (
-                <p className="mt-1 text-xs leading-6 text-ink-soft">
-                  مجموع الفئات {comp.min} – {comp.max} · معاون التكتل {comp.assistants} · منسق لكل {comp.perCoordinator} وحدات · موجّهة لكل {comp.perGuide}
-                </p>
-              )}
-              <ul className="mt-2 space-y-1 text-xs">
-                {s.categories.map((cat) => {
-                  const n = seatsOf(s, t.id, cat.id);
-                  return (
-                    <li key={cat.id} className="flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1">
-                      <span className="font-bold">{cat.name}</span>
-                      <span className="text-ink-soft">
-                        {n.pilgrims} حاجاً — {seatsLabel(n)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </button>
-          );
-        })}
-      </div>
-      <Button variant="outline" onClick={onNext} disabled={!req.stepOk.tier}>
-        التالي: المجموعات <ArrowLeft className="size-4" />
-      </Button>
-    </Card>
-  );
-}
-
 // ───────────────────────── 2. The groups and their seats ─────────────────────────
 
 function GroupsStep({ req, editable, onOpen }: { req: ClusterRequest; editable: boolean; onOpen?: (n: number) => void }) {
@@ -631,7 +243,7 @@ function GroupsStep({ req, editable, onOpen }: { req: ClusterRequest; editable: 
     delete groups[num];
     delete seats[num];
     delete sorting[num];
-    write({ ...c, groups, seats, sorting, deputy: c.deputy?.id === c.groups[num]?.id ? undefined : c.deputy }, `سحب ${groupName(num)} من ${c.name}`);
+    write({ ...c, groups, seats, sorting }, `سحب ${groupName(num)} من ${c.name}`);
   };
 
   return (
@@ -714,8 +326,6 @@ function GroupCard({ req, g, own, editable, onWithdraw, onOpen, seatsHere = true
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {!own && <Status x={g} />}
-          {!own && <SimAnswer req={req} id={g.id} />}
           {editable && !own && (
             <button type="button" onClick={onWithdraw} aria-label={`سحب ${groupName(g.number)}`} className="grid size-9 place-items-center rounded-xl text-hint hover:bg-maroon/10 hover:text-maroon">
               <X className="size-4" />
@@ -1024,35 +634,7 @@ function Distribution({ req, sortable, people, field, quota, title, one, note }:
   );
 }
 
-// ───────────────────────── 5. The deputy, 6. the accountant ─────────────────────────
-
-function DeputyStep({ req, editable }: { req: ClusterRequest; editable: boolean }) {
-  const write = useWrite(req);
-  const c = req.cluster;
-  const heads = req.groups.filter((g) => g.headId !== req.headId);
-  return (
-    <Card className="space-y-3 md:p-6">
-      <SectionTitle icon={Crown}>{DEPUTY_TITLE}</SectionTitle>
-      <p className="text-sm leading-7 text-ink-soft">صفة ثانوية تُضاف لأحد رؤساء مجموعات التكتل الذين قبلوا. ينوب عن رئيس التكتل إن غاب لضرورة.</p>
-      {c.deputy && <InviteRow req={req} x={c.deputy} note={`رئيس ${groupName(req.groups.find((g) => g.headId === c.deputy!.id)?.number ?? 0)}`} editable={editable} onRemove={() => write({ ...c, deputy: undefined }, `سحب دعوة ${c.deputy!.name} ${DEPUTY_TITLE}`, c.deputy!.name)} />}
-      {editable && (!c.deputy || c.deputy.status === "declined") && (
-        <ul className="space-y-1">
-          {heads.length === 0 && <li className="text-xs text-hint">تظهر هنا رؤساء المجموعات بعد أن يقبلوا دعوة التكتل.</li>}
-          {heads.map((g) => (
-            <li key={g.number} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-sand">
-              <span className="min-w-0 flex-1 truncate">
-                {g.head} <span className="text-xs text-hint">— رئيس {groupName(g.number)}</span>
-              </span>
-              <Button size="sm" variant="outline" onClick={() => write({ ...c, deputy: invite(g.headId, g.head) }, `دعوة ${g.head} ${DEPUTY_TITLE}`, g.head)}>
-                ادعُ
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
+// ───────────────────────── The accountant ─────────────────────────
 
 function AccountantStep({ req, editable }: { req: ClusterRequest; editable: boolean }) {
   const s = useStructure();
@@ -1067,7 +649,7 @@ function AccountantStep({ req, editable }: { req: ClusterRequest; editable: bool
   return (
     <Card className="space-y-3 md:p-6">
       <SectionTitle icon={Calculator}>{ACCOUNTANT_TITLE}</SectionTitle>
-      <p className="text-sm leading-7 text-ink-soft">صفة ثانوية لأحد كوادر المجموعات أو التكتل الذين قبلوا (عدا الموجّهات والمرشدات). يجوز أن يكون نائب رئيس التكتل نفسه. يسجّل مصروفات التكتل المالية.</p>
+      <p className="text-sm leading-7 text-ink-soft">صفة ثانوية يعطيها رئيس التكتل في المكتب لأحد كوادر المجموعات أو التكتل (عدا الموجّهات والمرشدات). يسجّل مصروفات التكتل المالية.</p>
       {c.accountant && <InviteRow req={req} x={c.accountant} editable={editable} onRemove={() => write({ ...c, accountant: undefined }, `سحب دعوة ${c.accountant!.name} ${ACCOUNTANT_TITLE}`, c.accountant!.name)} />}
       {editable && (!c.accountant || c.accountant.status === "declined") && (
         <ul className="max-h-64 space-y-1 overflow-y-auto">
@@ -1075,7 +657,7 @@ function AccountantStep({ req, editable }: { req: ClusterRequest; editable: bool
           {people.map((id) => (
             <li key={id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-sand">
               <span className="min-w-0 flex-1 truncate">
-                {names.get(id)} <span className="text-xs text-hint">— {roleName(roleOfPerson(id, admins, cadre), s)}{c.deputy?.id === id ? ` — ${DEPUTY_TITLE}` : ""}</span>
+                {names.get(id)} <span className="text-xs text-hint">— {roleName(roleOfPerson(id, admins, cadre), s)}</span>
               </span>
               <Button size="sm" variant="outline" onClick={() => write({ ...c, accountant: invite(id, names.get(id)!) }, `دعوة ${names.get(id)} ${ACCOUNTANT_TITLE}`, names.get(id))}>
                 ادعُ
@@ -1088,118 +670,28 @@ function AccountantStep({ req, editable }: { req: ClusterRequest; editable: bool
   );
 }
 
-// ───────────────────────── 7. The report ─────────────────────────
-
-function ReportStep({ req, editable }: { req: ClusterRequest; editable: boolean }) {
-  const toast = useToast();
-  const admins = useStore((s) => s.admins);
-  const w = useFormationWindow();
-  const c = req.cluster;
-  const send = () => {
-    sendCluster(req, admins);
-    confetti({ particleCount: 90, spread: 70, origin: { y: 0.5 }, colors: ["#D9C89E", "#00594F"] });
-    toast({ title: c.status === "rejected" ? "أُعيد إرسال الطلب" : c.status === "pending" ? "حُدّث الطلب المُرسَل" : "أُرسل الطلب للمراجعة", body: "يراجعه موظف إدارة الإداريين، فيعتمده أو يعيده إليك بملاحظات.", icon: "📨", tone: "success" });
-  };
-  const cta = c.status === "rejected" ? "إعادة الإرسال بعد التعديل" : c.status === "pending" ? "تحديث الطلب المُرسَل" : "اعتماد التقرير وإرسال الطلب";
-  return (
-    <div className="grid items-start gap-6 lg:grid-cols-[1.6fr_1fr]">
-      <Card className="md:p-6">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <SectionTitle icon={Printer}>التقرير النهائي</SectionTitle>
-          <Button size="sm" variant="outline" onClick={() => window.print()}>
-            <Printer className="size-4" /> طباعة
-          </Button>
-        </div>
-        <ClusterReport req={req} signatures />
-        <PrintSheet>
-          <ClusterPrint req={req} />
-        </PrintSheet>
-      </Card>
-      <Card className="space-y-3 md:p-6">
-        <SectionTitle icon={Send}>{editable ? "قبل الإرسال" : "شروط الطلب"}</SectionTitle>
-        <ul className="space-y-1.5 text-sm">
-          {req.checks.map((x) => (
-            <li key={x.key} className={cn("flex items-start gap-2 rounded-xl px-3 py-2", x.ok ? "bg-green-light/10 text-green" : x.warn ? "bg-gold/20 text-maroon" : "bg-maroon/5 text-maroon")}>
-              {x.ok ? <Check className="mt-0.5 size-4 shrink-0" /> : <CircleDashed className="mt-0.5 size-4 shrink-0" />} {x.label}
-            </li>
-          ))}
-        </ul>
-        {editable && (
-          <>
-            {w.state === "early" && !c.firstSentAt && <p className="text-xs text-green">أرسله حتى {dayTimeLabel(w.early, w.earlyTime, true)} فينال التكتل «شارة الالتزام بالمواعيد».</p>}
-            <Button size="lg" className="w-full" disabled={!req.complete} onClick={send}>
-              <Send className="size-5" /> {cta}
-            </Button>
-            {!req.complete && <p className="text-xs text-maroon">يُرسل بعد أن تكتمل الشروط كلها.</p>}
-          </>
-        )}
-      </Card>
-    </div>
-  );
-}
-
 // ───────────────────────── The approved cluster ─────────────────────────
 
 function ManageCluster({ req }: { req: ClusterRequest }) {
-  const admin = useAdmin()!;
-  const toast = useToast();
-  const admins = useStore((s) => s.admins);
-  const fee = useSeason().fees.clusterFormation;
   const s = useStructure();
-  const [paying, setPaying] = useState(false);
   const c = req.cluster;
-  const pay = (m: PayMethod) => {
-    setPaying(true);
-    setTimeout(() => {
-      writeCluster(req, { ...c, feePaidAt: nowMs() }, admins);
-      logAdmin(admin.id, `تسديد رسم ${c.name}`, formatUSD(fee), payMethodLabel(m), { area: "clusters", ref: c.id });
-      toast({ title: "سُدّد رسم التكتل", body: "يصدر به إيصال رقمي.", icon: "🧾", tone: "success" });
-      setPaying(false);
-    }, 1500);
-  };
   const header = (
     <>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-gold/30 bg-white px-4 py-3 text-sm">
         <Badge tone="green">
-          <BadgeCheck className="size-3.5" /> معتمد — {c.decision?.by}
+          <BadgeCheck className="size-3.5" /> شُكّل في المكتب — {c.decision?.by}
         </Badge>
         <span>{s.tiers.find((t) => t.id === c.tier)?.name}</span>
-        <span>
-          {DEPUTY_TITLE}: <b>{c.deputy?.status === "accepted" ? c.deputy.name : "—"}</b>
-        </span>
         <span className="text-ink-soft">
           <b className="font-display text-lg text-green-dark">{req.groups.length}</b> مجموعات — <b className="font-display text-lg text-green-dark">{formatNumber(req.pilgrims)}</b> حاجاً بفئاتها
         </span>
+        {c.feePaidAt && <span className="text-ink-soft">رسم التكتل مدفوع في المكتب</span>}
       </div>
-      <p className="rounded-2xl bg-sand px-4 py-2 text-xs leading-6 text-ink-soft">تعديل مجموعات التكتل وكادره بعد اعتماده للإدارة: تعيد فتح الطلب لك، أو تعدّله تعديلاً استثنائياً بسبب يُسجَّل. توزيع المنسقين والموجّهات على المجموعات لك متى شئت.</p>
-      {!c.feePaidAt && (
-        <div className="rounded-2xl border-2 border-gold/40 bg-sand p-4">
-          <p className="font-bold">
-            رسم التكتل <span className="font-display text-xl text-maroon">{formatUSD(fee)}</span> — يُدفع بعد الاعتماد
-          </p>
-          {paying ? <p className="mt-3 font-bold text-green-dark">نتحقق من الدفع...</p> : <PayMethods amount={fee} reference={`1448-C-${admin.id.slice(-4)}`} bankReference={`1448-BANK-C${admin.id.slice(-4)}`} cta="ادفع رسم التكتل —" onConfirm={pay} />}
-        </div>
-      )}
+      <p className="rounded-2xl bg-sand px-4 py-2 text-xs leading-6 text-ink-soft">أي تعديل على مجموعات التكتل أو كادره أو توزيعه يكون في المكتب: يُدخله الموظف بحضورك.</p>
       <StandingCard scope="cluster" name={c.name} />
     </>
   );
-  return <RequestDesk req={req} mode="manage" editable={false} header={header} />;
-}
-
-function DeputyCluster({ req }: { req: ClusterRequest }) {
-  const admin = useAdmin()!;
-  const header = (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-gold/30 bg-white px-4 py-3 text-sm">
-      <Badge tone="gold">
-        <UserCheck className="size-3.5" /> {DEPUTY_TITLE}
-      </Badge>
-      <span>
-        رئيسه: <b>{req.headName}</b>
-      </span>
-      <span className="text-ink-soft">تتابع مجموعاته كلها وتنوب عنه{admin.profile?.group ? `، ومجموعتك (${groupName(admin.profile.group.number)}) إحداها` : ""}. الدعوة والتوزيع لرئيس التكتل وحده.</span>
-    </div>
-  );
-  return <RequestDesk req={req} mode="deputy" editable={false} header={header} />;
+  return <RequestDesk req={req} header={header} />;
 }
 
 export { acceptedGroups };

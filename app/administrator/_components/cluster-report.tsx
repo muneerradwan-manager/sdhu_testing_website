@@ -6,7 +6,7 @@ import { groupName } from "@/lib/groups";
 import { dayHijri, dayLabel, useToday } from "@/lib/operations";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber, gregorianDate } from "@/lib/utils";
-import { ACCOUNTANT_TITLE, BADGES, DEPUTY_TITLE, POOLS, STATUS, roleOfPerson, type ClusterRequest } from "../_lib/formation";
+import { ACCOUNTANT_TITLE, BADGES, POOLS, STATUS, roleOfPerson, type ClusterRequest } from "../_lib/formation";
 import { roleName, useCadre, useStructure } from "../_lib/structure";
 
 /**
@@ -46,7 +46,6 @@ export function ClusterReport({ req, dark = false, signatures = false }: { req: 
             ["الفرع", req.branches.join(" و")],
             ["الموسم", "1448"],
             ["مستوى التكتل", tier],
-            [DEPUTY_TITLE, yes(c.deputy) ? c.deputy!.name : "—"],
             ["معاون التكتل", names(c.assistants)],
             [ACCOUNTANT_TITLE, yes(c.accountant) ? `${c.accountant!.name} (${role(c.accountant!.id)})` : "—"],
           ].map(([k, v]) => (
@@ -116,7 +115,6 @@ export function ClusterReport({ req, dark = false, signatures = false }: { req: 
                     <p className={cn("font-bold", accent)}>{groupName(g.number)}</p>
                     <p className={cn("text-xs", soft)}>
                       رئيسها: {g.head}
-                      {g.headId === c.deputy?.id && yes(c.deputy) ? ` (${DEPUTY_TITLE})` : ""}
                     </p>
                   </div>
                   <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold", dark ? "bg-gold/20 text-gold" : "bg-gold/30 text-maroon")}>
@@ -202,7 +200,6 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
     return gs.length ? `${gs.map((g) => groupName(g.number)).join("، ")} (${gs.reduce((n, g) => n + g.units, 0)} وحدات)` : "";
   };
   const team = [
-    ...(yes(c.deputy) ? [{ ...c.deputy!, task: DEPUTY_TITLE, note: "" }] : []),
     ...(yes(c.accountant) ? [{ ...c.accountant!, task: ACCOUNTANT_TITLE, note: "" }] : []),
     ...c.assistants.filter(yes).map((x) => ({ ...x, task: POOLS["cluster-assistant"].title, note: "" })),
     ...c.coordinators.filter(yes).map((x) => ({ ...x, task: POOLS.tech.title, note: carried(c.sorting, x.id) })),
@@ -214,7 +211,6 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
     ["رئيس التكتل", req.headName],
     ["الفرع", req.branches.join(" و") || "—"],
     ["مستوى التكتل", s.tiers.find((t) => t.id === c.tier)?.name ?? "—"],
-    [DEPUTY_TITLE, yes(c.deputy) ? c.deputy!.name : "—"],
     [ACCOUNTANT_TITLE, yes(c.accountant) ? c.accountant!.name : "—"],
     ["حالة الطلب", STATUS[c.status].label],
     ["تاريخ الإرسال", date(c.sentAt)],
@@ -356,7 +352,6 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
                   <td className={cn(TD, "text-center")}>{formatNumber(g.capacity)}</td>
                   <td className={TD}>
                     {g.head}
-                    {g.headId === c.deputy?.id && yes(c.deputy) ? <span className="block text-[8.5pt]">{DEPUTY_TITLE}</span> : null}
                   </td>
                   <td className={TD}>
                     {seats.length

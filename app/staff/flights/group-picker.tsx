@@ -13,6 +13,7 @@ import {
   groupsOfCluster,
   isOpenForAssignment,
   membersOfGroup,
+  returnAirportsFor,
   seatStats,
   type Flight,
   type FlightsData,
@@ -29,8 +30,8 @@ export type GroupPick = { ref: GroupRef; members: Traveler[] };
 
 /**
  * Put whole groups on a flight. Every member the group has now travels (its families and its team); a
- * group is picked whole or not at all. The officer usually arrives here after a call from a cluster head:
- * the coordination happens outside the platform.
+ * group is picked whole or not at all. The clusters' heads place their own groups on their days; the officer
+ * comes here for what they cannot do (a locked flight, a group off its cluster's days), and that shows as a warning.
  */
 export function GroupPicker({ open, onClose, flight, data, onAssign }: { open: boolean; onClose: () => void; flight: Flight; data: FlightsData; onAssign: (groups: GroupPick[], alsoFlightId?: string, reason?: string) => void }) {
   const post = useStore((s) => s.post);
@@ -50,8 +51,9 @@ export function GroupPicker({ open, onClose, flight, data, onAssign }: { open: b
         .filter((c) => !cluster || c === cluster)
         .flatMap((c) => groupsOfCluster(c))
         .filter((g) => !q || `${groupName(g.number)} ${g.head} ${clusterName(g.clusterId)}`.includes(q.trim()))
-        .map((g) => ({ g, key: `${g.clusterId}:${g.number}`, members: membersOfGroup(g, post, applications, admins), here: flightOfGroup(g.clusterId, g.number, flight.direction, data), there: flightOfGroup(g.clusterId, g.number, opposite, data) })),
-    [cluster, q, post, applications, admins, data, flight.direction, opposite],
+        .map((g) => ({ g, key: `${g.clusterId}:${g.number}`, members: membersOfGroup(g, post, applications, admins), here: flightOfGroup(g.clusterId, g.number, flight.direction, data), there: flightOfGroup(g.clusterId, g.number, opposite, data), given: data.allotments.some((a) => a.flightId === flight.id && a.clusterId === g.clusterId) }))
+        .sort((a, b) => Number(b.given) - Number(a.given)),
+    [cluster, q, post, applications, admins, data, flight.id, flight.direction, opposite],
   );
   const chosen = rows.filter((r) => picked.includes(r.key) && !r.here);
   const count = chosen.reduce((n, r) => n + r.members.length, 0);
@@ -60,7 +62,10 @@ export function GroupPicker({ open, onClose, flight, data, onAssign }: { open: b
   const alsoFlight = data.flights.find((f) => f.id === also);
   const alsoRoom = alsoFlight ? seatStats(alsoFlight, data.assignments).remaining : Infinity;
   const locked = flight.status === "locked";
-  const counterparts = data.flights.filter((f) => f.direction === opposite && f.audience === "pilgrims" && isOpenForAssignment(f));
+  // the other half the pair rule allows: a return landing where this outbound's airport sends its travellers home, or the outbounds whose travellers may land here
+  const counterparts = data.flights.filter(
+    (f) => f.direction === opposite && f.audience === "pilgrims" && isOpenForAssignment(f) && (flight.direction === "outbound" ? returnAirportsFor(data, flight.fromId).includes(f.toId) && f.departAt > flight.arriveAt : returnAirportsFor(data, f.fromId).includes(flight.toId) && flight.departAt > f.arriveAt),
+  );
   const toggle = (k: string) => setPicked((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
 
   return (
@@ -83,7 +88,7 @@ export function GroupPicker({ open, onClose, flight, data, onAssign }: { open: b
         </div>
       }
     >
-      <p className="mb-3 text-sm text-white/70">اختر المجموعة كاملة: كل المسجلين فيها يسافرون على هذه الرحلة، مع فريقها، ومن ينضم إليها لاحقاً يُضاف إليها تلقائياً.</p>
+      <p className="mb-3 text-sm text-white/70">اختر المجموعة كاملة: كل المسجلين فيها يسافرون على هذه الرحلة، مع فريقها، ومن ينضم إليها لاحقاً يُضاف إليها تلقائياً. يضع رؤساء التكتلات مجموعاتهم على أيام تكتلاتهم؛ وما تضعه هنا لتكتل لم يُعطَ الرحلة يظهر تنبيهاً.</p>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
         <SearchBox value={q} onChange={setQ} label="بحث في المجموعات" placeholder="اسم المجموعة أو اسم رئيسها..." />
         <FilterSelect value={cluster} onChange={setCluster} label="التكتل" all="كل التكتلات" options={allClusterIds().map((c) => ({ value: c, label: clusterName(c) }))} />
@@ -100,6 +105,7 @@ export function GroupPicker({ open, onClose, flight, data, onAssign }: { open: b
                   <span className="block truncate text-xs text-white/60">{r.g.head} — {r.members.length} مسافراً مع الفريق</span>
                 </span>
                 {r.here ? <Chip tone="muted">على {r.here.flightNo}</Chip> : r.there ? <Chip tone="green">{DIRECTION_LABEL[opposite]}: {r.there.flightNo}</Chip> : null}
+                {!r.here && !r.given && <Chip tone="maroon">ليست من أيام تكتلها</Chip>}
               </button>
             </li>
           );

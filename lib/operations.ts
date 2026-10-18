@@ -27,7 +27,6 @@ export type OperationKey =
   | "group-formation"
   | "group-joining"
   | "cluster-formation"
-  | "cluster-approval"
   | "group-management"
   | "cluster-management"
   | "pilgrim-evaluation"
@@ -61,10 +60,9 @@ export const OPERATIONS: OperationDef[] = [
   { key: "hajj-lottery", label: "التسجيل على الحج — التسجيل الأولي على القرعة", desc: "طلب مستقل بعد القبول المباشر، برسم التسجيل فقط. لا يضع أحداً في مجموعة.", start: "2026-08-26", end: "2026-09-10", control: "registration.manage" },
   { key: "admin-registration", label: "التسجيل كإداري", desc: "طلب المشاركة في الموسم لصفة واحدة من الصفات المفتوحة للتقدم: رئيس مجموعة، أو موجّه ديني بدرجته (أ، ب، ج)، أو معاون، أو منسق تقني، أو موجّهة دينية بدرجتها…", start: "2026-09-20", end: "2026-09-24", control: "admins.manage" },
   { key: "admin-exams", label: "الاختبارات", desc: "الاختبار المؤتمت لكل صفة في قاعات المراكز الامتحانية، بإشراف مشرفي القاعات، قبل تشكيل المجموعات.", start: "2026-09-27", end: "2026-10-25", control: "exams.manage", estimate: true },
-  { key: "group-formation", label: "تشكيل المجموعات", desc: "يراجع الناجح في التأهيل المكتب باسم مجموعته ورسمها، فيشكّلها موظف إدارة الإداريين بفئته: عدد حجاجها ومقاعد فريقها. دون فريق: مقاعدها يملؤها رئيس التكتل.", start: "2026-11-01", end: "2026-11-10", control: "admins.manage", estimate: true },
+  { key: "group-formation", label: "تشكيل المجموعات", desc: "يحضر الناجح في التأهيل وفريقه إلى المكتب: يشكّل موظف إدارة الإداريين المجموعة باسمها وفئتها، ويُجلس موجّهها ومعاونها، ويقبض رسمها، ويرفع عقدها الموقّع.", start: "2026-11-01", end: "2026-11-10", control: "admins.manage", estimate: true },
   { key: "group-joining", label: "إلحاق الحجاج بالمجموعات", desc: "يتفق الحاج مع مجموعة ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب بها، والطلب العائلي كاملاً. يرى رئيس المجموعة ومنسقها حجاجها. يبدأ مع تشكيل التكتلات ويستمر بعده.", start: "2026-11-12", end: "2027-01-15", control: "season.settings", estimate: true },
-  { key: "cluster-formation", label: "تشكيل التكتلات", desc: "طلبات تشكيل التكتلات بالتوازي مع إلحاق الحجاج: من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية يملأ الطلب بترتيبه ويرسله، من ساعة البدء حتى ساعة الموعد النهائي. الموعد الأول لشارة الالتزام في «طلبات التكتلات».", start: "2026-11-12", startTime: "09:00", end: "2026-11-30", endTime: "23:59", control: "admins.manage", estimate: true },
-  { key: "cluster-approval", label: "مراجعة طلبات التكتلات واعتمادها", desc: "يراجع موظف إدارة الإداريين كل طلب يُرسل: يعتمده، أو يعيده بملاحظات يصلحها رئيسه قبل الموعد النهائي. وما بقي خارج التكتلات يُضاف بتعديل استثنائي.", start: "2026-11-12", end: "2026-12-05", control: "admins.manage", estimate: true },
+  { key: "cluster-formation", label: "تشكيل التكتلات", desc: "في المكتب بحضور رئيس التكتل وكل من فيه، بالتوازي مع إلحاق الحجاج: تدخل المجموعات بفرقها، ويختار رئيسه كادره ويوزّعه، ويُدفع رسمه، ويرفع الموظف عقده الموقّع، فيُنشأ معتمداً. الموعد الأول لشارة الالتزام بالمواعيد.", start: "2026-11-12", startTime: "09:00", end: "2026-11-30", endTime: "23:59", control: "admins.manage", estimate: true },
   { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها والفريق في مقاعدها. دائمة ما دامت المجموعة قائمة.", control: "admins.manage" },
   { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع منسقيه وموجّهاته على مجموعاته وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
   // After the season: the pilgrims rate as they come home; the administrators rate themselves once the last of them landed; then the staff and the clusters' heads rate them

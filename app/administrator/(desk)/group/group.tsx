@@ -1,35 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { ArrowLeft, Check, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { StarRating, useToast } from "@/components/ui/widgets";
-import { groupName, suggestedGroupName } from "@/lib/groups";
+import { groupName } from "@/lib/groups";
 import { useSeason } from "@/lib/season-live";
-import { actions, useStore } from "@/lib/store";
+import { useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { adminReceipt, logAdmin, resultOf, useAdmin } from "../../_lib/admin";
+import { adminReceipt, logAdmin, useAdmin } from "../../_lib/admin";
 import { groupCount } from "../../_lib/group";
 import { isClusterRole, isTechCoordinator } from "../../_lib/admin";
-import { nextGroupNumber } from "../../_lib/capacity";
 import { teamOf } from "../../_lib/cluster";
 import { useClusterRequests } from "../../_lib/formation";
-import { DEFAULT_TIER, categoryOf, categoryOfId, seatsLabel, seatsOf, useCadre, useStructure } from "../../_lib/structure";
+import { categoryOf, categoryOfId, seatsOf, useCadre, useStructure } from "../../_lib/structure";
 import { StandingCard } from "../../_components/standing";
 import { CoordinatorGroups } from "./coordinator-groups";
-import { AdminShell, LockedCard, MovedTo, SimButton } from "../../_components/ui";
-import { OperationClosed } from "@/components/app/operation-closed";
-import { rangeLabel, useOperation } from "@/lib/operations";
+import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
 
-/** Who sits in this group's seats, as its cluster's head invited them, and its coordinator: nobody before it is in a cluster */
-function useGroupTeam(number: number) {
+/**
+ * Who sits in this group's seats and its coordinator: as its cluster holds them once it is in one, else as the
+ * office seated them when it formed the group (its guide, its assistant, a «معاون بعدد»)
+ */
+function useGroupTeam(number: number, own?: AdminProfile["group"]) {
   const requests = useClusterRequests();
   return useMemo(() => {
     const req = requests.find((r) => r.groups.some((g) => g.number === number));
-    if (!req) return { cluster: undefined, team: [] as { role: string; name: string }[] };
+    if (!req) {
+      const seated = (own?.seats ?? []).flatMap((x) => (x.who ? [{ role: x.kind === "guide" ? "موجّه المجموعة" : "معاون المجموعة", name: x.who.name }] : []));
+      return { cluster: undefined, team: [...seated, ...(own?.countAssistant ? [{ role: "معاون بعدد", name: own.countAssistant.name }] : [])] };
+    }
     const t = teamOf(req.cluster, number);
     return {
       cluster: req,
@@ -40,7 +43,7 @@ function useGroupTeam(number: number) {
         ...(t.femaleGuide ? [{ role: "الموجّهة الدينية (للتكتل)", name: t.femaleGuide.name }] : []),
       ],
     };
-  }, [requests, number]);
+  }, [requests, number, own]);
 }
 
 
@@ -54,8 +57,6 @@ function useGroupTeam(number: number) {
 export function AdminGroup({ part }: { part: "formation" | "manage" }) {
   const admin = useAdmin()!;
   const p = admin.profile;
-  const r = resultOf(p);
-  const op = useOperation("group-formation");
   const g = p?.group;
   const cluster = isClusterRole(p);
   const tech = isTechCoordinator(p);
@@ -67,7 +68,7 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
     if (!g?.approvedAt) {
       return (
         <AdminShell image="/images/clock-tower.jpg" title="إدارة المجموعة" subtitle="المجموعة المعتمدة: حجاجها والفريق في مقاعدها كما يملؤها رئيس تكتلها.">
-          <LockedCard title="لا مجموعة لك بعد" text="تُدار المجموعة هنا بعد أن يشكّلها موظف إدارة الإداريين في المكتب، في مدة تشكيل المجموعات." href="/administrator/group" cta="تشكيل المجموعات" />
+          <LockedCard title="لا مجموعة لك بعد" text="تُدار المجموعة هنا بعد أن يشكّلها الموظف في المكتب بحضورك وحضور فريقها، في مدة تشكيل المجموعات." href="/administrator/dashboard" cta="ملفي" />
         </AdminShell>
       );
     }
@@ -78,127 +79,14 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
     );
   }
 
-  if (cluster || tech || (p?.positions.length && p.positions[0] !== "group-head")) {
+  // The office forms the group with its head and team there: this page only says so
+  if (part === "formation") {
     return (
-      <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle="يشكّل المكتب مجموعة كل رئيس مجموعة، في مدة تشكيل المجموعات.">
-        <LockedCard title="تشكيل المجموعات لرؤساء المجموعات" text="صفتك هذا الموسم لا تشكّل مجموعة. ما تعمل فيه من مجموعات تجده في «إدارة المجموعات»." href="/administrator/groups" cta="إدارة المجموعات" />
+      <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle="تُشكَّل المجموعة في المكتب بحضور رئيسها وفريقها.">
+        <LockedCard title="تُشكَّل المجموعة في المكتب" text={g?.approvedAt ? `شُكّلت ${groupName(g.number)} في المكتب، ووقّعتم عقدها: تراه في «العقود».` : "لا تُشكَّل المجموعة على المنصة: يحضر رئيسها وفريقها إلى المكتب، فيشكّلها الموظف باسمها وفئتها ويُجلس موجّهها ومعاونها، ويُدفع رسمها 200 $، ويوقّعون عقدها."} href={g?.approvedAt ? "/administrator/my-contracts" : "/administrator/dashboard"} cta={g?.approvedAt ? "العقود" : "ملفي"} />
       </AdminShell>
     );
   }
-
-  const view = !r.published || !r.passed ? "locked" : g?.approvedAt ? "approved" : "office";
-
-  return (
-    <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle={`يشكّل موظف إدارة الإداريين في المكتب مجموعة كل ناجح في التأهيل ${rangeLabel(op.start, op.end)}: باسمها الذي يختاره رئيسها، ورسمها، وفئة رئيسها. لا يُختار تكتل الآن: تشكيل التكتلات عملية مستقلة.`}>
-      <AnimatePresence mode="wait">
-        <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.35 }}>
-          {view === "locked" && (
-            <LockedCard title="تشكيل المجموعات للناجحين في التأهيل" text="بعد تأكيد تسليمك ونجاحك في كل أقسام الاختبار المؤتمت — أو تجديد صفتك معفى — يشكّل المكتب مجموعتك." href="/administrator/exam" cta="نتيجتي في التأهيل" />
-          )}
-          {view === "office" && <AtTheOffice />}
-          {view === "approved" && (
-            <LockedCard title={`شُكّلت ${groupName(g!.number)}`} text={`شكّلها ${g!.approvedBy ?? "موظف المكتب"} بفئتك (${g!.capacityTier ?? "الفئة الأولى"}): ${g!.capacity} حاجاً في المستوى الاقتصادي، ويتغيّر عددها ومقاعد فريقها بمستوى التكتل الذي تدخله. تراها وترى حجاجها في «إدارة المجموعة».`} href="/administrator/groups" cta="إدارة المجموعة" />
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </AdminShell>
-  );
-}
-
-// ───────────────────────── At the office ─────────────────────────
-
-/**
- * The group is formed at the office, not on the platform: the head comes in its dates with the name he chose,
- * pays its fee there, and the staff member of «إدارة الإداريين» forms it with his category. Until then this
- * says how; the demo has the office do it at once.
- */
-function AtTheOffice() {
-  const admin = useAdmin()!;
-  const toast = useToast();
-  const season = useSeason();
-  const s = useStructure();
-  const cadre = useCadre();
-  const admins = useStore((x) => x.admins);
-  const op = useOperation("group-formation");
-  const g = admin.profile!.group;
-
-  /** Demo: the head went to the office, and its staff formed his group with the name the list holds for its number */
-  const formAtOffice = () => {
-    const at = Date.now();
-    const number = g?.number ?? nextGroupNumber(admins, admin.id);
-    const cat = categoryOf(admin.id, cadre) ?? s.categories[0]?.id;
-    if (!cat) return;
-    if (!categoryOf(admin.id, cadre)) actions.setCadre("category", admin.id, cat);
-    const name = categoryOfId(s, cat)?.name ?? "";
-    const n = seatsOf(s, DEFAULT_TIER, cat);
-    const by = "مازن الحلبي (محاكاة)";
-    actions.upsertAdmin(admin.id, { group: { number, name: g?.name ?? suggestedGroupName(number), capacity: n.pilgrims, capacityTier: name, requestedAt: at, feePaidAt: at, approvedAt: at, approvedBy: by } });
-    actions.logEvent({ actor: by, role: "موظف", action: "تشكيل مجموعة في المكتب", target: groupName(number), after: `رئيسها ${admin.name}`, detail: `${name}: ${n.pilgrims} حاجاً في الاقتصادي — ${seatsLabel(n)} — رسم ${season.fees.groupFormation} $ في المكتب`, system: "admins", area: "groups", ref: String(number) });
-    logAdmin(admin.id, `تشكيل ${groupName(number)} في المكتب`, undefined, `شكّلها ${by} — ${name}: ${n.pilgrims} حاجاً في الاقتصادي`);
-    toast({ title: `شُكّلت ${groupName(number)}`, body: `${name}: ${n.pilgrims} حاجاً في المستوى الاقتصادي.`, icon: "🏛️", tone: "success" });
-  };
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-      <Card className="md:p-8">
-        <p className="font-display text-2xl font-bold text-green-dark">تُشكَّل مجموعتك في المكتب</p>
-        <p className="mt-2 leading-8 text-ink-soft">لا طلب على المنصة: يشكّلها موظف إدارة الإداريين في المكتب، فتظهر لك هنا وفي «إدارة المجموعة» مع حجاجها حين يُلحقون بها.</p>
-        <ol className="mt-5 space-y-2">
-          {[
-            `راجع المكتب في مدة تشكيل المجموعات: ${rangeLabel(op.start, op.end)}.`,
-            "أخبر الموظف باسم مجموعتك: كلمة أو كلمتان، لا تحملهما مجموعة أخرى هذا الموسم.",
-            `سدّد رسم التشكيل ${formatUSD(season.fees.groupFormation)} في المكتب، وتأخذ إيصاله.`,
-            "يشكّلها الموظف بفئتك، فيُعرف عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله.",
-          ].map((t, i) => (
-            <li key={t} className="flex gap-3 rounded-2xl bg-sand/70 p-3 text-sm leading-7">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-green-dark text-xs font-bold text-white">{i + 1}</span>
-              {t}
-            </li>
-          ))}
-        </ol>
-        {g && !g.approvedAt && <p className="mt-4 rounded-2xl bg-gold/20 p-3 text-sm font-semibold text-maroon">طلبك القديم ({groupName(g.number)}) عند المكتب: يكمل الموظف تشكيلها.</p>}
-        <div className="mt-5">
-          {op.open ? (
-            <SimButton onClick={formAtOffice}>محاكاة: راجعتُ المكتب فشكّل الموظف مجموعتي</SimButton>
-          ) : (
-            <OperationClosed state={op} text="تُشكَّل المجموعات في المكتب في مدتها وحدها." />
-          )}
-        </div>
-      </Card>
-      <CategoryCard />
-    </div>
-  );
-}
-
-/** His category as the administration set it, and what it gives his group in each tier of cluster */
-function CategoryCard() {
-  const admin = useAdmin()!;
-  const s = useStructure();
-  const cadre = useCadre();
-  const cat = categoryOf(admin.id, cadre);
-  return (
-    <div className="rounded-2xl bg-sand p-4">
-      <p className="text-sm font-bold text-ink-soft">فئة المجموعة</p>
-      <p className="mt-2 font-bold leading-7 text-green-dark">{cat ? `${categoryOfId(s, cat)?.name} — فئتك كما حددتها الإدارة` : "تحددها إدارة الإداريين عند اعتماد طلبك"}</p>
-      {cat ? (
-        <ul className="mt-2 space-y-1 text-xs">
-          {s.tiers.map((t) => {
-            const n = seatsOf(s, t.id, cat);
-            return (
-              <li key={t.id} className="flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1">
-                <span className="font-bold">{t.name}</span>
-                <span className="text-ink-soft">
-                  {n.pilgrims} حاجاً — {seatsLabel(n)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="mt-1 text-xs leading-5 text-hint">فئة المجموعة فئة رئيسها، لا تُختار: منها عدد حجاجها ومقاعد فريقها في مستوى التكتل الذي تدخله.</p>
-      )}
-    </div>
-  );
 }
 
 // ───────────────────────── Contracts ─────────────────────────
@@ -206,7 +94,7 @@ function CategoryCard() {
 // ───────────────────────── My group ─────────────────────────
 
 const TASKS = [
-  { key: "program", t: "دخول تكتل: بدعوة تقبلها، أو بطلب تشكيل تكتل", href: "/administrator/cluster" },
+  { key: "program", t: "دخول تكتل: حين يُشكَّل في المكتب بحضورك", href: "/administrator/cluster" },
   { key: "training", t: "إكمال التدريب الإلزامي (6 وحدات)" },
   { key: "requests", t: "استلام الحجاج المفوَّجين", href: "/administrator/requests" },
   { key: "needs", t: "مراجعة الاحتياجات الخاصة" },
@@ -221,7 +109,7 @@ function MyGroup() {
   const applications = useStore((s) => s.applications);
   const post = useStore((s) => s.post);
   const g = admin.profile!.group!;
-  const { cluster, team } = useGroupTeam(g.number);
+  const { cluster, team } = useGroupTeam(g.number, g);
   const members = groupCount(g.number, post, applications, cluster?.cluster.groups[g.number]);
   const s = useStructure();
   const cadre = useCadre();
@@ -272,15 +160,15 @@ function MyGroup() {
                   <p className="truncate font-bold">{i === 0 ? admin.name : t.name}</p>
                   <p className="text-xs text-ink-soft">{t.role}</p>
                 </div>
-                <Check className="mr-auto size-5 shrink-0 text-green-light" aria-label="قبِل" />
+                <Check className="mr-auto size-5 shrink-0 text-green-light" aria-label="في مقعده" />
               </motion.li>
             ))}
           </ul>
           <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-3">
             {[
               `رسم التشكيل ${formatUSD(season.fees.groupFormation)} ✓`,
-              cluster ? `في ${cluster.cluster.name} ✓` : "التكتل — بدعوة أو بطلب",
-              team.length ? `فريقها: ${team.length} دعاهم رئيس التكتل` : "مقاعد فريقها — يملؤها رئيس التكتل",
+              cluster ? `في ${cluster.cluster.name} ✓` : "التكتل — حين يُشكَّل في المكتب",
+              team.length ? `فريقها: ${team.length} أجلسهم المكتب` : "مقاعد فريقها — يُجلسها المكتب",
             ].map((x) => (
               <li key={x} className="rounded-xl border border-green-light/30 bg-green-light/5 px-3 py-2 font-semibold text-green">{x}</li>
             ))}
@@ -321,7 +209,7 @@ function MyGroup() {
               );
             })}
           </ul>
-          <p className="mt-4 text-xs text-hint">يُفتح إلحاق الحجاج بالمجموعات في 12 تشرين الثاني (موعد تقديري): تلحق بمجموعتك من يتفق معها من الحجاج المقبولين، بعقد ترفعه.</p>
+          <p className="mt-4 text-xs text-hint">يُفتح إلحاق الحجاج بالمجموعات في 12 تشرين الثاني (موعد تقديري): يلحق المكتب بمجموعتك من يتفق معها من الحجاج المقبولين حين يوقّعون عقودهم معها.</p>
         </Card>
         <Card className="text-center md:p-7">
           <p className="font-bold">هل كانت خطوات التشكيل والرسوم والعقود واضحة؟</p>

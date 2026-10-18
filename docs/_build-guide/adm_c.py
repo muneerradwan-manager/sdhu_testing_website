@@ -62,73 +62,26 @@ if ONLY in (None, "ret"):
     c.shot("ret-role-unavailable", "تقييم الموسم السابق دون الحد: الاستمرار غير متاح والتقدم بالاختبار المؤتمت", section="D")
     c.close()
 
-# ───────── invitations: a seat in a group, the deputy's post ─────────
-if ONLY in (None, "inv"):
-    S = "H"
-    c, p = session("01033300896", "/administrator/cluster")
-    jump(p, c)
-    c.shot("inv-seat", "دعواتي: دعوة رئيس تكتل إلى مقعد الموجّه في إحدى مجموعاته", hl=[("main button:has-text('أقبل')", "1"), ("main button:has-text('أعتذر')", "2")], section=S)
-    p.locator("main button:has-text('أقبل')").first.click(); c.settle(1500)
-    c.shot("inv-accepted", "قبلت الدعوة: مكانك في التكتل، وتُعتذر عنك تلقائياً دعواتك الأخرى لمكان آخر", section=S)
-    c.close()
-    c, p = session("01033300891", "/administrator/cluster")
-    jump(p, c)
-    c.shot("inv-deputy", "رئيس مجموعة قبلت مجموعته دعوة تكتل، فدعاه رئيسه نائباً له: صفة ثانوية", section=S)
-    c.close()
-
-# ───────── a cluster head files his request ─────────
-if ONLY in (None, "file"):
-    S = "I"
-    c, p = session("01033300882", "/administrator/cluster")
-    jump(p, c)
-    c.shot("cl-file", "طلب تشكيل تكتل: صفة «رئيس تكتل»، وخطوات الطلب الست، واسم التكتل", hl=[("main button:has-text('أبدأ طلب تشكيل التكتل')", "")], section=S)
-    btn(p, c, "أبدأ طلب تشكيل التكتل", 2200)
-    c.scroll_top()
-    c.shot("cl-tier", "1. المستوى: يحدد حجاج كل فئة ومقاعدها، وحدود مجموع الفئات، وعدد المنسقين والموجّهات", section=S)
-    p.locator("main button:has-text('اقتصادي')").first.click(); c.settle(1000)
-    tab(p, c, "المجموعات")
-    c.shot("cl-groups", "2. المجموعات: تدعو المجموعات وحدها، كلٌّ برئيسها وحجاجها، ومجموعتك فيه من البداية", section=S)
-    add = p.locator("main li:has(button:has-text('ادعُ')) button:has-text('ادعُ'):not([disabled])").first
-    add.scroll_into_view_if_needed(); c.settle(300)
-    c.shot("cl-invite-group", "دعوة مجموعة معتمدة من فروعك: يقبل رئيسها دعوة واحدة لمجموعته", hl=[("main li:has(button:has-text('ادعُ')) button:has-text('ادعُ'):not([disabled])", "")], section=S)
-    add.click(); c.settle(1200)
-    # 3. «الإداريون»: everyone but the heads, each to his place
-    tab(p, c, "الإداريون")
-    c.scroll_top()
-    c.shot("cl-admins", "3. الإداريون: فريق التكتل كله في خطوة واحدة، كلٌّ إلى مكانه", section=S)
-    pick = p.locator("main input[placeholder='ادعُ موجّهاً للمجموعة (موجّه أو مرشد)']").first
-    pick.scroll_into_view_if_needed(); pick.click(); c.settle(500)
-    c.shot("cl-seats", "موجّه المجموعة ومعاونها: تدعو لكل مقعد من المؤهلين في فروعك", section=S)
-    c.scroll_to("main h2:has-text('معاون التكتل')", 120)
-    c.shot("cl-assistants", "معاون التكتل: عدد ثابت لكل مستوى، ومعهم «معاون بعدد» يضيف كلٌّ 20 حاجاً", section=S)
-    c.scroll_to("main h2:has-text('المنسقون')", 120)
-    c.shot("cl-staff", "المنسقون والموجّهات: عددهم بمجموع الفئات، وأحد المنسقين «معاون ومنسق تقني»، ثم توزيعهم على المجموعات", section=S)
-    for t, key, cap in [
-        ("النائب", "cl-deputy", "4. النائب: من رؤساء مجموعات التكتل"),
-        ("المحاسب", "cl-accountant", "5. المحاسب: من كادر التكتل عدا الموجّهات، وقد يكون النائب"),
-        ("التقرير", "cl-report", "6. التقرير: شروط الطلب، والإرسال بعد اكتمالها، والطباعة"),
-    ]:
-        tab(p, c, t)
-        c.scroll_top()
-        c.shot(key, cap, section=S)
-    c.close()
-
 # ───────── the approved cluster: its head ─────────
 if ONLY in (None, "head"):
     S = "J"
+    # before: a holder of «رئيس تكتل» whose cluster the office has not formed yet
+    c, p = session("01033300882", "/administrator/clusters")
+    c.shot("head-before", "إدارة التكتل قبل التشكيل: يُشكَّل التكتل في المكتب، ويظهر هنا فور إنشائه", section=S)
+    c.close()
     c, p = session("01033300881")
     c.shot("head-dash", "رئيس التكتل: ملفي — صفته وتكتله المعتمد", section=S)
     c.goto("/administrator/clusters", wait=2000)
-    c.shot("head-manage", "إدارة التكتل: مجموعاته بفئاتها ومقاعد فريقها، وتبويبات الكادر والتقرير والخطة والصفحة العامة", section=S)
+    c.shot("head-manage", "إدارة التكتل: شُكّل في المكتب — مجموعاته بفئاتها ومقاعد فريقها، وتبويبات الكادر والعقد والخطة", section=S)
     p.locator("main button:has-text('افتحها')").first.click(); c.settle(1500)
     c.scroll_top()
     c.shot("head-group-open", "مجموعة من التكتل: فريقها في مقاعدها، وحجاجها وعقودهم", section=S)
     tab(p, c, "كادر التكتل")
-    c.shot("head-team", "كادر التكتل: معاونوه ومنسقوه وموجّهاته ونائبه ومحاسبه، وتوزيعهم على المجموعات", section=S)
+    c.shot("head-team", "كادر التكتل كما دخل في المكتب: موجّهو المجموعات ومعاونوها، ومعاونوه ومنسقوه وموجّهاته ومحاسبه", section=S)
     c.scroll_to("main :text('توزيع المنسقين على المجموعات')", 120)
-    c.shot("head-coord-sort", "توزيع المنسقين على المجموعات: ما يحمله كلٌّ من حدّه، ومنسق كل مجموعة", hl=[("main button:has-text('توزيع تلقائي ضمن الحدود')", "")], section=S)
-    tab(p, c, "التقرير")
-    c.shot("head-report", "التقرير النهائي للتكتل، يُطبع على ورقة A4", section=S)
+    c.shot("head-coord-sort", "توزيع المنسقين على المجموعات كما أُدخل في المكتب: ما يحمله كلٌّ من حدّه، ومنسق كل مجموعة", section=S)
+    tab(p, c, "العقد")
+    c.shot("head-contract", "العقد: عقد التكتل الموقّع كما رفعه الموظف، يُفتح بالضغط عليه", hl=[("main button:has-text('فتح العقد')", "")], section=S)
     tab(p, c, "الخطة التشغيلية")
     c.shot("head-plan", "الخطة التشغيلية: خلاصتها وملفها، تقدّمها للإدارة", section=S)
     p.get_by_label("خلاصة الخطة").fill("فندقان في العزيزية على 3 كم من الحرم، وفندق في المدينة على 400 م. حافلات حديثة بين المشاعر، وثلاث وجبات. الكادر موزّع على المراحل الخمس، ولكل مجموعة نقطة تجمّع.")
@@ -136,8 +89,9 @@ if ONLY in (None, "head"):
     btn(p, c, "تقديم الخطة", 1500)
     c.scroll_top()
     c.shot("head-plan-sent", "قُدّمت الخطة: تنتظر قرار الإدارة، ويصلك هنا وفي الإشعارات", section=S)
-    tab(p, c, "الصفحة العامة")
-    c.shot("head-profile", "صفحة التكتل العامة في «التكتلات والمجموعات»: التعديل", section=S)
+    # the public page has its own entry in the sidebar
+    c.goto("/administrator/cluster-page", wait=1800)
+    c.shot("head-profile", "صفحة التكتل العامة في «التكتلات والمجموعات»: التعديل", hl=[("aside a[href='/administrator/cluster-page']", "")], section=S)
     ta = p.locator("main textarea").first
     if ta.count():
         ta.fill(ta.input_value() + " ونوفّر حافلة خاصة لكبار السن إلى الحرم.")
@@ -150,7 +104,7 @@ if ONLY in (None, "head"):
     # the group's own page: its picture, a word and its gallery, from the head's sidebar
     pics = ROOT.parent.parent / "public" / "images"
     c.goto("/administrator/group-page", wait=1500)
-    c.shot("group-page", "صفحة المجموعة العامة: صورتها ونبذتها ومعرض صورها", hl=[("aside a[href='/administrator/group-page']", "")], section=S)
+    c.shot("group-page", "صفحات المجموعات العامة: رئيس التكتل يختار أي مجموعة من مجموعاته", hl=[("aside a[href='/administrator/group-page']", "")], section=S)
     p.locator("input[type=file][aria-label='صورة المجموعة']").set_input_files(str(pics / "mina-arrive.jpg")); c.settle(1500)
     p.get_by_label("نبذة عن المجموعة").fill("مجموعة من دمشق منذ 1444هـ، فريقها من المواسم السابقة، ولها درس يومي بعد العصر في مكة.")
     p.locator("input[type=file][aria-label='صور المعرض']").set_input_files([str(pics / n) for n in ("kaaba-hajj.jpg", "tawaf-night.jpg", "jamarat.jpg")]); c.settle(2500)
@@ -164,14 +118,9 @@ if ONLY in (None, "head"):
     c.save_state(str(ROOT / "admin" / "state-head-profile.json"))
     c.close()
 
-# ───────── the cluster's deputy and accountant ─────────
-if ONLY in (None, "deputy"):
+# ───────── the cluster's accountant ─────────
+if ONLY in (None, "acc"):
     S = "K"
-    c, p = session("01033300883")
-    c.shot("cdep-dash", "نائب رئيس التكتل: ملفي — صفة ثانوية فوق رئاسة مجموعته", section=S)
-    c.goto("/administrator/clusters", wait=1800)
-    c.shot("cdep-cluster", "إدارة التكتل كما يراها النائب: للعرض", section=S)
-    c.close()
     c, p = session("01033300944")
     c.shot("cacc-dash", "محاسب التكتل: ملفي — صفة ثانوية فوق مقعده في المجموعة", section=S)
     c.close()
@@ -182,7 +131,7 @@ if ONLY in (None, "tech"):
     S = "L"
     c.shot("tech-dash", "المنسق التقني: ملفي — منسق في تكتل النور لثلاث من مجموعاته", section=S)
     c.goto("/administrator/groups", wait=1800)
-    c.shot("tech-groups", "إدارة المجموعات: المجموعات التي وزّعها عليه رئيس التكتل", section=S)
+    c.shot("tech-groups", "إدارة المجموعات: المجموعات التي وُزّع عليها حين شُكّل التكتل في المكتب", section=S)
     c.goto("/administrator/pilgrims", wait=1800)
     jump(p, c)
     c.shot("tech-reg", "التسجيل على الحج: البحث عن المواطن في الشؤون المدنية", section=S)
@@ -226,9 +175,9 @@ if ONLY in (None, "members"):
         c.goto("/administrator/field", wait=1800)
         c.shot(f"{key}-field", f"{cap}: الميدان", section=S)
         c.close()
-    # The field of someone who works in several groups: the group first
+    # The field of someone who works in several groups: his groups on top with their pictures, the first one's tools under them
     c, p = session("01033300874", "/administrator/field")
-    c.shot("field-pick", "الميدان لمن يعمل في أكثر من مجموعة: اختر المجموعة أولاً", hl=[("main [role=radiogroup][aria-label='المجموعة']", "")], section=S)
+    c.shot("field-pick", "الميدان لمن يعمل في أكثر من مجموعة: مجموعاته في الأعلى بصورها، وأدوات المختارة منها تحتها", hl=[("main [role=radiogroup][aria-label='المجموعة']", "")], section=S)
     c.close()
     # The cluster's public page: its team writes it, not its head alone
     c, p = session("01033300872", "/administrator/cluster-page")
@@ -242,7 +191,7 @@ if ONLY in (None, "members"):
 if ONLY in (None, "channel"):
     S = "N2"
     c, p = session("01033300881", "/administrator/channel")
-    c.shot("chan-head", "قناة التكتل: رسائل كادر التكتل، ومن يكتب فيها، وأعضاؤها", hl=[("aside a[href*='/administrator/channel']", "")], section=S)
+    c.shot("chan-head", "قناة التكتل: رسائل كادر التكتل، ومن يكتب فيها", hl=[("aside a[href*='/administrator/channel']", "")], section=S)
     p.locator("main div.group:has-text('هل نحضر قوائم') button:has-text('ردّ')").first.click(); c.settle(400)
     p.get_by_label("نص الرسالة").fill("نعم، تكفي على المنصة. وأرسلوا أسماء معاونيكم قبل الاجتماع.")
     c.settle(300)
@@ -250,7 +199,8 @@ if ONLY in (None, "channel"):
     p.locator("main button:has-text('إرسال')").first.click(); c.settle(1500)
     c.scroll_to("main h2:has-text('من يكتب في القناة')", 120)
     c.shot("chan-writers", "من يكتب في القناة: جاهزاً أو صفةً صفة، ورئيس التكتل يكتب دائماً", hl=[("main h2:has-text('من يكتب في القناة')", "")], section=S)
-    stop = p.locator("main li:has-text('أحمد سليمان الحمصي') button:has-text('إيقاف الكتابة')").first
+    # stopping a writer, from one of his messages
+    stop = p.locator("main div.group button:has-text('إيقاف كتابته')").first
     stop.scroll_into_view_if_needed(); stop.click(); c.settle(600)
     p.locator("[role=dialog] input").first.fill("الأسئلة الخاصة بمجموعته مع رئيس التكتل مباشرة"); c.settle(300)
     c.shot("chan-mute", "إيقاف كتابة عضو: يبقى يقرأ، ولا يكتب حتى تعيدها له", hl=[("[role=dialog] button:has-text('إيقاف الكتابة')", "")], section=S)

@@ -34,7 +34,7 @@ function needsLift(r: JoinRequest) {
 /**
  * A group's pilgrims: the families attached to it by their contracts, their welcome and their health files.
  * Its own page for a group head and for whoever serves in groups; inside «إدارة التكتل» the cluster's head
- * and deputy open it for one group of the cluster (`fixed`, `embedded`), with no page or switcher around it.
+ * opens it for one group of the cluster (`fixed`, `embedded`), with no page or switcher around it.
  */
 export function AdminRequests({ fixed, embedded = false }: { fixed?: number; embedded?: boolean } = {}) {
   const joining = useOperation("group-joining");
@@ -77,7 +77,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
     [families, p, applications, post, openNumber, active],
   );
 
-  // A cluster's head and deputy open each group's pilgrims from the cluster's groups
+  // A cluster's head opens each group's pilgrims from the cluster's groups
   if (!embedded && myCluster) return <MovedTo href="/administrator/clusters" title="إدارة التكتل" />;
   if (!embedded && isTechCoordinator(p) && !coord?.groups.length) {
     return (

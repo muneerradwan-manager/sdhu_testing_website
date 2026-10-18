@@ -40,7 +40,6 @@ const OP_EN: Record<OperationKey, string> = {
   "group-formation": "Forming groups",
   "group-joining": "Pilgrims joining groups",
   "cluster-formation": "Forming clusters",
-  "cluster-approval": "Reviewing and approving cluster requests",
   "group-management": "Group management",
   "cluster-management": "Cluster management",
   "pilgrim-evaluation": "Pilgrims' evaluation after the return",

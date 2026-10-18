@@ -4,13 +4,13 @@ import type { ClusterTeam, TeamGroup, TeamMember } from "@/lib/data/clusters";
 import type { AdminProfile, ClusterInvite } from "@/lib/store";
 import { seasonHistory } from "./admin";
 import { contactOf } from "./cadre";
-import { ACCOUNTANT_TITLE, DEPUTY_TITLE, POOLS, roleOfPerson, type ClusterRequest } from "./formation";
+import { ACCOUNTANT_TITLE, POOLS, roleOfPerson, type ClusterRequest } from "./formation";
 import { HEADS_POOL, ROSTER } from "./people";
 import { branchOf, roleName, roleOf, type Cadre, type Structure } from "./structure";
 
 /**
  * A cluster's people as «التكتلات والمجموعات» shows them, read from its approved request (./directory): its
- * head, deputy and accountant, its assistants, coordinators and female guides, and every group with its head and
+ * head and accountant, its assistants, coordinators and female guides, and every group with its head and
  * the guides and assistants in its seats. Each with his role this season, his seasons on the platform and the
  * rating of his last one — what a pilgrim weighs before he signs with a group.
  */
@@ -52,7 +52,6 @@ export function teamOf(s: Structure, cadre: Cadre, admins: Record<string, AdminP
   return {
     tier: s.tiers.find((t) => t.id === c.tier)?.name ?? "",
     head: member({ id: r.headId, name: r.headName }, "رئيس التكتل"),
-    deputy: yes(c.deputy) ? member(c.deputy!, DEPUTY_TITLE) : undefined,
     accountant: yes(c.accountant) ? member(c.accountant!, ACCOUNTANT_TITLE) : undefined,
     assistants: c.assistants.filter(yes).map((x) => member(x, POOLS["cluster-assistant"].title)),
     coordinators: c.coordinators.filter(yes).map((x) => member(x, POOLS.tech.title)),

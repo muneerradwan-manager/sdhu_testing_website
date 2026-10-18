@@ -6,7 +6,7 @@ import { Building2, Plus, Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { flightsActions, newFlightId, useAirportReps, useFlightsData, type Airport, type Carrier } from "@/lib/flights";
+import { airportOf, flightsActions, isHoly, newFlightId, returnAirportsFor, useAirportReps, useFlightsData, type Airport, type Carrier, type FlightsData } from "@/lib/flights";
 import { getStaff, STAFF } from "@/lib/staff";
 import { cn } from "@/lib/utils";
 import { Drawer, logAs, useStaffUser } from "../_components/kit";
@@ -16,6 +16,13 @@ import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, T
 import { Segments } from "../exam/_components/ui";
 
 const AIRPORTS = "/staff/flights/manage";
+
+/** What an airport is in the pilgrims' trip: the holy city it serves, where its travellers return, or returns only */
+function roleOf(a: Airport, d: Pick<FlightsData, "airports">) {
+  if (isHoly(a)) return `يصل إليه الذهاب وتقلع منه العودة — ${a.serves ?? a.city}`;
+  if (a.arrivalsOnly) return "تهبط فيه العودة فقط";
+  return `يقلع منه الذهاب، ويعود ركابه إلى ${returnAirportsFor(d, a.id).map((id) => airportOf(d, id)?.city ?? id).join(" أو ")}`;
+}
 const CARRIERS = "/staff/flights/manage/carriers";
 
 /** What the flights are built from, in two lists: the airports (with who represents each) and the carriers */
@@ -101,6 +108,7 @@ export function AirportsPage() {
                   {a.city}
                 </button>
                 <span className="block text-xs text-white/55">{a.name}</span>
+                <span className="block text-xs text-gold/80">{roleOf(a, data)}</span>
                 <RowActions>
                   <RowLink onClick={() => setEditing(a)}>تعديل</RowLink>
                   {!a.archived && <RowLink onClick={() => setEditing(a)}>{rep ? "تغيير المندوب" : "إسناد مندوب"}</RowLink>}
@@ -136,6 +144,9 @@ export function AirportsPage() {
 /** One airport in a side sheet: its details and its representative, saved once */
 function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<Airport>; rep: string; onClose: () => void }) {
   const user = useStaffUser()!;
+  const data = useFlightsData();
+  // the airports a return may land at: outside Saudi Arabia
+  const homes = data.airports.filter((x) => !x.archived && x.country !== "السعودية");
   const toast = useToast();
   const [a, setA] = useState(initial);
   const [rep, setRep] = useState(initialRep);
@@ -143,8 +154,20 @@ function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<
 
   const save = () => {
     if (!valid) return;
-    const saved: Airport = { id: a.id ?? newFlightId("ap"), code: a.code!.toUpperCase().trim(), name: a.name!.trim(), city: a.city!.trim(), country: (a.country ?? "").trim(), archived: a.archived };
-    const changed = !initial.id || (["code", "name", "city", "country"] as const).some((k) => (initial[k] ?? "") !== saved[k]);
+    const holy = (a.country ?? "").trim() === "السعودية";
+    const id = a.id ?? newFlightId("ap");
+    const saved: Airport = {
+      id,
+      code: a.code!.toUpperCase().trim(),
+      name: a.name!.trim(),
+      city: a.city!.trim(),
+      country: (a.country ?? "").trim(),
+      serves: holy ? a.serves?.trim() || a.city!.trim() : undefined,
+      arrivalsOnly: !holy && a.arrivalsOnly ? true : undefined,
+      returnsTo: !holy && !a.arrivalsOnly && a.returnsTo?.length ? a.returnsTo : undefined,
+      archived: a.archived,
+    };
+    const changed = !initial.id || (["code", "name", "city", "country", "serves", "arrivalsOnly"] as const).some((k) => (initial[k] ?? "") !== (saved[k] ?? "")) || JSON.stringify(initial.returnsTo ?? []) !== JSON.stringify(saved.returnsTo ?? []);
     if (changed) {
       flightsActions.saveAirport(saved);
       logAs(user, { action: initial.id ? "تعديل مطار" : "إضافة مطار", target: `${saved.city} (${saved.code})`, system: "flights", area: "refs", ref: saved.id });
@@ -190,7 +213,40 @@ function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<
           <Field label="الدولة">
             <input className={fieldClass} value={a.country ?? ""} onChange={(e) => setA({ ...a, country: e.target.value })} />
           </Field>
+          {(a.country ?? "").trim() === "السعودية" && (
+            <Field label="المدينة التي يخدمها" hint="يصل إليه الذهاب وتقلع منه العودة. مطار جدة لمكة المكرمة.">
+              <input className={fieldClass} value={a.serves ?? ""} onChange={(e) => setA({ ...a, serves: e.target.value })} placeholder="مكة المكرمة" />
+            </Field>
+          )}
         </div>
+        {(a.country ?? "").trim() !== "السعودية" && (
+          <div className="space-y-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+            <label className="flex items-center gap-2 text-sm text-white">
+              <input type="checkbox" className="accent-gold" checked={!!a.arrivalsOnly} onChange={(e) => setA({ ...a, arrivalsOnly: e.target.checked })} />
+              تهبط فيه رحلات العودة فقط، ولا يقلع منه ذهاب
+            </label>
+            {!a.arrivalsOnly && (
+              <div>
+                <p className="mb-1.5 text-xs font-bold text-gold">من يقلع منه يعود إلى</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {homes.map((x) => {
+                    const self = x.id === (a.id ?? "");
+                    const list = a.returnsTo?.length ? a.returnsTo : a.id ? [a.id] : [];
+                    const on = list.includes(x.id);
+                    return (
+                      <label key={x.id} className="flex items-center gap-2 text-sm text-white">
+                        <input type="checkbox" className="accent-gold" checked={on} onChange={() => setA({ ...a, returnsTo: on ? list.filter((y) => y !== x.id) : [...list, x.id] })} />
+                        {x.city}
+                        {self ? " (المطار نفسه)" : ""}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-xs text-white/55">لا يُسند حاج إلى رحلة عودة تهبط في غير ما اخترت هنا لمطار ذهابه. إن لم تختر شيئاً عاد إلى المطار نفسه.</p>
+              </div>
+            )}
+          </div>
+        )}
         {!a.archived && (
           <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
             <Field label="مندوب المطار" hint="يسجّل إقلاع الرحلات من هذا المطار ومن تخلّف عنها، وهبوط الرحلات فيه، من صفحة «رحلات مطاري».">

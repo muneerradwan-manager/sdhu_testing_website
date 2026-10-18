@@ -101,20 +101,20 @@ export function GalleryEditor({ value, onChange, by, max = 24 }: { value: string
   );
 }
 
-/** One picture (the group's): chosen from the device, replaced or removed */
-export function CoverPicker({ value, onChange, by }: { value: string; onChange: (v: string) => void; by: string }) {
+/** One picture (a group's, a cluster's main one): chosen from the device, replaced or removed. `label` names it */
+export function CoverPicker({ value, onChange, by, label = "صورة المجموعة" }: { value: string; onChange: (v: string) => void; by: string; label?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const { busy, upload } = useUpload(by);
   return (
     <div>
       <div className={cn("relative aspect-[16/7] overflow-hidden rounded-2xl", value ? "bg-sand" : "border-2 border-dashed border-gold-dark/50 bg-gold/10")}>
         {value ? (
-          <CmsImage src={value} alt="صورة المجموعة" fill sizes="720px" className="object-cover" />
+          <CmsImage src={value} alt={label} fill sizes="720px" className="object-cover" />
         ) : (
           <button type="button" onClick={() => input.current?.click()} disabled={busy} className="grid size-full place-items-center text-sm font-bold text-maroon">
             <span className="grid place-items-center gap-1.5">
               {busy ? <Loader2 className="size-7 animate-spin" /> : <ImagePlus className="size-7" />}
-              {busy ? "جارٍ الرفع…" : "اختر صورة المجموعة"}
+              {busy ? "جارٍ الرفع…" : `اختر ${label}`}
             </span>
           </button>
         )}
@@ -134,7 +134,7 @@ export function CoverPicker({ value, onChange, by }: { value: string; onChange: 
         type="file"
         accept="image/*"
         hidden
-        aria-label="صورة المجموعة"
+        aria-label={label}
         onChange={async (e) => {
           const [ref] = await upload(e.target.files);
           e.target.value = "";

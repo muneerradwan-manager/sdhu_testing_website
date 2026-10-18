@@ -6,6 +6,12 @@
 
 import type { RoomPrices } from "../rooms";
 
+export type LatLng = { lat: number; lng: number };
+
+/** The two mosques the hotels are measured from */
+export const HARAM: LatLng = { lat: 21.4225, lng: 39.8262 };
+export const NABAWI: LatLng = { lat: 24.4672, lng: 39.6111 };
+
 /** The administration's three tiers, for the clusters and their groups alike (a group is in its cluster's tier) */
 export type ServiceLevel = "اقتصادي" | "اقتصادي محسن" | "خمس نجوم";
 
@@ -25,7 +31,6 @@ export type TeamGroup = { no: number; category: string; capacity: number; pilgri
 export type ClusterTeam = {
   tier: string;
   head: TeamMember;
-  deputy?: TeamMember;
   accountant?: TeamMember;
   assistants: TeamMember[];
   coordinators: TeamMember[];
@@ -53,19 +58,22 @@ export type Cluster = {
   /** Its groups and their pilgrims, from its approved request */
   groupsCount: number;
   pilgrims: number;
-  makkah: { hotel: string; area: string; distance: string; rooms: string; features: string[] };
-  madinah: { hotel: string; area: string; distance: string };
+  /** `at`: the hotel on the map, picked by its team (the distance is measured from it) */
+  makkah: { hotel: string; area: string; distance: string; rooms: string; features: string[]; at?: LatLng };
+  madinah: { hotel: string; area: string; distance: string; at?: LatLng };
   transport: string[];
   meals: string[];
   programs: string[];
   /** What each private room type adds per person (the shared accommodation adds nothing) — see lib/rooms */
   rooms: RoomPrices;
+  /** Its main picture, at the top of its page and on its card (else the seeded one, coverOf) */
+  cover?: string;
   /** Its photo gallery, as its team published it (images of the site or uploaded to the media library) */
   gallery?: string[];
   /** Its groups with their heads and the seats left, from its approved request */
   groups: ClusterGroup[];
   tone: "green" | "gold" | "maroon";
-  /** Its head, deputy, accountant and cadre, from its approved request («التكتلات والمجموعات» and its pages) */
+  /** Its head, accountant and cadre, from its approved request («التكتلات والمجموعات» and its pages) */
   team?: ClusterTeam;
 };
 
@@ -75,6 +83,31 @@ export type Cluster = {
  * the same id, so the directory never shows a head or a group the administrators do not have.
  */
 export type ClusterProgramme = Omit<Cluster, "level" | "groupsCount" | "pilgrims" | "groups" | "team">;
+
+/** The seeded clusters' hotels on the map, as far from the two mosques as their programmes say */
+export const CLUSTER_HOTELS: Record<string, { makkah: LatLng; madinah: LatLng }> = {
+  "al-nour": { makkah: { lat: 21.4108, lng: 39.8558 }, madinah: { lat: 24.4645, lng: 39.6122 } },
+  "al-safa": { makkah: { lat: 21.4246, lng: 39.8226 }, madinah: { lat: 24.4686, lng: 39.6112 } },
+  "al-yaqeen": { makkah: { lat: 21.3745, lng: 39.852 }, madinah: { lat: 24.469, lng: 39.62 } },
+  "al-shahba": { makkah: { lat: 21.3895, lng: 39.844 }, madinah: { lat: 24.4675, lng: 39.6072 } },
+  "al-asi": { makkah: { lat: 21.401, lng: 39.871 }, madinah: { lat: 24.458, lng: 39.615 } },
+  "bawabat-al-haramain": { makkah: { lat: 21.4228, lng: 39.8232 }, madinah: { lat: 24.4681, lng: 39.611 } },
+  hawran: { makkah: { lat: 21.403, lng: 39.856 }, madinah: { lat: 24.4628, lng: 39.6115 } },
+};
+
+/** The seeded clusters' main pictures, until their teams choose theirs */
+export const CLUSTER_COVER: Record<string, string> = {
+  "al-nour": "/images/clock-tower.jpg",
+  "al-safa": "/images/kaaba-hajj.jpg",
+  "al-yaqeen": "/images/mina-tents.jpg",
+  "al-shahba": "/images/tawaf-night.jpg",
+  "al-asi": "/images/jabal-rahmah.jpg",
+  "bawabat-al-haramain": "/images/nabawi.jpg",
+  hawran: "/images/quba.jpg",
+};
+
+/** A cluster's main picture: its team's, else the seeded one, else the Kaaba */
+export const coverOf = (c: { slug: string; cover?: string }) => c.cover || CLUSTER_COVER[c.slug] || "/images/kaaba-hajj.jpg";
 
 /** The seeded clusters' galleries: the site's own pictures, until their teams upload theirs */
 export const CLUSTER_GALLERY: Record<string, string[]> = {

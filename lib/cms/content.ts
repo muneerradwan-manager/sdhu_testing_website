@@ -237,16 +237,19 @@ export function selectClusters(state: CmsState): Cluster[] {
           distance: s(v.makkahDistance),
           rooms: s(v.makkahRooms),
           features: toStrings(v.makkahFeatures),
+          at: n(v.makkahLat) && n(v.makkahLng) ? { lat: n(v.makkahLat), lng: n(v.makkahLng) } : undefined,
         },
         madinah: {
           hotel: s(v.madinahHotel),
           area: s(v.madinahArea),
           distance: s(v.madinahDistance),
+          at: n(v.madinahLat) && n(v.madinahLng) ? { lat: n(v.madinahLat), lng: n(v.madinahLng) } : undefined,
         },
         transport: toStrings(v.transport),
         meals: toStrings(v.meals),
         programs: toStrings(v.programs),
         rooms: { 1: n(v.room1), 2: n(v.room2), 3: n(v.room3), 4: n(v.room4) },
+        cover: s(v.cover),
         gallery: rows<Record<string, unknown>>(v.gallery)
           .map((g) => s(g.src))
           .filter(Boolean),

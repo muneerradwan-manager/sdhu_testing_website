@@ -934,7 +934,7 @@ function NoFlightYet({ label }: { label: string }) {
     <div className="grid min-h-48 place-items-center rounded-[2rem] border-2 border-dashed border-gold/50 bg-white/60 p-6 text-center">
       <div>
         <p className="font-display text-xl font-bold text-green-dark">{label}: لم تُحدد بعد</p>
-        <p className="mt-1 text-sm text-ink-soft">تُحدد رحلتكم حين تضع إدارة الحج مجموعتكم على رحلة، فتظهر بطاقتها هنا ويصلك إشعار. المجموعة كلها، ومعها أسرتك، على الرحلة نفسها.</p>
+        <p className="mt-1 text-sm text-ink-soft">تُحدد رحلتكم حين يضع رئيس التكتل مجموعتكم على إحدى رحلات تكتلكم، فتظهر بطاقتها هنا ويصلك إشعار. المجموعة كلها، ومعها أسرتك، على الرحلة نفسها.</p>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { AUDIENCE_LABEL, DIRECTION_LABEL, FLIGHT_SEASON, at, flightsActions, isActive, isoDate, isoTime, newFlightId, seatStats, useFlightsData, type Actor, type Audience, type Direction, type Flight, type FlightsData } from "@/lib/flights";
+import { AUDIENCE_LABEL, DIRECTION_LABEL, FLIGHT_SEASON, airportOf, at, flightsActions, isActive, isHoly, isoDate, isoTime, newFlightId, placeOf, returnAirportsFor, seatStats, useFlightsData, type Actor, type Audience, type Direction, type Flight, type FlightsData } from "@/lib/flights";
 import { cn } from "@/lib/utils";
 import { Drawer, useStaffUser } from "../_components/kit";
 import { Field, fieldClass, selectClass } from "../_components/ops-ui";
@@ -78,29 +78,39 @@ export function toFlights(d: FlightDraft, existing: Flight | undefined, by: stri
   return d.trip === "round" && !existing ? { main, back: build(d, d.b, "return", undefined, by) } : { main };
 }
 
-function legError(l: Leg, label: string) {
+function legError(l: Leg, label: string, direction: Direction, data: FlightsData) {
   if (!l.flightNo.trim()) return `اكتب رقم رحلة ${label}`;
   if (l.fromId === l.toId) return `مطار المغادرة ومطار الوصول في رحلة ${label} لا يكونان واحداً`;
+  const from = airportOf(data, l.fromId);
+  const to = airportOf(data, l.toId);
+  if (direction === "outbound" && (!isHoly(to) || isHoly(from) || from?.arrivalsOnly)) return "الذهاب من مطار البلد إلى مكة المكرمة (جدة) أو المدينة المنورة";
+  if (direction === "return" && (!isHoly(from) || isHoly(to))) return "العودة من جدة أو المدينة المنورة إلى مطار البلد";
   if (at(l.arriveDate, l.arriveTime) <= at(l.departDate, l.departTime)) return `الوصول في رحلة ${label} يكون بعد المغادرة`;
   return null;
 }
 
-export function validate(d: FlightDraft, assigned: { pilgrims: number; staff: number }): string | null {
+export function validate(d: FlightDraft, assigned: { pilgrims: number; staff: number; held?: number }, data: FlightsData): string | null {
   const round = d.trip === "round" && !d.id;
-  const e = legError(d.a, round || d.trip === "outbound" ? "الذهاب" : "العودة") ?? (round ? legError(d.b, "العودة") : null);
+  const first: Direction = d.trip === "return" ? "return" : "outbound";
+  const e = legError(d.a, first === "outbound" ? "الذهاب" : "العودة", first, data) ?? (round ? legError(d.b, "العودة", "return", data) : null);
   if (e) return e;
   if (round && at(d.b.departDate, d.b.departTime) <= at(d.a.arriveDate, d.a.arriveTime)) return "العودة تكون بعد وصول الذهاب";
   if (d.capacity < 1) return "السعة رقم أكبر من صفر";
   if (d.audience === "pilgrims" && d.staffReserve >= d.capacity) return "حجز الموظفين أقل من السعة";
   const pilgrimSeats = d.audience === "staff" ? 0 : d.capacity - d.staffReserve;
   if (assigned.pilgrims > pilgrimSeats) return `على الرحلة ${assigned.pilgrims} حاجاً مسنداً — لا تُنقص المقاعد تحتهم`;
+  if ((assigned.held ?? 0) > pilgrimSeats) return `للتكتلات على الرحلة ${assigned.held} مقعداً — لا تُنقص مقاعد الحجاج تحتها`;
   const staffSeats = d.audience === "staff" ? d.capacity : d.staffReserve;
   if (assigned.staff > staffSeats) return `على الرحلة ${assigned.staff} موظفاً مسنداً — لا تُنقص حجزهم`;
   return null;
 }
 
-function LegFields({ title, leg, onChange, data }: { title: string; leg: Leg; onChange: (l: Leg) => void; data: FlightsData }) {
+function LegFields({ title, leg, onChange, data, direction }: { title: string; leg: Leg; onChange: (l: Leg) => void; data: FlightsData; direction: Direction }) {
   const set = <K extends keyof Leg>(k: K, v: Leg[K]) => onChange({ ...leg, [k]: v });
+  // the outbound takes off from home and lands in Makkah (Jeddah) or Madinah; the return the other way
+  const live = data.airports.filter((a) => !a.archived);
+  const froms = live.filter((a) => (direction === "outbound" ? !isHoly(a) && !a.arrivalsOnly : isHoly(a)));
+  const tos = live.filter((a) => (direction === "outbound" ? isHoly(a) : !isHoly(a)));
   return (
     <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
       <h3 className="mb-3 font-display font-bold text-gold">{title}</h3>
@@ -113,12 +123,12 @@ function LegFields({ title, leg, onChange, data }: { title: string; leg: Leg; on
         </Field>
         <Field label="مطار المغادرة">
           <select className={selectClass} value={leg.fromId} onChange={(e) => set("fromId", e.target.value)}>
-            {data.airports.filter((a) => !a.archived).map((a) => <option key={a.id} value={a.id}>{a.city} — {a.code}</option>)}
+            {froms.map((a) => <option key={a.id} value={a.id}>{placeOf(a)} — {a.code}</option>)}
           </select>
         </Field>
         <Field label="مطار الوصول">
           <select className={selectClass} value={leg.toId} onChange={(e) => set("toId", e.target.value)}>
-            {data.airports.filter((a) => !a.archived).map((a) => <option key={a.id} value={a.id}>{a.city} — {a.code}</option>)}
+            {tos.map((a) => <option key={a.id} value={a.id}>{placeOf(a)} — {a.code}</option>)}
           </select>
         </Field>
         <Field label="تاريخ المغادرة"><input type="date" className={fieldClass} value={leg.departDate} onChange={(e) => onChange({ ...leg, departDate: e.target.value, arriveDate: leg.arriveDate < e.target.value ? e.target.value : leg.arriveDate })} /></Field>
@@ -132,7 +142,7 @@ function LegFields({ title, leg, onChange, data }: { title: string; leg: Leg; on
   );
 }
 
-export function FlightForm({ open, onClose, initial, data, onSave, assigned, notifyCount }: { open: boolean; onClose: () => void; initial: FlightDraft; data: FlightsData; onSave: (d: FlightDraft) => void; assigned: { pilgrims: number; staff: number }; notifyCount: number }) {
+export function FlightForm({ open, onClose, initial, data, onSave, assigned, notifyCount }: { open: boolean; onClose: () => void; initial: FlightDraft; data: FlightsData; onSave: (d: FlightDraft) => void; assigned: { pilgrims: number; staff: number; held?: number }; notifyCount: number }) {
   const [d, setD] = useState<FlightDraft>(initial);
   const [key, setKey] = useState(initial);
   if (key !== initial) {
@@ -140,7 +150,7 @@ export function FlightForm({ open, onClose, initial, data, onSave, assigned, not
     setD(initial);
   }
   const set = <K extends keyof FlightDraft>(k: K, v: FlightDraft[K]) => setD((x) => ({ ...x, [k]: v }));
-  const error = validate(d, assigned);
+  const error = validate(d, assigned, data);
   const pilgrimSeats = d.audience === "staff" ? 0 : d.capacity - d.staffReserve;
   const num = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
   const editing = !!d.id;
@@ -189,8 +199,9 @@ export function FlightForm({ open, onClose, initial, data, onSave, assigned, not
             <Field label="ملاحظات"><input className={fieldClass} value={d.notes} onChange={(e) => set("notes", e.target.value)} placeholder="طليعة البعثة، فريق متأخر…" /></Field>
           )}
         </div>
-        <LegFields title={d.trip === "return" ? "رحلة العودة" : d.trip === "round" && !editing ? "رحلة الذهاب" : editing ? "الرحلة" : "رحلة الذهاب"} leg={d.a} onChange={(l) => set("a", l)} data={data} />
-        {d.trip === "round" && !editing && <LegFields title="رحلة العودة" leg={d.b} onChange={(l) => set("b", l)} data={data} />}
+        <LegFields title={d.trip === "return" ? "رحلة العودة" : d.trip === "round" && !editing ? "رحلة الذهاب" : editing ? "الرحلة" : "رحلة الذهاب"} leg={d.a} onChange={(l) => set("a", l)} data={data} direction={d.trip === "return" ? "return" : "outbound"} />
+        {d.trip === "round" && !editing && <LegFields title="رحلة العودة" leg={d.b} onChange={(l) => set("b", l)} data={data} direction="return" />}
+        {d.trip === "round" && !editing && !returnAirportsFor(data, d.a.fromId).includes(d.b.toId) && <p className="text-xs text-gold">من يقلع من {airportOf(data, d.a.fromId)?.city} يعود إلى {returnAirportsFor(data, d.a.fromId).map((id) => airportOf(data, id)?.city).join(" أو ")}: لن يُسند ركاب هذا الذهاب إلى هذه العودة.</p>}
         {d.audience === "pilgrims" && <Field label="ملاحظات"><input className={fieldClass} value={d.notes} onChange={(e) => set("notes", e.target.value)} placeholder="يراها مسؤول الطيران وغرفة العمليات فقط" /></Field>}
         {d.trip === "round" && !editing && <p className="text-xs text-white/60">السعة وحجز الموظفين نفسهما للرحلتين، ويمكن تعديل كل رحلة بعد حفظها.</p>}
       </div>
@@ -221,7 +232,7 @@ export function useFlightForm(onSaved?: (id: string, created: boolean) => void) 
     const f = d.id ? data.flights.find((x) => x.id === d.id) : undefined;
     if (!f) return { pilgrims: 0, staff: 0 };
     const s = seatStats(f, data.assignments);
-    return { pilgrims: s.assignedPilgrims, staff: s.assignedStaff };
+    return { pilgrims: s.assignedPilgrims, staff: s.assignedStaff, held: data.allotments.filter((a) => a.flightId === f.id).reduce((n, a) => n + (a.seats ?? 0), 0) };
   };
 
   const node = form && <FlightForm open onClose={() => setForm(null)} initial={form} data={data} onSave={save} assigned={assignedOn(form)} notifyCount={form.id ? data.assignments.filter((a) => a.flightId === form.id && isActive(a)).length : 0} />;

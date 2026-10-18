@@ -8,19 +8,18 @@ import { logAdmin } from "./admin";
 import { SEED_CLUSTERS, acceptedGroups, headRecordOf } from "./cluster";
 
 /**
- * «قناة التكتل»: one channel for everyone who works in a cluster — its head, his deputy and the accountant, the
+ * «قناة التكتل»: one channel for everyone who works in a cluster — its head and the accountant, the
  * heads of its groups and their assistants and guides, its coordinators, female guides and assistants. All of
- * them read it. Who writes is by role, as the head sets it (by default the head and his deputy: a channel of
+ * them read it. Who writes is by role, as the head sets it (by default the head alone: a channel of
  * announcements); he may open it to the group heads or to everyone, stop one member from writing, pin a
  * message on top, and take any message down. Each writer may take his own down.
  */
 
-export type ChannelRole = "head" | "deputy" | "accountant" | "group-head" | "cluster-assistant" | "tech" | "guide-f" | "guide" | "assistant";
+export type ChannelRole = "head" | "accountant" | "group-head" | "cluster-assistant" | "tech" | "guide-f" | "guide" | "assistant";
 
 /** The roles of a cluster, in its order: one name each in the channel */
 export const CHANNEL_ROLES: { key: ChannelRole; label: string; plural: string }[] = [
   { key: "head", label: "رئيس التكتل", plural: "رئيس التكتل" },
-  { key: "deputy", label: "نائب رئيس التكتل", plural: "نائب رئيس التكتل" },
   { key: "accountant", label: "محاسب التكتل", plural: "محاسب التكتل" },
   { key: "group-head", label: "رئيس مجموعة", plural: "رؤساء المجموعات" },
   { key: "cluster-assistant", label: "معاون التكتل", plural: "معاونو التكتل" },
@@ -34,11 +33,10 @@ export const roleLabel = (r: string) => CHANNEL_ROLES.find((x) => x.key === r)?.
 /** Who writes, ready-made: the head picks one, or ticks the roles one by one */
 export const WRITER_PRESETS: { key: string; label: string; hint: string; roles: ChannelRole[] }[] = [
   { key: "head", label: "رئيس التكتل وحده", hint: "قناة إعلانات من رئيس التكتل", roles: ["head"] },
-  { key: "leaders", label: "رئيس التكتل ونائبه", hint: "الافتراضي: إعلانات القيادة", roles: ["head", "deputy"] },
-  { key: "heads", label: "القيادة ورؤساء المجموعات", hint: "رؤساء المجموعات يكتبون أيضاً", roles: ["head", "deputy", "accountant", "group-head"] },
+  { key: "heads", label: "القيادة ورؤساء المجموعات", hint: "رئيس التكتل ومحاسبه ورؤساء المجموعات", roles: ["head", "accountant", "group-head"] },
   { key: "all", label: "كل أعضاء التكتل", hint: "الجميع يكتب ويردّ", roles: CHANNEL_ROLES.map((r) => r.key) },
 ];
-const DEFAULT_WRITERS: ChannelRole[] = ["head", "deputy"];
+const DEFAULT_WRITERS: ChannelRole[] = ["head"];
 
 export type ChannelMember = { id: string; name: string; role: ChannelRole; groups: number[] };
 
@@ -54,7 +52,6 @@ export function channelMembers(c: ClusterRecord, headId: string, headName: strin
     else if (group && !had.groups.includes(group)) had.groups.push(group);
   };
   put(headId, headName, "head");
-  if (c.deputy?.status === "accepted") put(c.deputy.id, c.deputy.name, "deputy");
   if (c.accountant?.status === "accepted") put(c.accountant.id, c.accountant.name, "accountant");
   for (const g of acceptedGroups(c)) put(g.id, g.name, "group-head", g.number);
   for (const x of c.assistants) if (x.status === "accepted") put(x.id, x.name, "cluster-assistant");
@@ -76,7 +73,7 @@ function nameOf(id: string) {
   return p ? `${p.firstName} ${p.lastName}` : id;
 }
 
-/** The cluster an administrator works in: his own, the one he serves as deputy, accountant or team, or his group's */
+/** The cluster an administrator works in: his own, the one he serves as accountant or team, or his group's */
 export function clusterOfMember(id: string, p: AdminProfile | undefined, s: Pick<State, "admins" | "formation">): Found | null {
   const rec = headRecordOf(p, s.admins, s.formation.overrides);
   if (rec) return { headId: rec.headId, headName: nameOf(rec.headId), cluster: rec.cluster };
@@ -99,12 +96,12 @@ function seeds(today: string | undefined): Record<string, ClusterChannel> {
   const at = (daysAgo: number, h: number, m = 0) => base.getTime() - daysAgo * 86_400_000 + (h * 60 + m) * 60_000;
   return {
     "al-nour": {
-      writers: ["head", "deputy", "accountant", "group-head"],
+      writers: ["head", "accountant", "group-head"],
       messages: [
         { id: "n1", by: "01033300881", name: "عبد الرحمن العلي", role: "head", text: "السلام عليكم. هذه قناة تكتل النور لكل كادره: الإعلانات من القيادة، ويكتب فيها رؤساء المجموعات. الأسئلة الخاصة بمجموعة واحدة تبقى مع رئيسها.", at: at(2, 10), pinned: true },
         { id: "n2", by: "01033300881", name: "عبد الرحمن العلي", role: "head", text: "اجتماع رؤساء المجموعات والمنسقين يوم الخميس القادم الساعة 18:00 في مكتب دمشق: توزيع المنسقين والموجّهات، وخطة التفويج.", at: at(2, 12) },
         { id: "n3", by: "01033300871", name: "أحمد سليمان الحمصي", role: "group-head", text: "حاضرون إن شاء الله. هل نحضر قوائم الحجاج المطبوعة أم تكفي على المنصة؟", at: at(2, 13, 15), replyTo: "n2" },
-        { id: "n4", by: "01033300883", name: "بسام درويش", role: "deputy", text: "تكفي على المنصة. أحضروا فقط أرقام هواتف معاونيكم.", at: at(2, 13, 40), replyTo: "n3" },
+        { id: "n4", by: "01033300883", name: "بسام درويش", role: "group-head", text: "تكفي على المنصة. أحضروا فقط أرقام هواتف معاونيكم.", at: at(2, 13, 40), replyTo: "n3" },
         { id: "n5", by: "01033300944", name: "مهند السيد", role: "accountant", text: "تذكير: رسوم خدمات التكتل تُسدَّد قبل آخر الشهر، والإيصالات ترفع إليّ.", at: at(1, 9, 5) },
       ],
     },

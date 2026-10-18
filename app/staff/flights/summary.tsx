@@ -54,7 +54,7 @@ export function FlightsSummary() {
         steps={[
           { title: "جهّز", text: "المطارات والناقلون، ومندوب لكل مطار يسجّل الإقلاع منه والهبوط فيه.", href: "/staff/flights/manage", link: "المطارات" },
           { title: "أنشئ وانشر", text: "رحلة ذهاب وعودة معاً تُحفظ مسودة، ثم تُنشر من صفحتها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
-          { title: "فوّج", text: "كل مجموعة على رحلتيها في خطوة، والموظفون على رحلاتهم، ومن فقد مقعده.", href: "/staff/flights/manage/dispatch", link: "التفويج" },
+          { title: "أعطِ التكتلات أيامها", text: "لكل تكتل رحلاته ذهاباً وعودة ومقاعده عليها، فيضع رئيسه مجموعاته عليها. والموظفون ومن فقد مقعده من التفويج.", href: "/staff/flights/manage/allotments", link: "أيام التكتلات" },
           { title: "أقفل وسافر", text: "إقفال الرحلة يصدر كشف ركابها، ثم يسجّل مندوب المطار إقلاعها وهبوطها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
         ]}
       />
@@ -128,12 +128,12 @@ export function FlightsSummary() {
         </div>
       </Panel>
 
-      <Panel icon={<UsersRound />} title="التكتلات على رحلاتها" action={<Link href="/staff/flights/manage/dispatch" className="text-sm font-bold text-gold hover:underline">التفويج</Link>} bodyClass="-mx-5 md:-mx-6">
+      <Panel icon={<UsersRound />} title="التكتلات على رحلاتها" action={<Link href="/staff/flights/manage/allotments" className="text-sm font-bold text-gold hover:underline">أيام التكتلات</Link>} bodyClass="-mx-5 md:-mx-6">
         <div className="overflow-x-auto px-5 md:px-6">
           <table className="w-full min-w-[30rem] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-right text-xs text-gold">
-                {["التكتل", "المجموعات", "المسافرون", "ذهاب", "عودة"].map((h) => (
+                {["التكتل", "أيامه", "المجموعات", "المسافرون", "ذهاب", "عودة"].map((h) => (
                   <th key={h} className="pb-2 font-bold">
                     {h}
                   </th>
@@ -144,6 +144,7 @@ export function FlightsSummary() {
               {desk.clusterTotals.map((c) => (
                 <tr key={c.cluster} className="text-white">
                   <td className="py-2.5 font-bold">{c.name}</td>
+                  <td className={cn("py-2.5 tabular-nums", c.days.length ? "" : "text-maroon-light")}>{c.days.length || "—"}</td>
                   <td className="py-2.5 tabular-nums">{c.groups}</td>
                   <td className="py-2.5 tabular-nums">{formatNumber(c.total)}</td>
                   <td className={cn("py-2.5 tabular-nums", c.out < c.total ? "text-gold" : "text-green-light")}>{formatNumber(c.out)}</td>
@@ -154,6 +155,7 @@ export function FlightsSummary() {
             <tfoot>
               <tr className="border-t border-white/20 font-bold text-white">
                 <td className="py-2.5">المجموع</td>
+                <td className="py-2.5 tabular-nums">{desk.data.allotments.length}</td>
                 <td className="py-2.5 tabular-nums">{desk.groups.length}</td>
                 <td className="py-2.5 tabular-nums">{formatNumber(desk.travellers)}</td>
                 <td className="py-2.5 tabular-nums">{formatNumber(desk.withOut)}</td>

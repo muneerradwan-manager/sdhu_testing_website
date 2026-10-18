@@ -5,12 +5,13 @@ import type { OpFile, Place } from "@/lib/ops";
 import { useStore, type ClusterRecord, type PeerEvaluation, type StageScores, type State } from "@/lib/store";
 import { useEvaluationStages } from "./admin-rules";
 import { acceptedGroups } from "./cluster";
-import { ACCOUNTANT_TITLE, DEPUTY_TITLE, POOLS } from "./formation";
+import { ACCOUNTANT_TITLE, POOLS } from "./formation";
 
 /**
  * The season's evaluation, after the pilgrims are home. Its windows, one after the other (lib/operations):
- * - «التقييم الذاتي للإداريين»: once the last return flight has landed in Damascus, every administrator rates
- *   himself, in sections, and sends it once;
+ * - «التقييم الذاتي للإداريين»: once the last return flight has landed in Damascus, a group's head, a cluster's
+ *   head and the religious guides rate themselves (the coordinators and the assistants do not), stage by stage,
+ *   with the questions of their role, and send it once;
  * - «تقييم الموظفين للإداريين والمجموعات والتكتلات»: after it, the mission's staff posted in a tower or a camp
  *   rate the clusters that lived there — each cluster as a whole, each of its groups, and each administrator in
  *   it — stage by stage, beside the administration's own evaluation in «إدارة الإداريين» (`evaluations`);
@@ -24,68 +25,161 @@ import { ACCOUNTANT_TITLE, DEPUTY_TITLE, POOLS } from "./formation";
 
 export type Stage = { key: string; label: string; hint: string };
 
-// ───────────────────────── The self-evaluation's sections ─────────────────────────
+// ───────────────────────── The self-evaluation ─────────────────────────
 
-/** How he worked, whatever the stage */
-export const AXES: Stage[] = [
-  { key: "punctuality", label: "الالتزام بالمواعيد والتجمّعات", hint: "التجمّعات في وقتها، والانطلاق دون تأخير" },
-  { key: "communication", label: "التواصل مع الحجاج", hint: "الرد على الهاتف، وقناة المجموعة، والإعلانات الواضحة" },
-  { key: "teamwork", label: "التعاون مع فريق المجموعة والتكتل", hint: "توزيع المهام، والمساندة بين المجموعات" },
-  { key: "emergencies", label: "التعامل مع البلاغات والطوارئ", hint: "الإبلاغ في وقته، ومتابعة الحالة حتى تُغلق" },
-  { key: "care", label: "رعاية كبار السن وذوي الاحتياجات", hint: "المرافقة، والكراسي، والوجبات والغرف الخاصة" },
-  { key: "platform", label: "استخدام المنصة والتقارير", hint: "مسح البطاقات، والتقرير اليومي، والملفات الصحية" },
-];
+/**
+ * Who rates himself: a group's head, a cluster's head, and the religious guides, men and women. The technical
+ * coordinators and the assistants (the cluster's assistant and accountant among them) have no self-evaluation —
+ * the staff rate them, as everyone.
+ */
+export type SelfRole = "group-head" | "cluster-head" | "guide-m" | "guide-f";
 
-/** The duties of his role, by the exam it sits (./structure examRoleOf), as the job descriptions list them */
-const ROLE_ITEMS: Record<string, Stage[]> = {
-  "group-head": [
-    { key: "group-lead", label: "قيادة المجموعة وفريقها", hint: "توزيع المهام على الموجّه والمعاون، والاجتماع اليومي" },
-    { key: "group-pilgrims", label: "متابعة حجاج المجموعة وعقودهم", hint: "الترحيب بالعائلات، والملفات الصحية مع المنسق" },
-    { key: "group-housing", label: "السكن وتوزيع الغرف", hint: "الغرف الخاصة والعامة، والاحتياجات الخاصة" },
-    { key: "group-complaints", label: "حل الشكاوى داخل المجموعة", hint: "قبل أن تصل إلى غرفة العمليات" },
-  ],
-  "group-deputy": [
-    { key: "dep-muster", label: "الحضور والتجمّع ومسح البطاقات", hint: "قبل كل انطلاق، وفي المطارات والمشاعر" },
-    { key: "dep-airports", label: "المطارات والأمتعة", hint: "الوصول والمغادرة وتسليم الأمتعة" },
-    { key: "dep-supplies", label: "المستلزمات والوجبات الخاصة", hint: "توزيعها على أصحابها في وقتها" },
-    { key: "dep-support", label: "مساندة رئيس المجموعة", hint: "تغطية غيابه، وتنفيذ ما يُسند إليك" },
-  ],
-  tech: [
-    { key: "tech-records", label: "بيانات الحجاج وأوراقهم", hint: "التسجيل في المكتب، واكتمال الوثائق" },
-    { key: "tech-health", label: "الملفات الصحية", hint: "أخذها من العائلات، وإيصال الاحتياجات إلى الغرف والوجبات" },
-    { key: "tech-cards", label: "البطاقات الرقمية والتطبيق", hint: "تفعيلها، ومساعدة كبار السن على استعمالها" },
-    { key: "tech-groups", label: "دعم المجموعات الموزّع عليها", hint: "ضمن حدّك من الوحدات، والرد على رؤسائها" },
-  ],
-  "guide-m": [
-    { key: "guide-lessons", label: "الدروس اليومية", hint: "في مواعيدها ومكانها، وحضور الحجاج" },
-    { key: "guide-rites", label: "شرح المناسك قبل كل نسك", hint: "العمرة والمشاعر والجمرات والإفاضة" },
-    { key: "guide-questions", label: "الإجابة عن الأسئلة الشرعية", hint: "في القناة وفي الميدان" },
-    { key: "guide-escort", label: "المرافقة في الطواف والسعي والمشاعر", hint: "مع كبار السن خاصة" },
-  ],
-  "guide-f": [
-    { key: "guidef-rites", label: "توجيه الحاجّات في المناسك", hint: "قبل كل نسك وأثناءه" },
-    { key: "guidef-lessons", label: "دروس الحاجّات", hint: "في مواعيدها، في مجموعاتك" },
-    { key: "guidef-questions", label: "أسئلة الحاجّات الخاصة", hint: "بسرية وفي وقتها" },
-    { key: "guidef-escort", label: "المرافقة في المشاعر", hint: "مع الحاجّات كبيرات السن خاصة" },
-  ],
+export const SELF_ROLE_LABEL: Record<SelfRole, string> = { "group-head": "رئيس مجموعة", "cluster-head": "رئيس تكتل", "guide-m": "موجّه ديني", "guide-f": "موجّهة دينية" };
+
+/** `examRole`: the exam his role sits (./structure examRoleOf) */
+export function selfRoleOf(examRole: string, clusterHead: boolean): SelfRole | null {
+  if (clusterHead) return "cluster-head";
+  if (examRole === "group-head") return "group-head";
+  if (examRole === "guide-m" || examRole === "guide-f") return examRole;
+  return null;
+}
+
+const q = (stage: string, labels: [string, string][]): Stage[] => labels.map(([label, hint], i) => ({ key: `${stage}:${i + 1}`, label, hint }));
+
+/**
+ * The questions of each stage, by role. A group's and a cluster's are administrative only — the group's for his
+ * group, the cluster's for all its groups; the guides' are religious: the rites, the rulings, the guidance.
+ */
+const QUESTIONS: Record<SelfRole, Record<string, Stage[]>> = {
+  "group-head": {
+    pretravel: q("pretravel", [
+      ["تجهيز ملفات حجاج المجموعة ووثائقهم", "مع المنسق التقني: الجوازات، والصور، والملفات الصحية"],
+      ["التواصل مع العائلات قبل السفر", "إبلاغها بالتعليمات والمواعيد وما تحمله معها"],
+      ["اجتماع فريق المجموعة وتوزيع المهام", "على الموجّه والمعاون، قبل السفر"],
+    ]),
+    airport: q("airport", [
+      ["تجميع حجاج المجموعة في الموعد وتحضيرهم", "من قائمة المجموعة، قبل الانطلاق إلى المطار"],
+      ["إنهاء الإجراءات والأمتعة دون تأخير", "بالترتيب الذي حددته البعثة"],
+      ["رعاية كبار السن وذوي الاحتياجات في المطار", "الكراسي والمرافقة والأولوية"],
+    ]),
+    travel: q("travel", [
+      ["متابعة الحجاج في الرحلة وعند الوصول", "العدد كاملاً، والحالات الصحية"],
+      ["الانتقال من المطار إلى السكن", "الحافلات وترتيب الصعود والنزول"],
+      ["استلام الأمتعة وتسليمها لأصحابها", "دون ضياع ولا تأخير"],
+    ]),
+    makkah: q("makkah", [
+      ["توزيع الغرف وفق العقود والاحتياجات", "السكن العام والغرف الخاصة"],
+      ["تنظيم التفويج إلى الحرم والعودة منه", "المواعيد ونقاط التجمّع"],
+      ["حل الشكاوى داخل المجموعة", "قبل أن تصل إلى غرفة العمليات"],
+    ]),
+    madinah: q("madinah", [
+      ["الانتقال إلى المدينة والإسكان فيها", "في الموعد، وبالغرف نفسها قدر الإمكان"],
+      ["تنظيم الزيارات وفق البرنامج", "المواعيد والحافلات والعودة"],
+      ["متابعة الحالات الصحية والبلاغات", "مع المنسق وغرفة العمليات"],
+    ]),
+    mashaer: q("mashaer", [
+      ["تنظيم النقل بين منى وعرفة ومزدلفة", "وفق جدول التفويج"],
+      ["الخيام والماء والطعام والسلامة", "لكل حجاج المجموعة"],
+      ["تفويج الرمي وطواف الإفاضة في الأوقات المحددة", "تجنّب الزحام، وكبار السن خاصة"],
+    ]),
+  },
+  "cluster-head": {
+    pretravel: q("pretravel", [
+      ["تنسيق مجموعات التكتل", "توزيع المنسقين والموجّهات على المجموعات"],
+      ["إعداد الخطة التشغيلية وتقديمها في موعدها", "كما اعتمدتها الإدارة"],
+      ["التواصل مع المكتب والإدارة قبل السفر", "المراسلات والاجتماعات"],
+    ]),
+    airport: q("airport", [
+      ["تنسيق مواعيد تجمّع المجموعات وتسلسل تفويجها", "دون تداخل بين المجموعات"],
+      ["متابعة معاوني التكتل في المطار", "الإجراءات والأمتعة"],
+      ["حل ما يعترض المجموعات في الإجراءات", "مع البعثة في المطار"],
+    ]),
+    travel: q("travel", [
+      ["متابعة رحلات مجموعات التكتل ووصولها", "كل رحلة وكل مجموعة"],
+      ["استقبال المجموعات في السكن", "الحافلات والتوزيع على الفنادق"],
+      ["التواصل مع البعثة عند الوصول", "مشرفي الأبراج وغرفة العمليات"],
+    ]),
+    makkah: q("makkah", [
+      ["الإشراف على سكن المجموعات وفق الخطة", "الفنادق والغرف والخدمات"],
+      ["التنسيق مع مشرفي الأبراج وغرفة العمليات", "البلاغات والمتابعة"],
+      ["متابعة شكاوى المجموعات وحلّها", "على مستوى التكتل"],
+    ]),
+    madinah: q("madinah", [
+      ["تنظيم انتقال المجموعات إلى المدينة", "المواعيد والحافلات"],
+      ["تنسيق برامج الزيارة بين المجموعات", "دون تزاحم"],
+      ["متابعة سكن المدينة وخدماته", "كما التزم به برنامج التكتل"],
+    ]),
+    mashaer: q("mashaer", [
+      ["تنسيق نقل المجموعات بين المشاعر وفق التفويج", "منى وعرفة ومزدلفة"],
+      ["الإشراف على المخيمات وخدماتها", "الماء والطعام والكهرباء والسلامة"],
+      ["إدارة الطوارئ والتواصل مع غرفة العمليات", "سرعة الإبلاغ والمتابعة"],
+    ]),
+  },
+  "guide-m": {
+    pretravel: q("pretravel", [
+      ["دروس التهيئة للمناسك قبل السفر", "صفة الحج والعمرة وترتيب أعمالهما"],
+      ["شرح أحكام الإحرام ومحظوراته", "ولباس الإحرام وسننه"],
+      ["الإجابة عن الأسئلة الشرعية قبل السفر", "في الدروس وفي قناة المجموعة"],
+    ]),
+    airport: q("airport", [
+      ["التذكير بنية الإحرام والميقات قبل الرحلة", "متى يُحرم الحاج ومن أين"],
+      ["تعليم أدعية السفر وآدابه", "دعاء الركوب والسفر"],
+      ["تهيئة الحجاج إيمانياً للرحلة", "التوبة، والصبر، وحسن الخلق"],
+    ]),
+    travel: q("travel", [
+      ["التنبيه إلى الإحرام عند محاذاة الميقات في الطائرة", "في وقته"],
+      ["التلبية والأذكار في الطريق", "رفع الصوت بالتلبية للرجال"],
+      ["أحكام الصلاة في السفر", "القصر والجمع"],
+    ]),
+    makkah: q("makkah", [
+      ["شرح العمرة ومرافقة الحجاج في الطواف والسعي", "خطوة خطوة، وكبار السن خاصة"],
+      ["الدروس اليومية في السكن", "في مواعيدها، وحضور الحجاج"],
+      ["الإجابة عن الأسئلة الشرعية", "بالدليل، وبما اعتمدته البعثة"],
+    ]),
+    madinah: q("madinah", [
+      ["آداب زيارة المسجد النبوي والسلام على النبي ﷺ", "والصلاة في الروضة"],
+      ["زيارة المساجد والمعالم المشروعة", "قباء والبقيع وأحد"],
+      ["التنبيه إلى المخالفات في الزيارة", "بالحكمة واللين"],
+    ]),
+    mashaer: q("mashaer", [
+      ["شرح أعمال يوم التروية وعرفة ومزدلفة", "قبل كل يوم بوقته"],
+      ["أحكام رمي الجمرات والتوكيل فيه", "لكبار السن والمرضى"],
+      ["أحكام طواف الإفاضة والوداع والتحلّل", "وترتيب أعمال يوم النحر"],
+    ]),
+  },
+  "guide-f": {
+    pretravel: q("pretravel", [
+      ["دروس التهيئة للحاجّات قبل السفر", "صفة الحج والعمرة للمرأة"],
+      ["أحكام إحرام المرأة ولباسها", "وما يحلّ لها وما يحرم"],
+      ["أحكام الحيض والنفاس في الحج", "وما تفعله الحاجّة إن طرأ عليها"],
+    ]),
+    airport: q("airport", [
+      ["تذكير الحاجّات بنية الإحرام والميقات", "قبل الرحلة"],
+      ["تعليم أدعية السفر وآدابه", "دعاء الركوب والسفر"],
+      ["تهيئة كبيرات السن للرحلة", "طمأنتهنّ ومرافقتهنّ"],
+    ]),
+    travel: q("travel", [
+      ["التنبيه إلى الإحرام عند محاذاة الميقات في الطائرة", "في وقته"],
+      ["تلبية المرأة وأذكار الطريق", "سرّاً بلا رفع صوت"],
+      ["أحكام الصلاة في السفر", "القصر والجمع"],
+    ]),
+    makkah: q("makkah", [
+      ["مرافقة الحاجّات في الطواف والسعي", "وكبيرات السن خاصة"],
+      ["دروس الحاجّات اليومية", "في مواعيدها، في مجموعاتك"],
+      ["أسئلة الحاجّات الخاصة", "بسرّية وفي وقتها"],
+    ]),
+    madinah: q("madinah", [
+      ["آداب زيارة المرأة للمسجد النبوي والروضة", "مواعيد النساء وأماكنهنّ"],
+      ["زيارة المعالم المشروعة", "قباء والبقيع وأحد"],
+      ["التنبيه إلى المخالفات في الزيارة", "بالحكمة واللين"],
+    ]),
+    mashaer: q("mashaer", [
+      ["أعمال المشاعر للحاجّات", "التروية وعرفة ومزدلفة"],
+      ["التوكيل في الرمي لكبيرات السن والمريضات", "متى يجوز وكيف"],
+      ["أحكام طواف الإفاضة للحائض", "وما تفعله إن حان سفرها"],
+    ]),
+  },
 };
-
-/** A cluster's head and deputy answer for the cluster too */
-const CLUSTER_ITEMS: Stage[] = [
-  { key: "cluster-coordination", label: "إدارة التكتل وتنسيق مجموعاته", hint: "الاجتماعات، وتوزيع المنسقين والموجّهات على المجموعات" },
-  { key: "cluster-administration", label: "التواصل مع الإدارة والبعثة", hint: "المكتب، وغرفة العمليات، ومشرفو الأبراج والمخيمات" },
-  { key: "cluster-plan", label: "تنفيذ الخطة التشغيلية", hint: "كما قُدّمت واعتُمدت" },
-];
-
-/** What the administration and the mission gave him to work with */
-export const SUPPORT: Stage[] = [
-  { key: "support-training", label: "التدريب قبل السفر", hint: "وحداته ومواعيده وفائدته" },
-  { key: "support-rules", label: "وضوح التعليمات والنظام الإداري", hint: "هل عرفت ما المطلوب منك في كل مرحلة؟" },
-  { key: "support-office", label: "دعم المكتب والفرع", hint: "الرد على المراسلات، وتشكيل المجموعة، والعقود" },
-  { key: "support-room", label: "تجاوب غرفة العمليات", hint: "سرعة الرد على البلاغات ومتابعتها" },
-  { key: "support-logistics", label: "النقل والسكن الذي وفّرته البعثة", hint: "الحافلات والفنادق والمخيمات" },
-  { key: "support-platform", label: "المنصة وأدواتها", hint: "سهولة الاستعمال، وما ينقصها" },
-];
 
 /** «خلاصة موسمك»: what he writes */
 export const REFLECTION: { key: string; label: string; hint: string }[] = [
@@ -98,24 +192,26 @@ export const REFLECTION: { key: string; label: string; hint: string }[] = [
 export type SelfSection = { key: string; title: string; intro: string; items?: Stage[]; questions?: typeof REFLECTION };
 
 /**
- * The self-evaluation in its sections, for one administrator: the season's stages (compared with the staff's),
- * how he worked, his role's duties (a cluster's head or deputy answers for the cluster too), what the
- * administration and the mission gave him, and a written summary
+ * The self-evaluation in its sections, for one role: a section for each of the season's stages, with that stage's
+ * questions for his role (a stage the administration added has one question of its own), then a written summary.
+ * Each stage's questions are averaged into the stage's score, shown beside the staff's.
  */
-export function selfSections(stages: Stage[], examRole: string, clusterRole: "head" | "deputy" | null): SelfSection[] {
-  const role = [...(ROLE_ITEMS[examRole] ?? ROLE_ITEMS["group-deputy"]), ...(clusterRole ? CLUSTER_ITEMS : [])];
+export function selfSections(stages: Stage[], role: SelfRole): SelfSection[] {
+  const kind = role === "guide-m" || role === "guide-f" ? "أسئلة دينية" : "أسئلة إدارية";
   return [
-    { key: "stages", title: "مراحل الموسم", intro: "عملك في كل مرحلة من مراحل الموسم. هذا القسم يُعرض بجانب تقييم الموظفين لك، مرحلة بمرحلة.", items: stages },
-    { key: "axes", title: "محاور الأداء", intro: "كيف عملت، أياً كانت المرحلة.", items: AXES },
-    { key: "role", title: "مهام صفتك", intro: clusterRole ? "مهام صفتك كما يحددها التوصيف الوظيفي، ومعها مهام التكتل." : "مهام صفتك كما يحددها التوصيف الوظيفي.", items: role },
-    { key: "support", title: "ما قدّمته لك الإدارة والبعثة", intro: "تقييمك لما أُعطيت لتعمل به: يصل إلى الإدارة لتحسّن الموسم القادم.", items: SUPPORT },
+    ...stages.map((st) => ({
+      key: st.key,
+      title: st.label,
+      intro: `${st.hint}. ${kind} لصفتك «${SELF_ROLE_LABEL[role]}».`,
+      items: QUESTIONS[role][st.key] ?? [{ key: `${st.key}:1`, label: `عملك في ${st.label}`, hint: st.hint }],
+    })),
     { key: "reflection", title: "خلاصة موسمك", intro: "بكلماتك: ما الذي نجح، وما الذي صعب، وما الذي تحتاجه.", questions: REFLECTION },
   ];
 }
 
-/** A section's scores, from the self-evaluation («stages» is kept on its own) */
+/** A section's scores, from the self-evaluation: each stage's questions under the stage's key */
 export function sectionScores(self: { stages: StageScores; sections?: Record<string, StageScores> } | undefined, key: string): StageScores {
-  return (key === "stages" ? self?.stages : self?.sections?.[key]) ?? {};
+  return self?.sections?.[key] ?? {};
 }
 
 /** A stage's scores averaged, or null when nobody scored it */
@@ -132,7 +228,7 @@ export function avgOf(stages: StageScores | undefined) {
 /** Someone a cluster holds, with his place in it */
 export type CadreMember = { id: string; name: string; posts: string[]; groups: number[] };
 
-/** Everyone a cluster's request holds, each once with all his places: its head, deputy and accountant, its groups' heads and seats, its assistants, coordinators and female guides */
+/** Everyone a cluster's request holds, each once with all his places: its head and accountant, its groups' heads and seats, its assistants, coordinators and female guides */
 export function cadreMembers(headId: string, headName: string, c: ClusterRecord): CadreMember[] {
   const map = new Map<string, CadreMember>();
   const yes = (s?: string) => s === "accepted";
@@ -150,7 +246,6 @@ export function cadreMembers(headId: string, headName: string, c: ClusterRecord)
   for (const x of c.assistants) if (yes(x.status)) put(x.id, x.name, POOLS["cluster-assistant"].title);
   for (const x of c.coordinators) if (yes(x.status)) put(x.id, x.name, POOLS.tech.title);
   for (const x of c.femaleGuides) if (yes(x.status)) put(x.id, x.name, POOLS["guide-f"].title);
-  if (c.deputy && yes(c.deputy.status)) put(c.deputy.id, c.deputy.name, DEPUTY_TITLE);
   if (c.accountant && yes(c.accountant.status)) put(c.accountant.id, c.accountant.name, ACCOUNTANT_TITLE);
   return [...map.values()];
 }
@@ -210,7 +305,7 @@ export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "evalua
     return { key: st.key, label: st.label, self: mine, staff, gap: mine !== null && staff !== null && Math.abs(mine - staff) >= 1 };
   });
   const staffAvgs = staffSets.map(avgOf).filter((x): x is number => x !== null);
-  const everything = sent ? { ...Object.fromEntries(Object.entries(self!.stages).map(([k, v]) => [`stage-${k}`, v])), ...Object.assign({}, ...Object.values(self!.sections ?? {})) } : undefined;
+  const everything = sent ? Object.assign({}, ...Object.values(self!.sections ?? {})) : undefined;
   const raters: EvaluationResult["raters"] = [
     ...(official ? [{ kind: "administration" as const, by: official.by, role: "إدارة الإداريين", avg: round1(official.avg), at: official.at }] : []),
     ...peers.map((p) => ({ kind: p.kind, by: p.by, role: p.role, place: p.place, avg: round1(avgOf(p.stages)), at: p.at, note: p.note })),

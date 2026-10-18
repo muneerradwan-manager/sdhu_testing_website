@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   BellRing,
-  Building2,
   ClipboardList,
   FileSignature,
   FlaskConical,
@@ -34,11 +33,11 @@ import { Emblem } from "@/components/brand/logo";
 import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
 import { statusLabel, useOperations, type OperationKey, type OperationState } from "@/lib/operations";
-import { actions, useHydrated, useStore, type AdminProfile } from "@/lib/store";
+import { actions, getState, useHydrated, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
 import { useClusterChannel } from "../_lib/channel";
-import { groupWriterOf, pageWriterOf } from "../_lib/directory";
+import { groupPagesOf, myGroupNumbers, pageWriterOf } from "../_lib/directory";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -103,7 +102,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
  * dates, or by the staff who control it (lib/operations.ts), and a closed one stays in the menu with when it
  * opens. Stages exist only inside an operation that has several steps.
  */
-type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean; /** Works in a cluster: its channel opens */ inChannel: boolean };
+type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean; /** Works in a cluster: its channel opens */ inChannel: boolean; /** Signed a group's or a cluster's contract */ contracts: boolean };
 
 type NavItem = {
   href: string;
@@ -120,7 +119,7 @@ const serving = (c: NavCtx) => c.inGroup || c.cluster;
  */
 const groupsTab = (c: NavCtx) =>
   c.p?.servesIn?.role === "cluster-assistant" ? "مجموعات التكتل" : (c.p?.coordinatorIn?.groups.length ?? c.p?.servesIn?.groups.length ?? 1) > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
-/** A cluster's head and deputy open its groups — each with its team and pilgrims — inside «إدارة التكتل» */
+/** A cluster's head opens its groups — each with its team and pilgrims — inside «إدارة التكتل» */
 const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster;
 
 const NAV: NavItem[] = [
@@ -136,17 +135,16 @@ const NAV: NavItem[] = [
   { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
   { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
   { href: "/administrator/exam", label: "الاختبار المؤتمت", icon: GraduationCap, ops: ["admin-exams"] },
-  { href: "/administrator/group", label: "تشكيل المجموعات", icon: FileSignature, ops: ["group-formation"], show: (c) => c.head },
-  // A group head files a request or answers the invitations to his group; the others answer theirs
-  { href: "/administrator/cluster", label: "تشكيل التكتلات", icon: Building2, ops: ["cluster-formation"], show: (c) => c.role },
   { href: "/administrator/groups", label: groupsTab, icon: UsersRound, ops: ["group-management"], show: ownGroups },
   { href: "/administrator/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
+  // The groups and the clusters are formed at the office, each with its paper contract that everyone in it signs
+  { href: "/administrator/my-contracts", label: "العقود", icon: FileSignature, show: (c) => c.contracts },
   // Everyone in a cluster reads its channel; who writes is by role, as its head sets it
   { href: "/administrator/channel", label: "قناة التكتل", icon: MessagesSquare, show: (c) => c.inChannel },
   // What the pilgrims read of the cluster: its team writes it once it is approved, the administration approves it
   { href: "/administrator/cluster-page", label: "صفحة التكتل العامة", icon: Globe, show: (c) => !!pageWriterOf(c.p) },
-  // The group's own: its picture, its word and its gallery, by its head or its assistant, approved by the administration
-  { href: "/administrator/group-page", label: "صفحة المجموعة العامة", icon: Images, show: (c) => !!groupWriterOf(c.p) },
+  // The groups' own: their pictures, words and galleries — the cluster's head all its groups', a group's head or assistant his
+  { href: "/administrator/group-page", label: (c) => ((groupPagesOf(c.p)?.groups.length ?? 0) > 1 ? "صفحات المجموعات العامة" : "صفحة المجموعة العامة"), icon: Images, show: (c) => !!groupPagesOf(c.p) },
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
@@ -161,7 +159,8 @@ function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Reco
   const tech = isTechCoordinator(p);
   // A head's group counts once it is approved; a guide, an assistant or a coordinator works in the groups assigned to him
   const inGroup = head ? !!p?.group?.approvedAt : !!p?.servesIn || !!p?.coordinatorIn;
-  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id), inChannel };
+  const contracts = inChannel || inGroup || (!!id && myGroupNumbers(id, p, getState().admins).length > 0);
+  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id), inChannel, contracts };
 }
 
 export type AdminNavEntry = { href: string; label: string; icon: LucideIcon; open: boolean; shown?: OperationState; /** Unread, beside the label */ badge?: number };

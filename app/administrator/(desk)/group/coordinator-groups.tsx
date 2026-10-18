@@ -30,13 +30,13 @@ export function CoordinatorGroups() {
   if (!post) {
     return (
       <AdminShell title="إدارة المجموعة" subtitle="المنسق والموجّه والمعاون والموجّهة يدعوهم رئيس تكتل إلى أماكنهم فيه.">
-        <LockedCard title="لم تنضم إلى تكتل بعد" text="رئيس التكتل يدعو موجّه كل مجموعة ومعاونها إلى مقاعدها بحسب فئتها، ويختار منسقي التكتل وموجّهاته ومعاونه بمجموع فئات مجموعاته — بدعوات فردية في مدة تشكيل التكتلات. حين تقبل دعوة تظهر هنا مجموعاتك." href="/administrator/cluster" cta="دعواتي في «تشكيل التكتلات»" />
+        <LockedCard title="لم تنضم إلى تكتل بعد" text="يُجلس المكتب موجّه كل مجموعة ومعاونها في مقاعدها بحسب فئتها حين يشكّلها، ويختار رئيس التكتل منسقيه وموجّهاته ومعاونه بمجموع فئات مجموعاته حين يُشكَّل التكتل في المكتب بحضور الجميع. حين يحدث ذلك تظهر هنا مجموعاتك." href="/administrator/cluster" cta="تشكيل التكتلات" />
       </AdminShell>
     );
   }
 
   // His colleagues in the same place: the other coordinators, female guides or cluster assistants, or the others in his group's seats
-  const rec = headRecordOf({ ...admin.profile!, cluster: undefined, deputyOf: undefined, accountantOf: undefined }, admins, overrides)?.cluster;
+  const rec = headRecordOf({ ...admin.profile!, cluster: undefined, accountantOf: undefined }, admins, overrides)?.cluster;
   const others = !rec
     ? []
     : post.role === "tech"
@@ -62,7 +62,7 @@ export function CoordinatorGroups() {
                 <Cpu className="size-3.5" /> {role.title}
               </Badge>
               <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">{post.clusterName}</h2>
-              <p className="mt-1 text-sm text-gold">رئيس التكتل: {post.headName} — هو من دعاك{spread ? " ووزّعك على مجموعاتك" : ""}</p>
+              <p className="mt-1 text-sm text-gold">رئيس التكتل: {post.headName}{spread ? " — وزّعك على مجموعاتك حين شُكّل التكتل في المكتب" : ""}</p>
               <dl className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
                   [wide ? "مجموعات التكتل" : post.groups.length > 1 ? "مجموعاتي" : "مجموعتي", formatNumber(totals.groups), spread ? `${formatNumber(post.groups.reduce((n, g) => n + g.units, 0))} وحدات — يغيّرها رئيس التكتل متى شاء` : wide ? "تعمل للتكتل كله" : "مقعدك فيها"],
@@ -121,9 +121,8 @@ export function CoordinatorGroups() {
               <Building2 className="size-4" /> مكانك في التكتل
             </p>
             <ul className="mt-2 list-inside list-disc space-y-1">
-              <li>رئيس المجموعة لا يختار أحداً: يشكّل مجموعته وحده.</li>
-              <li>رئيس التكتل يدعو موجّه كل مجموعة ومعاونها إلى مقاعدها بحسب فئتها في مستوى التكتل.</li>
-              <li>ويختار منسقي التكتل وموجّهاته ومعاونه بمجموع فئات مجموعاته، ويوزّع منسقيه وموجّهاته على المجموعات، كلٌّ ضمن حدّه من الوحدات.</li>
+              <li>تُشكَّل المجموعة في المكتب بحضور رئيسها وفريقها: يُجلس الموظف موجّهها ومعاونها في مقاعدها بحسب فئتها، ويوقّعون عقدها.</li>
+              <li>ويُشكَّل التكتل في المكتب بحضور كل من فيه: يختار رئيسه منسقيه وموجّهاته ومعاونه بمجموع فئات مجموعاته، ويوزّع المنسقين والموجّهات على المجموعات كلٌّ ضمن حدّه من الوحدات، ويوقّع الجميع عقده.</li>
               <li>لكل شخص مكان واحد في الموسم.</li>
             </ul>
           </div>

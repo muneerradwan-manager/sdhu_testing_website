@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 1754" width="1240" height="1754" direction="rtl">
+<style>
+text{font-family:Tahoma,Arial,sans-serif;text-anchor:start;direction:rtl;fill:#2b2b2b}
+.ti{font-size:54px;font-weight:700;fill:#0f4d3a} .su{font-size:28px;fill:#6b6b6b}
+.h{font-size:30px;font-weight:700;fill:#0f4d3a} .t{font-size:26px}
+.r{font-size:22px;fill:#8a6d1f;font-weight:700} .n{font-size:24px}
+.box{fill:#fbf7ec;stroke:#d8c38a;stroke-width:2} .sig{fill:none;stroke:#1b3d8f;stroke-width:3;stroke-linecap:round}
+</style>
+<rect width="1240" height="1754" fill="#fffdf8"/>
+<rect x="40" y="40" width="1160" height="1674" fill="none" stroke="#c9a94f" stroke-width="4" rx="18"/>
+<rect x="56" y="56" width="1128" height="1642" fill="none" stroke="#e6d6a6" stroke-width="2" rx="12"/>
+<text x="1120" y="150" class="su">المنصة الوطنية للحج — موسم 1448هـ</text>
+<text x="1120" y="225" class="ti">عقد تشكيل مجموعة</text>
+<text x="1120" y="275" class="su">وُقّع في مكتب دمشق — مديرية شؤون الإداريين</text>
+<text x="1120" y="330" class="h">البند 1</text><text x="1120" y="376" class="t">يشكّل المكتب المجموعة باسمها وفئة رئيسها لموسم 1448هـ،</text><text x="1120" y="416" class="t">ويُجلس فيها موجّهها ومعاونها بحسب مقاعد فئتها.</text><text x="1120" y="478" class="h">البند 2</text><text x="1120" y="524" class="t">دفع رئيس المجموعة رسم تشكيلها 200 دولار في المكتب،</text><text x="1120" y="564" class="t">ولا يُستردّ بعد التوقيع.</text><text x="1120" y="626" class="h">البند 3</text><text x="1120" y="672" class="t">يلتزم الموقّعون بخدمة حجاج المجموعة من التسجيل حتى العودة،</text><text x="1120" y="712" class="t">وبتعليمات الإدارة ومواعيد الموسم.</text><text x="1120" y="774" class="h">البند 4</text><text x="1120" y="820" class="t">تدخل المجموعة تكتلاً حين يُشكَّل في المكتب،</text><text x="1120" y="860" class="t">ويوقّع رئيسها عقد التكتل مع من فيه.</text><text x="1120" y="952" class="h">التواقيع</text><rect x="820" y="982" width="300" height="120" rx="14" class="box"/><text x="1104" y="1016" class="r">رئيس المجموعة</text><text x="1104" y="1048" class="n">الاسم والتوقيع</text><path d="M860 1082 c 30 -30 50 10 80 -12 s 40 18 70 -6" class="sig"/><rect x="480" y="982" width="300" height="120" rx="14" class="box"/><text x="764" y="1016" class="r">معاون رئيس المجموعة</text><text x="764" y="1048" class="n">الاسم والتوقيع</text><path d="M520 1082 c 30 -30 50 10 80 -12 s 40 18 70 -6" class="sig"/><rect x="140" y="982" width="300" height="120" rx="14" class="box"/><text x="424" y="1016" class="r">الموجّه الديني</text><text x="424" y="1048" class="n">الاسم والتوقيع</text><path d="M180 1082 c 30 -30 50 10 80 -12 s 40 18 70 -6" class="sig"/><rect x="820" y="1132" width="300" height="120" rx="14" class="box"/><text x="1104" y="1166" class="r">موظف المكتب</text><text x="1104" y="1198" class="n">الاسم والتوقيع</text><path d="M860 1232 c 30 -30 50 10 80 -12 s 40 18 70 -6" class="sig"/>
+<circle cx="200" cy="1524" r="90" fill="none" stroke="#0f4d3a" stroke-width="5" opacity=".55"/>
+<text x="250" y="1532" class="r" opacity=".7">ختم المكتب</text>
+<text x="1120" y="1644" class="su">نسخة تجريبية للعرض والتدريب — الأسماء والبيانات وهمية</text>
+</svg>

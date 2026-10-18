@@ -132,9 +132,11 @@ async function shrink(dataUrl: string, type: string) {
 export type UploadResult = { ref: string; meta: MediaMeta };
 
 /** يرفع ملفاً إلى المكتبة ويعيد مرجعه النصي */
-export async function uploadMedia(file: File, by?: string): Promise<UploadResult> {
+/** `documents`: a PDF is accepted too (a signed contract scanned to a file), besides pictures and videos */
+export async function uploadMedia(file: File, by?: string, opts: { documents?: boolean } = {}): Promise<UploadResult> {
   if (file.size > MAX_UPLOAD_BYTES) throw new Error("حجم الملف أكبر من 12 ميغابايت");
-  if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) throw new Error("يُقبل رفع الصور ومقاطع الفيديو فقط");
+  const pdf = file.type === "application/pdf";
+  if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && !(opts.documents && pdf)) throw new Error(opts.documents ? "يُقبل رفع الصور وملفات PDF فقط" : "يُقبل رفع الصور ومقاطع الفيديو فقط");
 
   const raw = await readAsDataUrl(file);
   const isImage = file.type.startsWith("image/");

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ImagePlus, Link2, Loader2, Search, Trash2, UploadCloud, X } from "lucide-react";
+import { Check, FileText, ImagePlus, Link2, Loader2, Search, Trash2, UploadCloud, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { cms, useMediaList } from "@/lib/cms/store";
@@ -28,6 +28,8 @@ const BUILT_IN = [
 function Thumb({ src, className }: { src: string; className?: string }) {
   const url = useMediaUrl(src);
   if (!url) return <div className={cn("bg-white/10", className)} />;
+  // a contract uploaded as a PDF: a sign of the file, not a picture
+  if (url.startsWith("data:application/pdf")) return <div className={cn("grid size-full place-items-center bg-white/10 text-gold", className)}><FileText className="size-8" /></div>;
   // eslint-disable-next-line @next/next/no-img-element -- معاينة داخل لوحة التحكم، قد تكون رابط بيانات
   return <img src={url} alt="" className={cn("size-full object-cover", className)} loading="lazy" decoding="async" />;
 }

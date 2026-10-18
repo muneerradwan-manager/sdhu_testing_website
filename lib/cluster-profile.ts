@@ -7,7 +7,7 @@ import { useClusterRequests } from "@/app/administrator/_lib/formation";
 import { branchOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useClusters } from "./cms/content";
 import { SEASON } from "./season";
-import type { Cluster } from "./data/clusters";
+import { coverOf, type Cluster, type LatLng } from "./data/clusters";
 import { useStore } from "./store";
 import { formatRoomPrices, type RoomPrices } from "./rooms";
 import { photosLabel } from "./group-profile";
@@ -32,11 +32,16 @@ export type ClusterProfileFields = {
   madinahHotel: string;
   madinahArea: string;
   madinahDistance: string;
+  /** The two hotels on the map (the distances are measured from them) */
+  makkahAt?: LatLng;
+  madinahAt?: LatLng;
   transport: string[];
   meals: string[];
   programs: string[];
   /** What each private room type adds per person */
   rooms: RoomPrices;
+  /** Its main picture, at the top of its page and on its card */
+  cover: string;
   /** Its photo gallery: the hotels, the camps, the buses, past seasons */
   gallery: string[];
 };
@@ -68,10 +73,13 @@ export const PROFILE_LABELS: Record<keyof ClusterProfileFields, string> = {
   madinahHotel: "فندق المدينة",
   madinahArea: "منطقة السكن في المدينة",
   madinahDistance: "المسافة عن المسجد النبوي",
+  makkahAt: "موقع فندق مكة على الخريطة",
+  madinahAt: "موقع فندق المدينة على الخريطة",
   transport: "النقل",
   meals: "الإعاشة",
   programs: "البرامج",
   rooms: "السكن الخاص — للفرد بحسب أسرّة الغرفة",
+  cover: "الصورة الرئيسية",
   gallery: "معرض الصور",
 };
 
@@ -87,10 +95,13 @@ export function fieldsOf(c: Cluster): ClusterProfileFields {
     madinahHotel: c.madinah.hotel,
     madinahArea: c.madinah.area,
     madinahDistance: c.madinah.distance,
+    makkahAt: c.makkah.at,
+    madinahAt: c.madinah.at,
     transport: [...c.transport],
     meals: [...c.meals],
     programs: [...c.programs],
     rooms: { ...c.rooms },
+    cover: coverOf(c),
     gallery: [...(c.gallery ?? [])],
   };
 }
@@ -100,12 +111,13 @@ export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
     ...c,
     specialty: f.specialty,
     about: f.about,
-    makkah: { hotel: f.makkahHotel, area: f.makkahArea, distance: f.makkahDistance, rooms: f.makkahRooms, features: f.makkahFeatures },
-    madinah: { hotel: f.madinahHotel, area: f.madinahArea, distance: f.madinahDistance },
+    makkah: { hotel: f.makkahHotel, area: f.makkahArea, distance: f.makkahDistance, rooms: f.makkahRooms, features: f.makkahFeatures, at: f.makkahAt ?? c.makkah.at },
+    madinah: { hotel: f.madinahHotel, area: f.madinahArea, distance: f.madinahDistance, at: f.madinahAt ?? c.madinah.at },
     transport: f.transport,
     meals: f.meals,
     programs: f.programs,
     rooms: f.rooms,
+    cover: f.cover ?? c.cover,
     gallery: f.gallery ?? c.gallery ?? [],
   };
 }
@@ -115,7 +127,21 @@ export function diffFields(before: ClusterProfileFields, after: ClusterProfileFi
   return (Object.keys(PROFILE_LABELS) as (keyof ClusterProfileFields)[])
     .map((k) => {
       const show = (v: ClusterProfileFields[typeof k]) =>
-        k === "rooms" ? formatRoomPrices(v as RoomPrices) : k === "gallery" ? photosLabel(((v as string[] | undefined) ?? []).length) : Array.isArray(v) ? v.join(" · ") : String(v ?? "");
+        k === "rooms"
+          ? formatRoomPrices(v as RoomPrices)
+          : k === "gallery"
+            ? photosLabel(((v as string[] | undefined) ?? []).length)
+            : k === "cover"
+              ? v
+                ? "صورة"
+                : ""
+              : k === "makkahAt" || k === "madinahAt"
+                ? v
+                  ? `${(v as LatLng).lat}، ${(v as LatLng).lng}`
+                  : ""
+              : Array.isArray(v)
+                ? v.join(" · ")
+                : String(v ?? "");
       const a = show(before[k]);
       const b = show(after[k]);
       // A gallery whose photos changed but not their number still changed

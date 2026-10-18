@@ -18,6 +18,8 @@ import {
   fmtGregShort,
   groupsOnFlight,
   membersOfGroup,
+  returnAirportsFor,
+  routeLabel,
   seatStats,
   type Direction,
   type Flight,
@@ -41,8 +43,9 @@ type View = "groups" | "needs" | "staff" | "alerts";
 const VIEWS: View[] = ["groups", "needs", "staff", "alerts"];
 
 /**
- * «التفويج»: who travels on what, as lists — the groups and their two flights (a group is put on both in one
- * step), who lost a seat, which staff have none, and what the flights warn of. `?view=` opens one of them (the
+ * «التفويج»: who travels on what, as lists — the groups and their two flights (their clusters' heads put them on
+ * their days; the officer can put a group on both in one step), who lost a seat, which staff have none, and what
+ * the flights warn of. `?view=` opens one of them (the
  * summary's «ما ينتظرك» links there, and to `?state=` for the groups without a flight).
  */
 export function DispatchPage() {
@@ -101,13 +104,18 @@ export function DispatchPage() {
       return f ? (dir === "outbound" ? f.fromId : f.toId) : "ap-dam";
     };
     const best = (dir: Direction) => {
-      const list = flightsFor(dir).filter(fits);
+      // its cluster's days first: they are what its head works with
+      const given = (f: Flight) => data.allotments.some((a) => a.flightId === f.id && a.clusterId === g.clusterId);
+      const list = flightsFor(dir).filter(fits).sort((a, b) => Number(given(b)) - Number(given(a)));
       const atHome = list.filter((f) => (dir === "outbound" ? f.fromId : f.toId) === home(dir));
       return list.find(sameCluster) ?? atHome.find(empty) ?? atHome[0] ?? list.find(empty) ?? list[0];
     };
     const out = flightOfGroup(g.clusterId, g.number, "outbound", data) ? "" : (best("outbound")?.id ?? "");
-    const pairedBack = data.flights.find((f) => f.id === flightOf(out)?.pairedFlightId);
-    const back = flightOfGroup(g.clusterId, g.number, "return", data) ? "" : pairedBack && fits(pairedBack) && pairedBack.status !== "locked" ? pairedBack.id : (best("return")?.id ?? "");
+    // the return its outbound allows: where that airport sends its travellers home, after it lands
+    const outFlight = flightOf(out) ?? flightOfGroup(g.clusterId, g.number, "outbound", data);
+    const allowed = (f: Flight) => !outFlight || (returnAirportsFor(data, outFlight.fromId).includes(f.toId) && f.departAt > outFlight.arriveAt);
+    const pairedBack = data.flights.find((f) => f.id === outFlight?.pairedFlightId);
+    const back = flightOfGroup(g.clusterId, g.number, "return", data) ? "" : pairedBack && fits(pairedBack) && pairedBack.status !== "locked" && allowed(pairedBack) ? pairedBack.id : (flightsFor("return").filter(fits).filter(allowed).find((f) => data.allotments.some((a) => a.flightId === f.id && a.clusterId === g.clusterId))?.id ?? flightsFor("return").filter(fits).find(allowed)?.id ?? "");
     setPick({ out, back });
     setAssignGroup(g);
   };
@@ -156,7 +164,7 @@ export function DispatchPage() {
             ))}
             {groups.length === 0 && <EmptyRow cols={6}>لا مجموعة تطابق التصفية.</EmptyRow>}
           </ListTable>
-          <p className="text-xs text-white/55">كل مجموعة تُسند كاملة: جميع المسجلين فيها وفريقها على الرحلة نفسها، ومن ينضم إليها لاحقاً يلحق بها تلقائياً.</p>
+          <p className="text-xs text-white/55">كل مجموعة تُسند كاملة: جميع المسجلين فيها وفريقها على الرحلة نفسها، ومن ينضم إليها لاحقاً يلحق بها تلقائياً. يضع رئيس كل تكتل مجموعاته على أيام تكتله من منصة الإداريين، وتتابعها أنت هنا وتسند ما يحتاج يدك.</p>
         </>
       )}
 
@@ -265,7 +273,7 @@ export function DispatchPage() {
               إسناد {groupName(assignGroup.number)} — {clusterName(assignGroup.clusterId)}
             </h2>
             <p className="mt-1 text-sm text-ink-soft">
-              {groupMembers.length} مسافراً: {familiesOfGroup(assignGroup, post, applications).length} عائلة وفريق المجموعة. تُسند كاملة، ومن ينضم إليها لاحقاً يلحق بها.
+              {groupMembers.length} مسافراً: {familiesOfGroup(assignGroup, post, applications).length} عائلة وفريق المجموعة. تُسند كاملة، ومن ينضم إليها لاحقاً يلحق بها. يضعها عادةً رئيس تكتلها على أيامه؛ هذا إسناد من يدك.
             </p>
             {(["out", "back"] as const).map((k) => {
               const dir: Direction = k === "out" ? "outbound" : "return";
@@ -282,10 +290,11 @@ export function DispatchPage() {
                       <option value="">— لاحقاً —</option>
                       {flightsFor(dir).map((f) => {
                         const rem = seatStats(f, data.assignments).remaining;
+                        const given = data.allotments.some((a) => a.flightId === f.id && a.clusterId === assignGroup.clusterId);
                         return (
                           <option key={f.id} value={f.id} disabled={rem < groupMembers.length}>
-                            {f.flightNo} — {fmtGregShort(f.departAt)} {fmtClock(f.departAt)} — متبقٍّ {rem}
-                            {rem < groupMembers.length ? " (لا تتسع)" : ""}
+                            {f.flightNo} — {fmtGregShort(f.departAt)} {fmtClock(f.departAt)} — {routeLabel(data, f)} — متبقٍّ {rem}
+                            {rem < groupMembers.length ? " (لا تتسع)" : given ? " — من أيام تكتلها" : ""}
                           </option>
                         );
                       })}

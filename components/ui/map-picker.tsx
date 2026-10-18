@@ -1,6 +1,6 @@
 "use client";
 
-import { Crosshair, MapPin, Minus, Plus } from "lucide-react";
+import { Crosshair, Landmark, MapPin, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { cn } from "@/lib/utils";
 
@@ -31,16 +31,57 @@ const round = (v: number) => Math.round(v * 1e5) / 1e5;
 /** Opens the place in the phone's or the browser's maps */
 export const mapsLink = ({ lat, lng }: LatLng) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
+/** The distance between two places, in metres (along the earth's surface) */
+export function distanceM(a: LatLng, b: LatLng) {
+  const r = (d: number) => (d * Math.PI) / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+}
+
+/** «450 متراً» under a kilometre (by tens), else «3.4 كم» */
+export function distanceLabel(m: number) {
+  if (m < 1000) {
+    const n = Math.max(10, Math.round(m / 10) * 10);
+    return `${n} ${n <= 10 ? "أمتار" : "متراً"}`;
+  }
+  return `${(Math.round(m / 100) / 10).toLocaleString("en-US")} كم`;
+}
+
 /**
  * A keyless OpenStreetMap to pick a place on: drag to move, the buttons to zoom, a tap to drop the pin.
  * From the keyboard: the arrows move, + and − zoom, Enter drops the pin in the middle. While nothing is
  * pinned it follows `focus` (a governorate chosen in the form), so the user starts near the place.
+ * `landmark`: a place shown beside the pin (the Haram, the Prophet's Mosque); `prompt`: the line shown while
+ * nothing is pinned; `readOnly`: the map only shows the pin (it moves and zooms, a tap drops nothing); `center`:
+ * where it opens (else on the pin).
  */
-export function MapPicker({ value, onChange, focus, label, className }: { value?: LatLng; onChange: (v: LatLng) => void; focus?: LatLng; label: string; className?: string }) {
+export function MapPicker({
+  value,
+  onChange,
+  focus,
+  label,
+  className,
+  landmark,
+  prompt = "قرّب الخريطة واضغط على موقع القاعة",
+  readOnly = false,
+  zoom: initialZoom,
+  center: initialCenter,
+}: {
+  value?: LatLng;
+  onChange?: (v: LatLng) => void;
+  focus?: LatLng;
+  label: string;
+  className?: string;
+  landmark?: { at: LatLng; label: string };
+  prompt?: string;
+  readOnly?: boolean;
+  zoom?: number;
+  center?: LatLng;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [zoom, setZoom] = useState(value ? 16 : focus ? 12 : 6);
-  const [center, setCenter] = useState<LatLng>(value ?? focus ?? SYRIA);
+  const [zoom, setZoom] = useState(initialZoom ?? (value ? 16 : focus ? 12 : 6));
+  const [center, setCenter] = useState<LatLng>(initialCenter ?? value ?? focus ?? SYRIA);
   const drag = useRef<{ x: number; y: number; from: { x: number; y: number }; moved: boolean } | null>(null);
 
   const [seen, setSeen] = useState(focus);
@@ -86,7 +127,11 @@ export function MapPicker({ value, onChange, focus, label, className }: { value?
   };
   const zoomBy = (d: number) => setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z + d)));
   const pan = (dx: number, dy: number) => setCenter(unproject(mid.x + dx, mid.y + dy, zoom));
-  const drop = (p: LatLng) => onChange({ lat: round(p.lat), lng: round(p.lng) });
+  const drop = (p: LatLng) => !readOnly && onChange?.({ lat: round(p.lat), lng: round(p.lng) });
+  const mark = landmark && (() => {
+    const p = project(landmark.at, zoom);
+    return { x: p.x - left, y: p.y - top };
+  })();
 
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -134,17 +179,27 @@ export function MapPicker({ value, onChange, focus, label, className }: { value?
         ref={box}
         role="application"
         tabIndex={0}
-        aria-label={`${label}: اسحب لتحريك الخريطة، واضغط لوضع الدبوس. من لوحة المفاتيح: الأسهم للتحريك، و+ و− للتكبير، وEnter لوضع الدبوس في الوسط.`}
+        aria-label={readOnly ? `${label}: اسحب لتحريك الخريطة. من لوحة المفاتيح: الأسهم للتحريك، و+ و− للتكبير.` : `${label}: اسحب لتحريك الخريطة، واضغط لوضع الدبوس. من لوحة المفاتيح: الأسهم للتحريك، و+ و− للتكبير، وEnter لوضع الدبوس في الوسط.`}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerCancel={() => (drag.current = null)}
         onKeyDown={onKey}
-        className="absolute inset-0 cursor-crosshair touch-none outline-none select-none focus-visible:ring-4 focus-visible:ring-gold/40"
+        className={cn("absolute inset-0 touch-none outline-none select-none focus-visible:ring-4 focus-visible:ring-gold/40", readOnly ? "cursor-grab" : "cursor-crosshair")}
       >
         {tiles.map((t) => (
           <div key={t.key} className="absolute size-64 bg-cover" style={{ left: t.x, top: t.y, backgroundImage: `url(${t.url})` }} />
         ))}
+        {mark && (
+          <span className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style={{ left: mark.x, top: mark.y }}>
+            <span className="grid size-8 place-items-center rounded-full bg-green-dark text-gold shadow-lg ring-2 ring-white">
+              <Landmark className="size-4" />
+            </span>
+            <span dir="rtl" className="mt-0.5 whitespace-nowrap rounded-full bg-green-dark/90 px-2 py-0.5 text-[10px] font-bold text-white">
+              {landmark!.label}
+            </span>
+          </span>
+        )}
         {pin && (
           <MapPin className="pointer-events-none absolute size-9 -translate-x-1/2 -translate-y-full fill-maroon text-white drop-shadow-lg" style={{ left: pin.x, top: pin.y }} strokeWidth={1.75} />
         )}
@@ -172,9 +227,9 @@ export function MapPicker({ value, onChange, focus, label, className }: { value?
         )}
       </div>
 
-      {!value && (
+      {!value && !readOnly && (
         <p dir="rtl" className="pointer-events-none absolute inset-x-0 top-2 mx-auto w-fit rounded-full bg-green-dark/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
-          قرّب الخريطة واضغط على موقع القاعة
+          {prompt}
         </p>
       )}
       <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="absolute right-0 bottom-0 rounded-tl-lg bg-white/85 px-1.5 py-0.5 text-[10px] text-black/70">

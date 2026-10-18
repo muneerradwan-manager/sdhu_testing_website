@@ -114,7 +114,6 @@ function OrgChart() {
         <div className="w-full max-w-xs">{node("رئيس التكتل", "صفة أساسية أو موسمية تمنحها الإدارة", "bg-gold/30")}</div>
         <div className="h-5 w-px bg-gold-dark/40" />
         <div className="grid w-full gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {node("نائب رئيس التكتل", "من رؤساء المجموعات")}
           {node("محاسب التكتل", "من كادر التكتل")}
           {node("المنسقون التقنيون", `منسق لكل ${comp.perCoordinator} وحدات`)}
           {node("الموجّهات الدينيات", `أ، ب، ج — واحدة لكل ${comp.perGuide} وحدات`)}

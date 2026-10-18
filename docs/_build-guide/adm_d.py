@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Administrator guide — run D: الرحلات, read-only. The flight officer puts group 27 on its flights first
-(no shots), then the cluster head and the group head see the result.
+"""Administrator guide — run D: الرحلات. The cluster head puts group 27 on his cluster's days (outbound and
+return at once) and one of its pilgrims alone on the Latakia return; then the group head sees the result.
 Usage: CAP_DIR=admin python adm_d.py <keep>"""
 import sys
 from cap import Cap, truncate
@@ -8,6 +8,8 @@ from cap import Cap, truncate
 truncate(int(sys.argv[1]))
 c = Cap(); p = c.page
 S = "N"
+DLG = "[role=dialog]"
+DAY = lambda no: f"main [data-day='{no}']"
 
 def admin(name, path="/administrator/flights"):
     c.goto("/administrator/login?demo=all", wait=1500)
@@ -15,22 +17,28 @@ def admin(name, path="/administrator/flights"):
     card.scroll_into_view_if_needed(); card.click(); c.settle(2500)
     c.goto(path, wait=2200)
 
-# the officer places group 27 on its cluster's flights (the staff guide shows how)
-c.goto("/staff/login", wait=1500)
-p.locator("label:has-text('اسم المستخدم') input").first.fill("haitham")
-p.locator("label:has-text('كلمة المرور') input").first.fill("1448")
-p.locator("button[type=submit]").first.click(); c.settle(2000)
-c.goto("/staff/flights/manage/dispatch", wait=2500)
-p.locator("main tr:has-text('مجموعة اللطيف') button:has-text('إسناد')").first.click(); c.settle(900)
-p.locator("[role=dialog] button:has-text('إسناد المجموعة')").click(); c.settle(1500)
-
-# ───────── cluster head ─────────
+# ───────── cluster head: his days, his groups, a pilgrim alone ─────────
 admin("عبد الرحمن العلي")
-c.shot("cfl-top", "رحلات التكتل: الأعداد، ومن يضع المجموعات على الرحلات", hl=[("nav a[href*='/administrator/flights']", "1"), ("main p:has-text('تنسّق معه مباشرة')", "2")], section=S)
+c.shot("cfl-top", "رحلات التكتل: الأعداد، وكيف تعمل الأيام والإسناد", hl=[("nav a[href*='/administrator/flights']", "1"), ("main p:has-text('أيام رحلاته')", "2")], section=S)
+c.scroll_to("text=أيام رحلات التكتل", 110)
+c.shot("cfl-days", "أيام رحلات التكتل: الذهاب والعودة، ومقاعد التكتل على كل رحلة", hl=[(DAY("RB 507"), "")], section=S)
+
+b = p.locator(f"{DAY('RB 507')} button:has-text('إسناد مجموعات')").first
+b.scroll_into_view_if_needed(); b.click(); c.settle(1000)
+p.locator(f"{DLG} button[aria-pressed]:has-text('مجموعة اللطيف')").first.click(); c.settle(500)
+c.shot("cfl-assign", "إسناد مجموعات: المجموعة كاملة، وعودتها من أيام التكتل مختارة سلفاً", hl=[(f"{DLG} select", "1"), (f"{DLG} button:has-text('إسناد') >> nth=-1", "2")], section=S)
+p.locator(f"{DLG} button:has-text('إسناد')").last.click(); c.settle(1600)
+
+b = p.locator(f"{DAY('RB 538')} button:has-text('إضافة حجاج')").first
+b.scroll_into_view_if_needed(); b.click(); c.settle(1000)
+p.locator(f"{DLG} select[aria-label='المجموعة']").select_option("27"); c.settle(700)
+p.locator(f"{DLG} button[aria-pressed]:not([disabled])").first.click(); c.settle(400)
+c.shot("cfl-pilgrims", "إضافة حجاج فرادى: من يسافر وحده يُنقل من رحلة مجموعته", hl=[(f"{DLG} button[aria-pressed='true']", "1"), (f"{DLG} button:has-text('إضافة') >> nth=-1", "2")], section=S)
+p.locator(f"{DLG} button:has-text('إضافة')").last.click(); c.settle(1600)
+c.scroll_to(DAY("RB 538"), 160)
+c.shot("cfl-apart", "على الرحلة فرادى خارج رحلة مجموعتهم، ولكل مجموعة وفرد زر الإزالة", hl=[(f"{DAY('RB 538')} div:has-text('فرادى خارج رحلة مجموعتهم') >> nth=-1", "")], section=S)
 c.scroll_to("text=مجموعات تكتلي ورحلاتها", 110)
-c.shot("cfl-table", "مجموعات تكتلي ورحلاتها ذهاباً وعودة", hl=[("main tr:has-text('مجموعة الإيمان')", "")], section=S)
-c.scroll_to("main div.rounded-3xl:has-text('رحلة الذهاب')", 130)
-c.shot("cfl-cards", "بطاقات رحلات التكتل: الموعد والتجمّع ومجموعاتك عليها", section=S)
+c.shot("cfl-table", "مجموعات تكتلي ورحلاتها ذهاباً وعودة", hl=[("main tr:has-text('مجموعة اللطيف')", "")], section=S)
 
 # ───────── group head ─────────
 admin("أحمد سليمان الحمصي")
@@ -42,6 +50,6 @@ c.scroll_to("[role=tablist]", 110)
 op = p.locator("main button:has-text('فتح التجمّع'), main button:has-text('فتح تجمّع')").first
 op.scroll_into_view_if_needed(); op.click(); c.settle(1500)
 c.scroll_to("text=مرتبط بالرحلة", 260)
-c.shot("gfl-muster", "تجمّع «ساحة المزة ← المطار» مرتبط برحلة المجموعة: المسح يسجّل الصعود", hl=[("text=مرتبط بالرحلة", "")], section=S)
+c.shot("gfl-muster", "تجمّع المطار مرتبط برحلة المجموعة: من تحدّده حاضراً يُسجَّل صعوده", hl=[("text=مرتبط بالرحلة", "")], section=S)
 c.close()
 print("DONE adm_d")
