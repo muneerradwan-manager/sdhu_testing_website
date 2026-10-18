@@ -51,7 +51,7 @@ export function LoginFlow() {
     if (!isValidNationalId(id)) return setError({ text: t("الرقم الوطني يتكون من 11 رقماً.", "The national ID has 11 digits.") });
     const acc = accounts[id];
     if (!acc) {
-      if (admins[id]) return setError({ text: t("هذا الرقم مسجّل كحساب إداري، لا كحساب حاج.", "This number belongs to an administrator account, not a pilgrim account."), link: { href: "/administrator/login", label: t("دخول الإداريين", "Administrator sign-in") } });
+      if (admins[id]) return setError({ text: t("هذا الرقم مسجّل كحساب إداري، لا كحساب حاج: ادخل من منصة الإداريين.", "This number belongs to an administrator account, not a pilgrim account: sign in on the administrators' platform.") });
       return setError({ text: t("لا يوجد حساب حاج بهذا الرقم.", "There is no pilgrim account with this number."), link: { href: "/register", label: t("أنشئ حساباً", "Create an account") } });
     }
     if (acc.password !== password) return setError({ text: t("كلمة المرور غير صحيحة.", "The password is incorrect.") });
@@ -87,7 +87,6 @@ export function LoginFlow() {
       subtitle={t("تابع طلبك، واطلع على مجموعتك وفندقك ورحلتك. الدخول بالرقم الوطني وكلمة المرور، ثم رمز تحقق يصل إلى هاتفك.", "Track your application and see your group, hotel and flight. Sign in with your national ID and password, then a verification code sent to your phone.")}
       steps={[t("الرقم الوطني وكلمة المرور", "National ID and password"), t("رمز التحقق", "Verification code"), t("ملفي", "My profile")]}
       step={otpStage ? 1 : 0}
-      tabs={!otpStage}
       note={t("نسخة تجريبية: لا تُرسل أي رسالة حقيقية ولا تُحفظ البيانات إلا في متصفحك.", "Demo version: no real messages are sent, and your data is kept only in your browser.")}
       below={
         <DemoAccounts

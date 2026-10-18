@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BadgeCheck, CalendarDays, Landmark, Megaphone } from "lucide-react";
+import { ArrowLeft, CalendarDays, Landmark, Megaphone } from "lucide-react";
 import { CmsIcon, CmsSection, list, str, tone, toneClass } from "@/components/cms/bits";
 import { CmsImage } from "@/components/cms/image";
 import { ButtonLink } from "@/components/ui/button";
@@ -11,8 +11,9 @@ import { useSection } from "@/lib/cms/store";
 import { useLang, useT } from "@/lib/i18n";
 import { categoryLabel } from "./news/_components/categories";
 import { Hero } from "./_home/hero";
-import { Journey } from "./_home/journey";
 import { SeasonDock } from "./_home/season-dock";
+import { Tutorials } from "./_home/tutorials";
+import { DirectoryTeaser } from "./_home/directory-teaser";
 import { AcademyTeaser, PrayerWidget } from "./_home/widgets";
 
 /**
@@ -21,22 +22,26 @@ import { AcademyTeaser, PrayerWidget } from "./_home/widgets";
  */
 export default function Home() {
   return (
-    <>
+    // The home page's sections end on their own background (the season's calendar last), so the footer's top margin
+    // — room the other pages need — would leave an empty strip here: it is taken back
+    <div className="-mb-24">
       <CmsSection page="home" section="hero">
         <Hero />
       </CmsSection>
       <Ticker />
       <Services />
-      <CmsSection page="home" section="journey">
-        <Journey />
+      <CmsSection page="home" section="tutorials">
+        <Tutorials />
+      </CmsSection>
+      <CmsSection page="home" section="directory">
+        <DirectoryTeaser />
       </CmsSection>
       <Numbers />
       <AcademyAndPrayer />
       <Verse />
       <News />
       <SeasonCalendar />
-      <Cta />
-    </>
+    </div>
   );
 }
 
@@ -318,54 +323,6 @@ function SeasonCalendar() {
             <SeasonDock dates={dates} />
           </Reveal>
         </div>
-      </section>
-    </CmsSection>
-  );
-}
-
-// ───────────────────────── دعوة التسجيل ─────────────────────────
-
-function Cta() {
-  const v = useSection("home", "cta");
-  const points = list<{ text: string }>(v, "points");
-
-  return (
-    <CmsSection page="home" section="cta">
-      <section className="mx-auto max-w-7xl px-4 pt-24 md:px-8">
-        <Reveal>
-          <div className="relative isolate overflow-hidden rounded-[2.5rem] bg-maroon-dark px-6 py-14 text-white md:px-16 md:py-20">
-            <div className="absolute inset-0 -z-20">
-              <CmsImage src={v.image} alt="" fill sizes="100vw" quality={70} className="object-cover opacity-25" />
-            </div>
-            <div className="absolute inset-0 -z-10 bg-gradient-to-l from-maroon-dark ltr:bg-gradient-to-r via-maroon-dark/90 to-maroon/60" />
-            <div className="bg-pattern absolute inset-0 -z-10 opacity-15" />
-            <div className="grid items-center gap-10 md:grid-cols-[1.4fr_1fr]">
-              <div>
-                <h2 className="font-display text-3xl font-bold leading-[1.4] md:text-5xl">
-                  {str(v, "title")} <br />
-                  <span className="text-gold-shine">{str(v, "titleHighlight")}</span>
-                </h2>
-                <p className="mt-5 max-w-xl text-lg leading-8 text-white/80">{str(v, "text")}</p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <ButtonLink href={str(v, "primaryHref", "/register")} variant="gold" size="lg">
-                    {str(v, "primaryLabel")} <ArrowLeft className="size-5" />
-                  </ButtonLink>
-                  <ButtonLink href={str(v, "secondaryHref", "/conditions")} variant="glass" size="lg">
-                    <BadgeCheck className="size-5" /> {str(v, "secondaryLabel")}
-                  </ButtonLink>
-                </div>
-              </div>
-              <ul className="space-y-3">
-                {points.map((t, i) => (
-                  <li key={`${t.text}-${i}`} className="flex items-center gap-3 rounded-2xl bg-white/10 p-4 backdrop-blur">
-                    <span className="grid size-8 place-items-center rounded-full bg-gold font-bold text-ink">{i + 1}</span>
-                    {t.text}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </Reveal>
       </section>
     </CmsSection>
   );

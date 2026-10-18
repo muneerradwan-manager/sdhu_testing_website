@@ -8,6 +8,8 @@ import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf } from "@/lib/cluster-profile";
+import { diffGroupFields, groupSeed } from "@/lib/group-profile";
+import { CmsImage } from "@/components/cms/image";
 import { groupName } from "@/lib/groups";
 import { downloadCsv } from "@/lib/csv";
 import { dayLabel, dayTimeLabel } from "@/lib/operations";
@@ -29,7 +31,7 @@ import { logAdmins, useAdminsDesk, type AdminsDesk, type OutsideGroup } from "..
 const sizedInput = smallInputClass.replace("w-full", "");
 const CLUSTERS = "/staff/admins/manage/clusters";
 
-const VIEWS = ["requests", "outside", "programmes", "archived"] as const;
+const VIEWS = ["requests", "outside", "programmes", "group-pages", "archived"] as const;
 
 /**
  * «طلبات التكتلات» — the cluster requests as a site's list, each opening on its own review screen (`?id=`): its
@@ -52,18 +54,20 @@ export function ClustersTab() {
           { key: "requests", label: "الطلبات", count: desk.live.length },
           { key: "outside", label: "مجموعات خارج التكتلات", count: desk.outside.length },
           { key: "programmes", label: "برامج التكتلات", count: desk.pendingProgrammes.length },
+          { key: "group-pages", label: "صفحات المجموعات", count: desk.pendingGroupPages.length },
           { key: "archived", label: "المؤرشفة", count: desk.archivedClusters.length },
         ]}
       />
       {(view === "requests" || view === "archived") && <Requests key={view} desk={desk} shelf={view === "archived" ? "archived" : "live"} />}
       {view === "outside" && <Outside desk={desk} />}
       {view === "programmes" && <Programmes desk={desk} />}
+      {view === "group-pages" && <GroupPages desk={desk} />}
       <div className="grid gap-4 lg:grid-cols-2">
         <WindowBox desk={desk} />
         <Help>
           <p>لا انتخاب: يقدّم الطلب من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية، ويملؤه بالترتيب — المستوى، المجموعات برؤسائها، الإداريون (موجّهو المجموعات ومعاونوها، ومعاون التكتل، والمنسقون والموجّهات يوزَّعون على المجموعات)، النائب، المحاسب — ويرسله بعد اكتماله.</p>
           <p>تبدأ مراجعة الطلب، ثم تعتمده أو تعيده بملاحظات يصلحها رئيسه ويعيد إرساله قبل الموعد النهائي. وخارج الضوابط تعدّله بنفسك «تعديلاً استثنائياً» بسبب يُكتب في سجله وسجل الشخص.</p>
-          <p>ثم يكتب كل رئيس برنامج تكتله، ولا يصل إلى الحجاج قبل أن تعتمده.</p>
+          <p>ثم يكتب كل رئيس برنامج تكتله، ويكتب رئيس كل مجموعة صفحتها (صورتها ونبذتها ومعرض صورها)، ولا يصل شيء منها إلى الحجاج قبل أن تعتمده.</p>
         </Help>
       </div>
       <RecordsBox system="admins" area="clusters" title="سجل التكتلات" />
@@ -856,6 +860,174 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
             </div>
             <div className="mt-5 flex gap-2">
               <Button variant="gold" disabled={reason.trim().length < 5} onClick={() => decide(rejecting, desk.programmes.find((x) => x.cluster.slug === rejecting)?.cluster.name ?? "", "rejected", reason.trim())}>
+                إعادة مع السبب
+              </Button>
+              <Button variant="glass" onClick={() => setRejecting(null)}>
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+// ───────────────────────── The groups' public pages ─────────────────────────
+
+const GROUP_REASONS = ["صورة لا تخص المجموعة أو موسمها", "صورة تظهر فيها وجوه حجاج دون إذنهم", "نبذة دعائية لا تصف المجموعة", "نص أو صورة غير لائقة"];
+
+/**
+ * A group's public page — its picture, its word and its gallery, written by its head or his assistant — carries
+ * the administration's approval as the cluster's does: the holder sees what changed, the pictures themselves, and
+ * approves it onto the group's card and window or sends it back with a reason.
+ */
+function GroupPages({ desk }: { desk: AdminsDesk }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const [filter, setFilter] = useState<"pending" | "published">(desk.pendingGroupPages.length || !desk.groupPages.some((x) => x.state.approved) ? "pending" : "published");
+  const [open, setOpen] = useState<number | null>(null);
+  const [rejecting, setRejecting] = useState<number | null>(null);
+  const [reason, setReason] = useState(GROUP_REASONS[0]);
+  const published = desk.groupPages.filter((x) => x.state.approved);
+  const list = filter === "pending" ? desk.pendingGroupPages : published;
+  const sheet = desk.groupPages.find((x) => x.no === open);
+  const shown = sheet ? (sheet.state.pending?.fields ?? sheet.state.approved?.fields) : undefined;
+
+  const decide = (no: number, decision: "approved" | "rejected", why?: string) => {
+    actions.decideGroupProfile(no, decision, user.name, why);
+    logAdmins(user, "clusters", { action: decision === "approved" ? "اعتماد صفحة مجموعة ونشرها للحجاج" : "إعادة صفحة مجموعة إلى رئيسها", target: groupName(no), detail: why, ref: desk.groupPages.find((x) => x.no === no)?.clusterId });
+    toast(decision === "approved" ? { title: "اعتُمدت الصفحة ونُشرت", body: `${groupName(no)} — يراها الحجاج الآن في «التكتلات والمجموعات».`, tone: "success", icon: "✅" } : { title: "أُعيدت إلى رئيس المجموعة", body: why, tone: "info", icon: "↩️" });
+    setRejecting(null);
+    setOpen(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Title>صفحات المجموعات</Title>
+      <Lead>حين يعدّل رئيس مجموعة أو معاونها صورتها أو نبذتها أو معرض صورها يصل التعديل هنا قبل أن يراه أحد.</Lead>
+      <Filters
+        label="صفحات المجموعات"
+        value={filter}
+        onChange={setFilter}
+        items={[
+          { key: "pending", label: "تنتظر اعتمادك", count: desk.pendingGroupPages.length },
+          { key: "published", label: "المنشورة", count: published.length },
+        ]}
+      />
+      <ListTable head={["المجموعة", "التكتل", filter === "pending" ? "أرسلها" : "اعتمدها", "التاريخ"]}>
+        {list.length === 0 && <EmptyRow cols={4}>{filter === "pending" ? "لا تعديلات معلّقة." : "لا صفحات منشورة بعد."}</EmptyRow>}
+        {list.map(({ no, clusterName, state }) => {
+          const pending = filter === "pending" && state.pending;
+          return (
+            <tr key={no}>
+              <TitleCell
+                title={groupName(no)}
+                onOpen={() => setOpen(no)}
+                sub={pending && state.pending!.note ? `ملاحظته: ${state.pending!.note}` : undefined}
+                actions={
+                  <RowActions>
+                    <RowLink onClick={() => setOpen(no)}>{pending ? "مراجعة" : "فتح"}</RowLink>
+                  </RowActions>
+                }
+              />
+              <td className="p-3 align-top text-white/80">{clusterName || "—"}</td>
+              <td className="p-3 align-top text-white/80">{pending ? state.pending!.by : state.approved?.approvedBy}</td>
+              <td className="whitespace-nowrap p-3 align-top text-xs text-white/60">{fmtDateTime(pending ? state.pending!.at : (state.approved?.approvedAt ?? 0))}</td>
+            </tr>
+          );
+        })}
+      </ListTable>
+
+      <Drawer
+        open={!!sheet}
+        onClose={() => setOpen(null)}
+        title={sheet ? `صفحة ${groupName(sheet.no)}` : ""}
+        footer={
+          sheet?.state.pending && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="gold" onClick={() => decide(sheet.no, "approved")}>
+                <BadgeCheck className="size-4" /> اعتماد ونشر
+              </Button>
+              <Button variant="glass" onClick={() => setRejecting(sheet.no)}>
+                <X className="size-4" /> إعادة مع السبب
+              </Button>
+            </div>
+          )
+        }
+      >
+        {sheet && shown && (
+          <div className="space-y-4 text-sm">
+            {sheet.clusterId && (
+              <Link href={`/clusters/${sheet.clusterId}`} target="_blank" className="inline-flex items-center gap-1.5 font-bold text-gold hover:underline">
+                <ExternalLink className="size-3.5" /> صفحة {sheet.clusterName} كما يراها الحاج
+              </Link>
+            )}
+            {sheet.state.pending ? (
+              <>
+                <p className="text-xs text-white/65">
+                  أرسلها {sheet.state.pending.by} — {fmtDateTime(sheet.state.pending.at)}
+                </p>
+                {sheet.state.pending.note && <p className="text-gold">ملاحظته: {sheet.state.pending.note}</p>}
+                <ul className="space-y-2">
+                  {diffGroupFields(sheet.state.approved?.fields ?? groupSeed(sheet.no), sheet.state.pending.fields).map((ch) => (
+                    <li key={ch.key} className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                      <p className="font-bold text-gold">{ch.label}</p>
+                      <p className="mt-1 text-white/50 line-through">{ch.before || "—"}</p>
+                      <p className="font-semibold text-white">{ch.after || "—"}</p>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              sheet.state.approved && (
+                <p className="text-white/75">
+                  اعتمدها {sheet.state.approved.approvedBy} — {fmtDateTime(sheet.state.approved.approvedAt)}. كتبها {sheet.state.approved.by}.
+                </p>
+              )
+            )}
+            {/* The pictures themselves, as they would be published */}
+            {shown.cover && (
+              <div>
+                <p className="mb-1 text-xs font-bold text-gold">صورة المجموعة</p>
+                <div className="relative aspect-[16/7] overflow-hidden rounded-xl">
+                  <CmsImage src={shown.cover} alt="" fill sizes="480px" className="object-cover" />
+                </div>
+              </div>
+            )}
+            {shown.about && <p className="leading-7 text-white/80">{shown.about}</p>}
+            {shown.gallery.length > 0 && (
+              <div>
+                <p className="mb-1 text-xs font-bold text-gold">معرض الصور ({shown.gallery.length})</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {shown.gallery.map((src, i) => (
+                    <div key={`${src}-${i}`} className="relative aspect-square overflow-hidden rounded-lg">
+                      <CmsImage src={src} alt="" fill sizes="160px" className="object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      <Modal open={rejecting !== null} onClose={() => setRejecting(null)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
+        {rejecting !== null && (
+          <div>
+            <p className="text-xs font-bold text-gold">إعادة الصفحة إلى رئيس المجموعة</p>
+            <h3 className="mt-1 font-display text-xl font-bold">{groupName(rejecting)}</h3>
+            <p className="mt-1 text-sm leading-7 text-white/70">يصل السبب إليه ليعدّل ويعيد الإرسال. الصفحة تبقى على نسختها المعتمدة.</p>
+            <div className="mt-4 space-y-2">
+              {GROUP_REASONS.map((r) => (
+                <label key={r} className={cn("flex cursor-pointer items-center gap-3 rounded-2xl p-3 text-sm font-semibold ring-1", reason === r ? "bg-gold/15 ring-gold/50" : "bg-white/5 ring-white/15")}>
+                  <input type="radio" name="group-why" checked={reason === r} onChange={() => setReason(r)} className="accent-[#D9C89E]" /> {r}
+                </label>
+              ))}
+              <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-label="سبب الإعادة" className={textareaClass} />
+            </div>
+            <div className="mt-5 flex gap-2">
+              <Button variant="gold" disabled={reason.trim().length < 5} onClick={() => decide(rejecting, "rejected", reason.trim())}>
                 إعادة مع السبب
               </Button>
               <Button variant="glass" onClick={() => setRejecting(null)}>

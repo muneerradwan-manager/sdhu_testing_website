@@ -221,7 +221,7 @@ export function selectClusters(state: CmsState): Cluster[] {
         name: s(v.name),
         since: n(v.since, 1440),
         // Its tier, groups and pilgrims are the administrators' (app/administrator/_lib/directory): the directory fills them
-        level: "عادي" as ServiceLevel,
+        level: "اقتصادي" as ServiceLevel,
         rating: n(v.rating),
         reviews: n(v.reviews),
         governorate: s(v.governorate),
@@ -247,6 +247,9 @@ export function selectClusters(state: CmsState): Cluster[] {
         meals: toStrings(v.meals),
         programs: toStrings(v.programs),
         rooms: { 1: n(v.room1), 2: n(v.room2), 3: n(v.room3), 4: n(v.room4) },
+        gallery: rows<Record<string, unknown>>(v.gallery)
+          .map((g) => s(g.src))
+          .filter(Boolean),
         groups: [] as ClusterGroup[],
         tone: (v.tone === "gold" || v.tone === "maroon"
           ? v.tone

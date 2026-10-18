@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, BadgeCheck, BookOpen, Bus, CalendarCheck, Hotel, MapPin, ShieldCheck, Sparkles, Star, Utensils, Wallet } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BookOpen, Bus, CalendarCheck, Hotel, Images, MapPin, ShieldCheck, Sparkles, Star, Utensils, Wallet } from "lucide-react";
 import { Card } from "@/components/portal/shell";
-import { ClusterFactsCard, ClusterGroupsCard, ClusterTeamCard } from "./cluster-team";
+import { ClusterContactCard, ClusterFactsCard, ClusterGroupsCard, ClusterTeamCard } from "./cluster-team";
 import { ButtonLink } from "@/components/ui/button";
+import { Gallery } from "../_components/gallery";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { ROOM_BEDS, ROOM_LABEL, priceRange } from "@/lib/rooms";
 import { SEASON } from "@/lib/season";
@@ -28,8 +29,8 @@ const IMAGES: Record<string, string> = {
 };
 
 const LEVEL_STYLE: Record<ServiceLevel, string> = {
-  "عادي": "bg-white/90 text-green-dark",
-  "محسّن": "bg-green-light text-white",
+  "اقتصادي": "bg-white/90 text-green-dark",
+  "اقتصادي محسن": "bg-green-light text-white",
   "خمس نجوم": "bg-gradient-to-l from-gold-dark to-gold text-ink",
 };
 
@@ -171,6 +172,17 @@ export function ClusterPage({ slug }: { slug: string }) {
               <p className="mt-3 leading-8 text-ink-soft">{c.about}</p>
             </Card>
 
+            {!!c.gallery?.length && (
+              <Card className="md:p-7">
+                <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
+                  <Images className="size-6 text-gold-dark" /> {t("معرض الصور", "Photo gallery")}
+                </h2>
+                <div className="mt-4">
+                  <Gallery images={c.gallery} title={c.name} />
+                </div>
+              </Card>
+            )}
+
             {/* Accommodation */}
             <Card className="md:p-7">
               <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
@@ -226,11 +238,11 @@ export function ClusterPage({ slug }: { slug: string }) {
 
             {/* The team and the groups, from the cluster's approved request in the administrators' platform */}
             {c.team && <ClusterTeamCard team={c.team} />}
-            {c.team && <ClusterGroupsCard groups={c.team.groups} />}
           </div>
 
           {/* Aside */}
           <aside className="space-y-4">
+            {c.team && <ClusterContactCard team={c.team} />}
             {c.team && <ClusterFactsCard cluster={c} team={c.team} />}
             <div className="rounded-[2rem] bg-green-dark p-6 text-white">
               <p className="flex items-center gap-2 font-display text-lg font-bold text-gold">
@@ -277,6 +289,13 @@ export function ClusterPage({ slug }: { slug: string }) {
             </ButtonLink>
           </aside>
         </div>
+
+        {/* The groups take the page's whole width under both columns: a long list beside the aside left it empty */}
+        {c.team && (
+          <div className="mt-6">
+            <ClusterGroupsCard team={c.team} clusterName={c.name} level={c.level} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -147,6 +147,20 @@ if ONLY in (None, "head"):
     c.shot("head-profile-send", "إرسال التعديل لاعتماد الإدارة", hl=[("button:has-text('أرسل للاعتماد')", "")], section=S)
     sb.click(); c.settle(1500)
     c.shot("head-profile-pending", "تعديلك عند الإدارة للاعتماد", section=S)
+    # the group's own page: its picture, a word and its gallery, from the head's sidebar
+    pics = ROOT.parent.parent / "public" / "images"
+    c.goto("/administrator/group-page", wait=1500)
+    c.shot("group-page", "صفحة المجموعة العامة: صورتها ونبذتها ومعرض صورها", hl=[("aside a[href='/administrator/group-page']", "")], section=S)
+    p.locator("input[type=file][aria-label='صورة المجموعة']").set_input_files(str(pics / "mina-arrive.jpg")); c.settle(1500)
+    p.get_by_label("نبذة عن المجموعة").fill("مجموعة من دمشق منذ 1444هـ، فريقها من المواسم السابقة، ولها درس يومي بعد العصر في مكة.")
+    p.locator("input[type=file][aria-label='صور المعرض']").set_input_files([str(pics / n) for n in ("kaaba-hajj.jpg", "tawaf-night.jpg", "jamarat.jpg")]); c.settle(2500)
+    c.scroll_to("h3:has-text('معرض الصور')", 140)
+    c.shot("group-page-filled", "صورة المجموعة ونبذتها وثلاث صور في معرضها", section=S)
+    gb = p.locator("button:has-text('أرسل للاعتماد')").first
+    gb.scroll_into_view_if_needed(); c.settle(300)
+    gb.click(); c.settle(1500)
+    c.scroll_top()
+    c.shot("group-page-pending", "صفحة المجموعة عند الإدارة للاعتماد", section=S)
     c.save_state(str(ROOT / "admin" / "state-head-profile.json"))
     c.close()
 
@@ -253,8 +267,8 @@ if ONLY in (None, "letters"):
     S = "C2"
     c, p = session("01033300871", "/administrator/notifications")
     c.shot("notif-list", "الإشعارات: ما وصلك من الإدارة ومن رؤساء التكتلات", section=S)
-    c.scroll_to("main h2:has-text('تيليجرام ورمز الدخول'), main :text('تيليجرام ورمز الدخول')", 120)
-    c.shot("notif-telegram", "تيليجرام ورمز الدخول: رمز الربط ببوت المنصة، ورمز دخولك", hl=[("button:has-text('محاكاة: أرسلتُ الرمز إلى البوت')", "")], section=S)
+    c.scroll_to("main button:has-text('محاكاة: أرسلتُ الرمز إلى البوت')", 160)
+    c.shot("notif-telegram", "تيليجرام: رمز الربط ببوت المنصة", hl=[("button:has-text('محاكاة: أرسلتُ الرمز إلى البوت')", "")], section=S)
     btn(p, c, "محاكاة: أرسلتُ الرمز إلى البوت", 1200)
     c.shot("notif-telegram-linked", "رُبط تيليجرام: رمز دخولك يظهر ويصلك من البوت", section=S)
     c.goto("/administrator/letters", wait=1800)
@@ -279,16 +293,8 @@ if ONLY in (None, "letters"):
     p.locator("main button:has-text('موعد اجتماع رؤساء المجموعات')").first.click(); c.settle(1200)
     c.shot("letters-reply", "رد الإدارة في سياق الرسالة، وتردّ فيه ما دامت مفتوحة", section=S)
     c.close()
-    # signing in by name or phone and the PIN
-    c = Cap(); p = c.page
-    c.goto("/administrator/login?demo=all", wait=1500)
-    p.get_by_role("tab", name="الاسم أو الهاتف ورمز الدخول").click(); c.settle(600)
-    p.locator("main select").first.select_option(label="أحمد سليمان الحمصي"); c.settle(500)
-    pin = p.locator("text=تجريبي: رمز هذا الحساب").first.inner_text()
-    import re
-    p.get_by_placeholder("••••").fill(re.search(r"(\d{4})", pin).group(1)); c.settle(300)
-    c.shot("login-pin", "الدخول باسمك أو هاتفك ورمز الدخول (PIN)", hl=[("main button[type=submit]:has-text('دخول')", "")], section="B")
     # the cadre's references, public pages
+    c = Cap(); p = c.page
     c.goto("/administrator", wait=2000)
     c.scroll_to("text=ما يعمل به الكادر", 140)
     c.shot("refs-landing", "مراجع الكادر في صفحة الإداري: خمس صفحات تنشرها الإدارة", section="A")

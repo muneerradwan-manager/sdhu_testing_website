@@ -109,7 +109,7 @@ export const CAMPAIGNS: Record<string, string> = {
 export const campaignEn = (s: string) => CAMPAIGNS[s] ?? s;
 
 /** A cluster's service level */
-export const LEVELS: Record<string, string> = { "عادي": "Standard", "محسّن": "Enhanced", "خمس نجوم": "Five-star" };
+export const LEVELS: Record<string, string> = { "اقتصادي": "Economy", "اقتصادي محسن": "Economy plus", "خمس نجوم": "Five-star" };
 
 export const levelEn = (s: string) => LEVELS[s] ?? s;
 

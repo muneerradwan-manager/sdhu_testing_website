@@ -1,14 +1,18 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Award, BookOpen, Calculator, Crown, Laptop, Medal, Star, Timer, UserRound, Users, UsersRound } from "lucide-react";
-import type { ReactNode } from "react";
+import { Award, BookOpen, Calculator, Crown, Laptop, Medal, PhoneCall, Star, Timer, UserRound, Users, UsersRound } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
-import { Badge } from "@/components/ui/widgets";
+import { Badge, Modal } from "@/components/ui/widgets";
 import type { Cluster, ClusterTeam, TeamGroup, TeamMember } from "@/lib/data/clusters";
 import { groupName } from "@/lib/groups";
 import { useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
+import { CmsImage } from "@/components/cms/image";
+import { useGroupProfile } from "@/lib/group-profile";
+import { Gallery } from "../_components/gallery";
+import { PhoneLink } from "../_components/phone";
 
 /** The roles and posts in English; the names stay Arabic */
 const EN: Record<string, string> = {
@@ -59,15 +63,52 @@ function Experience({ m }: { m: TeamMember }) {
   );
 }
 
-/** One of the cluster's people: initial, name, post and role, experience */
+/** A female religious guide: a woman in a headscarf, in place of her photo */
+function FemaleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" className={className} aria-hidden>
+      <path
+        fill="currentColor"
+        d="M20 4.5c-6.6 0-11.5 5.1-11.5 11.6 0 3.5 1.4 6.6 3.6 8.7C7.4 26.7 4 30.9 3.4 36c-.1.8.5 1.5 1.3 1.5h30.6c.8 0 1.4-.7 1.3-1.5-.6-5.1-4-9.3-8.7-11.2 2.2-2.1 3.6-5.2 3.6-8.7C31.5 9.6 26.6 4.5 20 4.5Z"
+      />
+      <ellipse cx="20" cy="16.8" rx="5.6" ry="6.6" fill="#fff" opacity=".92" />
+    </svg>
+  );
+}
+
+/**
+ * A person's picture: his photo when the platform holds one, else the first letter of his name; a female religious
+ * guide is never shown by her photo, only by the icon. `badge`: his place in the cluster, small in the corner.
+ */
+export function Avatar({ m, size = "md", badge }: { m: Pick<TeamMember, "name" | "photo" | "female">; size?: "sm" | "md" | "lg"; badge?: ReactNode }) {
+  const box = size === "lg" ? "size-14 text-2xl" : size === "sm" ? "size-9 text-base" : "size-11 text-lg";
+  return (
+    <span className="relative shrink-0">
+      {m.female ? (
+        <span className={cn("grid place-items-center overflow-hidden rounded-xl bg-maroon/10 text-maroon", box)}>
+          <FemaleIcon className="size-[80%] translate-y-[8%]" />
+        </span>
+      ) : m.photo ? (
+        <span className={cn("relative block overflow-hidden rounded-xl", box)}>
+          <CmsImage src={m.photo} alt="" fill sizes="56px" className="object-cover" />
+        </span>
+      ) : (
+        <span className={cn("grid place-items-center rounded-xl font-display font-bold", box, size === "lg" ? "bg-green-dark text-gold" : "bg-gradient-to-br from-gold to-gold-dark text-ink")}>
+          {m.name.replace(/^الشيخ\s+/, "")[0]}
+        </span>
+      )}
+      {badge && <span className="absolute -bottom-1 -end-1 grid size-6 place-items-center rounded-full bg-white text-gold-dark shadow ring-2 ring-white [&>svg]:size-3.5">{badge}</span>}
+    </span>
+  );
+}
+
+/** One of the cluster's people: picture, name, post and role, experience, branch, and his phone */
 function Person({ m, icon, big }: { m: TeamMember; icon?: ReactNode; big?: boolean }) {
   const t = useT();
   const word = useWord();
   return (
     <div className={cn("flex items-start gap-3 rounded-2xl bg-sand/60 p-3", big && "bg-gradient-to-l from-gold/25 to-sand/60 p-4")}>
-      <span className={cn("grid shrink-0 place-items-center rounded-xl font-display font-bold", big ? "size-14 bg-green-dark text-2xl text-gold" : "size-10 bg-gradient-to-br from-gold to-gold-dark text-lg text-ink")}>
-        {icon ?? m.name.replace(/^الشيخ\s+/, "")[0]}
-      </span>
+      <Avatar m={m} size={big ? "lg" : "md"} badge={icon} />
       <span className="min-w-0 flex-1">
         <span className={cn("block font-bold leading-6 text-green-dark", big && "font-display text-xl")}>
           <bdi>{m.name}</bdi>
@@ -79,7 +120,8 @@ function Person({ m, icon, big }: { m: TeamMember; icon?: ReactNode; big?: boole
         <span className="mt-0.5 block">
           <Experience m={m} />
         </span>
-        <span className="block text-[11px] text-hint">{t(`فرع ${m.branch}`, `${m.branch} branch`)}</span>
+        {m.branch && <span className="block text-[11px] text-hint">{t(`فرع ${m.branch}`, `${m.branch} branch`)}</span>}
+        <PhoneLink phone={m.phone} className="mt-1.5" />
       </span>
     </div>
   );
@@ -177,6 +219,38 @@ export function ClusterTeamCard({ team }: { team: ClusterTeam }) {
   );
 }
 
+/**
+ * Whom the pilgrims call about the cluster: its assistants (airports, camps, emergencies) and its technical
+ * coordinators (records and papers). A group is reached through its head, in «مجموعات التكتل وفرقها».
+ */
+export function ClusterContactCard({ team }: { team: ClusterTeam }) {
+  const t = useT();
+  const word = useWord();
+  const people = [...team.assistants, ...team.coordinators].filter((m) => m.phone);
+  if (!people.length) return null;
+  return (
+    <div id="contact" className="scroll-mt-28 rounded-[2rem] border-2 border-green-dark/15 bg-white p-6">
+      <p className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
+        <PhoneCall className="size-5 text-gold-dark" /> {t("التواصل مع التكتل", "Contacting the cluster")}
+      </p>
+      <p className="mt-1 text-xs leading-6 text-ink-soft">
+        {t("معاون رئيس التكتل والمنسق التقني. وللتواصل مع مجموعة اتصل برئيسها.", "The cluster head's assistant and the technical coordinator. To reach a group, call its head.")}
+      </p>
+      <ul className="mt-3 space-y-2">
+        {people.map((m) => (
+          <li key={m.id} className="rounded-2xl bg-sand/70 p-3">
+            <p className="font-bold leading-6 text-ink">
+              <bdi>{m.name}</bdi>
+            </p>
+            <p className="text-xs font-semibold text-maroon">{word(m.post)}</p>
+            <PhoneLink phone={m.phone} className="mt-2" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** The cluster at a glance, beside its programme: who leads it, its tier and office, its groups, pilgrims and team, its badges */
 export function ClusterFactsCard({ cluster, team }: { cluster: Cluster; team: ClusterTeam }) {
   const t = useT();
@@ -226,81 +300,167 @@ function seatsLeft(n: number, t: (ar: string, en: string) => string) {
   return t(`بقي ${n} ${n <= 10 ? "مقاعد" : "مقعداً"}`, `${n} places left`);
 }
 
-/** «موجّه ديني ب: الشيخ خالد الرفاعي» — the people of a group's seats */
-function SeatLine({ label, people }: { label: string; people: TeamMember[] }) {
-  const word = useWord();
-  if (!people.length) return null;
+/** Someone known to the group only by name (not found in the cluster's lists): no phone, no record */
+const byName = (name: string, post: string, female?: boolean): TeamMember => ({ id: name, name, post, role: "", seasons: 0, rating: null, branch: "", female });
+
+/** The group's people, in the order the dialog lists them: its head, its seats, and the cluster's people sorted to it */
+function peopleOf(g: TeamGroup, team: ClusterTeam) {
+  const coordinator = g.coordinator ? (team.coordinators.find((m) => m.name === g.coordinator) ?? byName(g.coordinator, "المنسق التقني")) : undefined;
+  const femaleGuide = g.femaleGuide ? (team.femaleGuides.find((m) => m.name === g.femaleGuide) ?? byName(g.femaleGuide, "موجّهة التكتل", true)) : undefined;
+  return { coordinator, femaleGuide, count: 1 + g.guides.length + g.assistants.length + (coordinator ? 1 : 0) + (femaleGuide ? 1 : 0) };
+}
+
+/**
+ * A group in full, opened from its card: its head, the guides and assistants in its seats, the technical coordinator
+ * and the female guide the cluster sorted to it — each with his picture and his phone (never the female guides').
+ */
+export function GroupDialog({ group: g, team, clusterName, level, open, onClose }: { group: TeamGroup; team: ClusterTeam; clusterName: string; level?: string; open: boolean; onClose: () => void }) {
+  const t = useT();
+  const page = useGroupProfile(g.no);
+  const { coordinator, femaleGuide, count } = peopleOf(g, team);
+  const remaining = Math.max(0, g.capacity - g.pilgrims);
+  const pct = Math.min(100, Math.round((g.pilgrims / Math.max(1, g.capacity)) * 100));
   return (
-    <li className="flex flex-wrap gap-x-1.5">
-      <span className="text-hint">{label}:</span>
-      {people.map((m, i) => (
-        <span key={m.id} className="font-semibold text-ink">
-          <bdi>{m.name}</bdi>
-          {m.role && <span className="font-normal text-ink-soft"> ({word(m.role)})</span>}
-          {i < people.length - 1 && "،"}
-        </span>
-      ))}
-    </li>
+    <Modal open={open} onClose={onClose} className="max-w-3xl md:p-8">
+      {page?.cover && (
+        <div className="relative -mx-6 -mt-6 mb-5 h-44 overflow-hidden rounded-t-3xl md:-mx-8 md:-mt-8 md:h-56">
+          <CmsImage src={page.cover} alt={groupName(g.no)} fill sizes="768px" quality={75} className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/50 to-transparent" />
+        </div>
+      )}
+      <p className="text-xs font-bold text-gold-dark">
+        <bdi>{clusterName}</bdi>
+      </p>
+      <h2 className="mt-1 pe-8 font-display text-3xl font-bold text-green-dark">{groupName(g.no)}</h2>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Badge tone="ink">{g.category}</Badge>
+        {level && <Badge tone="gold">{level}</Badge>}
+        {g.own && <Badge tone="maroon">{t("مجموعة رئيس التكتل", "The head's own group")}</Badge>}
+        <Badge tone={remaining === 0 ? "maroon" : remaining <= 5 ? "gold" : "green"}>{seatsLeft(remaining, t)}</Badge>
+      </div>
+      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-sand">
+        <div className={cn("h-full", remaining === 0 ? "bg-maroon" : "bg-green-light")} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-1 text-xs text-hint">
+        {t(`${g.pilgrims} من ${g.capacity} مقعداً مشغولة · فريق من ${count} أشخاص`, `${g.pilgrims} of ${g.capacity} places taken · a team of ${count}`)}
+      </p>
+      {page?.about && <p className="mt-4 leading-8 text-ink-soft">{page.about}</p>}
+
+      <div className="mt-5 grid gap-2">
+        <Person m={g.head} icon={<Crown />} big />
+      </div>
+      {g.guides.length > 0 && (
+        <Section title={t("الموجّه الديني", "Religious guide")}>
+          {g.guides.map((m) => (
+            <Person key={m.id} m={m} icon={<BookOpen />} />
+          ))}
+        </Section>
+      )}
+      {g.assistants.length > 0 && (
+        <Section title={t("المعاون", "Assistant")}>
+          {g.assistants.map((m) => (
+            <Person key={m.id} m={m} icon={<UserRound />} />
+          ))}
+        </Section>
+      )}
+      {(coordinator || femaleGuide) && (
+        <Section title={t("من فريق التكتل لهذه المجموعة", "From the cluster's team, for this group")}>
+          {coordinator && <Person m={coordinator} icon={<Laptop />} />}
+          {femaleGuide && <Person m={femaleGuide} icon={<BookOpen />} />}
+        </Section>
+      )}
+      {!!page?.gallery.length && (
+        <div className="mt-6">
+          <p className="mb-2 text-sm font-bold text-green-dark">{t("معرض صور المجموعة", "The group's gallery")}</p>
+          <Gallery images={page.gallery} title={groupName(g.no)} compact />
+        </div>
+      )}
+      <p className="mt-6 rounded-2xl bg-gold/15 p-3 text-xs leading-6 text-ink-soft">
+        {t(
+          "للتواصل مع المجموعة اتصل برئيسها. والالتحاق بها لا يكون من المنصة: تتفق معها، وتوقّع عقدك في المكتب، فيلحقك موظف المكتب بها.",
+          "To reach the group, call its head. You do not join it through the platform: you agree with it, sign your contract at the office, and the office staff add you to it.",
+        )}
+      </p>
+    </Modal>
   );
 }
 
-/** Every group of the cluster with its head, the guides and assistants in its seats, its coordinator and female guide, and the seats left */
-export function ClusterGroupsCard({ groups }: { groups: TeamGroup[] }) {
+/** A group's card: its name and category, its head only, and the seats left; pressed, the whole group opens */
+export function GroupTile({ group: g, team, clusterName, level, i }: { group: TeamGroup; team: ClusterTeam; clusterName: string; level?: string; i: number }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const page = useGroupProfile(g.no);
+  const remaining = Math.max(0, g.capacity - g.pilgrims);
+  const pct = Math.min(100, Math.round((g.pilgrims / Math.max(1, g.capacity)) * 100));
+  const { count } = peopleOf(g, team);
+  return (
+    <>
+      <motion.li
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(i, 8) * 0.05 }}
+        onClick={() => setOpen(true)}
+        className="group/tile flex cursor-pointer flex-col overflow-hidden rounded-2xl border-2 border-gold/30 bg-white p-4 transition hover:-translate-y-0.5 hover:border-green-dark/40 hover:shadow-[0_20px_40px_-30px_rgba(0,89,79,.6)]"
+      >
+        {page?.cover && (
+          <div className="relative -mx-4 -mt-4 mb-4 h-32 overflow-hidden">
+            <CmsImage src={page.cover} alt="" fill sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw" quality={65} className="object-cover transition duration-700 group-hover/tile:scale-105" />
+          </div>
+        )}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="font-bold text-ink">
+            {groupName(g.no)} <span className="text-xs font-semibold text-gold-dark">· {g.category}</span>
+            {g.own && <span className="ms-1 text-xs font-semibold text-maroon">· {t("مجموعة رئيس التكتل", "the head's own group")}</span>}
+          </p>
+          <Badge tone={remaining === 0 ? "maroon" : remaining <= 5 ? "gold" : "green"}>{seatsLeft(remaining, t)}</Badge>
+        </div>
+        <div className="mt-3 flex items-start gap-3">
+          <Avatar m={g.head} badge={<Crown />} />
+          <div className="min-w-0">
+            <p className="text-xs text-hint">{t("رئيس المجموعة", "Head of the group")}</p>
+            <p className="font-bold leading-6 text-green-dark">
+              <bdi>{g.head.name}</bdi>
+            </p>
+            <Experience m={g.head} />
+            <PhoneLink phone={g.head.phone} className="mt-1.5 flex w-fit" />
+          </div>
+        </div>
+        <div className="mt-auto pt-4">
+          <div className="h-2.5 overflow-hidden rounded-full bg-sand">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: Math.min(i, 8) * 0.05 }} className={cn("h-full", remaining === 0 ? "bg-maroon" : "bg-green-light")} />
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+            <span className="text-hint">{t(`${g.pilgrims} من ${g.capacity} مقعداً مشغولة`, `${g.pilgrims} of ${g.capacity} places taken`)}</span>
+            <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1 font-bold text-green-dark group-hover/tile:underline">
+              <Users className="size-3.5" /> {t(`الفريق (${count})`, `The team (${count})`)}
+            </button>
+          </div>
+        </div>
+      </motion.li>
+      <GroupDialog group={g} team={team} clusterName={clusterName} level={level} open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** Every group of the cluster, each card its head and seats; pressed, the group opens with all its people */
+export function ClusterGroupsCard({ team, clusterName, level }: { team: ClusterTeam; clusterName: string; level?: string }) {
   const t = useT();
   return (
     <Card className="md:p-7">
       <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
         <Users className="size-6 text-gold-dark" /> {t("مجموعات التكتل وفرقها", "The cluster's groups and their teams")}
       </h2>
-      <p className="mt-2 text-sm leading-7 text-ink-soft">
+      <p className="mt-2 max-w-4xl text-sm leading-7 text-ink-soft">
         {t(
-          "للاطلاع: الالتحاق بمجموعة لا يكون من المنصة. تتفق مع المجموعة، وتوقّع عقدك معها في المكتب، فيلحقك موظف المكتب بها. لكل مجموعة رئيسها وفريقها وسعتها بفئتها في مستوى التكتل.",
-          "For information: you do not join a group through the platform. You agree with the group and sign your contract with it at the office, and the office staff add you to it. Each group has its head, its team and a capacity set by its category in the cluster's tier.",
+          "اضغط أي مجموعة لترى فريقها كله: رئيسها وموجّهها ومعاونها، والمنسق التقني وموجّهة الحاجّات. للتواصل مع مجموعة اتصل برئيسها. والالتحاق بها لا يكون من المنصة: تتفق مع المجموعة، وتوقّع عقدك معها في المكتب، فيلحقك موظف المكتب بها.",
+          "Press any group to see its whole team: its head, guide and assistant, the technical coordinator and the female guide. To reach a group, call its head. You do not join it through the platform: you agree with the group and sign your contract with it at the office, and the office staff add you to it.",
         )}
       </p>
-      <ul className="mt-4 space-y-3">
-        {groups.map((g, i) => {
-          const remaining = Math.max(0, g.capacity - g.pilgrims);
-          const pct = Math.min(100, Math.round((g.pilgrims / Math.max(1, g.capacity)) * 100));
-          return (
-            <motion.li key={g.no} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.05 }} className="rounded-2xl border-2 border-gold/30 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-bold text-ink">
-                    {groupName(g.no)} <span className="text-xs font-semibold text-gold-dark">· {g.category}</span>
-                    {g.own && <span className="ms-1 text-xs font-semibold text-maroon">· {t("مجموعة رئيس التكتل", "the head's own group")}</span>}
-                  </p>
-                  <p className="text-sm text-ink-soft">
-                    {t("رئيسها: ", "Head: ")}
-                    <bdi className="font-semibold text-green-dark">{g.head.name}</bdi>
-                  </p>
-                  <Experience m={g.head} />
-                </div>
-                <Badge tone={remaining === 0 ? "maroon" : remaining <= 5 ? "gold" : "green"}>{seatsLeft(remaining, t)}</Badge>
-              </div>
-              <ul className="mt-3 space-y-1 text-xs leading-6">
-                <SeatLine label={t("الموجّه", "Guide")} people={g.guides} />
-                <SeatLine label={t("المعاون", "Assistant")} people={g.assistants} />
-                {g.coordinator && (
-                  <li>
-                    <span className="text-hint">{t("المنسق التقني: ", "Technical coordinator: ")}</span>
-                    <bdi className="font-semibold text-ink">{g.coordinator}</bdi>
-                  </li>
-                )}
-                {g.femaleGuide && (
-                  <li>
-                    <span className="text-hint">{t("موجّهة الحاجّات: ", "Guide for the women: ")}</span>
-                    <bdi className="font-semibold text-ink">{g.femaleGuide}</bdi>
-                  </li>
-                )}
-              </ul>
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-sand">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: Math.min(i, 8) * 0.05 }} className={cn("h-full", remaining === 0 ? "bg-maroon" : "bg-green-light")} />
-              </div>
-              <p className="mt-1 text-xs text-hint">{t(`${g.pilgrims} من ${g.capacity} مقعداً مشغولة`, `${g.pilgrims} of ${g.capacity} places taken`)}</p>
-            </motion.li>
-          );
-        })}
+      {/* Side by side as the screen allows, each card's seats bar at its foot so a row's bars line up */}
+      <ul className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {team.groups.map((g, i) => (
+          <GroupTile key={g.no} group={g} team={team} clusterName={clusterName} level={level} i={i} />
+        ))}
       </ul>
     </Card>
   );

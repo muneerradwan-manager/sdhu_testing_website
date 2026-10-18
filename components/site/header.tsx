@@ -31,6 +31,7 @@ import { getStaff } from "@/lib/staff";
 import { useNav } from "@/lib/cms/site";
 import { cn } from "@/lib/utils";
 import { PRAYER_EN, hijriDateIn } from "./en-format";
+import { ACCOUNT_MENUS, AccountMenu } from "./account-menu";
 
 type Area = "pilgrim" | "admin" | "staff";
 type Identity = { initial: string; name: string; role: string; href: string; area: Area };
@@ -386,6 +387,9 @@ export function Header() {
                   <span className="text-[10px] font-medium opacity-70">{who.role}</span>
                 </span>
               </Link>
+            ) : !area ? (
+              // The public pages: signing in, asking as whom (each platform has its own address)
+              <AccountMenu kind="login" variant="bar" />
             ) : (
               <>
                 {!here(signIn.login.href) && (
@@ -472,7 +476,16 @@ export function Header() {
                     </motion.div>
                   ),
                 )}
-                {!who && !here(signIn.login.href) && (
+                {!who && !area && (
+                  <div className="mt-2 grid gap-2">
+                    {ACCOUNT_MENUS.login.items.map((m) => (
+                      <Link key={m.href} href={m.href} className="flex items-center justify-center gap-2 rounded-2xl border-2 border-green-dark/15 px-4 py-3.5 text-lg font-bold text-green-dark">
+                        <m.icon className="size-5 text-gold-dark" /> {m.label[lang]}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {!who && area && !here(signIn.login.href) && (
                   <Link
                     href={signIn.login.href}
                     className="mt-2 rounded-2xl border-2 border-green-dark/15 px-4 py-3.5 text-center text-lg font-bold text-green-dark"

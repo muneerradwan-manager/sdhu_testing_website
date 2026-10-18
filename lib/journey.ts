@@ -12,7 +12,7 @@ import { seeded } from "./utils";
 
 export const CLUSTER = {
   name: "تكتل النور لخدمة الحجاج",
-  level: "محسّن",
+  level: "اقتصادي محسن",
   since: 1440,
   head: "الحاج عبد الرحمن العلي",
   deputy: "بسام درويش",

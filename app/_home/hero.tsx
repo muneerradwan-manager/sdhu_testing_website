@@ -9,6 +9,7 @@ import { useSection } from "@/lib/cms/store";
 import { useMediaUrl } from "@/lib/cms/media";
 import { useLang, useT } from "@/lib/i18n";
 import { useHydrated } from "@/lib/store";
+import { AccountMenu, useOpenRegistrations } from "@/components/site/account-menu";
 import { LiveHaram } from "./live-haram";
 
 function useCountdown(target: Date) {
@@ -53,6 +54,7 @@ export function Hero() {
   const t = useT();
   const en = useLang() === "en";
   const v = useSection("home", "hero");
+  const open = useOpenRegistrations();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
@@ -125,14 +127,19 @@ export function Hero() {
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.25, duration: 0.7 }} className="mt-9 flex flex-wrap gap-3">
-            <ButtonLink href={str(v, "primaryHref", "/register")} variant="gold" size="lg" className="shadow-2xl">
-              {str(v, "primaryLabel")}
-              <ArrowLeft className="size-5 transition-transform group-hover/btn:-translate-x-1 ltr:group-hover/btn:translate-x-1" />
-            </ButtonLink>
-            {/* The administrators' way in, beside the pilgrims': account creation is open all year */}
-            <ButtonLink href={str(v, "secondaryHref", "/administrator/register")} variant="glass" size="lg">
-              <BriefcaseBusiness className="size-5" /> {str(v, "secondaryLabel")}
-            </ButtonLink>
+            {/* Each registration's button only while it is open, on its own dates; with none open, the sign-in */}
+            {open.hajj && (
+              <ButtonLink href={str(v, "primaryHref", "/register")} variant="gold" size="lg" className="shadow-2xl">
+                {str(v, "primaryLabel")}
+                <ArrowLeft className="size-5 transition-transform group-hover/btn:-translate-x-1 ltr:group-hover/btn:translate-x-1" />
+              </ButtonLink>
+            )}
+            {open.admin && (
+              <ButtonLink href={str(v, "secondaryHref", "/administrator/register")} variant={open.hajj ? "glass" : "gold"} size="lg" className={open.hajj ? undefined : "shadow-2xl"}>
+                <BriefcaseBusiness className="size-5" /> {str(v, "secondaryLabel")}
+              </ButtonLink>
+            )}
+            {!open.hajj && !open.admin && <AccountMenu kind="login" variant="hero" />}
           </motion.div>
 
           {trust.length > 0 && (

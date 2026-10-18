@@ -90,6 +90,7 @@ export function useAdminsDesk() {
   const evaluations = useStore((s) => s.evaluations);
   const grading = useStore((s) => s.grading);
   const profiles = useStore((s) => s.clusterProfiles);
+  const groupProfiles = useStore((s) => s.groupProfiles);
   // Every approved cluster's programme: the published one, or the blank one its team is writing
   const directory = useClusterProgrammes();
   const gradedGroups = useGraded("groups");
@@ -184,6 +185,15 @@ export function useAdminsDesk() {
       .sort((a, b) => a.number - b.number);
     const programmes = directory.map(({ cluster: c }) => ({ cluster: c, state: profiles[c.slug] })).filter((x) => x.state?.pending || x.state?.approved || x.state?.rejected);
     const pendingProgrammes = programmes.filter((x) => x.state?.pending);
+    // The groups' public pages (picture, word, gallery), each with the cluster it serves in
+    const groupPages = Object.entries(groupProfiles)
+      .filter(([, st]) => st.pending || st.approved || st.rejected)
+      .map(([no, state]) => {
+        const r = requests.find((x) => x.groups.some((g) => g.number === Number(no)));
+        return { no: Number(no), clusterId: r?.cluster.id, clusterName: r?.cluster.name ?? "", state };
+      })
+      .sort((a, b) => a.no - b.no);
+    const pendingGroupPages = groupPages.filter((x) => x.state.pending);
 
     // ── Evaluation ── of everyone who works this season, stage by stage
     const toEvaluate = rows.filter(isQualified);
@@ -241,6 +251,9 @@ export function useAdminsDesk() {
         ...(pendingProgrammes.length
           ? [{ id: "programmes", level: "work" as const, title: `${pendingProgrammes.length} برامج تكتلات تنتظر اعتمادك`, hint: "لا يصل تعديل إلى الحجاج في «التكتلات والمجموعات» قبل أن يُعتمد.", href: `${M}/clusters?v=programmes`, action: "راجعها" }]
           : []),
+        ...(pendingGroupPages.length
+          ? [{ id: "group-pages", level: "work" as const, title: `${pendingGroupPages.length} صفحات مجموعات تنتظر اعتمادك`, hint: "صورة المجموعة ونبذتها ومعرض صورها لا تصل إلى الحجاج قبل أن تُعتمد.", href: `${M}/clusters?v=group-pages`, action: "راجعها" }]
+          : []),
       ],
       evaluation: behind.length
         ? [{ id: "behind", level: "work", title: `${behind.length} مراحل تقييم لم تكتمل`, hint: behind.map((c) => `${c.stage.label}: بقي ${c.total - c.done}`).join(" · "), href: `${M}/evaluation`, action: "أكمل التقييم" }]
@@ -280,6 +293,8 @@ export function useAdminsDesk() {
       formationWindow,
       programmes,
       pendingProgrammes,
+      groupPages,
+      pendingGroupPages,
       unreadLetters,
       waitingLetters,
       plansWaiting,
@@ -292,7 +307,7 @@ export function useAdminsDesk() {
       high: alerts.filter((a) => a.level === "high"),
       badges: Object.fromEntries(AREAS.map((a) => [a, byArea[a].length])) as Record<Area, number>,
     };
-  }, [rows, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, evaluations, grading, profiles, directory, gradedGroups, gradedClusters, letters, plans]);
+  }, [rows, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, evaluations, grading, profiles, groupProfiles, directory, gradedGroups, gradedClusters, letters, plans]);
 }
 
 export type AdminsDesk = ReturnType<typeof useAdminsDesk>;

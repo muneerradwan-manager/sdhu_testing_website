@@ -31,6 +31,9 @@ c.shot("landing", "بوابة الإداريين: الصفحة الأولى", hl
 S = "B"
 c.goto("/administrator/register", wait=1500)
 c.shot("reg-basic", "إنشاء حساب إداري: البيانات الأساسية", section=S)
+c.scroll_to("section[aria-labelledby='demo-accounts']", 110)
+c.shot("reg-demo", "بيانات تجريبية لإنشاء حساب إداري: شخص لكل صفة، والضغط على بطاقته يملأ النموذج", hl=[("section[aria-labelledby='demo-accounts'] h2", "")], section=S)
+c.scroll_top()
 field("الرقم الوطني").fill(ID); field("الاسم الأول").fill("مروان"); field("رقم الهاتف").fill("0944300885"); field("كلمة المرور").fill("Admin@1448"); c.settle(300)
 c.scroll_to("button:has-text('إرسال رمز التحقق')", 640)
 c.shot("reg-basic-filled", "بعد إدخال الرقم الوطني والاسم الأول ورقم الهاتف وكلمة المرور", hl=[("button:has-text('إرسال رمز التحقق')", "")], section=S)

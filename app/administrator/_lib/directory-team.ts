@@ -3,6 +3,7 @@
 import type { ClusterTeam, TeamGroup, TeamMember } from "@/lib/data/clusters";
 import type { AdminProfile, ClusterInvite } from "@/lib/store";
 import { seasonHistory } from "./admin";
+import { contactOf } from "./cadre";
 import { ACCOUNTANT_TITLE, DEPUTY_TITLE, POOLS, roleOfPerson, type ClusterRequest } from "./formation";
 import { HEADS_POOL, ROSTER } from "./people";
 import { branchOf, roleName, roleOf, type Cadre, type Structure } from "./structure";
@@ -25,9 +26,11 @@ function experience(id: string) {
 export function teamOf(s: Structure, cadre: Cadre, admins: Record<string, AdminProfile>, r: ClusterRequest): ClusterTeam {
   const c = r.cluster;
   const yes = (x?: ClusterInvite) => x?.status === "accepted";
+  // Everyone's phone is public for the pilgrims to call, but the female religious guides'
   const member = (x: { id: string; name: string }, post: string): TeamMember => {
     const role = roleOfPerson(x.id, admins, cadre);
-    return { id: x.id, name: x.name, post, role: role ? roleName(role, s) : "", ...experience(x.id), branch: branchOf(x.id, cadre), female: roleOf(s, role)?.gender === "F" || undefined };
+    const female = roleOf(s, role)?.gender === "F";
+    return { id: x.id, name: x.name, post, role: role ? roleName(role, s) : "", ...experience(x.id), branch: branchOf(x.id, cadre), female: female || undefined, phone: female ? undefined : contactOf(x.id, cadre).phone };
   };
   // The head's own group first, as the cluster's screens show it
   const groups: TeamGroup[] = [...r.groups].sort((a, b) => Number(!!b.own) - Number(!!a.own)).map((g) => {

@@ -4,14 +4,17 @@ import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useT
 import { Plane } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { CmsIcon, list, str } from "@/components/cms/bits";
-import { SectionHeading } from "@/components/ui/motion";
 import { useSection } from "@/lib/cms/store";
 import { useLang } from "@/lib/i18n";
 
 type Step = { icon: string; title: string; text: string; when: string };
 
+/**
+ * The pilgrim's stations, from the account to the return, on a track a plane rides down as he scrolls. A page of
+ * his account (its title and description are the band's, from the same content section); it was on the home page.
+ */
 export function Journey() {
-  const v = useSection("home", "journey");
+  const v = useSection("pilgrim-journey", "journey");
   // Left to right in English: the track, the plane and the cards change sides
   const en = useLang() === "en";
   const steps = list<Step>(v, "steps");
@@ -37,11 +40,10 @@ export function Journey() {
   const planeTop = useTransform(progress, [0, 1], ["0%", "100%"]);
 
   return (
-    <section className="relative overflow-hidden py-24">
+    <section className="relative overflow-hidden rounded-[2rem] border border-gold/30 bg-white px-4 py-10 md:px-8 md:py-14">
       <div className="bg-pattern-dark absolute inset-0" />
-      <div className="relative mx-auto max-w-5xl px-4 md:px-8">
-        <SectionHeading eyebrow={str(v, "eyebrow")} title={str(v, "title")} description={str(v, "description")} />
-
+      <div className="relative">
+        {str(v, "eyebrow") && <p className="mb-8 text-center text-sm font-bold text-gold-dark">{str(v, "eyebrow")}</p>}
         <div ref={ref} className="relative">
           {/* Track */}
           <div className="absolute bottom-0 start-7 top-0 w-1 rounded-full bg-gold-light md:start-1/2 md:translate-x-1/2 ltr:md:-translate-x-1/2" />

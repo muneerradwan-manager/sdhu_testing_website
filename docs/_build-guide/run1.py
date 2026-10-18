@@ -12,15 +12,39 @@ if (ROOT / "manifest.json").exists():
 c = Cap()
 p = c.page
 
+
+def day(d):
+    """The demo's date (None: the real one again); returns the one it replaced. Takes effect on the next page."""
+    return p.evaluate("""(d) => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}'); const was = s.clock?.today ?? null;
+  s.clock = { ...(s.clock || {}), today: d ?? undefined, time: undefined }; localStorage.setItem(k, JSON.stringify(s)); return was; }""", d)
+
+
 # ───────── A. البوابة العامة ─────────
 c.goto("/")
-c.shot("home-hero", "الصفحة الرئيسية للمنصة", hl=[("header a[href='/register']", "1"), ("header a[href='/login']", "2")], section="A")
+# the opening while the Hajj registration is open (12 August): «ابدأ طلب الحج»; and «تسجيل الدخول» in the bar
+was_day = day("2026-08-12")
+c.goto("/")
+c.shot("home-hero", "الصفحة الرئيسية للمنصة", hl=[("main a[href='/register']", "1"), ("header button:has-text('تسجيل الدخول')", "2")], section="A")
+# the bar's «تسجيل الدخول» asks as whom
+p.locator("header button:has-text('تسجيل الدخول')").first.click(); c.settle(700)
+c.shot("home-signin", "«تسجيل الدخول»: الدخول كحاج أو كإداري", hl=[("header [role=menu]", "")], section="A")
+p.keyboard.press("Escape"); c.settle(300)
+# no registration open (15 September): «تسجيل الدخول» in the opening, in place of the registrations' buttons
+day("2026-09-15")
+c.goto("/")
+c.shot("home-hero-closed", "حين لا يكون التسجيل مفتوحاً: «تسجيل الدخول» في الواجهة مكان زرّي التسجيل", hl=[("main button:has-text('تسجيل الدخول')", "")], section="A")
+day(was_day)
+c.goto("/")
 # the live stream from the Two Holy Mosques (YouTube needs a few seconds to start)
 p.locator("section button[aria-pressed]:has-text('مباشر من الحرم')").click(); c.settle(12000)
 c.shot("home-live", "مباشر من الحرمين: البث الرسمي من المسجد الحرام أو المسجد النبوي", hl=[("[role=dialog][aria-label^='بث مباشر']", "")], section="A")
 p.get_by_role("button", name="إغلاق البث", exact=True).click(); c.settle(600)
 c.scroll_to("#services", 100)
 c.shot("home-services", "بطاقات الخدمات في الصفحة الرئيسية", section="A")
+c.scroll_to("#tutorials", 100)
+c.shot("home-tutorials", "الفيديوهات التعليمية: تبويب «زائر ثم حاج» وتبويب «إداري»", hl=[("#tutorials [role=tablist]", "")], section="A")
+c.scroll_to("#directory", 100)
+c.shot("home-directory", "لمحة من التكتلات والمجموعات، و«عرض كل التكتلات والمجموعات»", hl=[("#directory a[href='/clusters']", "")], section="A")
 c.scroll_to("section:has-text('تقويم الموسم')", 90)
 c.shot("home-calendar", "تقويم الموسم في الصفحة الرئيسية", section="A")
 c.scroll_top()
@@ -109,6 +133,10 @@ c.shot("academy-guest", "الأكاديمية للزائر دون حساب", sec
 # ───────── B. إنشاء حساب ─────────
 c.goto("/register")
 c.shot("reg-1-empty", "إنشاء حساب — البيانات الأساسية", hl=[("input[placeholder='01012345412']", "1"), ("input[autocomplete='given-name']", "2"), ("input[placeholder='09xxxxxxxx']", "3"), ("input[type='email']", "4"), ("input[type='password']", "5"), ("button[type='submit']", "6")], section="B")
+# the demo's ready-made people under the card, one for each situation
+c.scroll_to("section[aria-labelledby='demo-accounts']", 110)
+c.shot("reg-demo", "بيانات تجريبية لإنشاء حساب: شخص لكل حالة، والضغط على بطاقته يملأ النموذج", hl=[("section[aria-labelledby='demo-accounts'] h2", "")], section="B")
+c.scroll_top()
 # validation errors
 c.click("button[type='submit']")
 c.shot("reg-1-errors", "رسائل التحقق عند ترك الحقول فارغة", section="B")

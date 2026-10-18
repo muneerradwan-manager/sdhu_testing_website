@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
 import { ArrowLeft, ArrowRight, BadgeCheck, Camera, PencilLine, ShieldQuestion, UserRound } from "lucide-react";
-import { useCallback, useState } from "react";
-import { AuthShell, CivilRecordCard, EmailField, FirstNameField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
+import { useCallback, useMemo, useState } from "react";
+import { AuthShell, CivilRecordCard, DemoAccounts, EmailField, FirstNameField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
 import { DEMO_OTP, Field, ProgressChecklist, inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { useLang, useT } from "@/lib/i18n";
 import { FIRST_NAME_TRIES, ageOf, firstNameMatches, getPerson, isValidNationalId, type Person } from "@/lib/registry";
+import { pilgrimSignups, type SignupDemo } from "@/lib/demo-signup";
 import { actions, useStore } from "@/lib/store";
 import { cn, digitsOnly } from "@/lib/utils";
 import { CivilCorrection, type CivilDraft } from "./civil-correction";
@@ -52,6 +53,15 @@ export function RegisterFlow() {
   const go = (n: number) => {
     setDir(n > step ? 1 : -1);
     setStep(n);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // The demo's ready-made people, each with no account on this device yet
+  const signups = useMemo(() => pilgrimSignups((x) => !!accounts[x] || !!admins[x]), [accounts, admins]);
+  const fillDemo = (d: SignupDemo) => {
+    setForm({ ...form, nationalId: d.person.id, firstName: d.person.firstName, phone: d.phone, password: d.password });
+    setTouched(false);
+    setMismatch(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -136,8 +146,31 @@ export function RegisterFlow() {
       subtitle={t("حساب الحاج لتقديم طلب الحج لك ولعائلتك ومتابعته. لا نطلب منك إلا خمسة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "A pilgrim account lets you apply for Hajj for yourself and your family, and follow the application. We ask for just five fields; your official details come straight from the Civil Registry.")}
       steps={STEPS}
       step={step - 1}
-      tabs={step === 1}
       note={t("لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة.", "Each person holds one type of account on the platform: pilgrim, administrator or staff. Staff accounts cannot be self-created; the Administration creates them.")}
+      below={
+        step === 1 && (
+          <DemoAccounts
+            heading={t("بيانات تجريبية لإنشاء حساب", "Demo data to create an account")}
+            action={t("املأ النموذج", "Fill the form")}
+            hint={t(
+              "شخص من سجل الشؤون المدنية التجريبي لكل حالة، ليس له حساب بعد. اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل كما يكمل الحاج: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية.",
+              "A person from the demo Civil Registry for each situation, with no account yet. Click a card to fill the fields, then go on as a pilgrim would: the verification code 1448, then your details from the Civil Registry.",
+            )}
+            groups={[
+              {
+                items: signups.map((d) => ({
+                  key: d.key,
+                  title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
+                  note: `${d.note} ${t(`مواليد ${d.person.birthDate.slice(0, 4)}.`, `Born ${d.person.birthDate.slice(0, 4)}.`)}`,
+                  code: d.person.id,
+                  initial: d.person.firstName[0],
+                  onPick: () => fillDemo(d),
+                })),
+              },
+            ]}
+          />
+        )
+      }
     >
       <AnimatePresence mode="wait" custom={dir}>
         <motion.div
@@ -192,10 +225,10 @@ export function RegisterFlow() {
                       : exists
                         ? t("هذا الرقم لديه حساب حاج بالفعل.", "This number already has a pilgrim account.")
                         : isAdmin
-                          ? t("هذا الرقم مسجّل بحساب إداري، ولكل شخص نوع حساب واحد في المنصة.", "This number belongs to an administrator account, and each person holds one type of account on the platform.")
+                          ? t("هذا الرقم مسجّل بحساب إداري في منصة الإداريين، ولكل شخص نوع حساب واحد.", "This number belongs to an account on the administrators' platform, and each person holds one type of account.")
                           : null
                 }
-                link={locked || mismatch ? undefined : exists ? { href: "/login", label: t("سجّل الدخول", "Sign in") } : isAdmin ? { href: "/administrator/login", label: t("دخول الإداريين", "Administrator sign-in") } : undefined}
+                link={locked || mismatch ? undefined : exists ? { href: "/login", label: t("سجّل الدخول", "Sign in") } : undefined}
               />
               <PhoneField value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} error={touched && errors.phone} />
               <EmailField value={form.email} onChange={(v) => setForm({ ...form, email: v })} hint={t("للإشعارات والإيصالات إن رغبت", "For notifications and receipts, if you like")} error={touched && errors.email} />

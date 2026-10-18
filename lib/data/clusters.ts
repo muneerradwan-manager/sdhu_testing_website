@@ -6,15 +6,17 @@
 
 import type { RoomPrices } from "../rooms";
 
-export type ServiceLevel = "عادي" | "محسّن" | "خمس نجوم";
+/** The administration's three tiers, for the clusters and their groups alike (a group is in its cluster's tier) */
+export type ServiceLevel = "اقتصادي" | "اقتصادي محسن" | "خمس نجوم";
 
 export type ClusterGroup = { no: number; leader: string; capacity: number; remaining: number };
 
 /**
  * One of the cluster's administrators as the public may know him: his place in the cluster, his role this season,
- * his experience on the platform and the rating of his last season. Never his phone, his id or his age.
+ * his experience on the platform and the rating of his last season, and his phone for the pilgrims to call — except
+ * the female religious guides'. Never his id or his age.
  */
-export type TeamMember = { id: string; name: string; post: string; role: string; seasons: number; rating: number | null; branch: string; female?: boolean };
+export type TeamMember = { id: string; name: string; post: string; role: string; seasons: number; rating: number | null; branch: string; female?: boolean; phone?: string; photo?: string };
 
 /** A group as the public page shows it: its head, the guides and assistants in its seats, and the cluster's coordinator and female guide sorted to it */
 export type TeamGroup = { no: number; category: string; capacity: number; pilgrims: number; own: boolean; head: TeamMember; guides: TeamMember[]; assistants: TeamMember[]; coordinator?: string; femaleGuide?: string };
@@ -39,7 +41,7 @@ export type Cluster = {
   slug: string;
   name: string;
   since: number;
-  /** The cluster's tier, from its approved request (اقتصادي ← عادي، اقتصادي محسن ← محسّن، خمس نجوم) */
+  /** The cluster's tier, from its approved request: اقتصادي، اقتصادي محسن، خمس نجوم */
   level: ServiceLevel;
   rating: number;
   reviews: number;
@@ -58,6 +60,8 @@ export type Cluster = {
   programs: string[];
   /** What each private room type adds per person (the shared accommodation adds nothing) — see lib/rooms */
   rooms: RoomPrices;
+  /** Its photo gallery, as its team published it (images of the site or uploaded to the media library) */
+  gallery?: string[];
   /** Its groups with their heads and the seats left, from its approved request */
   groups: ClusterGroup[];
   tone: "green" | "gold" | "maroon";
@@ -71,6 +75,17 @@ export type Cluster = {
  * the same id, so the directory never shows a head or a group the administrators do not have.
  */
 export type ClusterProgramme = Omit<Cluster, "level" | "groupsCount" | "pilgrims" | "groups" | "team">;
+
+/** The seeded clusters' galleries: the site's own pictures, until their teams upload theirs */
+export const CLUSTER_GALLERY: Record<string, string[]> = {
+  "al-nour": ["/images/clock-tower.jpg", "/images/haram-2022.jpg", "/images/mina-tents.jpg", "/images/nabawi.jpg", "/images/jabal-rahmah.jpg"],
+  "al-safa": ["/images/kaaba-hajj.jpg", "/images/tawaf-night.jpg", "/images/muzdalifah.jpg", "/images/nabawi-2.jpg"],
+  "al-yaqeen": ["/images/mina-tents.jpg", "/images/mina-arrive.jpg", "/images/jamarat.jpg"],
+  "al-shahba": ["/images/tawaf-night.jpg", "/images/kaaba-panoramio.jpg", "/images/quba.jpg"],
+  "al-asi": ["/images/jabal-rahmah.jpg", "/images/pilgrim-dua.jpg", "/images/muzdalifah.jpg"],
+  "bawabat-al-haramain": ["/images/nabawi.jpg", "/images/quba-quran.jpg", "/images/aisha-mosque.jpg"],
+  hawran: ["/images/quba.jpg", "/images/farewell-tawaf.jpg", "/images/pilgrim-elder.jpg"],
+};
 
 export const CLUSTERS: ClusterProgramme[] = [
   {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, Briefcase, Building2, Eye, EyeOff, FlaskConical, IdCard, KeyRound, Mail, Phone, ShieldAlert, ShieldCheck, UserRound, Zap, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Eye, EyeOff, FlaskConical, IdCard, KeyRound, Mail, Phone, ShieldAlert, ShieldCheck, UserRound, Zap } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useLang, useT } from "@/lib/i18n";
@@ -15,15 +15,15 @@ import { Card, PortalShell } from "./shell";
  * One design for every way in: the pilgrims', the administrators' and the staff's sign-in pages, and the
  * pilgrims' and administrators' account creation. Same band, same card, same fields, same steps on the
  * side; each portal keeps its own photograph, its own words, and the fields its accounts need.
+ * Each portal is its own platform at its own address: its sign-in and account pages lead only within it.
  */
 
 export type AuthPortal = "pilgrim" | "admin" | "staff";
 
-/** `en`: the label on the public pages in English (the administrators' and staff's own pages stay Arabic) */
-const PORTALS: Record<AuthPortal, { label: string; en: string; icon: LucideIcon; image: string; home?: { href: string; label: string }; login: string; register?: string }> = {
-  pilgrim: { label: "حاج", en: "Pilgrim", icon: UserRound, image: "/images/haram-2022.jpg", login: "/login", register: "/register" },
-  admin: { label: "إداري", en: "Administrator", icon: Briefcase, image: "/images/umayyad.jpg", home: { href: "/administrator", label: "بوابة الإداريين" }, login: "/administrator/login", register: "/administrator/register" },
-  staff: { label: "موظف", en: "Staff", icon: Building2, image: "/images/clock-tower.jpg", home: { href: "/staff", label: "بوابة الموظفين" }, login: "/staff/login" },
+const PORTALS: Record<AuthPortal, { image: string; home?: { href: string; label: string } }> = {
+  pilgrim: { image: "/images/haram-2022.jpg" },
+  admin: { image: "/images/umayyad.jpg", home: { href: "/administrator", label: "بوابة الإداريين" } },
+  staff: { image: "/images/clock-tower.jpg", home: { href: "/staff", label: "بوابة الموظفين" } },
 };
 
 export function AuthShell({
@@ -34,7 +34,6 @@ export function AuthShell({
   steps,
   step,
   note,
-  tabs = true,
   below,
   children,
 }: {
@@ -46,8 +45,6 @@ export function AuthShell({
   steps: string[];
   step: number;
   note: ReactNode;
-  /** The account types at the top of the card (on the first step only) */
-  tabs?: boolean;
   /** Under the card, full width: the demo accounts */
   below?: ReactNode;
   children: ReactNode;
@@ -74,10 +71,7 @@ export function AuthShell({
       subtitle={subtitle}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <Card className="overflow-hidden">
-          {tabs && <AccountTabs portal={portal} page={page} />}
-          {children}
-        </Card>
+        <Card className="overflow-hidden">{children}</Card>
         <aside className="space-y-4 lg:sticky lg:top-28">
           <ol className="space-y-1 rounded-3xl border border-gold/30 bg-white p-5">
             {steps.map((s, i) => (
@@ -97,33 +91,6 @@ export function AuthShell({
       </div>
       {below && <div className="mt-8">{below}</div>}
     </PortalShell>
-  );
-}
-
-/** Who is signing in (or opening an account): each choice is its own page */
-function AccountTabs({ portal, page }: { portal: AuthPortal; page: "login" | "register" }) {
-  const t = useT();
-  const keys = (Object.keys(PORTALS) as AuthPortal[]).filter((k) => page === "login" || PORTALS[k].register);
-  return (
-    <nav aria-label={t("نوع الحساب", "Account type")} className="mb-8 border-b border-gold-light pb-8">
-      <p className="mb-2 text-sm font-bold text-ink-soft">{page === "login" ? t("الدخول بصفتك", "Sign in as") : t("نوع الحساب", "Account type")}</p>
-      <div className={cn("grid gap-1.5 rounded-2xl bg-sand p-1.5", keys.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
-        {keys.map((k) => {
-          const P = PORTALS[k];
-          const on = k === portal;
-          return (
-            <Link
-              key={k}
-              href={page === "login" ? P.login : P.register!}
-              aria-current={on ? "page" : undefined}
-              className={cn("flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition", on ? "bg-green-dark text-white shadow" : "text-ink-soft hover:bg-white hover:text-ink")}
-            >
-              <P.icon className={cn("size-4", on ? "text-gold" : "text-gold-dark")} /> {t(P.label, P.en)}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
   );
 }
 
@@ -276,7 +243,7 @@ export function PasswordField({ value, onChange, error, strength, autoComplete =
   );
 }
 
-/** A refusal under the fields, with the way out when there is one (sign in instead, the other portal) */
+/** A refusal under the fields, with the way out when there is one (sign in instead, create an account) */
 export function FormError({ text, link }: { text?: string | null; link?: { href: string; label: string } }) {
   return (
     <AnimatePresence>
@@ -430,14 +397,17 @@ export type DemoAccount = {
   onPick: () => void;
 };
 
-/** For the demo only: every portal's ready-made accounts in the same box, under the sign-in card */
-export function DemoAccounts({ hint, groups, footer }: { hint: ReactNode; groups: { label?: string; items: DemoAccount[] }[]; footer?: ReactNode }) {
+/**
+ * For the demo only: every portal's ready-made accounts in the same box, under the sign-in card — or, on the sign-up
+ * pages (`heading`, `action`), the ready-made data that fills the form.
+ */
+export function DemoAccounts({ hint, groups, footer, heading, action }: { hint: ReactNode; groups: { label?: string; items: DemoAccount[] }[]; footer?: ReactNode; heading?: string; action?: string }) {
   const t = useT();
   return (
     <section aria-labelledby="demo-accounts" className="rounded-[2rem] border-2 border-dashed border-gold-dark/50 bg-gold/10 p-5 md:p-7">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="demo-accounts" className="flex items-center gap-2 font-display text-xl font-bold text-maroon">
-          <FlaskConical className="size-5" /> {t("حسابات تجريبية", "Demo accounts")}
+          <FlaskConical className="size-5" /> {heading ?? t("حسابات تجريبية", "Demo accounts")}
         </h2>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-ink-soft">{t("للنسخة التجريبية فقط", "For the demo only")}</span>
       </div>
@@ -481,7 +451,7 @@ export function DemoAccounts({ hint, groups, footer }: { hint: ReactNode; groups
                     </span>
                   )}
                   <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-bold text-green-dark">
-                    <Zap className="size-3.5 transition group-hover:scale-125" /> {t("دخول فوري", "Instant sign-in")}
+                    <Zap className="size-3.5 transition group-hover:scale-125" /> {action ?? t("دخول فوري", "Instant sign-in")}
                   </span>
                 </motion.button>
               </li>

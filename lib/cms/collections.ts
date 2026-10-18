@@ -10,7 +10,7 @@
  */
 
 import { TRACKS, type Lesson, type Track } from "@/lib/data/academy";
-import { CLUSTERS } from "@/lib/data/clusters";
+import { CLUSTERS, CLUSTER_GALLERY } from "@/lib/data/clusters";
 import { DAYS, GUIDE_DUAS } from "@/lib/data/guide";
 import { FAQS, FAQ_CATEGORIES } from "@/lib/data/faq";
 import { ARTICLES, CATEGORIES } from "@/lib/data/news";
@@ -241,6 +241,16 @@ const CLUSTER_COLLECTION: CollectionDef = {
     textList("transport", "المواصلات", "خدمة"),
     textList("meals", "الإعاشة", "خدمة"),
     textList("programs", "البرامج", "برنامج"),
+    {
+      key: "gallery",
+      label: "معرض الصور",
+      kind: "list",
+      itemName: "صورة",
+      itemTitleKey: "src",
+      wide: true,
+      item: [{ key: "src", label: "الصورة", kind: "image", def: "", wide: true }],
+      def: [],
+    },
   ],
   // Reserved URLs, so a cluster the staff add opens its own full page in the exported site
   slots: Array.from({ length: 6 }, (_, i) => `cluster-${i + 1}`),
@@ -272,6 +282,7 @@ const CLUSTER_COLLECTION: CollectionDef = {
       transport: c.transport.map((text) => ({ text })),
       meals: c.meals.map((text) => ({ text })),
       programs: c.programs.map((text) => ({ text })),
+      gallery: (CLUSTER_GALLERY[c.slug] ?? []).map((src) => ({ src })),
     },
   })),
 };

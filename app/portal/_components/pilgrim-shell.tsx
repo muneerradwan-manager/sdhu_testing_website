@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { BedDouble, ClipboardList, LayoutDashboard, Lock, LogOut, MapPinned, Plane, Receipt, ScrollText, Stamp, UsersRound, type LucideIcon } from "lucide-react";
+import { BedDouble, ClipboardList, LayoutDashboard, Lock, LogOut, MapPinned, Plane, Receipt, Route, ScrollText, Stamp, UsersRound, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { PortalShell } from "@/components/portal/shell";
 import { getPerson } from "@/lib/registry";
@@ -15,7 +15,8 @@ type Item = { href: string; label: string; icon: LucideIcon; open: boolean; hint
 /**
  * The pilgrim's own pages, as the administrators and the staff have theirs: his file, his application and its
  * steps, then what each step opens — his group and his contract with it, his visa, his hotels and rooms as his
- * group's head assigned them, his trip, his payments — the companion of the season, and everything he did.
+ * group's head assigned them, his trip, his payments — the companion of the season, everything he did, and the
+ * stations of the season as a guide.
  * A page whose step has not come yet stays in the list, locked, saying what opens it.
  */
 function usePilgrimNav(): Item[] {
@@ -33,6 +34,7 @@ function usePilgrimNav(): Item[] {
     { href: "/portal/application/payments", label: "الدفعات والإيصالات", icon: Receipt, open: confirmed, hint: "بعد تأكيد القبول" },
     { href: "/portal/season", label: "حالتي الآن", icon: MapPinned, open: !!post?.visaAt, hint: "في الموسم، بعد التأشيرة" },
     { href: "/portal/activity", label: "سجل نشاطي", icon: ScrollText, open: true },
+    { href: "/portal/journey", label: "رحلتي في محطات", icon: Route, open: true },
   ];
 }
 

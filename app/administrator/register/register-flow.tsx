@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
 import { ArrowLeft, Award, Briefcase, CalendarClock, FileSignature, FolderLock, GraduationCap, PencilLine, Star, UserRound } from "lucide-react";
-import { useCallback, useState } from "react";
-import { AuthShell, CivilRecordCard, EmailField, FirstNameField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
+import { useCallback, useMemo, useState } from "react";
+import { AuthShell, CivilRecordCard, DemoAccounts, EmailField, FirstNameField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
 import { DEMO_OTP, ProgressChecklist } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { Badge, SpeakButton, useToast } from "@/components/ui/widgets";
 import { FIRST_NAME_TRIES, ageOf, firstNameMatches, getPerson, isValidNationalId, type Person } from "@/lib/registry";
+import { adminSignups, type SignupDemo } from "@/lib/demo-signup";
 import { actions, useStore } from "@/lib/store";
 import { maskNationalId } from "@/lib/utils";
 import { logAdmin, seasonHistory } from "../_lib/admin";
@@ -43,6 +44,15 @@ export function AdminRegisterFlow() {
   const go = (n: number) => {
     setDir(n > step ? 1 : -1);
     setStep(n);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // The demo's ready-made people, one for every role applied for, each with no account on this device yet
+  const signups = useMemo(() => adminSignups((x) => !!accounts[x] || !!admins[x]), [accounts, admins]);
+  const fillDemo = (d: SignupDemo) => {
+    setForm({ ...form, nationalId: d.person.id, firstName: d.person.firstName, phone: d.phone, password: d.password });
+    setTouched(false);
+    setMismatch(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -108,8 +118,30 @@ export function AdminRegisterFlow() {
       subtitle="للعمل مع الحجاج في الموسم: رئيس مجموعة، معاون، موجّه ديني، منسق تقني. الحقول نفسها التي يملؤها الحاج، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة، ثم يُفتح لك ملف إداري دائم يرافقك عبر المواسم."
       steps={STEPS}
       step={step}
-      tabs={step === 0}
       note="لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة."
+      below={
+        step === 0 && (
+          <DemoAccounts
+            heading="بيانات تجريبية لإنشاء حساب إداري"
+            action="املأ النموذج"
+            hint="شخص من سجل الشؤون المدنية التجريبي لكل صفة يُتقدَّم إليها، بعمرها وجنسها كما في شروط الإدارة، ليس له حساب بعد. اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية. وبعد إنشاء الحساب تقدّم على الصفة من «التسجيل كإداري» في مواعيده."
+            groups={[...new Set(signups.map((d) => d.section))].map((section) => ({
+              label: section,
+              items: signups
+                .filter((d) => d.section === section)
+                .map((d) => ({
+                  key: d.key,
+                  title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
+                  note: `${d.note} مواليد ${d.person.birthDate.slice(0, 4)}.`,
+                  code: d.person.id,
+                  initial: d.person.firstName[0],
+                  onPick: () => fillDemo(d),
+                })),
+            }))}
+            footer="رئاسة التكتل ونيابته ومحاسبته أماكن يعطيها التكتل أو تمنحها الإدارة، لا صفات يُتقدَّم إليها، فلا بطاقات لها هنا."
+          />
+        )
+      }
     >
       <AnimatePresence mode="wait" custom={dir}>
         <motion.div key={step} initial={{ opacity: 0, x: dir * -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: dir * 40 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
@@ -148,12 +180,12 @@ export function AdminRegisterFlow() {
                     : mismatch
                       ? `الاسم الأول لا يطابق الرقم الوطني في سجل الشؤون المدنية. اكتبه كما في بطاقتك الشخصية (بقي ${FIRST_NAME_TRIES - tries} محاولات).`
                       : pilgrimConflict
-                        ? "هذا الرقم الوطني لديه حساب حاج، ولكل شخص نوع حساب واحد: لا يكون حاجاً وإدارياً في الموسم نفسه."
+                        ? "هذا الرقم الوطني لديه حساب في منصة الحجاج، ولكل شخص نوع حساب واحد: لا يكون حاجاً وإدارياً في الموسم نفسه."
                         : adminExists
                           ? "لديك حساب إداري بالفعل."
                           : null
                 }
-                link={locked || mismatch ? undefined : pilgrimConflict ? { href: "/login", label: "الدخول إلى حساب الحاج" } : adminExists ? { href: "/administrator/login", label: "سجّل الدخول" } : undefined}
+                link={locked || mismatch ? undefined : adminExists ? { href: "/administrator/login", label: "سجّل الدخول" } : undefined}
               />
               <PhoneField value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} error={touched && errors.phone} />
               <EmailField value={form.email} onChange={(v) => setForm({ ...form, email: v })} hint="للإيصالات والعقود إن رغبت" error={touched && errors.email} />

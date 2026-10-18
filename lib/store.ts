@@ -728,6 +728,8 @@ export type State = {
    * approval, so a change waits in pending until the administration approves or sends it back.
    */
   clusterProfiles: Record<string, import("./cluster-profile").ClusterProfileState>;
+  /** Each group's public page (its picture, a word, its gallery), by the group's number — lib/group-profile */
+  groupProfiles: Record<string, import("./group-profile").GroupProfileState>;
   /** What the staff scored each administrator at the end of the season, by national id */
   evaluations: Record<string, { avg: number; at: number; by: string; stages: Record<string, { score: number; note?: string; file?: string }> }>;
   /**
@@ -877,6 +879,21 @@ const initial: State = {
   grading: {},
   adminRules: {},
   clusterProfiles: {},
+  groupProfiles: {
+    "27": {
+      approved: {
+        fields: {
+          cover: "/images/mina-tents.jpg",
+          about: "مجموعة من دمشق تخدم الحجاج منذ 1442هـ، وفريقها من المواسم السابقة. لكل يوم في مكة درس بعد العصر، ومرافقة إلى الحرم لكبار السن.",
+          gallery: ["/images/mina-tents.jpg", "/images/haram-2022.jpg", "/images/jabal-rahmah.jpg", "/images/muzdalifah.jpg", "/images/nabawi.jpg"],
+        },
+        at: Date.UTC(2026, 10, 20, 9),
+        by: "رئيس المجموعة",
+        approvedAt: Date.UTC(2026, 10, 21, 10),
+        approvedBy: "إدارة الإداريين",
+      },
+    },
+  },
   evaluations: {},
   selfEvaluations: {},
   peerEvaluations: {},
@@ -1293,6 +1310,22 @@ export const actions = {
           ? { approved: { ...cur.pending, approvedAt: Date.now(), approvedBy: by }, pending: undefined, rejected: undefined }
           : { ...cur, pending: undefined, rejected: { at: Date.now(), by, reason: reason ?? "", fields: cur.pending.fields } };
       return { ...s, clusterProfiles: { ...s.clusterProfiles, [slug]: { ...cur, ...next } } };
+    });
+  },
+  /** A group's head (or his assistant) submits its public page for approval */
+  submitGroupProfile(no: number, change: import("./group-profile").GroupProfileChange) {
+    setState((s) => ({ ...s, groupProfiles: { ...s.groupProfiles, [String(no)]: { ...s.groupProfiles[String(no)], pending: change, rejected: undefined } } }));
+  },
+  /** The administration approves it onto the group's card and window, or sends it back with a reason */
+  decideGroupProfile(no: number, decision: "approved" | "rejected", by: string, reason?: string) {
+    setState((s) => {
+      const cur = s.groupProfiles[String(no)];
+      if (!cur?.pending) return s;
+      const next =
+        decision === "approved"
+          ? { approved: { ...cur.pending, approvedAt: Date.now(), approvedBy: by }, pending: undefined, rejected: undefined }
+          : { ...cur, pending: undefined, rejected: { at: Date.now(), by, reason: reason ?? "", fields: cur.pending.fields } };
+      return { ...s, groupProfiles: { ...s.groupProfiles, [String(no)]: { ...cur, ...next } } };
     });
   },
   setAdminRules(patch: AdminRules) {

@@ -152,7 +152,7 @@ if ONLY in (None, "b"):
     s.nav("الكادر الإداري", 2400)
     c.shot("cadre-roster", "الكادر الإداري: كل فرد عبر المواسم، بصفته ومكانه وفرعه وهاتفه وتيليجرامه وحضوره", hl=[("main button:has-text('إضافة فرد إلى الكادر')", "1"), ("main button:has-text('الأعمدة')", "2")], section=S_CADRE)
     s.btn("الأعمدة", 700)
-    for lab in ["رمز الدخول (PIN)", "رقم الباركود", "تاريخ الميلاد"]:
+    for lab in ["رقم الباركود", "تاريخ الميلاد"]:
         p.locator(f"{D} label:has-text('{lab}') input").first.check(); c.settle(150)
     c.shot("cadre-columns", "الأعمدة: تختار ما يظهر في الجدول وما يُصدَّر إلى Excel", section=S_CADRE)
     p.locator(f"{D} button:text-is('تم')").first.click(); c.settle(700)
@@ -287,6 +287,13 @@ if ONLY in (None, "d"):
     p.locator(f"{D} button:has-text('اعتماد ونشر')").first.click(); c.settle(1600)
     filt(p, c, "المنشورة")
     c.shot("prof-published", "البرامج المنشورة: يراها الحجاج في «التكتلات والمجموعات»", section=S_CL)
+    # the page of the head's own group, sent in the same run
+    c.goto(M + "/clusters?v=group-pages", wait=2000)
+    p.locator("main tr button:text-is('مراجعة')").first.click(); c.settle(1400)
+    c.shot("gp-diff", "صفحة مجموعة تنتظر اعتمادك: ما تغيّر، وصورتها ومعرضها كما ستُنشر", hl=[(f"{D} button:has-text('اعتماد ونشر')", "1"), (f"{D} button:has-text('إعادة مع السبب')", "2")], section=S_CL)
+    p.locator(f"{D} button:has-text('اعتماد ونشر')").first.click(); c.settle(1600)
+    filt(p, c, "المنشورة")
+    c.shot("gp-published", "صفحات المجموعات المنشورة", section=S_CL)
     s.close()
 
 # ═════════════ E. the directory, the letters, the evaluation, the classification ═════════════
@@ -313,8 +320,8 @@ if ONLY in (None, "e"):
 
     # ── the letters ──
     s.nav("المراسلات", 1800)
-    c.shot("let-list", "المراسلات: غير مقروءة، وبدون رد، وتم الرد، ومغلقة", hl=[("main tr:has-text('لم يصلني رمز الدخول') button:has-text('قراءة والرد')", "")], section=S_LET)
-    p.locator("main tr:has-text('لم يصلني رمز الدخول') button:has-text('قراءة والرد')").first.click(); c.settle(1400)
+    c.shot("let-list", "المراسلات: غير مقروءة، وبدون رد، وتم الرد، ومغلقة", hl=[("main tr:has-text('لا تصلني رسائل الإدارة') button:has-text('قراءة والرد')", "")], section=S_LET)
+    p.locator("main tr:has-text('لا تصلني رسائل الإدارة') button:has-text('قراءة والرد')").first.click(); c.settle(1400)
     p.locator(f"{D} textarea").first.fill("أُعيد إرسال رمزك عبر البوت، وإن لم يصل فخذه من فرع حمص."); c.settle(300)
     c.shot("let-thread", "مراسلة: سياقها ومرفقها، والرد والإغلاق والطباعة", hl=[(f"{D} button:has-text('إرسال الرد')", "")], section=S_LET)
     p.locator(f"{D} button:has-text('إرسال الرد')").first.click(); c.settle(1200)

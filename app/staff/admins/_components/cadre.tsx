@@ -12,7 +12,7 @@ import { getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, getState, useStore, type CadreEventType } from "@/lib/store";
 import { cn, maskNationalId, nowMs } from "@/lib/utils";
 import { DEMO_ADMINS } from "@/app/administrator/_lib/admin";
-import { EVENT_TYPES, contactOf, eventLabel, logCadre, newPin, presenceOf, useCadreEvents, useCadrePlaces, type Place } from "@/app/administrator/_lib/cadre";
+import { EVENT_TYPES, contactOf, eventLabel, logCadre, presenceOf, useCadreEvents, useCadrePlaces, type Place } from "@/app/administrator/_lib/cadre";
 import { useFormingSeason } from "@/app/administrator/_lib/formation";
 import { HEADS_POOL, ROSTER } from "@/app/administrator/_lib/people";
 import { ageOfId, branchOf, branchesOf, categoryOf, primaryOf, roleKeyByName, roleName, roleOf, seasonalOf, seasonalText, useCadre, useStructure, type SeasonalRole } from "@/app/administrator/_lib/structure";
@@ -130,7 +130,6 @@ export function useCadreRows(): CadreRow[] {
           birth: contact.birth,
           age: ageOfId(p.id),
           barcode: contact.barcode,
-          pin: contact.pin,
           chatId: contact.chatId,
           status: cadre.status[p.id],
           added: !!added,
@@ -142,7 +141,7 @@ export function useCadreRows(): CadreRow[] {
 
 // ───────────────────────── The roster ─────────────────────────
 
-type ColKey = "primary" | "post" | "cluster" | "group" | "category" | "branch" | "extra" | "phone" | "birth" | "age" | "barcode" | "pin" | "telegram" | "presence";
+type ColKey = "primary" | "post" | "cluster" | "group" | "category" | "branch" | "extra" | "phone" | "birth" | "age" | "barcode" | "telegram" | "presence";
 
 const COLUMNS: { key: ColKey; label: string; on: boolean }[] = [
   { key: "primary", label: "الصفة الأساسية", on: true },
@@ -156,7 +155,6 @@ const COLUMNS: { key: ColKey; label: string; on: boolean }[] = [
   { key: "birth", label: "تاريخ الميلاد", on: false },
   { key: "age", label: "العمر", on: false },
   { key: "barcode", label: "رقم الباركود", on: false },
-  { key: "pin", label: "رمز الدخول (PIN)", on: false },
   { key: "telegram", label: "تيليجرام", on: true },
   { key: "presence", label: "الحضور", on: true },
 ];
@@ -220,8 +218,6 @@ function useRowText() {
         return r.age ? String(r.age) : "";
       case "barcode":
         return r.barcode ?? "";
-      case "pin":
-        return r.pin ?? "";
       case "telegram":
         return r.chatId ? "مربوط" : "غير مربوط";
       case "presence":
@@ -317,8 +313,8 @@ function Roster() {
               {visible.map((c) => (
                 <td
                   key={c.key}
-                  className={cn("p-3 align-top text-white/85", ["telegram", "presence", "phone", "pin", "barcode", "birth", "age"].includes(c.key) && "whitespace-nowrap", c.key === "presence" && text(r, c.key).startsWith("●") && "font-bold text-green-light", (c.key === "phone" || c.key === "barcode" || c.key === "pin") && "tabular-nums")}
-                  dir={c.key === "phone" || c.key === "barcode" || c.key === "pin" ? "ltr" : undefined}
+                  className={cn("p-3 align-top text-white/85", ["telegram", "presence", "phone", "barcode", "birth", "age"].includes(c.key) && "whitespace-nowrap", c.key === "presence" && text(r, c.key).startsWith("●") && "font-bold text-green-light", (c.key === "phone" || c.key === "barcode") && "tabular-nums")}
+                  dir={c.key === "phone" || c.key === "barcode" ? "ltr" : undefined}
                 >
                   {text(r, c.key) || <span className="text-white/30">—</span>}
                 </td>
@@ -527,23 +523,10 @@ function AccountBox({ r }: { r: CadreRow }) {
   );
 }
 
-/** How he signs in: his PIN, a new one, sent to his Telegram; and whether Telegram is linked */
+/** Whether his Telegram is linked (the administration's messages reach him there); he signs in with his national ID and password */
 function SignInBox({ r }: { r: CadreRow }) {
   const user = useStaffUser()!;
-  const toast = useToast();
   const log = (action: string, detail?: string) => logAdmins(user, "cadre", { action, target: r.name, detail, ref: r.id });
-  const pin = () => {
-    const next = newPin(nowMs() + r.id.length);
-    actions.setCadre("contact", r.id, { ...storedContact(r.id), pin: next });
-    log("رمز دخول جديد", "أُلغي الرمز السابق");
-    toast({ title: "رمز دخول جديد", body: `${r.name}: ${next}`, tone: "gold", icon: "🔑" });
-  };
-  const sendPin = () => {
-    if (!r.chatId) return toast({ title: "لم يربط تيليجرام", body: "يربطه من «الإشعارات» في حسابه، أو يأخذ رمزه من المكتب.", tone: "info", icon: "✈️" });
-    actions.addTelegram({ by: user.name, text: `رمز دخولك إلى منصة الإداريين: ${r.pin}`, to: [r.id], reached: [r.id] });
-    log("إرسال رمز الدخول عبر تيليجرام");
-    toast({ title: "أُرسل رمز الدخول", body: `إلى تيليجرام ${r.name}`, tone: "success", icon: "✈️" });
-  };
   const unlink = () => {
     // An empty chat id is kept as "unlinked" (an absent one would fall back to the season's records)
     actions.setCadre("contact", r.id, { ...storedContact(r.id), chatId: "", telegram: undefined });
@@ -551,14 +534,6 @@ function SignInBox({ r }: { r: CadreRow }) {
   };
   return (
     <Box title="الدخول وتيليجرام">
-      <p className="text-xs text-white/60">رمز الدخول (PIN)</p>
-      <p className="rounded-xl bg-black/20 px-3 py-2 text-center font-display text-lg font-bold tracking-[.3em] text-gold" dir="ltr">
-        {r.pin}
-      </p>
-      <RowActions>
-        <RowLink onClick={pin}>رمز جديد</RowLink>
-        <RowLink onClick={sendPin}>إرساله عبر تيليجرام</RowLink>
-      </RowActions>
       <p className="text-xs text-white/70">
         تيليجرام:{" "}
         {r.chatId ? (
@@ -572,7 +547,7 @@ function SignInBox({ r }: { r: CadreRow }) {
           <b className="text-gold">غير مربوط — يربطه بنفسه من «الإشعارات» في حسابه</b>
         )}
       </p>
-      <p className="text-[11px] leading-5 text-white/50">يدخل الإداري باسمه أو هاتفه ورمز الدخول، أو برقمه الوطني وكلمة مروره.</p>
+      <p className="text-[11px] leading-5 text-white/50">يدخل الإداري برقمه الوطني وكلمة مروره، ثم رمز تحقق يصل إلى هاتفه.</p>
     </Box>
   );
 }

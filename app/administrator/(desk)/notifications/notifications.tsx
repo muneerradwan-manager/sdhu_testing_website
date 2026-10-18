@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, BellRing, KeyRound, Send } from "lucide-react";
+import { ArrowLeft, BellRing, Send } from "lucide-react";
 import { Card } from "@/components/portal/shell";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { actions, getState, useStore } from "@/lib/store";
@@ -46,7 +46,7 @@ export function AdminNotifications() {
 
 /**
  * The platform's Telegram bot: he starts it with his code and his account is linked — the administration's
- * messages and his login PIN then reach his phone. His PIN signs him in with his name or phone (the login page).
+ * messages then reach his phone. He signs in with his national ID and password only.
  */
 function TelegramCard() {
   const admin = useAdmin()!;
@@ -58,26 +58,22 @@ function TelegramCard() {
   const link = () => {
     actions.setCadre("contact", admin.id, { ...stored(), chatId: String(5_100_000_000 + Number(admin.id.slice(-6))) });
     logAdmin(admin.id, "ربط حسابه ببوت تيليجرام");
-    toast({ title: "رُبط تيليجرام", body: "تصلك رسائل الإدارة ورمز دخولك على هاتفك.", tone: "success", icon: "✈️" });
+    toast({ title: "رُبط تيليجرام", body: "تصلك رسائل الإدارة على هاتفك.", tone: "success", icon: "✈️" });
   };
   const unlink = () => {
     actions.setCadre("contact", admin.id, { ...stored(), chatId: "" });
     logAdmin(admin.id, "فك ربط تيليجرام");
   };
-  const sendPin = () => {
-    actions.addTelegram({ by: "بوت المنصة", text: `رمز دخولك إلى منصة الإداريين: ${c.pin}`, to: [admin.id], reached: [admin.id] });
-    toast({ title: "أُرسل رمزك إلى تيليجرام", body: `الرمز: ${c.pin}`, tone: "gold", icon: "🔑" });
-  };
   return (
     <Card className="mt-6 md:p-8">
       <SectionTitle icon={Send} action={c.chatId ? <Badge tone="green">مربوط</Badge> : <Badge tone="gold">غير مربوط</Badge>}>
-        تيليجرام ورمز الدخول
+        تيليجرام
       </SectionTitle>
-      <div className="mt-4 grid gap-5 md:grid-cols-2">
+      <div className="mt-4 max-w-2xl">
         <div className="rounded-2xl bg-sand p-4">
           {c.chatId ? (
             <>
-              <p className="leading-8 text-ink">حسابك مربوط ببوت المنصة: تصلك عليه رسائل الإدارة ورمز دخولك.</p>
+              <p className="leading-8 text-ink">حسابك مربوط ببوت المنصة: تصلك عليه رسائل الإدارة.</p>
               <p className="text-xs text-hint" dir="ltr">
                 chat_id {c.chatId}
               </p>
@@ -93,22 +89,6 @@ function TelegramCard() {
               </p>
               <SimButton onClick={link}>محاكاة: أرسلتُ الرمز إلى البوت</SimButton>
             </>
-          )}
-        </div>
-        <div className="rounded-2xl bg-sand p-4">
-          <p className="flex items-center gap-2 font-bold text-ink">
-            <KeyRound className="size-4 text-gold-dark" /> رمز الدخول (PIN)
-          </p>
-          <p className="mt-1 text-sm leading-7 text-ink-soft">تدخل به باسمك أو هاتفك من صفحة الدخول، دون رقمك الوطني. تعطيه الإدارة، ويصلك من البوت.</p>
-          <p className={cn("my-2 font-display text-3xl font-bold tracking-[.4em] text-green-dark")} dir="ltr">
-            {c.chatId ? c.pin : "••••"}
-          </p>
-          {c.chatId ? (
-            <button type="button" onClick={sendPin} className="text-sm font-bold text-green-dark underline">
-              أرسله إلى تيليجرامي مرة أخرى
-            </button>
-          ) : (
-            <p className="text-xs text-hint">يظهر هنا بعد ربط تيليجرام، أو تأخذه من المكتب.</p>
           )}
         </div>
       </div>

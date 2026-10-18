@@ -15,7 +15,7 @@ import { structureNow, type Structure } from "./structure";
  */
 
 /** The administration's tiers as the directory names them */
-export const LEVEL_OF_TIER: Record<string, ServiceLevel> = { eco: "عادي", "eco-plus": "محسّن", five: "خمس نجوم" };
+export const LEVEL_OF_TIER: Record<string, ServiceLevel> = { eco: "اقتصادي", "eco-plus": "اقتصادي محسن", five: "خمس نجوم" };
 
 export type LinkedRequest = { headId: string; headName: string; headGroup?: number; cluster: ClusterRecord };
 
@@ -41,7 +41,7 @@ export function structureFacts(s: Structure, r: LinkedRequest): Pick<Cluster, "l
     .map((g) => asGroup(s, r.cluster, g, g.number === r.headGroup))
     .sort((a, b) => Number(b.own) - Number(a.own));
   return {
-    level: LEVEL_OF_TIER[r.cluster.tier ?? ""] ?? "عادي",
+    level: LEVEL_OF_TIER[r.cluster.tier ?? ""] ?? "اقتصادي",
     groupsCount: groups.length,
     pilgrims: groups.reduce((n, g) => n + g.pilgrims, 0),
     groups: groups.map((g) => ({ no: g.number, leader: g.head, capacity: g.capacity, remaining: Math.max(0, g.capacity - g.pilgrims) })),
@@ -55,6 +55,17 @@ export function directoryNow(): Cluster[] {
     const r = requestNow(c.slug);
     return r?.cluster.status === "approved" ? [{ ...c, ...structureFacts(s, r) }] : [];
   });
+}
+
+/** Who writes a group's public page (its picture, its word, its gallery): its head once it is approved, or its assistant */
+export function groupWriterOf(p: AdminProfile | undefined): { no: number; post: string; clusterId?: string; clusterName?: string } | null {
+  if (!p) return null;
+  if (p.group?.approvedAt) {
+    const id = p.group.clusterId;
+    return { no: p.group.number, post: "رئيس المجموعة", clusterId: id, clusterName: id ? requestNow(id)?.cluster.name : undefined };
+  }
+  if (p.servesIn?.role === "assistant" && p.servesIn.groups[0]) return { no: p.servesIn.groups[0], post: "معاون المجموعة", clusterId: p.servesIn.clusterId, clusterName: p.servesIn.clusterName };
+  return null;
 }
 
 /** Who writes a cluster's public page, and as what */

@@ -101,8 +101,8 @@ export const SEASON = {
    */
   grading: {
     tiers: [
-      { key: 1, label: "الفئة الأولى", service: "عادي", note: "فئة البداية — كل رئيس مجموعة جديد يبدأ منها" },
-      { key: 2, label: "الفئة الثانية", service: "محسّن", note: "تُنال بالترقية من الفئة الأولى" },
+      { key: 1, label: "الفئة الأولى", service: "اقتصادي", note: "فئة البداية — كل رئيس مجموعة جديد يبدأ منها" },
+      { key: 2, label: "الفئة الثانية", service: "اقتصادي محسن", note: "تُنال بالترقية من الفئة الأولى" },
       { key: 3, label: "الفئة الثالثة", service: "خمس نجوم", note: "أعلى فئة — لا ترقية فوقها" },
     ],
     /** Share of each tier promoted one tier up */

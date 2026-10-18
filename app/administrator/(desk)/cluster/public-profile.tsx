@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, BadgeCheck, Bus, CircleDashed, ExternalLink, Hotel, Plus, RotateCcw, Send, Sparkles, Trash2, Utensils } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Bus, CircleDashed, ExternalLink, Hotel, Images, Plus, RotateCcw, Send, Sparkles, Trash2, Utensils } from "lucide-react";
 import { useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { pageWriterOf } from "../../_lib/directory";
 import { useClusterRequest } from "../../_lib/formation";
+import { GalleryEditor } from "../../_components/gallery-editor";
 
 const TEXT_FIELDS: { key: keyof ClusterProfileFields; label: string; hint?: string; area?: boolean }[] = [
   { key: "specialty", label: "سطر التعريف تحت الاسم", hint: "جملة قصيرة يقرأها الحاج أولاً" },
@@ -205,6 +206,14 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
           </Card>
         );
       })}
+
+      <Card className="md:p-7">
+        <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
+          <Images className="size-5 text-gold-dark" /> معرض الصور
+        </h3>
+        <p className="mb-3 mt-1 text-sm text-ink-soft">الفنادق والمخيمات والحافلات، وصور المواسم السابقة. تظهر في صفحة التكتل تحت «عن التكتل».</p>
+        <GalleryEditor value={values.gallery ?? []} onChange={(v) => set("gallery", v)} by={writer ? `${admin.name} — ${writer.post}` : admin.name} />
+      </Card>
 
       <Card className="md:p-7">
         <h3 className="font-display text-lg font-bold text-green-dark">إرسال للاعتماد</h3>

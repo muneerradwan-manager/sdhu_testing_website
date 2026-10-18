@@ -10,6 +10,7 @@ import { SEASON } from "./season";
 import type { Cluster } from "./data/clusters";
 import { useStore } from "./store";
 import { formatRoomPrices, type RoomPrices } from "./rooms";
+import { photosLabel } from "./group-profile";
 
 /**
  * The part of a cluster's public page that belongs to the cluster itself: its programme, its housing,
@@ -36,6 +37,8 @@ export type ClusterProfileFields = {
   programs: string[];
   /** What each private room type adds per person */
   rooms: RoomPrices;
+  /** Its photo gallery: the hotels, the camps, the buses, past seasons */
+  gallery: string[];
 };
 
 export type ClusterProfileChange = {
@@ -69,6 +72,7 @@ export const PROFILE_LABELS: Record<keyof ClusterProfileFields, string> = {
   meals: "الإعاشة",
   programs: "البرامج",
   rooms: "السكن الخاص — للفرد بحسب أسرّة الغرفة",
+  gallery: "معرض الصور",
 };
 
 export function fieldsOf(c: Cluster): ClusterProfileFields {
@@ -87,6 +91,7 @@ export function fieldsOf(c: Cluster): ClusterProfileFields {
     meals: [...c.meals],
     programs: [...c.programs],
     rooms: { ...c.rooms },
+    gallery: [...(c.gallery ?? [])],
   };
 }
 
@@ -101,6 +106,7 @@ export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
     meals: f.meals,
     programs: f.programs,
     rooms: f.rooms,
+    gallery: f.gallery ?? c.gallery ?? [],
   };
 }
 
@@ -108,10 +114,13 @@ export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
 export function diffFields(before: ClusterProfileFields, after: ClusterProfileFields) {
   return (Object.keys(PROFILE_LABELS) as (keyof ClusterProfileFields)[])
     .map((k) => {
-      const show = (v: ClusterProfileFields[typeof k]) => (k === "rooms" ? formatRoomPrices(v as RoomPrices) : Array.isArray(v) ? v.join(" · ") : String(v));
+      const show = (v: ClusterProfileFields[typeof k]) =>
+        k === "rooms" ? formatRoomPrices(v as RoomPrices) : k === "gallery" ? photosLabel(((v as string[] | undefined) ?? []).length) : Array.isArray(v) ? v.join(" · ") : String(v ?? "");
       const a = show(before[k]);
       const b = show(after[k]);
-      return { key: k, label: PROFILE_LABELS[k], before: a, after: b, changed: a !== b };
+      // A gallery whose photos changed but not their number still changed
+      const changed = JSON.stringify(before[k] ?? []) !== JSON.stringify(after[k] ?? []);
+      return { key: k, label: PROFILE_LABELS[k], before: a, after: b === a && changed ? `${b} (تغيّرت الصور)` : b, changed };
     })
     .filter((x) => x.changed);
 }
@@ -122,7 +131,7 @@ function blankProgramme(id: string, name: string, branch: string): Cluster {
     slug: id,
     name,
     since: SEASON.hijriYear,
-    level: "عادي",
+    level: "اقتصادي",
     rating: 0,
     reviews: 0,
     governorate: branch,

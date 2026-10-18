@@ -61,49 +61,32 @@ export const PAGES_EN_HOME: PagesEn = {
       text: "We are adding registration for Umrah trips, approved agencies and application tracking. Until then, the «Fiqh of Umrah» track is available in the Academy.",
       ctaLabel: "Learn more",
     },
-    journey: {
-      eyebrow: "How does the platform work?",
-      title: "Your journey in six clear stages",
-      description:
-        "No need to visit the office or ask what comes next: each stage appears in your account with its date and what you need to do.",
-      steps: [
+    tutorials: {
+      eyebrow: "Video tutorials",
+      title: "How do you use the platform?",
+      description: "A short video for each user that walks you through the screens in order: what you see, where you click, and what happens next.",
+      tabs: [
         {
-          icon: "UserRoundPlus",
-          title: "Create your account",
-          text: "Just your national number and phone number — your details arrive from the Civil Registry for you to confirm.",
-          when: "Two minutes",
+          label: "Visitor, then pilgrim",
+          title: "From visiting the platform to tracking your application",
+          duration: "",
+          text: "You start as a visitor with no account: the conditions and costs, the eligibility check, the results, the Academy and prayer times. Then you create a pilgrim account, apply, and follow your application until you travel.",
+          points: "The public portal, no account needed\nThe quick eligibility check\nCreating a pilgrim account with your national ID\nApplying and adding your family\nTracking the application and the steps after acceptance",
         },
         {
-          icon: "FileSignature",
-          title: "Direct acceptance registration",
-          text: "An application for acceptance by age, oldest first, for 65% of the quota, open to those born in 1958 or earlier. Simple questions, one at a time, and you add your family from the family booklet or by national number.",
-          when: "12 – 25 August",
-        },
-        {
-          icon: "ScanSearch",
-          title: "Checks and announcing the ages",
-          text: "The platform applies the season's conditions to each person and explains any note to you, including the direct acceptance age, before you pay anything.",
-          when: "Until 26 August",
-        },
-        {
-          icon: "Ticket",
-          title: "Lottery pre-registration",
-          text: "A separate registration with a new application for everyone eligible, including those not accepted directly. A public lottery then fills 35% of the quota: birth years and months are drawn, and those selected confirm their registration with the first instalment.",
-          when: "26 August – 10 September · Lottery 26 September",
-        },
-        {
-          icon: "BadgeCheck",
-          title: "Preparation and payment",
-          text: "Joining a group with a contract that is uploaded and approved, receipts, the visa, and the religious lessons before you travel.",
-          when: "October – Dhu al-Qa'dah",
-        },
-        {
-          icon: "Plane",
-          title: "Travel and return",
-          text: "The flight, the hotel, the camp, and your digital card in your pocket throughout the journey.",
-          when: "24 Dhu al-Qa'dah – 23 Dhu al-Hijjah",
+          label: "Administrator",
+          title: "The platform for group heads and the administrative staff",
+          duration: "",
+          text: "From creating an administrator account and registering for a role this season, to the exam and forming the group and the cluster, then working with your group's pilgrims in the field.",
+          points: "Creating an administrator account\nRegistering for a role and the registration fee\nThe automated exam and its result\nForming the group and the cluster\nThe group's pilgrims and the field",
         },
       ],
+    },
+    directory: {
+      eyebrow: "Clusters and groups",
+      title: "Choose your group from the approved clusters",
+      description: "A glance at this season's approved clusters and their groups: their programmes and housing, their groups' heads and the places left.",
+      ctaLabel: "See all clusters and groups",
     },
     numbers: {
       eyebrow: "The 1448 AH season in numbers",
@@ -185,17 +168,50 @@ export const PAGES_EN_HOME: PagesEn = {
         { hijri: "23 Dhu al-Hijjah", gregorian: "29 May 2027", title: "Return: Madinah → Damascus", who: "Everyone" },
       ],
     },
-    cta: {
-      title: "Ready to apply?",
-      titleHighlight: "We are with you every step",
-      text: "The questions are clear, large and read aloud, so that older pilgrims can submit their application themselves without help.",
-      primaryLabel: "Create a pilgrim account",
-      secondaryLabel: "Check your eligibility first",
-      points: [
-        { text: "Just your national number and phone number" },
-        { text: "Your details come from the Civil Registry" },
-        { text: "Add your family from the family booklet" },
-        { text: "Follow your application every step of the way" },
+  },
+  "pilgrim-journey": {
+    journey: {
+      eyebrow: "How does the platform work?",
+      title: "Your journey in six clear stages",
+      description:
+        "No need to visit the office or ask what comes next: each stage appears in your account with its date and what you need to do.",
+      steps: [
+        {
+          icon: "UserRoundPlus",
+          title: "Create your account",
+          text: "Just your national number and phone number — your details arrive from the Civil Registry for you to confirm.",
+          when: "Two minutes",
+        },
+        {
+          icon: "FileSignature",
+          title: "Direct acceptance registration",
+          text: "An application for acceptance by age, oldest first, for 65% of the quota, open to those born in 1958 or earlier. Simple questions, one at a time, and you add your family from the family booklet or by national number.",
+          when: "12 – 25 August",
+        },
+        {
+          icon: "ScanSearch",
+          title: "Checks and announcing the ages",
+          text: "The platform applies the season's conditions to each person and explains any note to you, including the direct acceptance age, before you pay anything.",
+          when: "Until 26 August",
+        },
+        {
+          icon: "Ticket",
+          title: "Lottery pre-registration",
+          text: "A separate registration with a new application for everyone eligible, including those not accepted directly. A public lottery then fills 35% of the quota: birth years and months are drawn, and those selected confirm their registration with the first instalment.",
+          when: "26 August – 10 September · Lottery 26 September",
+        },
+        {
+          icon: "BadgeCheck",
+          title: "Preparation and payment",
+          text: "Joining a group with a contract that is uploaded and approved, receipts, the visa, and the religious lessons before you travel.",
+          when: "October – Dhu al-Qa'dah",
+        },
+        {
+          icon: "Plane",
+          title: "Travel and return",
+          text: "The flight, the hotel, the camp, and your digital card in your pocket throughout the journey.",
+          when: "24 Dhu al-Qa'dah – 23 Dhu al-Hijjah",
+        },
       ],
     },
   },

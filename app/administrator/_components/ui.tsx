@@ -12,6 +12,7 @@ import {
   FlaskConical,
   FolderOpen,
   Globe,
+  Images,
   GraduationCap,
   HeartHandshake,
   Landmark,
@@ -37,7 +38,7 @@ import { actions, useHydrated, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
 import { useClusterChannel } from "../_lib/channel";
-import { pageWriterOf } from "../_lib/directory";
+import { groupWriterOf, pageWriterOf } from "../_lib/directory";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -144,6 +145,8 @@ const NAV: NavItem[] = [
   { href: "/administrator/channel", label: "قناة التكتل", icon: MessagesSquare, show: (c) => c.inChannel },
   // What the pilgrims read of the cluster: its team writes it once it is approved, the administration approves it
   { href: "/administrator/cluster-page", label: "صفحة التكتل العامة", icon: Globe, show: (c) => !!pageWriterOf(c.p) },
+  // The group's own: its picture, its word and its gallery, by its head or its assistant, approved by the administration
+  { href: "/administrator/group-page", label: "صفحة المجموعة العامة", icon: Images, show: (c) => !!groupWriterOf(c.p) },
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
   { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
