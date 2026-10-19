@@ -161,25 +161,31 @@ export const SEASON = {
  * coordinator-filed application belongs to the coordinator's office.
  */
 export const OFFICES = [
-  { governorate: "دمشق", office: "مكتب دمشق", abroad: false },
-  { governorate: "ريف دمشق", office: "مكتب ريف دمشق", abroad: false },
-  { governorate: "حلب", office: "مكتب حلب", abroad: false },
-  { governorate: "حمص", office: "مكتب حمص", abroad: false },
-  { governorate: "حماة", office: "مكتب حماة", abroad: false },
-  { governorate: "اللاذقية", office: "مكتب اللاذقية", abroad: false },
-  { governorate: "إدلب", office: "مكتب إدلب", abroad: false },
-  { governorate: "درعا", office: "مكتب درعا", abroad: false },
-  { governorate: "دير الزور", office: "مكتب دير الزور", abroad: false },
-  { governorate: "تركيا", office: "مكتب تركيا — إسطنبول", abroad: true },
-  { governorate: "مصر", office: "مكتب مصر — القاهرة", abroad: true },
-  { governorate: "الأردن", office: "مكتب الأردن — عمّان", abroad: true },
+  { governorate: "دمشق", office: "مكتب دمشق", abroad: false, country: "سوريا" },
+  { governorate: "ريف دمشق", office: "مكتب ريف دمشق", abroad: false, country: "سوريا" },
+  { governorate: "حلب", office: "مكتب حلب", abroad: false, country: "سوريا" },
+  { governorate: "حمص", office: "مكتب حمص", abroad: false, country: "سوريا" },
+  { governorate: "حماة", office: "مكتب حماة", abroad: false, country: "سوريا" },
+  { governorate: "اللاذقية", office: "مكتب اللاذقية", abroad: false, country: "سوريا" },
+  { governorate: "إدلب", office: "مكتب إدلب", abroad: false, country: "سوريا" },
+  { governorate: "درعا", office: "مكتب درعا", abroad: false, country: "سوريا" },
+  { governorate: "دير الزور", office: "مكتب دير الزور", abroad: false, country: "سوريا" },
+  { governorate: "تركيا — إسطنبول", office: "مكتب تركيا — إسطنبول", abroad: true, country: "تركيا" },
+  { governorate: "تركيا — غازي عنتاب", office: "مكتب تركيا — غازي عنتاب", abroad: true, country: "تركيا" },
+  { governorate: "مصر", office: "مكتب مصر — القاهرة", abroad: true, country: "مصر" },
+  { governorate: "الأردن", office: "مكتب الأردن — عمّان", abroad: true, country: "الأردن" },
 ] as const;
 
-/** Countries abroad that have an office — the only extra question the applicant is asked */
+/** The offices abroad, each its own choice (Türkiye has two: Istanbul and Gaziantep) — the only extra question the applicant is asked */
 export const ABROAD = OFFICES.filter((o) => o.abroad).map((o) => o.governorate);
 
-/** Where the applicant lives: "سوريا" or one of ABROAD */
+/** Where the applicant lives: "سوريا" or one of the offices abroad */
 export type Residence = "سوريا" | (typeof ABROAD)[number];
+
+/** The country of a residence, as the season's conditions read it (both Türkiye offices are Türkiye) */
+export function countryOf(residence: string) {
+  return OFFICES.find((o) => o.governorate === residence)?.country ?? residence;
+}
 
 /** The office area an application belongs to: the registry governorate inside Syria, or the country abroad */
 export function officeArea(governorate: string, residence: string = "سوريا") {
@@ -187,5 +193,7 @@ export function officeArea(governorate: string, residence: string = "سوريا"
 }
 
 export function officeFor(area: string) {
-  return OFFICES.find((o) => o.governorate === area)?.office ?? `مكتب ${area}`;
+  // An application kept before Türkiye had two offices belongs to Istanbul's
+  const a = area === "تركيا" ? "تركيا — إسطنبول" : area;
+  return OFFICES.find((o) => o.governorate === a)?.office ?? `مكتب ${area}`;
 }

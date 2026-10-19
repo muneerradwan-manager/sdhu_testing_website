@@ -48,7 +48,8 @@ const GOV_WEIGHTS: Record<string, number> = {
   "درعا": 0.05,
   "دير الزور": 0.04,
   // Syrians abroad register at the office of their country of residence
-  "تركيا": 0.06,
+  "تركيا — إسطنبول": 0.04,
+  "تركيا — غازي عنتاب": 0.02,
   "مصر": 0.02,
   "الأردن": 0.03,
 };

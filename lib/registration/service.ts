@@ -17,7 +17,7 @@ import { directAccepted, outcomeOf, trackOf, applicationNumberFor } from "../jou
 import { publishedDraw } from "../lottery";
 import { OPERATIONS, stateOf, type OperationKey } from "../operations";
 import { evaluate, type Member } from "../rules";
-import { officeArea, officeFor } from "../season";
+import { countryOf, officeArea, officeFor } from "../season";
 import { mergeSeason } from "../season-live";
 import { getStaff } from "../staff";
 import type { Application, ApplyDraft, AuditEvent, State } from "../store";
@@ -77,7 +77,7 @@ function factsOf(s: State, owner: string, d: { track: TrackKey; members: Member[
   return {
     track: d.track,
     forWhom: applicant && applicant.person.id !== owner ? "other" : "me",
-    residence: d.residence,
+    residence: countryOf(d.residence),
     members: d.members,
     answers: d.answers ?? {},
     memberAnswers: d.memberAnswers ?? {},

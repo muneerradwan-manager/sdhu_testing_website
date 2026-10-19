@@ -1,5 +1,6 @@
 "use client";
 
+import { maskPhone } from "@/lib/phone";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -105,7 +106,7 @@ export default function PortalHome() {
               ["مكان القيد", person.registry],
               ["تاريخ الميلاد", `${person.birthDate.slice(0, 4)} (${ageOf(person)} عاماً)`],
               ["الحالة المدنية", person.maritalStatus],
-              ["الهاتف", account?.phone ? `${account.phone.slice(0, 4)} ••• ${account.phone.slice(-3)}` : "—"],
+              ["الهاتف", maskPhone(account?.phone)],
               ["جهة الطوارئ", account?.emergencyName || "لم تُضف بعد"],
             ].map(([k, v]) => (
               <div key={k} className="rounded-2xl bg-sand p-3">

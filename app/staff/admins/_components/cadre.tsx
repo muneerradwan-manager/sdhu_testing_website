@@ -1,5 +1,7 @@
 "use client";
 
+import { CountryPhoneInput } from "@/components/ui/phone-input";
+import { isPhone } from "@/lib/phone";
 import { useRouter } from "next/navigation";
 import { Ban, Columns3, Download, RotateCcw, Send, Trash2, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -436,7 +438,7 @@ function ContactForm({ r }: { r: CadreRow }) {
   return (
     <SettingsSection title="بياناته">
       <SettingsRow label="الهاتف">
-        <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))} className={cn(smallInputClass, "max-w-xs")} dir="ltr" aria-label="الهاتف" />
+        <CountryPhoneInput value={phone} onChange={setPhone} ariaLabel="الهاتف" className={cn(smallInputClass, "max-w-xs px-3")} />
       </SettingsRow>
       <SettingsRow label="تاريخ الميلاد">
         <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} className={cn(smallInputClass, "max-w-xs [color-scheme:dark]")} dir="ltr" aria-label="تاريخ الميلاد" />
@@ -766,7 +768,7 @@ function AddPerson({ open, onClose, onAdded }: { open: boolean; onClose: () => v
   const exists = rows.find((r) => r.id === id);
   const def = roleOf(s, role);
   const genderOk = !def?.gender || !person || def.gender === person.gender;
-  const ready = !!person && !exists && genderOk && /^09\d{8}$/.test(phone) && reason.trim().length >= 3 && (!def?.category || !!category);
+  const ready = !!person && !exists && genderOk && isPhone(phone) && reason.trim().length >= 3 && (!def?.category || !!category);
   const add = () => {
     if (!person) return;
     const name = `${person.firstName} ${person.fatherName} ${person.lastName}`;
@@ -818,7 +820,7 @@ function AddPerson({ open, onClose, onAdded }: { open: boolean; onClose: () => v
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-xs text-white/60">الهاتف</span>
-            <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className={smallInputClass} dir="ltr" placeholder="09XXXXXXXX" />
+            <CountryPhoneInput value={phone} onChange={setPhone} ariaLabel="الهاتف" className={cn(smallInputClass, "px-3")} />
           </label>
           <label className="block">
             <span className="mb-1 block text-xs text-white/60">الصفة الأساسية</span>

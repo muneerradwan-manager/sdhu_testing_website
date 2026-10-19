@@ -1,5 +1,8 @@
 "use client";
 
+import { enterDemoCase, caseCta } from "@/lib/demo-cases";
+import { isPhone, toInternational } from "@/lib/phone";
+import { useOperation } from "@/lib/operations";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
@@ -10,7 +13,7 @@ import { DEMO_OTP, Field, ProgressChecklist, inputClass } from "@/components/por
 import { Button } from "@/components/ui/button";
 import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { useLang, useT } from "@/lib/i18n";
-import { FIRST_NAME_TRIES, ageOf, firstNameMatches, getPerson, isValidNationalId, type Person } from "@/lib/registry";
+import { DEMO_SCENARIOS, FIRST_NAME_TRIES, ageOf, firstNameMatches, getPerson, isValidNationalId, type Person } from "@/lib/registry";
 import { pilgrimSignups, type SignupDemo } from "@/lib/demo-signup";
 import { actions, useStore } from "@/lib/store";
 import { cn, digitsOnly } from "@/lib/utils";
@@ -59,16 +62,34 @@ export function RegisterFlow() {
   // The demo's ready-made people, each with no account on this device yet
   const signups = useMemo(() => pilgrimSignups((x) => !!accounts[x] || !!admins[x]), [accounts, admins]);
   const fillDemo = (d: SignupDemo) => {
-    setForm({ ...form, nationalId: d.person.id, firstName: d.person.firstName, phone: d.phone, password: d.password });
+    setForm({ ...form, nationalId: d.person.id, firstName: d.person.firstName, phone: toInternational(d.phone), password: d.password });
     setTouched(false);
     setMismatch(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  // The six cases of the demo, whose account is created here like any pilgrim's; one tried before on this device
+  // is forgotten first, so its account is created afresh
+  const directOp = useOperation("hajj-direct");
+  const lotteryOp = useOperation("hajj-lottery");
+  const cases = DEMO_SCENARIOS.filter((s) => s.outcome).sort((a, b) => a.outcome! - b.outcome!);
+  const pickCase = (id: string) => {
+    if (accounts[id]) {
+      actions.forgetPilgrim(id);
+      toast({ title: t("بدأت الحالة من جديد", "The case starts afresh"), body: t("كان لها حساب على هذا الجهاز من تجربة سابقة، فحُذف لتنشئه الآن.", "It had an account on this device from an earlier try, removed so you create it now."), icon: "🔄", tone: "info" });
+    }
+    const p = getPerson(id)!;
+    fillDemo({ key: id, title: "", note: "", person: p, phone: `0944${id.slice(-6)}`, password: "Hajj@1448" });
+  };
+  const caseLink = person ? caseCta(person.id) : null;
+  const goToCase = () => {
+    if (!person) return;
+    router.push(enterDemoCase(person.id, { direct: directOp, lottery: lotteryOp }) ?? "/portal");
   };
 
   const errors = {
     nationalId: !isValidNationalId(form.nationalId) && t("الرقم الوطني يتكون من 11 رقماً", "The national ID has 11 digits"),
     firstName: !form.firstName.trim() && t("اكتب اسمك الأول كما في البطاقة الشخصية", "Type your first name as on your ID card"),
-    phone: !/^09\d{8}$/.test(form.phone) && t("رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام", "The phone number starts with 09 and has 10 digits"),
+    phone: !isPhone(form.phone) && t("اكتب رقم هاتف صحيحاً للدولة التي اخترتها", "Type a valid phone number for the country you chose"),
     email: form.email && !/^\S+@\S+\.\S+$/.test(form.email) && t("صيغة البريد غير صحيحة", "This email address is not valid"),
     password: form.password.length < 6 && t("كلمة المرور 6 أحرف على الأقل", "The password needs at least 6 characters"),
   };
@@ -153,11 +174,24 @@ export function RegisterFlow() {
             heading={t("بيانات تجريبية لإنشاء حساب", "Demo data to create an account")}
             action={t("املأ النموذج", "Fill the form")}
             hint={t(
-              "شخص من سجل الشؤون المدنية التجريبي لكل حالة، ليس له حساب بعد. اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل كما يكمل الحاج: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية.",
+              "اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل كما يكمل الحاج: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية. وبعد إنشاء الحساب يأخذك زر الحالة إلى ما بعدها: تقديم الطلب، أو متابعته، أو الموسم.",
               "A person from the demo Civil Registry for each situation, with no account yet. Click a card to fill the fields, then go on as a pilgrim would: the verification code 1448, then your details from the Civil Registry.",
             )}
             groups={[
               {
+                label: t("الحالات الست: أنشئ حسابها، ثم تكمل منه حالتها", "The six cases: create the account, then carry on with its case"),
+                items: cases.map((s) => ({
+                  key: s.id,
+                  title: s.title,
+                  subtitle: t(`الحالة ${s.outcome} من 6`, `Case ${s.outcome} of 6`),
+                  note: s.note,
+                  code: s.id,
+                  initial: String(s.outcome),
+                  onPick: () => pickCase(s.id),
+                })),
+              },
+              {
+                label: t("أشخاص لتجربة إنشاء الحساب والطلب من أوله", "People for trying the account and the application from the start"),
                 items: signups.map((d) => ({
                   key: d.key,
                   title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
@@ -404,9 +438,15 @@ export function RegisterFlow() {
                 </div>
               </div>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Button size="xl" variant="gold" onClick={() => router.push("/portal/apply")}>
-                  {t("تقديم طلب حج الآن", "Apply for Hajj now")} <ArrowLeft className="size-6" />
-                </Button>
+                {caseLink ? (
+                  <Button size="xl" variant="gold" onClick={goToCase}>
+                    {caseLink} <ArrowLeft className="size-6" />
+                  </Button>
+                ) : (
+                  <Button size="xl" variant="gold" onClick={() => router.push("/portal/apply")}>
+                    {t("تقديم طلب حج الآن", "Apply for Hajj now")} <ArrowLeft className="size-6" />
+                  </Button>
+                )}
                 <Button size="xl" variant="outline" onClick={() => router.push("/portal")}>
                   <UserRound className="size-6" /> {t("ملفي", "My profile")}
                 </Button>

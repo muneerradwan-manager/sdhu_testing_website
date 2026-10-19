@@ -10,6 +10,8 @@ import { DEMO_OTP } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { seedPilgrimScenario } from "@/lib/demo-scenarios";
+import { enterDemoCase } from "@/lib/demo-cases";
+import { useOperation } from "@/lib/operations";
 import { DEMO_SCENARIOS, getPerson, isValidNationalId } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { nowMs } from "@/lib/utils";
@@ -19,11 +21,12 @@ const SCENARIOS_EN: Record<string, { title: string; note: string }> = {
   "01012345412": { title: "The full example", note: "Head of a family (58): his wife, his son عمر, and his mother خديجة (78), who is not in his family book. Adding خديجة moves the application to her name, as she is the eldest." },
   "01099900440": { title: "Direct acceptance", note: "Aged 69, with his wife هيام: within direct acceptance (born in 1958 or earlier), so he pays the registration fee and the first instalment." },
   "01077700351": { title: "Application in the father's name", note: "A young man (35) signs up and adds his father عادل (64) by national ID, so the father becomes the applicant automatically." },
-  "02088800410": { title: "Living in Türkiye", note: "From Aleppo (50), with his wife ديما. He chooses “In Türkiye”, so he comes under the Türkiye office and travels with his group." },
+  "02088800410": { title: "Living in Türkiye", note: "From Aleppo (50), with his wife ديما. He chooses “In Türkiye — Gaziantep”, so he comes under the Gaziantep office (Türkiye has two: Istanbul and Gaziantep) and travels with his group." },
   "12099900520": { title: "Living in Jordan", note: "A woman (48) who does not need a mahram (male guardian): a single application through the Jordan office." },
   "01066600620": { title: "Below the direct-acceptance age", note: "Aged 60, with his wife. If he chooses direct acceptance (born in 1958 or earlier), he is warned at the eligibility stage before any payment, and moves his application to the lottery in one click. Born in April 1966, so he is not accepted in the lottery: 1966 was not drawn." },
   "01055500730": { title: "Accepted directly", note: "Aged 71, with her son فراس: she paid the fee and the first instalment when she registered. She starts with her personal photo, then agrees with a group and signs its contract at the office, where a staff member adds her to it; then the second instalment, the passport and the medical file." },
-  "01058100960": { title: "Not accepted on direct registration", note: "Born in 1958, with his wife منى: he registered for direct acceptance, but the direct seats were filled at age 69 and over and he is 68, so he was not accepted. He opens on «My application» and can register for the lottery in one click." },
+  "01058100960": { title: "Applies for direct acceptance", note: "No application yet, and every condition makes him accepted directly: born in 1958 (68), with his wife منى from the family booklet. He opens on «Apply for Hajj» within the direct-acceptance window (12 – 25 August), applies from the start, and is accepted." },
+  "01080300980": { title: "Applies for the lottery", note: "No application yet, below the direct-acceptance age (46), and every condition makes him accepted in the lottery: born in 1980, a year drawn in full. With his wife رنا from the family booklet. He opens on «Apply for Hajj» within the lottery window (26 August – 10 September), applies from the start, and is accepted." },
   "01058200970": { title: "Not accepted directly, nor in the lottery", note: "Born in 1958, with his wife هدى: not accepted directly (the seats were filled at 69 and he is 68), then registered for the lottery, where his birth year was not drawn. He opens on «My application» to see the season's final result." },
   "01088800910": { title: "Accepted in the lottery", note: "Aged 46, with his wife: he paid only the lottery pre-registration fee, and everyone born in 1980 was drawn. He confirms his registration with the first instalment." },
   "06055500711": { title: "Has performed Hajj before", note: "Accepted only because he is the mahram (male guardian) of his mother نجاح (76) or of his wife." },
@@ -44,6 +47,8 @@ export function LoginFlow() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<{ text: string; link?: { href: string; label: string } } | null>(null);
   const [otpStage, setOtpStage] = useState(false);
+  const directOp = useOperation("hajj-direct");
+  const lotteryOp = useOperation("hajj-lottery");
   // The five outcomes first; the cases of the registration form itself folded under them
   const [more, setMore] = useState(false);
   const card = (s: (typeof DEMO_SCENARIOS)[number]) => {
@@ -51,7 +56,7 @@ export function LoginFlow() {
     return {
       key: s.id,
       title: en ? t(s.title, `${s.title.split(" — ")[0]} — ${en.title}`) : s.title,
-      subtitle: s.outcome ? t(`الحالة ${s.outcome} من 5`, `Case ${s.outcome} of 5`) : undefined,
+      subtitle: s.outcome ? t(`الحالة ${s.outcome} من 6 — ${s.fresh ? "يبدأ من الصفر" : s.seed === "complete" ? "في الموسم" : "طلبه مقدَّم"}`, `Case ${s.outcome} of 6 — ${s.fresh ? "starts from scratch" : s.seed === "complete" ? "in the season" : "applied"}`) : undefined,
       note: en ? t(s.note, en.note) : s.note,
       code: s.id,
       initial: s.outcome ? String(s.outcome) : s.title[0],
@@ -81,12 +86,14 @@ export function LoginFlow() {
     } else {
       actions.login(nationalId);
     }
-    seedPilgrimScenario(nationalId, { applications }, nowMs());
+    const scenario = DEMO_SCENARIOS.find((s) => s.id === nationalId);
+    const to = enterDemoCase(nationalId, { direct: directOp, lottery: lotteryOp });
+    if (!to) seedPilgrimScenario(nationalId, { applications }, nowMs());
     const p = getPerson(nationalId);
-    const seed = DEMO_SCENARIOS.find((s) => s.id === nationalId)?.seed;
+    const seed = scenario?.seed;
     toast({ title: t(`مرحباً ${p?.firstName}`, `Welcome, ${p?.firstName}`), body: seed ? t("دخول تجريبي — طلبك جاهز في «متابعة الطلب»", "Demo sign-in: your application is ready in “Track application”") : t("دخول تجريبي سريع", "Quick demo sign-in"), icon: "⚡", tone: "success" });
     // Every step done: straight into the season
-    router.push(seed === "complete" ? "/portal/season" : seed ? "/portal/application" : next);
+    router.push(to ?? next);
   };
 
   const enter = () => {
@@ -106,8 +113,8 @@ export function LoginFlow() {
       note={t("نسخة تجريبية: لا تُرسل أي رسالة حقيقية ولا تُحفظ البيانات إلا في متصفحك.", "Demo version: no real messages are sent, and your data is kept only in your browser.")}
       below={
         <DemoAccounts
-          heading={t("جرّب المنصة: خمس حالات", "Try the platform: five cases")}
-          hint={t("لكل حالة حاج جاهز بنتيجته: اضغط بطاقته فتدخل مباشرة، دون كلمة مرور ولا رمز تحقق، وتصل إلى الصفحة التي تخصه.", "A pilgrim ready for each case, with his result: click his card to sign in straight away, with no password or code, and land on his page.")}
+          heading={t("جرّب المنصة: ست حالات", "Try the platform: six cases")}
+          hint={t("حالتان تبدآن من الصفر فتقدّم الطلب بنفسك، وأربع طلباتها مقدَّمة بنتائجها. اضغط البطاقة فتدخل مباشرة، دون كلمة مرور ولا رمز تحقق، وتصل إلى الصفحة التي تخصها.", "Two cases start from scratch, so you apply yourself; four have applied, with their results. Click a card to sign in straight away, with no password or code, and land on its page.")}
           groups={[
             { items: DEMO_SCENARIOS.filter((s) => s.outcome).sort((a, b) => a.outcome! - b.outcome!).map(card) },
             ...(more ? [{ label: t("حالات لتجربة نموذج التسجيل نفسه", "Cases for trying the registration form itself"), items: DEMO_SCENARIOS.filter((s) => !s.outcome).map(card) }] : []),

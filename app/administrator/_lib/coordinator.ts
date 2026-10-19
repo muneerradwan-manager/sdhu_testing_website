@@ -9,6 +9,7 @@
  * سجّله (`submittedBy`) فيظهر في الطلب وفي سجل الأحداث، ولا يمكن حذفه.
  */
 
+import { isPhone, maskPhone } from "@/lib/phone";
 import { groupInfo } from "@/lib/assignment";
 import { firstPayment, planLabel, seasonPlan, type Plan } from "@/lib/installments";
 import { applicationNumberFor } from "@/lib/journey";
@@ -50,11 +51,11 @@ export function positionLabel(key: string) {
 
 /** A phone as the desk shows it when it is the citizen's own account's: masked but for its last three digits */
 export function maskedPhone(phone: string) {
-  return `${phone.slice(0, 2)}•• ••• ${phone.slice(-3)}`;
+  return maskPhone(phone);
 }
 
 /** A Syrian mobile number: 09 and eight digits, as the pilgrim's own sign-up asks */
-export const isMobile = (phone: string) => /^09\d{8}$/.test(phone);
+export const isMobile = (phone: string) => isPhone(phone);
 
 export type FiledApplication = { number: string; receipt: string };
 

@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { BadgeCheck, Eye, EyeOff, FlaskConical, IdCard, KeyRound, Mail, Phone, ShieldAlert, ShieldCheck, UserRound, Zap } from "lucide-react";
+import { BadgeCheck, Eye, EyeOff, FlaskConical, IdCard, KeyRound, Mail, ShieldAlert, ShieldCheck, UserRound, Zap } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useLang, useT } from "@/lib/i18n";
 import { fullName, type Person } from "@/lib/registry";
+import { maskPhone } from "@/lib/phone";
+import { CountryPhoneInput } from "@/components/ui/phone-input";
 import { cn, digitsOnly, maskNationalId } from "@/lib/utils";
 import { DEMO_OTP, Field, OtpInput, inputClass } from "./bits";
 import { Card, PortalShell } from "./shell";
@@ -178,6 +180,11 @@ export function FirstNameField({ value, onChange, error, hint, demoName }: { val
   );
 }
 
+/**
+ * A phone number from anywhere in the world: the country from a list of every country (its flag and dialling
+ * code, its name in the visitor's language), then the number as dialled there. Syria first. The value is the
+ * number in its international form (+963944123456).
+ */
 export function PhoneField({
   value,
   onChange,
@@ -192,13 +199,9 @@ export function PhoneField({
   hint?: string;
 }) {
   const t = useT();
-  const ar = useAr();
   return (
-    <Field label={label ?? t("رقم الهاتف", "Phone number")} hint={hint ?? t("سيصلك عليه رمز تحقق برسالة نصية", "We will text a verification code to this number")} error={error}>
-      <div className="relative">
-        <Phone className={icon} />
-        <input inputMode="tel" dir="ltr" maxLength={10} placeholder="09xxxxxxxx" autoComplete="tel" value={value} onChange={(e) => onChange(digitsOnly(e.target.value))} className={cn(inputClass, ar ? "pr-12" : "pl-12", "text-left font-mono tracking-widest")} />
-      </div>
+    <Field label={label ?? t("رقم الهاتف", "Phone number")} hint={hint ?? t("اختر دولتك من القائمة، ثم اكتب رقمك. سيصلك عليه رمز تحقق برسالة نصية.", "Choose your country from the list, then type your number. We will text a verification code to it.")} error={error}>
+      <CountryPhoneInput value={value} onChange={onChange} ariaLabel={t("رقم الهاتف", "Phone number")} invalid={!!error} className={cn(inputClass, "focus-within:border-green-light focus-within:ring-4 focus-within:ring-green-light/15", error && "border-maroon/60")} inputClassName="text-lg" />
     </Field>
   );
 }
@@ -312,7 +315,7 @@ export function OtpStep({ phone, confirm, onSuccess, onResend, back }: { phone?:
         {t("أرسلنا رمزاً من 4 أرقام إلى", "We sent a 4-digit code to")}{" "}
         {phone ? (
           <>
-            {t("الهاتف", "the phone")} <span dir="ltr" className="font-mono font-bold text-ink">{phone.slice(0, 4)} ••• {phone.slice(-3)}</span>
+            {t("الهاتف", "the phone")} <span dir="ltr" className="font-mono font-bold text-ink">{maskPhone(phone)}</span>
           </>
         ) : (
           t("هاتفك المسجّل", "your registered phone")

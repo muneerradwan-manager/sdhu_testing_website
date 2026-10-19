@@ -1247,6 +1247,13 @@ export const actions = {
   resetDemo() {
     setState(() => initial);
   },
+  /** One demo pilgrim gone from this device — his account, his application and its steps, his season — so the demo can open it afresh */
+  forgetPilgrim(id: string) {
+    setState((s) => {
+      const drop = <T,>(r: Record<string, T>) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== id));
+      return { ...s, accounts: drop(s.accounts), applications: drop(s.applications), post: drop(s.post), inSeason: drop(s.inSeason), sessionId: s.sessionId === id ? null : s.sessionId };
+    });
+  },
 
   // ── phase 2 ──
   logEvent(e: Omit<AuditEvent, "id" | "at">) {

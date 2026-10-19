@@ -90,7 +90,7 @@ export const PLACES: Record<string, string> = {
 
 export const placeEn = (s: string) => PLACES[s] ?? s;
 
-const CAPITALS: Record<string, string> = { "إسطنبول": "Istanbul", "القاهرة": "Cairo", "عمّان": "Amman" };
+const CAPITALS: Record<string, string> = { "إسطنبول": "Istanbul", "غازي عنتاب": "Gaziantep", "القاهرة": "Cairo", "عمّان": "Amman" };
 
 /** «مكتب دمشق» → «Damascus Office», «مكتب تركيا — إسطنبول» → «Türkiye Office — Istanbul» */
 export function officeEn(s: string) {

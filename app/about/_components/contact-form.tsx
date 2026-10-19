@@ -1,5 +1,7 @@
 "use client";
 
+import { CountryPhoneInput } from "@/components/ui/phone-input";
+import { isPhone } from "@/lib/phone";
 import { AnimatePresence, motion, useAnimate } from "motion/react";
 import { Check, Copy, LoaderCircle, Send, Ticket } from "lucide-react";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
@@ -21,7 +23,7 @@ const EMPTY: Values = { name: "", phone: "", email: "", subject: "", branch: "",
 function validate(v: Values, t: T): Errors {
   const e: Errors = {};
   if (v.name.trim().split(/\s+/).filter(Boolean).length < 2) e.name = t("اكتب اسمك الثنائي على الأقل.", "Enter at least your first and last name.");
-  if (!/^09\d{8}$/.test(v.phone.replace(/[\s-]/g, ""))) e.phone = t("رقم الجوال يبدأ بـ 09 ويتكون من 10 أرقام.", "The mobile number starts with 09 and has 10 digits.");
+  if (!isPhone(v.phone)) e.phone = t("اختر دولتك واكتب رقم جوال صحيحاً لها.", "Choose your country and type a valid mobile number for it.");
   if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) e.email = t("البريد الإلكتروني غير صحيح.", "The email address is not valid.");
   if (!v.subject) e.subject = t("اختر موضوع الرسالة.", "Choose a subject for your message.");
   if (v.message.trim().length < 20) e.message = t("اكتب رسالتك بعشرين حرفاً على الأقل.", "Write at least 20 characters.");
@@ -179,15 +181,12 @@ export function ContactForm() {
               <input {...aria("name")} value={values.name} onChange={set("name")} autoComplete="name" placeholder={t("مثال: محمد أحمد العلي", "e.g. Mohammad Ahmad Al-Ali")} className={cn(inputCls(errors.name), "h-12")} />
             </Field>
             <Field label={t("رقم الجوال", "Mobile number")} id={id("phone")} error={errors.phone}>
-              <input
-                {...aria("phone")}
+              <CountryPhoneInput
                 value={values.phone}
-                onChange={set("phone")}
-                inputMode="tel"
-                autoComplete="tel"
-                dir="ltr"
-                placeholder="09xx xxx xxx"
-                className={cn(inputCls(errors.phone), "h-12 rtl:text-end")}
+                onChange={(v) => set("phone")({ target: { value: v } })}
+                ariaLabel={t("رقم الجوال", "Mobile number")}
+                invalid={!!errors.phone}
+                className={cn(inputCls(errors.phone), "h-12 px-3")}
               />
             </Field>
             <Field label={t("البريد الإلكتروني", "Email")} id={id("email")} error={errors.email} optional>

@@ -1,5 +1,6 @@
 "use client";
 
+import { isPhone } from "@/lib/phone";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
@@ -65,7 +66,7 @@ export function AdminRegisterFlow() {
   const errors = {
     nationalId: !validId && "الرقم الوطني يتكون من 11 رقماً",
     firstName: !form.firstName.trim() && "اكتب اسمك الأول كما في البطاقة الشخصية",
-    phone: !/^09\d{8}$/.test(form.phone) && "رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام",
+    phone: !isPhone(form.phone) && "اكتب رقم هاتف صحيحاً للدولة التي اخترتها",
     email: form.email && !/^\S+@\S+\.\S+$/.test(form.email) && "صيغة البريد غير صحيحة",
     password: form.password.length < 6 && "كلمة المرور 6 أحرف على الأقل",
   };

@@ -1,5 +1,6 @@
 "use client";
 
+import { maskPhone } from "@/lib/phone";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -118,7 +119,7 @@ export function AdminDashboard() {
             {[
               ["العمر", `${ageOf(admin.person)} عاماً`],
               ["المحافظة", admin.person.governorate],
-              ["الهاتف", profile?.phone ? `${profile.phone.slice(0, 4)} ••• ${profile.phone.slice(-3)}` : "—"],
+              ["الهاتف", maskPhone(profile?.phone)],
               ["الصفة لموسم 1448", profile?.positions.length ? `${positionLabelOf(effectiveRole(profile))}${profile.cluster ? " (بتشكيل التكتل)" : profile.renewal === "keep" ? " (تجديد)" : ""}` : "لم تُحدَّد — التسجيل يتجدد كل موسم"],
             ].map(([k, v]) => (
               <div key={k} className="rounded-2xl bg-sand p-3">

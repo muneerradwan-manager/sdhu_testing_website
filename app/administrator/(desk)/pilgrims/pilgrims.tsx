@@ -197,7 +197,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
 
   /** The code to the phone: the one the citizen gave at the desk, or his account's */
   const sendCode = (to: string) => {
-    if (!isMobile(to)) return setPhoneError("رقم الهاتف يبدأ بـ 09 ويتكون من 10 أرقام");
+    if (!isMobile(to)) return setPhoneError("اكتب رقم هاتف صحيحاً للدولة التي اخترتها");
     setPhoneError("");
     setOtp("");
     setSentTo(to);
@@ -371,7 +371,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                         hint="هاتفه هو، لا هاتف المكتب: عليه يصل الرمز"
                       />
                       <div className="flex flex-wrap gap-3">
-                        <Button size="lg" onClick={() => sendCode(phone)} disabled={phone.length !== 10}>
+                        <Button size="lg" onClick={() => sendCode(phone)} disabled={!isMobile(phone)}>
                           <MessageSquare className="size-5" /> إرسال رمز التحقق
                         </Button>
                         <Button size="lg" variant="outline" onClick={reset}>

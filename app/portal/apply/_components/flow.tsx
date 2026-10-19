@@ -32,7 +32,7 @@ import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalI
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { SeasonPlanNote } from "@/components/payment/plan-picker";
 import { firstPayment, seasonPlan } from "@/lib/installments";
-import { ABROAD, SEASON, officeArea, officeFor, type Residence } from "@/lib/season";
+import { ABROAD, SEASON, countryOf, officeArea, officeFor, type Residence } from "@/lib/season";
 import { mergeSeason } from "@/lib/season-live";
 import { OperationClosed } from "@/components/app/operation-closed";
 import { rangeLabel, statusLabel, useAnyOperation, useToday } from "@/lib/operations";
@@ -184,7 +184,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
   const [adderReturn, setAdderReturn] = useState<"loop" | "booklet" | "review" | "eligibility">("loop");
   const [book, setBook] = useState<Book | null>((draft0?.book as Book | null) ?? null);
   // Where the applicant lives decides the office: the registry governorate inside Syria, or the country office abroad
-  const [residence, setResidence] = useState<Residence>((draft0?.residence as Residence) ?? "سوريا");
+  const [residence, setResidence] = useState<Residence>((draft0?.residence === "تركيا" ? "تركيا — إسطنبول" : (draft0?.residence as Residence)) ?? "سوريا");
   const [other, setOther] = useState({ id: "", stage: "id" as "id" | "loading" | "confirm" | "otp", person: null as Person | null, otp: "", error: "" });
   // How many times the eligibility check has run — only the first run reveals row by row
   const [checks, setChecks] = useState(0);
@@ -216,7 +216,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
   // Direct acceptance: the accepted age is known before registration, so it is checked now — before anything is paid.
   // The administration's own rules are read with the platform's, exactly as the submission reads them.
   const result = useMemo(
-    () => withConfigured(evaluate(members, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined), config.eligibility, { track, members, residence, answers, memberAnswers, elderlyMaxBirthYear: season.rules.elderlyNeedsCompanionMaxBirthYear }),
+    () => withConfigured(evaluate(members, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined), config.eligibility, { track, members, residence: countryOf(residence), answers, memberAnswers, elderlyMaxBirthYear: season.rules.elderlyNeedsCompanionMaxBirthYear }),
     [members, season.rules, track, season.acceptedDirectAge, config.eligibility, residence, answers, memberAnswers],
   );
   // A direct-acceptance application that ended without a place: the pilgrim may now register for the lottery
@@ -894,8 +894,8 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
               {screen === "residence" && applicant && (
                 <Question
                   title={said("residence").title ?? (applicant.id === sessionId ? "أين تقيم حالياً؟" : `أين يقيم ${applicant.firstName} حالياً؟`)}
-                  hint={said("residence").hint ?? "لكل محافظة مكتب واحد، ولنا مكاتب في تركيا ومصر والأردن. يتبع طلبك المكتب الأقرب إلى إقامتك تلقائياً، ومع هذا المكتب تُفوَّج إلى مجموعتك بعد القبول."}
-                  speak="أين تقيم حالياً؟ داخل سوريا، أو في تركيا، أو مصر، أو الأردن."
+                  hint={said("residence").hint ?? "لكل محافظة مكتب واحد، ولنا مكاتب في تركيا (إسطنبول وغازي عنتاب) ومصر والأردن. يتبع طلبك المكتب الأقرب إلى إقامتك، ومع هذا المكتب تُفوَّج إلى مجموعتك بعد القبول."}
+                  speak="أين تقيم حالياً؟ داخل سوريا، أو في تركيا: إسطنبول أو غازي عنتاب، أو مصر، أو الأردن."
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <Choice
@@ -913,7 +913,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                       <Choice
                         key={country}
                         index={i + 1}
-                        icon={RESIDENCE_FLAGS[country] ?? "🌍"}
+                        icon={RESIDENCE_FLAGS[countryOf(country)] ?? "🌍"}
                         label={`في ${country}`}
                         description={officeFor(country)}
                         selected={residence === country}

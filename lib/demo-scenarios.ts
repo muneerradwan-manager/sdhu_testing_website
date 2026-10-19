@@ -39,10 +39,6 @@ const FAMILIES: Record<string, { id: string; relation: Member["relation"]; compa
     { id: "01044400750", relation: "self" },
     { id: "01044400751", relation: "spouse" },
   ],
-  "01058100960": [
-    { id: "01058100960", relation: "self" },
-    { id: "01058100961", relation: "spouse" },
-  ],
   "01058200970": [
     { id: "01058200970", relation: "self" },
     { id: "01058200971", relation: "spouse" },
@@ -99,7 +95,7 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
     payMethod: "shamcash",
     ratings: {},
     // Not accepted on direct registration: the direct seats ran out at 69, above those born in 1958
-    ...((scenario.seed === "notAccepted" || notDrawn) && { announcedDirectAge: 69 }),
+    ...(notDrawn && { announcedDirectAge: 69 }),
     ...(notDrawn && { previous: { number: applicationNumberFor(id), track: "direct" as const, submittedAt: at - 40 * 86_400_000, closedAt: at - 30 * 86_400_000 } }),
   };
   actions.saveApplication(app);
