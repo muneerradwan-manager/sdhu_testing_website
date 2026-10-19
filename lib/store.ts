@@ -821,6 +821,8 @@ export type State = {
   flights: import("./flights").FlightsState;
   /** Before each rite: the cluster's buses and Rawdah slots the staff gave, and who is seated on each (lib/rite-lists.ts) */
   riteLists: import("./rite-lists").ListsState;
+  /** Visas of the demo's generated families (not applications of this device), by the pilgrim's id (lib/visas.ts) */
+  groupVisas: Record<string, PilgrimVisa>;
   /** The religious guides' lessons to their groups, and who came (lib/lessons.ts); a missing list means the seed */
   lessons: import("./lessons").LessonsState;
   /** Their activities followed pilgrim by pilgrim: Quran, hadith, supplications, a shared reading (lib/religious.ts) */
@@ -976,6 +978,7 @@ const initial: State = {
   ops: {},
   flights: {},
   riteLists: {},
+  groupVisas: {},
   lessons: {},
   activities: {},
   examHalls: { runs: {} },

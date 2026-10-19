@@ -96,14 +96,15 @@ function Hero({ season, onChoose }: { season: SeasonKey; onChoose: (s: SeasonKey
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.06 }}
           transition={{ duration: 0.8, ease: EASE }}
-          className="pointer-events-none absolute inset-x-0 top-24 -z-10 select-none text-center font-display text-[9rem] font-black leading-none text-transparent [-webkit-text-stroke:1px_rgba(217,200,158,.18)] sm:text-[14rem] md:top-28 md:text-[18rem]"
+          className="pointer-events-none absolute end-4 top-24 -z-10 select-none font-display md:end-12 text-[9rem] font-black leading-none text-transparent [-webkit-text-stroke:1px_rgba(217,200,158,.18)] sm:text-[14rem] md:top-28 md:text-[18rem]"
         >
           {season}
         </motion.span>
       </AnimatePresence>
 
       <div className="mx-auto max-w-7xl px-4 md:px-8">
-        <Reveal className="flex flex-col items-center text-center">
+        {/* The title and its subtitle on the start side, as every page of the site; the seasons and their figures centred */}
+        <Reveal className="flex flex-col items-start">
           <nav aria-label={t("مسار التنقل", "Breadcrumb")} className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-white/70">
             <Link href="/" className="hover:text-gold">
               {t("الرئيسية", "Home")}

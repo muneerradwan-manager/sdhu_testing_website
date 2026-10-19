@@ -54,7 +54,7 @@ export function useAdminScope(): AdminScope {
   return useMemo(() => scopeOf(admin?.profile, key ? key.split(",").map(Number) : undefined), [admin?.profile, key]);
 }
 
-/** The line a page shows whoever follows it without acting */
-export function viewOnlyText(s: AdminScope, what: string) {
-  return `${s.post}: للاطلاع فقط. يتابع ${what} ولا يشارك فيها؛ يقوم بها المنسق التقني في مجموعاته، ورئيس المجموعة ومعاونه في مجموعتهما.`;
+/** The line a page shows whoever follows it without acting; `techOnly` for what the coordinator alone does (the visas, the lists) */
+export function viewOnlyText(s: AdminScope, what: string, techOnly = false) {
+  return `${s.post}: للاطلاع فقط. يتابع ${what} ولا يشارك فيها؛ ${techOnly ? "يقوم بها المنسق التقني في مجموعاته." : "يقوم بها المنسق التقني في مجموعاته، ورئيس المجموعة ومعاونه في مجموعتهما."}`;
 }

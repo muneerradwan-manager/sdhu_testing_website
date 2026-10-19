@@ -3,7 +3,7 @@
 on his cluster's days (outbound and return at once) and one of its pilgrims alone on the Latakia return; then the
 lists before the rites — a bus filled from its checkbox panel, the Rawdah's lists of the men and the women. The
 cluster's head follows them (view only), the group head sees his group's flights.
-Then the group head's visas (a family the pilgrims' portal attached), the guides' religious lessons and activities.
+Then the coordinator's visas (a family the pilgrims' portal attached), the guides' religious lessons and activities.
 Usage: CAP_DIR=admin python adm_d.py <keep>"""
 import sys
 from cap import Cap, truncate
@@ -86,11 +86,12 @@ c.shot("gfl-top", "رحلات المجموعة: رحلة الذهاب ورحلة
 c.scroll_to("text=كشف المجموعة", 110)
 c.shot("gfl-list", "كشف المجموعة: رحلة كل فرد وحالته", hl=[("main button:has-text('طباعة')", "")], section=S)
 
-# ───────── the group head's visas: a family of his, as the pilgrims' portal attached it ─────────
+# ───────── the coordinator's visas: يوسف القطان's family in مجموعة اللطيف, as the pilgrims' portal attached it ─────────
 S = "V"
 c.goto("/login", wait=1200)
 p.locator("button:has-text('يوسف القطان')").first.click(); c.settle(2500)
-admin("أحمد سليمان الحمصي", "/administrator/visas")
+admin("سامر نبيل نجار", "/administrator/visas")
+p.locator("main button[aria-pressed]:has-text('اللطيف')").first.click(); c.settle(1200)
 c.shot("visas-list", "التأشيرات: كل عائلة ألحقها المكتب بمجموعتك، وتأشيرة كل فرد", hl=[("nav a[href*='/administrator/visas']", "1")], section=S)
 fam = p.locator("main [data-family]").first
 fam.locator("button[aria-label^='حذف تأشيرة']").first.click(); c.settle(900)

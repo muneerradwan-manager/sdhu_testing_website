@@ -24,8 +24,11 @@ export function StepVisa({ app, sessionId, stepLabel }: StepProps) {
   const post = useStore((s) => s.post[sessionId]);
   const [simulating, setSimulating] = useState(false);
   const visas = post?.visas ?? {};
-  // the group's head, as the family's group page names him
-  const headName = useMemo(() => groupInfo(post?.clusterId, post?.groupNumber).leader, [post?.clusterId, post?.groupNumber]);
+  // the group's technical coordinator, who adds the visas, as the family's group page names him
+  const headName = useMemo(() => {
+    const info = groupInfo(post?.clusterId, post?.groupNumber);
+    return info.team.find((t) => t.role === "المنسق التقني")?.name ?? info.leader;
+  }, [post?.clusterId, post?.groupNumber]);
   const added = app.members.filter((m) => visas[m.person.id]).length;
   const all = added === app.members.length;
 
@@ -37,7 +40,7 @@ export function StepVisa({ app, sessionId, stepLabel }: StepProps) {
       setTimeout(() => {
         const r = addVisa(sessionId, m.person.id, { number: demoVisaNumber(app.number, i), at: Date.now(), by: `${headName} (محاكاة)` });
         if (r.complete) {
-          toast({ title: "صدرت تأشيرات جميع أفراد طلبك", body: "أضافها رئيس مجموعتك، وحُددت رحلتا الذهاب والعودة. بطاقتا الرحلة في قسم «رحلة الذهاب والعودة».", icon: "🛂", tone: "success" });
+          toast({ title: "صدرت تأشيرات جميع أفراد طلبك", body: "أضافها منسق مجموعتك التقني، وحُددت رحلتا الذهاب والعودة. بطاقتا الرحلة في قسم «رحلة الذهاب والعودة».", icon: "🛂", tone: "success" });
           confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 }, colors: ["#D9C89E", "#00594F", "#289E92", "#ffffff"] });
           setSimulating(false);
         }
@@ -47,7 +50,7 @@ export function StepVisa({ app, sessionId, stepLabel }: StepProps) {
 
   const pipeline = [
     { icon: <Globe2 className="size-5" />, t: "وزارة الخارجية السعودية", d: "تصدر تأشيرة كل فرد بجوازه", ok: added > 0 || simulating },
-    { icon: <Mail className="size-5" />, t: "بريد إلى رئيس المجموعة", d: `تصل التأشيرات إلى ${headName}`, ok: added > 0 },
+    { icon: <Mail className="size-5" />, t: "بريد إلى المجموعة", d: `تصل التأشيرات إلى منسقها ${headName}`, ok: added > 0 },
     { icon: <Stamp className="size-5" />, t: "يضيفها إليكم", d: "لكل فرد تأشيرته في «خزنة الوثائق»", ok: all },
   ];
 
@@ -55,8 +58,8 @@ export function StepVisa({ app, sessionId, stepLabel }: StepProps) {
     <Question
       step={stepLabel ?? "الخطوة 7 من 7"}
       title="التأشيرة والرحلة"
-      hint="تصدر تأشيرة كل فرد من وزارة الخارجية السعودية وتصل بالبريد إلى رئيس مجموعتك، فيضيفها إليكم. حين تكتمل تُحدَّد الرحلات والفنادق والمخيمات وبطاقات الحج."
-      speak="التأشيرة والرحلة. يضيف رئيس مجموعتك تأشيرة كل فرد حين تصله من وزارة الخارجية السعودية."
+      hint="تصدر تأشيرة كل فرد من وزارة الخارجية السعودية وتصل بالبريد إلى مجموعتك، فيضيفها إليكم منسقها التقني. حين تكتمل تُحدَّد الرحلات والفنادق والمخيمات وبطاقات الحج."
+      speak="التأشيرة والرحلة. يضيف منسق مجموعتك التقني تأشيرة كل فرد حين تصله من وزارة الخارجية السعودية."
     >
       <div className="grid gap-3 md:grid-cols-3">
         {pipeline.map((p, i) => (

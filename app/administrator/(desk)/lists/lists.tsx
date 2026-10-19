@@ -79,7 +79,7 @@ export function AdminLists() {
 
   return (
     <AdminShell image="/images/kaaba-panoramio.jpg" title="القوائم" subtitle="رحلات الطيران ذهاباً وعودة، ثم قبل كل منسك: من يذهب من الحجاج والإداريين، وعلى أي حافلة من الحافلات التي أسندها موظفو الحج والعمرة إلى التكتل. وللروضة الشريفة قائمتان: الرجال والنساء.">
-      {scope.viewOnly && tab !== "flights" && <ViewOnlyNote>{viewOnlyText(scope, "القوائم والحافلات")}</ViewOnlyNote>}
+      {scope.viewOnly && tab !== "flights" && <ViewOnlyNote>{viewOnlyText(scope, "القوائم والحافلات", true)}</ViewOnlyNote>}
       <div className="scrollbar-none -mx-4 mb-5 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="flex w-max gap-1 rounded-2xl border border-gold/30 bg-white p-1" role="tablist" aria-label="القوائم">
           {[{ key: "flights" as const, label: "الطيران" }, ...LIST_KINDS].map((x) => (

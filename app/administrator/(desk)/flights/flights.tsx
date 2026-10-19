@@ -3,6 +3,8 @@
 import { motion } from "motion/react";
 import { AlertTriangle, CalendarDays, Check, Info, Lock, PlaneLanding, PlaneTakeoff, Printer, Search, UserPlus, Users, X } from "lucide-react";
 import { createContext, useContext, useMemo, useState, type ComponentProps } from "react";
+import { flushSync } from "react-dom";
+import { PrintSheet } from "@/components/print/print-sheet";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
@@ -160,6 +162,12 @@ function ClusterFlights() {
   );
   const stats = useGroupStats(groups, data);
   const [dialog, setDialog] = useState<Dialog>(null);
+  // What goes to paper: one flight's list, or every day's
+  const [printing, setPrinting] = useState<string | null>(null);
+  const print = (flightId: string | null) => {
+    flushSync(() => setPrinting(flightId));
+    window.print();
+  };
   const total = stats.reduce((n, s) => n + s.total, 0);
   const outN = stats.reduce((n, s) => n + s.out.n, 0);
   const backN = stats.reduce((n, s) => n + s.back.n, 0);
@@ -191,11 +199,18 @@ function ClusterFlights() {
         ))}
       </div>
 
-      {scope.viewOnly && <ViewOnlyNote>{viewOnlyText(scope, "إسناد المجموعات إلى الرحلات")}</ViewOnlyNote>}
+      {scope.viewOnly && <ViewOnlyNote>{viewOnlyText(scope, "إسناد المجموعات إلى الرحلات", true)}</ViewOnlyNote>}
       <div className="mb-6"><HowItWorks head={head} /></div>
 
       <Card className="mb-6">
-        <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><CalendarDays className="size-6 text-gold-dark" /> أيام رحلات التكتل</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><CalendarDays className="size-6 text-gold-dark" /> أيام رحلات التكتل</h2>
+          {days.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => print(null)}>
+              <Printer className="size-4" /> طباعة كشوف الرحلات
+            </Button>
+          )}
+        </div>
         <p className="mt-1 text-sm text-ink-soft">الرحلات التي أعطاها مسؤول الطيران {view.name}، ومقاعد التكتل على كل منها.</p>
         {days.length === 0 ? (
           <p className="mt-4 rounded-2xl bg-sand/70 p-6 text-center text-ink-soft">لم يعطِ مسؤول الطيران تكتلك أياماً بعد. حين يعطيه إياها تظهر هنا رحلات الذهاب والعودة{head ? "، فتضع مجموعاتك عليها" : ""}.</p>
@@ -211,7 +226,7 @@ function ClusterFlights() {
                 </h3>
                 <div className="grid gap-4 lg:grid-cols-2">
                   {list.map(({ f }) => (
-                    <DayCard key={f.id} f={f} clusterId={view.id} data={data} head={head} onGroups={() => setDialog({ kind: "groups", f })} onPilgrims={() => setDialog({ kind: "pilgrims", f })} />
+                    <DayCard key={f.id} f={f} clusterId={view.id} data={data} head={head} onPrint={() => print(f.id)} onGroups={() => setDialog({ kind: "groups", f })} onPilgrims={() => setDialog({ kind: "pilgrims", f })} />
                   ))}
                   {list.length === 0 && <p className="rounded-2xl bg-sand/60 p-4 text-sm text-ink-soft lg:col-span-2">لا رحلة {DIRECTION_LABEL[dir]} لتكتلك بعد.</p>}
                 </div>
@@ -258,6 +273,10 @@ function ClusterFlights() {
         </>
       )}
 
+      <PrintSheet>
+        <FlightsSheet title={`كشوف رحلات ${coord ? (coord.groups.length === 1 ? groupName(coord.groups[0].number) : "مجموعاتي") : view.name}`} cluster={view.name} flights={days.map((x) => x.f).filter((f) => !printing || f.id === printing)} clusterId={view.id} groups={stats.map((x) => x.g.number)} data={data} />
+      </PrintSheet>
+
       {dialog?.kind === "groups" && <AssignGroups f={dialog.f} clusterId={view.id} data={data} stats={stats} onClose={() => setDialog(null)} />}
       {dialog?.kind === "pilgrims" && <AddPilgrims f={dialog.f} clusterId={view.id} data={data} stats={stats} onClose={() => setDialog(null)} />}
     </Shell>
@@ -278,7 +297,7 @@ function FlightChip({ f, data }: { f: Flight; data: FlightsData }) {
 const statusTone = (f: Flight) => (f.status === "published" ? "green" : f.status === "locked" || f.status === "full" ? "gold" : f.status === "postponed" || f.status === "cancelled" ? "maroon" : "ink");
 
 /** One of the cluster's days: the flight, the cluster's seats on it, its groups and the pilgrims added by hand */
-function DayCard({ f, clusterId, data, head, onGroups, onPilgrims }: { f: Flight; clusterId: string; data: FlightsData; head: boolean; onGroups: () => void; onPilgrims: () => void }) {
+function DayCard({ f, clusterId, data, head, onGroups, onPilgrims, onPrint }: { f: Flight; clusterId: string; data: FlightsData; head: boolean; onGroups: () => void; onPilgrims: () => void; onPrint: () => void }) {
   const admin = useAdmin()!;
   const toast = useToast();
   const seats = clusterSeats(f, clusterId, data);
@@ -301,7 +320,12 @@ function DayCard({ f, clusterId, data, head, onGroups, onPilgrims }: { f: Flight
           <p className="mt-1 font-bold">{tripLabel(data, f)} <span className="font-normal text-ink-soft">— {fmtClock(f.departAt)} ← {fmtClock(f.arriveAt)}</span></p>
           {f.direction === "return" && <p className="mt-0.5 text-xs text-hint">لمن أقلع من {homesFor(f, data)}</p>}
         </div>
-        <Badge tone={statusTone(f)}>{STATUS_LABEL[f.status]}</Badge>
+        <span className="flex items-center gap-1">
+          <button type="button" onClick={onPrint} aria-label={`طباعة كشف ${f.flightNo}`} title={`طباعة كشف ${f.flightNo}`} className="rounded-lg p-1.5 text-green-dark hover:bg-sand">
+            <Printer className="size-4" />
+          </button>
+          <Badge tone={statusTone(f)}>{STATUS_LABEL[f.status]}</Badge>
+        </span>
       </div>
 
       <div className="mt-3">
@@ -610,7 +634,7 @@ function GroupFlights() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><Users className="size-6 text-gold-dark" /> كشف المجموعة</h2>
-          <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4" /> طباعة</Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4" /> طباعة الكشف</Button>
         </div>
         <p className="mt-1 text-sm text-ink-soft">{s.total} فرداً: {s.out.n} على رحلة ذهاب، {s.back.n} على رحلة عودة. من يسافر وحده تظهر رحلته في سطره.</p>
         <div className="mt-4 overflow-x-auto">
@@ -622,7 +646,94 @@ function GroupFlights() {
           </table>
         </div>
       </Card>
+      <PrintSheet>
+        <GroupSheet title={`كشف ${groupName(g.number)}`} rows={rows} data={data} />
+      </PrintSheet>
     </Shell>
+  );
+}
+
+const cell = "border border-black/40 px-2 py-1 text-right";
+
+/** The cluster's flights on paper: each flight, then its travellers of the groups shown, a line each to tick at the gate */
+function FlightsSheet({ title, cluster, flights, clusterId, groups, data }: { title: string; cluster: string; flights: Flight[]; clusterId: string; groups: number[]; data: FlightsData }) {
+  return (
+    <div className="text-[11pt] leading-6">
+      <h1 className="text-[18pt] font-bold">{flights.length === 1 ? `كشف الرحلة ${flights[0].flightNo}` : title}</h1>
+      <p>{cluster}</p>
+      {flights.map((f) => {
+        const on = data.assignments
+          .filter((a) => a.flightId === f.id && a.clusterId === clusterId && isActive(a) && a.travelerKind !== "employee" && a.groupNumber !== undefined && groups.includes(a.groupNumber))
+          .sort((x, y) => (x.groupNumber ?? 0) - (y.groupNumber ?? 0) || x.name.localeCompare(y.name, "ar"));
+        return (
+          <section key={f.id} className="mt-5 break-inside-avoid-page">
+            <h2 className="text-[13pt] font-bold">
+              <span dir="ltr">{f.flightNo}</span> — {DIRECTION_LABEL[f.direction]} — {tripLabel(data, f)} — {on.length} مسافراً
+            </h2>
+            <p className="text-[10pt]">{fmtHijri(f.departAt)} — {fmtGreg(f.departAt)} — الإقلاع {fmtClock(f.departAt)} والوصول {fmtClock(f.arriveAt)} — {carrierOf(data, f.carrierId)?.name}</p>
+            <table className="mt-2 w-full border-collapse text-[10pt]">
+              <thead>
+                <tr>{["#", "الاسم", "الصفة", "المجموعة", "المقعد", "يحتاج", "صعد ✓"].map((h) => <th key={h} className={cell}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {on.map((a, n) => (
+                  <tr key={a.id}>
+                    <td className={cn(cell, "tabular-nums")}>{n + 1}</td>
+                    <td className={cell}>{a.name}</td>
+                    <td className={cell}>{a.travelerKind === "administrator" ? "إداري" : "حاج"}</td>
+                    <td className={cell}>{a.groupNumber !== undefined ? groupName(a.groupNumber) : "—"}</td>
+                    <td className={cell}><span dir="ltr">{a.seat ?? "—"}</span></td>
+                    <td className={cell}>{a.needs?.join("، ") || "—"}</td>
+                    <td className={cn(cell, "w-14")} />
+                  </tr>
+                ))}
+                {on.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className={cn(cell, "text-center")}>لا أحد عليها من هذه المجموعات.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The group's manifest on paper: family by family, each member's flight out and back */
+function GroupSheet({ title, rows, data }: { title: string; rows: { id: string; title: string; members: Traveler[] }[]; data: FlightsData }) {
+  const fl = (id?: string) => data.flights.find((f) => f.id === id);
+  const leg = (id: string, d: Direction) => {
+    const f = fl(itineraryOf(id, data)[d]?.flightId);
+    return f ? `${f.flightNo} — ${fmtHijriShort(f.departAt)} ${fmtClock(f.departAt)}` : "—";
+  };
+  let n = 0;
+  return (
+    <div className="text-[11pt] leading-6">
+      <h1 className="text-[18pt] font-bold">{title}</h1>
+      <table className="mt-3 w-full border-collapse text-[10pt]">
+        <thead>
+          <tr>{["#", "الاسم", "الذهاب", "العودة", "صعد ✓"].map((h) => <th key={h} className={cell}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => [
+            <tr key={r.id}>
+              <td colSpan={5} className={cn(cell, "bg-black/5 font-bold")}>{r.title}</td>
+            </tr>,
+            ...r.members.map((m) => (
+              <tr key={m.id}>
+                <td className={cn(cell, "tabular-nums")}>{++n}</td>
+                <td className={cell}>{m.name}{m.needs?.length ? ` (${m.needs.join("، ")})` : ""}</td>
+                <td className={cell}><span dir="ltr">{leg(m.id, "outbound")}</span></td>
+                <td className={cell}><span dir="ltr">{leg(m.id, "return")}</span></td>
+                <td className={cn(cell, "w-14")} />
+              </tr>
+            )),
+          ])}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
