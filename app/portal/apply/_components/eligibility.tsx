@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, ArrowLeft, CheckCircle2, CircleMinus, Ticket, UserPlus, UserRoundCog, UserRoundX, Users, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, CircleMinus, Ticket, UserPlus, UserRoundCog, UserRoundX, Users, XCircle, FlaskConical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ageOf, relationLabel } from "@/lib/registry";
@@ -17,6 +17,15 @@ const ICON = {
 };
 
 export type EligibilityFix = "none" | "remove" | "addPerson" | "lottery";
+
+/** The demo's way past a failed condition: it is treated as met, and stays marked as simulated */
+function SimButton({ onClick, text = "محاكاة: اعتبر الشرط محققاً للتجربة" }: { onClick: () => void; text?: string }) {
+  return (
+    <button type="button" onClick={onClick} className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-dashed border-gold-dark px-3 py-1 text-sm font-semibold text-maroon">
+      <FlaskConical className="size-4" /> {text}
+    </button>
+  );
+}
 
 /** The fix the administration set on its own rule: adding someone, or registering for the lottery instead */
 function ConfiguredFix({ fix, onAddPerson, onSwitchToLottery }: { fix?: EligibilityFix | null; onAddPerson: () => void; onSwitchToLottery?: () => void }) {
@@ -50,6 +59,7 @@ export function EligibilityCheck({
   onChangeApplicant,
   onSwitchToLottery,
   fixOf,
+  onSimulate,
 }: {
   result: EligibilityResult;
   members: Member[];
@@ -66,6 +76,8 @@ export function EligibilityCheck({
   /** Re-pick the dedicated companion of this elderly member */
   onFixCompanion: (elderlyId: string) => void;
   onChangeApplicant: () => void;
+  /** The demo: treat a failed condition as met («<member id>:<key>» or «general:<key>») */
+  onSimulate?: (key: string, label: string) => void;
 }) {
   const totalRows = result.members.reduce((n, m) => n + m.checks.length, 0) + result.general.length;
   const [shown, setShown] = useState(animate ? 0 : totalRows);
@@ -163,6 +175,7 @@ export function EligibilityCheck({
                 onChangeApplicant={onChangeApplicant}
                 onSwitchToLottery={onSwitchToLottery}
                 fixOf={fixOf}
+                onSimulate={onSimulate}
               />
             )}
           </motion.div>
@@ -186,12 +199,14 @@ function Fixes({
   onChangeApplicant,
   onSwitchToLottery,
   fixOf,
+  onSimulate,
 }: {
   result: EligibilityResult;
   members: Member[];
   rules: SeasonRules;
   fixOf?: (key: string) => EligibilityFix | null;
   onSwitchToLottery?: () => void;
+  onSimulate?: (key: string, label: string) => void;
   onRemove: (id: string) => void;
   onAddPerson: () => void;
   onFixCompanion: (elderlyId: string) => void;
@@ -210,6 +225,7 @@ function Fixes({
   return (
     <div className="space-y-4 rounded-3xl bg-maroon/6 p-4 md:p-5">
       <p className="font-display text-xl font-bold text-maroon">عدّل الطلب من هنا مباشرة</p>
+      {onSimulate && <p className="rounded-2xl bg-white/70 px-4 py-2 text-sm leading-7 text-ink-soft">للتجربة: تحت كل شرط لم يتحقق زر «محاكاة» يعتبره محققاً، فتكمل التجربة دون تعديل الطلب.</p>}
 
       {limitFail && (
         <div className="rounded-2xl bg-white p-4 ring-1 ring-maroon/20">
@@ -226,6 +242,7 @@ function Fixes({
             )}
             . ومن يُزال يمكنه تقديم طلب مستقل.
           </p>
+          {onSimulate && <SimButton onClick={() => onSimulate("general:limit", "عدد المرافقين")} />}
           <ul className="mt-3 space-y-2">
             {companions.map((c) => {
               const breaksFamily = familyPossible && nonFamily.includes(c);
@@ -309,6 +326,8 @@ function Fixes({
                   )}
                 </div>
                 {!isSelf && FIXED_KEYS.has(f.key) && <p className="mt-2 text-xs text-hint">هذا الشرط لا يتغيّر بتعديل الطلب، فالحل إزالته ليكمل الباقون.</p>}
+                {/* In another application: the simulation takes him out of it, so the submission holds */}
+                {onSimulate && <SimButton onClick={() => onSimulate(`${f.memberId}:${f.key}`, `${first}: ${f.label}`)} text={f.key === "single-application" ? `محاكاة: أزِل ${first} من طلبه السابق ليُقدَّم هنا` : undefined} />}
               </div>
             );
           })}
@@ -324,6 +343,7 @@ function Fixes({
             <div className="mt-3 flex flex-wrap gap-2">
               <ConfiguredFix fix={fixOf?.(g.key)} onAddPerson={onAddPerson} onSwitchToLottery={onSwitchToLottery} />
             </div>
+            {onSimulate && <SimButton onClick={() => onSimulate(`general:${g.key}`, g.label)} />}
           </div>
         ))}
     </div>

@@ -6,6 +6,8 @@ import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   BellRing,
+  Bus,
+  Eye,
   ClipboardList,
   BookMarked,
   BookOpenText,
@@ -23,7 +25,6 @@ import {
   Mails,
   MapPinned,
   MessagesSquare,
-  Plane,
   ScrollText,
   Stamp,
   Star,
@@ -41,7 +42,7 @@ import { cn, formatUSD } from "@/lib/utils";
 import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
 import { useClusterChannel } from "../_lib/channel";
 import { groupPagesOf, myGroupNumbers, pageWriterOf } from "../_lib/directory";
-import { lessonRoleOf } from "@/lib/lessons";
+import { scopeOf } from "../_lib/scope";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
 
 // ───────────────────────── Guard ─────────────────────────
@@ -106,7 +107,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
  * dates, or by the staff who control it (lib/operations.ts), and a closed one stays in the menu with when it
  * opens. Stages exist only inside an operation that has several steps.
  */
-type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean; /** Works in a cluster: its channel opens */ inChannel: boolean; /** Signed a group's or a cluster's contract */ contracts: boolean };
+type NavCtx = { p: AdminProfile | undefined; head: boolean; tech: boolean; cluster: boolean; /** Follows the operations only: the cluster's head, its assistant, its accountant */ viewer: boolean; /** A guide or a female guide: the religious lessons and activities only */ guide: boolean; inGroup: boolean; role: boolean; register: boolean; served: boolean; /** Works in a cluster: its channel opens */ inChannel: boolean; /** Signed a group's or a cluster's contract */ contracts: boolean };
 
 type NavItem = {
   href: string;
@@ -117,6 +118,8 @@ type NavItem = {
 };
 
 const serving = (c: NavCtx) => c.inGroup || c.cluster;
+/** The operations: everyone placed but the guides, who have the religious lessons and activities only */
+const operating = (c: NavCtx) => serving(c) && !c.guide;
 /**
  * A group head has one group, and so has a guide or an assistant in its seat: the plural is only for whoever
  * serves several (a coordinator or a female guide, distributed on groups). A cluster assistant works for the whole cluster.
@@ -124,7 +127,7 @@ const serving = (c: NavCtx) => c.inGroup || c.cluster;
 const groupsTab = (c: NavCtx) =>
   c.p?.servesIn?.role === "cluster-assistant" ? "مجموعات التكتل" : (c.p?.coordinatorIn?.groups.length ?? c.p?.servesIn?.groups.length ?? 1) > 1 ? "إدارة المجموعات" : "إدارة المجموعة";
 /** A cluster's head opens its groups — each with its team and pilgrims — inside «إدارة التكتل» */
-const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster;
+const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster && !c.guide;
 
 const NAV: NavItem[] = [
   { href: "/administrator/dashboard", label: "ملفي", icon: LayoutDashboard },
@@ -151,13 +154,15 @@ const NAV: NavItem[] = [
   { href: "/administrator/group-page", label: (c) => ((groupPagesOf(c.p)?.groups.length ?? 0) > 1 ? "صفحات المجموعات العامة" : "صفحة المجموعة العامة"), icon: Images, show: (c) => !!groupPagesOf(c.p) },
   { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   // The visas the Saudi foreign ministry emails to the group's head, added by him to each of his pilgrims
-  { href: "/administrator/visas", label: "التأشيرات", icon: Stamp, show: (c) => !!c.p?.group?.approvedAt },
-  { href: "/administrator/flights", label: "الرحلات", icon: Plane, show: serving },
-  { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: serving },
+  { href: "/administrator/visas", label: "التأشيرات", icon: Stamp, show: operating },
+  // The flights out and back, then before each rite who goes and on which of the buses the Hajj and Umrah staff
+  // gave — the coordinator's; a group's head and assistant see their group's, the cluster's head follows
+  { href: "/administrator/lists", label: "القوائم", icon: Bus, show: operating },
+  { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: operating },
   // The guides' lessons to their groups' pilgrims, with who came; the heads follow them
-  { href: "/administrator/lessons", label: "الدروس الدينية", icon: BookOpenText, show: (c) => !!lessonRoleOf(c.p) || (c.head && c.inGroup) || c.cluster },
+  { href: "/administrator/lessons", label: "الدروس الدينية", icon: BookOpenText, show: serving },
   // What they follow pilgrim by pilgrim: memorising the Quran and hadith, the supplications, a shared reading
-  { href: "/administrator/activities", label: "النشاطات الدينية", icon: BookMarked, show: (c) => !!lessonRoleOf(c.p) || (c.head && c.inGroup) || c.cluster },
+  { href: "/administrator/activities", label: "النشاطات الدينية", icon: BookMarked, show: serving },
   // After the season: his self-evaluation, his cadre's if he heads a cluster, and his result
   { href: "/administrator/evaluation", label: "التقييم بعد الموسم", icon: Star, ops: ["self-evaluation", "peer-evaluation"], show: serving },
 ];
@@ -170,7 +175,8 @@ function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Reco
   // A head's group counts once it is approved; a guide, an assistant or a coordinator works in the groups assigned to him
   const inGroup = head ? !!p?.group?.approvedAt : !!p?.servesIn || !!p?.coordinatorIn;
   const contracts = inChannel || inGroup || (!!id && myGroupNumbers(id, p, getState().admins).length > 0);
-  return { p, head, tech, cluster, inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id), inChannel, contracts };
+  const kind = scopeOf(p).kind;
+  return { p, head, tech, cluster, viewer: kind === "cluster", guide: kind === "guide", inGroup, role: !!role, register: !!role && table["pilgrims.register"].includes(permissionRole(p)), served: !!id && servedBefore(id), inChannel, contracts };
 }
 
 export type AdminNavEntry = { href: string; label: string; icon: LucideIcon; open: boolean; shown?: OperationState; /** Unread, beside the label */ badge?: number };
@@ -319,6 +325,15 @@ export function LockedCard({ title, text, href, cta }: { title: string; text: st
         </ButtonLink>
       </div>
     </motion.div>
+  );
+}
+
+/** Over a page its reader follows without acting: the cluster's head, its assistant and its accountant */
+export function ViewOnlyNote({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-5 flex items-start gap-2 rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm leading-7 text-ink-soft">
+      <Eye className="mt-1 size-4 shrink-0 text-gold-dark" /> <span>{children}</span>
+    </p>
   );
 }
 

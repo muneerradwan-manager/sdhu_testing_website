@@ -72,7 +72,7 @@ if ONLY in (None, "head"):
     c, p = session("01033300881")
     c.shot("head-dash", "رئيس التكتل: ملفي — صفته وتكتله المعتمد", section=S)
     c.goto("/administrator/clusters", wait=2000)
-    c.shot("head-manage", "إدارة التكتل: شُكّل في المكتب — مجموعاته بفئاتها ومقاعد فريقها، وتبويبات الكادر والعقد والخطة", section=S)
+    c.shot("head-manage", "إدارة التكتل: شُكّل في المكتب — مجموعاته بفئاتها ومقاعد فريقها، وتبويبات الكادر والخطة", section=S)
     p.locator("main button:has-text('افتحها')").first.click(); c.settle(1500)
     c.scroll_top()
     c.shot("head-group-open", "مجموعة من التكتل: فريقها في مقاعدها، وحجاجها وعقودهم", section=S)
@@ -87,8 +87,6 @@ if ONLY in (None, "head"):
     sel.select_option(other[0]); c.settle(900)
     c.shot("head-coord-confirm", "تأكيد تغيير المنسق: من يترك المجموعة ومن يأخذها، وحمل كلٍّ من حدّه", hl=[("[role=dialog] button:has-text('موافق')", "")], section=S)
     p.locator("[role=dialog] button:has-text('إلغاء')").click(); c.settle(600)
-    tab(p, c, "العقد")
-    c.shot("head-contract", "العقد: عقد التكتل الموقّع كما رفعه الموظف، يُفتح بالضغط عليه", hl=[("main button:has-text('فتح العقد')", "")], section=S)
     tab(p, c, "الخطة التشغيلية")
     c.shot("head-plan", "الخطة التشغيلية: خلاصتها وملفها، تقدّمها للإدارة", section=S)
     p.get_by_label("خلاصة الخطة").fill("فندقان في العزيزية على 3 كم من الحرم، وفندق في المدينة على 400 م. حافلات حديثة بين المشاعر، وثلاث وجبات. الكادر موزّع على المراحل الخمس، ولكل مجموعة نقطة تجمّع.")
@@ -96,6 +94,9 @@ if ONLY in (None, "head"):
     btn(p, c, "تقديم الخطة", 1500)
     c.scroll_top()
     c.shot("head-plan-sent", "قُدّمت الخطة: تنتظر قرار الإدارة، ويصلك هنا وفي الإشعارات", section=S)
+    # the groups' operations he follows without doing any: the visas, as one of them
+    c.goto("/administrator/visas", wait=2000)
+    c.shot("chead-viewonly", "رئيس التكتل يتابع للاطلاع: «للاطلاع فقط» في أعلى الصفحة، وأزرار مجموعات التكتل", hl=[("main p:has-text('للاطلاع فقط')", "")], section=S)
     # the public page has its own entry in the sidebar
     c.goto("/administrator/cluster-page", wait=1800)
     c.shot("head-profile", "صفحة التكتل العامة في «التكتلات والمجموعات»: التعديل", hl=[("aside a[href='/administrator/cluster-page']", "")], section=S)
@@ -171,17 +172,23 @@ if ONLY in (None, "tech"):
 # ───────── the group's team, and the cluster's own posts ─────────
 if ONLY in (None, "members"):
     S = "M"
-    for demo, key, cap in [("01033300872", "gdep", "معاون المجموعة"), ("01033300873", "guide", "موجّه المجموعة")]:
-        c, p = session(demo)
-        c.shot(f"{key}-dash", f"{cap}: ملفي", section=S)
-        c.goto("/administrator/groups", wait=1800)
-        c.shot(f"{key}-group", f"{cap}: إدارة المجموعة", section=S)
-        c.goto("/administrator/requests", wait=1800)
-        jump(p, c)
-        c.shot(f"{key}-requests", f"{cap}: حجاج المجموعة", section=S)
-        c.goto("/administrator/field", wait=1800)
-        c.shot(f"{key}-field", f"{cap}: الميدان", section=S)
-        c.close()
+    # the group's assistant does its operations with its head
+    c, p = session("01033300872")
+    c.shot("gdep-dash", "معاون المجموعة: ملفي", section=S)
+    c.goto("/administrator/groups", wait=1800)
+    c.shot("gdep-group", "معاون المجموعة: إدارة المجموعة", section=S)
+    c.goto("/administrator/requests", wait=1800)
+    jump(p, c)
+    c.shot("gdep-requests", "معاون المجموعة: حجاج المجموعة، ويستقبل العائلات", section=S)
+    c.goto("/administrator/field", wait=1800)
+    c.shot("gdep-field", "معاون المجموعة: الميدان — أداء المناسك وقناة المجموعة", section=S)
+    c.close()
+    # the guide: the religious lessons and activities only — the field is locked to him
+    c, p = session("01033300873")
+    c.shot("guide-dash", "موجّه المجموعة: ملفي، وفي قائمته الدروس والنشاطات الدينية", section=S)
+    c.goto("/administrator/field", wait=1800)
+    c.shot("guide-field-locked", "الميدان لفريق عمليات المجموعة: عمل الموجّه في الدروس والنشاطات الدينية", hl=[("main a[href='/administrator/lessons'] >> nth=-1", "")], section=S)
+    c.close()
     # The field of someone who works in several groups: his groups on top with their pictures, the first one's tools under them
     c, p = session("01033300874", "/administrator/field")
     c.shot("field-pick", "الميدان لمن يعمل في أكثر من مجموعة: مجموعاته في الأعلى بصورها، وأدوات المختارة منها تحتها", hl=[("main [role=radiogroup][aria-label='المجموعة']", "")], section=S)
@@ -189,9 +196,6 @@ if ONLY in (None, "members"):
     # The cluster's public page: its team writes it, not its head alone
     c, p = session("01033300872", "/administrator/cluster-page")
     c.shot("team-page", "صفحة التكتل العامة لفريق التكتل: معاون المجموعة يكتب فيها ويرسلها للاعتماد", hl=[("aside a[href='/administrator/cluster-page']", "")], section=S)
-    c.close()
-    c, p = session("01033300981", "/administrator/groups")
-    c.shot("gf-groups", "موجّهة التكتل: المجموعات التي وُزّعت عليها ضمن حدّها من الوحدات", section=S)
     c.close()
 
 # ───────── «قناة التكتل»: its head, then a member who reads ─────────

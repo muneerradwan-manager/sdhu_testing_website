@@ -25,6 +25,7 @@ export const PAGES_EN_SITE: PagesEn = {
         { href: "/faq", label: "FAQ", note: "Approved answers, sorted and searchable", soon: false },
         { href: "/verify", label: "Verify agencies and documents", note: "Approved campaigns, receipts, certificates", soon: false },
         { href: "/3d", label: "3D tour", note: "The Two Holy Mosques, the holy sites, Aisha and Quba mosques", soon: false },
+        { href: "/honours", label: "Hall of Honour", note: "The distinguished and the best group heads of every season", soon: false },
       ],
     },
     footer: {

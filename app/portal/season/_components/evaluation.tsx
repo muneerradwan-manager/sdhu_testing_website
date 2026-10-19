@@ -63,7 +63,7 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
           <p className="mt-5 font-display text-4xl font-bold md:text-6xl">حمداً لله على السلامة</p>
           <p className="mt-3 text-xl text-gold md:text-2xl">حجٌّ مبرور، وسعيٌ مشكور، وذنبٌ مغفور</p>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-white/80">
-            وصلتم إلى دمشق الساعة 17:10 — {ctx.app.members.map((m) => m.person.firstName).join("، ")}. أُغلق آخر تجمّع ل{groupName(ctx.group.number)}: «وصل الجميع».
+            وصلتم إلى دمشق الساعة 17:10 — {ctx.app.members.map((m) => m.person.firstName).join("، ")}. وسجّل فريق {groupName(ctx.group.number)}: «وصل الجميع».
           </p>
           <SpeakButton text="حمداً لله على السلامة. حج مبرور وسعي مشكور. نرجو تقييم رحلتك كاملة." className="mt-5 border-white/20 bg-white/10 text-white" />
         </motion.div>

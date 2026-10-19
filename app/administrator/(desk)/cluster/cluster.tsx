@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, ClipboardList, FileSignature, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, ClipboardList, Search, Send, Shuffle, UserCheck, UserMinus, UsersRound, X, type LucideIcon } from "lucide-react";
 import { useCallback, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
 import { useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
-import { ContractView, seedContract } from "../../_components/contract-view";
 import { logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { acceptedGroups, clusterViewOf } from "../../_lib/cluster";
 import { coordinatorsLabel } from "../../_lib/coordinators";
@@ -40,7 +39,7 @@ import { PlanStep } from "./plan";
  * it — its groups with their heads, guides and assistants, the coordinators, female guides, assistant and
  * accountant its head chose, their distribution on the groups — takes its fee, and uploads the paper contract they
  * all signed (app/staff/admins/_components/clusters.tsx). It is approved as it is formed, and its head finds it in
- * «إدارة التكتل» at once: its groups, its team, its contract and its operational plan, in tabs (RequestDesk).
+ * «إدارة التكتل» at once: its groups, its team and its operational plan, in tabs (RequestDesk); its contract is in «العقود».
  */
 export function AdminCluster({ part }: { part: "formation" | "manage" }) {
   const admin = useAdmin()!;
@@ -58,19 +57,20 @@ export function AdminCluster({ part }: { part: "formation" | "manage" }) {
   }
   if (!view?.isHead || !theirs || theirs.status !== "approved") {
     return (
-      <AdminShell title="إدارة التكتل" subtitle="التكتل كما شُكّل في المكتب: مجموعاته وحجاجها، وكادره، وعقده، وخطته التشغيلية — لرئيسه.">
+      <AdminShell title="إدارة التكتل" subtitle="التكتل كما شُكّل في المكتب: مجموعاته وحجاجها، وكادره، وخطته التشغيلية — لرئيسه.">
         <LockedCard title="لا تكتل تديره بعد" text="يُشكَّل التكتل في المكتب بحضور رئيسه وكل من فيه، ويظهر هنا لرئيسه فور إنشائه." href="/administrator/dashboard" cta="ملفي" />
       </AdminShell>
     );
   }
   return (
-    <AdminShell title={theirs.cluster.name} subtitle="تكتلك كما شُكّل في المكتب: مجموعاته وحجاجها، وكادره وتوزيعه على المجموعات، وعقده الموقّع، وخطته التشغيلية.">
+    <AdminShell title={theirs.cluster.name} subtitle="تكتلك كما شُكّل في المكتب: مجموعاته وحجاجها، وكادره وتوزيعه على المجموعات، وخطته التشغيلية. عقده الموقّع في «العقود».">
       <ManageCluster req={theirs} />
     </AdminShell>
   );
 }
 
-type DeskTab = "groups" | "team" | "contract" | "plan";
+// Its contract is in «العقود» of the sidebar, with every contract its people signed
+type DeskTab = "groups" | "team" | "plan";
 
 function RequestDesk({ req, header }: { req: ClusterRequest; header: ReactNode }) {
   // «?tab=plan» opens the operational plan (the desk renders on the client only, behind the administrator's gate)
@@ -79,7 +79,6 @@ function RequestDesk({ req, header }: { req: ClusterRequest; header: ReactNode }
   const tabs: { key: DeskTab; label: string; icon: LucideIcon; badge?: string }[] = [
     { key: "groups", label: "المجموعات", icon: UsersRound, badge: String(req.groups.length) },
     { key: "team", label: "كادر التكتل", icon: UserCheck, badge: String(req.cadre) },
-    { key: "contract", label: "العقد", icon: FileSignature },
     { key: "plan", label: "الخطة التشغيلية", icon: ClipboardList },
   ];
 
@@ -109,24 +108,10 @@ function RequestDesk({ req, header }: { req: ClusterRequest; header: ReactNode }
               <AccountantStep req={req} editable={false} />
             </div>
           )}
-          {tab === "contract" && <div className="max-w-md"><ContractCard c={req.cluster} people={req.cadre} /></div>}
           {tab === "plan" && <PlanStep req={req} editable />}
         </motion.div>
       </AnimatePresence>
     </div>
-  );
-}
-
-/** The paper contract everyone in the cluster signed at the office: every member sees it (here, and in «العقود») */
-export function ContractCard({ c, people }: { c: Cluster; people?: number }) {
-  return (
-    <ContractView
-      kind="cluster"
-      title={`عقد ${c.name}`}
-      contract={c.contract ?? (c.status === "approved" ? seedContract("cluster", `عقد ${c.name}`) : undefined)}
-      signers={`رئيس التكتل وكل من فيه${people ? ` (${people} شخصاً)` : ""}`}
-      empty="لم يُرفع العقد بعد. يوقّعه في المكتب رئيس التكتل وكل من فيه، ويرفع الموظف صورته فتظهر هنا."
-    />
   );
 }
 

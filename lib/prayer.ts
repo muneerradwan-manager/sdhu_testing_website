@@ -6,7 +6,8 @@
 export type City = {
   slug: string;
   name: string;
-  country: "سوريا" | "السعودية";
+  /** «سوريا» and «السعودية» for the listed cities; a located one carries its own country's name */
+  country: string;
   lat: number;
   lng: number;
   tz: number;
@@ -25,6 +26,22 @@ export const CITIES: City[] = [
   { slug: "makkah", name: "مكة المكرمة", country: "السعودية", lat: 21.4225, lng: 39.8262, tz: 3, method: "ummalqura" },
   { slug: "madinah", name: "المدينة المنورة", country: "السعودية", lat: 24.4672, lng: 39.6112, tz: 3, method: "ummalqura" },
 ];
+
+/**
+ * Where the visitor is, as his browser's location gives it (with his permission): its times by the method its
+ * country follows — Umm al-Qura in Saudi Arabia, the Muslim World League elsewhere — in his device's time zone.
+ */
+export function locatedCity(at: { lat: number; lng: number; place?: string; country?: string; countryCode?: string }, offsetMinutes = new Date().getTimezoneOffset()): City {
+  return {
+    slug: "here",
+    name: at.place || "موقعك الحالي",
+    country: at.country ?? "",
+    lat: at.lat,
+    lng: at.lng,
+    tz: -offsetMinutes / 60,
+    method: at.countryCode?.toUpperCase() === "SA" ? "ummalqura" : "mwl",
+  };
+}
 
 export const PRAYERS = [
   { key: "fajr", name: "الفجر" },

@@ -13,26 +13,33 @@ import { fullName, relationLabel } from "@/lib/registry";
 import { useStore, type Application, type PostAcceptance } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { addVisa, demoVisaNumber, removeVisa } from "@/lib/visas";
-import { AdminShell, LockedCard } from "../../_components/ui";
+import { AdminShell, LockedCard, ViewOnlyNote } from "../../_components/ui";
 import { useAdmin } from "../../_lib/admin";
+import { useFieldGroups } from "../../_lib/field-groups";
+import { useAdminScope, viewOnlyText } from "../../_lib/scope";
 
 /**
- * «التأشيرات»: the Saudi foreign ministry emails each pilgrim's visa to his group's head; the head adds it to the
- * pilgrim here — the file (a picture or a PDF) and its number. Once every member of a family has his, the
- * family's visa step is done in its portal, and its flights, hotels and season open.
+ * «التأشيرات»: the Saudi foreign ministry emails each pilgrim's visa to his group; its coordinator, its head or
+ * its assistant adds it to the pilgrim here — the file (a picture or a PDF) and its number. Once every member of
+ * a family has his, the family's visa step is done in its portal, and its flights, hotels and season open. The
+ * cluster's head, its assistant and its accountant follow every group's visas, and add none.
  */
 export function AdminVisas() {
   const admin = useAdmin()!;
-  const g = admin.profile?.group;
+  const scope = useAdminScope();
+  const groups = useFieldGroups();
+  const [picked, setPicked] = useState<number | null>(null);
   const post = useStore((s) => s.post);
   const applications = useStore((s) => s.applications);
-  if (!g?.approvedAt) {
+  const g = groups.find((x) => x.number === picked) ?? groups[0];
+  if (!g || scope.kind === "guide" || scope.kind === "none") {
     return (
       <AdminShell title="التأشيرات" subtitle="تأشيرات حجاج مجموعتك كما تصلك من وزارة الخارجية السعودية.">
-        <LockedCard title="التأشيرات لرئيس المجموعة" text="حين تُشكَّل مجموعتك ويلحق المكتب بها الحجاج، تضيف هنا تأشيرة كل حاج كما تصلك بالبريد من وزارة الخارجية السعودية." href="/administrator/dashboard" cta="ملفي" />
+        <LockedCard title="التأشيرات لفريق المجموعة" text="يضيفها المنسق التقني في مجموعاته، ورئيس المجموعة ومعاونه في مجموعتهما، حين يلحق المكتب بها الحجاج: تأشيرة كل حاج كما تصل بالبريد من وزارة الخارجية السعودية." href="/administrator/dashboard" cta="ملفي" />
       </AdminShell>
     );
   }
+  const canAct = scope.canAct(g.number);
   const families = Object.entries(post)
     .filter(([sid, p]) => p.groupNumber === g.number && p.groupApprovedAt && applications[sid] && (!g.clusterId || !p.clusterId || p.clusterId === g.clusterId))
     .map(([sid, p]) => ({ sid, p, app: applications[sid] }));
@@ -41,7 +48,17 @@ export function AdminVisas() {
   const complete = families.filter((f) => f.p.visaAt).length;
 
   return (
-    <AdminShell image="/images/kaaba-panoramio.jpg" title={`تأشيرات ${groupName(g.number)}`} subtitle="تصلك تأشيرة كل حاج بالبريد من وزارة الخارجية السعودية: أضفها إلى صاحبها هنا، ملفاً ورقماً. حين تكتمل تأشيرات عائلة تصدر خطوتها في بوابتها، وتُفتح رحلتها وسكنها.">
+    <AdminShell image="/images/kaaba-panoramio.jpg" title={`تأشيرات ${groupName(g.number)}`} subtitle="تصل تأشيرة كل حاج بالبريد من وزارة الخارجية السعودية: تُضاف إلى صاحبها هنا، ملفاً ورقماً. حين تكتمل تأشيرات عائلة تصدر خطوتها في بوابتها، وتُفتح رحلتها وسكنها.">
+      {scope.viewOnly && <ViewOnlyNote>{viewOnlyText(scope, "تأشيرات حجاج المجموعات")}</ViewOnlyNote>}
+      {groups.length > 1 && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {groups.map((x) => (
+            <button key={x.number} type="button" aria-pressed={x.number === g.number} onClick={() => setPicked(x.number)} className={cn("rounded-2xl border-2 px-4 py-2 text-sm font-bold transition", x.number === g.number ? "border-maroon bg-maroon text-white" : "border-gold/40 bg-white text-ink-soft hover:border-gold-dark")}>
+              {groupName(x.number)}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="mb-6 grid grid-cols-3 gap-3">
         {[
           { k: "حجاج في عائلات المجموعة", v: people.length },
@@ -55,17 +72,17 @@ export function AdminVisas() {
         ))}
       </div>
       {families.length === 0 ? (
-        <Card className="text-center text-ink-soft">لم يلحق المكتب عائلة بمجموعتك بعد. تظهر هنا كل عائلة يلحقها بعقدها.</Card>
+        <Card className="text-center text-ink-soft">لم يلحق المكتب عائلة بهذه المجموعة بعد. تظهر هنا كل عائلة يلحقها بعقدها.</Card>
       ) : (
         <div className="space-y-5">
-          {families.map((f, i) => <Family key={f.sid} sid={f.sid} app={f.app} post={f.p} i={i} by={admin.name} />)}
+          {families.map((f, i) => <Family key={f.sid} sid={f.sid} app={f.app} post={f.p} i={i} by={admin.name} canAct={canAct} />)}
         </div>
       )}
     </AdminShell>
   );
 }
 
-function Family({ sid, app, post, i, by }: { sid: string; app: Application; post: PostAcceptance; i: number; by: string }) {
+function Family({ sid, app, post, i, by, canAct }: { sid: string; app: Application; post: PostAcceptance; i: number; by: string; canAct: boolean }) {
   const toast = useToast();
   const [numbers, setNumbers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -96,7 +113,7 @@ function Family({ sid, app, post, i, by }: { sid: string; app: Application; post
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={post.visaAt ? "green" : done ? "gold" : "ink"}>{post.visaAt ? "اكتملت التأشيرات" : `${done} من ${app.members.length}`}</Badge>
-            {!post.visaAt && (
+            {!post.visaAt && canAct && (
               <Button size="sm" variant="outline" onClick={() => app.members.forEach((m, idx) => { if (!post.visas?.[m.person.id]) void add(m.person.id, idx); })}>
                 <Mail className="size-4" /> محاكاة: وصل بريد الخارجية بتأشيراتهم
               </Button>
@@ -118,8 +135,10 @@ function Family({ sid, app, post, i, by }: { sid: string; app: Application; post
                   <>
                     <span className="flex items-center gap-1.5 text-sm font-bold text-green"><CheckCircle2 className="size-4" /> <span dir="ltr" className="font-mono">{v.number}</span></span>
                     <span className="text-xs text-hint">{v.name ?? "من بريد الخارجية"}</span>
-                    <button type="button" aria-label={`حذف تأشيرة ${m.person.firstName}`} onClick={() => { removeVisa(sid, m.person.id, by); toast({ title: "حُذفت التأشيرة", body: "أضفها من جديد بالملف الصحيح.", tone: "info" }); }} className="rounded-lg p-1.5 text-maroon hover:bg-maroon/10"><Trash2 className="size-4" /></button>
+                    {canAct && <button type="button" aria-label={`حذف تأشيرة ${m.person.firstName}`} onClick={() => { removeVisa(sid, m.person.id, by); toast({ title: "حُذفت التأشيرة", body: "أضفها من جديد بالملف الصحيح.", tone: "info" }); }} className="rounded-lg p-1.5 text-maroon hover:bg-maroon/10"><Trash2 className="size-4" /></button>}
                   </>
+                ) : !canAct ? (
+                  <span className="text-xs text-hint">لم تصل تأشيرته بعد</span>
                 ) : (
                   <>
                     <input aria-label={`رقم تأشيرة ${m.person.firstName}`} dir="ltr" className="h-10 w-44 rounded-xl border-2 border-gold/40 px-2 font-mono text-sm" placeholder={demoVisaNumber(app.number, idx)} value={numbers[m.person.id] ?? ""} onChange={(e) => setNumbers({ ...numbers, [m.person.id]: e.target.value })} />

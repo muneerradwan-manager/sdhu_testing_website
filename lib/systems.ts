@@ -102,7 +102,7 @@ export const SYSTEMS: Record<SystemKey, SystemDef> = {
       { href: "/staff/flights/manage", label: "المطارات ومندوبوها", area: "refs", desc: "المطارات التي تقلع منها الرحلات وتهبط فيها، ومندوب كل مطار يسجّل الإقلاع والهبوط." },
       { href: "/staff/flights/manage/carriers", label: "الناقلون الجويون", area: "carriers", desc: "شركات الطيران التي تُختار منها الرحلات، وهاتف التنسيق مع كل منها." },
       { href: "/staff/flights/manage/flights", label: "الرحلات", area: "flights", desc: "رحلات الذهاب والعودة: تنشئها وتنشرها وتقفلها، ولكل رحلة صفحتها وركابها وكشفها." },
-      { href: "/staff/flights/manage/allotments", label: "أيام التكتلات", area: "allotments", desc: "تعطي كل تكتل أيام رحلاته ذهاباً وعودة ومقاعده على كل رحلة، فيضع رئيسه مجموعاته وحجاجه عليها." },
+      { href: "/staff/flights/manage/allotments", label: "أيام التكتلات", area: "allotments", desc: "تعطي كل تكتل أيام رحلاته ذهاباً وعودة ومقاعده على كل رحلة، فيضع منسقوه مجموعاتهم وحجاجها عليها." },
       { href: "/staff/flights/manage/dispatch", label: "التفويج", area: "dispatch", desc: "من يسافر على أي رحلة: المجموعات والموظفون، ومن فقد مقعده." },
     ],
   },

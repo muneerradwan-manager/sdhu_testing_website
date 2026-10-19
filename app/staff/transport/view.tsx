@@ -11,6 +11,7 @@ import { Gate, PageHeader } from "../_components/kit";
 import { EmptyRow, ListTable, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 import { Reports } from "../medical/view";
+import { ClusterBuses } from "./buses";
 
 type View = "reports" | "needs" | "buses";
 
@@ -20,7 +21,8 @@ const MOBILITY = ["كرسي متحرك", "صعوبة في المشي", "أكسج
 /**
  * «المواصلات»: the transport team's work. Its reports from the field (a late bus, a driver who did not come);
  * the pilgrims a bus must be ready for — a wheelchair, difficulty walking, oxygen, or 75 and over — by group,
- * from the coordinators' health files; and the buses the operations room planned.
+ * from the coordinators' health files; and the buses it gives each cluster for each list before the rites (and the
+ * Rawdah's slots), which the clusters' coordinators fill in «القوائم» — with the extra buses the operations room planned.
  */
 export function TransportView() {
   return (
@@ -58,7 +60,7 @@ function Transport() {
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="فريق المواصلات" title="المواصلات" icon={<Bus />} description="بلاغات النقل من الميدان، ومن تحتاج حافلاتهم تجهيزاً خاصاً، وخطة الحافلات." />
+      <PageHeader eyebrow="فريق المواصلات" title="المواصلات" icon={<Bus />} description="بلاغات النقل من الميدان، ومن تحتاج حافلاتهم تجهيزاً خاصاً، وحافلات كل تكتل لقوائم المناسك." />
       <Segments
         value={view}
         onChange={(v) => router.replace(v === "reports" ? "/staff/transport" : `/staff/transport?view=${v}`)}
@@ -66,7 +68,7 @@ function Transport() {
         items={[
           { value: "reports", label: "بلاغات النقل", count: reports.filter((t) => t.status !== "resolved").length, tone: "maroon" },
           { value: "needs", label: "حجاج يحتاجون تجهيزاً", count: needs.length },
-          { value: "buses", label: "الحافلات", count: 1 },
+          { value: "buses", label: "حافلات التكتلات" },
         ]}
       />
       {view === "reports" && <Reports tickets={reports} empty="لا بلاغات نقل." />}
@@ -97,6 +99,7 @@ function Transport() {
           ))}
         </ListTable>
       )}
+      {view === "buses" && <ClusterBuses />}
       {view === "buses" && (
         <ListTable head={["المسار", "الحافلات", "المقاعد", "المسجّلون", "الحالة"]}>
           <tr>

@@ -108,6 +108,21 @@ export type SeasonRules = { -readonly [K in keyof typeof SEASON.rules]: number }
  * `direct`: the application is for direct acceptance. Its accepted age is set by the administration before
  * registration opens, so it is checked here — before anything is paid — and not discovered afterwards.
  */
+/**
+ * The demo's simulated passes: failed conditions the tester chose to treat as met, so a trial is never stuck on
+ * one («<member id>:<key>», or «general:<key>» for the application's own). Each stays marked as simulated.
+ */
+export function withSimulated(result: EligibilityResult, simulated: string[] = []): EligibilityResult {
+  if (!simulated.length) return result;
+  const pass = (c: RuleCheck, id: string): RuleCheck => (c.status === "fail" && simulated.includes(`${id}:${c.key}`) ? { ...c, status: "pass", detail: `محاكاة: اعتُبر الشرط محققاً للتجربة — ${c.detail}` } : c);
+  const members = result.members.map((m) => {
+    const checks = m.checks.map((c) => pass(c, m.id));
+    return { ...m, checks, eligible: checks.every((c) => c.status !== "fail") };
+  });
+  const general = result.general.map((g) => pass(g, "general"));
+  return { members, general, eligible: members.every((m) => m.eligible) && general.every((g) => g.status !== "fail") };
+}
+
 export function evaluate(members: Member[], rules: SeasonRules = SEASON.rules, direct?: { minAge: number }): EligibilityResult {
   const r = rules;
   const applicant = members.find((m) => m.relation === "self");

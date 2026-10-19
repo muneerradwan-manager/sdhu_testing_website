@@ -615,7 +615,7 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0, written?: 
         ? // The cluster's head oversees all its groups, not one of them
           { key: "requests", title: "حجاج مجموعات التكتل", date: when("group-joining"), href: "/administrator/clusters", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج كل مجموعة من مجموعات التكتل كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 }
         : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج مجموعتك كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 },
-    { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "أول تجمّع أُغلق — انطلقنا" : "التجمّعات والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
+    { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "سُجّل أول منسك أُدّي" : "أداء المناسك والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;
   return raw.filter((s) => !(teamMember && (s.headOnly || s.groupOnly))).map(({ done, headOnly: _headOnly, groupOnly: _groupOnly, ...s }) => {

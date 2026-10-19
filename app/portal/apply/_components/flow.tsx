@@ -29,7 +29,7 @@ import { ConfiguredStage, setAnswer } from "@/components/registration/stage-view
 import { applicationNumberFor, directAccepted, stageAt, trackOf, trackSteps, type Track } from "@/lib/journey";
 import { MONTHS, birthOf } from "@/lib/lottery";
 import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
-import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
+import { evaluate, withOldestAsApplicant, withSimulated, type Member } from "@/lib/rules";
 import { SeasonPlanNote } from "@/components/payment/plan-picker";
 import { firstPayment, seasonPlan } from "@/lib/installments";
 import { ABROAD, SEASON, countryOf, officeArea, officeFor, type Residence } from "@/lib/season";
@@ -46,6 +46,7 @@ import { actions, useStore, type Consent } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
 import { BookletPicker, type Book } from "./booklet";
 import { EligibilityCheck } from "./eligibility";
+import { PayWindow } from "../../application/_components/post/pay-window";
 import { Consents, Payment, consentPeople } from "./finalize";
 import { PersonAdder, relationWord } from "./person-adder";
 import { Choice, DigitsDisplay, NumberPad, PersonChip, Question } from "./ui";
@@ -182,6 +183,10 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
   const [memberAnswers, setMemberAnswers] = useState<Record<string, Answers>>(draft0?.memberAnswers ?? {});
   const [target, setTarget] = useState(1);
   const [adderReturn, setAdderReturn] = useState<"loop" | "booklet" | "review" | "eligibility">("loop");
+  // The demo's simulated conditions: a failed one the tester treats as met, so the trial goes on
+  const [simulated, setSimulated] = useState<string[]>([]);
+  // The first installment's window, opened by simulation before it is paid with the application
+  const [firstOpen, setFirstOpen] = useState(false);
   const [book, setBook] = useState<Book | null>((draft0?.book as Book | null) ?? null);
   // Where the applicant lives decides the office: the registry governorate inside Syria, or the country office abroad
   const [residence, setResidence] = useState<Residence>((draft0?.residence === "تركيا" ? "تركيا — إسطنبول" : (draft0?.residence as Residence)) ?? "سوريا");
@@ -215,9 +220,19 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
 
   // Direct acceptance: the accepted age is known before registration, so it is checked now — before anything is paid.
   // The administration's own rules are read with the platform's, exactly as the submission reads them.
+  // Whoever another application of the season already holds, as it stands now (not only as the registry recorded it)
+  const allApps = useStore((s) => s.applications);
+  const checked = useMemo(
+    () =>
+      members.map((m) => {
+        const other = Object.entries(allApps).find(([owner, a]) => owner !== sessionId && a.members.some((x) => x.person.id === m.person.id));
+        return other && !m.person.otherApplication ? { ...m, person: { ...m.person, otherApplication: other[1].number } } : m;
+      }),
+    [members, allApps, sessionId],
+  );
   const result = useMemo(
-    () => withConfigured(evaluate(members, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined), config.eligibility, { track, members, residence: countryOf(residence), answers, memberAnswers, elderlyMaxBirthYear: season.rules.elderlyNeedsCompanionMaxBirthYear }),
-    [members, season.rules, track, season.acceptedDirectAge, config.eligibility, residence, answers, memberAnswers],
+    () => withSimulated(withConfigured(evaluate(checked, season.rules, track === "direct" ? { minAge: season.acceptedDirectAge } : undefined), config.eligibility, { track, members, residence: countryOf(residence), answers, memberAnswers, elderlyMaxBirthYear: season.rules.elderlyNeedsCompanionMaxBirthYear }), simulated),
+    [checked, members, season.rules, track, season.acceptedDirectAge, config.eligibility, residence, answers, memberAnswers, simulated],
   );
   // A direct-acceptance application that ended without a place: the pilgrim may now register for the lottery
   const previousDirect =
@@ -441,7 +456,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
       toast({ title: "معاينة — لم يُقدَّم شيء", body: "في التسجيل الفعلي يُقدَّم الطلب هنا ويُصدَر الإيصال.", icon: "👁️", tone: "info" });
       return;
     }
-    const r = run((s) => submitApplication(s, { owner: sessionId, track, members, residence, book: book?.no ?? null, answers, memberAnswers, paymentId: paymentId ?? "", method }, stamp()));
+    const r = run((s) => submitApplication(s, { owner: sessionId, track, members, residence, book: book?.no ?? null, answers, memberAnswers, paymentId: paymentId ?? "", method, simulated }, stamp()));
     if (!r.ok) {
       const e = r.errors[0];
       toast({ title: "لم يُقدَّم الطلب", body: e.message, icon: "⚠️", tone: "gold" });
@@ -1195,6 +1210,22 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                   animate={checks === 0}
                   fixOf={(key) => ruleOfCheck(config.eligibility, key)?.fix ?? null}
                   onContinue={() => advanceFrom("eligibility")}
+                  onSimulate={(key, label) => {
+                    setChecks((n) => n + 1);
+                    // In another application: taken out of it, as if he had withdrawn — the submission then holds him
+                    const [pid, rule] = key.split(":");
+                    if (rule === "single-application") {
+                      const who = members.find((m) => m.person.id === pid)?.person;
+                      const r = actions.releaseFromApplication(pid, sessionId);
+                      if (r) {
+                        actions.logEvent({ actor: applicant ? fullName(applicant) : sessionId, role: "حاج", action: `محاكاة: إزالة ${who ? fullName(who) : pid} من الطلب ${r.number}`, target: `طلب ${r.number}`, detail: r.whole ? "كان صاحبه، فأُلغي الطلب كله" : "بقي الطلب بباقي أفراده" });
+                        toast({ title: `محاكاة: أُزيل ${who?.firstName ?? ""} من الطلب ${r.number}`, body: r.whole ? "كان صاحب ذلك الطلب، فأُلغي كله. يكمل الطلب هنا به." : "بقي ذلك الطلب بباقي أفراده، ويكمل الطلب هنا به.", icon: "🧪", tone: "gold" });
+                        return;
+                      }
+                    }
+                    setSimulated((x) => [...x, key]);
+                    toast({ title: "محاكاة: اعتُبر الشرط محققاً", body: `${label} — للتجربة فقط، ويبقى معلَّماً «محاكاة» في الطلب.`, icon: "🧪", tone: "gold" });
+                  }}
                   onRemove={(id) => {
                     const who = members.find((m) => m.person.id === id)?.person.firstName;
                     setChecks((n) => n + 1);
@@ -1349,7 +1380,14 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                 </Question>
               )}
 
-              {screen === "payment" && <Payment lines={payLines} receipt={receipt} onConfirmed={confirmPayment} onPaid={submit} methods={methods} />}
+              {screen === "payment" &&
+                (first > 0 ? (
+                  <PayWindow what="الدفعة الأولى" when={`مع التسجيل على القبول المباشر (${SEASON.windows.direct.hijri})`} opened={firstOpen} onOpen={() => setFirstOpen(true)}>
+                    <Payment lines={payLines} receipt={receipt} onConfirmed={confirmPayment} onPaid={submit} methods={methods} />
+                  </PayWindow>
+                ) : (
+                  <Payment lines={payLines} receipt={receipt} onConfirmed={confirmPayment} onPaid={submit} methods={methods} />
+                ))}
             </motion.div>
           </AnimatePresence>
         </Card>

@@ -166,8 +166,10 @@ export function trackOf(app: { track?: Track }): Track {
 }
 
 /** Direct acceptance goes by the applicant's age: accepted when at or above the announced cut-off */
-export function directAccepted(app: { members: Member[]; announcedDirectAge?: number }, minAge: number = SEASON.acceptedDirectAge) {
+export function directAccepted(app: { members: Member[]; announcedDirectAge?: number; simulated?: string[] }, minAge: number = SEASON.acceptedDirectAge) {
   const applicant = app.members.find((m) => m.relation === "self") ?? app.members[0];
+  // The demo's tester simulated the direct-acceptance age: accepted as if he were old enough
+  if (applicant && app.simulated?.includes(`${applicant.person.id}:direct-age`)) return true;
   return !!applicant && ageOf(applicant.person) >= (app.announcedDirectAge ?? minAge);
 }
 
@@ -211,7 +213,7 @@ export function drawLine(app: { members: Member[] }, draw: PublishedDraw | null)
  * Where an application stands: whether it is accepted, and its timeline — direct ones by the announced
  * age, lottery ones by the published draw (none published yet: waiting at the draw).
  */
-export function outcomeOf(app: { track?: Track; members: Member[]; announcedDirectAge?: number }, draw: PublishedDraw | null, minAge: number = SEASON.acceptedDirectAge) {
+export function outcomeOf(app: { track?: Track; members: Member[]; announcedDirectAge?: number; simulated?: string[] }, draw: PublishedDraw | null, minAge: number = SEASON.acceptedDirectAge) {
   const track = trackOf(app);
   if (track === "direct") {
     const age = app.announcedDirectAge ?? minAge;

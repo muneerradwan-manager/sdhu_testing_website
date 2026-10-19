@@ -19,6 +19,8 @@ import { payFirstInstallment } from "@/lib/registration/service";
 import { formatUSD } from "@/lib/utils";
 import { initialDocuments, receiptBase } from "./model";
 import { applicantOf, logPilgrim, type StepProps } from "./shared";
+import { PayWindow } from "./pay-window";
+import { SEASON } from "@/lib/season";
 
 /** Stands in the instructions for the sentence on the installments, written from the application's own schedule */
 const PLAN_LINE = "{plan}";
@@ -198,6 +200,7 @@ function FirstInstallment({ app, stepLabel }: { app: StepProps["app"]; stepLabel
   const plan = seasonPlan(fees);
   const n = app.members.length;
   const amount = firstPayment(plan, n, fees);
+  const post = useStore((s) => s.post[app.applicantId]);
   const receipt = `${receiptBase(app)}-1`;
 
   const pay = (m: PayMethod) => {
@@ -220,7 +223,17 @@ function FirstInstallment({ app, stepLabel }: { app: StepProps["app"]; stepLabel
     >
       <SeasonPlanNote people={n} fees={fees} dueNowLabel="الآن" />
       <div className="mt-6">
-        <PayMethods amount={amount} reference={receipt} bankReference={receipt.replace("-P-", "-BANK-")} cta={plan === 1 ? "ادفع التكلفة كاملة —" : "ادفع الدفعة الأولى —"} onConfirm={pay} methods={(["shamcash", "bank"] as const).filter((x) => version.config.payments.methods[x])} />
+        <PayWindow
+          what={plan === 1 ? "دفع تكلفة الحج" : "الدفعة الأولى"}
+          when={`لتثبيت تسجيل المقبولين بالقرعة (${SEASON.windows.lottery.confirm})`}
+          opened={!!post?.windowsOpened?.first}
+          onOpen={() => {
+            actions.setPost(app.applicantId, { windowsOpened: { ...post?.windowsOpened, first: Date.now() } });
+            logPilgrim(app, "محاكاة: فُتح موعد الدفعة الأولى");
+          }}
+        >
+          <PayMethods amount={amount} reference={receipt} bankReference={receipt.replace("-P-", "-BANK-")} cta={plan === 1 ? "ادفع التكلفة كاملة —" : "ادفع الدفعة الأولى —"} onConfirm={pay} methods={(["shamcash", "bank"] as const).filter((x) => version.config.payments.methods[x])} />
+        </PayWindow>
       </div>
     </Question>
   );

@@ -16,7 +16,7 @@ import { ageOf } from "../registry";
 import { directAccepted, outcomeOf, trackOf, applicationNumberFor } from "../journey";
 import { publishedDraw } from "../lottery";
 import { OPERATIONS, stateOf, type OperationKey } from "../operations";
-import { evaluate, type Member } from "../rules";
+import { evaluate, withSimulated, type Member } from "../rules";
 import { countryOf, officeArea, officeFor } from "../season";
 import { mergeSeason } from "../season-live";
 import { getStaff } from "../staff";
@@ -130,6 +130,8 @@ export type SubmitInput = {
   memberAnswers: Record<string, Answers>;
   paymentId: string;
   method: "shamcash" | "bank";
+  /** The demo's simulated conditions, treated as met (lib/rules withSimulated) */
+  simulated?: string[];
 };
 
 /** Everything that keeps an application from being submitted, checked against the stored draft and the season */
@@ -168,7 +170,7 @@ export function submissionErrors(s: State, input: Omit<SubmitInput, "paymentId" 
 
   // Eligibility: the season's rules and the administration's own, enforced here and not only shown
   const base = evaluate(input.members, policy.rules, input.track === "direct" ? { minAge: policy.acceptedDirectAge } : undefined);
-  const result = withConfigured(base, version.config.eligibility, ctx);
+  const result = withSimulated(withConfigured(base, version.config.eligibility, ctx), input.simulated);
   if (!result.eligible) {
     const first = [...result.members.flatMap((m) => m.checks.map((c) => ({ ...c, who: m.name.split(" ")[0] }))), ...result.general.map((c) => ({ ...c, who: "" }))].find((c) => c.status === "fail");
     errors.push({ code: "eligibility", message: first ? `${first.label}${first.who ? ` — ${first.who}` : ""}: ${first.detail}` : "الطلب غير مستوفٍ للشروط", stageId: "eligibility" });
@@ -178,7 +180,7 @@ export function submissionErrors(s: State, input: Omit<SubmitInput, "paymentId" 
   for (const [other, app] of Object.entries(s.applications)) {
     if (other === input.owner || (app.season ?? ACTIVE_SEASON) !== ACTIVE_SEASON) continue;
     const both = app.members.find((m) => ids.includes(m.person.id));
-    if (both) errors.push({ code: "duplicate-person", message: `${both.person.firstName} مدرج في الطلب ${app.number}` });
+    if (both) errors.push({ code: "duplicate-person", message: `${both.person.firstName} مدرج في الطلب ${app.number}`, stageId: "eligibility" });
   }
 
   // Every adult approved from his own side, as recorded
@@ -212,6 +214,7 @@ export function submitApplication(s: State, input: SubmitInput, at: number): Res
     submittedAt: at,
     mode: input.members.length === 1 ? "solo" : input.book ? "booklet" : "national",
     track: input.track,
+    ...(input.simulated?.length && { simulated: input.simulated }),
     previous: previous ? { number: previous.number, track: "direct", submittedAt: previous.submittedAt, closedAt: at } : undefined,
     forWhom: applicant.person.id === input.owner ? "me" : "other",
     members: input.members,

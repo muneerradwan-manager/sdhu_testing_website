@@ -343,8 +343,16 @@ if "trn" in PARTS:
     c.shot("trn-reports", "بلاغات النقل من الميدان", hl=[("main tbody tr button:text-is('فتح')", "")], section=S)
     p.locator(seg("القسم", "حجاج يحتاجون تجهيزاً")).first.click(); c.settle(1500)
     c.shot("trn-needs", "حجاج يحتاجون حافلة مجهّزة، بمجموعاتهم ومرافقيهم", section=S)
-    p.locator(seg("القسم", "الحافلات")).first.click(); c.settle(1500)
-    c.shot("trn-buses", "الحافلات: خطة حافلات مزدلفة المبكرة", section=S)
+    p.locator(seg("القسم", "حافلات التكتلات")).first.click(); c.settle(1500)
+    # the buses of a cluster for one list, and one more given to it
+    p.locator("main select[aria-label='القائمة']").select_option("arafat"); c.settle(800)
+    p.locator("main input[aria-label='الاسم']").fill("حافلة 9")
+    p.locator("main input[aria-label='اللوحة']").fill("4417 ح ج ع")
+    p.locator("main input[aria-label='السائق']").fill("سعيد الزهراني"); c.settle(300)
+    c.shot("transport-buses", "حافلات التكتلات: حافلات التكتل في قائمة عرفة، وإسناد حافلة أخرى", hl=[(seg("القسم", "حافلات التكتلات"), "1"), ("main button:text-is('إسناد')", "2")], section=S)
+    p.locator("main button:text-is('إسناد')").first.click(); c.settle(1500)
+    c.scroll_to("main th:has-text('المسار')", 160)
+    c.shot("trn-buses", "خطة حافلات مزدلفة المبكرة تحت حافلات التكتلات", section=S)
     s.close()
 
 print("DONE stf_ops", PARTS)

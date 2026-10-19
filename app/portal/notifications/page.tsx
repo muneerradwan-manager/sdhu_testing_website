@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/portal/shell";
 import { useArticles } from "@/lib/cms/content";
 import { forFamily, useGroupPosts } from "@/lib/group-channel";
-import { useGroupMusters } from "@/lib/musters";
+import { doneWhen, useGroupRites } from "@/lib/musters";
 import { getPerson } from "@/lib/registry";
 import { useStore } from "@/lib/store";
 import { PilgrimShell } from "../_components/pilgrim-shell";
@@ -28,8 +28,9 @@ export default function NotificationsPage() {
   const person = getPerson(sid);
   const ctx = useSeasonCtx();
   const groupNumber = useStore((s) => s.post[sid]?.groupNumber);
-  // A gathering the group's team opened reaches the family here, to say who will come
-  const musters = useGroupMusters(groupNumber).filter((m) => !m.closedAt);
+  // The rites the group's team recorded after they were done: the latest reach the family here
+  const ids = app?.members.map((m) => m.person.id) ?? [];
+  const musters = useGroupRites(groupNumber).filter((m) => ids.some((id) => m.present.includes(id) || m.detail?.[id] || m.absent?.[id])).slice(0, 3);
   // What the group's team posted to its channel, as far as it concerns this family
   const posts = useGroupPosts(groupNumber).filter((p) => !app || forFamily(p, app.members)).slice(0, 5);
   // The administration's announcements: the news its content team publishes, newest first
@@ -46,22 +47,22 @@ export default function NotificationsPage() {
   ].filter((x): x is { t: string; when: string; href?: string } => !!x);
 
   return (
-    <PilgrimShell title="الإشعارات" subtitle="ما يصلك: التجمّعات المفتوحة، وإشعارات يومك في الموسم، وقناة مجموعتك، وما جرى على طلبك، وإعلانات الإدارة.">
+    <PilgrimShell title="الإشعارات" subtitle="ما يصلك: ما سُجّل من مناسكك، وإشعارات يومك في الموسم، وقناة مجموعتك، وما جرى على طلبك، وإعلانات الإدارة.">
       <div className="space-y-6">
         {musters.length > 0 && (
           <Card className="md:p-7">
             <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
-              <Flag className="size-6 text-gold-dark" /> تجمّعات مفتوحة لمجموعتك
+              <Flag className="size-6 text-gold-dark" /> سُجّل في أداء المناسك
             </h2>
             <ul className="mt-4 space-y-2">
               {musters.map((m) => (
                 <li key={m.id}>
-                  <Link href="/portal/season/gatherings" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-green-light/8 px-4 py-3 ring-1 ring-green-light/30 transition hover:bg-green-light/15">
+                  <Link href="/portal/season/rites" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-green-light/8 px-4 py-3 ring-1 ring-green-light/30 transition hover:bg-green-light/15">
                     <span>
-                      <span className="block font-bold text-green-dark">{m.title}{m.required ? " — إلزامي" : ""}</span>
-                      <span className="text-xs text-hint">فتحه {m.by} — {when(m.at)}{m.place ? ` — ${m.place}` : ""}</span>
+                      <span className="block font-bold text-green-dark">{m.title}</span>
+                      <span className="text-xs text-hint">أُدّي {doneWhen(m.doneAt ?? m.at)} — سجّله {m.by}</span>
                     </span>
-                    <span className="text-sm font-bold text-green-dark">قل من سيحضر ←</span>
+                    <span className="text-sm font-bold text-green-dark">من أدّاه من عائلتك ←</span>
                   </Link>
                 </li>
               ))}

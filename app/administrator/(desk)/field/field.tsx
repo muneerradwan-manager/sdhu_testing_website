@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
-import confetti from "canvas-confetti";
 import {
   Accessibility,
   BellRing,
@@ -26,22 +25,23 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
-import { flightsActions, isActive, useFlightsData } from "@/lib/flights";
-import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
+import { isActive, useFlightsData } from "@/lib/flights";
+import { actions, getState, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { groupName } from "@/lib/groups";
 import { CmsImage } from "@/components/cms/image";
 import { groupSeed } from "@/lib/group-profile";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
-import { useMusterReplies } from "@/lib/musters";
+import { JAMARAT, JAMARAT_DAYS, MINA_NIGHTS, MUZDALIFA_LEVELS, RITES, doneWhen, performed, performedText, riteOf, umrahLabel, useGroupRites, type GroupMuster } from "@/lib/musters";
 import type { GroupPost } from "@/lib/store";
 import { cn, nowMs, seeded } from "@/lib/utils";
-import { effectiveRole, logAdmin, positionLabelOf, useAdmin } from "../../_lib/admin";
+import { logAdmin, useAdmin } from "../../_lib/admin";
 import { MISSING_ID, buildRoster, type RosterEntry } from "../../_lib/group";
 import { useFieldGroups } from "../../_lib/field-groups";
-import { AdminShell, LockedCard } from "../../_components/ui";
+import { AdminShell, LockedCard, ViewOnlyNote } from "../../_components/ui";
+import { useAdminScope, viewOnlyText } from "../../_lib/scope";
 
 const TABS = [
-  { key: "muster", label: "التجمّع", icon: UserRoundCheck },
+  { key: "muster", label: "أداء المناسك", icon: UserRoundCheck },
   { key: "channel", label: "قناة المجموعة", icon: Megaphone },
   { key: "roster", label: "الحجاج", icon: UsersRound },
   { key: "ticket", label: "بلاغ لغرفة العمليات", icon: Siren },
@@ -71,10 +71,22 @@ export function AdminField() {
   const [tab, setTab] = useState<TabKey>("muster");
   // A report opened from a pilgrim's details starts on him
   const [reportOn, setReportOn] = useState<string>();
+  // The coordinator acts on his groups, a group's head and assistant on theirs; the cluster's head, its assistant
+  // and its accountant follow; the guides have the religious lessons and activities, not the field
+  const scope = useAdminScope();
+  const canAct = !!g && scope.canAct(g.number);
+  const tabs = TABS.filter((t) => canAct || t.key === "muster" || t.key === "roster");
 
+  if (scope.kind === "guide") {
+    return (
+      <AdminShell title="الميدان" subtitle="أدوات الميدان في الموسم: أداء المناسك، قناة المجموعة، البلاغات، والتقرير اليومي.">
+        <LockedCard title="الميدان لفريق عمليات المجموعة" text="يعمل فيه المنسق التقني ورئيس المجموعة ومعاونه. عمل الموجّه والموجّهة في الدروس الدينية والنشاطات الدينية." href="/administrator/lessons" cta="الدروس الدينية" />
+      </AdminShell>
+    );
+  }
   if (!groups.length) {
     return (
-      <AdminShell title="الميدان" subtitle="أدوات الميدان في الموسم: التجمّع والحضور، قناة المجموعة، البلاغات، والتقرير اليومي.">
+      <AdminShell title="الميدان" subtitle="أدوات الميدان في الموسم: أداء المناسك، قناة المجموعة، البلاغات، والتقرير اليومي.">
         <LockedCard title="وضع الميدان بعد اعتماد المجموعة" text="تُفعَّل أدوات الميدان بعد اعتماد مجموعتك، أو حين يوزّعك رئيس تكتلك على مجموعات منه." href="/administrator/groups" cta="إدارة المجموعة" />
       </AdminShell>
     );
@@ -91,7 +103,6 @@ export function AdminField() {
         {groups.map((x) => {
           const on = g.number === x.number;
           const cover = pages[String(x.number)]?.approved?.fields.cover ?? groupSeed(x.number).cover;
-          const open = mustersOf(admin.profile?.musters ?? [], x.number, home).some((m) => !m.closedAt);
           return (
             <button
               key={x.number}
@@ -106,7 +117,6 @@ export function AdminField() {
             >
               <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-sand">
                 <CmsImage src={cover} alt="" fill sizes="48px" className="object-cover" />
-                {open && <span className="absolute end-1 top-1 size-2.5 rounded-full bg-green-light ring-2 ring-white" title="تجمّع مفتوح" />}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold">{groupName(x.number)}</span>
@@ -138,6 +148,7 @@ export function AdminField() {
       subtitle={several ? `تعمل الآن على ${groupName(g.number)}، رئيسها ${g.head}. كل ما تفتحه هنا لها وحدها.` : "يوم في حياة رئيس المجموعة: لكل خطوة أثر يظهر في المنصة."}
     >
       {picker}
+      {scope.viewOnly && <ViewOnlyNote>{viewOnlyText(scope, "أداء المناسك وقناة المجموعة والبلاغات")}</ViewOnlyNote>}
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { k: "حاجاً في المجموعة", v: roster.length, icon: UsersRound },
@@ -157,7 +168,7 @@ export function AdminField() {
 
       <div className="scrollbar-none -mx-4 mb-6 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="flex w-max gap-1 rounded-2xl border border-gold/30 bg-white p-1" role="tablist">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t.key} role="tab" aria-selected={tab === t.key} type="button" onClick={() => { setReportOn(undefined); setTab(t.key); }} className={cn("relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition", tab === t.key ? "text-white" : "text-ink-soft hover:text-ink")}>
               {tab === t.key && <motion.span layoutId="field-tab" className="absolute inset-0 rounded-xl bg-green-dark" transition={{ type: "spring", damping: 28, stiffness: 320 }} />}
               <t.icon className="relative size-4" />
@@ -169,7 +180,7 @@ export function AdminField() {
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
-          {tab === "muster" && <MusterTool roster={roster} onReport={() => setTab("ticket")} />}
+          {tab === "muster" && <RiteTool roster={roster} onReport={() => setTab("ticket")} canAct={canAct} />}
           {tab === "channel" && <Channel count={roster.length} />}
           {tab === "roster" && <Roster roster={roster} onReport={(name) => { setReportOn(name); setTab("ticket"); }} />}
           {tab === "ticket" && <TicketDesk roster={roster} about={reportOn} />}
@@ -181,450 +192,314 @@ export function AdminField() {
   );
 }
 
-// ───────────────────────── Muster ─────────────────────────
+// ───────────────────────── أداء المناسك ─────────────────────────
 
-/**
- * Why the group gathers, in the season's order — the Umrahs first, as most musters are for them — each with where
- * it usually gathers, which the head changes to wherever his group meets. The muster to Damascus airport boards
- * the group's outbound flight. `required`: everyone must be there (the travel, the rites), so whoever is not has
- * his reason written; the others (the visits) are optional.
- */
-type MusterKind = { key: string; label: string; place: string; flight?: true; required?: true };
-const MUSTER_KINDS: { title: string; items: MusterKind[] }[] = [
-  { title: "العمرات", items: [{ key: "umrah", label: "عمرة", place: "بهو الفندق في مكة" }] },
-  {
-    title: "السفر والتنقّل",
-    items: [
-      { key: "to-airport", label: "السفر: إلى مطار دمشق", place: "مطار دمشق الدولي — صالة الحجاج", flight: true, required: true },
-      { key: "to-makkah", label: "الوصول: من مطار جدة إلى الفندق في مكة", place: "صالة الحجاج في مطار جدة", required: true },
-      { key: "to-madinah", label: "الانتقال: من مكة إلى المدينة المنورة", place: "بهو الفندق في مكة", required: true },
-      { key: "return", label: "العودة: إلى مطار المدينة المنورة", place: "بهو الفندق في المدينة", required: true },
-    ],
-  },
-  {
-    title: "المشاعر",
-    items: [
-      { key: "mina", label: "يوم التروية: إلى منى", place: "بهو الفندق في مكة", required: true },
-      { key: "arafat", label: "يوم عرفة: من منى إلى عرفات", place: "مخيم المجموعة في منى", required: true },
-      { key: "muzdalifa", label: "النفرة: من عرفات إلى مزدلفة", place: "مخيم المجموعة في عرفات", required: true },
-      { key: "muzdalifa-night", label: "المبيت في مزدلفة", place: "نقطة المجموعة في مزدلفة", required: true },
-      { key: "muzdalifa-mina", label: "الدفع من مزدلفة إلى منى بعد الفجر", place: "نقطة المجموعة في مزدلفة", required: true },
-      { key: "jamarat", label: "رمي الجمرات", place: "مخيم المجموعة في منى", required: true },
-      { key: "ifada", label: "طواف الإفاضة", place: "مخيم المجموعة في منى", required: true },
-      { key: "farewell", label: "طواف الوداع", place: "بهو الفندق في مكة", required: true },
-    ],
-  },
-  {
-    // The visits of the season: in Madinah, and the landmarks of Makkah (a muster kept as «ziyarat» is Quba's)
-    title: "المزارات",
-    items: [
-      { key: "nabawi", label: "زيارة المسجد النبوي والروضة الشريفة", place: "بهو الفندق في المدينة" },
-      { key: "ziyarat", label: "زيارة مسجد قباء", place: "بهو الفندق في المدينة" },
-      { key: "uhud", label: "زيارة جبل أحد ومقبرة شهداء أحد", place: "بهو الفندق في المدينة" },
-      { key: "baqi", label: "زيارة مقبرة البقيع", place: "باب البقيع — الساحات الشرقية للمسجد النبوي" },
-      { key: "qiblatain", label: "زيارة مسجد القبلتين والمساجد السبعة", place: "بهو الفندق في المدينة" },
-      { key: "hira", label: "زيارة جبل النور وغار حراء", place: "بهو الفندق في مكة" },
-      { key: "thawr", label: "زيارة جبل ثور", place: "بهو الفندق في مكة" },
-    ],
-  },
-];
-const MUSTER_KIND = (key: string) => MUSTER_KINDS.flatMap((x) => x.items).find((x) => x.key === key);
-
-/** The group's Umrahs in order: the first is the Umrah of tamattu', then the ones its pilgrims choose to make */
-const UMRAH_ORDINALS = ["عمرة التمتّع", "العمرة الثانية", "العمرة الثالثة", "العمرة الرابعة", "العمرة الخامسة"];
-const umrahLabel = (done: number) => UMRAH_ORDINALS[done] ?? `العمرة رقم ${done + 1}`;
-
-function AnimatedNumber({ value }: { value: number }) {
-  const mv = useMotionValue(value);
-  const text = useTransform(mv, (v) => String(Math.round(v)));
-  useEffect(() => {
-    const c = animate(mv, value, { duration: 0.35 });
-    return () => c.stop();
-  }, [mv, value]);
-  return <motion.span className="tabular-nums">{text}</motion.span>;
-}
-
-/** Why a pilgrim was not at a muster: a required one asks it of each, an optional one lets it be */
-const ABSENCE_REASONS = ["مريض — في العيادة أو في الفندق", "تأخّر وسيلحق بالمجموعة", "مع مرافقه أو مع مجموعة أخرى", "وكّل غيره (كبار السن والمرضى)", "اعتذر عن الحضور", "لم يُعثر عليه — أُبلغت غرفة العمليات"];
+/** Why a pilgrim did not do a rite with his group */
+const ABSENCE_REASONS = ["مريض — في العيادة أو في الفندق", "أدّاه وحده أو مع مجموعة أخرى", "وكّل غيره (كبار السن والمرضى)", "مع مرافقه المريض", "تأخّر عن المجموعة ولحق بها", "لم يُعثر عليه — أُبلغت غرفة العمليات"];
 const OTHER_REASON = "__other";
 
+/** «YYYY-MM-DDTHH:mm» in the device's time, for the date-and-time field */
+const localInput = (ms: number) => {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
 /**
- * The muster: no cards to scan — the pilgrims are older, so their head ticks each one off the group's list as he
- * comes. A required muster (the travel, the rites) closes only once everyone not ticked has his reason; an optional
- * one (the visits) closes whenever, its reasons optional.
+ * «أداء المناسك»: a rite is recorded after it was done, never before — its date, day and hour; who of the group did
+ * it, and what each did where it has degrees (Muzdalifah's night, the Jamarat thrown, Mina's nights); and why
+ * whoever did not. It reaches the pilgrims done, in their portal. The cluster's head, its assistant and its
+ * accountant read the record only.
  */
-function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () => void }) {
+function RiteTool({ roster, onReport, canAct }: { roster: RosterEntry[]; onReport: () => void; canAct: boolean }) {
   const admin = useAdmin()!;
   const toast = useToast();
   const g = useFieldGroup();
-  const all = admin.profile!.musters;
-  const musters = mustersOf(all, g.number, g.home);
-  const open = [...musters].reverse().find((m) => !m.closedAt);
-  // the group's outbound flight, so the muster to the airport doubles as boarding
-  const fd = useFlightsData();
-  const outFlight = useMemo(() => {
-    const a = fd.assignments.find((x) => x.groupNumber === g.number && (!g.clusterId || x.clusterId === g.clusterId) && isActive(x) && fd.flights.find((f) => f.id === x.flightId)?.direction === "outbound");
-    return a ? fd.flights.find((f) => f.id === a.flightId) : undefined;
-  }, [fd, g.number, g.clusterId]);
-  const boardsFlight = open?.flightId ? fd.flights.find((f) => f.id === open.flightId) : undefined;
+  const records = useGroupRites(g.number);
+  const umrahs = records.filter((m) => m.kind === "umrah").length;
   const [kind, setKind] = useState("umrah");
-  const [place, setPlace] = useState(MUSTER_KINDS[0].items[0].place);
-  const [other, setOther] = useState("");
-  const [otherRequired, setOtherRequired] = useState(false);
-  // The Umrahs this group gathered for already: the next one takes its place in the order
-  const umrahs = musters.filter((m) => m.kind === "umrah").length;
-  const labelOf = (k: string) => (k === "umrah" ? umrahLabel(umrahs) : k === "other" ? other.trim() : (MUSTER_KIND(k)?.label ?? ""));
-  // The Umrah of tamattu' is part of the Hajj; the ones after it are the pilgrims' choice
-  const requiredOf = (k: string) => (k === "umrah" ? umrahs === 0 : k === "other" ? otherRequired : !!MUSTER_KIND(k)?.required);
-  const pick = (k: string) => {
-    setKind(k);
-    const def = MUSTER_KIND(k);
-    if (def) setPlace(def.place);
-  };
-  const title = labelOf(kind);
-
-  // The open muster's list: who is ticked, and why the others were not there
-  const [present, setPresent] = useState<string[]>(open?.present ?? []);
-  // What the families said beforehand in their portal: who will come, and why not
-  const replies = useMusterReplies(open?.id);
-  const [absent, setAbsent] = useState<Record<string, string>>(open?.absent ?? {});
+  const [jamDay, setJamDay] = useState("10");
+  const [when, setWhen] = useState(() => localInput(nowMs()));
+  const [place, setPlace] = useState(RITES[0].place);
+  const [present, setPresent] = useState<string[]>([]);
+  const [detail, setDetail] = useState<Record<string, string[]>>({});
+  const [absent, setAbsent] = useState<Record<string, string>>({});
   const [othering, setOthering] = useState<Record<string, boolean>>({});
   const [tried, setTried] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [q, setQ] = useState("");
-  const [listKey, setListKey] = useState(open?.id);
-  if (open?.id !== listKey) {
-    setListKey(open?.id);
-    setPresent(open?.present ?? []);
-    setAbsent(open?.absent ?? {});
-    setOthering({});
-    setTried(false);
-  }
-
-  const expected = roster.length;
-  const required = !!open?.required;
-  const notThere = roster.filter((r) => !present.includes(r.id));
-  const unexplained = notThere.filter((r) => !(absent[r.id] ?? "").trim());
-  const canClose = !!open && (!required || unexplained.length === 0);
+  const rite = riteOf(kind)!;
+  const day = JAMARAT_DAYS.find((d) => d.key === jamDay)!;
+  const jamarat = JAMARAT.filter((x) => !day.only || day.only.includes(x.key));
+  const title = kind === "umrah" ? umrahLabel(umrahs) : kind === "jamarat" ? `${rite.label} — ${day.label}` : rite.label;
+  // The Umrahs after tamattu' are the pilgrims' choice: whoever did not make one needs no reason
+  const optional = kind === "umrah" && umrahs > 0;
+  const doneAt = new Date(when).getTime();
+  const draft = { kind, present, detail };
+  const did = (id: string) => performed(draft, id);
+  const notDone = roster.filter((r) => !did(r.id));
+  const unexplained = optional ? [] : notDone.filter((r) => !(absent[r.id] ?? "").trim());
   const shown = q.trim() ? roster.filter((r) => r.name.includes(q.trim()) || String(r.room).includes(q.trim())) : roster;
 
-  const save = (p: string[], a: Record<string, string>) => {
-    if (!open) return;
-    actions.upsertAdmin(admin.id, { musters: all.map((m) => (m.id === open.id ? { ...m, present: p, absent: a } : m)) });
+  const pick = (k: string) => {
+    setKind(k);
+    setPlace(riteOf(k)?.place ?? "");
+    setPresent([]);
+    setDetail({});
+    setAbsent({});
+    setOthering({});
+    setTried(false);
   };
-  const toggle = (r: RosterEntry) => {
-    const p = present.includes(r.id) ? present.filter((x) => x !== r.id) : [...present, r.id];
-    setPresent(p);
-    save(p, absent);
+  const setOne = (id: string, d: string[]) => setDetail((x) => ({ ...x, [id]: d }));
+  const toggleIn = (id: string, key: string) => {
+    const cur = detail[id] ?? [];
+    setOne(id, cur.includes(key) ? cur.filter((x) => x !== key) : [...cur, key]);
   };
   const everyone = () => {
-    const p = roster.map((r) => r.id);
-    setPresent(p);
-    save(p, absent);
-    logAdmin(admin.id, `تحضير الجميع في تجمّع «${open!.title}»`, groupName(g.number), `الحاضرون ${p.length} من ${expected}`);
+    if (rite.mode === "done") setPresent(roster.map((r) => r.id));
+    else setDetail(Object.fromEntries(roster.map((r) => [r.id, rite.mode === "muzdalifa" ? ["fajr"] : rite.mode === "mina" ? MINA_NIGHTS.map((x) => x.key) : jamarat.map((x) => x.key)])));
   };
-  const setReason = (id: string, reason: string) => {
-    const a = { ...absent };
-    if (reason.trim()) a[id] = reason;
-    else delete a[id];
-    setAbsent(a);
-    save(present, a);
-  };
-
-  const create = () => {
-    if (!title || !place.trim()) return;
-    const toAirport = MUSTER_KIND(kind)?.flight ? outFlight : undefined;
-    const at = nowMs();
-    const req = requiredOf(kind);
-    const m = { id: `m-${at.toString(36)}`, title, kind, place: place.trim(), at, groupNumber: g.number, present: [] as string[], required: req, absent: {}, ...(toAirport ? { flightId: toAirport.id } : {}) };
-    actions.upsertAdmin(admin.id, { musters: [...all, m] });
-    logAdmin(admin.id, `فتح تجمّع «${m.title}» في ${m.place}`, groupName(g.number), `${req ? "ضروري" : "اختياري"} — المتوقع: ${expected}${toAirport ? ` — الرحلة ${toAirport.flightNo}` : ""}`);
-    toast({ title: "فُتح التجمّع", body: `«${m.title}» في ${m.place} — حدّد من حضر من القائمة (${expected} حاجاً).${req ? " تجمّع ضروري: سبب غياب كل من لم يحضر." : " تجمّع اختياري."}`, icon: "📍", tone: "info" });
-  };
-
-  const close = () => {
-    if (!open) return;
-    if (!canClose) {
-      setTried(true);
-      return;
-    }
-    // Only the reasons of those not there are kept
-    const reasons = Object.fromEntries(notThere.filter((r) => (absent[r.id] ?? "").trim()).map((r) => [r.id, absent[r.id].trim()]));
-    actions.upsertAdmin(admin.id, { musters: all.map((m) => (m.id === open.id ? { ...m, present, absent: reasons, closedAt: Date.now() } : m)) });
-    logAdmin(
-      admin.id,
-      `إغلاق تجمّع «${open.title}» وإرسال «انطلقنا» للجميع`,
-      groupName(g.number),
-      `الحاضرون ${present.length} من ${expected}${notThere.length ? ` — لم يحضر: ${notThere.map((r) => `${r.name}${reasons[r.id] ? ` (${reasons[r.id]})` : ""}`).join("، ")}` : ""}`,
-    );
-    if (open.flightId) flightsActions.markBoarded(open.flightId, present, { name: admin.name, role: positionLabelOf(effectiveRole(admin.profile)) || "رئيس مجموعة" });
-    toast({ title: "انطلقنا 🚌", body: `الحاضرون ${present.length} من ${expected}: «انطلقت حافلة ${groupName(g.number)}.»`, icon: "📣", tone: "success" });
-    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 }, colors: ["#D9C89E", "#00594F", "#289E92"] });
-  };
-
-  // Opened by mistake, or no longer wanted: it goes as if never opened — nothing is sent, nothing kept in the record
-  const cancel = () => {
-    if (!open) return;
-    actions.upsertAdmin(admin.id, { musters: all.filter((m) => m.id !== open.id) });
-    logAdmin(admin.id, `إلغاء تجمّع «${open.title}»`, groupName(g.number), present.length ? `أُلغي بعد تحديد ${present.length} من ${expected}` : "أُلغي قبل البدء");
-    toast({ title: "أُلغي التجمّع", body: `«${open.title}» — لم يُرسل شيء إلى الحجاج.`, icon: "✖️", tone: "info" });
-    setCancelling(false);
-  };
-
-  const report = (r: RosterEntry) => {
-    const id = actions.addTicket({
-      name: r.name,
-      kind: "missing",
-      severity: "high",
-      location: `${groupName(g.number)} — تجمّع «${open?.title ?? ""}»${open?.place ? ` في ${open.place}` : ""}`,
-      text: `تأخر ${r.name} (${r.age} عاماً، الغرفة ${r.room}) عن التجمّع، والهاتف لا يرد. أبلغ عنه رئيس المجموعة خلال 5 دقائق من اكتشاف الغياب.`,
-      assignee: "غرفة العمليات — فادي سلوم",
+  const setReason = (id: string, reason: string) =>
+    setAbsent((a) => {
+      const next = { ...a };
+      if (reason.trim()) next[id] = reason;
+      else delete next[id];
+      return next;
     });
-    setReason(r.id, ABSENCE_REASONS[5]);
-    logAdmin(admin.id, "الإبلاغ عن تأخر حاج", `البلاغ ${id}`, `${r.name} — تجمّع «${open?.title}»`);
-    toast({ title: `البلاغ ${id} وصل إلى غرفة العمليات`, body: "فادي سلوم يتابع الحالة الآن.", icon: "🚨", tone: "warning" });
+
+  const save = () => {
+    if (!place.trim() || !Number.isFinite(doneAt) || doneAt > nowMs() + 60_000) return setTried(true);
+    if (unexplained.length) return setTried(true);
+    const at = nowMs();
+    const performers = roster.filter((r) => did(r.id)).map((r) => r.id);
+    const reasons = Object.fromEntries(notDone.filter((r) => (absent[r.id] ?? "").trim()).map((r) => [r.id, absent[r.id].trim()]));
+    const kept = rite.mode === "done" ? undefined : Object.fromEntries(Object.entries(detail).filter(([id, d]) => d.length && roster.some((r) => r.id === id)));
+    const m = { id: `r-${at.toString(36)}`, title, kind, place: place.trim(), at, doneAt, closedAt: at, groupNumber: g.number, present: performers, absent: reasons, required: !optional, ...(kept ? { detail: kept } : {}) };
+    actions.upsertAdmin(admin.id, { musters: [...admin.profile!.musters, m] });
+    logAdmin(admin.id, `تسجيل أداء «${title}»`, groupName(g.number), `${doneWhen(doneAt)} — أدّاه ${performers.length} من ${roster.length}${notDone.length ? ` — لم يؤدّه: ${notDone.map((r) => `${r.name}${reasons[r.id] ? ` (${reasons[r.id]})` : ""}`).join("، ")}` : ""}`);
+    toast({ title: `سُجّل أداء «${title}»`, body: `أدّاه ${performers.length} من ${roster.length}. يظهر لحجاج المجموعة في «أداء المناسك» من بوابتهم.`, icon: "🕋", tone: "success" });
+    pick(kind === "umrah" ? "umrah" : kind);
+    setWhen(localInput(nowMs()));
   };
 
-  const pct = expected ? present.length / expected : 0;
+  const doneCount = roster.length - notDone.length;
+  const log = <RiteLog records={records} expected={roster.length} roster={roster} canAct={canAct} />;
+  if (!canAct) return log;
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
       <Card className="relative overflow-hidden md:p-8">
-        {!open ? (
-          <div>
-            <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><Plus className="size-6 text-gold-dark" /> فتح تجمّع جديد — {groupName(g.number)}</h2>
-            <p className="mt-1 text-ink-soft">اختر سبب التجمّع، ثم اكتب مكانه كما ستجتمع مجموعتك فعلاً. بعد فتحه تظهر قائمة حجاج المجموعة، فتحدّد كل من حضر.</p>
-            {/* The Umrahs first: most musters are for them */}
-            <button type="button" onClick={() => pick("umrah")} aria-pressed={kind === "umrah"} className={cn("mt-5 flex w-full items-center justify-between gap-3 rounded-3xl border-2 p-4 text-start transition", kind === "umrah" ? "border-green-dark bg-green-dark text-white" : "border-gold/50 hover:border-green-dark/40")}>
-              <span>
-                <span className="block font-display text-xl font-bold">{umrahLabel(umrahs)}</span>
-                <span className={cn("block text-sm", kind === "umrah" ? "text-white/75" : "text-ink-soft")}>{umrahs ? `أدّت المجموعة ${umrahs === 1 ? "عمرة واحدة" : `${umrahs} عمرات`} — هذه التالية، اختيارية` : "أول عمرة للمجموعة بعد الوصول إلى مكة — ضرورية"}</span>
-              </span>
-              <span className={cn("rounded-full px-3 py-1 text-xs font-bold", kind === "umrah" ? "bg-gold text-ink" : "bg-gold/30 text-maroon")}>الأكثر</span>
+        <h2 className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark"><Plus className="size-6 text-gold-dark" /> تسجيل منسك أُدّي — {groupName(g.number)}</h2>
+        <p className="mt-1 text-ink-soft">يُسجَّل المنسك بعد أن تؤديه المجموعة: اختره، واكتب متى أُدّي، ثم حدّد من أدّاه من القائمة، وسبب من لم يؤدّه. يصل إلى الحجاج جاهزاً، دون أن يُسألوا عنه قبله.</p>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {RITES.map((x) => (
+            <button key={x.key} type="button" onClick={() => pick(x.key)} aria-pressed={kind === x.key} className={cn("rounded-full border-2 px-3.5 py-1.5 text-sm font-bold transition", kind === x.key ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>
+              {x.key === "umrah" ? umrahLabel(umrahs) : x.label}
             </button>
-            {MUSTER_KINDS.slice(1).map((sec) => (
-              <div key={sec.title} className="mt-4">
-                <p className="mb-2 text-xs font-bold text-hint">{sec.title}</p>
-                <div className="flex flex-wrap gap-2">
-                  {sec.items.map((x) => (
-                    <button key={x.key} type="button" onClick={() => pick(x.key)} aria-pressed={kind === x.key} className={cn("rounded-full border-2 px-3.5 py-1.5 text-sm font-bold transition", kind === x.key ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>
-                      {x.label}
-                      {!x.required && <span className={cn("ms-1.5 text-[11px] font-semibold", kind === x.key ? "text-white/70" : "text-hint")}>اختياري</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <button type="button" onClick={() => setKind("other")} aria-pressed={kind === "other"} className={cn("mt-4 rounded-full border-2 border-dashed px-3.5 py-1.5 text-sm font-bold transition", kind === "other" ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>
-              تجمّع آخر
-            </button>
-            {kind === "other" && (
-              <>
-                <input value={other} onChange={(e) => setOther(e.target.value)} placeholder="سبب التجمّع، مثل: درس في قاعة الفندق" className="mt-3 h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" aria-label="سبب التجمّع" />
-                <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm font-semibold text-ink">
-                  <input type="checkbox" checked={otherRequired} onChange={(e) => setOtherRequired(e.target.checked)} className="size-5 accent-[#00594f]" /> تجمّع ضروري: يلزم سبب غياب كل من لم يحضر
-                </label>
-              </>
-            )}
-            <label className="mt-5 block">
-              <span className="mb-1 block font-bold">مكان التجمّع</span>
-              <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="أين تجتمع المجموعة؟" className="h-14 w-full rounded-2xl border-2 border-gold/50 px-4 text-lg outline-none focus:border-green-light" aria-label="مكان التجمّع" />
-              <span className="mt-1 block text-xs text-hint">اقتراح بحسب السبب — غيّره إلى حيث تجتمع مجموعتك: باب في الفندق، أو موقف حافلات، أو مدخل المخيم.</span>
+          ))}
+        </div>
+        {rite.note && <p className="mt-2 text-xs text-hint">{rite.key === "umrah" && umrahs ? `أدّت المجموعة ${umrahs === 1 ? "عمرة واحدة" : `${umrahs} عمرات`} — هذه التالية، يختارها الحاج: لا يلزم سبب لمن لم يؤدّها.` : rite.note}</p>}
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {kind === "jamarat" && (
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block font-bold">يوم الرمي</span>
+              <select value={jamDay} onChange={(e) => { setJamDay(e.target.value); setDetail({}); }} aria-label="يوم الرمي" className="h-12 w-full rounded-2xl border-2 border-gold/50 bg-white px-3 outline-none focus:border-green-light">
+                {JAMARAT_DAYS.map((d) => <option key={d.key} value={d.key}>{d.label}{d.only ? " — جمرة العقبة وحدها" : " — الجمرات الثلاث"}</option>)}
+              </select>
             </label>
-            <p className={cn("mt-3 rounded-2xl p-3 text-sm font-semibold", requiredOf(kind) ? "bg-maroon/8 text-maroon" : "bg-sand text-ink-soft")}>
-              {requiredOf(kind) ? "تجمّع ضروري: لا يُغلق إلا بعد كتابة سبب غياب كل من لم يحضر." : "تجمّع اختياري: من لم يحضر لا يلزم سبب غيابه، ولك أن تكتبه."}
-            </p>
-            {MUSTER_KIND(kind)?.flight && outFlight && <p className="mt-3 rounded-2xl bg-gold/20 p-3 text-sm font-bold text-maroon">مرتبط برحلة المجموعة <span dir="ltr" className="font-mono">{outFlight.flightNo}</span>: من تحدّده حاضراً يُسجَّل صعوده في ملف الطيران.</p>}
-            <Button size="lg" className="mt-5" onClick={create} disabled={!title || !place.trim()}>
-              <UserRoundCheck className="size-5" /> فتح تجمّع «{title || "…"}» — المتوقع {expected}
-            </Button>
-          </div>
-        ) : (
-          <div>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm text-hint">تجمّع مفتوح منذ {new Date(open.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p>
-                <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">تجمّع: {open.title}</h2>
-                {open.place && <p className="mt-1 font-bold text-ink-soft">المكان: {open.place}</p>}
-                {boardsFlight && <p className="mt-1 text-sm font-bold text-gold-dark">مرتبط بالرحلة <span dir="ltr" className="font-mono">{boardsFlight.flightNo}</span>: من تحدّده حاضراً يُسجَّل صعوده في ملف الطيران.</p>}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge tone={required ? "maroon" : "ink"}>{required ? "ضروري" : "اختياري"}</Badge>
-                <button type="button" onClick={() => setCancelling(true)} className="flex items-center gap-1 rounded-full border-2 border-maroon/30 px-3 py-1 text-xs font-bold text-maroon transition hover:bg-maroon hover:text-white" aria-label="إلغاء التجمّع">
-                  <X className="size-4" /> إلغاء التجمّع
-                </button>
-              </div>
-            </div>
-            <Modal open={cancelling} onClose={() => setCancelling(false)} className="max-w-md">
-              <p className="flex items-center gap-2 font-display text-xl font-bold text-maroon">
-                <X className="size-5" /> إلغاء تجمّع «{open.title}»؟
-              </p>
-              <p className="mt-2 leading-7 text-ink-soft">
-                يُحذف التجمّع كأنه لم يُفتح: لا تُرسل «انطلقنا» ولا أي رسالة إلى الحجاج، ولا يدخل سجل التجمّعات.
-                {present.length > 0 && <b className="text-maroon"> ويضيع تحديد {present.length} من الحاضرين.</b>}
-              </p>
-              <div className="mt-4 flex gap-2">
-                <Button variant="maroon" onClick={cancel}>
-                  <X className="size-4" /> نعم، ألغِ التجمّع
-                </Button>
-                <Button variant="outline" onClick={() => setCancelling(false)}>
-                  لا، أكمل التجمّع
-                </Button>
-              </div>
-            </Modal>
+          )}
+          <label className="block">
+            <span className="mb-1 block font-bold">متى أُدّي: التاريخ والساعة</span>
+            <input type="datetime-local" value={when} max={localInput(nowMs())} onChange={(e) => setWhen(e.target.value)} aria-label="تاريخ الأداء وساعته" className={cn("h-12 w-full rounded-2xl border-2 px-3 outline-none focus:border-green-light", tried && (!Number.isFinite(doneAt) || doneAt > nowMs() + 60_000) ? "border-maroon" : "border-gold/50")} />
+            <span className="mt-1 block text-xs text-hint">{Number.isFinite(doneAt) ? (doneAt > nowMs() + 60_000 ? "لا يُسجَّل منسك قبل أن يُؤدّى." : doneWhen(doneAt)) : "اختر التاريخ والساعة"}</span>
+          </label>
+          <label className="block">
+            <span className="mb-1 block font-bold">المكان</span>
+            <input value={place} onChange={(e) => setPlace(e.target.value)} aria-label="مكان الأداء" className="h-12 w-full rounded-2xl border-2 border-gold/50 px-3 outline-none focus:border-green-light" />
+          </label>
+        </div>
 
-            <div className="mt-5 flex items-center gap-4">
-              <div className="relative size-20 shrink-0">
-                <svg viewBox="0 0 100 100" className="size-full -rotate-90">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#E4DDD3" strokeWidth="10" />
-                  <motion.circle cx="50" cy="50" r="42" fill="none" stroke={pct >= 1 ? "#289E92" : "#00594F"} strokeWidth="10" strokeLinecap="round" strokeDasharray="263.9" animate={{ strokeDashoffset: 263.9 - 263.9 * pct }} transition={{ duration: 0.3 }} />
-                </svg>
-                <span className="absolute inset-0 grid place-items-center font-display text-lg font-bold text-green-dark"><AnimatedNumber value={present.length} /></span>
-              </div>
-              <dl className="grid flex-1 grid-cols-3 gap-2 text-center">
-                <div className="rounded-2xl bg-sand p-2.5"><dt className="text-xs text-hint">المتوقع</dt><dd className="font-display text-xl font-bold">{expected}</dd></div>
-                <div className="rounded-2xl bg-green-light/10 p-2.5"><dt className="text-xs text-hint">حضروا</dt><dd className="font-display text-xl font-bold text-green">{present.length}</dd></div>
-                <div className={cn("rounded-2xl p-2.5", notThere.length ? "bg-maroon/10" : "bg-sand")}><dt className="text-xs text-hint">لم يحضروا</dt><dd className={cn("font-display text-xl font-bold", notThere.length ? "text-maroon" : "")}>{notThere.length}</dd></div>
-              </dl>
-            </div>
-            <p className={cn("mt-3 rounded-2xl p-3 text-sm font-semibold", required ? "bg-maroon/8 text-maroon" : "bg-sand text-ink-soft")}>
-              {required ? "تجمّع ضروري: اكتب سبب غياب كل من لم يحضر قبل الإغلاق." : "تجمّع اختياري: سبب الغياب اختياري."}
-            </p>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <label className="relative min-w-0 flex-1">
+            <span className="sr-only">ابحث في حجاج المجموعة</span>
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو الغرفة" className="h-11 w-full rounded-2xl bg-sand ps-9 pe-3 text-sm outline-none focus:ring-4 focus:ring-green-light/15" />
+          </label>
+          <Button size="sm" variant="outline" onClick={everyone}>
+            <CheckCheck className="size-4" /> {rite.mode === "muzdalifa" ? "الكل حتى الفجر" : rite.mode === "mina" ? "الكل الليالي كلها" : rite.mode === "jamarat" ? "الكل رمى" : "الكل أدّاه"}
+          </Button>
+        </div>
+        <p className="mt-2 text-sm font-semibold text-ink-soft">أدّاه {doneCount} من {roster.length}{notDone.length ? ` — لم يؤدّه ${notDone.length}` : ""}</p>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <label className="relative min-w-0 flex-1">
-                <span className="sr-only">ابحث في حجاج المجموعة</span>
-                <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-hint" />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو الغرفة" className="h-11 w-full rounded-2xl bg-sand ps-9 pe-3 text-sm outline-none focus:ring-4 focus:ring-green-light/15" />
-              </label>
-              <Button size="sm" variant="outline" onClick={everyone} disabled={present.length === expected}>
-                <CheckCheck className="size-4" /> الكل حاضر
-              </Button>
-            </div>
-
-            <ul className="mt-3 max-h-[34rem] space-y-2 overflow-y-auto overscroll-contain pe-1">
-              {shown.map((r) => {
-                const here = present.includes(r.id);
-                const reason = absent[r.id] ?? "";
-                const preset = ABSENCE_REASONS.includes(reason);
-                const writing = othering[r.id] || (!!reason && !preset);
-                const missingReason = required && !here && !reason.trim();
-                return (
-                  <li key={r.id} className={cn("rounded-2xl border-2 p-3 transition", here ? "border-green-light/50 bg-green-light/5" : missingReason && tried ? "border-maroon/50 bg-maroon/5" : "border-gold/30 bg-white")}>
-                    <label className="flex cursor-pointer items-center gap-3">
-                      <input type="checkbox" checked={here} onChange={() => toggle(r)} className="size-7 shrink-0 accent-[#00594f]" aria-label={`${r.name} حاضر`} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold text-ink">{r.name}</span>
-                        <span className="block text-xs text-ink-soft">
-                          {r.age} عاماً · الغرفة {r.room}
-                          {r.needs.length > 0 && ` · ${r.needs.join("، ")}`}
-                        </span>
-                        {replies[r.id] && (
-                          <span className={cn("mt-0.5 block text-xs font-bold", replies[r.id].going ? "text-green" : "text-maroon")}>
-                            {replies[r.id].going ? "قال سيحضر" : `اعتذر${replies[r.id].reason ? `: ${replies[r.id].reason}` : ""}`}
-                          </span>
-                        )}
-                      </span>
-                      {here && <Check className="size-5 shrink-0 text-green-light" />}
-                    </label>
-                    {!here && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2 ps-10">
-                        <select
-                          value={writing ? OTHER_REASON : preset ? reason : ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            if (v === OTHER_REASON) {
-                              setOthering((o) => ({ ...o, [r.id]: true }));
-                              setReason(r.id, "");
-                            } else {
-                              setOthering((o) => ({ ...o, [r.id]: false }));
-                              setReason(r.id, v);
-                            }
-                          }}
-                          aria-label={`سبب غياب ${r.name}`}
-                          className={cn("h-10 min-w-0 flex-1 rounded-xl border-2 bg-white px-2 text-sm outline-none focus:border-green-light", missingReason && tried ? "border-maroon" : "border-gold/40")}
-                        >
-                          <option value="">{required ? "سبب الغياب (إلزامي)" : "سبب الغياب (اختياري)"}</option>
-                          {ABSENCE_REASONS.map((x) => (
-                            <option key={x} value={x}>
-                              {x}
-                            </option>
-                          ))}
-                          <option value={OTHER_REASON}>سبب آخر…</option>
-                        </select>
-                        <button type="button" onClick={() => { logAdmin(admin.id, `اتصال بالحاج ${r.name}`, `تجمّع «${open.title}»`); toast({ title: `جارٍ الاتصال بـ ${r.name}...`, body: "إن لم يرد فأرسل بلاغاً إلى غرفة العمليات.", icon: "📞", tone: "info" }); }} className="grid size-10 place-items-center rounded-xl bg-sand text-green-dark hover:bg-green-dark hover:text-white" aria-label={`اتصال بـ ${r.name}`}>
-                          <Phone className="size-4" />
+        <ul className="mt-3 max-h-[34rem] space-y-2 overflow-y-auto overscroll-contain pe-1">
+          {shown.map((r) => {
+            const done = did(r.id);
+            const d = detail[r.id] ?? [];
+            const reason = absent[r.id] ?? "";
+            const preset = ABSENCE_REASONS.includes(reason);
+            const writing = othering[r.id] || (!!reason && !preset);
+            const missing = !optional && !done && !reason.trim();
+            return (
+              <li key={r.id} className={cn("rounded-2xl border-2 p-3 transition", done ? "border-green-light/50 bg-green-light/5" : missing && tried ? "border-maroon/50 bg-maroon/5" : "border-gold/30 bg-white")}>
+                <div className="flex flex-wrap items-center gap-3">
+                  {rite.mode === "done" && (
+                    <input type="checkbox" checked={done} onChange={() => setPresent((p) => (p.includes(r.id) ? p.filter((x) => x !== r.id) : [...p, r.id]))} className="size-7 shrink-0 accent-[#00594f]" aria-label={`${r.name} أدّاه`} />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-ink">{r.name}</span>
+                    <span className="block text-xs text-ink-soft">
+                      {r.age} عاماً · الغرفة {r.room}
+                      {r.needs.length > 0 && ` · ${r.needs.join("، ")}`}
+                    </span>
+                  </span>
+                  {done && rite.mode === "done" && <Check className="size-5 shrink-0 text-green-light" />}
+                </div>
+                {rite.mode === "muzdalifa" && (
+                  <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label={`مبيت ${r.name} في مزدلفة`}>
+                    {MUZDALIFA_LEVELS.map((x) => {
+                      const on = (d[0] ?? "") === x.key;
+                      return (
+                        <button key={x.key} type="button" role="radio" aria-checked={on} onClick={() => setOne(r.id, [x.key])} className={cn("rounded-full border-2 px-3 py-1 text-xs font-bold transition", on ? (x.key === "none" ? "border-maroon bg-maroon text-white" : "border-green-dark bg-green-dark text-white") : "border-gold/40 text-ink-soft hover:border-green-dark/40")}>
+                          {x.label}
                         </button>
-                        {required && (
-                          <button type="button" onClick={() => report(r)} className="grid size-10 place-items-center rounded-xl bg-maroon/10 text-maroon hover:bg-maroon hover:text-white" aria-label={`الإبلاغ عن تأخر ${r.name}`}>
-                            <Siren className="size-4" />
-                          </button>
-                        )}
-                        {writing && (
-                          <input autoFocus value={preset ? "" : reason} onChange={(e) => setReason(r.id, e.target.value)} placeholder="اكتب السبب" aria-label={`السبب الآخر لغياب ${r.name}`} className="h-10 w-full rounded-xl border-2 border-gold/40 px-3 text-sm outline-none focus:border-green-light" />
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-              {shown.length === 0 && <li className="rounded-2xl bg-sand p-4 text-center text-sm text-hint">لا أحد بهذا الاسم أو الغرفة.</li>}
-            </ul>
+                      );
+                    })}
+                  </div>
+                )}
+                {(rite.mode === "jamarat" || rite.mode === "mina") && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {(rite.mode === "jamarat" ? jamarat : MINA_NIGHTS).map((x) => {
+                      const on = d.includes(x.key);
+                      return (
+                        <label key={x.key} className={cn("flex cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 py-1 text-xs font-bold transition", on ? "border-green-dark bg-green-dark text-white" : "border-gold/40 text-ink-soft")}>
+                          <input type="checkbox" checked={on} onChange={() => toggleIn(r.id, x.key)} className="sr-only" aria-label={`${r.name}: ${rite.mode === "jamarat" ? `الجمرة ${x.label}` : x.label}`} />
+                          {on && <Check className="size-3.5" />} {rite.mode === "jamarat" ? `الجمرة ${x.label}` : x.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {!done && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 ps-1">
+                    <select
+                      value={writing ? OTHER_REASON : preset ? reason : ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setOthering((o) => ({ ...o, [r.id]: v === OTHER_REASON }));
+                        setReason(r.id, v === OTHER_REASON ? "" : v);
+                      }}
+                      aria-label={`سبب عدم أداء ${r.name}`}
+                      className={cn("h-10 min-w-0 flex-1 rounded-xl border-2 bg-white px-2 text-sm outline-none focus:border-green-light", missing && tried ? "border-maroon" : "border-gold/40")}
+                    >
+                      <option value="">{optional ? "لماذا لم يؤدّه؟ (اختياري)" : "لماذا لم يؤدّه؟ (إلزامي)"}</option>
+                      {ABSENCE_REASONS.map((x) => <option key={x} value={x}>{x}</option>)}
+                      <option value={OTHER_REASON}>سبب آخر…</option>
+                    </select>
+                    {writing && <input autoFocus value={preset ? "" : reason} onChange={(e) => setReason(r.id, e.target.value)} placeholder="اكتب السبب" aria-label={`السبب الآخر لـ ${r.name}`} className="h-10 w-full rounded-xl border-2 border-gold/40 px-3 text-sm outline-none focus:border-green-light" />}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+          {shown.length === 0 && <li className="rounded-2xl bg-sand p-4 text-center text-sm text-hint">لا أحد بهذا الاسم أو الغرفة.</li>}
+        </ul>
 
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
-              <p className={cn("text-sm", tried && !canClose ? "font-bold text-maroon" : "text-ink-soft")}>
-                {notThere.length === 0
-                  ? `حضر الجميع: ${present.length} من ${expected}. جاهزون للانطلاق.`
-                  : required
-                    ? unexplained.length
-                      ? `بقي سبب غياب ${unexplained.length} ${unexplained.length === 1 ? "حاج" : "حجاج"}: لا يُغلق التجمّع الضروري قبل كتابته.`
-                      : `لم يحضر ${notThere.length}، ولكلٍّ سبب غيابه.`
-                    : `لم يحضر ${notThere.length} — تجمّع اختياري.`}
-              </p>
-              <Button size="lg" variant={canClose ? "gold" : "outline"} onClick={close}>
-                <Send className="size-5" /> إغلاق التجمّع وإرسال «انطلقنا» للجميع
-              </Button>
-            </div>
-          </div>
-        )}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gold-light pt-6">
+          <p className={cn("text-sm", tried && unexplained.length ? "font-bold text-maroon" : "text-ink-soft")}>
+            {notDone.length === 0 ? `أدّاه الجميع: ${roster.length}.` : unexplained.length ? `بقي سبب ${unexplained.length} ${unexplained.length === 1 ? "حاج" : "حجاج"} لم يؤدّوه.` : `لم يؤدّه ${notDone.length}${optional ? " — عمرة اختيارية" : "، ولكلٍّ سببه"}.`}
+          </p>
+          <Button size="lg" variant={unexplained.length ? "outline" : "gold"} onClick={save} disabled={!place.trim()}>
+            <Send className="size-5" /> حفظ «{title}» في سجل أداء المناسك
+          </Button>
+        </div>
       </Card>
 
       <div className="space-y-4">
-        <Card className="md:p-6">
-          <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ClipboardList className="size-5 text-gold-dark" /> سجل التجمّعات</h3>
-          {musters.length === 0 ? (
-            <p className="mt-3 text-sm text-hint">لا تجمّعات بعد.</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {[...musters].reverse().map((m) => {
-                const gone = Object.keys(m.absent ?? {}).length;
+        {log}
+        <button type="button" onClick={onReport} className="flex w-full items-center gap-3 rounded-3xl border-2 border-dashed border-maroon/30 bg-white p-4 text-right text-sm font-bold text-maroon hover:bg-maroon/5">
+          <Siren className="size-5" /> بلاغ لغرفة العمليات
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The group's record of rites done: each with when, who recorded it, and who did it — open one for its detail */
+function RiteLog({ records, expected, roster, canAct }: { records: GroupMuster[]; expected: number; roster: RosterEntry[]; canAct: boolean }) {
+  const admin = useAdmin()!;
+  const toast = useToast();
+  const [open, setOpen] = useState<GroupMuster | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const nameOf = (id: string) => roster.find((r) => r.id === id)?.name ?? id;
+  const remove = (m: GroupMuster) => {
+    const mine = getState().admins[m.byId];
+    if (!mine) return;
+    actions.upsertAdmin(m.byId, { musters: mine.musters.filter((x) => x.id !== m.id) });
+    logAdmin(admin.id, `حذف «${m.title}» من سجل أداء المناسك`, groupName(m.groupNumber ?? 0), m.doneAt ? doneWhen(m.doneAt) : undefined);
+    toast({ title: "حُذف من السجل", body: `«${m.title}» — لم يعد يظهر لحجاج المجموعة.`, icon: "✖️", tone: "info" });
+    setRemoving(false);
+    setOpen(null);
+  };
+  return (
+    <Card className="md:p-6">
+      <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark"><ClipboardList className="size-5 text-gold-dark" /> سجل أداء المناسك</h3>
+      {records.length === 0 ? (
+        <p className="mt-3 text-sm text-hint">لم يُسجَّل منسك بعد. يُسجَّل كل منسك بعد أن تؤديه المجموعة.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {records.map((m) => {
+            const done = roster.filter((r) => performed(m, r.id)).length || m.present.length;
+            return (
+              <li key={m.id}>
+                <button type="button" onClick={() => setOpen(m)} className="w-full rounded-xl bg-sand px-3 py-2 text-start text-sm transition hover:bg-gold/20">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate font-semibold">{m.title}</span>
+                    <span className="shrink-0 rounded-full bg-green-light/15 px-2 py-0.5 text-xs font-bold text-green">{done}/{expected}</span>
+                  </span>
+                  <span className="block truncate text-xs text-hint">{doneWhen(m.doneAt ?? m.at)} — سجّله {m.by}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Modal open={!!open} onClose={() => { setOpen(null); setRemoving(false); }} className="max-w-2xl">
+        {open && (
+          <div>
+            <p className="font-display text-2xl font-bold text-green-dark">{open.title}</p>
+            <p className="mt-1 text-sm text-ink-soft">{doneWhen(open.doneAt ?? open.at)}{open.place ? ` — ${open.place}` : ""} — سجّله {open.by}</p>
+            <ul className="mt-4 max-h-[26rem] space-y-1.5 overflow-y-auto pe-1">
+              {roster.map((r) => {
+                const done = performed(open, r.id);
                 return (
-                  <li key={m.id} className="rounded-xl bg-sand px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="min-w-0">
-                        <span className="block truncate font-semibold">{m.title}</span>
-                        {m.place && <span className="block truncate text-xs text-hint">{m.place}</span>}
-                      </span>
-                      <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-bold", m.closedAt ? "bg-green-light/15 text-green" : "bg-gold/40 text-maroon")}>
-                        {m.closedAt ? `أُغلق ${m.present.length}/${expected}` : "مفتوح"}
-                      </span>
-                    </div>
-                    {m.closedAt && gone > 0 && <p className="mt-1 text-[11px] text-ink-soft">{gone === 1 ? "غائب واحد بسببه" : `${gone} غائبين بأسبابهم`}</p>}
+                  <li key={r.id} className={cn("flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm", done ? "bg-green-light/8" : "bg-maroon/5")}>
+                    <span className="font-bold">{nameOf(r.id)}</span>
+                    <span className={cn("text-xs font-semibold", done ? "text-green" : "text-maroon")}>
+                      {performedText(open, r.id)}
+                      {!done && open.absent?.[r.id] ? ` — ${open.absent[r.id]}` : ""}
+                    </span>
                   </li>
                 );
               })}
             </ul>
-          )}
-        </Card>
-        <div className="rounded-3xl bg-green-dark p-5 text-sm leading-7 text-white/85">
-          <p className="font-bold text-gold">التحضير من القائمة</p>
-          لا بطاقات تُمسح: حجاجنا من كبار السن، فيحدّد رئيس المجموعة أو معاونها كل من حضر من قائمة المجموعة. التجمّعات الضرورية (السفر والمشاعر وعمرة التمتّع) يُكتب فيها سبب غياب كل من لم يحضر.
-        </div>
-        <button type="button" onClick={onReport} className="flex w-full items-center gap-3 rounded-3xl border-2 border-dashed border-maroon/30 bg-white p-4 text-right text-sm font-bold text-maroon hover:bg-maroon/5">
-          <Siren className="size-5" /> بلاغ آخر لغرفة العمليات
-        </button>
-      </div>
-    </div>
+            {canAct && open.byId === admin.id && (
+              <div className="mt-4 border-t border-gold-light pt-4">
+                {removing ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-maroon">يُحذف من السجل ولا يعود يظهر لحجاج المجموعة. متأكد؟</p>
+                    <Button size="sm" variant="maroon" onClick={() => remove(open)}><X className="size-4" /> نعم، احذفه</Button>
+                    <Button size="sm" variant="outline" onClick={() => setRemoving(false)}>لا</Button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setRemoving(true)} className="text-sm font-bold text-maroon hover:underline">سُجّل خطأً؟ احذفه من السجل</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </Card>
   );
 }
 

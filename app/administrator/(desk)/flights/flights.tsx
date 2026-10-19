@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { AlertTriangle, CalendarDays, Check, Info, Lock, PlaneLanding, PlaneTakeoff, Printer, Search, UserPlus, Users, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState, type ComponentProps } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
@@ -41,7 +41,8 @@ import {
 import { groupName } from "@/lib/groups";
 import { useStore } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
-import { AdminShell, LockedCard } from "../../_components/ui";
+import { AdminShell, LockedCard, ViewOnlyNote } from "../../_components/ui";
+import { useAdminScope, viewOnlyText } from "../../_lib/scope";
 import { isClusterRole, isTechCoordinator, useAdmin } from "../../_lib/admin";
 import { clusterViewOf } from "../../_lib/cluster";
 import { useClusterGroupsOf } from "../../_lib/formation";
@@ -49,13 +50,38 @@ import { useCoordinatorPost } from "../../_lib/coordinators";
 
 /**
  * الرحلات. The flight officer (a staff member) gives each cluster its days — the flights it travels on, each
- * with the seats it holds there. The cluster's head puts his groups on them, each group whole, and adds a
- * pilgrim by hand for the rare one who travels apart from his group; the return lands where the airport he
- * took off from allows. Once the officer locks a flight its manifest is out, and only he changes it. The
- * coordinators see their groups' flights; the group head and his team see their group's two flights and
- * print the list for the airport.
+ * with the seats it holds there. Each technical coordinator puts the groups sorted to him on them, each group
+ * whole, and adds a pilgrim by hand for the rare one who travels apart from his group; the return lands where
+ * the airport he took off from allows. Once the officer locks a flight its manifest is out, and only he changes
+ * it. The cluster's head, its assistant and its accountant follow every group's flights; the group head and his
+ * team see their group's two flights and print the list for the airport.
  */
-export function AdminFlights() {
+/**
+ * The flights are a tab of «القوائم» (embedded: no page around them, their title a heading); /administrator/flights
+ * leads there.
+ */
+const Embedded = createContext(false);
+function Shell({ title, subtitle, children }: ComponentProps<typeof AdminShell>) {
+  const embedded = useContext(Embedded);
+  if (!embedded) return <AdminShell image="/images/haram-2022.jpg" title={title} subtitle={subtitle}>{children}</AdminShell>;
+  return (
+    <div>
+      <h2 className="font-display text-2xl font-bold text-green-dark">{title}</h2>
+      {subtitle && <p className="mt-1 mb-5 text-ink-soft">{subtitle}</p>}
+      {children}
+    </div>
+  );
+}
+
+export function AdminFlights({ embedded = false }: { embedded?: boolean } = {}) {
+  return (
+    <Embedded.Provider value={embedded}>
+      <Flights />
+    </Embedded.Provider>
+  );
+}
+
+function Flights() {
   const admin = useAdmin()!;
   const p = admin.profile;
   const g = p?.group;
@@ -66,16 +92,16 @@ export function AdminFlights() {
     return coord.groups.length ? (
       <ClusterFlights />
     ) : (
-      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة للمجموعات التي تعمل فيها.">
+      <Shell title="الرحلات" subtitle="رحلات الذهاب والعودة للمجموعات التي تعمل فيها.">
         <LockedCard title="الرحلات تظهر بعد مكانك في مجموعة" text={isTechCoordinator(p) ? "المنسق التقني للتكتل: حين يُشكَّل التكتل في المكتب ويوزّعك رئيسه على مجموعات منه، ترى هنا رحلاتها." : "حين يُجلسك المكتب في مقعد في مجموعة، أو يوزّعك رئيس التكتل على مجموعات منه، ترى هنا رحلاتها."} href="/administrator/groups" cta="إدارة المجموعات" />
-      </AdminShell>
+      </Shell>
     );
   }
   if (!g?.approvedAt) {
     return (
-      <AdminShell image="/images/haram-2022.jpg" title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعتك أو لمجموعات تكتلك.">
-        <LockedCard title="الرحلات تظهر بعد تشكيل المجموعة" text="حين تُشكَّل مجموعتك في المكتب ويضعها رئيس التكتل على رحلة، ترى هنا رحلة الذهاب ورحلة العودة لكل عائلة." href="/administrator/groups" cta="إدارة المجموعة" />
-      </AdminShell>
+      <Shell title="الرحلات" subtitle="رحلات الذهاب والعودة لمجموعتك أو لمجموعات تكتلك.">
+        <LockedCard title="الرحلات تظهر بعد تشكيل المجموعة" text="حين تُشكَّل مجموعتك في المكتب ويضعها منسقها على رحلة، ترى هنا رحلة الذهاب ورحلة العودة لكل عائلة." href="/administrator/groups" cta="إدارة المجموعة" />
+      </Shell>
     );
   }
   return isClusterRole(p) ? <ClusterFlights /> : <GroupFlights />;
@@ -107,7 +133,7 @@ function HowItWorks({ head }: { head: boolean }) {
       <Info className="mt-1 size-4 shrink-0 text-gold-dark" />
       <span>
         يعطي مسؤول الطيران في إدارة الحج التكتلَ أيام رحلاته: رحلات ذهاب من دمشق أو حلب إلى مكة المكرمة (مطار جدة) أو المدينة المنورة، ورحلات عودة، ولكل رحلة مقاعد التكتل عليها.
-        {head ? " تضع أنت مجموعاتك عليها، كل مجموعة كاملة، وتضيف حاجاً بمفرده إن سافر وحده. " : " يضع رئيس التكتل المجموعات عليها، كل مجموعة كاملة، ويضيف حاجاً بمفرده إن سافر وحده. "}
+        {head ? " تضع أنت مجموعاتك عليها، كل مجموعة كاملة، وتضيف حاجاً بمفرده إن سافر وحده. " : " يضع المنسق التقني مجموعاته عليها، كل مجموعة كاملة، ويضيف حاجاً بمفرده إن سافر وحده. "}
         وتهبط العودة حيث يسمح مطار الذهاب: من أقلع من دمشق يعود إلى دمشق أو اللاذقية، ومن أقلع من حلب إلى حلب أو اللاذقية. ومن يُسجَّل في مجموعة بعد إسنادها يلحق برحلتها تلقائياً، وحين يقفل المسؤول الرحلة يصدر كشفها ولا تتغير إلا عنده.
       </span>
     </p>
@@ -124,8 +150,9 @@ function ClusterFlights() {
   const coord = useCoordinatorPost(admin.id, admin.profile);
   const cluster = clusterViewOf(admin.profile, admin.name);
   const view = coord ? { id: coord.clusterId, name: coord.clusterName } : { id: cluster?.id ?? "", name: cluster?.name ?? "" };
-  // its head places; a coordinator sees his groups' flights
-  const head = !coord && isClusterRole(admin.profile);
+  // The coordinator places his groups; the cluster's head, its assistant and its accountant follow them
+  const scope = useAdminScope();
+  const head = scope.kind === "tech";
   const own = useClusterGroupsOf(admin.profile);
   const groups: GroupRef[] = useMemo(
     () => (coord ? coord.groups : own).map((x) => ({ clusterId: view.id, clusterName: view.name, number: x.number, head: x.head, pilgrims: x.pilgrims, capacity: x.capacity })),
@@ -143,10 +170,9 @@ function ClusterFlights() {
     .filter((f): f is Flight => !!f);
 
   return (
-    <AdminShell
-      image="/images/haram-2022.jpg"
+    <Shell
       title={coord ? (coord.groups.length === 1 ? `رحلات ${groupName(coord.groups[0].number)}` : "رحلات مجموعاتي") : `رحلات ${view.name}`}
-      subtitle={`${coord ? `${view.name} — ` : ""}${groups.length} مجموعات — ${formatNumber(total)} حاجاً وإدارياً. ${head ? "ضع مجموعاتك على أيام رحلات تكتلك ذهاباً وعودة." : "رحلة كل مجموعة ذهاباً وعودة كما وضعها رئيس التكتل."}`}
+      subtitle={`${coord ? `${view.name} — ` : ""}${groups.length} مجموعات — ${formatNumber(total)} حاجاً وإدارياً. ${head ? "ضع مجموعاتك على أيام رحلات تكتلك ذهاباً وعودة." : "رحلة كل مجموعة ذهاباً وعودة كما وضعها منسقها."}`}
     >
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
@@ -165,6 +191,7 @@ function ClusterFlights() {
         ))}
       </div>
 
+      {scope.viewOnly && <ViewOnlyNote>{viewOnlyText(scope, "إسناد المجموعات إلى الرحلات")}</ViewOnlyNote>}
       <div className="mb-6"><HowItWorks head={head} /></div>
 
       <Card className="mb-6">
@@ -233,7 +260,7 @@ function ClusterFlights() {
 
       {dialog?.kind === "groups" && <AssignGroups f={dialog.f} clusterId={view.id} data={data} stats={stats} onClose={() => setDialog(null)} />}
       {dialog?.kind === "pilgrims" && <AddPilgrims f={dialog.f} clusterId={view.id} data={data} stats={stats} onClose={() => setDialog(null)} />}
-    </AdminShell>
+    </Shell>
   );
 }
 
@@ -256,7 +283,7 @@ function DayCard({ f, clusterId, data, head, onGroups, onPilgrims }: { f: Flight
   const toast = useToast();
   const seats = clusterSeats(f, clusterId, data);
   const open = isOpenForAssignment(f);
-  const actor = { name: admin.name, role: "رئيس التكتل" };
+  const actor = { name: admin.name, role: "المنسق التقني" };
   const scope = { asCluster: clusterId };
   const legs = data.groups.filter((g) => g.active && g.flightId === f.id && g.clusterId === clusterId).sort((x, y) => x.groupNumber - y.groupNumber);
   const mine = data.assignments.filter((x) => x.flightId === f.id && x.clusterId === clusterId && isActive(x) && x.travelerKind !== "employee");
@@ -309,7 +336,7 @@ function DayCard({ f, clusterId, data, head, onGroups, onPilgrims }: { f: Flight
                 <li key={x.id} className="flex items-center justify-between gap-2">
                   <span>{x.name} <span className="text-xs text-hint">— {x.groupNumber !== undefined ? groupName(x.groupNumber) : ""}</span></span>
                   {head && open && (
-                    <button type="button" aria-label={`إزالة ${x.name} عن الرحلة`} className="rounded-lg p-1 text-maroon hover:bg-maroon/10" onClick={() => done(flightsActions.unassign([x.id], actor, "أزاله رئيس التكتل", scope), `أُزيل ${x.name} عن ${f.flightNo}`)}>
+                    <button type="button" aria-label={`إزالة ${x.name} عن الرحلة`} className="rounded-lg p-1 text-maroon hover:bg-maroon/10" onClick={() => done(flightsActions.unassign([x.id], actor, "أزاله المنسق التقني", scope), `أُزيل ${x.name} عن ${f.flightNo}`)}>
                       <X className="size-3.5" />
                     </button>
                   )}
@@ -386,7 +413,7 @@ function AssignGroups({ f, clusterId, data, stats, onClose }: { f: Flight; clust
   const toggle = (n: number) => setChosen((c) => (c.includes(n) ? c.filter((x) => x !== n) : [...c, n]));
 
   const submit = () => {
-    const actor = { name: admin.name, role: "رئيس التكتل" };
+    const actor = { name: admin.name, role: "المنسق التقني" };
     const scope = { asCluster: clusterId };
     const list = picked.map((r) => ({ ref: r.s.g, members: r.s.members }));
     const r = flightsActions.assignGroups(f.id, list, actor, undefined, scope);
@@ -473,9 +500,9 @@ function AddPilgrims({ f, clusterId, data, stats, onClose }: { f: Flight; cluste
   const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
 
   const submit = () => {
-    const actor = { name: admin.name, role: "رئيس التكتل" };
+    const actor = { name: admin.name, role: "المنسق التقني" };
     const scope = { asCluster: clusterId };
-    const reason = "يسافر بمفرده — أضافه رئيس التكتل";
+    const reason = "يسافر بمفرده — أضافه المنسق التقني";
     const fresh = picked.filter((m) => !stateOf(m).from);
     const moving = picked.filter((m) => stateOf(m).from);
     if (fresh.length) {
@@ -575,10 +602,10 @@ function GroupFlights() {
   const rows = [...s.families.map((fam) => ({ id: fam.id, title: fam.applicant, members: fam.members })), { id: "team", title: "فريق المجموعة", members: s.team }];
 
   return (
-    <AdminShell image="/images/haram-2022.jpg" title={`رحلات ${groupName(g.number)}`} subtitle="رحلة الذهاب ورحلة العودة للمجموعة كلها، كما وضعها رئيس التكتل على أيام تكتله. اطبع الكشف ليوم المطار.">
+    <Shell title={`رحلات ${groupName(g.number)}`} subtitle="رحلة الذهاب ورحلة العودة للمجموعة كلها، كما وضعها المنسق التقني على أيام تكتله. اطبع الكشف ليوم المطار.">
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         {legs.map((f) => <FlightCard key={f.id} f={f} data={data} />)}
-        {legs.length === 0 && <p className="rounded-3xl border border-gold/30 bg-white p-8 text-center text-ink-soft md:col-span-2">لم توضع مجموعتك على رحلة بعد. يضعها رئيس التكتل على أحد أيام رحلات تكتله، ويصلك إشعار حين تُحدد.</p>}
+        {legs.length === 0 && <p className="rounded-3xl border border-gold/30 bg-white p-8 text-center text-ink-soft md:col-span-2">لم توضع مجموعتك على رحلة بعد. يضعها منسقها التقني على أحد أيام رحلات تكتله، ويصلك إشعار حين تُحدد.</p>}
       </div>
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -595,7 +622,7 @@ function GroupFlights() {
           </table>
         </div>
       </Card>
-    </AdminShell>
+    </Shell>
   );
 }
 

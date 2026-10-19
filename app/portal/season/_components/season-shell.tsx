@@ -23,7 +23,7 @@ const EMPTY_SEASON: InSeason = { day: 0, ratings: {}, lostReports: 0 };
 export type SeasonTools = { ctx: SeasonCtx; sos: () => void; complain: () => void };
 
 /**
- * One page of the pilgrim's season — «حالتي الآن», «التجمّعات», «الوجبات»… — each short, each its own entry in the
+ * One page of the pilgrim's season — «حالتي الآن», «أداء المناسك», «الوجبات»… — each short, each its own entry in the
  * sidebar. They share the day the pilgrim is on (chosen on «حالتي الآن», kept with his season), the family as the
  * season seats it, and the emergency button, one tap away on every one of them. Before the visa they say so.
  * `moment`: the moment of the day the page shows (only «حالتي الآن» moves through the day; the others take its first).
@@ -50,7 +50,7 @@ export function useSeasonCtx(moment = 0): SeasonCtx | null {
 }
 
 /**
- * One page of the pilgrim's season — «حالتي الآن», «التجمّعات», «الوجبات»… — each short, each its own entry in the
+ * One page of the pilgrim's season — «حالتي الآن», «أداء المناسك», «الوجبات»… — each short, each its own entry in the
  * sidebar. They share the day the pilgrim is on, the family as the season seats it, and the emergency button, one
  * tap away on every one of them. Before the visa they say so.
  * `moment`: the moment of the day the page shows (only «حالتي الآن» moves through the day; the others take its first).

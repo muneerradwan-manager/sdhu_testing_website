@@ -1,5 +1,6 @@
 "use client";
 
+import { MyLists } from "./my-lists";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
@@ -346,7 +347,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
               {stage.key === "submitted" && <StageSubmitted app={app} />}
               {stage.key === "checking" && <StageChecking members={app.members} />}
               {stage.key === "eligible" && <StageEligible app={app} />}
-              {stage.key === "direct" && <StageDirect age={ageOf(applicant.person)} cut={app.announcedDirectAge ?? acceptedDirectAge} />}
+              {stage.key === "direct" && <StageDirect age={ageOf(applicant.person)} cut={app.simulated?.includes(`${applicant.person.id}:direct-age`) ? Math.min(ageOf(applicant.person), app.announcedDirectAge ?? acceptedDirectAge) : (app.announcedDirectAge ?? acceptedDirectAge)} />}
               {stage.key === "lottery" && <StageLottery app={app} draw={draw} elapsed={elapsed} />}
               {stage.key === "notAccepted" && <StageNotAccepted age={ageOf(applicant.person)} app={app} draw={draw} />}
               {accepted && rejected && (
@@ -528,6 +529,8 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
             </Section>
 
             )}
+
+            {view === "trip" && unlocked.trip && <MyLists app={app} />}
 
             {view === "trip" && (
             <Section id="mashaer" title="المشاعر المقدسة: المخيمات والمواقع" icon={<Tent className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="8 – 13 ذو الحجة">

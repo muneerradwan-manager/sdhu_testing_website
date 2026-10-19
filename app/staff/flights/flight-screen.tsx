@@ -283,7 +283,7 @@ function Screen({ f }: { f: Flight }) {
                 )}
               </div>
               {allots.length === 0 ? (
-                <p className="mt-2 text-sm text-white/60">لم تُعطَ هذه الرحلة لتكتل بعد. أعطها من «أيام التكتلات»، فيضع رئيس التكتل مجموعاته عليها.</p>
+                <p className="mt-2 text-sm text-white/60">لم تُعطَ هذه الرحلة لتكتل بعد. أعطها من «أيام التكتلات»، فيضع منسقو التكتل مجموعاتهم عليها.</p>
               ) : (
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {allots.map((x) => {
@@ -312,7 +312,7 @@ function Screen({ f }: { f: Flight }) {
                 )}
               </div>
               {legs.length === 0 ? (
-                <p className="mt-2 text-sm text-white/60">لا مجموعات بعد. يضعها رئيس التكتل الذي أُعطي الرحلة، ولك أن تضيف منها عند الحاجة.</p>
+                <p className="mt-2 text-sm text-white/60">لا مجموعات بعد. يضعها منسقو التكتل الذي أُعطي الرحلة، ولك أن تضيف منها عند الحاجة.</p>
               ) : (
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {legs.map((g) => (

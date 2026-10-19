@@ -55,7 +55,8 @@ export function AdminActivities() {
   const rosters = useMemo(() => new Map(groups.map((g) => [g.number, buildRoster(p, applications, post, { groupNumber: g.number, size: g.size })])), [groups, p, applications, post]);
   const audienceOf = (a: Activity): Person[] => a.groups.filter((n) => rosters.has(n)).flatMap((n) => (rosters.get(n) ?? []).filter((e) => fits(a.audience, e.gender)).map((e) => ({ ...e, group: n })));
 
-  if (!groups.length || (!role && !p?.cluster && p?.positions[0] !== "group-head")) {
+  // Everyone placed follows them; only the guides and the female guides give them
+  if (!groups.length) {
     return (
       <AdminShell title="النشاطات الدينية" subtitle="تحفيظ القرآن والحديث والأدعية، والختمة الجماعية، ومتابعة كل حاج فيها.">
         <LockedCard title="النشاطات لموجّهي المجموعات وموجّهات التكتل" text="يتابع موجّه المجموعة وموجّهة التكتل حفظ الحجاج وقراءتهم حاجاً حاجاً. تظهر هنا حين تُجلس في مقعد الموجّه أو تُختارين موجّهةً لتكتل." href="/administrator/dashboard" cta="ملفي" />

@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
-import { AdminFlights } from "./flights";
+"use client";
 
-export const metadata: Metadata = { title: "الرحلات" };
+import { MovedTo } from "../../_components/ui";
 
+/** «الرحلات» is a tab of «القوائم» now */
 export default function Page() {
-  return <AdminFlights />;
+  return <MovedTo href="/administrator/lists?tab=flights" title="القوائم" />;
 }

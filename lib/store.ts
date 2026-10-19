@@ -67,6 +67,8 @@ export type Application = {
    */
   track?: "direct" | "lottery";
   /** A direct-acceptance application that was not accepted, kept for the record when registering for the lottery */
+  /** The demo's simulated conditions («<member id>:<key>»): treated as met at registration, and in the result */
+  simulated?: string[];
   /** The direct-acceptance age announced for this application's round, when it is not the season's (the seats ran out above it) */
   announcedDirectAge?: number;
   previous?: { number: string; track: "direct"; submittedAt: number; closedAt: number };
@@ -323,14 +325,11 @@ export type PostAcceptance = {
    * any prescription or condition report the group's head or its coordinator added after.
    */
   healthDocs?: Record<string, HealthDoc[]>;
-  /**
-   * The family's replies to its group's gatherings, by the gathering's id then each member's national number:
-   * coming or not, and why not (optional, but required for a required gathering). Its organiser sees them.
-   */
-  musterReplies?: Record<string, Record<string, MusterReply>>;
   ratings: Record<string, number>;
   /** Steps the administration added (an acknowledgement, questions): when done, and what was answered */
   custom?: Record<string, { at: number; answers?: Answers; memberAnswers?: Record<string, Answers> }>;
+  /** The payment windows the demo's tester opened by simulation («first», «final»…), each when */
+  windowsOpened?: Record<string, number>;
 };
 
 /** Seasonal administrator journey (الجزء الثاني), keyed by national id */
@@ -420,9 +419,6 @@ export type PilgrimVisa = { number: string; ref?: string; name?: string; type?: 
 
 /** A post to a group's channel: who of the group it is for (the whole group, its men, its women, the elderly and their companions) */
 export type GroupPost = { id: string; text: string; audience: string; at: number; groupNumber: number };
-
-/** A pilgrim's reply to a gathering of his group */
-export type MusterReply = { going: boolean; reason?: string; at: number };
 
 /** What a health document is: the Ministry of Health's certificate, a prescription, or a report of a condition */
 export type HealthDocKind = "certificate" | "prescription" | "condition";
@@ -577,7 +573,7 @@ export type AdminProfile = {
    * Membership itself comes from the coordinator's enrollment; this only records the leader's acknowledgement.
    */
   joinDecisions: Record<string, "accepted" | "rejected">;
-  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string; /** The group it gathers (one kept before groups were picked is his own group's) */ groupNumber?: number; /** Why it gathers (field.tsx MUSTER_KINDS: «umrah»…) and where */ kind?: string; place?: string; /** A required muster (the travel, the rites): everyone not there has a reason */ required?: boolean; /** Why each pilgrim not ticked was not there, by his id */ absent?: Record<string, string> }[];
+  musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string; /** The group it gathers (one kept before groups were picked is his own group's) */ groupNumber?: number; /** Why it gathers (field.tsx MUSTER_KINDS: «umrah»…) and where */ kind?: string; place?: string; /** A required muster (the travel, the rites): everyone not there has a reason */ required?: boolean; /** Why each pilgrim not ticked was not there, by his id */ absent?: Record<string, string>; /** «أداء المناسك»: when the rite was done (recorded after it) */ doneAt?: number; /** What each did where a rite has degrees (lib/musters.ts): Muzdalifah's degree, the Jamarat thrown, Mina's nights */ detail?: Record<string, string[]> }[];
   /** What he posted to the channel of a group he works in («قناة المجموعة» in «الميدان»): its families read it in their portal */
   groupPosts?: GroupPost[];
 };
@@ -823,6 +819,8 @@ export type State = {
   ops: import("./ops").OpsState;
   /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
   flights: import("./flights").FlightsState;
+  /** Before each rite: the cluster's buses and Rawdah slots the staff gave, and who is seated on each (lib/rite-lists.ts) */
+  riteLists: import("./rite-lists").ListsState;
   /** The religious guides' lessons to their groups, and who came (lib/lessons.ts); a missing list means the seed */
   lessons: import("./lessons").LessonsState;
   /** Their activities followed pilgrim by pilgrim: Quran, hadith, supplications, a shared reading (lib/religious.ts) */
@@ -977,6 +975,7 @@ const initial: State = {
   evaluationObjections: {},
   ops: {},
   flights: {},
+  riteLists: {},
   lessons: {},
   activities: {},
   examHalls: { runs: {} },
@@ -1230,6 +1229,21 @@ export const actions = {
       if (!d || !c) return s;
       return { ...s, drafts: { ...s.drafts, [ownerId]: { ...d, updatedAt: at, consents: { ...d.consents, [personId]: { ...c, status, respondedAt: at } } } } };
     });
+  },
+  /**
+   * The demo: take a person out of the other application of the season that holds him, so the one being filled can
+   * hold him. Whoever applied takes his application with him: it goes whole. Returns that application's number.
+   */
+  releaseFromApplication(personId: string, except: string): { number: string; whole: boolean } | null {
+    const hit = Object.entries(getState().applications).find(([owner, a]) => owner !== except && a.members.some((m) => m.person.id === personId));
+    if (!hit) return null;
+    const [owner, app] = hit;
+    const whole = app.members.length === 1 || (app.members.find((m) => m.relation === "self") ?? app.members[0]).person.id === personId;
+    setState((s) => ({
+      ...s,
+      applications: whole ? Object.fromEntries(Object.entries(s.applications).filter(([id]) => id !== owner)) : { ...s.applications, [owner]: { ...app, members: app.members.filter((m) => m.person.id !== personId) } },
+    }));
+    return { number: app.number, whole };
   },
   deleteApplication(applicantId: string) {
     setState((s) => {

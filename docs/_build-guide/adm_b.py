@@ -91,28 +91,45 @@ p.get_by_role("button", name="إغلاق").last.click(); c.settle(600)
 S = "I"
 c.goto("/administrator/field", wait=1800)
 c.shot("field-top", "الميدان: الإحصاءات والتبويبات", section=S)
-c.scroll_to("text=فتح تجمّع جديد", 140)
-c.shot("field-muster-new", "فتح تجمّع جديد", section=S)
-p.locator("button:has-text('فتح التجمّع')").first.click(); c.settle(1200)
-# no cards: the group's list, each one ticked as he comes (the Umrah of tamattu' is a required muster)
-everyone = p.locator("button:has-text('الكل حاضر')").first
-everyone.scroll_into_view_if_needed(); c.settle(300)
-c.shot("field-muster-open", "التجمّع مفتوح: قائمة حجاج المجموعة، وتحدّد كل من حضر", hl=[("button:has-text('الكل حاضر')", "")], section=S)
-everyone.click(); c.settle(600)
-boxes = p.locator("main li input[type=checkbox]")
-boxes.nth(1).uncheck(); boxes.nth(3).uncheck(); c.settle(500)
-c.shot("field-muster-scan", "الحاضرون ومن لم يحضر", section=S)
-clo = p.locator("button:has-text('إغلاق التجمّع')").first
-clo.scroll_into_view_if_needed(); clo.click(); c.settle(600)
-reasons = p.locator("main li select")
-reasons.first.scroll_into_view_if_needed(); c.settle(300)
-c.shot("field-muster-absent", "تجمّع ضروري: سبب غياب كل من لم يحضر قبل الإغلاق", hl=[("main li select >> nth=0", "")], section=S)
-reasons.nth(0).select_option(index=1); reasons.nth(1).select_option(index=2); c.settle(500)
-clo.scroll_into_view_if_needed(); c.settle(300)
-c.shot("field-muster-complete", "لكل من لم يحضر سببه: أغلق التجمّع وأرسل «انطلقنا»", hl=[("button:has-text('إغلاق التجمّع')", "")], section=S)
-clo.click(); c.settle(1800)
-c.shot("field-muster-closed", "أُغلق التجمّع وسُجّل في سجل التجمّعات", section=S)
-tabs = ["قناة المجموعة", "الحجاج", "بلاغ لغرفة العمليات", "يومي", "تقييماتي"]
+# «أداء المناسك»: a rite is recorded after the group did it — the Umrah of tamattu' first (the first tab)
+RITE = lambda name: f"main button[aria-pressed]:has-text('{name}')"
+SAVE = "main button:has-text('في سجل أداء المناسك')"
+c.scroll_to("main h2:has-text('تسجيل منسك أُدّي')", 120)
+c.shot("field-rites", "تسجيل منسك أُدّي: المنسك، ومتى أُدّي ومكانه", hl=[(f"{RITE('الوقوف بعرفة')} >> xpath=..", "1"), ("main input[aria-label='تاريخ الأداء وساعته']", "2")], section=S)
+p.locator("main button:has-text('الكل أدّاه')").first.click(); c.settle(500)
+done = p.locator("main input[type=checkbox][aria-label$=' أدّاه']")
+done.nth(1).uncheck(); done.nth(3).uncheck(); c.settle(500)
+why = p.locator("main select[aria-label^='سبب عدم أداء']")
+why.nth(0).select_option(index=1); why.nth(1).select_option(index=3); c.settle(500)
+why.first.scroll_into_view_if_needed(); c.settle(300)
+c.shot("field-rites-reason", "من أدّاه ومن لم يؤدّه: لكل من لم يؤدّه سببه", hl=[("main select[aria-label^='سبب عدم أداء'] >> nth=0", "")], section=S)
+p.locator(SAVE).first.click(); c.settle(4500)  # the toast goes
+# the night at Muzdalifah: three degrees for each pilgrim
+c.scroll_to("main h2:has-text('تسجيل منسك أُدّي')", 120)
+p.locator(RITE("المبيت في مزدلفة")).first.click(); c.settle(600)
+p.locator("main button:has-text('الكل حتى الفجر')").first.click(); c.settle(500)
+nights = p.locator("main [role=radiogroup][aria-label^='مبيت ']")
+nights.nth(1).locator("[role=radio]:has-text('حقق المبيت حتى منتصف الليل')").click(); c.settle(300)
+nights.nth(2).locator("[role=radio]:has-text('لم يحقق المبيت')").click(); c.settle(400)
+p.locator("main select[aria-label^='سبب عدم أداء']").first.select_option(index=1); c.settle(400)
+nights.nth(0).scroll_into_view_if_needed(); c.scroll_by(-160)
+c.shot("field-rites-muzdalifa", "المبيت في مزدلفة: لم يحقق المبيت، أو حتى منتصف الليل، أو حتى صلاة الفجر", hl=[("main [role=radiogroup][aria-label^='مبيت '] >> nth=1", "")], section=S)
+p.locator(SAVE).first.click(); c.settle(4500)
+# the record, and one rite of it opened
+c.scroll_to("main h3:has-text('سجل أداء المناسك')", 120)
+c.shot("field-rites-log", "سجل أداء المناسك: كل منسك بعدد من أدّاه، ومتى أُدّي ومن سجّله", hl=[("main h3:has-text('سجل أداء المناسك') >> xpath=..", "")], section=S)
+p.locator("main li > button:has-text('المبيت في مزدلفة')").first.click(); c.settle(1000)
+c.shot("field-rites-record", "تفصيل منسك: ما فعله كل حاج، و«سُجّل خطأً؟ احذفه من السجل»", hl=[("[role=dialog] button:has-text('سُجّل خطأً')", "")], section=S)
+p.keyboard.press("Escape"); c.settle(600)
+# the throwing of the Jamarat: a day, then the stones each one threw (shown, not saved)
+c.scroll_to("main h2:has-text('تسجيل منسك أُدّي')", 120)
+p.locator(RITE("رمي الجمرات")).first.click(); c.settle(600)
+p.locator("main select[aria-label='يوم الرمي']").select_option("11"); c.settle(400)
+p.locator("main button:has-text('الكل رمى')").first.click(); c.settle(500)
+p.locator("main label:has(input[aria-label$=': الجمرة العقبة'])").nth(1).click(); c.settle(400)
+c.scroll_to("main select[aria-label='يوم الرمي']", 160)
+c.shot("field-rites-jamarat", "رمي الجمرات: يوم الرمي، والجمرات التي رماها كل حاج", hl=[("main select[aria-label='يوم الرمي']", "")], section=S)
+tabs = ["قناة المجموعة", "الحجاج", "بلاغ لغرفة العمليات", "يومي"]  # «تقييماتي» is no longer a tab of the field
 for t in tabs:
     c.scroll_top()
     p.get_by_role("tab", name=t).first.click(); c.settle(1200)
@@ -135,8 +152,6 @@ for t in tabs:
         if b.count():
             b.scroll_into_view_if_needed(); b.click(); c.settle(1200)
             c.shot("field-daily-sent", "أُرسل التقرير اليومي", section=S)
-    else:
-        c.shot("field-ratings", "تقييماتي ودرجة الأداء", section=S)
 
 # ───────── dashboard end ─────────
 S = "C"

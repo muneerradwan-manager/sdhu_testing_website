@@ -99,7 +99,7 @@ c.shot("news", "صفحة الأخبار", section="A")
 # prayer
 c.goto("/prayer-times")
 c.settle(800)
-c.shot("prayer", "مواقيت الصلاة واتجاه القبلة", section="A")
+c.shot("prayer", "مواقيت الصلاة واتجاه القبلة، و«مواقيت موقعي» بين المدن", hl=[("main button:has-text('مواقيت موقعي')", "")], section="A")
 # guide
 c.goto("/guide")
 c.shot("guide-top", "دليل المناسك — أقسام الدليل", section="A")

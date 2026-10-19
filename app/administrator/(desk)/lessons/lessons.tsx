@@ -59,7 +59,8 @@ export function AdminLessons() {
   const audienceOf = (l: GroupLesson): (RosterEntry & { group: number })[] =>
     l.groups.filter((n) => rosters.has(n)).flatMap((n) => (rosters.get(n) ?? []).filter((e) => fits(l.audience, e.gender)).map((e) => ({ ...e, group: n })));
 
-  if (!groups.length || (!role && !p?.cluster && p?.positions[0] !== "group-head")) {
+  // Everyone placed follows them; only the guides and the female guides give them
+  if (!groups.length) {
     return (
       <AdminShell title="الدروس الدينية" subtitle="دروس الموجّهين والموجّهات لحجاج مجموعاتهم، وحضورها.">
         <LockedCard title="الدروس لموجّهي المجموعات وموجّهات التكتل" text="يعطي موجّه المجموعة دروسه لرجالها أو لها كلها، وموجّهة التكتل لحاجّات مجموعاتها. تظهر هنا حين تُجلس في مقعد الموجّه أو تُختارين موجّهةً لتكتل." href="/administrator/dashboard" cta="ملفي" />

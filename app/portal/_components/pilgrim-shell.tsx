@@ -17,7 +17,7 @@ type Item = { href: string; label: string; icon: LucideIcon; open: boolean; hint
  * The pilgrim's own pages, as the administrators and the staff have theirs, in five sections: his account (his file,
  * his notifications, everything he did), his application (its steps, the vault of all its documents, his group),
  * his trip (the flights, the hotels, the season's programme), the season — each part of «حالتي الآن» a short page of
- * its own: the gatherings (the trips and visits among them), the meals, his reports, the lost items — and faith and learning (his group's
+ * its own: the rites he did, as his group's team recorded them, the meals, his reports, the lost items — and faith and learning (his group's
  * religious lessons and activities, kept apart from the Academy's recorded lessons).
  * A page whose step has not come yet stays in the list, locked, saying what opens it.
  */
@@ -42,7 +42,7 @@ function usePilgrimNav(): Item[] {
     { section: "رحلتي", href: "/portal/application/hotels", label: "الفنادق والسكن", icon: BedDouble, open: season, hint: "بعد صدور التأشيرة" },
     { section: "رحلتي", href: "/portal/journey", label: "برنامج الرحلة", icon: Route, open: true },
     { section: "في الموسم", href: "/portal/season", label: "حالتي الآن", icon: MapPinned, open: season, hint: inSeason },
-    { section: "في الموسم", href: "/portal/season/gatherings", label: "التجمّعات", icon: Flag, open: season, hint: inSeason },
+    { section: "في الموسم", href: "/portal/season/rites", label: "أداء المناسك", icon: Flag, open: season, hint: inSeason },
     { section: "في الموسم", href: "/portal/season/meals", label: "الوجبات", icon: UtensilsCrossed, open: season, hint: inSeason },
     { section: "في الموسم", href: "/portal/season/reports", label: "بلاغاتي", icon: Ticket, open: season, hint: inSeason },
     { section: "في الموسم", href: "/portal/season/lost", label: "المفقودات", icon: Luggage, open: season, hint: inSeason },

@@ -19,7 +19,7 @@ export const ADMIN_PERMISSIONS: { key: AdminPermission; label: string; desc: str
 
 /** The roles that hold each permission until the administration changes the table */
 export const DEFAULT_ROLE_PERMISSIONS: Record<AdminPermission, string[]> = {
-  "pilgrims.register": ["group-head", "tech", "group-deputy"],
+  "pilgrims.register": ["tech"],
 };
 
 export function useRolePermissions(): Record<AdminPermission, string[]> {

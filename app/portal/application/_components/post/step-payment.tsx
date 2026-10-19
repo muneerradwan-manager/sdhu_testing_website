@@ -20,6 +20,8 @@ import { Question } from "../../../apply/_components/ui";
 import { paidAt, useRoomCost, type CostLine } from "./model";
 import { AccommodationChoice } from "./step-group";
 import { applicantOf, logPilgrim, type StepProps } from "./shared";
+import { PayWindow } from "./pay-window";
+import { actions } from "@/lib/store";
 
 const hijriPaid = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { hour: "2-digit", minute: "2-digit" }).format(at) : "");
 
@@ -38,6 +40,7 @@ export function StepPayment({ app, post, sessionId, lines: all, stepLabel, def, 
   const open = lines.filter((l) => !paidAt(l, app, post));
   const remaining = open.reduce((a, l) => a + l.amount, 0);
   const paidSum = total - remaining;
+  const windowKey = def?.kind === "installment" ? def.id : "final";
 
   return (
     <Question
@@ -57,6 +60,16 @@ export function StepPayment({ app, post, sessionId, lines: all, stepLabel, def, 
         </div>
       )}
 
+      {/* The payment's window: opened by simulation in the demo, on the administration's dates in the season */}
+      <PayWindow
+        what={def?.kind === "installment" ? lines.filter((l) => l.dueStep === def.id).map((l) => l.title).join(" و") || "الدفعة" : "الدفعة النهائية"}
+        when={def?.kind === "installment" ? "في موعدها من مواعيد الموسم" : "بعد اعتماد عقدكم مع المجموعة، حتى 15 كانون الثاني"}
+        opened={paidSum > 0 || !!post.windowsOpened?.[windowKey]}
+        onOpen={() => {
+          actions.setPost(sessionId, { windowsOpened: { ...post.windowsOpened, [windowKey]: Date.now() } });
+          logPilgrim(app, "محاكاة: فُتح موعد الدفع", windowKey);
+        }}
+      >
       {/* Statement */}
       <div className="overflow-hidden rounded-3xl border border-gold/40 bg-white">
         <div className="flex items-center justify-between bg-sand px-5 py-3 font-bold text-gold-dark">
@@ -103,6 +116,7 @@ export function StepPayment({ app, post, sessionId, lines: all, stepLabel, def, 
           ادفع المتبقي — {formatUSD(remaining)}
         </Button>
       )}
+      </PayWindow>
 
       {/* Receipts */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">

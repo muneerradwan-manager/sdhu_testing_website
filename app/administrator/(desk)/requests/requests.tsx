@@ -14,7 +14,8 @@ import { actions, useStore, type HealthRecord } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { LIFT_NEEDS, assignedRealFamilies, buildRoster, compositionOf, groupCount, groupPilgrims, seedRequestsFor, type GroupPilgrim, type JoinRequest } from "../../_lib/group";
-import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
+import { AdminShell, LockedCard, MovedTo, ViewOnlyNote } from "../../_components/ui";
+import { useAdminScope, viewOnlyText } from "../../_lib/scope";
 import { PilgrimSheet } from "../../_components/pilgrim-sheet";
 import { HealthDocsForm } from "./health-docs";
 import { rangeLabel, useOperation } from "@/lib/operations";
@@ -65,10 +66,12 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   const [docsFor, setDocsFor] = useState<string | null>(null);
   // One pilgrim's file, opened from his family's card
   const [person, setPerson] = useState<{ family: JoinRequest; id: string } | null>(null);
-  const tech = isTechCoordinator(p);
-  // The health documents are the administration's: the group's head, the cluster's head, or the coordinator sorted
-  // to the group adds them (not the group's guides and assistants)
-  const healthDocsBy = tech ? "منسق تقني" : !coord ? (myCluster ? "رئيس التكتل" : "رئيس المجموعة") : null;
+  // Who acts on the open group: its coordinator, its head or its assistant. The cluster's head, its assistant
+  // and its accountant follow it only
+  const scope = useAdminScope();
+  const acts = scope.canAct(openNumber);
+  const tech = scope.kind === "tech" && acts;
+  const healthDocsBy = acts ? scope.post : null;
 
   const families = useMemo(() => {
     if (openNumber === undefined) return [];
@@ -163,6 +166,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
       <div className={cn("grid items-start gap-6", !embedded && "lg:grid-cols-[1fr_20rem]")}>
         <div className="space-y-5">
           {switcher}
+          {scope.viewOnly && <ViewOnlyNote>{viewOnlyText(scope, "استلام العائلات والترحيب بها، وملفاتها الصحية ووثائقها")}</ViewOnlyNote>}
           <Card className="md:p-7">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -326,8 +330,8 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                           <Stethoscope className="size-4" /> {health ? "تعديل الملف الصحي" : "تسجيل الملف الصحي"}
                         </Button>
                       )}
-                      {/* The group's head welcomes the family (and the cluster's head for any of its groups); its team only sees it */}
-                      {isNew(r) && !coord && (
+                      {/* The group's coordinator, its head or its assistant welcomes the family; the cluster's head only sees it */}
+                      {isNew(r) && acts && (
                         <Button onClick={() => welcome(r)}>
                           <UsersRound className="size-4" /> استلام والترحيب
                         </Button>

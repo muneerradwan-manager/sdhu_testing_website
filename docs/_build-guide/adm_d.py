@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Administrator guide — run D: الرحلات. The cluster head puts group 27 on his cluster's days (outbound and
-return at once) and one of its pilgrims alone on the Latakia return; then the group head sees the result.
+"""Administrator guide — run D: القوائم. Its first tab «الطيران»: the technical coordinator (سامر نبيل نجار) puts group 27
+on his cluster's days (outbound and return at once) and one of its pilgrims alone on the Latakia return; then the
+lists before the rites — a bus filled from its checkbox panel, the Rawdah's lists of the men and the women. The
+cluster's head follows them (view only), the group head sees his group's flights.
 Then the group head's visas (a family the pilgrims' portal attached), the guides' religious lessons and activities.
 Usage: CAP_DIR=admin python adm_d.py <keep>"""
 import sys
@@ -11,16 +13,20 @@ c = Cap(); p = c.page
 S = "N"
 DLG = "[role=dialog]"
 DAY = lambda no: f"main [data-day='{no}']"
+NAV_LISTS = "nav a[href*='/administrator/lists']"
+TAB = lambda name: f"main [role=tab]:has-text('{name}')"
+UNIT = lambda label: f"main [data-unit='{label}']"
+VIEW_ONLY = "main p:has-text('للاطلاع فقط')"
 
-def admin(name, path="/administrator/flights"):
+def admin(name, path="/administrator/lists"):
     c.goto("/administrator/login?demo=all", wait=1500)
     card = p.locator(f"main button:has-text('{name} —')").first
     card.scroll_into_view_if_needed(); card.click(); c.settle(2500)
     c.goto(path, wait=2200)
 
-# ───────── cluster head: his days, his groups, a pilgrim alone ─────────
-admin("عبد الرحمن العلي")
-c.shot("cfl-top", "رحلات التكتل: الأعداد، وكيف تعمل الأيام والإسناد", hl=[("nav a[href*='/administrator/flights']", "1"), ("main p:has-text('أيام رحلاته')", "2")], section=S)
+# ───────── the technical coordinator: «القوائم» opens on «الطيران» — the cluster's days, his groups, a pilgrim alone ─────────
+admin("سامر نبيل نجار")
+c.shot("cfl-top", "القوائم ← الطيران: رحلات مجموعات المنسق، وكيف تعمل الأيام والإسناد", hl=[(NAV_LISTS, "1"), (TAB("الطيران"), "2")], section=S)
 c.scroll_to("text=أيام رحلات التكتل", 110)
 c.shot("cfl-days", "أيام رحلات التكتل: الذهاب والعودة، ومقاعد التكتل على كل رحلة", hl=[(DAY("RB 507"), "")], section=S)
 
@@ -38,20 +44,47 @@ c.shot("cfl-pilgrims", "إضافة حجاج فرادى: من يسافر وحده
 p.locator(f"{DLG} button:has-text('إضافة')").last.click(); c.settle(1600)
 c.scroll_to(DAY("RB 538"), 160)
 c.shot("cfl-apart", "على الرحلة فرادى خارج رحلة مجموعتهم، ولكل مجموعة وفرد زر الإزالة", hl=[(f"{DAY('RB 538')} div:has-text('فرادى خارج رحلة مجموعتهم') >> nth=-1", "")], section=S)
-c.scroll_to("text=مجموعات تكتلي ورحلاتها", 110)
-c.shot("cfl-table", "مجموعات تكتلي ورحلاتها ذهاباً وعودة", hl=[("main tr:has-text('مجموعة اللطيف')", "")], section=S)
+c.scroll_to("text=مجموعاتي ورحلاتها", 110)
+c.shot("cfl-table", "مجموعاتي ورحلاتها ذهاباً وعودة", hl=[("main tr:has-text('مجموعة اللطيف')", "")], section=S)
 
-# ───────── group head ─────────
+# ───────── the lists before the rites: a bus filled from its checkbox panel, then the Rawdah ─────────
+c.scroll_top()
+p.locator(TAB("التروية")).first.click(); c.settle(1500)
+c.shot("lists-page", "قائمة التروية: أرقامها وطباعتها، وحافلات التكتل بمن عليها", hl=[(TAB("التروية"), "1"), ("main button:has-text('طباعة قائمة')", "2")], section=S)
+bus = p.locator("main [data-unit]").first
+label = bus.get_attribute("data-unit")
+bus.locator("button[aria-haspopup='listbox']").click(); c.settle(700)
+panel = f"{UNIT(label)} [role=listbox]"
+p.locator(f"{panel} label:has-text('— الكل') input").first.check(); c.settle(500)
+c.scroll_to(UNIT(label), 120)
+c.shot("lists-add", "أضف إلى الحافلة: مجموعة كاملة أو إداريون وحجاج بأسمائهم، ثم «إضافة»", hl=[(f"{panel} button:has-text('إضافة (')", "")], section=S)
+p.locator(f"{panel} button:has-text('إضافة (')").first.click(); c.settle(1600)
+c.scroll_to(UNIT(label), 120)
+c.shot("lists-bus", "الحافلة بركابها: × لإزالة أحدهم، ورمز الطابعة يطبعها وحدها", hl=[(f"{UNIT(label)} button[aria-label^='طباعة']", "")], section=S)
+c.settle(3000)  # the toast goes
+c.scroll_top()
+p.locator(TAB("حجز الروضة الشريفة")).first.click(); c.settle(1500)
+for g in ["الروضة الشريفة — الرجال", "الروضة الشريفة — النساء"]:
+    u = p.locator(UNIT(g)).first
+    if u.count() and u.locator("button[aria-haspopup='listbox']").count():
+        u.locator("button[aria-haspopup='listbox']").click(); c.settle(600)
+        p.locator(f"{UNIT(g)} [role=listbox] label:has-text('— الكل') input").first.check(); c.settle(300)
+        p.locator(f"{UNIT(g)} [role=listbox] button:has-text('إضافة (')").first.click(); c.settle(1500)
+c.settle(3000)
+c.scroll_to("main [data-unit] >> nth=0", 220)
+c.shot("lists-rawdah", "حجز الروضة الشريفة: قائمة للرجال وقائمة للنساء، بلا حافلات ولا حد للمقاعد", hl=[(UNIT("الروضة الشريفة — الرجال"), "")], section=S)
+
+# ───────── the cluster's head follows them, and does none ─────────
+admin("عبد الرحمن العلي")
+c.shot("cfl-viewonly", "رئيس التكتل في «الطيران»: رحلات مجموعات التكتل كلها للاطلاع", hl=[(VIEW_ONLY, "")], section=S)
+p.locator(TAB("التروية")).first.click(); c.settle(1500)
+c.shot("lists-viewonly", "رئيس التكتل في القوائم: للاطلاع فقط، دون «أضف إلى» ولا إزالة", hl=[(VIEW_ONLY, "")], section=S)
+
+# ───────── group head: his group's two flights and its list for the airport ─────────
 admin("أحمد سليمان الحمصي")
-c.shot("gfl-top", "رحلات المجموعة: رحلة الذهاب ورحلة العودة", hl=[("nav a[href*='/administrator/flights']", "")], section=S)
+c.shot("gfl-top", "رحلات المجموعة: رحلة الذهاب ورحلة العودة", hl=[(NAV_LISTS, "")], section=S)
 c.scroll_to("text=كشف المجموعة", 110)
 c.shot("gfl-list", "كشف المجموعة: رحلة كل فرد وحالته", hl=[("main button:has-text('طباعة')", "")], section=S)
-c.goto("/administrator/field", wait=2200)
-c.scroll_to("[role=tablist]", 110)
-op = p.locator("main button:has-text('فتح التجمّع'), main button:has-text('فتح تجمّع')").first
-op.scroll_into_view_if_needed(); op.click(); c.settle(1500)
-c.scroll_to("text=مرتبط بالرحلة", 260)
-c.shot("gfl-muster", "تجمّع المطار مرتبط برحلة المجموعة: من تحدّده حاضراً يُسجَّل صعوده", hl=[("text=مرتبط بالرحلة", "")], section=S)
 
 # ───────── the group head's visas: a family of his, as the pilgrims' portal attached it ─────────
 S = "V"
