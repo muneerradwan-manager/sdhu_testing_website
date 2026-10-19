@@ -99,7 +99,7 @@ export function StageEligible({ app }: { app: Application }) {
 }
 
 /** Oldest-first cut: a distribution of eligible applicants with the 68+ threshold line (born 1958 or earlier) */
-export function StageDirect({ age }: { age: number }) {
+export function StageDirect({ age, cut = SEASON.acceptedDirectAge }: { age: number; cut?: number }) {
   const bars = useMemo(() => {
     const rnd = seeded("ages");
     return Array.from({ length: 50 }, (_, i) => {
@@ -108,14 +108,14 @@ export function StageDirect({ age }: { age: number }) {
       return { age: a, h: 12 + peak * 80 + rnd() * 8 };
     });
   }, []);
-  const accepted = age >= SEASON.acceptedDirectAge;
+  const accepted = age >= cut;
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-display text-2xl font-bold text-green-dark">القبول المباشر وفق الأكبر سناً</p>
           <p className="text-ink-soft">
-            {formatNumber(SEASON.directSeats)} مقعداً ({Math.round(SEASON.directShare * 100)}%) — الأعمار المقبولة: <b className="text-maroon">{SEASON.acceptedDirectAge} عاماً فأكثر</b>
+            {formatNumber(SEASON.directSeats)} مقعداً ({Math.round(SEASON.directShare * 100)}%) — الأعمار المقبولة: <b className="text-maroon">{cut} عاماً فأكثر</b>
           </p>
         </div>
         <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1 }} className={cn("rounded-2xl px-4 py-2 font-bold", accepted ? "bg-green-light text-white" : "bg-gold/30 text-maroon")}>
@@ -124,7 +124,7 @@ export function StageDirect({ age }: { age: number }) {
       </div>
       <div className="relative mt-8 flex h-44 items-end gap-[3px]" dir="ltr">
         {bars.map((b, i) => {
-          const isCut = b.age >= SEASON.acceptedDirectAge;
+          const isCut = b.age >= cut;
           const mine = b.age === Math.min(79, Math.max(30, age));
           return (
             <motion.div
@@ -142,8 +142,8 @@ export function StageDirect({ age }: { age: number }) {
             </motion.div>
           );
         })}
-        <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.8 }} className="absolute bottom-0 top-0 w-0.5 origin-bottom bg-green-dark" style={{ left: `${((SEASON.acceptedDirectAge - 30) / 50) * 100}%` }}>
-          <span className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-xs font-bold text-green-dark">{SEASON.acceptedDirectAge}+</span>
+        <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: 0.8 }} className="absolute bottom-0 top-0 w-0.5 origin-bottom bg-green-dark" style={{ left: `${((cut - 30) / 50) * 100}%` }}>
+          <span className="absolute -top-6 -translate-x-1/2 whitespace-nowrap text-xs font-bold text-green-dark">{cut}+</span>
         </motion.div>
       </div>
       <div className="mt-2 flex justify-between text-xs text-hint" dir="ltr">
@@ -239,7 +239,7 @@ export function StageNotAccepted({ age, app, draw }: { age: number; app: Applica
       <div>
         <p className="font-display text-2xl font-bold text-maroon md:text-3xl">لم يُقبل طلبك في القبول المباشر</p>
         <p className="mt-2 text-lg leading-8 text-ink-soft">
-          الأعمار المقبولة {SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب {age} عاماً. لا ينتقل طلبك إلى القرعة تلقائياً — التسجيل الأولي على القرعة طلب مستقل
+          الأعمار المقبولة {app.announcedDirectAge ?? SEASON.acceptedDirectAge} عاماً فأكثر، وعمر صاحب الطلب {age} عاماً. لا ينتقل طلبك إلى القرعة تلقائياً — التسجيل الأولي على القرعة طلب مستقل
           يُفتح {SEASON.windows.lottery.hijri} ({SEASON.windows.lottery.gregorian}).
         </p>
         <p className="mt-2 rounded-2xl bg-gold/20 p-3 leading-7 text-ink">

@@ -23,6 +23,8 @@ const SCENARIOS_EN: Record<string, { title: string; note: string }> = {
   "12099900520": { title: "Living in Jordan", note: "A woman (48) who does not need a mahram (male guardian): a single application through the Jordan office." },
   "01066600620": { title: "Below the direct-acceptance age", note: "Aged 60, with his wife. If he chooses direct acceptance (born in 1958 or earlier), he is warned at the eligibility stage before any payment, and moves his application to the lottery in one click. Born in April 1966, so he is not accepted in the lottery: 1966 was not drawn." },
   "01055500730": { title: "Accepted directly", note: "Aged 71, with her son فراس: she paid the fee and the first instalment when she registered. She starts with her personal photo, then agrees with a group and signs its contract at the office, where a staff member adds her to it; then the second instalment, the passport and the medical file." },
+  "01058100960": { title: "Not accepted on direct registration", note: "Born in 1958, with his wife منى: he registered for direct acceptance, but the direct seats were filled at age 69 and over and he is 68, so he was not accepted. He opens on «My application» and can register for the lottery in one click." },
+  "01058200970": { title: "Not accepted directly, nor in the lottery", note: "Born in 1958, with his wife هدى: not accepted directly (the seats were filled at 69 and he is 68), then registered for the lottery, where his birth year was not drawn. He opens on «My application» to see the season's final result." },
   "01088800910": { title: "Accepted in the lottery", note: "Aged 46, with his wife: he paid only the lottery pre-registration fee, and everyone born in 1980 was drawn. He confirms his registration with the first instalment." },
   "06055500711": { title: "Has performed Hajj before", note: "Accepted only because he is the mahram (male guardian) of his mother نجاح (76) or of his wife." },
   "02033300552": { title: "Under 44", note: "Needs a mahram (male guardian): add her brother مازن or her father سامر." },
@@ -42,6 +44,20 @@ export function LoginFlow() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<{ text: string; link?: { href: string; label: string } } | null>(null);
   const [otpStage, setOtpStage] = useState(false);
+  // The five outcomes first; the cases of the registration form itself folded under them
+  const [more, setMore] = useState(false);
+  const card = (s: (typeof DEMO_SCENARIOS)[number]) => {
+    const en = SCENARIOS_EN[s.id];
+    return {
+      key: s.id,
+      title: en ? t(s.title, `${s.title.split(" — ")[0]} — ${en.title}`) : s.title,
+      subtitle: s.outcome ? t(`الحالة ${s.outcome} من 5`, `Case ${s.outcome} of 5`) : undefined,
+      note: en ? t(s.note, en.note) : s.note,
+      code: s.id,
+      initial: s.outcome ? String(s.outcome) : s.title[0],
+      onPick: () => quickLogin(s.id),
+    };
+  };
 
   const sendCode = () => setTimeout(() => toast({ title: t("رمز الدخول", "Sign-in code"), body: t(`رمز التحقق: ${DEMO_OTP}`, `Verification code: ${DEMO_OTP}`), icon: "💬", tone: "gold" }), 700);
 
@@ -70,7 +86,7 @@ export function LoginFlow() {
     const seed = DEMO_SCENARIOS.find((s) => s.id === nationalId)?.seed;
     toast({ title: t(`مرحباً ${p?.firstName}`, `Welcome, ${p?.firstName}`), body: seed ? t("دخول تجريبي — طلبك جاهز في «متابعة الطلب»", "Demo sign-in: your application is ready in “Track application”") : t("دخول تجريبي سريع", "Quick demo sign-in"), icon: "⚡", tone: "success" });
     // Every step done: straight into the season
-    router.push(seed === "complete" ? "/portal/season" : seed === "accepted" || seed === "lotteryAccepted" ? "/portal/application" : seed === "notAccepted" ? "/portal/apply" : next);
+    router.push(seed === "complete" ? "/portal/season" : seed ? "/portal/application" : next);
   };
 
   const enter = () => {
@@ -90,22 +106,17 @@ export function LoginFlow() {
       note={t("نسخة تجريبية: لا تُرسل أي رسالة حقيقية ولا تُحفظ البيانات إلا في متصفحك.", "Demo version: no real messages are sent, and your data is kept only in your browser.")}
       below={
         <DemoAccounts
-          hint={t("حاج لكل حالة: عائلة كاملة، مقبول مباشرة، مقبول بالقرعة، امرأة تحتاج محرماً... اضغط على بطاقة للدخول مباشرة، دون كلمة مرور ولا رمز تحقق.", "A pilgrim for each situation: a whole family, accepted directly, accepted in the lottery, a woman who needs a mahram… Click a card to sign in straight away, with no password or verification code.")}
+          heading={t("جرّب المنصة: خمس حالات", "Try the platform: five cases")}
+          hint={t("لكل حالة حاج جاهز بنتيجته: اضغط بطاقته فتدخل مباشرة، دون كلمة مرور ولا رمز تحقق، وتصل إلى الصفحة التي تخصه.", "A pilgrim ready for each case, with his result: click his card to sign in straight away, with no password or code, and land on his page.")}
           groups={[
-            {
-              items: DEMO_SCENARIOS.map((s) => {
-                const en = SCENARIOS_EN[s.id];
-                return {
-                  key: s.id,
-                  title: en ? t(s.title, `${s.title.split(" — ")[0]} — ${en.title}`) : s.title,
-                  note: en ? t(s.note, en.note) : s.note,
-                  code: s.id,
-                  initial: s.title[0],
-                  onPick: () => quickLogin(s.id),
-                };
-              }),
-            },
+            { items: DEMO_SCENARIOS.filter((s) => s.outcome).sort((a, b) => a.outcome! - b.outcome!).map(card) },
+            ...(more ? [{ label: t("حالات لتجربة نموذج التسجيل نفسه", "Cases for trying the registration form itself"), items: DEMO_SCENARIOS.filter((s) => !s.outcome).map(card) }] : []),
           ]}
+          footer={
+            <button type="button" onClick={() => setMore((v) => !v)} className="mt-4 text-sm font-bold text-green-dark underline-offset-4 hover:underline">
+              {more ? t("إخفاء حالات التسجيل الأخرى", "Hide the other registration cases") : t("حالات أخرى لتجربة نموذج التسجيل", "Other cases for trying the registration form")}
+            </button>
+          }
         />
       }
     >

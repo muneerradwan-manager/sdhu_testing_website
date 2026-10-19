@@ -39,6 +39,14 @@ const FAMILIES: Record<string, { id: string; relation: Member["relation"]; compa
     { id: "01044400750", relation: "self" },
     { id: "01044400751", relation: "spouse" },
   ],
+  "01058100960": [
+    { id: "01058100960", relation: "self" },
+    { id: "01058100961", relation: "spouse" },
+  ],
+  "01058200970": [
+    { id: "01058200970", relation: "self" },
+    { id: "01058200971", relation: "spouse" },
+  ],
 };
 
 /** «complete»'s group: مجموعة اللطيف in تكتل النور, whose team the demo administrators are */
@@ -54,6 +62,7 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
     return;
   }
   if (!scenario?.seed || !family || state.applications[id]) return;
+  const notDrawn = scenario.seed === "notDrawn";
   const people = family.map((f) => ({ ...f, person: getPerson(f.id) }));
   if (people.some((p) => !p.person)) return;
   // companionOf = the elderly member this person accompanies
@@ -61,11 +70,12 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
     const escort = people.find((o) => o.companionOf === p.id);
     return member(p.person!, p.relation, escort ? { companionId: escort.id } : {});
   });
-  const number = applicationNumberFor(id);
+  // «notDrawn» registered on direct acceptance first: that application closed, and this one is the lottery's
+  const number = applicationNumberFor(notDrawn ? `${id}-L` : id);
   // Direct acceptance: the fee and the first installment (two-installment plan) were paid with the registration.
   // Lottery: the fee only — the first installment confirms the registration, now that the main applicant's birth
   // year (1980) was drawn.
-  const lottery = scenario.seed === "lotteryAccepted";
+  const lottery = scenario.seed === "lotteryAccepted" || notDrawn;
   const complete = scenario.seed === "complete";
   const first = lottery ? 0 : firstPayment(seasonPlan(), members.length);
   const governorate = members[0].person.governorate;
@@ -88,6 +98,9 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
     firstPaid: lottery ? undefined : { amount: first, at, receipt: `1448-P-${number.padStart(6, "0")}-1` },
     payMethod: "shamcash",
     ratings: {},
+    // Not accepted on direct registration: the direct seats ran out at 69, above those born in 1958
+    ...((scenario.seed === "notAccepted" || notDrawn) && { announcedDirectAge: 69 }),
+    ...(notDrawn && { previous: { number: applicationNumberFor(id), track: "direct" as const, submittedAt: at - 40 * 86_400_000, closedAt: at - 30 * 86_400_000 } }),
   };
   actions.saveApplication(app);
   if (complete) completeSteps(id, app, now);

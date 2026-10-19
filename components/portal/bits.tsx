@@ -93,7 +93,7 @@ export function DemoPanel({
       <AnimatePresence initial={false}>
         {open && (
           <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="grid gap-x-2 overflow-hidden sm:grid-cols-2">
-            {DEMO_SCENARIOS.filter((s) => mode === "id" || s.book).map((s) => (
+            {DEMO_SCENARIOS.filter((s) => !s.outcome && (mode === "id" || s.book)).map((s) => (
               <li key={s.id} className="pt-2">
                 <button
                   type="button"

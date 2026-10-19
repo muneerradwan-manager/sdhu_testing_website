@@ -67,6 +67,8 @@ export type Application = {
    */
   track?: "direct" | "lottery";
   /** A direct-acceptance application that was not accepted, kept for the record when registering for the lottery */
+  /** The direct-acceptance age announced for this application's round, when it is not the season's (the seats ran out above it) */
+  announcedDirectAge?: number;
   previous?: { number: string; track: "direct"; submittedAt: number; closedAt: number };
   /**
    * Filed by an authorised administrator on the citizen's behalf (the technical coordinator at a branch
