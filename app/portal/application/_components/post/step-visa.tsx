@@ -48,7 +48,7 @@ export function StepVisa({ app, sessionId, stepLabel }: StepProps) {
   const pipeline = [
     { icon: <Globe2 className="size-5" />, t: "وزارة الخارجية السعودية", d: "تصدر تأشيرة كل فرد بجوازه", ok: added > 0 || simulating },
     { icon: <Mail className="size-5" />, t: "بريد إلى رئيس المجموعة", d: `تصل التأشيرات إلى ${headName}`, ok: added > 0 },
-    { icon: <Stamp className="size-5" />, t: "يضيفها إليكم", d: "لكل فرد تأشيرته في «التأشيرة»", ok: all },
+    { icon: <Stamp className="size-5" />, t: "يضيفها إليكم", d: "لكل فرد تأشيرته في «خزنة الوثائق»", ok: all },
   ];
 
   return (

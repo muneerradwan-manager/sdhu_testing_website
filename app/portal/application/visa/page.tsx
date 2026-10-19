@@ -1,8 +1,11 @@
 "use client";
 
-import { ApplicationView } from "../_components/application-view";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-/** «التأشيرة»: issued for every member, or the steps it waits for */
+/** «التأشيرة» became part of «خزنة الوثائق»: an old link to it opens the vault */
 export default function Page() {
-  return <ApplicationView view="visa" />;
+  const router = useRouter();
+  useEffect(() => router.replace("/portal/application/documents"), [router]);
+  return null;
 }

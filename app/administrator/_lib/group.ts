@@ -186,8 +186,10 @@ const LASTS = ["الأحمد", "الحموي", "الدمشقي", "السعدي",
 export const MISSING_ID = "01011105130";
 
 /**
- * 48 pilgrims of group 27: real assigned families first, then stable generated members.
- * سليم حسن is always on the list — he is the one who is late at the muster.
+ * A group's pilgrims (48 for group 27): real assigned families first, then stable generated members, each group's
+ * under its own national numbers (group 27's from 0104270000, group 31's from 0104310000), so a lesson or an
+ * activity over several groups never meets the same number twice. سليم حسن is on group 27's list — he is the one
+ * who is late at the muster.
  */
 export function buildRoster(
   profile: AdminProfile | undefined,
@@ -214,16 +216,17 @@ export function buildRoster(
       });
     });
   }
-  const salim: RosterEntry = { id: MISSING_ID, name: "سليم حسن", age: 66, gender: "M", room: "1211", needs: ["ضغط الدم"], phone: "0933105130" };
+  const number = groupNumber ?? 27;
+  const salim: RosterEntry | null = number === 27 ? { id: MISSING_ID, name: "سليم حسن", age: 66, gender: "M", room: "1211", needs: ["ضغط الدم"], phone: "0933105130" } : null;
   const target = Math.max(opts.size ?? 48, real.length + 1);
-  const rnd = seeded(`group-${groupNumber ?? 27}-roster`);
+  const rnd = seeded(`group-${number}-roster`);
   const filler: RosterEntry[] = [];
   let i = 0;
-  while (real.length + 1 + filler.length < target) {
+  while (real.length + (salim ? 1 : 0) + filler.length < target) {
     const woman = rnd() < 0.48;
     const first = woman ? WOMEN[Math.floor(rnd() * WOMEN.length)] : MEN[Math.floor(rnd() * MEN.length)];
     const age = 42 + Math.floor(rnd() * 34);
-    const id = `0104${String(270000 + i * 37).padStart(7, "0")}`;
+    const id = `0104${String(number * 10000 + i * 37).padStart(7, "0")}`;
     filler.push({
       id,
       name: `${first} ${LASTS[Math.floor(rnd() * LASTS.length)]}`,
@@ -237,7 +240,7 @@ export function buildRoster(
   }
   // سليم sits in the middle of the list, like in real life
   const all = [...real, ...filler];
-  all.splice(Math.min(all.length, 23), 0, salim);
+  if (salim) all.splice(Math.min(all.length, 23), 0, salim);
   return all;
 }
 

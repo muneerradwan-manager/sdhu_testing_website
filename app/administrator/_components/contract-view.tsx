@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileSignature, Maximize2, X } from "lucide-react";
+import { Download, FileSignature, Maximize2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CmsImage } from "@/components/cms/image";
 import { Modal } from "@/components/ui/widgets";
@@ -71,7 +71,7 @@ export function ContractView({ title, contract, signers, empty, kind = "group" }
         </span>
       </button>
       <Modal open={open} onClose={() => setOpen(false)} className="max-w-4xl">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 pe-10">
           <div>
             <p className="text-xs font-bold text-gold-dark">{label}</p>
             <h2 className="font-display text-2xl font-bold text-green-dark">{title}</h2>
@@ -83,7 +83,6 @@ export function ContractView({ title, contract, signers, empty, kind = "group" }
                 <Download className="size-4" /> تنزيل
               </a>
             )}
-            <button type="button" aria-label="إغلاق" onClick={() => setOpen(false)} className="grid size-9 place-items-center rounded-full bg-sand text-ink hover:bg-gold/30"><X className="size-4" /></button>
           </div>
         </div>
         {image ? (

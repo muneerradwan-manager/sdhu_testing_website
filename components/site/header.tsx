@@ -31,7 +31,7 @@ import { getStaff } from "@/lib/staff";
 import { useNav } from "@/lib/cms/site";
 import { cn } from "@/lib/utils";
 import { PRAYER_EN, hijriDateIn } from "./en-format";
-import { ACCOUNT_MENUS, AccountMenu, useOpenRegistrations } from "./account-menu";
+import { ACCOUNT_MENUS, AccountMenu, VisitorMenu, useOpenRegistrations } from "./account-menu";
 
 type Area = "pilgrim" | "admin" | "staff";
 type Identity = { initial: string; name: string; role: string; href: string; area: Area };
@@ -392,8 +392,8 @@ export function Header() {
               </Link>
             ) : !area ? (
               // The public pages: signing in, asking as whom (each platform has its own address) — but for the home
-              // page while its opening holds the same button
-              !heroLogin && <AccountMenu kind="login" variant="bar" />
+              // page while its opening holds the same button: there the bar says he is a visitor
+              heroLogin ? <VisitorMenu solid={solid} /> : <AccountMenu kind="login" variant="bar" />
             ) : (
               <>
                 {!here(signIn.login.href) && (

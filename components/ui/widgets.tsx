@@ -203,7 +203,9 @@ export function Modal({
             exit={{ y: 30, opacity: 0, scale: 0.97 }}
             transition={{ type: "spring", damping: 26, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className={cn("relative max-h-[calc(90dvh/var(--zoom))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-6 shadow-2xl", className)}
+            // The default width only when the caller sets none: `cn` does not merge classes, so with both the
+            // stylesheet's order decides, and max-w-lg came after max-w-2xl / 3xl / 4xl and kept those dialogs narrow
+            className={cn("relative max-h-[calc(90dvh/var(--zoom))] w-full overflow-y-auto overscroll-contain rounded-3xl bg-white p-6 shadow-2xl", !className?.includes("max-w-") && "max-w-lg", className)}
           >
             <button onClick={onClose} className="absolute end-4 top-4 rounded-full p-1.5 text-hint hover:bg-sand hover:text-ink" aria-label={t("إغلاق", "Close")}>
               <X className="size-5" />

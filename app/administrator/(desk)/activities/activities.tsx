@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { BookMarked, Check, ClipboardPen, Plus, Search, UserPlus, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { NAWAWI } from "@/lib/data/quran";
@@ -297,13 +297,10 @@ function Tracker({ a, audience, own, actor, onClose }: { a: Activity; audience: 
 
   return (
     <Modal open onClose={onClose} className="max-w-4xl">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-xs font-bold text-gold-dark">{KIND_LABEL[a.kind]} — {AUDIENCE_LABEL[a.audience]} — {a.schedule}</p>
-          <h2 className="font-display text-2xl font-bold text-green-dark">{a.title}</h2>
-          <p className="text-sm text-ink-soft">{a.goal}</p>
-        </div>
-        <button type="button" aria-label="إغلاق" onClick={onClose} className="grid size-9 place-items-center rounded-full bg-sand"><X className="size-4" /></button>
+      <div className="pe-10">
+        <p className="text-xs font-bold text-gold-dark">{KIND_LABEL[a.kind]} — {AUDIENCE_LABEL[a.audience]} — {a.schedule}</p>
+        <h2 className="font-display text-2xl font-bold text-green-dark">{a.title}</h2>
+        <p className="text-sm text-ink-soft">{a.goal}</p>
       </div>
 
       {a.kind === "khatma" && (
@@ -360,9 +357,10 @@ function Tracker({ a, audience, own, actor, onClose }: { a: Activity; audience: 
         </>
       ) : (
         <div className="mt-3 max-h-[50vh] overflow-auto rounded-2xl border border-gold/25">
-          <table className="w-full min-w-[640px] text-sm">
+          {/* On a phone the last sitting goes under the name and the next unit is left out, so the button stays in view */}
+          <table className="w-full text-sm sm:min-w-[640px]">
             <thead className="sticky top-0 bg-sand text-right text-xs text-hint">
-              <tr><th className="p-2">الحاج</th><th className="p-2">الإنجاز</th><th className="p-2">آخر تسميع</th><th className="p-2">{a.kind === "khatma" ? "أجزاؤه" : "التالي"}</th><th className="p-2" /></tr>
+              <tr><th className="p-2">الحاج</th><th className="p-2">الإنجاز</th><th className="hidden p-2 sm:table-cell">آخر تسميع</th><th className="hidden p-2 sm:table-cell">{a.kind === "khatma" ? "أجزاؤه" : "التالي"}</th><th className="p-2" /></tr>
             </thead>
             <tbody>
               {rows.map((e) => {
@@ -370,19 +368,23 @@ function Tracker({ a, audience, own, actor, onClose }: { a: Activity; audience: 
                 const pct = st.total ? Math.round((st.count / st.total) * 100) : 0;
                 return (
                   <tr key={e.id} className="border-t border-gold/15 align-top">
-                    <td className="p-2"><span className="font-bold">{e.name}</span><span className="block text-xs text-hint">{e.age} عاماً{several ? ` — ${groupName(e.group)}` : ""}</span></td>
+                    <td className="p-2">
+                      <span className="font-bold">{e.name}</span>
+                      <span className="block text-xs text-hint">{e.age} عاماً{several ? ` — ${groupName(e.group)}` : ""}</span>
+                      <span className="mt-1 block text-xs text-ink-soft sm:hidden">{st.last ? `${unitLabel(a.kind, st.last.unit)} — ${GRADE_LABEL[st.last.grade]}` : "لم يسمّع بعد"}</span>
+                    </td>
                     <td className="p-2">
                       {st.total ? (
                         <>
                           <span className="text-xs font-bold tabular-nums">{st.count}/{st.total}</span>
-                          <div className="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-sand"><div className="h-full bg-green" style={{ width: `${pct}%` }} /></div>
+                          <div className="mt-1 h-1.5 w-16 overflow-hidden sm:w-28 rounded-full bg-sand"><div className="h-full bg-green" style={{ width: `${pct}%` }} /></div>
                         </>
                       ) : (
                         <span className="text-xs font-bold">{st.count} {st.count === 1 ? "جزء" : "أجزاء"}</span>
                       )}
                     </td>
-                    <td className="p-2 text-xs">{st.last ? <>{unitLabel(a.kind, st.last.unit)}<span className="block text-hint">{GRADE_LABEL[st.last.grade]} — {fmtDay(st.last.at)}</span></> : <span className="text-hint">لم يسمّع بعد</span>}</td>
-                    <td className="p-2 text-xs">{a.kind === "khatma" ? Object.keys(progressOf(a, e.id)).map((u) => u.slice(1)).join("، ") || "—" : st.next ? unitLabel(a.kind, st.next) : <span className="font-bold text-green">أتمّ الحفظ</span>}</td>
+                    <td className="hidden p-2 text-xs sm:table-cell">{st.last ? <>{unitLabel(a.kind, st.last.unit)}<span className="block text-hint">{GRADE_LABEL[st.last.grade]} — {fmtDay(st.last.at)}</span></> : <span className="text-hint">لم يسمّع بعد</span>}</td>
+                    <td className="hidden p-2 text-xs sm:table-cell">{a.kind === "khatma" ? Object.keys(progressOf(a, e.id)).map((u) => u.slice(1)).join("، ") || "—" : st.next ? unitLabel(a.kind, st.next) : <span className="font-bold text-green">أتمّ الحفظ</span>}</td>
                     <td className="p-2">{own && <Button size="sm" variant="outline" onClick={() => setRec(e)}><ClipboardPen className="size-4" /> {a.kind === "khatma" ? "قرأ" : "تسميع"}</Button>}</td>
                   </tr>
                 );
@@ -393,7 +395,8 @@ function Tracker({ a, audience, own, actor, onClose }: { a: Activity; audience: 
         </div>
       )}
 
-      {rec && <Record a={a} person={rec} actor={actor} onClose={() => setRec(null)} />}
+      {/* Keyed by the pilgrim: pressing «تسميع» on another row starts his own sitting, not the last one's pages */}
+      {rec && <Record key={rec.id} a={a} person={rec} actor={actor} onClose={() => setRec(null)} />}
     </Modal>
   );
 }
@@ -410,9 +413,12 @@ function Record({ a, person, actor, onClose }: { a: Activity; person: Person; ac
   const [grade, setGrade] = useState<Grade>("vgood");
   const [note, setNote] = useState("");
   const chosen = ranged ? a.units.slice(Math.min(a.units.indexOf(from), a.units.indexOf(to)), Math.max(a.units.indexOf(from), a.units.indexOf(to)) + 1) : units;
+  // It opens under the table: brought into view, else it would wait below the dialog's fold
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), []);
 
   return (
-    <div className="mt-4 rounded-3xl border-2 border-green/40 bg-green/5 p-4">
+    <div ref={ref} className="mt-4 scroll-mb-2 rounded-3xl border-2 border-green/40 bg-green/5 p-4">
       <div className="flex items-center justify-between gap-2">
         <p className="font-bold text-green-dark">{a.kind === "khatma" ? "ما قرأه" : "تسميع"}: {person.name}</p>
         <button type="button" aria-label="إغلاق التسميع" onClick={onClose} className="grid size-8 place-items-center rounded-full bg-white"><X className="size-4" /></button>

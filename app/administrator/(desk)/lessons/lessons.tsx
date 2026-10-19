@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Ban, CalendarClock, Check, CheckCheck, ClipboardCheck, Clock, Eye, HandHelping, MapPin, Pencil, Plus, Search, UsersRound, X } from "lucide-react";
+import { Ban, CalendarClock, Check, CheckCheck, ClipboardCheck, Clock, Eye, HandHelping, MapPin, Pencil, Plus, Search, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
@@ -314,12 +314,9 @@ function Roll({ l, audience, own, actor, onClose }: { l: GroupLesson; audience: 
 
   return (
     <Modal open onClose={onClose} className="max-w-2xl">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-xs font-bold text-gold-dark">{AUDIENCE_LABEL[l.audience]} — {fmtWhen(l.at)} {fmtTime(l.at)}</p>
-          <h2 className="font-display text-2xl font-bold text-green-dark">{l.title}</h2>
-        </div>
-        <button type="button" aria-label="إغلاق" onClick={onClose} className="grid size-9 place-items-center rounded-full bg-sand"><X className="size-4" /></button>
+      <div className="pe-10">
+        <p className="text-xs font-bold text-gold-dark">{AUDIENCE_LABEL[l.audience]} — {fmtWhen(l.at)} {fmtTime(l.at)}</p>
+        <h2 className="font-display text-2xl font-bold text-green-dark">{l.title}</h2>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         {[

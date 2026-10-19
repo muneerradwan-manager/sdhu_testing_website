@@ -1,8 +1,11 @@
 "use client";
 
-import { ApplicationView } from "../_components/application-view";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-/** «الدفعات والإيصالات»: every cost with its receipt, and the contract */
+/** «الدفعات والإيصالات» became part of «خزنة الوثائق»: an old link to it opens the vault */
 export default function Page() {
-  return <ApplicationView view="payments" />;
+  const router = useRouter();
+  useEffect(() => router.replace("/portal/application/documents"), [router]);
+  return null;
 }

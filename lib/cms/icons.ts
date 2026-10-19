@@ -58,6 +58,11 @@ import {
   UserRound,
   UserRoundPlus,
   UsersRound,
+  Dices,
+  FolderLock,
+  Receipt,
+  Route,
+  Stamp,
   Wallet,
 } from "lucide-react";
 
@@ -116,6 +121,11 @@ export const CMS_ICONS: Record<string, LucideIcon> = {
   UserRound,
   UserRoundPlus,
   UsersRound,
+  Dices,
+  FolderLock,
+  Receipt,
+  Route,
+  Stamp,
   Wallet,
 };
 
@@ -177,6 +187,11 @@ export const CMS_ICON_LABELS: Record<string, string> = {
   UserRound: "شخص",
   UserRoundPlus: "تسجيل",
   UsersRound: "مجموعة",
+  Dices: "قرعة",
+  FolderLock: "خزنة الوثائق",
+  Receipt: "إيصال",
+  Route: "مسار",
+  Stamp: "تأشيرة",
   Wallet: "محفظة",
 };
 

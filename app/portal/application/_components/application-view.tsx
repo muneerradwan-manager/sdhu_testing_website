@@ -3,56 +3,47 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
-import { QRCodeSVG } from "qrcode.react";
 import {
   AlertOctagon,
+  BadgeCheck,
   BedDouble,
   BookOpen,
   Building2,
   Bus,
-  CalendarDays,
   CheckCircle2,
   Clock,
   FileSignature,
-  Home,
   Landmark,
   Lock,
   MapPinned,
   MessageCircle,
-  Moon,
   Phone,
   Plane,
-  Printer,
-  Receipt,
   RotateCcw,
   Siren,
-  Sparkles,
   Stamp,
-  Star,
-  Sun,
   Tent,
   UsersRound,
   UtensilsCrossed,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
-import { PrintSheet } from "@/components/print/print-sheet";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/widgets";
-import { ITINERARY, PLACES, assign, drawLine, outcomeOf, stageAt, trackOf } from "@/lib/journey";
+import { PLACES, assign, drawLine, outcomeOf, stageAt, trackOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
 import { itineraryOf, passCardOf, useFlightsData } from "@/lib/flights";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type Application, type PostAcceptance } from "@/lib/store";
-import { cn, formatUSD } from "@/lib/utils";
-import { BoardingPass, HajjCard } from "./cards";
+import { cn } from "@/lib/utils";
+import { BoardingPass } from "./cards";
 import { groupInfo } from "@/lib/assignment";
 import { groupName } from "@/lib/groups";
-import { FamilyDocuments } from "./documents";
+import { DocumentVault, type VaultDoc } from "./documents";
 import { PostChecklist } from "./post/checklist";
-import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, paidAt, stepsDone, useRoomCost } from "./post/model";
+import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, stepsDone, useRoomCost } from "./post/model";
 import { usePinnedVersion } from "@/lib/registration/client";
 import { postStepsOf } from "@/lib/registration/engine";
 import { ReviewBanner } from "./review-banner";
@@ -69,11 +60,10 @@ const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon:
   notDrawn: { title: "نُشرت نتائج القرعة", body: () => "لم تُسحب سنة ميلاد صاحب طلبك وشهره هذا الموسم.", icon: "📋", tone: "info" },
 };
 
-type Unlock = "always" | "group" | "payments" | "trip";
+type Unlock = "always" | "group" | "trip";
 
 const LOCK_HINT: Record<Exclude<Unlock, "always">, string> = {
   group: "يُفتح بعد إلحاقكم بمجموعة في المكتب (الخطوة 3)",
-  payments: "يُفتح بعد اكتمال التسديد (الخطوة 4)",
   trip: "يُفتح بعد صدور التأشيرة (الخطوة 7)",
 };
 
@@ -124,19 +114,18 @@ function Info({ label, value, className }: { label: string; value: ReactNode; cl
 }
 
 /** Which page of the pilgrim's account this is: the application and its steps, or what a step opens */
-export type ApplicationPart = "status" | "group" | "visa" | "hotels" | "trip" | "payments";
+export type ApplicationPart = "status" | "group" | "hotels" | "trip" | "documents";
 
 const PART_TITLE: Record<Exclude<ApplicationPart, "status">, string> = {
-  group: "مجموعتي وعقدي",
-  visa: "التأشيرة",
+  group: "مجموعتي",
   hotels: "الفنادق والسكن",
   trip: "الرحلة والبطاقات",
-  payments: "الدفعات والإيصالات",
+  documents: "خزنة الوثائق",
 };
 
 /**
  * The pilgrim's application, one page of his account at a time: its status and steps («طلبي وخطواته»), or what
- * a step opens — his group and his contract, his visa, his hotels and rooms, his trip, his payments. Each is its
+ * a step opens — his group and his contract, his hotels and rooms, his trip, the vault of his documents. Each is its
  * own entry in the sidebar; a part whose step has not come yet says what opens it.
  */
 export function ApplicationView({ view = "status" }: { view?: ApplicationPart }) {
@@ -224,11 +213,35 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
     );
   }
 
-  const unlocked: Record<Unlock, boolean> = { always: true, group: !!post.groupApprovedAt, payments: lines.every((l) => !!paidAt(l, app, post)), trip: !!post.visaAt };
+  const unlocked: Record<Unlock, boolean> = { always: true, group: !!post.groupApprovedAt, trip: !!post.visaAt };
   const myGroup = groupInfo(post.clusterId, post.groupNumber);
   const rejected = review?.status === "rejected";
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const emergency = account?.emergencyName ? `${account.emergencyName} ${account.emergencyPhone ?? ""}` : "غرفة العمليات 920-1448";
+  const acceptedBy = direct ? "قبول مباشر وفق الأكبر سناً" : `بالقرعة: ${drawLine(app, draw) ?? ""}`;
+  const registration = app.members.length * fees.registrationPerPerson;
+  // The two flight tickets as documents of the vault, drawn as on «الرحلة والبطاقات»
+  const flightDocs: VaultDoc[] = (["outbound", "return"] as const).map((dir) => {
+    const f = dir === "outbound" ? myTrip?.outbound : myTrip?.inbound;
+    const card = f ? passCardOf(f, flightsData) : null;
+    const label = dir === "outbound" ? "رحلة الذهاب" : "رحلة العودة";
+    return {
+      id: `flight-${dir}`,
+      tone: dir === "outbound" ? "green" : "maroon",
+      kind: `بطاقة ${label}`,
+      icon: Plane,
+      title: card ? `${card.from.city} ← ${card.to.city}` : label,
+      sub: card ? `${card.hijri} — ${card.departure}` : "يضعكم عليها رئيس التكتل",
+      code: card?.code,
+      ready: !!card && !!post.visaAt,
+      status: card && post.visaAt ? { label: "مؤكدة", tone: "green" } : { label: "لم تُحدد بعد", tone: "ink" },
+      view: () =>
+        card && (
+          <BoardingPass f={card} label={label} tone={dir === "outbound" ? "green" : "maroon"} seats={assignments.map((a) => ({ name: a.person.firstName, seat: myTrip?.seatOf(a.person.id, dir) ?? (dir === "outbound" ? a.seat : a.returnSeat) }))} />
+        ),
+      wide: true,
+    };
+  });
   const women = assignments.filter((a) => a.person.gender === "F");
   const men = assignments.filter((a) => a.person.gender === "M");
   const place = PLACES[mashaer];
@@ -355,6 +368,11 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
                       <p className="mt-3 max-w-2xl leading-8 text-white/80">
                         طلب عائلي رقم {app.number} ({app.members.length} أفراد) لأداء فريضة الحج لموسم 1448هـ. أكملوا الخطوات أدناه، فتُفتح تفاصيل رحلتكم خطوة بخطوة.
                       </p>
+                      {post.confirmedAt && (
+                        <Link href="/portal/application/documents" className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-gold px-4 py-2 text-sm font-bold text-ink transition hover:bg-gold-light">
+                          <BadgeCheck className="size-4" /> إشعار القبول في «خزنة الوثائق»
+                        </Link>
+                      )}
                     </div>
                     <div className="rounded-3xl bg-white/10 p-5 text-center backdrop-blur">
                       <p className="font-display text-5xl font-bold text-gold">{daysToTravel}</p>
@@ -402,25 +420,13 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
             </section>
             )}
 
-            {view === "visa" && <VisaPanel app={app} post={post} lines={lines} />}
+            {view === "documents" && <DocumentVault app={app} post={post} lines={lines} total={total} registration={registration} acceptedBy={acceptedBy} assignments={assignments} emergency={emergency} flights={flightDocs} visa={<VisaPanel app={app} post={post} lines={lines} />} />}
 
             {view === "hotels" && post.groupApprovedAt && (
               <p className="flex items-start gap-2 rounded-2xl bg-white p-4 text-sm leading-7 text-ink-soft ring-1 ring-gold/30">
                 <BedDouble className="mt-1 size-4 shrink-0 text-gold-dark" />
                 الفندق والغرف كما أسندها إليكم رئيس {groupName(myGroup.number)} ({myGroup.leader}) في {myGroup.clusterName}، بحسب السكن الذي اخترتموه.
               </p>
-            )}
-
-            {view === "trip" && (
-            <Section id="cards" title="بطاقات الحجاج الرقمية" icon={<Sparkles className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip} eyebrow="تُطبع أيضاً على سوار المعصم">
-              <div className="scrollbar-none -mx-4 flex snap-x gap-5 overflow-x-auto px-4 pb-6 pt-2">
-                {assignments.map((a, i) => (
-                  <HajjCard key={a.person.id} a={a} emergency={emergency} index={i} />
-                ))}
-              </div>
-              <p className="text-sm text-hint">عند مسح الرمز يرى الموظف أو الإداري المخوّل ما تسمح به صلاحيته فقط؛ والاحتياجات الطبية للفريق الطبي وحده.</p>
-            </Section>
-
             )}
 
             {view === "trip" && (
@@ -575,48 +581,30 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
 
             )}
 
-            {view === "trip" && (
-            <Section id="itinerary" title="برنامج الرحلة يوماً بيوم" icon={<CalendarDays className="size-6" />} ready={unlocked.trip} lockedHint={LOCK_HINT.trip}>
-              <ol className="relative space-y-4 border-r-2 border-gold-light pr-8">
-                {ITINERARY.map((d, i) => {
-                  const Icon = { plane: Plane, hotel: Building2, tent: Tent, sun: Sun, moon: Moon, star: Star, kaaba: Landmark, mosque: Landmark, home: Home }[d.icon];
-                  return (
-                    <motion.li key={d.title} initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.04 }} className="relative">
-                      <span className="absolute -right-[49px] top-3 grid size-8 place-items-center rounded-full bg-green-dark text-gold ring-4 ring-sand">
-                        <Icon className="size-4" />
-                      </span>
-                      <div className="rounded-3xl bg-white p-5 ring-1 ring-gold/30 transition hover:shadow-lg">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-display text-lg font-bold text-green-dark">{d.title}</p>
-                          <Badge tone="gold">{d.hijri}</Badge>
-                        </div>
-                        <p className="mt-1 text-sm font-semibold text-gold-dark">{d.place}</p>
-                        <p className="mt-1 leading-7 text-ink-soft">{d.detail}</p>
-                      </div>
-                    </motion.li>
-                  );
-                })}
-              </ol>
-            </Section>
-
-            )}
-
             {view === "group" && (
             <Section id="group" title={`${groupName(myGroup.number)} — ${myGroup.clusterName}`} icon={<UsersRound className="size-6" />} ready={unlocked.group} lockedHint={LOCK_HINT.group} eyebrow={`${myGroup.office} — مستوى الخدمة: ${myGroup.level}`}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {myGroup.team.map((p, i) => (
-                  <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="rounded-3xl bg-white p-5 ring-1 ring-gold/30">
+                  // One shape for every member of the team: the cards of a row share their height, and the number and
+                  // the buttons sit together at the foot, level across the row whatever the length of the note above
+                  <motion.div key={p.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="flex h-full flex-col rounded-3xl bg-white p-5 ring-1 ring-gold/30">
                     <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-gold to-gold-dark font-display text-2xl font-bold text-ink">{p.name.replace("الشيخ ", "")[0]}</span>
-                    <p className="mt-3 text-xs font-bold text-gold-dark">{p.role === "المنسق التقني" ? "منسق التكتل المفروز للمجموعة" : p.role}</p>
-                    <p className="font-display text-lg font-bold text-green-dark">{p.name}</p>
-                    <p className="mt-1 text-sm text-ink-soft">{p.note}</p>
-                    <div className="mt-4 flex gap-2">
-                      <a href="#" onClick={(e) => { e.preventDefault(); toast({ title: `اتصال بـ ${p.name}`, body: p.phone, icon: "📞" }); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-dark py-2 text-sm font-bold text-white hover:bg-green">
+                    <p className="mt-3 truncate text-xs font-bold text-gold-dark">{p.role === "المنسق التقني" ? "منسق التكتل المفروز للمجموعة" : p.role}</p>
+                    <p className="truncate font-display text-lg font-bold text-green-dark">{p.name}</p>
+                    <p className="mt-1 text-sm leading-6 text-ink-soft">{p.note}</p>
+                    <div className="mt-auto pt-4">
+                    <a href={`tel:${p.phone.replace(/\s/g, "")}`} className="flex items-center justify-between gap-2 rounded-xl bg-sand px-3 py-2 text-sm hover:bg-gold-light/60">
+                      <span className="text-xs text-hint">الهاتف</span>
+                      <span dir="ltr" className="font-mono font-bold tabular-nums text-ink">{p.phone}</span>
+                    </a>
+                    <div className="mt-2 flex gap-2">
+                      <a href={`tel:${p.phone.replace(/\s/g, "")}`} onClick={(e) => { e.preventDefault(); toast({ title: `اتصال بـ ${p.name}`, body: p.phone, icon: "📞" }); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-dark py-2 text-sm font-bold text-white hover:bg-green">
                         <Phone className="size-4" /> اتصال
                       </a>
                       <a href="#" onClick={(e) => { e.preventDefault(); toast({ title: "قناة المجموعة", body: "الرسائل الخاصة متاحة في تطبيق الجوال.", icon: "💬" }); }} className="grid size-9 place-items-center rounded-xl bg-sand text-green-dark hover:bg-gold-light" aria-label="رسالة">
                         <MessageCircle className="size-4" />
                       </a>
+                    </div>
                     </div>
                   </motion.div>
                 ))}
@@ -639,37 +627,8 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
                   <BookOpen className="size-4" /> الدروس الدينية قبل السفر في الأكاديمية
                 </Link>
               </div>
-            </Section>
-
-            )}
-
-            {view === "group" && post.groupApprovedAt && <ContractCard app={app} post={post} group={myGroup} lines={lines} total={total} room={!!room} />}
-
-            {view === "payments" && (
-            <Section id="payments" title="التكاليف والإيصالات" icon={<Receipt className="size-6" />} ready={unlocked.payments} lockedHint={LOCK_HINT.payments} eyebrow="لكل تكلفة إيصال مستقل قابل للتحقق">
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {[
-                  { t: "رسم التسجيل", n: app.receipt, v: app.members.length * fees.registrationPerPerson },
-                  ...lines.map((l) => ({ t: `${l.title} (${l.detail})`, n: l.receipt, v: l.amount })),
-                ].map((r, i) => (
-                  <motion.div key={r.n} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }} className="overflow-hidden rounded-3xl bg-white ring-1 ring-gold/40">
-                    <div className="flex items-center justify-between bg-green-dark px-4 py-3 text-white">
-                      <span className="text-sm font-bold">{r.t}</span>
-                      <CheckCircle2 className="size-5 text-green-light" />
-                    </div>
-                    <div className="flex items-center gap-3 p-4">
-                      <QRCodeSVG value={`https://hajj-demo.sy/verify/${r.n}`} size={64} fgColor="#00594F" />
-                      <div>
-                        <p className="font-display text-2xl font-bold text-green-dark">{formatUSD(r.v)}</p>
-                        <p className="font-mono text-xs text-hint" dir="ltr">{r.n}</p>
-                        <p className="text-xs font-bold text-green">مسدَّد ✓</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <Link href="/portal/application/group" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-green-dark hover:underline">
-                <FileSignature className="size-4" /> عقدكم مع {groupName(myGroup.number)} وتكلفته في «مجموعتي وعقدي»
+              <Link href="/portal/application/documents" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-green-dark hover:underline">
+                <FileSignature className="size-4" /> عقدكم مع {groupName(myGroup.number)} في «خزنة الوثائق»
               </Link>
             </Section>
 
@@ -745,8 +704,8 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
 }
 
 /**
- * The visa: once issued, one for every member of the application; until then, the steps it waits for — the
- * passport (after the second payment) and the medical file among them.
+ * The visa in «خزنة الوثائق»: once issued, one for every member of the application (each member's below it);
+ * until then, the steps it waits for — the passport (after the second payment) and the medical file among them.
  */
 function VisaPanel({ app, post, lines }: { app: Application; post: PostAcceptance; lines: ReturnType<typeof costLines> }) {
   // The steps before the visa, as the application's version sets them
@@ -754,7 +713,7 @@ function VisaPanel({ app, post, lines }: { app: Application; post: PostAcceptanc
   const done = stepsDone(post, app, lines, steps);
   const before = steps.filter((st) => st.system !== "visa");
   return (
-    <div className="space-y-6">
+    <>
       {post.visaAt ? (
         <Card className="flex flex-wrap items-center gap-4 md:p-8">
           <span className="grid size-14 place-items-center rounded-2xl bg-green-dark text-gold">
@@ -762,7 +721,7 @@ function VisaPanel({ app, post, lines }: { app: Application; post: PostAcceptanc
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-display text-2xl font-bold text-green-dark">صدرت التأشيرة لأفراد طلبكم كلهم</p>
-            <p className="text-ink-soft">تأشيرة حج لموسم 1448هـ — {new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "numeric", month: "long", year: "numeric" }).format(post.visaAt)}. تراها مع جواز كل فرد وصورته أدناه.</p>
+            <p className="text-ink-soft">تأشيرة حج لموسم 1448هـ — {new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "numeric", month: "long", year: "numeric" }).format(post.visaAt)}. تجدها مع جواز كل فرد وصورته في وثائقه أدناه.</p>
           </div>
         </Card>
       ) : (
@@ -778,153 +737,7 @@ function VisaPanel({ app, post, lines }: { app: Application; post: PostAcceptanc
           </ul>
         </Card>
       )}
-      <FamilyDocuments app={app} post={post} />
-    </div>
-  );
-}
-
-/** «7 تشرين الأول 2026» */
-const day = (at?: number) => (at ? new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "numeric", month: "long", year: "numeric" }).format(at) : "—");
-
-/**
- * The family's contract with its group, in one place: how it stands — signed at the office, the family attached
- * to the group by the office's employee, in force (or waiting, or sent back) — and the contract itself, opened to
- * read and printed on one sheet: its parties, its terms, its cost and its signatures.
- */
-function ContractCard({ app, post, group, lines, total, room }: { app: Application; post: PostAcceptance; group: ReturnType<typeof groupInfo>; lines: ReturnType<typeof costLines>; total: number; room: boolean }) {
-  const [open, setOpen] = useState(false);
-  const c = post.contract;
-  const by = c?.decidedBy ?? post.enrolledBy?.name ?? c?.uploadedBy.name ?? "موظف المكتب";
-  const state = !c || c.status === "approved" ? { label: "نافذ", tone: "green" as const } : c.status === "pending" ? { label: "عند المكتب", tone: "gold" as const } : { label: "أُعيد", tone: "maroon" as const };
-  const steps = [
-    { t: "وقّعتم العقد مع المجموعة في المكتب", d: day(c?.uploadedAt ?? post.groupApprovedAt), ok: true },
-    { t: `ألحقكم ${by} بالمجموعة، والطلب كله معاً`, d: day(post.groupApprovedAt), ok: !c || c.status === "approved" },
-    { t: c?.status === "returned" ? `أُعيد العقد: ${c.reason ?? ""}` : "العقد نافذ: أنتم في المجموعة", d: c?.status === "pending" ? "عند المكتب" : day(post.groupApprovedAt), ok: !c || c.status === "approved" },
-  ];
-  return (
-    <Card className="md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 font-display text-2xl font-bold text-green-dark">
-          <FileSignature className="size-7 text-gold-dark" /> عقدكم مع {groupName(group.number)}
-        </p>
-        <Badge tone={state.tone}>{state.label}</Badge>
-      </div>
-      <ol className="mt-5 space-y-2">
-        {steps.map((x) => (
-          <li key={x.t} className="flex items-start gap-3 rounded-2xl bg-sand p-3">
-            <CheckCircle2 className={cn("mt-0.5 size-5 shrink-0", x.ok ? "text-green-light" : "text-hint")} />
-            <span className="min-w-0 flex-1">
-              <span className="block font-bold text-ink">{x.t}</span>
-              <span className="block text-xs text-hint">{x.d}</span>
-            </span>
-          </li>
-        ))}
-        {(post.transfers ?? []).map((t) => (
-          <li key={t.at} className="flex items-start gap-3 rounded-2xl bg-sand p-3 text-sm">
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-gold-dark" /> انتقلتم من {groupName(t.from)} إلى {groupName(t.to)} بعقد جديد — {day(t.at)}
-          </li>
-        ))}
-      </ol>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/40 p-4">
-        <span className="text-sm text-ink-soft">
-          تكلفة الحج والهدي{room ? " والسكن الخاص" : ""}: <b className="font-display text-lg text-green-dark">{formatUSD(total)}</b>
-          {c && <span className="block text-xs text-hint">الملف: {c.file.name}</span>}
-        </span>
-        <Button onClick={() => setOpen(true)}>
-          <FileSignature className="size-4" /> عرض العقد
-        </Button>
-      </div>
-      <Modal open={open} onClose={() => setOpen(false)} className="max-h-[90vh] max-w-3xl overflow-y-auto">
-        <ContractDocument app={app} post={post} group={group} lines={lines} total={total} by={by} />
-        <div className="mt-6 flex flex-wrap gap-2 border-t border-gold/30 pt-4">
-          <Button onClick={() => window.print()}>
-            <Printer className="size-4" /> طباعة العقد
-          </Button>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            إغلاق
-          </Button>
-        </div>
-      </Modal>
-      {open && (
-        <PrintSheet>
-          <ContractDocument app={app} post={post} group={group} lines={lines} total={total} by={by} print />
-        </PrintSheet>
-      )}
-    </Card>
-  );
-}
-
-/** The contract as it was signed: its parties, its terms, its cost and its signatures (on screen, and on paper) */
-function ContractDocument({ app, post, group, lines, total, by, print = false }: { app: Application; post: PostAcceptance; group: ReturnType<typeof groupInfo>; lines: ReturnType<typeof costLines>; total: number; by: string; print?: boolean }) {
-  const head = print ? "text-[13pt] font-bold" : "font-display text-xl font-bold text-green-dark";
-  const box = print ? "mt-3" : "mt-4 rounded-2xl bg-sand p-4";
-  return (
-    <article className={print ? "text-[10.5pt] leading-7 text-black" : "leading-8 text-ink"}>
-      <header className={print ? "border-b-2 border-black pb-2" : "border-b border-gold/40 pb-3"}>
-        <p className={print ? "text-[9pt]" : "text-xs font-bold text-gold-dark"}>إدارة الحج والعمرة السورية — موسم 1448هـ</p>
-        <h3 className={print ? "text-[16pt] font-bold" : "font-display text-3xl font-bold text-green-dark"}>عقد الحاج مع {groupName(group.number)}</h3>
-        <p className={print ? "text-[9pt]" : "text-sm text-hint"}>رقم العقد ع-{app.number} — طلب الحج رقم {app.number}</p>
-      </header>
-      <section className={box}>
-        <p className={head}>الطرف الأول: المجموعة</p>
-        <p>
-          {groupName(group.number)}، برئاسة {group.leader}، في {group.clusterName} — {group.office}، مستوى الخدمة: {group.level}.
-        </p>
-      </section>
-      <section className={box}>
-        <p className={head}>الطرف الثاني: الحاج صاحب الطلب ومرافقوه</p>
-        <ul className={print ? "list-disc pr-5" : "list-disc space-y-0.5 pr-5 marker:text-gold-dark"}>
-          {app.members.map((m) => (
-            <li key={m.person.id}>
-              {m.person.firstName} {m.person.fatherName} {m.person.lastName}
-              {` — ${relationLabel(m.relation, m.person.gender)}`}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className={box}>
-        <p className={head}>البنود</p>
-        <ol className="list-decimal space-y-1 pr-5">
-          <li>تقدّم المجموعة لأفراد الطلب خدمات الحج لموسم 1448هـ بمستوى «{group.level}»: السكن في مكة المكرمة والمدينة المنورة والمشاعر، والنقل بين المدن والمشاعر، والإعاشة، والمرافقة، والتوجيه الديني.</li>
-          <li>يلتزم أفراد الطلب بتعليمات رئيس المجموعة وفريقها، وبمواعيد التجمّع والتفويج، ويحملون سوار المنصة وبطاقاتها.</li>
-          <li>الطلب العائلي واحد في هذا العقد: يُلحق أفراده بالمجموعة معاً، ولا ينتقل أحدهم إلى مجموعة أخرى إلا بعقد جديد يُلحق به الطلب كله في المكتب.</li>
-          <li>التكلفة كما في الجدول أدناه، تُدفع على الدفعات التي تعلنها الإدارة، ولكل دفعة إيصال مستقل قابل للتحقق.</li>
-          <li>تتابع إدارة الحج والعمرة تنفيذ هذا العقد، ويُرفع أي خلاف إليها من «حالتي الآن» أو من مكتب الحاج.</li>
-        </ol>
-      </section>
-      <section className={box}>
-        <p className={head}>التكلفة</p>
-        <table className="mt-1 w-full text-right">
-          <tbody>
-            {lines.map((l) => (
-              <tr key={l.key} className={print ? "" : "border-b border-gold/20"}>
-                <td className="py-1">
-                  {l.title} <span className={print ? "" : "text-xs text-hint"}>({l.detail})</span>
-                </td>
-                <td className="py-1 text-left font-bold">{formatUSD(l.amount)}</td>
-              </tr>
-            ))}
-            <tr>
-              <td className="py-1 font-bold">المجموع</td>
-              <td className="py-1 text-left font-bold">{formatUSD(total)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-      <section className={cn(box, "grid gap-3 sm:grid-cols-2")}>
-        <div>
-          <p className={head}>توقيع الطرف الثاني</p>
-          <p>وقّعه صاحب الطلب في المكتب — {day(post.contract?.uploadedAt ?? post.groupApprovedAt)}</p>
-        </div>
-        <div>
-          <p className={head}>الإلحاق بالمجموعة</p>
-          <p>
-            {by} — {day(post.groupApprovedAt)}
-          </p>
-          {post.contract && <p className={print ? "text-[9pt]" : "text-xs text-hint"}>النسخة الموقّعة: {post.contract.file.name}</p>}
-        </div>
-      </section>
-    </article>
+    </>
   );
 }
 
