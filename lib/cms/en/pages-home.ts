@@ -209,7 +209,7 @@ export const PAGES_EN_HOME: PagesEn = {
         {
           icon: "FolderLock",
           title: "Document vault",
-          text: "All your documents in one place and one design: the acceptance notice, the contract, a receipt for every payment, both flight tickets, and for each member the digital card, visa, passport and photo. Issued ones open and print; the rest say when they come.",
+          text: "All your documents in one place and one design: the acceptance notice, the contract, a receipt for every payment, both flight tickets, and for each member the digital card, visa, passport, photo and health certificate. Issued ones open and print; the rest say when they come.",
           when: "From confirmation until the return",
         },
         {
@@ -227,19 +227,19 @@ export const PAGES_EN_HOME: PagesEn = {
         {
           icon: "BookOpenText",
           title: "Religious lessons and activities",
-          text: "«Religious lessons» has your group guide's lessons and the cluster's female guide's lessons for women: say who will come and see your family's attendance. «Religious activities» has Quran memorisation circles, an-Nawawi's forty hadith, the Hajj supplications and the shared reading of the Quran; join them and see each member's recitation record.",
+          text: "«Group religious lessons» are given in person by your group guide and, for women, the cluster\'s female guide, before travel and in Makkah, the holy sites and Madinah: say who will come and see your family\'s attendance. «Religious activities» has Quran memorisation, an-Nawawi\'s forty hadith, the Hajj supplications and the shared reading. The recorded lessons you study alone are in «Academy», with your progress in each track.",
           when: "Before travel and in Makkah",
         },
         {
           icon: "Stamp",
           title: "Visa and flight",
-          text: "Your group head adds each member's visa as the Saudi foreign ministry sends it, and your cluster head puts you on a flight from the cluster's days. The visa and each member's digital card are in «Document vault»; the flight and hotels in «Trip and cards» and «Hotels».",
+          text: "Your group head adds each member's visa as the Saudi foreign ministry sends it, and your cluster head puts you on a flight from the cluster's days. The visa and each member's digital card are in «Document vault»; the flight and hotels in «Flights and holy sites» and «Hotels».",
           when: "1 – 15 Dhul Qadah",
         },
         {
           icon: "Plane",
           title: "Travel and the holy sites",
-          text: "«My status now» is your companion day by day: where you are, your meal, your bus, the emergency button, complaints and lost items. Your digital card is on your wristband throughout.",
+          text: "The «In the season» part of the sidebar is your companion day by day, one page for each thing: «My status now» (where you are and what comes next), «Gatherings» (the trips and visits among them, where you say who of your family will come), «Meals», «My reports» for emergencies and complaints, and «Lost items». Your day\'s notices are in «Notifications». Your digital card is on your wristband throughout.",
           when: "24 Dhul Qadah – 12 Dhul Hijjah",
         },
         {

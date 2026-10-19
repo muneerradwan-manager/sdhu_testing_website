@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 import { BookOpenText, CalendarClock, CheckCircle2, Clock, HandHelping, MapPin, UserRound, XCircle } from "lucide-react";
 import { useState } from "react";
 import { Card } from "@/components/portal/shell";
@@ -12,13 +13,16 @@ import { fullName } from "@/lib/registry";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PilgrimShell } from "../_components/pilgrim-shell";
+import { useSeasonCtx } from "../season/_components/season-shell";
+import { LessonsSection } from "../season/_components/trips";
 
 const fmtWhen = (ts: number) => new Intl.DateTimeFormat("ar-SY-u-nu-latn", { weekday: "long", day: "numeric", month: "long" }).format(ts);
 const fmtHijri = (ts: number) => new Intl.DateTimeFormat("ar-SY-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "long" }).format(ts);
 const fmtTime = (ts: number) => new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Damascus" }).format(ts);
 
 /**
- * «الدروس الدينية»: the lessons the guides of the family's group give to its members — a guide's to its men or to
+ * «دروس المجموعة الدينية»: the lessons given in person through the season — before travel, in Makkah, at the holy
+ * sites, in Madinah — apart from the Academy's recorded lessons the pilgrim studies alone («الأكاديمية»). The lessons the guides of the family's group give to its members — a guide's to its men or to
  * all of it, the female guide's to its women — each for the members it is meant for. The family says who will
  * come; once the lesson is given, it sees who of them was there, as its guide recorded it.
  */
@@ -28,10 +32,12 @@ export default function LessonsPage() {
   const post = useStore((s) => s.post[sid]);
   const all = useLessons();
   const [now] = useState(() => Date.now());
+  // In the season: today's and tomorrow's lessons first, and a private question to the guide
+  const ctx = useSeasonCtx();
 
   if (!app || !post?.groupApprovedAt || post.groupNumber === undefined) {
     return (
-      <PilgrimShell title="الدروس الدينية" subtitle="دروس موجّه مجموعتكم وموجّهة التكتل.">
+      <PilgrimShell title="دروس المجموعة الدينية" subtitle="دروس يلقيها موجّه مجموعتكم وموجّهة التكتل حضورياً خلال الموسم.">
         <Card className="text-center">
           <p className="text-5xl">📖</p>
           <p className="mt-3 font-display text-2xl font-bold text-green-dark">تظهر الدروس بعد إلحاقكم بمجموعة</p>
@@ -51,7 +57,28 @@ export default function LessonsPage() {
   const came = given.filter((l) => invited(l).some((m) => attended(l, m.id))).length;
 
   return (
-    <PilgrimShell title="الدروس الدينية" subtitle={`دروس ${groupName(post.groupNumber)}: موجّه المجموعة لرجالها أو لها كلها، وموجّهة التكتل للحاجّات. قل لنا من سيحضر من عائلتك.`} image="/images/quba-quran.jpg">
+    <PilgrimShell title="دروس المجموعة الدينية" subtitle={`دروس ${groupName(post.groupNumber)} حضورياً خلال الموسم: موجّه المجموعة لرجالها أو لها كلها، وموجّهة التكتل للحاجّات. قل لنا من سيحضر من عائلتك.`} image="/images/quba-quran.jpg">
+      {/* The season's stages, each with its lessons: these are given in person, the Academy's are recorded */}
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {(Object.keys(STAGE_LABEL) as (keyof typeof STAGE_LABEL)[]).map((k) => {
+          const n = lessons.filter((l) => l.stage === k && !l.cancelledAt).length;
+          return (
+            <div key={k} className={cn("rounded-2xl px-4 py-3 text-center ring-1", n ? "bg-white ring-gold/40" : "bg-sand/60 ring-gold/20")}>
+              <p className="text-xs font-bold text-gold-dark">{STAGE_LABEL[k]}</p>
+              <p className="font-display text-2xl font-bold text-green-dark">{n} <span className="text-sm font-normal text-hint">{n === 1 ? "درس" : "دروس"}</span></p>
+            </div>
+          );
+        })}
+      </div>
+      {ctx && (
+        <div className="mb-8">
+          <LessonsSection ctx={ctx} />
+        </div>
+      )}
+      <p className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl bg-sand px-4 py-3 text-sm leading-7 text-ink-soft">
+        هذه دروس مجموعتك حضورياً. أما الدروس المسجّلة التي تتعلّمها بنفسك وتتابع تقدّمك فيها فهي في
+        <Link href="/portal/academy" className="font-bold text-green-dark underline-offset-4 hover:underline">«الأكاديمية»</Link>.
+      </p>
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         {[
           { k: "دروس قادمة لعائلتك", v: coming.length },

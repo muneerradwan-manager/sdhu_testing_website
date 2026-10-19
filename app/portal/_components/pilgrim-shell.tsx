@@ -3,20 +3,22 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { BedDouble, BookMarked, BookOpenText, ClipboardList, FolderLock, LayoutDashboard, Lock, LogOut, MapPinned, Plane, Route, ScrollText, UsersRound, type LucideIcon } from "lucide-react";
+import { BedDouble, BellRing, BookMarked, BookOpenText, ClipboardList, Flag, FolderLock, GraduationCap, LayoutDashboard, Lock, LogOut, Luggage, MapPinned, Plane, Route, ScrollText, Ticket, UsersRound, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import { PortalShell } from "@/components/portal/shell";
 import { getPerson } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-type Item = { href: string; label: string; icon: LucideIcon; open: boolean; hint?: string };
+type Item = { href: string; label: string; icon: LucideIcon; open: boolean; hint?: string; section: string };
 
 /**
- * The pilgrim's own pages, as the administrators and the staff have theirs: his file, his application and its
- * steps, the vault of all its documents (the visa and the receipts among them), then what each step opens — his
- * group and its team, his hotels and rooms as his group's head assigned them, his trip — the companion of the season, everything he did, and the
- * stations of the season as a guide.
+ * The pilgrim's own pages, as the administrators and the staff have theirs, in five sections: his account (his file,
+ * his notifications, everything he did), his application (its steps, the vault of all its documents, his group),
+ * his trip (the flights, the hotels, the season's programme), the season — each part of «حالتي الآن» a short page of
+ * its own: the gatherings (the trips and visits among them), the meals, his reports, the lost items — and faith and learning (his group's
+ * religious lessons and activities, kept apart from the Academy's recorded lessons).
  * A page whose step has not come yet stays in the list, locked, saying what opens it.
  */
 function usePilgrimNav(): Item[] {
@@ -24,18 +26,29 @@ function usePilgrimNav(): Item[] {
   const app = useStore((s) => s.applications[sid]);
   const post = useStore((s) => s.post[sid]);
   const confirmed = !!post?.confirmedAt;
+  const grouped = !!post?.groupApprovedAt;
+  const season = !!post?.visaAt;
+  const inSeason = "في الموسم، بعد التأشيرة";
   return [
-    { href: "/portal", label: "ملفي", icon: LayoutDashboard, open: true },
-    app ? { href: "/portal/application", label: "طلبي وخطواته", icon: ClipboardList, open: true } : { href: "/portal/apply", label: "تقديم طلب حج", icon: ClipboardList, open: true },
-    { href: "/portal/application/documents", label: "خزنة الوثائق", icon: FolderLock, open: confirmed, hint: "بعد تأكيد القبول" },
-    { href: "/portal/application/group", label: "مجموعتي", icon: UsersRound, open: !!post?.groupApprovedAt, hint: "بعد إلحاقك بمجموعة" },
-    { href: "/portal/application/hotels", label: "الفنادق والسكن", icon: BedDouble, open: !!post?.visaAt, hint: "بعد صدور التأشيرة" },
-    { href: "/portal/application/trip", label: "الرحلة والبطاقات", icon: Plane, open: !!post?.visaAt, hint: "بعد صدور التأشيرة" },
-    { href: "/portal/lessons", label: "الدروس الدينية", icon: BookOpenText, open: !!post?.groupApprovedAt, hint: "بعد إلحاقك بمجموعة" },
-    { href: "/portal/religious", label: "النشاطات الدينية", icon: BookMarked, open: !!post?.groupApprovedAt, hint: "بعد إلحاقك بمجموعة" },
-    { href: "/portal/season", label: "حالتي الآن", icon: MapPinned, open: !!post?.visaAt, hint: "في الموسم، بعد التأشيرة" },
-    { href: "/portal/activity", label: "سجل نشاطي", icon: ScrollText, open: true },
-    { href: "/portal/journey", label: "برنامج الرحلة", icon: Route, open: true },
+    { section: "حسابي", href: "/portal", label: "ملفي", icon: LayoutDashboard, open: true },
+    { section: "حسابي", href: "/portal/notifications", label: "الإشعارات", icon: BellRing, open: true },
+    { section: "حسابي", href: "/portal/activity", label: "سجل نشاطي", icon: ScrollText, open: true },
+    app
+      ? { section: "طلبي", href: "/portal/application", label: "طلبي وخطواته", icon: ClipboardList, open: true }
+      : { section: "طلبي", href: "/portal/apply", label: "تقديم طلب حج", icon: ClipboardList, open: true },
+    { section: "طلبي", href: "/portal/application/documents", label: "خزنة الوثائق", icon: FolderLock, open: confirmed, hint: "بعد تأكيد القبول" },
+    { section: "طلبي", href: "/portal/application/group", label: "مجموعتي", icon: UsersRound, open: grouped, hint: "بعد إلحاقك بمجموعة" },
+    { section: "رحلتي", href: "/portal/application/trip", label: "الطيران والمشاعر", icon: Plane, open: season, hint: "بعد صدور التأشيرة" },
+    { section: "رحلتي", href: "/portal/application/hotels", label: "الفنادق والسكن", icon: BedDouble, open: season, hint: "بعد صدور التأشيرة" },
+    { section: "رحلتي", href: "/portal/journey", label: "برنامج الرحلة", icon: Route, open: true },
+    { section: "في الموسم", href: "/portal/season", label: "حالتي الآن", icon: MapPinned, open: season, hint: inSeason },
+    { section: "في الموسم", href: "/portal/season/gatherings", label: "التجمّعات", icon: Flag, open: season, hint: inSeason },
+    { section: "في الموسم", href: "/portal/season/meals", label: "الوجبات", icon: UtensilsCrossed, open: season, hint: inSeason },
+    { section: "في الموسم", href: "/portal/season/reports", label: "بلاغاتي", icon: Ticket, open: season, hint: inSeason },
+    { section: "في الموسم", href: "/portal/season/lost", label: "المفقودات", icon: Luggage, open: season, hint: inSeason },
+    { section: "الدين والتعلّم", href: "/portal/lessons", label: "دروس المجموعة الدينية", icon: BookOpenText, open: grouped, hint: "بعد إلحاقك بمجموعة" },
+    { section: "الدين والتعلّم", href: "/portal/religious", label: "النشاطات الدينية", icon: BookMarked, open: grouped, hint: "بعد إلحاقك بمجموعة" },
+    { section: "الدين والتعلّم", href: "/portal/academy", label: "الأكاديمية", icon: GraduationCap, open: true },
   ];
 }
 
@@ -66,11 +79,14 @@ export function PilgrimSidebar() {
           </button>
         </div>
         <nav aria-label="أقسام حساب الحاج" className="scrollbar-none flex gap-1 overflow-x-auto p-2 lg:block lg:space-y-1 lg:overflow-visible">
-          {items.map((n) => {
+          {items.map((n, i) => {
             const on = active === n.href;
+            const first = i === 0 || items[i - 1].section !== n.section;
             return (
+              <Fragment key={n.href}>
+              {/* The sections, on a wide screen: what a page belongs to — the account, the application, the trip, the season, faith and learning */}
+              {first && <p className={cn("hidden px-3 pb-1 text-[11px] font-bold tracking-wide text-gold-dark lg:block", i > 0 && "mt-3 border-t border-gold/20 pt-3")}>{n.section}</p>}
               <Link
-                key={n.href}
                 href={n.href}
                 aria-current={on ? "page" : undefined}
                 className={cn("relative flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-bold transition", on ? "on-light text-ink" : n.open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand")}
@@ -82,6 +98,7 @@ export function PilgrimSidebar() {
                   {!n.open && n.hint && <span className="hidden whitespace-nowrap text-[11px] font-semibold text-hint lg:block">{n.hint}</span>}
                 </span>
               </Link>
+              </Fragment>
             );
           })}
         </nav>

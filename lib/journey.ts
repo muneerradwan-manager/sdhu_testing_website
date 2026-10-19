@@ -50,7 +50,6 @@ export const PLACES = {
     meals: [
       { name: "الفطور", time: "06:00 – 09:00" },
       { name: "الغداء", time: "13:00 – 15:00" },
-      { name: "العشاء", time: "19:00 – 22:00" },
     ],
   },
   madinahHotel: {
@@ -67,7 +66,6 @@ export const PLACES = {
     meals: [
       { name: "الفطور", time: "05:30 – 08:30" },
       { name: "الغداء", time: "13:00 – 15:00" },
-      { name: "العشاء", time: "20:00 – 22:30" },
     ],
   },
   mina: {

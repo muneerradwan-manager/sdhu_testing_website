@@ -72,6 +72,7 @@ export const RESET_POST: Partial<PostAcceptance> = {
   groupApprovedAt: undefined,
   transfers: [],
   health: undefined,
+  healthDocs: undefined,
   medical: {},
   payments: {},
   contractSignedAt: undefined,

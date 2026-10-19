@@ -42,6 +42,7 @@ import { BoardingPass } from "./cards";
 import { groupInfo } from "@/lib/assignment";
 import { groupName } from "@/lib/groups";
 import { DocumentVault, type VaultDoc } from "./documents";
+import { forFamily, useGroupPosts } from "@/lib/group-channel";
 import { PostChecklist } from "./post/checklist";
 import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, stepsDone, useRoomCost } from "./post/model";
 import { usePinnedVersion } from "@/lib/registration/client";
@@ -119,7 +120,7 @@ export type ApplicationPart = "status" | "group" | "hotels" | "trip" | "document
 const PART_TITLE: Record<Exclude<ApplicationPart, "status">, string> = {
   group: "مجموعتي",
   hotels: "الفنادق والسكن",
-  trip: "الرحلة والبطاقات",
+  trip: "الطيران والمشاعر",
   documents: "خزنة الوثائق",
 };
 
@@ -136,7 +137,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   const post = useStore((s) => s.post[s.sessionId ?? ""]) ?? EMPTY_POST;
   const review = useStore((s) => s.reviews[s.sessionId ?? ""]);
   const admins = useStore((s) => s.admins);
-  const { fees, acceptedDirectAge } = useSeason();
+  const { fees, acceptedDirectAge, meals } = useSeason();
   const draw = usePublishedDraw();
   const [now, setNow] = useState(() => Date.now());
   const [mashaer, setMashaer] = useState<"mina" | "arafat" | "muzdalifah" | "jamarat">("mina");
@@ -166,6 +167,9 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   );
   const room = useRoomCost(app, post);
   const lines = useMemo(() => (app ? costLines(app, fees, room) : []), [app, fees, room]);
+  // The group channel's posts that concern this family
+  const allPosts = useGroupPosts(post.groupNumber);
+  const channel = useMemo(() => (app ? allPosts.filter((p) => forFamily(p, app.members)) : []), [allPosts, app]);
   // the family's seats as the cluster head assigned them (one itinerary: the family travels together)
   const flightsData = useFlightsData();
   const myTrip = useMemo(() => {
@@ -220,7 +224,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   const emergency = account?.emergencyName ? `${account.emergencyName} ${account.emergencyPhone ?? ""}` : "غرفة العمليات 920-1448";
   const acceptedBy = direct ? "قبول مباشر وفق الأكبر سناً" : `بالقرعة: ${drawLine(app, draw) ?? ""}`;
   const registration = app.members.length * fees.registrationPerPerson;
-  // The two flight tickets as documents of the vault, drawn as on «الرحلة والبطاقات»
+  // The two flight tickets as documents of the vault, drawn as on «الطيران والمشاعر»
   const flightDocs: VaultDoc[] = (["outbound", "return"] as const).map((dir) => {
     const f = dir === "outbound" ? myTrip?.outbound : myTrip?.inbound;
     const card = f ? passCardOf(f, flightsData) : null;
@@ -476,10 +480,10 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
                     {assignments.some((a) => a.needs.length) && <p className="mt-3 text-sm text-maroon">أقرب غرفة إلى المصعد وحمام مهيأ بمقبض — مراعاةً للاحتياجات الخاصة.</p>}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    {PLACES.makkahHotel.meals.map((m) => (
+                    {[{ name: "الفطور", time: meals.makkah.breakfast }, { name: "الغداء", time: meals.makkah.lunch }].map((m) => (
                       <div key={m.name} className="flex items-center gap-2 rounded-2xl bg-white p-3 ring-1 ring-gold/30">
                         <UtensilsCrossed className="size-5 text-gold-dark" />
-                        <div><p className="text-sm font-bold">{m.name}</p><p className="font-mono text-xs text-hint">{m.time}</p></div>
+                        <div><p className="text-sm font-bold">{m.name}</p><p dir="ltr" className="text-right font-mono text-xs text-hint">{m.time}</p></div>
                       </div>
                     ))}
                   </div>
@@ -509,10 +513,10 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
                     <Info label="موعد الروضة الشريفة" value={PLACES.madinahHotel.rawdah} className="col-span-2" />
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    {PLACES.madinahHotel.meals.map((m) => (
+                    {[{ name: "الفطور", time: meals.madinah.breakfast }, { name: "الغداء", time: meals.madinah.lunch }].map((m) => (
                       <div key={m.name} className="flex items-center gap-2 rounded-2xl bg-white p-3 ring-1 ring-gold/30">
                         <UtensilsCrossed className="size-5 text-gold-dark" />
-                        <div><p className="text-sm font-bold">{m.name}</p><p className="font-mono text-xs text-hint">{m.time}</p></div>
+                        <div><p className="text-sm font-bold">{m.name}</p><p dir="ltr" className="text-right font-mono text-xs text-hint">{m.time}</p></div>
                       </div>
                     ))}
                   </div>
@@ -611,15 +615,15 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
               </div>
               <div className="mt-6 rounded-3xl bg-white p-5 ring-1 ring-gold/30">
                 <p className="font-display text-lg font-bold text-green-dark">قناة المجموعة</p>
+                {/* What the group's team posts from «الميدان», to the whole group or the part of it this family is in */}
                 <div className="mt-4 space-y-3">
-                  {[
-                    { who: myGroup.team[0].name, t: `أهلاً بكم في ${groupName(myGroup.number)}. اللقاء التعريفي يوم 10 ذو القعدة الساعة 17:00 في قاعة المزة. يرجى تأكيد الحضور.`, when: "10 ذو القعدة" },
-                    { who: (myGroup.team[2] ?? myGroup.team[0]).name, t: "الدرس الثالث قبل السفر: أحكام الإحرام ومحظوراته. راجعوا مسار «فقه الحج» في الأكاديمية قبل الدرس.", when: "20 شوال" },
-                    { who: myGroup.team[1].name, t: "حافلة التجمّع من ساحة المزة إلى المطار تنطلق 01:30. لا تنسوا الجواز والأدوية والسوار.", when: "23 ذو القعدة" },
-                  ].map((m, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} className="max-w-2xl rounded-3xl rounded-tr-md bg-sand p-4">
-                      <p className="text-xs font-bold text-green">{m.who} <span className="font-normal text-hint">— {m.when}</span></p>
-                      <p className="mt-1 leading-7">{m.t}</p>
+                  {channel.length === 0 && <p className="rounded-2xl bg-sand p-4 text-sm text-ink-soft">لا رسائل بعد. يصلك هنا كل ما ينشره فريق مجموعتك في قناتها: المواعيد والتجمّعات والتنبيهات.</p>}
+                  {channel.map((m, i) => (
+                    <motion.div key={m.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 6) * 0.08 }} className="max-w-2xl rounded-3xl rounded-tr-md bg-sand p-4">
+                      <p className="text-xs font-bold text-green">
+                        {m.by} <span className="font-normal text-hint">— {new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(m.at)}{m.audience !== "المجموعة كاملة" ? ` — ${m.audience}` : ""}</span>
+                      </p>
+                      <p className="mt-1 leading-7">{m.text}</p>
                     </motion.div>
                   ))}
                 </div>

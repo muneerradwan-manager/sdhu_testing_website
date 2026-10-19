@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, Eye, FileSignature, Search, HeartPulse, Inbox, Radio, Stethoscope, UserPlus, UsersRound } from "lucide-react";
+import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, Eye, FileHeart, FileSignature, Search, HeartPulse, Inbox, Radio, Stethoscope, UserPlus, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { isTechCoordinator, logAdmin, nowMs, useAdmin } from "../../_lib/admin";
 import { LIFT_NEEDS, assignedRealFamilies, buildRoster, compositionOf, groupCount, groupPilgrims, seedRequestsFor, type GroupPilgrim, type JoinRequest } from "../../_lib/group";
 import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
 import { PilgrimSheet } from "../../_components/pilgrim-sheet";
+import { HealthDocsForm } from "./health-docs";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import { clusterViewOf } from "../../_lib/cluster";
 import { useClusterGroupsOf, useClusterRequests } from "../../_lib/formation";
@@ -61,9 +62,13 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
   const placed = openGroup ?? requests.find((r) => r.groups.some((x) => x.number === openNumber))?.groups.find((x) => x.number === openNumber);
   const openName = openNumber === undefined ? "المجموعة" : groupName(openNumber);
   const [healthFor, setHealthFor] = useState<string | null>(null);
+  const [docsFor, setDocsFor] = useState<string | null>(null);
   // One pilgrim's file, opened from his family's card
   const [person, setPerson] = useState<{ family: JoinRequest; id: string } | null>(null);
   const tech = isTechCoordinator(p);
+  // The health documents are the administration's: the group's head, the cluster's head, or the coordinator sorted
+  // to the group adds them (not the group's guides and assistants)
+  const healthDocsBy = tech ? "منسق تقني" : !coord ? (myCluster ? "رئيس التكتل" : "رئيس المجموعة") : null;
 
   const families = useMemo(() => {
     if (openNumber === undefined) return [];
@@ -142,12 +147,15 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
 
   const welcome = (r: JoinRequest) => {
     actions.upsertAdmin(admin.id, { joinDecisions: { ...decisions, [r.id]: "accepted" } });
-    logAdmin(admin.id, `استلام عائلة في ${openName} والترحيب بها`, `${r.applicant} — الطلب ${r.number}`, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
-    if (needsLift(r)) logAdmin(admin.id, "إحالة احتياج خاص إلى مشرف البرج", "وسام خوري — البرج (ب)", `${r.applicant}: غرفة قريبة من المصعد`);
+    // Addressed to the application (a family of the platform): the family is told in its «الإشعارات»
+    const target = r.real ? `طلب ${r.number} — ${r.applicant}` : `${r.applicant} — الطلب ${r.number}`;
+    logAdmin(admin.id, `استلام عائلة في ${openName} والترحيب بها`, target, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
+    if (needsLift(r)) logAdmin(admin.id, "إحالة احتياج خاص إلى مشرف البرج", r.real ? target : "وسام خوري — البرج (ب)", `${r.applicant}: غرفة قريبة من المصعد — وسام خوري، البرج (ب)`);
     toast({ title: `رحّبت بعائلة ${r.applicant.split(" ")[0]}`, body: "يصلهم إشعار الترحيب وموعد اللقاء التعريفي.", icon: "🤝", tone: "success" });
   };
 
   const healthTarget = families.find((r) => r.id === healthFor);
+  const docsTarget = families.find((r) => r.id === docsFor);
   const pick = (r: GroupPilgrim) => setPerson({ family: r.family, id: r.member.id });
 
   const content = (
@@ -288,14 +296,31 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
                     </ul>
                     {r.note && <p className="mt-3 rounded-xl border-r-4 border-gold-dark bg-gold/10 px-3 py-2 text-sm text-ink-soft">{r.note}</p>}
 
+                    {r.real && (() => {
+                      const hd = post[r.id]?.healthDocs ?? {};
+                      const certified = r.members.filter((m) => hd[m.id]?.some((d) => d.kind === "certificate")).length;
+                      const extra = r.members.reduce((n, m) => n + (hd[m.id]?.filter((d) => d.kind !== "certificate").length ?? 0), 0);
+                      const all = certified === r.members.length;
+                      return (
+                        <p className={cn("mt-4 flex items-center gap-2 rounded-2xl p-3 text-sm font-semibold", all ? "bg-green-light/10 text-green" : "bg-gold/15 text-ink")}>
+                          <FileHeart className="size-5" />
+                          {`الشهادة الصحية: ${certified} من ${r.members.length}${extra ? ` — و${extra} ${extra === 1 ? "وثيقة أخرى" : "وثائق أخرى"}` : ""}`}
+                        </p>
+                      );
+                    })()}
                     {r.real && (
-                      <p className={cn("mt-4 flex items-center gap-2 rounded-2xl p-3 text-sm font-semibold", health ? "bg-green-light/10 text-green" : "bg-maroon/6 text-maroon")}>
+                      <p className={cn("mt-2 flex items-center gap-2 rounded-2xl p-3 text-sm font-semibold", health ? "bg-green-light/10 text-green" : "bg-maroon/6 text-maroon")}>
                         {health ? <BadgeCheck className="size-5" /> : <HeartPulse className="size-5" />}
                         {health ? `الملف الصحي مسجّل — ${health.by.name}${health.confirmedAt ? " — أكّده الحاج" : " — بانتظار تأكيد الحاج"}` : "الملف الصحي لم يُسجَّل بعد — من مهام المنسق التقني"}
                       </p>
                     )}
 
                     <div className="mt-5 flex flex-wrap justify-end gap-3">
+                      {r.real && healthDocsBy && (
+                        <Button variant="outline" onClick={() => setDocsFor(r.id)}>
+                          <FileHeart className="size-4" /> الوثائق الصحية
+                        </Button>
+                      )}
                       {r.real && tech && (
                         <Button variant={health ? "outline" : "maroon"} onClick={() => setHealthFor(r.id)}>
                           <Stethoscope className="size-4" /> {health ? "تعديل الملف الصحي" : "تسجيل الملف الصحي"}
@@ -330,13 +355,16 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
               <HeartPulse className="size-4" /> الملف الصحي
             </p>
             <p className="mt-1 text-ink-soft">
-              لا يُسأل الحاج عن صحته عند التسجيل. بعد انضمامه إلى المجموعة يسجّل المنسق التقني أمراضه المزمنة وأدويته واحتياجاته، والوثائق الطبية يرفعها الحاج بعد اكتمال دفع المبلغ كاملاً.
+              لا يُسأل الحاج عن صحته عند التسجيل. بعد انضمامه إلى المجموعة يسجّل المنسق التقني أمراضه المزمنة وأدويته واحتياجاته، والوثائق الطبية يرفعها الحاج بعد اكتمال دفع المبلغ كاملاً. والشهادة الصحية من وزارة الصحة، ومعها وصفات الأدوية وتقارير الحالات، تضيفها المجموعة أو منسقها من «الوثائق الصحية»، فتظهر للحاج في «خزنة الوثائق».
             </p>
             {!tech && <p className="mt-2 font-semibold text-gold-dark">الملف الصحي يأخذه منسق التكتل المسند إلى مجموعتك.</p>}
           </div>
         </aside>}
       </div>
 
+      <Modal open={!!docsTarget} onClose={() => setDocsFor(null)} className="max-w-2xl">
+        {docsTarget && healthDocsBy && <HealthDocsForm family={docsTarget} role={healthDocsBy} onDone={() => setDocsFor(null)} />}
+      </Modal>
       <Modal open={!!healthTarget} onClose={() => setHealthFor(null)}>
         {healthTarget && <HealthForm family={healthTarget} onDone={() => setHealthFor(null)} />}
       </Modal>

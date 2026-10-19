@@ -36,8 +36,15 @@ export type LiveSeason = {
   documents: Record<string, number>;
   /** End-of-season classification: the shares that move between tiers, and how many are honoured */
   grading: { tiers: typeof SEASON.grading.tiers; promoteShare: number; demoteShare: number; honorTop: number; entryTier: number };
+  /** The four meals of the season, as the administration timed them: breakfast and lunch in each hotel */
+  meals: MealTimes;
   overridden: (keyof SeasonOverrides)[];
 };
+
+export type MealTimes = { makkah: { breakfast: string; lunch: string }; madinah: { breakfast: string; lunch: string }; menus?: { makkah: { breakfast?: string; lunch?: string }; madinah: { breakfast?: string; lunch?: string } } };
+
+/** The meal times before the administration sets its own */
+export const DEFAULT_MEALS: MealTimes = { makkah: { breakfast: "06:00 – 09:00", lunch: "13:00 – 15:00" }, madinah: { breakfast: "05:30 – 08:30", lunch: "13:00 – 15:00" } };
 
 /**
  * Pure merge — usable outside React (e.g. to evaluate seeded applications). `payments`: the published
@@ -95,6 +102,14 @@ export function mergeSeason(o: SeasonOverrides, payments?: PaymentsConfig): Live
       promoteShare: (o.promoteShare ?? SEASON.grading.promoteShare * 100) / 100,
       demoteShare: (o.demoteShare ?? SEASON.grading.demoteShare * 100) / 100,
       honorTop: o.honorTop ?? SEASON.grading.honorTop,
+    },
+    meals: {
+      makkah: { breakfast: o.mealMakkahBreakfast ?? DEFAULT_MEALS.makkah.breakfast, lunch: o.mealMakkahLunch ?? DEFAULT_MEALS.makkah.lunch },
+      madinah: { breakfast: o.mealMadinahBreakfast ?? DEFAULT_MEALS.madinah.breakfast, lunch: o.mealMadinahLunch ?? DEFAULT_MEALS.madinah.lunch },
+      menus: {
+        makkah: { breakfast: o.menuMakkahBreakfast || undefined, lunch: o.menuMakkahLunch || undefined },
+        madinah: { breakfast: o.menuMadinahBreakfast || undefined, lunch: o.menuMadinahLunch || undefined },
+      },
     },
     overridden: Object.keys(o) as (keyof SeasonOverrides)[],
   };

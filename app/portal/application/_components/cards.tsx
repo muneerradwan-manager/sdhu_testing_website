@@ -11,7 +11,8 @@ import { ageOf, fullName } from "@/lib/registry";
 import { cn, maskNationalId } from "@/lib/utils";
 
 /** Digital Hajj card (also printed on the wristband) — tap to flip to the QR side */
-export function HajjCard({ a, emergency, index }: { a: Assignment; emergency: string; index: number }) {
+export function HajjCard({ a, emergency, index, group }: { a: Assignment; emergency: string; index: number; group?: { number: number; clusterName: string; leader: string } }) {
+  const g = group ?? { number: GROUP.number, clusterName: CLUSTER.name, leader: GROUP.team[0].name };
   const [flipped, setFlipped] = useState(false);
   return (
     <motion.button
@@ -39,7 +40,7 @@ export function HajjCard({ a, emergency, index }: { a: Assignment; emergency: st
                   <span className="text-gold">موسم 1448هـ</span>
                 </span>
               </span>
-              <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-ink">{groupName(GROUP.number)}</span>
+              <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-ink">{groupName(g.number)}</span>
             </div>
             <div className="mt-auto flex items-end gap-3">
               <span className="grid size-16 shrink-0 place-items-center rounded-2xl border-2 border-gold/60 bg-white/10 font-display text-3xl font-bold text-gold">{a.person.firstName[0]}</span>
@@ -50,7 +51,7 @@ export function HajjCard({ a, emergency, index }: { a: Assignment; emergency: st
               </div>
             </div>
             <p className="mt-2 flex items-center justify-between text-[10px] text-white/60">
-              <span>{CLUSTER.name}</span>
+              <span>{g.clusterName}</span>
               <span className="flex items-center gap-1"><RotateCw className="size-3" /> اضغط للقلب</span>
             </p>
           </div>
@@ -64,7 +65,7 @@ export function HajjCard({ a, emergency, index }: { a: Assignment; emergency: st
             </div>
             <dl className="min-w-0 flex-1 space-y-1.5 text-xs text-ink">
               <div><dt className="text-hint">الفندق — مكة</dt><dd className="font-bold">{PLACES.makkahHotel.name} — غرفة {a.room}</dd></div>
-              <div><dt className="text-hint">رئيس المجموعة</dt><dd className="font-bold">{GROUP.team[0].name}</dd></div>
+              <div><dt className="text-hint">رئيس المجموعة</dt><dd className="font-bold">{g.leader}</dd></div>
               <div><dt className="text-hint">منى</dt><dd className="font-bold">مخيم 42 — خيمة {a.tent}</dd></div>
               <div><dt className="text-hint">الطوارئ</dt><dd className="font-bold">{emergency}</dd></div>
               {a.needs.length > 0 && <div><dt className="text-hint">احتياجات (للفريق الطبي)</dt><dd className="font-bold text-maroon">{a.needs.join("، ")}</dd></div>}

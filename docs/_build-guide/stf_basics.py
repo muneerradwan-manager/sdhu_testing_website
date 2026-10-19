@@ -203,6 +203,8 @@ if ONLY in (None, "c"):
     p.locator("main button:has-text('مواعيد العمليات')").first.click(); c.settle(1500)
     c.shot("season-ops", "مواعيد العمليات: حالة كل عملية وبدايتها ونهايتها ومن يتحكم بها",
            hl=[("main button:has-text('مواعيد العمليات')", "1")], section=S)
+    p.locator("main button:has-text('مواعيد الوجبات')").first.click(); c.settle(1200)
+    c.shot("season-meals-times", "مواعيد الوجبات: الفطور والغداء في فندق مكة وفندق المدينة", hl=[("main button:has-text('مواعيد الوجبات')", "1")], section=S)
     s.close()
 
 # ───────── D. «القبول والقرعة»: entry (كنان), then approval and publishing (يوسف) ─────────

@@ -14,7 +14,8 @@ import type { Member } from "./rules";
 import { SEASON, officeFor } from "./season";
 import { attachByStaff, DEMO_ATTACHER, demoContractFile } from "./assignment";
 import { costLines, docKey, medicalDocsFor, medicalKey } from "./registration/post";
-import { actions, type Application, type StoreState } from "./store";
+import { simulateGroupFlights } from "./flights";
+import { actions, getState, type Application, type StoreState } from "./store";
 import { COORDINATOR_ID, demoHealth, recordHealth } from "@/app/portal/application/_components/post/model";
 import { demoVisaNumber } from "@/lib/visas";
 
@@ -46,6 +47,12 @@ const COMPLETE_GROUP = { clusterId: "al-nour", number: 27 };
 export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applications">, now: number) {
   const scenario = DEMO_SCENARIOS.find((s) => s.id === id);
   const family = FAMILIES[id];
+  // A «complete» family already here (a browser that tried it before): on its group's flights, if it is not yet
+  if (scenario?.seed === "complete" && state.applications[id]) {
+    const st = getState();
+    if (st.post[id]?.visaAt) simulateGroupFlights(id, st.applications[id], st.post[id], st.admins, st.post, st.applications);
+    return;
+  }
   if (!scenario?.seed || !family || state.applications[id]) return;
   const people = family.map((f) => ({ ...f, person: getPerson(f.id) }));
   if (people.some((p) => !p.person)) return;
@@ -88,9 +95,9 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
 
 /**
  * Every step after acceptance done, each on its day in the past: acceptance confirmed, the photos approved, the
- * family attached to its group by its contract at the office (which puts it on the group's flights), the
- * coordinator's health file confirmed and the medical documents approved, everything paid in the shared
- * accommodation, the passports approved, and the visa issued
+ * family attached to its group by its contract at the office, the coordinator's health file confirmed and the
+ * medical documents approved, everything paid in the shared accommodation, the passports approved, and the visa
+ * issued — which puts the family on its group's outbound and return flights
  */
 function completeSteps(id: string, app: Application, now: number) {
   const day = 86_400_000;
@@ -105,4 +112,7 @@ function completeSteps(id: string, app: Application, now: number) {
   // the group's head added each member's visa as it reached him from the Saudi foreign ministry
   const visas = Object.fromEntries(app.members.map((m, i) => [m.person.id, { number: demoVisaNumber(app.number, i), at: now - 10 * day, by: "رئيس المجموعة" }]));
   actions.setPost(id, { medical, payments, visaAt: now - 10 * day, visas });
+  // With the last visa the family goes on its group's flights, as its cluster's head put the group on them
+  const st = getState();
+  if (st.post[id]) simulateGroupFlights(id, app, st.post[id], st.admins, st.post, st.applications);
 }

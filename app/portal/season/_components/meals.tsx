@@ -1,12 +1,13 @@
 "use client";
 
+import { useSeason } from "@/lib/season-live";
 import { AnimatePresence, motion } from "motion/react";
 import { Camera, CheckCircle2, Clock, HeartPulse, MapPin, MessageSquareWarning, Send, UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
-import { GROUP, PLACES } from "@/lib/journey";
+import { PLACES } from "@/lib/journey";
 import { ageOf, fullName } from "@/lib/registry";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ export function mealLocation(ctx: SeasonCtx, meal?: Meal) {
     case "arafat":
       return `عرفات — مخيم التكتل — الخيمة ${ctx.self.tent}`;
     case "muzdalifah":
-      return `مزدلفة — نقطة ${groupName(GROUP.number)}`;
+      return `مزدلفة — نقطة ${groupName(ctx.group.number)}`;
     default:
       return WHERE[ctx.where].label;
   }
@@ -50,7 +51,8 @@ function specialRoom(ctx: SeasonCtx, id: string) {
 
 export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
   const toast = useToast();
-  const meals = mealsFor(ctx.where, ctx.day.i);
+  const times = useSeason().meals;
+  const meals = mealsFor(ctx.where, ctx.day.i, times);
   const [complain, setComplain] = useState<Meal | null>(null);
   const mine = useMyTickets(ctx.sessionId);
   const healthResolved = mine.some((t) => t.kind === "health" && t.status === "resolved");
@@ -60,12 +62,15 @@ export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-3 font-display text-3xl font-bold text-green-dark">
           <span className="grid size-12 place-items-center rounded-2xl bg-green-dark text-gold"><UtensilsCrossed className="size-6" /></span>
-          وجبات اليوم — {ctx.day.hijri}
+          {ctx.where === "madinah" ? "وجبات فندق المدينة" : ctx.where === "makkah" ? "وجبات فندق مكة" : "وجبات اليوم"} — {ctx.day.hijri}
         </h2>
         <SpeakButton text={`وجبات اليوم. ${meals.map((m) => `${m.name} ${m.time}: ${m.menu}`).join(". ")}`} label="استمع إلى القائمة" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      {meals.length === 0 && (
+        <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-lg text-ink-soft">لا وجبات من الإدارة اليوم: الفطور والغداء في فندق مكة حين تكون في مكة، وفي فندق المدينة حين تكون في المدينة.</p>
+      )}
+      <div className="grid gap-4 sm:grid-cols-2">
         {meals.map((m, i) => {
           const key = `meal-${ctx.day.i}-${m.key}`;
           const rating = ctx.ratings[key] ?? 0;
@@ -75,7 +80,7 @@ export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
               <div className={cn("flex items-center justify-between px-5 py-3", past ? "bg-sand" : "bg-green-dark text-white")}>
                 <span className="font-display text-xl font-bold">{m.name}</span>
                 <span className={cn("flex items-center gap-1 font-mono text-sm", past ? "text-hint" : "text-gold")}>
-                  <Clock className="size-4" /> {m.time}
+                  <Clock className="size-4" /> <span dir="ltr">{m.time}</span>
                 </span>
               </div>
               <div className="flex flex-1 flex-col p-5">
@@ -110,7 +115,7 @@ export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
       </div>
 
       {/* Special meals delivered to the room / tent */}
-      {ctx.special.length > 0 && ["makkah", "madinah", "mina", "arafat"].includes(ctx.where) && (
+      {ctx.special.length > 0 && ["makkah", "madinah"].includes(ctx.where) && (
         <div className="mt-4 space-y-3">
           {ctx.special.map((m) => {
             const reason = m.needs.find((n) => DIET_NEEDS.includes(n)) ?? (ageOf(m.person) >= 69 ? "كبار السن" : "وجبة خاصة");
@@ -121,7 +126,7 @@ export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
                   <p className="text-lg font-bold text-green-dark">
                     وجبة {m.person.firstName} الخاصة ({reason}) — تُسلَّم إلى {specialRoom(ctx, m.person.id)}
                   </p>
-                  <p className="leading-7 text-ink-soft">أرز بني، دجاج مشوي، سلطة دون صلصة، فاكهة بديلة عن الحلوى — الساعة 13:15 و19:15</p>
+                  <p className="leading-7 text-ink-soft">أرز بني، دجاج مشوي، سلطة دون صلصة، فاكهة بديلة عن الحلوى — مع وجبتي الفطور والغداء</p>
                   {healthResolved && (
                     <p className="mt-1 flex items-center gap-1.5 font-semibold text-maroon">
                       <HeartPulse className="size-4" /> أُضيفت وجبة خفيفة الساعة 04:30 بعد اعتماد د. ليلى شمس
@@ -201,7 +206,7 @@ export function ComplaintForm({ ctx, meal, onClose }: { ctx: SeasonCtx; meal?: M
             <div className="mt-2 flex flex-wrap gap-2">
               {[
                 ["المكان", mealLocation(ctx, meal)],
-                ...(meal ? [["الوجبة", `${meal.name} ${meal.time}`]] : []),
+                ...(meal ? [["الوجبة", `${meal.name} ${meal.start}`]] : []),
                 ["اليوم والوقت", `${ctx.day.hijri} ${meal ? meal.time.split(" ")[0] : ctx.moment.time}`],
                 ["يستلمها", route.assignee],
               ].map(([k, v]) => (

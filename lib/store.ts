@@ -208,6 +208,16 @@ export type SeasonOverrides = Partial<{
   demoteShare: number;
   honorTop: number;
   hady: number;
+  /** The meals the administration serves, at the times it sets ("06:00 – 09:00"): breakfast and lunch at the Makkah hotel and at the Madinah hotel */
+  mealMakkahBreakfast: string;
+  mealMakkahLunch: string;
+  mealMadinahBreakfast: string;
+  mealMadinahLunch: string;
+  /** Each meal's menu as the administration sets it (empty: the hotel's menu of the day) */
+  menuMakkahBreakfast: string;
+  menuMakkahLunch: string;
+  menuMadinahBreakfast: string;
+  menuMadinahLunch: string;
 }>;
 
 export type TicketKind = "health" | "missing" | "transport" | "meal" | "room" | "lost" | "complaint";
@@ -305,6 +315,17 @@ export type PostAcceptance = {
    * head each pilgrim's visa, and he uploads it here (a picture or a PDF), with its number
    */
   visas?: Record<string, PilgrimVisa>;
+  /**
+   * Each member's health documents, by national number, as the administration added them from the
+   * administrators' platform: the Ministry of Health certificate (fit and vaccinated, or a condition named), and
+   * any prescription or condition report the group's head or its coordinator added after.
+   */
+  healthDocs?: Record<string, HealthDoc[]>;
+  /**
+   * The family's replies to its group's gatherings, by the gathering's id then each member's national number:
+   * coming or not, and why not (optional, but required for a required gathering). Its organiser sees them.
+   */
+  musterReplies?: Record<string, Record<string, MusterReply>>;
   ratings: Record<string, number>;
   /** Steps the administration added (an acknowledgement, questions): when done, and what was answered */
   custom?: Record<string, { at: number; answers?: Answers; memberAnswers?: Record<string, Answers> }>;
@@ -394,6 +415,33 @@ export type OralState = { slotId: string; bookedAt: number; status: "booked" | "
 
 /** A pilgrim's visa as his group's head uploaded it from the email of the Saudi foreign ministry */
 export type PilgrimVisa = { number: string; ref?: string; name?: string; type?: string; at: number; by: string };
+
+/** A post to a group's channel: who of the group it is for (the whole group, its men, its women, the elderly and their companions) */
+export type GroupPost = { id: string; text: string; audience: string; at: number; groupNumber: number };
+
+/** A pilgrim's reply to a gathering of his group */
+export type MusterReply = { going: boolean; reason?: string; at: number };
+
+/** What a health document is: the Ministry of Health's certificate, a prescription, or a report of a condition */
+export type HealthDocKind = "certificate" | "prescription" | "condition";
+
+/**
+ * A pilgrim's health document. The certificate says he is fit (vaccines done) or names his condition; any
+ * document may carry the file it came as (a picture or a PDF in the media library).
+ */
+export type HealthDoc = {
+  id: string;
+  kind: HealthDocKind;
+  /** The certificate: fit for Hajj with every vaccine, or with a condition (named in the note) */
+  fit?: boolean;
+  /** A prescription's medicines, or what a condition is */
+  note?: string;
+  ref?: string;
+  name?: string;
+  type?: string;
+  at: number;
+  by: { id: string; name: string; role: string };
+};
 
 /** A paper contract signed at the office, as the employee uploaded it (a picture or a file in the media library) */
 export type SignedContract = { ref: string; name: string; type: string; at: number; by: string };
@@ -528,6 +576,8 @@ export type AdminProfile = {
    */
   joinDecisions: Record<string, "accepted" | "rejected">;
   musters: { id: string; title: string; at: number; present: string[]; closedAt?: number; /** The flight this muster boards, when it is the one to the airport */ flightId?: string; /** The group it gathers (one kept before groups were picked is his own group's) */ groupNumber?: number; /** Why it gathers (field.tsx MUSTER_KINDS: «umrah»…) and where */ kind?: string; place?: string; /** A required muster (the travel, the rites): everyone not there has a reason */ required?: boolean; /** Why each pilgrim not ticked was not there, by his id */ absent?: Record<string, string> }[];
+  /** What he posted to the channel of a group he works in («قناة المجموعة» in «الميدان»): its families read it in their portal */
+  groupPosts?: GroupPost[];
 };
 
 /**

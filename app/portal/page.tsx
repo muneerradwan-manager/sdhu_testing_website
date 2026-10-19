@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 import {
   ArrowLeft,
   BadgeCheck,
-  BellRing,
   BookOpen,
   CalendarClock,
   Clock3,
@@ -62,6 +61,14 @@ export default function PortalHome() {
   const elapsed = app ? (now - app.submittedAt) / 1000 : 0;
   const steps = app ? outcomeOf(app, draw, acceptedDirectAge).steps : [];
   const stage = app ? stageAt(steps, elapsed).stage : null;
+  // The card follows where the pilgrim is: following the result, then the steps after acceptance, then the season
+  const post = useStore((s) => s.post[sessionId]);
+  const accepted = stage?.key === "accepted";
+  const card = !accepted
+    ? { title: stage?.title, text: stage?.text, cta: "متابعة الطلب", href: "/portal/application" }
+    : post?.visaAt
+      ? { title: "رحلتك جاهزة", text: "اكتملت خطوات طلبك وصدرت التأشيرة. تابع موسمك يوماً بيوم، ووثائقك كلها في «خزنة الوثائق».", cta: "حالتي الآن", href: "/portal/season" }
+      : { title: stage?.title, text: "أكمل خطوات ما بعد القبول واحدة بعد الأخرى حتى التأشيرة.", cta: "أكمل خطوات طلبك", href: "/portal/application#steps" };
 
   return (
     <PilgrimShell
@@ -151,18 +158,18 @@ export default function PortalHome() {
           {account?.civil && <CivilNotice claim={account.civil} />}
           {/* Application CTA / status */}
           {app ? (
-            <Link href="/portal/application" className="group relative block overflow-hidden rounded-[2rem] bg-green-dark p-7 text-white shadow-2xl md:p-9">
+            <Link href={card.href} className="group relative block overflow-hidden rounded-[2rem] bg-green-dark p-7 text-white shadow-2xl md:p-9">
               <div className="bg-pattern absolute inset-0 opacity-20" />
               <div className="relative flex flex-wrap items-center justify-between gap-6">
                 <div>
                   <p className="text-sm text-gold">
                     طلبي رقم {app.number} — {app.members.length} أفراد — {trackOf(app) === "lottery" ? "التسجيل الأولي على القرعة" : "التسجيل على القبول المباشر"}
                   </p>
-                  <p className="mt-2 font-display text-3xl font-bold md:text-4xl">{stage?.title}</p>
-                  <p className="mt-2 text-white/75">{stage?.text}</p>
+                  <p className="mt-2 font-display text-3xl font-bold md:text-4xl">{card.title}</p>
+                  <p className="mt-2 text-white/75">{card.text}</p>
                 </div>
                 <span className="flex items-center gap-2 rounded-2xl bg-gold px-6 py-4 font-bold text-ink transition group-hover:gap-4">
-                  متابعة الطلب <ArrowLeft className="size-5" />
+                  {card.cta} <ArrowLeft className="size-5" />
                 </span>
               </div>
               <div className="relative mt-7 flex gap-1.5">
@@ -213,31 +220,6 @@ export default function PortalHome() {
               </motion.div>
             ))}
           </div>
-
-          {/* Notifications */}
-          <Card className="md:p-7">
-            <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
-              <BellRing className="size-5 text-gold-dark" /> الإشعارات
-            </h3>
-            <ul className="mt-4 divide-y divide-gold-light">
-              {[
-                app && { t: `تم استلام طلبك رقم ${app.number} لـ ${app.members.length} أفراد، وتم تسديد رسم التسجيل (الإيصال ${app.receipt}).`, when: "طلبك" },
-                { t: `أهلاً ${person.firstName}، تم إنشاء حسابك في منصة الحج الوطنية. التسجيل على الحج لموسم 1448هـ: القبول المباشر 12 – 25 آب، ثم التسجيل الأولي على القرعة 26 آب – 10 أيلول.`, when: "ترحيب" },
-                { t: "إعلان رسمي: القرعة العلنية يوم السبت 26 أيلول في دير الزور — تُسحب سنوات الميلاد وأشهرها، ويُطابَق كل طلب بميلاد صاحبه.", when: "الإدارة" },
-              ]
-                .filter(Boolean)
-                .map((n) => n as { t: string; when: string })
-                .map((n, i) => (
-                  <li key={i} className="flex gap-3 py-3">
-                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-green-light" />
-                    <div>
-                      <p className="leading-7">{n.t}</p>
-                      <p className="text-xs text-hint">{n.when}</p>
-                    </div>
-                  </li>
-                ))}
-            </ul>
-          </Card>
 
           <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-gold/30 bg-white p-5 text-sm text-ink-soft">
             <MapPin className="size-5 text-gold-dark" /> مكتبك: {person.governorate} — {person.registry.split(" ")[0]}

@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, CreditCard, FileSignature, FileStack, IdCard, Receipt, Stamp, UserRound, type LucideIcon } from "lucide-react";
+import { BadgeCheck, CreditCard, FileHeart, FileSignature, FileStack, IdCard, Pill, Receipt, Stamp, Stethoscope, UserRound, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { groupInfo } from "@/lib/assignment";
@@ -8,7 +8,8 @@ import { groupName } from "@/lib/groups";
 import type { Assignment } from "@/lib/journey";
 import type { Member } from "@/lib/rules";
 import { relationLabel } from "@/lib/registry";
-import type { Application, DocStatus as UploadStatus, PilgrimVisa, PostAcceptance } from "@/lib/store";
+import { HEALTH_KIND } from "@/lib/health-docs";
+import type { Application, DocStatus as UploadStatus, HealthDoc, PilgrimVisa, PostAcceptance } from "@/lib/store";
 import { formatUSD } from "@/lib/utils";
 import { HajjCard } from "./cards";
 import { ContractDocument, day } from "./contract";
@@ -176,6 +177,52 @@ function VisaDoc({ app, m, i, at, visa }: { app: Application; m: Member; i: numb
   );
 }
 
+/** A health document as the administration added it: the certificate (fit, or a condition), a prescription, a report */
+function HealthDocView({ m, d }: { m: Member; d: HealthDoc }) {
+  const url = useFileUrl(d.ref);
+  const file = !!(d.ref && url);
+  const cert = d.kind === "certificate";
+  return (
+    <DocFrame
+      tone={cert ? "green" : "maroon"}
+      kind={HEALTH_KIND[d.kind].label}
+      icon={cert ? FileHeart : d.kind === "prescription" ? Pill : Stethoscope}
+      title={`${m.person.firstName} ${m.person.lastName}`}
+      sub={roleOf(m)}
+      demo={!file}
+      qr={verify(`health/${d.id}`)}
+      qrCaption="رمز التحقق"
+      fields={[
+        { k: "الاسم", v: nameOf(m), wide: true },
+        ...(cert ? [{ k: "الجهة", v: "وزارة الصحة" }, { k: "الحالة", v: d.fit ? "سليم ولقاحاته مكتملة" : "لديه حالة صحية" }] : []),
+        ...(d.note ? [{ k: d.kind === "prescription" ? "الأدوية" : "الحالة الصحية", v: d.note, wide: true }] : []),
+        { k: "أضافها", v: `${d.by.name} — ${d.by.role}` },
+        { k: "التاريخ", v: day(d.at) },
+      ]}
+      footer={
+        file ? (
+          <span className="flex flex-wrap items-center justify-between gap-2">
+            <span>{cert ? "تحملها معك في السفر، ويراها الفريق الطبي عند الحاجة." : "تحمل أدويتك ووصفتها معك في السفر."}</span>
+            <a href={url} download={d.name} target="_blank" rel="noreferrer" className="font-bold text-green-dark hover:underline">
+              تنزيل الملف
+            </a>
+          </span>
+        ) : cert ? (
+          "تصدرها وزارة الصحة قبل السفر، وتضيفها إليكم مجموعتكم أو منسقها."
+        ) : (
+          "أضافها فريق مجموعتكم إلى ملفك."
+        )
+      }
+    >
+      {file && (
+        <div className="pt-2">
+          <UploadedFile url={url} type={d.type} alt={`${HEALTH_KIND[d.kind].one} — ${m.person.firstName}`} />
+        </div>
+      )}
+    </DocFrame>
+  );
+}
+
 function AcceptanceDoc({ app, acceptedBy }: { app: Application; acceptedBy: string }) {
   const self = app.members.find((m) => m.relation === "self") ?? app.members[0];
   return (
@@ -300,7 +347,7 @@ export function memberDocs(app: Application, post: PostAcceptance, opts: { assig
         status: post.visaAt ? { label: "على سوار المعصم", tone: "green" } : { label: "بعد صدور التأشيرة", tone: "ink" },
         view: () => (
           <div className="grid place-items-center gap-3 py-2">
-            <HajjCard a={a} emergency={opts.emergency ?? ""} index={0} />
+            <HajjCard a={a} emergency={opts.emergency ?? ""} index={0} group={groupInfo(post.clusterId, post.groupNumber)} />
             <p className="max-w-md text-center text-sm leading-6 text-hint">اضغط البطاقة لقلبها. تُطبع أيضاً على سوار المعصم، وعند مسح رمزها يرى الموظف أو الإداري المخوّل ما تسمح به صلاحيته فقط؛ والاحتياجات الطبية للفريق الطبي وحده.</p>
           </div>
         ),
@@ -342,6 +389,32 @@ export function memberDocs(app: Application, post: PostAcceptance, opts: { assig
         view: () => <PhotoDoc m={m} status={photo} />,
       },
     );
+    // His health documents: the certificate, then whatever prescription or report was added with it
+    const health = post.healthDocs?.[m.person.id] ?? [];
+    const cert = health.find((d) => d.kind === "certificate");
+    docs.push({
+      id: `health-${m.person.id}`,
+      tone: "green",
+      kind: "الشهادة الصحية",
+      icon: FileHeart,
+      title: name,
+      sub: roleOf(m),
+      ready: !!cert,
+      status: !cert ? { label: "تضيفها المجموعة قبل السفر", tone: "ink" } : cert.fit ? { label: "سليم ولقاحاته مكتملة", tone: "green" } : { label: "لديه حالة صحية", tone: "gold" },
+      view: () => cert && <HealthDocView m={m} d={cert} />,
+    });
+    for (const d of health.filter((x) => x.kind !== "certificate"))
+      docs.push({
+        id: `health-${d.id}`,
+        tone: "maroon",
+        kind: HEALTH_KIND[d.kind].one,
+        icon: d.kind === "prescription" ? Pill : Stethoscope,
+        title: name,
+        sub: d.note ?? roleOf(m),
+        ready: true,
+        status: { label: `أضافها ${d.by.role}`, tone: "green" },
+        view: () => <HealthDocView m={m} d={d} />,
+      });
     return { m, docs };
   });
 }
@@ -454,7 +527,7 @@ export function DocumentVault({ app, post, lines, total, registration, acceptedB
           <div className="max-w-2xl">
             <p className="text-sm font-bold text-gold">طلب الحج رقم {app.number} — موسم 1448هـ</p>
             <p className="mt-1 font-display text-3xl font-bold">كل وثائقكم في مكان واحد</p>
-            <p className="mt-2 leading-7 text-white/75">إشعار القبول والعقد وبطاقات الرحلة والإيصالات، ولكل فرد بطاقته الرقمية وتأشيرته وجوازه وصورته. ما صدر منها يُفتح ويُطبع، وما لم يصدر بعد يقول متى.</p>
+            <p className="mt-2 leading-7 text-white/75">إشعار القبول والعقد وبطاقات الرحلة والإيصالات، ولكل فرد بطاقته الرقمية وتأشيرته وجوازه وصورته ووثائقه الصحية. ما صدر منها يُفتح ويُطبع، وما لم يصدر بعد يقول متى.</p>
           </div>
           <div className="rounded-3xl bg-white/10 px-6 py-4 text-center backdrop-blur">
             <p className="font-display text-5xl font-bold text-gold">

@@ -1,6 +1,6 @@
 "use client";
 
-import { FileCheck2, FolderOpen, History, Languages, RefreshCw, Sparkles } from "lucide-react";
+import { FileCheck2, FolderOpen, History, Languages, Lock, RefreshCw, Sparkles } from "lucide-react";
 import { Card } from "@/components/portal/shell";
 import { Badge } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
@@ -8,17 +8,19 @@ import { cn, gregorianDate } from "@/lib/utils";
 import { docState, seasonHistory, servedBefore } from "../../_lib/admin";
 import { useDocTypes } from "../../_lib/admin-rules";
 import { AdminShell, LockedCard, SectionTitle } from "../../_components/ui";
-import { DocumentsStep, SkillsStep, useRecord } from "../apply/record";
+import { DocumentsStep, SkillsStep, useFileLock, useRecord } from "../apply/record";
 
 /**
  * «وثائقي ومهاراتي»: the permanent file of an administrator who has served before — every document and certificate
  * he uploaded, his languages and his skills, as they stand between seasons. He renews a document, uploads a
- * new one, or changes his skills and languages here at any time, not only inside a season's application;
- * the application of each new season starts from it. It is the same file the application's first two
+ * new one, or changes his skills and languages here between seasons, not only inside a season's application;
+ * the application of each new season starts from it. Once he is accepted to work in a season the file is that
+ * season's and locks (useFileLock) until the season ends, then opens for the next one. It is the same file the application's first two
  * steps edit, so the two never disagree. His roles and ratings stay in «ملفي» («السجل الموسمي»).
  */
 export function AdminFiles() {
   const { rec, admin } = useRecord();
+  const lock = useFileLock();
   const { validity } = useDocTypes();
   const season = SEASON.hijriYear;
 
@@ -45,7 +47,7 @@ export function AdminFiles() {
   const applied = !!admin.profile?.feePaidAt;
 
   return (
-    <AdminShell title="وثائقي ومهاراتي" subtitle="ملفك الدائم بين المواسم: كل ما رفعته من وثائق وشهادات، ولغاتك ومهاراتك. حدّثه متى شئت، ومنه يبدأ طلب كل موسم جديد.">
+    <AdminShell title="وثائقي ومهاراتي" subtitle="ملفك الدائم بين المواسم: كل ما رفعته من وثائق وشهادات، ولغاتك ومهاراتك. تحدّثه بين المواسم، ومنه يبدأ طلب كل موسم جديد، ويُقفل خلال الموسم الذي قُبلت للعمل فيه.">
       <dl className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { k: "وثائق سارية", v: `${valid} من ${rec.documents.length}`, icon: FileCheck2 },
@@ -64,7 +66,15 @@ export function AdminFiles() {
           </div>
         ))}
       </dl>
-      {applied && (
+      {lock.locked ? (
+        <p className="mb-6 flex items-start gap-3 rounded-2xl bg-sand p-4 text-sm leading-7 text-ink ring-1 ring-gold/40">
+          <Lock className="mt-1 size-4 shrink-0 text-gold-dark" />
+          <span>
+            <b className="text-green-dark">ملفك مقفل خلال موسم {season}.</b> قُبلت للعمل في هذا الموسم، فتبقى وثائقك وشهاداتك ولغاتك ومهاراتك كما قُبلت بها، لا تُضاف ولا تُعدَّل ولا تُحذف حتى ينتهي الموسم
+            {lock.until ? ` (بعد الاعتراض على التقييم، ${lock.until})` : ""}. ثم يُفتح للتعديل من جديد مع التسجيل على الموسم القادم.
+          </span>
+        </p>
+      ) : applied && (
         <p className="mb-6 rounded-2xl bg-gold/20 p-4 text-sm leading-6 text-maroon">
           قدّمت طلب موسم {season} بالوثائق التي كانت في ملفك يومها، ولا يتغير الطلب بما تعدّله الآن. ما تحدّثه هنا يبقى في ملفك ويظهر في طلب الموسم القادم.
         </p>

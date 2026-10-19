@@ -135,22 +135,19 @@ export function LessonsSection({ ctx }: { ctx: SeasonCtx }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-3 font-display text-3xl font-bold text-green-dark">
           <span className="grid size-12 place-items-center rounded-2xl bg-green-dark text-gold"><BookOpen className="size-6" /></span>
-          الدروس
+          دروس اليوم وغداً
         </h2>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setAsk(true)}>
             <MessageCircleQuestion className="size-5" /> سؤال شرعي خاص
           </Button>
-          <Link href="/portal/lessons" className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-semibold text-green-dark hover:bg-green-dark/8">
-            <BookOpen className="size-5" /> كل الدروس الدينية
-          </Link>
           <Link href="/academy" className="inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-semibold text-green-dark hover:bg-green-dark/8">
             <Headphones className="size-5" /> تسجيلات الدروس
           </Link>
         </div>
       </div>
       {lessons.length === 0 ? (
-        <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-lg text-ink-soft">لا دروس لعائلتك اليوم ولا غداً. كل دروس مجموعتك في «الدروس الدينية».</p>
+        <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-lg text-ink-soft">لا دروس لعائلتك اليوم ولا غداً. كل دروس مجموعتك في الأسفل.</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {lessons.map((l, i) => {

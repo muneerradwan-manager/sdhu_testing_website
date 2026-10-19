@@ -1,3 +1,4 @@
+import type { GroupInfo } from "@/lib/assignment";
 import type { Assignment } from "@/lib/journey";
 import type { Member } from "@/lib/rules";
 import type { Application } from "@/lib/store";
@@ -19,6 +20,8 @@ export type SeasonCtx = {
   companion: Member | null;
   /** Members who get a special meal delivered (diabetes, special meal, 69+) */
   special: Member[];
+  /** The family's group as the office attached it: its number, cluster, head and team */
+  group: GroupInfo;
 };
 
 export const DIET_NEEDS = ["سكري", "ضغط الدم", "وجبة خاصة"];

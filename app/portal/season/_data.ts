@@ -2,6 +2,7 @@
  * «حالتي الآن» — the in-season timeline (spec phases 10 – 21), from 24 ذو القعدة to 23 ذو الحجة 1448.
  * Day index 0 = 24 ذو القعدة = Saturday 1 May 2027 (ذو القعدة has 29 days this season), index 28 = 23 ذو الحجة.
  */
+import { DEFAULT_MEALS, type MealTimes } from "@/lib/season-live";
 import { groupName } from "@/lib/groups";
 import { GROUP, PLACES } from "@/lib/journey";
 
@@ -124,46 +125,35 @@ export function nextBus(where: Where, i: number): string {
   }
 }
 
-export type Meal = { key: "breakfast" | "lunch" | "dinner"; name: string; time: string; start: string; place: string; menu: string };
+export type Meal = { key: "breakfast" | "lunch"; name: string; time: string; start: string; place: string; menu: string };
 
 const HOTEL_MENUS: Record<Meal["key"], string[]> = {
   breakfast: ["فول، بيض، جبن، زيتون، خبز، فواكه، شاي وقهوة", "فتة حمص، لبنة، زعتر وزيت، عسل، فواكه، شاي", "مسبّحة، بيض مسلوق، حلاوة، مربى، خبز، حليب"],
   lunch: ["كبسة دجاج، شوربة عدس، سلطة، أرز، لبن", "مقلوبة باذنجان، سلطة عربية، شوربة خضار، لبن", "كبة بالصينية، أرز بشعيرية، فتوش، عصير"],
-  dinner: ["مندي لحم، خضار مشوية، حساء، حلوى", "شيش طاووق، بطاطا، متبل، سلطة، مهلبية", "ملوخية بالدجاج، أرز، سلطة خضراء، فاكهة"],
 };
 
-export function mealsFor(where: Where, i: number): Meal[] {
+/**
+ * The season's meals are two, breakfast and lunch, served at the Makkah hotel and at the Madinah hotel at the
+ * times the administration sets (lib/season-live: «مواعيد الوجبات») — four in all. Away from the hotels (travel
+ * days, the holy sites) the administration serves none.
+ */
+export function mealsFor(where: Where, i: number, times: MealTimes = DEFAULT_MEALS): Meal[] {
+  const start = (t: string) => t.split(/[–-]/)[0].trim();
   if (where === "makkah") {
     const k = (i + 1) % 3; // day index 2 (26 ذو القعدة) shows the spec's menu
     return [
-      { key: "breakfast", name: "الفطور", time: "06:00 – 09:00", start: "06:00", place: "مطعم الطابق (م)", menu: HOTEL_MENUS.breakfast[k] },
-      { key: "lunch", name: "الغداء", time: "13:00 – 15:00", start: "13:00", place: "مطعم الطابق (م)", menu: HOTEL_MENUS.lunch[k] },
-      { key: "dinner", name: "العشاء", time: "19:00 – 22:00", start: "19:00", place: "مطعم الطابق (م)", menu: HOTEL_MENUS.dinner[k] },
+      { key: "breakfast", name: "الفطور", time: times.makkah.breakfast, start: start(times.makkah.breakfast), place: "فندق مكة — مطعم الطابق (م)", menu: times.menus?.makkah.breakfast ?? HOTEL_MENUS.breakfast[k] },
+      { key: "lunch", name: "الغداء", time: times.makkah.lunch, start: start(times.makkah.lunch), place: "فندق مكة — مطعم الطابق (م)", menu: times.menus?.makkah.lunch ?? HOTEL_MENUS.lunch[k] },
     ];
   }
   if (where === "madinah") {
     const k = i % 3;
     return [
-      { key: "breakfast", name: "الفطور", time: "05:30 – 08:30", start: "05:30", place: "مطعم الفندق — مبكر لصلاة الفجر", menu: HOTEL_MENUS.breakfast[k] },
-      { key: "lunch", name: "الغداء", time: "13:00 – 15:00", start: "13:00", place: "مطعم الفندق", menu: HOTEL_MENUS.lunch[(k + 1) % 3] },
-      { key: "dinner", name: "العشاء", time: "20:00 – 22:30", start: "20:00", place: "مطعم الفندق", menu: HOTEL_MENUS.dinner[(k + 2) % 3] },
+      { key: "breakfast", name: "الفطور", time: times.madinah.breakfast, start: start(times.madinah.breakfast), place: "فندق المدينة — مطعم الفندق", menu: times.menus?.madinah.breakfast ?? HOTEL_MENUS.breakfast[k] },
+      { key: "lunch", name: "الغداء", time: times.madinah.lunch, start: start(times.madinah.lunch), place: "فندق المدينة — مطعم الفندق", menu: times.menus?.madinah.lunch ?? HOTEL_MENUS.lunch[(k + 1) % 3] },
     ];
   }
-  if (where === "mina" || where === "arafat" || where === "muzdalifah") {
-    const eid = i === 15;
-    return [
-      { key: "breakfast", name: "الفطور", time: "06:00", start: "06:00", place: "مدخل الخيمة", menu: "وجبة مغلّفة: جبن، زيتون، خبز، تمر، عصير" },
-      { key: "lunch", name: eid ? "غداء العيد" : "الغداء", time: "13:00", start: "13:00", place: "داخل الخيمة", menu: eid ? "لحم وأرز — وجبة عيد" : "أرز ولحم، سلطة، فاكهة" },
-      { key: "dinner", name: "العشاء", time: "19:30", start: "19:30", place: "داخل الخيمة", menu: "دجاج مشوي، خبز، حمص، لبن — ماء وعصير طوال اليوم" },
-    ];
-  }
-  if (where === "jeddah" || where === "damascus")
-    return [
-      { key: "breakfast", name: "وجبة الطائرة", time: "06:30", start: "06:30", place: "على متن الرحلة RB 507", menu: "سندويشة جبن، كعك، عصير، ماء" },
-      { key: "lunch", name: "الغداء", time: "13:00 – 15:00", start: "13:00", place: "فندق أبراج النور — الطابق (م)", menu: HOTEL_MENUS.lunch[0] },
-      { key: "dinner", name: "العشاء", time: "19:00 – 22:00", start: "19:00", place: "فندق أبراج النور — الطابق (م)", menu: HOTEL_MENUS.dinner[0] },
-    ];
-  return [{ key: "lunch", name: "وجبة الطائرة", time: "14:30", start: "14:30", place: "على متن الرحلة RB 508", menu: "أرز ودجاج، سلطة، كعكة، ماء" }];
+  return [];
 }
 
 export function nextMeal(meals: Meal[], time: string) {

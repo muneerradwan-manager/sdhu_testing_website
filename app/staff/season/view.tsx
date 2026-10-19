@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { SEASON } from "@/lib/season";
-import { mergeSeason, type LiveSeason } from "@/lib/season-live";
+import { DEFAULT_MEALS, mergeSeason, type LiveSeason } from "@/lib/season-live";
 import { actions, useStore, type SeasonOverrides } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
@@ -17,7 +17,10 @@ import { OperationsPanel } from "../_components/operations";
 import { Box, SettingsRow, SettingsSection, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 
-type Key = keyof Required<SeasonOverrides>;
+/** The meal times are text and have their own tab («مواعيد الوجبات»); the form holds the numbers */
+type MealKey = "mealMakkahBreakfast" | "mealMakkahLunch" | "mealMadinahBreakfast" | "mealMadinahLunch";
+type MenuKey = "menuMakkahBreakfast" | "menuMakkahLunch" | "menuMadinahBreakfast" | "menuMadinahLunch";
+type Key = Exclude<keyof Required<SeasonOverrides>, MealKey | MenuKey>;
 
 type FieldDef = { key: Key; label: string; unit?: string; min: number; max: number; step?: number; hint?: (v: number) => string; note?: string };
 
@@ -152,7 +155,7 @@ function show(key: Key, v: number) {
   return formatNumber(v);
 }
 
-type Section = "values" | "operations";
+type Section = "values" | "operations" | "meals";
 
 export function SeasonView() {
   return (
@@ -170,7 +173,7 @@ function Season() {
   const overrides = useStore((s) => s.season);
   const params = useSearchParams();
   const router = useRouter();
-  const section: Section = params.get("section") === "operations" ? "operations" : "values";
+  const section: Section = params.get("section") === "operations" ? "operations" : params.get("section") === "meals" ? "meals" : "values";
   const [confirmReset, setConfirmReset] = useState(false);
 
   return (
@@ -190,16 +193,19 @@ function Season() {
 
       <Segments
         value={section}
-        onChange={(v) => router.replace(v === "operations" ? "/staff/season?section=operations" : "/staff/season", { scroll: false })}
+        onChange={(v) => router.replace(v === "values" ? "/staff/season" : `/staff/season?section=${v}`, { scroll: false })}
         label="أقسام الإعدادات"
         items={[
           { value: "values", label: "الشروط والرسوم" },
           { value: "operations", label: "مواعيد العمليات" },
+          { value: "meals", label: "مواعيد الوجبات" },
         ]}
       />
 
       {section === "operations" ? (
         <OperationsPanel title="مواعيد العمليات وتفعيلها" />
+      ) : section === "meals" ? (
+        <MealsForm key={JSON.stringify(overrides)} overrides={overrides} />
       ) : (
         <SeasonForm key={JSON.stringify(overrides)} overrides={overrides} confirmReset={confirmReset} onCloseReset={() => setConfirmReset(false)} />
       )}
@@ -239,7 +245,7 @@ function SeasonForm({ overrides, confirmReset, onCloseReset }: { overrides: Seas
   };
 
   const reset = () => {
-    const overridden = Object.keys(overrides) as Key[];
+    const overridden = (Object.keys(overrides) as Key[]).filter((k) => k in LABELS);
     actions.resetSeason();
     logAs(user, {
       action: "إعادة إعدادات الموسم إلى القيم الافتراضية",
@@ -370,6 +376,67 @@ function SeasonForm({ overrides, confirmReset, onCloseReset }: { overrides: Seas
 }
 
 /** One value of the form: the field, its unit, whether it is changed, and its range */
+const MEALS: { key: MealKey; menu: MenuKey; hotel: string; meal: string; def: string }[] = [
+  { key: "mealMakkahBreakfast", menu: "menuMakkahBreakfast", hotel: "فندق مكة", meal: "الفطور", def: DEFAULT_MEALS.makkah.breakfast },
+  { key: "mealMakkahLunch", menu: "menuMakkahLunch", hotel: "فندق مكة", meal: "الغداء", def: DEFAULT_MEALS.makkah.lunch },
+  { key: "mealMadinahBreakfast", menu: "menuMadinahBreakfast", hotel: "فندق المدينة", meal: "الفطور", def: DEFAULT_MEALS.madinah.breakfast },
+  { key: "mealMadinahLunch", menu: "menuMadinahLunch", hotel: "فندق المدينة", meal: "الغداء", def: DEFAULT_MEALS.madinah.lunch },
+];
+
+/** «HH:MM – HH:MM» */
+const RANGE = /^([01]\d|2[0-3]):[0-5]\d\s*[–-]\s*([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * The season's meals, as the administration times them: two a day, breakfast and lunch, at the Makkah hotel and
+ * at the Madinah hotel — four times in all. The pilgrims read them in «الوجبات» and on their hotels' page.
+ */
+function MealsForm({ overrides }: { overrides: SeasonOverrides }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const saved = Object.fromEntries(MEALS.flatMap((m) => [[m.key, overrides[m.key] ?? m.def], [m.menu, overrides[m.menu] ?? ""]])) as Record<MealKey | MenuKey, string>;
+  const [draft, setDraft] = useState(saved);
+  const changes = MEALS.flatMap((m) => [
+    ...(draft[m.key].trim() !== saved[m.key] ? [{ k: m.key as MealKey | MenuKey, label: `موعد ${m.meal} — ${m.hotel}` }] : []),
+    ...(draft[m.menu].trim() !== saved[m.menu] ? [{ k: m.menu as MealKey | MenuKey, label: `قائمة ${m.meal} — ${m.hotel}` }] : []),
+  ]);
+  const invalid = MEALS.filter((m) => !RANGE.test(draft[m.key].trim()));
+  const save = () => {
+    if (!changes.length || invalid.length) return;
+    actions.setSeason(Object.fromEntries(changes.map((c) => [c.k, c.k.startsWith("meal") ? draft[c.k].trim().replace(/\s*[–-]\s*/, " – ") : draft[c.k].trim()])) as SeasonOverrides);
+    for (const c of changes) logAs(user, { action: "تعديل مواعيد الوجبات وقوائمها", target: c.label, before: saved[c.k] || "قائمة الفندق اليومية", after: draft[c.k].trim() || "قائمة الفندق اليومية" });
+    toast({ title: `حُفظت مواعيد ${changes.length} ${changes.length === 1 ? "وجبة" : "وجبات"}`, body: "تظهر للحجاج في «الوجبات» وفي صفحة فنادقهم فوراً.", tone: "success", icon: "🍽️" });
+  };
+  return (
+    <SettingsSection title="مواعيد الوجبات">
+      <SettingsRow label="الوجبات في الموسم" hint="وجبتان في اليوم، الفطور والغداء، في فندق مكة وفي فندق المدينة: أربع وجبات، لكل منها موعدها وقائمتها. لا وجبات من الإدارة في أيام السفر ولا في المشاعر.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {MEALS.map((m) => {
+            const bad = !RANGE.test(draft[m.key].trim());
+            return (
+              <label key={m.key} className="block">
+                <span className="mb-1 block text-xs font-bold text-white/70">
+                  {m.meal} — {m.hotel}
+                </span>
+                <input value={draft[m.key]} onChange={(e) => setDraft((d) => ({ ...d, [m.key]: e.target.value }))} dir="ltr" placeholder="06:00 – 09:00" aria-label={`${m.meal} — ${m.hotel}`} className={cn(smallInputClass, "text-center font-mono", bad && "border-maroon")} />
+                <span className="mt-1 flex items-center gap-2 text-xs text-white/60">
+                  {bad ? <Tag tone="maroon">اكتبه هكذا: 06:00 – 09:00</Tag> : draft[m.key].trim() !== saved[m.key] ? <Tag tone="gold">غير محفوظ</Tag> : saved[m.key] !== m.def && <Tag tone="green">معدّل</Tag>}
+                  الافتراضي: {m.def}
+                </span>
+                <textarea value={draft[m.menu]} onChange={(e) => setDraft((d) => ({ ...d, [m.menu]: e.target.value }))} rows={2} placeholder="قائمة الطعام — فارغة: قائمة الفندق اليومية" aria-label={`قائمة ${m.meal} — ${m.hotel}`} className={cn(smallInputClass, "mt-2 h-auto py-2 leading-6")} />
+              </label>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button variant="gold" size="sm" onClick={save} disabled={!changes.length || invalid.length > 0}>
+            <Save className="size-4" /> حفظ مواعيد الوجبات
+          </Button>
+        </div>
+      </SettingsRow>
+    </SettingsSection>
+  );
+}
+
 function NumberRow({ f, value, saved, onChange }: { f: FieldDef; value: number; saved: number; onChange: (v: number) => void }) {
   const changed = value !== saved;
   const custom = saved !== DEFAULTS[f.key];

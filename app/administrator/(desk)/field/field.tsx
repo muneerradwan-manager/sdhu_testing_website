@@ -32,6 +32,8 @@ import { groupName } from "@/lib/groups";
 import { CmsImage } from "@/components/cms/image";
 import { groupSeed } from "@/lib/group-profile";
 import { ageOf, fullName, relationLabel } from "@/lib/registry";
+import { useMusterReplies } from "@/lib/musters";
+import type { GroupPost } from "@/lib/store";
 import { cn, nowMs, seeded } from "@/lib/utils";
 import { effectiveRole, logAdmin, positionLabelOf, useAdmin } from "../../_lib/admin";
 import { MISSING_ID, buildRoster, type RosterEntry } from "../../_lib/group";
@@ -283,6 +285,8 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
 
   // The open muster's list: who is ticked, and why the others were not there
   const [present, setPresent] = useState<string[]>(open?.present ?? []);
+  // What the families said beforehand in their portal: who will come, and why not
+  const replies = useMusterReplies(open?.id);
   const [absent, setAbsent] = useState<Record<string, string>>(open?.absent ?? {});
   const [othering, setOthering] = useState<Record<string, boolean>>({});
   const [tried, setTried] = useState(false);
@@ -515,6 +519,11 @@ function MusterTool({ roster, onReport }: { roster: RosterEntry[]; onReport: () 
                           {r.age} عاماً · الغرفة {r.room}
                           {r.needs.length > 0 && ` · ${r.needs.join("، ")}`}
                         </span>
+                        {replies[r.id] && (
+                          <span className={cn("mt-0.5 block text-xs font-bold", replies[r.id].going ? "text-green" : "text-maroon")}>
+                            {replies[r.id].going ? "قال سيحضر" : `اعتذر${replies[r.id].reason ? `: ${replies[r.id].reason}` : ""}`}
+                          </span>
+                        )}
                       </span>
                       {here && <Check className="size-5 shrink-0 text-green-light" />}
                     </label>
@@ -628,7 +637,7 @@ const TEMPLATES = [
   { k: "رحلة", icon: "🚌", text: "حافلة التنعيم غداً 16:00 — التجمّع: البوابة الجنوبية 15:45 — المشرف: ياسر عبد الله." },
 ];
 
-type Post = { id: string; text: string; audience: string; at: number; reach: number };
+type Post = GroupPost & { reach: number };
 
 function ReadCounter({ to }: { to: number }) {
   const mv = useMotionValue(0);
@@ -646,7 +655,8 @@ function Channel({ count }: { count: number }) {
   const g = useFieldGroup();
   const [text, setText] = useState("");
   const [audience, setAudience] = useState("المجموعة كاملة");
-  const [posts, setPosts] = useState<Post[]>([{ id: "welcome", text: "مرحباً بكم. العمرة الليلة: تجمّع في بهو الفندق 21:00. الحافلة 21:30.", audience: "المجموعة كاملة", at: 0, reach: count }]);
+  // The posts are kept with the administrator, by group, and reach the group's families in their portal
+  const mine = admin.profile?.groupPosts ?? [];
   const audiences = [
     { k: "المجموعة كاملة", n: count },
     { k: "الرجال", n: Math.round(count * 0.52) },
@@ -654,11 +664,14 @@ function Channel({ count }: { count: number }) {
     { k: "كبار السن ومرافقوهم", n: 14 },
   ];
   const reach = audiences.find((a) => a.k === audience)?.n ?? count;
+  const reachOf = (k: string) => audiences.find((a) => a.k === k)?.n ?? count;
+  const posts: Post[] = mine.filter((p) => p.groupNumber === g.number).map((p) => ({ ...p, reach: reachOf(p.audience) })).sort((a, b) => b.at - a.at);
 
   const post = () => {
     if (!text.trim()) return;
-    const p: Post = { id: Date.now().toString(36), text: text.trim(), audience, at: Date.now(), reach };
-    setPosts([p, ...posts]);
+    const at = nowMs();
+    const p: GroupPost = { id: at.toString(36), text: text.trim(), audience, at, groupNumber: g.number };
+    actions.upsertAdmin(admin.id, { groupPosts: [...mine, p] });
     setText("");
     logAdmin(admin.id, "نشر إعلان في قناة المجموعة", `${groupName(g.number)} — ${audience}`, p.text);
     toast({ title: `وصل إشعار إلى ${reach} حاجاً`, body: p.text, icon: "📣", tone: "success" });
@@ -698,6 +711,7 @@ function Channel({ count }: { count: number }) {
             <p className="text-xs text-white/70">{count} عضواً — المشرف: {admin.name}</p>
           </div>
         </div>
+        {posts.length === 0 && <p className="rounded-2xl bg-white p-4 text-sm text-hint">لا إعلانات بعد. ما تنشره هنا يصل إلى عائلات المجموعة في «مجموعتي» و«الإشعارات» في بوابتهم.</p>}
         <ul className="space-y-3">
           <AnimatePresence initial={false}>
             {posts.map((p) => (
@@ -705,9 +719,9 @@ function Channel({ count }: { count: number }) {
                 <p className="text-xs font-bold text-maroon">{admin.name} — {p.audience}</p>
                 <p className="mt-1 leading-8">{p.text}</p>
                 <p className="mt-2 flex items-center justify-between gap-3 text-xs text-hint">
-                  <span>{p.at ? new Date(p.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "24 ذو القعدة"}</span>
+                  <span>{new Date(p.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
                   <span className="flex items-center gap-1 text-green">
-                    <Check className="size-3.5" /><Check className="-mr-2.5 size-3.5" /> قرأه {p.at ? <ReadCounter to={p.reach - 2} /> : p.reach} من {p.reach}
+                    <Check className="size-3.5" /><Check className="-mr-2.5 size-3.5" /> قرأه <ReadCounter to={Math.max(0, p.reach - 2)} /> من {p.reach}
                   </span>
                 </p>
               </motion.li>
@@ -959,12 +973,17 @@ function TicketDesk({ roster, about }: { roster: RosterEntry[]; about?: string }
   const toast = useToast();
   const g = useFieldGroup();
   const tickets = useStore((s) => s.tickets);
+  const applications = useStore((s) => s.applications);
   const mine = useMemo(() => tickets.filter((t) => t.location.startsWith(`${groupName(g.number)} —`)), [tickets, g.number]);
   const [form, setForm] = useState({ kind: "room" as TicketKind, severity: "medium" as Ticket["severity"], name: about ?? "المجموعة كاملة", place: about ? `${HOTEL} — الغرفة ${roster.find((r) => r.name === about)?.room ?? ""}` : `${HOTEL} — الغرفة 1214`, text: about ? "" : "التكييف في الغرفة 1214 لا يعمل منذ الصباح، والحاج كبير في السن." });
 
   const submit = () => {
     if (!form.text.trim()) return;
+    // A ticket about a pilgrim of the platform goes to his application too: he follows it in «بلاغاتي»
+    const who = roster.find((r) => r.name === form.name && r.real);
+    const app = who ? Object.values(applications).find((a) => a.members.some((m) => m.person.id === who.id)) : undefined;
     const id = actions.addTicket({
+      ...(app && { applicantId: app.applicantId }),
       name: form.name,
       kind: form.kind,
       severity: form.severity,
@@ -972,7 +991,7 @@ function TicketDesk({ roster, about }: { roster: RosterEntry[]; about?: string }
       text: form.text.trim(),
       assignee: form.kind === "health" ? "د. ليلى شمس" : form.kind === "transport" ? "هيثم زيدان" : form.kind === "room" || form.kind === "meal" ? "وسام خوري" : "غرفة العمليات — فادي سلوم",
     });
-    logAdmin(admin.id, "رفع بلاغ إلى غرفة العمليات", `البلاغ ${id}`, `${KINDS.find((k) => k.k === form.kind)?.label} — ${SEVERITY.find((s) => s.k === form.severity)?.label} — ${form.place}`);
+    logAdmin(admin.id, "رفع بلاغ إلى غرفة العمليات", app ? `طلب ${app.number} — البلاغ ${id}` : `البلاغ ${id}`, `${form.name} — ${KINDS.find((k) => k.k === form.kind)?.label} — ${SEVERITY.find((s) => s.k === form.severity)?.label} — ${form.place}`);
     toast({ title: `البلاغ ${id} وصل إلى غرفة العمليات`, body: form.severity === "critical" ? "بلاغ حرج: يُصعَّد تلقائياً إن لم يُغلق خلال 15 دقيقة." : "ستصلك تحديثات الحالة هنا.", icon: "🚨", tone: form.severity === "critical" ? "warning" : "info" });
     setForm({ ...form, text: "" });
   };

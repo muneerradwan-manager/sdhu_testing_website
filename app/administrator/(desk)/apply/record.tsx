@@ -5,10 +5,11 @@ import { Check, FileCheck2, FileText, FolderLock, Pencil, Plus, RefreshCw, Shiel
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
+import { dayLabel, useOperation } from "@/lib/operations";
 import { SEASON } from "@/lib/season";
 import { actions, type AdminRecord, type VaultDoc } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { docState, documentType, levelOf, logAdmin, nowMs, recordOf, seasonHistory, servedBefore, useAdmin, type DocType } from "../../_lib/admin";
+import { docState, documentType, levelOf, logAdmin, nowMs, recordOf, resultOf, seasonHistory, servedBefore, useAdmin, type DocType } from "../../_lib/admin";
 import { useDocTypes, useLanguages, useRoleRequirements, useRoles, useSkills } from "../../_lib/admin-rules";
 
 /**
@@ -53,13 +54,31 @@ export function DemandBadges({ id }: { id: string }) {
 export function useRecord() {
   const admin = useAdmin()!;
   const rec = recordOf(admin.profile, admin.id);
+  const { locked } = useFileLock();
   const save = (patch: Partial<AdminRecord>, action: string, detail?: string) => {
+    if (locked) return;
     actions.upsertAdmin(admin.id, { record: { ...rec, ...patch, updatedAt: nowMs() } });
     logAdmin(admin.id, action, undefined, detail, { area: "applicants" });
   };
   const returning = servedBefore(admin.id);
-  return { rec, save, admin, returning };
+  return { rec, save, admin, returning, locked };
 }
+
+/**
+ * The file is the season's once he is accepted to work in it — qualified (the written test and the oral exam
+ * passed, or his role renewed without a test, and the result shown to him): nothing in it changes until the
+ * season ends with the last objection to the evaluations. Then it opens again, for the next season's application.
+ */
+export function useFileLock() {
+  const admin = useAdmin();
+  const end = useOperation("evaluation-objection");
+  const res = resultOf(admin?.profile);
+  const accepted = res.passed && !!res.published;
+  return { locked: accepted && end.status !== "closed", until: end.end ? dayLabel(end.end, true) : "" };
+}
+
+/** The editors' controls while the file is locked: shown as they are, out of reach */
+const LOCKABLE = "m-0 min-w-0 border-0 p-0 [&:disabled_button]:cursor-not-allowed [&:disabled_button]:opacity-50 [&:disabled_input]:opacity-50";
 
 /** The documents of the file that this season's application is submitted with */
 export function attachedDocs(rec: AdminRecord, validity?: Record<string, number>) {
@@ -72,7 +91,7 @@ export function attachedDocs(rec: AdminRecord, validity?: Record<string, number>
  * (preferred), then the rest of his permanent file.
  */
 export function DocumentsStep() {
-  const { rec, save, returning } = useRecord();
+  const { rec, save, returning, locked } = useRecord();
   const toast = useToast();
   const season = SEASON.hijriYear;
   // The administration sets how long each type stays valid, and may add certificates of its own
@@ -246,7 +265,7 @@ export function DocumentsStep() {
   };
 
   return (
-    <div>
+    <fieldset disabled={locked} className={LOCKABLE}>
       <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">وثائقك وشهاداتك</h2>
       <p className="mt-2 leading-8 text-ink-soft">
         وثائقك وشهاداتك هي التي تفتح لك الصفات: لكل صفة شهاداتها بحسب جدول الإدارة لهذا الموسم، وبعضها مشترك بين الصفات. بجانب كل وثيقة الصفات التي تفتحها، والصفات التي تقوّي طلبها فقط.{" "}
@@ -325,13 +344,13 @@ export function DocumentsStep() {
           </div>
         )}
       </Modal>
-    </div>
+    </fieldset>
   );
 }
 
 /** `experience`: the seasons served, from the platform's record — «وثائقي ومهاراتي» leaves them to «ملفي» */
 export function SkillsStep({ experience = true }: { experience?: boolean } = {}) {
-  const { rec, save, admin, returning } = useRecord();
+  const { rec, save, admin, returning, locked } = useRecord();
   const { of } = useDemand();
   // The lists the holder of «إدارة الإداريين» keeps for the season
   const { skills } = useSkills();
@@ -354,7 +373,7 @@ export function SkillsStep({ experience = true }: { experience?: boolean } = {})
   };
 
   return (
-    <div className="space-y-8">
+    <fieldset disabled={locked} className={cn("space-y-8", LOCKABLE)}>
       <div>
         <h2 className="font-display text-2xl font-bold text-green-dark md:text-3xl">لغاتك ومهاراتك</h2>
         <p className="mt-2 leading-8 text-ink-soft">
@@ -474,6 +493,6 @@ export function SkillsStep({ experience = true }: { experience?: boolean } = {})
           </Button>
         </div>
       </fieldset>
-    </div>
+    </fieldset>
   );
 }
