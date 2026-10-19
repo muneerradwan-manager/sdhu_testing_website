@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Calculator, ClipboardList
 import { useCallback, useState, type ReactNode } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
-import { Badge, useToast } from "@/components/ui/widgets";
+import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
 import { useStore, type ClusterInvite, type GroupInvite, type Seat } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
@@ -105,7 +105,7 @@ function RequestDesk({ req, header }: { req: ClusterRequest; header: ReactNode }
             (opened !== null && req.groups.some((g) => g.number === opened) ? <GroupDesk req={req} number={opened} onBack={() => setOpened(null)} /> : <GroupsStep req={req} editable={false} onOpen={setOpened} />)}
           {tab === "team" && (
             <div className="space-y-6">
-              <StaffStep req={req} editable={false} sortable={false} />
+              <StaffStep req={req} editable={false} sortable />
               <AccountantStep req={req} editable={false} />
             </div>
           )}
@@ -552,6 +552,8 @@ function StaffStep({ req, editable, sortable }: { req: ClusterRequest; editable:
  * Distributing the coordinators, or the female guides and murshidas, on the cluster's groups: each group one of
  * them, each of them groups up to his quota of units (a group weighs its category: الأولى 1 … الرابعة 4) and no
  * more. A choice that would take someone over his quota is not offered; «توزيع تلقائي» spreads them within it.
+ * The cluster's head changes it himself, no request: every change asks him first — who leaves the group, who
+ * takes it, and where each stands against his quota — and goes to his activity log, from whom to whom.
  */
 function Distribution({ req, sortable, people, field, quota, title, one, note }: { req: ClusterRequest; sortable: boolean; people: ClusterInvite[]; field: "sorting" | "guideSorting"; quota: number; title: string; one: string; note: string }) {
   const write = useWrite(req);
@@ -559,15 +561,31 @@ function Distribution({ req, sortable, people, field, quota, title, one, note }:
   const map = c[field] ?? {};
   const units = req.groups.map((g) => ({ number: g.number, units: g.units }));
   const mine = (num: number) => people.find((x) => x.id === map[num]);
+  const toast = useToast();
+  const [ask, setAsk] = useState<{ num: number; id: string } | "auto" | null>(null);
+  const nameOf = (id?: string) => people.find((x) => x.id === id)?.name;
   const set = (num: number, id: string) => {
+    const from = nameOf(map[num]) ?? `دون ${one}`;
+    const to = nameOf(id) ?? `دون ${one}`;
     const next = { ...map };
     if (id) next[num] = id;
     else delete next[num];
-    write({ ...c, [field]: next }, `توزيع ${people.find((x) => x.id === id)?.name ?? `دون ${one}`} على ${groupName(num)}`);
+    write({ ...c, [field]: next }, `تغيير ${one} ${groupName(num)}`, groupName(num), `من ${from} إلى ${to}`);
+    toast({ title: `${groupName(num)}: ${to}`, body: `كان ${from}. سُجّل التغيير في «سجل نشاطي».`, tone: "success", icon: "🔁" });
   };
   const auto = () => {
     const { map: next, left } = distribute(units, people.map((x) => x.id), quota);
-    write({ ...c, [field]: next }, `${title}: توزيع تلقائي ضمن حدود الوحدات`, undefined, left.length ? `بقيت ${left.length} بلا ${one}: لا تتسع لها الحدود` : undefined);
+    const changed = req.groups.filter((g) => next[g.number] !== map[g.number]).map((g) => `${groupName(g.number)}: من ${nameOf(map[g.number]) ?? `دون ${one}`} إلى ${nameOf(next[g.number]) ?? `دون ${one}`}`);
+    write({ ...c, [field]: next }, `${title}: توزيع تلقائي ضمن حدود الوحدات`, undefined, [changed.join(" — ") || "لم يتغير شيء", left.length ? `بقيت ${left.length} بلا ${one}: لا تتسع لها الحدود` : ""].filter(Boolean).join(". "));
+    toast({ title: "وُزّعوا تلقائياً ضمن الحدود", body: `${changed.length} ${changed.length === 1 ? "مجموعة تغيّرت" : "مجموعات تغيّرت"}. سُجّل التوزيع في «سجل نشاطي».`, tone: "success", icon: "🔁" });
+  };
+  // What the confirmation says: the group, who leaves it, who takes it, and each one's load against the quota
+  const pending = ask && ask !== "auto" ? { g: req.groups.find((x) => x.number === ask.num)!, from: map[ask.num], to: ask.id } : null;
+  const loadAfter = (id: string) => {
+    const next = { ...map };
+    if (pending?.to) next[pending.g.number] = pending.to;
+    else if (pending) delete next[pending.g.number];
+    return loadOf(units, next, id);
   };
   const over = people.filter((x) => loadOf(units, map, x.id) > quota);
   const bare = req.groups.filter((g) => !mine(g.number));
@@ -577,7 +595,7 @@ function Distribution({ req, sortable, people, field, quota, title, one, note }:
         icon={Shuffle}
         action={
           sortable && people.length > 0 ? (
-            <Button size="sm" variant="outline" onClick={auto}>
+            <Button size="sm" variant="outline" onClick={() => setAsk("auto")}>
               <Shuffle className="size-3.5" /> توزيع تلقائي ضمن الحدود
             </Button>
           ) : undefined
@@ -615,7 +633,7 @@ function Distribution({ req, sortable, people, field, quota, title, one, note }:
                   {g.categoryName}: {g.units} {g.units === 1 ? "وحدة" : g.units === 2 ? "وحدتان" : "وحدات"}
                 </span>
               </span>
-              <select value={mine(g.number)?.id ?? ""} disabled={!sortable} onChange={(e) => set(g.number, e.target.value)} aria-label={`${one} ${groupName(g.number)}`} className="h-9 max-w-[55%] rounded-lg border-2 border-gold/40 bg-white px-2 text-xs font-bold disabled:opacity-80">
+              <select value={mine(g.number)?.id ?? ""} disabled={!sortable} onChange={(e) => e.target.value !== (map[g.number] ?? "") && setAsk({ num: g.number, id: e.target.value })} aria-label={`${one} ${groupName(g.number)}`} className="h-9 max-w-[55%] rounded-lg border-2 border-gold/40 bg-white px-2 text-xs font-bold disabled:opacity-80">
                 <option value="">— دون {one} —</option>
                 {people.map((x) => {
                   const ok = fits(units, map, x.id, unit, quota);
@@ -630,6 +648,47 @@ function Distribution({ req, sortable, people, field, quota, title, one, note }:
           );
         })}
       </ul>
+      <Modal open={!!ask} onClose={() => setAsk(null)} className="max-w-md">
+        {ask === "auto" ? (
+          <div>
+            <p className="font-display text-2xl font-bold text-green-dark">إعادة التوزيع تلقائياً؟</p>
+            <p className="mt-2 leading-7 text-ink-soft">هل تريد فعلاً أن توزّع المنصة {people.length} {one === "منسق" ? "منسقين" : "موجّهات"} على مجموعات التكتل كلها ضمن حدّ كلٍّ ({quota} وحدات)؟ يتغيّر التوزيع الحالي، ويُسجَّل في «سجل نشاطي».</p>
+          </div>
+        ) : pending ? (
+          <div>
+            <p className="font-display text-2xl font-bold text-green-dark">تأكيد تغيير {one === "منسق" ? "المنسق" : "الموجّهة"}</p>
+            <p className="mt-2 leading-7 text-ink-soft">
+              هل تريد فعلاً {pending.to ? <>أن {one === "منسق" ? "يكون" : "تكون"} <b className="text-ink">{nameOf(pending.to)}</b> {one === "منسق" ? "منسق" : "موجّهة"} <b className="text-ink">{groupName(pending.g.number)}</b></> : <>ترك <b className="text-ink">{groupName(pending.g.number)}</b> دون {one}</>}
+              {pending.from ? <> بدل <b className="text-ink">{nameOf(pending.from)}</b></> : null}؟
+            </p>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {[pending.to, pending.from].filter((x): x is string => !!x).map((id) => (
+                <li key={id} className="flex items-center justify-between gap-2 rounded-xl bg-sand px-3 py-2">
+                  <span className="font-bold">{nameOf(id)}</span>
+                  <span className="tabular-nums text-ink-soft">
+                    {loadOf(units, map, id)} ← {loadAfter(id)} من {quota} وحدات
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <p className="mt-3 text-xs text-hint">يُسجَّل التغيير في «سجل نشاطي» بمن كان ومن صار، وتتابعه الإدارة.</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button
+            onClick={() => {
+              if (ask === "auto") auto();
+              else if (ask) set(ask.num, ask.id);
+              setAsk(null);
+            }}
+          >
+            موافق
+          </Button>
+          <Button variant="outline" onClick={() => setAsk(null)}>
+            إلغاء
+          </Button>
+        </div>
+      </Modal>
     </Card>
   );
 }
@@ -687,7 +746,7 @@ function ManageCluster({ req }: { req: ClusterRequest }) {
         </span>
         {c.feePaidAt && <span className="text-ink-soft">رسم التكتل مدفوع في المكتب</span>}
       </div>
-      <p className="rounded-2xl bg-sand px-4 py-2 text-xs leading-6 text-ink-soft">أي تعديل على مجموعات التكتل أو كادره أو توزيعه يكون في المكتب: يُدخله الموظف بحضورك.</p>
+      <p className="rounded-2xl bg-sand px-4 py-2 text-xs leading-6 text-ink-soft">أي تعديل على مجموعات التكتل أو كادره يكون في المكتب: يُدخله الموظف بحضورك. أما توزيع المنسقين والموجّهات على المجموعات فتغيّره أنت في «كادر التكتل»، ضمن حدّ كلٍّ منهم، بعد تأكيدك، ويُسجَّل كل تغيير في «سجل نشاطي».</p>
       <StandingCard scope="cluster" name={c.name} />
     </>
   );

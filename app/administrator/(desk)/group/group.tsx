@@ -19,6 +19,7 @@ import { useClusterRequests } from "../../_lib/formation";
 import { categoryOf, categoryOfId, seatsOf, useCadre, useStructure } from "../../_lib/structure";
 import { StandingCard } from "../../_components/standing";
 import { CoordinatorGroups } from "./coordinator-groups";
+import { OfficeFormationSim } from "./office-sim";
 import { AdminShell, LockedCard, MovedTo } from "../../_components/ui";
 
 /**
@@ -79,11 +80,12 @@ export function AdminGroup({ part }: { part: "formation" | "manage" }) {
     );
   }
 
-  // The office forms the group with its head and team there: this page only says so
+  // The office forms the group with its head and team there: this page says so, and the demo simulates the visit
   if (part === "formation") {
     return (
       <AdminShell image="/images/clock-tower.jpg" title="تشكيل المجموعات" subtitle="تُشكَّل المجموعة في المكتب بحضور رئيسها وفريقها.">
         <LockedCard title="تُشكَّل المجموعة في المكتب" text={g?.approvedAt ? `شُكّلت ${groupName(g.number)} في المكتب، ووقّعتم عقدها: تراه في «العقود».` : "لا تُشكَّل المجموعة على المنصة: يحضر رئيسها وفريقها إلى المكتب، فيشكّلها الموظف باسمها وفئتها ويُجلس موجّهها ومعاونها، ويُدفع رسمها 200 $، ويوقّعون عقدها."} href={g?.approvedAt ? "/administrator/my-contracts" : "/administrator/dashboard"} cta={g?.approvedAt ? "العقود" : "ملفي"} />
+        <OfficeFormationSim />
       </AdminShell>
     );
   }

@@ -274,29 +274,29 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                 <Card>
                   <SectionTitle icon={SearchCheck}>ابحث عن المواطن في الشؤون المدنية</SectionTitle>
                   <p className="mt-2 leading-8 text-ink-soft">أدخل الرقم الوطني والاسم الأول كما في هويته. يؤكد السجل المدني أنهما لشخص واحد، ثم تظهر بياناته منه، ولا تُدخلها يدوياً.</p>
-                  <div className="mt-6 flex flex-wrap items-end gap-3">
-                    <div className="min-w-64 flex-1">
-                      <Field label="الرقم الوطني" error={error}>
-                        <input
-                          value={id}
-                          onChange={(e) => setId(digitsOnly(e.target.value).slice(0, 11))}
-                          inputMode="numeric"
-                          dir="ltr"
-                          placeholder="06055500711"
-                          className={cn(inputClass, "text-center font-mono text-xl tracking-[.3em]")}
-                        />
-                      </Field>
-                    </div>
-                    <div className="min-w-48 flex-1">
-                      <Field label="الاسم الأول" hint="كما في بطاقته الشخصية">
-                        <input value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="off" className={inputClass} />
-                      </Field>
-                    </div>
-                    <Button size="lg" onClick={() => void lookup()} disabled={busy || stopped || id.length !== 11 || !firstName.trim()}>
-                      {busy ? <Loader2 className="size-5 animate-spin" /> : <SearchCheck className="size-5" />}
-                      {busy ? "نسأل الشؤون المدنية…" : "بحث"}
-                    </Button>
+                  {/* The two fields as one pair: side by side at the same height, each its label and its hint, and the
+                      answer of the civil registry — about both of them — on its own line under them */}
+                  <div className="mt-6 grid items-start gap-4 sm:grid-cols-2">
+                    <Field label="الرقم الوطني" hint="11 رقماً كما في بطاقته الشخصية">
+                      <input
+                        value={id}
+                        onChange={(e) => setId(digitsOnly(e.target.value).slice(0, 11))}
+                        inputMode="numeric"
+                        dir="ltr"
+                        placeholder="06055500711"
+                        aria-invalid={!!error}
+                        className={cn(inputClass, "text-center font-mono tracking-[.2em]", error && "border-maroon/60")}
+                      />
+                    </Field>
+                    <Field label="الاسم الأول" hint="كما في بطاقته الشخصية">
+                      <input value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="off" aria-invalid={!!error} className={cn(inputClass, error && "border-maroon/60")} />
+                    </Field>
                   </div>
+                  {error && <p className="mt-3 rounded-2xl bg-maroon/5 px-4 py-3 text-sm font-semibold leading-7 text-maroon ring-1 ring-maroon/20">{error}</p>}
+                  <Button size="lg" className="mt-4" onClick={() => void lookup()} disabled={busy || stopped || id.length !== 11 || !firstName.trim()}>
+                    {busy ? <Loader2 className="size-5 animate-spin" /> : <SearchCheck className="size-5" />}
+                    {busy ? "نسأل الشؤون المدنية…" : "بحث"}
+                  </Button>
 
                   <div className="mt-6 rounded-2xl border border-dashed border-gold/50 bg-sand/60 p-4">
                     <p className="text-sm font-bold text-green-dark">أرقام جاهزة للتجربة</p>

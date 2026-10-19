@@ -79,7 +79,14 @@ if ONLY in (None, "head"):
     tab(p, c, "كادر التكتل")
     c.shot("head-team", "كادر التكتل كما دخل في المكتب: موجّهو المجموعات ومعاونوها، ومعاونوه ومنسقوه وموجّهاته ومحاسبه", section=S)
     c.scroll_to("main :text('توزيع المنسقين على المجموعات')", 120)
-    c.shot("head-coord-sort", "توزيع المنسقين على المجموعات كما أُدخل في المكتب: ما يحمله كلٌّ من حدّه، ومنسق كل مجموعة", section=S)
+    c.shot("head-coord-sort", "توزيع المنسقين على المجموعات: ما يحمله كلٌّ من حدّه، ومنسق كل مجموعة، يغيّره رئيس التكتل", section=S)
+    # A change asks first: pick another coordinator (or none) for the first group, show the question, and cancel it
+    sel = p.locator("main select[aria-label^='منسق ']").first
+    cur = sel.input_value()
+    other = [o.get_attribute("value") for o in sel.locator("option:not([disabled])").all() if o.get_attribute("value") != cur]
+    sel.select_option(other[0]); c.settle(900)
+    c.shot("head-coord-confirm", "تأكيد تغيير المنسق: من يترك المجموعة ومن يأخذها، وحمل كلٍّ من حدّه", hl=[("[role=dialog] button:has-text('موافق')", "")], section=S)
+    p.locator("[role=dialog] button:has-text('إلغاء')").click(); c.settle(600)
     tab(p, c, "العقد")
     c.shot("head-contract", "العقد: عقد التكتل الموقّع كما رفعه الموظف، يُفتح بالضغط عليه", hl=[("main button:has-text('فتح العقد')", "")], section=S)
     tab(p, c, "الخطة التشغيلية")
