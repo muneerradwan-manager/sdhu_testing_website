@@ -72,9 +72,9 @@ const HOME: PageDef = {
           def: "منصة واحدة ترافقك من إنشاء الحساب بالرقم الوطني، إلى القرعة والقبول، ثم الفندق والرحلة والمخيم، حتى تعود إلى أهلك بسلام.",
         },
         { key: "primaryLabel", label: "الزر الأساسي — النص", kind: "text", def: "ابدأ طلب الحج" },
-        { key: "primaryHref", label: "الزر الأساسي — الرابط", kind: "url", def: "/register" },
+        { key: "primaryHref", label: "الزر الأساسي — الرابط (للزائر؛ صاحب الحساب يذهب إلى طلب الحج مباشرة)", kind: "url", def: "/register?for=hajj" },
         { key: "secondaryLabel", label: "الزر الثانوي — النص", kind: "text", def: "التسجيل بصفة إداري" },
-        { key: "secondaryHref", label: "الزر الثانوي — الرابط", kind: "url", def: "/portal/role" },
+        { key: "secondaryHref", label: "الزر الثانوي — الرابط (للزائر؛ صاحب الحساب يذهب إلى التسجيل كإداري مباشرة)", kind: "url", def: "/register?for=admin" },
         {
           key: "trust",
           label: "سطور الطمأنة",

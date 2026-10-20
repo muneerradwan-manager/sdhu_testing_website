@@ -8,7 +8,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { useSection } from "@/lib/cms/store";
 import { useMediaUrl } from "@/lib/cms/media";
 import { useLang, useT } from "@/lib/i18n";
-import { useHydrated } from "@/lib/store";
+import { actions, useHydrated } from "@/lib/store";
+import { useAccount } from "@/lib/account";
 import { AccountMenu, useOpenRegistrations } from "@/components/site/account-menu";
 import { LiveHaram } from "./live-haram";
 import { StoreButtons } from "./store-buttons";
@@ -67,6 +68,14 @@ export function Hero() {
   const words = list<{ word: string; highlight: boolean }>(v, "titleWords");
   const rows = list<{ label: string; value: string; live: boolean }>(v, "rows");
   const trust = list<{ text: string }>(v, "trust");
+  // Each button is for one season's way. A visitor creates his account first and lands on its form right after
+  // (/register?for=…); a signed-in account goes straight to it, its administrative file opened if he had chosen nothing
+  const acc = useAccount();
+  const hajjHref = acc ? "/portal/apply" : str(v, "primaryHref", "/register?for=hajj");
+  const adminHref = !acc ? str(v, "secondaryHref", "/register?for=admin") : acc.path === "pilgrim" ? "/portal?choose=admin" : "/portal/role";
+  const openAdminFile = () => {
+    if (acc && !acc.path) actions.chooseSeasonPath(acc.id, acc.season, "admin");
+  };
   const videoSrc = useMediaUrl(v.video);
   const posterSrc = useMediaUrl(v.poster);
 
@@ -130,13 +139,13 @@ export function Hero() {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.25, duration: 0.7 }} className="mt-9 flex flex-wrap gap-3">
             {/* Each registration's button only while it is open, on its own dates; with none open, the sign-in */}
             {open.hajj && (
-              <ButtonLink href={str(v, "primaryHref", "/register")} variant="gold" size="lg" className="shadow-2xl">
+              <ButtonLink href={hajjHref} variant="gold" size="lg" className="shadow-2xl">
                 {str(v, "primaryLabel")}
                 <ArrowLeft className="size-5 transition-transform group-hover/btn:-translate-x-1 ltr:group-hover/btn:translate-x-1" />
               </ButtonLink>
             )}
             {open.admin && (
-              <ButtonLink href={str(v, "secondaryHref", "/portal/role")} variant={open.hajj ? "glass" : "gold"} size="lg" className={open.hajj ? undefined : "shadow-2xl"}>
+              <ButtonLink href={adminHref} onClick={openAdminFile} variant={open.hajj ? "glass" : "gold"} size="lg" className={open.hajj ? undefined : "shadow-2xl"}>
                 <BriefcaseBusiness className="size-5" /> {str(v, "secondaryLabel")}
               </ButtonLink>
             )}
@@ -214,10 +223,10 @@ export function Hero() {
       <LiveHaram open={live} onClose={() => setLive(false)} sources={{ makkah: str(v, "liveMakkah"), madinah: str(v, "liveMadinah") }} />
 
       <motion.a
-        href="#honours"
+        href="#tutorials"
         style={{ opacity: fade }}
         className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-xs text-white/60"
-        aria-label={t("انتقل إلى نجوم الموسم", "Go to the stars of the season")}
+        aria-label={t("انتقل إلى كيف تستخدم المنصة", "Go to how to use the platform")}
       >
         {str(v, "scrollHint")}
         <motion.span animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>

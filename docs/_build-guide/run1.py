@@ -65,7 +65,7 @@ p.mouse.move(10, 400)
 c.click("button[aria-label='جولة تعريفية']", wait=2500)
 c.shot("tour-1", "الجولة التعريفية — الخطوة الأولى", section="A")
 c.click("button:has-text('التالي')", wait=2600)
-c.shot("tour-2", "الجولة التعريفية — البوابة العامة", section="A")
+c.shot("tour-2", "الجولة التعريفية — نجوم الموسم", section="A")
 c.click("button[aria-label='إنهاء الجولة']", wait=600)
 c.scroll_top()
 

@@ -30,10 +30,11 @@ export default function Home() {
         <Hero />
       </CmsSection>
       <Ticker />
-      <HonoursTeaser />
+      {/* How to use the platform first, then who did best on it */}
       <CmsSection page="home" section="tutorials">
         <Tutorials />
       </CmsSection>
+      <HonoursTeaser />
       <CmsSection page="home" section="directory">
         <DirectoryTeaser />
       </CmsSection>

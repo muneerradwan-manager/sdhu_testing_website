@@ -3,7 +3,7 @@
 import { enterDemoCase, caseCta } from "@/lib/demo-cases";
 import { isPhone, toInternational } from "@/lib/phone";
 import { useOperation } from "@/lib/operations";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
 import { ArrowLeft, ArrowRight, BadgeCheck, Briefcase, CalendarClock, Camera, GraduationCap, PencilLine, ShieldQuestion, UserRound } from "lucide-react";
@@ -78,6 +78,10 @@ export function RegisterFlow() {
   // The six cases of the demo, whose account is created here like any pilgrim's; one tried before on this device
   // is forgotten first, so its account is created afresh
   const directOp = useOperation("hajj-direct");
+  // What he came for, from the home page's buttons: «ابدأ طلب الحج» (?for=hajj) or «التسجيل بصفة إداري» (?for=admin).
+  // The account is created as always, then he goes straight on to that form instead of the «حسابك جاهز» choices
+  const wants = useSearchParams().get("for");
+  const intent = wants === "hajj" || wants === "admin" ? wants : null;
   const lotteryOp = useOperation("hajj-lottery");
   const cases = DEMO_SCENARIOS.filter((s) => s.outcome).sort((a, b) => a.outcome! - b.outcome!);
   const pickCase = (id: string) => {
@@ -157,8 +161,21 @@ export function RegisterFlow() {
       emergencyPhone: extra.emergencyPhone || undefined,
       civil: claim ? { ...claim, at: Date.now(), status: "pending" } : undefined,
     });
-    go(5);
     confetti({ particleCount: 140, spread: 80, origin: { y: 0.4 }, colors: ["#D9C89E", "#00594F", "#289E92", "#AD9E6E"] });
+    if (intent) {
+      // Straight on to what he came for: the Hajj application (or his demo case's own way), or «التسجيل كإداري»
+      toast({
+        title: t(`أهلاً ${person?.firstName}، حسابك جاهز`, `Welcome, ${person?.firstName}. Your account is ready`),
+        body: intent === "admin" ? t("ننقلك الآن إلى التسجيل بصفة إداري.", "Taking you to registering as an administrator now.") : t("ننقلك الآن إلى طلب الحج.", "Taking you to the Hajj application now."),
+        icon: "🕋",
+        tone: "success",
+      });
+      if (intent === "admin") toAdmin();
+      else if (caseLink) goToCase();
+      else router.push("/portal/apply");
+      return;
+    }
+    go(5);
     setTimeout(
       () =>
         toast({
@@ -179,7 +196,13 @@ export function RegisterFlow() {
       portal="pilgrim"
       page="register"
       title={t("إنشاء حساب في المنصة", "Create an account on the platform")}
-      subtitle={t("حساب واحد لك في المنصة كلها: تتعلّم به في الأكاديمية، وتختار به في كل موسم أن تسجّل على الحج أو تتقدّم لصفة إدارية. لا نطلب منك إلا خمسة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "One account for the whole platform: learn in the Academy, and each season choose to register for Hajj or apply for an administrative role. We ask for just five fields; your official details come straight from the Civil Registry.")}
+      subtitle={
+        intent
+          ? intent === "admin"
+            ? t("أنشئ حسابك في المنصة أولاً، وننقلك بعده مباشرة إلى التسجيل بصفة إداري. حساب واحد لك في المنصة كلها، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "Create your account on the platform first, and we take you straight on to registering as an administrator. One account for the whole platform; your official details come straight from the Civil Registry.")
+            : t("أنشئ حسابك في المنصة أولاً، وننقلك بعده مباشرة إلى طلب الحج. حساب واحد لك في المنصة كلها، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "Create your account on the platform first, and we take you straight on to the Hajj application. One account for the whole platform; your official details come straight from the Civil Registry.")
+          : t("حساب واحد لك في المنصة كلها: تتعلّم به في الأكاديمية، وتختار به في كل موسم أن تسجّل على الحج أو تتقدّم لصفة إدارية. لا نطلب منك إلا خمسة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "One account for the whole platform: learn in the Academy, and each season choose to register for Hajj or apply for an administrative role. We ask for just five fields; your official details come straight from the Civil Registry.")
+      }
       steps={STEPS}
       step={step - 1}
       note={t("حساب واحد لكل شخص، لا نوع له: إنشاؤه متاح دائماً، وفي كل موسم تختار به الحج أو صفة إدارية، ولا تجمع بينهما في موسم واحد. وسجلّ مواسمك وتقدّمك في الأكاديمية يبقيان معك. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة.", "One account per person, with no type: you can create it at any time, and each season you choose the Hajj or an administrative role with it, never both in one season. Your record of seasons and your Academy progress stay with you. Staff accounts are created by the Administration.")}
@@ -343,7 +366,7 @@ export function RegisterFlow() {
               <Button type="submit" size="lg" className="w-full" disabled={locked}>
                 {t("إرسال رمز التحقق", "Send verification code")} <ArrowLeft className="size-5" />
               </Button>
-              <SwitchLine text={t("لديك حساب؟", "Already have an account?")} href="/login" label={t("سجّل الدخول", "Sign in")} />
+              <SwitchLine text={t("لديك حساب؟", "Already have an account?")} href={intent === "admin" ? "/login?next=%2Fportal%3Fchoose%3Dadmin" : intent === "hajj" ? "/login?next=%2Fportal%2Fapply" : "/login"} label={t("سجّل الدخول", "Sign in")} />
             </form>
           )}
 
