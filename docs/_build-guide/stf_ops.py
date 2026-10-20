@@ -47,7 +47,8 @@ def prep_pilgrim():
     p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
       s.clock = { ...(s.clock || {}), today: '2026-08-12', time: undefined }; localStorage.setItem(k, JSON.stringify(s)); }""")
     c.goto("/portal", wait=1200)
-    c.click("a:has-text('ابدأ الطلب الآن')", wait=1500)
+    # the season's question first: the Hajj (it opens the application)
+    c.click("[data-path='pilgrim']", wait=1500)
     btn("لنبدأ"); btn("التسجيل على القبول المباشر"); btn("لي أنا"); btn("داخل سوريا"); btn("نعم"); btn("من دفتر العائلة")
     btn("صوّر دفتر العائلة", wait=1400)
     p.wait_for_selector("text=من سيسافر معك؟", timeout=20000); c.settle(1000)
@@ -74,6 +75,8 @@ def prep_pilgrim():
         b.click(); c.settle(500)
     btn("وافق الجميع", wait=1200)
     btn("إلى الدفع", wait=1200)
+    # the first installment's window opens on the administration's dates: the demo opens it by simulation
+    if p.locator("main button:has-text('محاكاة: حان موعد')").count(): btn("محاكاة: حان موعد", wait=1000)
     btn("شام كاش", wait=900)
     p.locator("button:has-text('رقم عملية تجريبي')").click(); c.settle(400)
     btn("تأكيد الدفع", wait=900)

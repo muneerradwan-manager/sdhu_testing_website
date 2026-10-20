@@ -178,9 +178,8 @@ if ONLY in (None, "b"):
     s.btn("إضافة فرد إلى الكادر", 900)
     dlg = p.locator(D).last
     dlg.locator("input").first.fill("02055500123"); c.settle(700)
-    ph = dlg.locator("input[placeholder='09XXXXXXXX']")
-    if ph.count(): ph.first.fill("0933111222")
-    dlg.locator("select").nth(1).select_option(label="حمص"); c.settle(300)
+    dlg.locator("label:has-text('الهاتف') input[type=tel]").first.fill("0933111222")
+    dlg.locator("label:has-text('الفرع') select").first.select_option(label="حمص"); c.settle(300)
     dlg.locator("textarea").first.fill("بكتاب فرع حمص رقم 112: معاون من خارج التسجيل الموسمي"); c.settle(300)
     c.shot("cadre-add", "إضافة فرد إلى الكادر: من السجل المدني بالرقم الوطني، بصفته وفرعه وسبب إضافته", hl=[(f"{D} button:has-text('إضافة')", "")], section=S_CADRE)
     esc(c, p)
@@ -216,13 +215,17 @@ def pick_option(sel, text, fallback=1):
 
 
 if ONLY in (None, "c"):
-    s, c, p = start(today="2026-11-06", time="10:00")
+    # مروان الحلبي passed both tests (adm_a.py): a head without a group, formed at the office as the old requests wait
+    s, c, p = start(STATE / "state-passed.json", "2026-11-06", "10:00")
     s.nav("تشكيل المجموعات", 2000)
     c.shot("grp-list", "مجموعات الموسم: «تشكيل مجموعة» للتشكيل في المكتب، وطلب قديم ينتظر قرارك", hl=[("main button:has-text('تشكيل مجموعة')", "1"), ("main tr:has-text('اللطيف') button:has-text('مراجعة واعتماد')", "2")], section=S_GRP)
     # a group head at the office with his team
     s.btn("تشكيل مجموعة", 1200)
     dlg = p.locator(D).last
-    dlg.locator("select").first.select_option(index=1); c.settle(800)
+    # مروان, not a head whose request waits (اللطيف's is reviewed below)
+    heads = dlg.locator("select").first
+    texts = heads.locator("option").all_inner_texts()
+    heads.select_option(index=next(i for i, t in enumerate(texts) if "مروان" in t)); c.settle(800)
     cat = dlg.locator("select").nth(1)
     if not cat.input_value():
         cat.select_option(index=2); c.settle(600)
@@ -282,7 +285,7 @@ if ONLY in (None, "d"):
     c.shot("cl-desk-sort", "توزيع المنسقين والموجّهات على المجموعات، كلٌّ ضمن حدّه من الوحدات", hl=[("main button:has-text('توزيع تلقائي ضمن الحدود')", "")], section=S_CL)
     if auto.is_enabled():
         auto.click(); c.settle(1000)
-    side = p.locator("main aside").first
+    side = p.locator("main aside:has-text('سدّد رسم التكتل')").last
     side.locator("label:has-text('سدّد رسم التكتل') input").first.check(); c.settle(300)
     side.locator("input[type=file][aria-label='عقد التكتل']").set_input_files(str(CONTRACTS / "cluster-contract.svg")); c.settle(1800)
     side.locator("label:has-text('وقّع العقدَ') input").first.check(); c.settle(300)

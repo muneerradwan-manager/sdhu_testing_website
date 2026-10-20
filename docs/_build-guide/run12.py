@@ -55,6 +55,9 @@ def session(storage=None):
         p.get_by_role("button", name=text, exact=exact).first.click(); c.settle(wait)
     def login(name):
         c.goto("/login", wait=1200)
+        # the cases for trying the registration form itself are under «حالات أخرى»
+        if not p.locator(f"button:has-text('{name}')").count():
+            p.locator("button:has-text('حالات أخرى لتجربة نموذج التسجيل')").click(); c.settle(500)
         p.locator(f"button:has-text('{name}')").first.click(); c.settle(2500)
     def setdate(d):
         # The season runs on its dates (the date bar at the foot of the screen)
@@ -67,6 +70,8 @@ def session(storage=None):
         if p.get_by_role("button", name="وافق الجميع").count(): btn("وافق الجميع", wait=1200)
     def pay_and_submit():
         btn("إلى الدفع", wait=1000)
+        # the first installment's window opens on the administration's dates: the demo opens it by simulation
+        if p.locator("main button:has-text('محاكاة: حان موعد')").count(): btn("محاكاة: حان موعد", wait=1000)
         btn("شام كاش", wait=700)
         p.locator("button:has-text('رقم عملية تجريبي')").click(); c.settle(300)
         btn("تأكيد الدفع", wait=500)

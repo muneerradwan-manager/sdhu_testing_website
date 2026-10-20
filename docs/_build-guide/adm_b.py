@@ -164,7 +164,7 @@ c.goto("/portal/report", wait=1800)
 c.shot("field-report", "بلاغ إلى غرفة العمليات", hl=[("aside nav a[href='/portal/report']", "")], section=S)
 c.goto("/portal/my-day", wait=1800)
 c.shot("field-daily", "يومي والتقرير اليومي", hl=[("aside nav a[href='/portal/my-day']", "")], section=S)
-b = p.locator("button:has-text('إرسال التقرير بضغطة زر')").first
+b = p.locator("button:has-text('إرسال التقرير إلى رئيس التكتل')").first
 if b.count():
     b.scroll_into_view_if_needed(); b.click(); c.settle(1200)
     c.shot("field-daily-sent", "أُرسل التقرير اليومي", section=S)

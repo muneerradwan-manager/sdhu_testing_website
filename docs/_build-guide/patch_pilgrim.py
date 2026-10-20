@@ -386,8 +386,26 @@ for n, s in enumerate(pictured, 1):
 # ───────────────────────── the FAQ and the tables ─────────────────────────
 
 paras = list(doc.element.body.iter(qn("w:p")))
-assert len(O.FAQ) == len(C.FAQ), "FAQ entries added or removed: not handled"
-for (oq, oa), (nq, na) in zip(O.FAQ, C.FAQ):
+faq_at = lambda q: next((k for k, p_ in enumerate(paras) if ptext(p_) == norm(q)), None)
+# entries kept or changed in place pair up; an added entry is cloned from its neighbour's question and answer
+faq_pairs, faq_added = [], []
+for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, [q for q, _ in O.FAQ], [q for q, _ in C.FAQ], autojunk=False).get_opcodes():
+    if tag == "equal" or (tag == "replace" and i2 - i1 == j2 - j1): faq_pairs += list(zip(O.FAQ[i1:i2], C.FAQ[j1:j2]))
+    elif tag == "insert": faq_added.append((i1, C.FAQ[j1:j2]))
+    else: raise AssertionError(f"FAQ entries removed or reshaped ({tag}): not handled")
+for i1, entries in faq_added:
+    k = faq_at(O.FAQ[max(i1 - 1, 0)][0])
+    if k is None: missed.append("faq anchor " + O.FAQ[max(i1 - 1, 0)][0]); continue
+    q_t, a_t = paras[k], paras[k + 1]
+    prev = a_t if i1 > 0 else None
+    for nq, na in entries:
+        q_e, a_e = copy.deepcopy(q_t), copy.deepcopy(a_t)
+        set_para(q_e, nq); set_para(a_e, na)
+        if prev is None: q_t.addprevious(q_e)
+        else: prev.addnext(q_e)
+        q_e.addnext(a_e); prev = a_e
+    print("faq added:", [q for q, _ in entries])
+for (oq, oa), (nq, na) in faq_pairs:
     if (oq, oa) == (nq, na): continue
     i = next((k for k, p_ in enumerate(paras) if ptext(p_) == norm(oq)), None)
     if i is None: missed.append("faq " + oq); continue

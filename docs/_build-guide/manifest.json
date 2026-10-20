@@ -9,1600 +9,1816 @@
  },
  {
   "n": 2,
-  "key": "home-live",
-  "file": "002-home-live.png",
-  "caption": "مباشر من الحرمين: البث الرسمي من المسجد الحرام أو المسجد النبوي",
+  "key": "home-hero-closed",
+  "file": "002-home-hero-closed.png",
+  "caption": "حين لا يكون التسجيل مفتوحاً: «تسجيل الدخول» في الواجهة مكان زرّي التسجيل، ولا يتكرر في الشريط",
   "section": "A",
   "note": null
  },
  {
   "n": 3,
-  "key": "home-services",
-  "file": "003-home-services.png",
-  "caption": "بطاقات الخدمات في الصفحة الرئيسية",
+  "key": "home-visitor",
+  "file": "003-home-visitor.png",
+  "caption": "«زائر» في الشريط: إنشاء الحساب متاح دائماً، والتسجيل انتهى لهذا الموسم",
   "section": "A",
   "note": null
  },
  {
   "n": 4,
-  "key": "home-calendar",
-  "file": "004-home-calendar.png",
-  "caption": "تقويم الموسم في الصفحة الرئيسية",
+  "key": "home-live",
+  "file": "004-home-live.png",
+  "caption": "مباشر من الحرمين: البث الرسمي من المسجد الحرام أو المسجد النبوي",
   "section": "A",
   "note": null
  },
  {
   "n": 5,
-  "key": "home-scale",
-  "file": "005-home-scale.png",
-  "caption": "التحكم بحجم العرض في الشريط العلوي",
+  "key": "home-tutorials",
+  "file": "005-home-tutorials.png",
+  "caption": "الفيديوهات التعليمية: تبويب «زائر ثم حاج» وتبويب «إداري»",
   "section": "A",
   "note": null
  },
  {
   "n": 6,
-  "key": "home-theme",
-  "file": "006-home-theme.png",
-  "caption": "الوضع الداكن: زر الهلال في الشريط العلوي يحوّل المنصة إلى ألوان داكنة",
+  "key": "home-honours",
+  "file": "006-home-honours.png",
+  "caption": "نجوم الموسم: لوحة شرف الموسم الماضي، وسطر الموسم الجاري",
   "section": "A",
   "note": null
  },
  {
   "n": 7,
-  "key": "home-more-menu",
-  "file": "007-home-more-menu.png",
-  "caption": "قائمة «المزيد» في شريط التنقل",
+  "key": "home-directory",
+  "file": "007-home-directory.png",
+  "caption": "لمحة من التكتلات والمجموعات، و«عرض كل التكتلات والمجموعات»",
   "section": "A",
   "note": null
  },
  {
   "n": 8,
-  "key": "tour-1",
-  "file": "008-tour-1.png",
-  "caption": "الجولة التعريفية — الخطوة الأولى",
+  "key": "home-calendar",
+  "file": "008-home-calendar.png",
+  "caption": "تقويم الموسم في الصفحة الرئيسية",
   "section": "A",
   "note": null
  },
  {
   "n": 9,
-  "key": "tour-2",
-  "file": "009-tour-2.png",
-  "caption": "الجولة التعريفية — البوابة العامة",
+  "key": "home-scale",
+  "file": "009-home-scale.png",
+  "caption": "التحكم بحجم العرض في الشريط العلوي",
   "section": "A",
   "note": null
  },
  {
   "n": 10,
-  "key": "conditions-top",
-  "file": "010-conditions-top.png",
-  "caption": "صفحة شروط التسجيل والتكاليف",
+  "key": "home-theme",
+  "file": "010-home-theme.png",
+  "caption": "الوضع الداكن: زر الهلال في الشريط العلوي يحوّل المنصة إلى ألوان داكنة",
   "section": "A",
   "note": null
  },
  {
   "n": 11,
-  "key": "conditions-precheck",
-  "file": "011-conditions-precheck.png",
-  "caption": "فحص الأهلية المبدئي",
+  "key": "home-more-menu",
+  "file": "011-home-more-menu.png",
+  "caption": "قائمة «المزيد» في شريط التنقل",
   "section": "A",
   "note": null
  },
  {
   "n": 12,
-  "key": "news",
-  "file": "012-news.png",
-  "caption": "صفحة الأخبار",
+  "key": "tour-1",
+  "file": "012-tour-1.png",
+  "caption": "الجولة التعريفية — الخطوة الأولى",
   "section": "A",
   "note": null
  },
  {
   "n": 13,
-  "key": "prayer",
-  "file": "013-prayer.png",
-  "caption": "مواقيت الصلاة واتجاه القبلة",
+  "key": "tour-2",
+  "file": "013-tour-2.png",
+  "caption": "الجولة التعريفية — نجوم الموسم",
   "section": "A",
   "note": null
  },
  {
   "n": 14,
-  "key": "guide-top",
-  "file": "014-guide-top.png",
-  "caption": "دليل المناسك — أقسام الدليل",
+  "key": "conditions-top",
+  "file": "014-conditions-top.png",
+  "caption": "صفحة شروط التسجيل والتكاليف",
   "section": "A",
   "note": null
  },
  {
   "n": 15,
-  "key": "guide-counter",
-  "file": "015-guide-counter.png",
-  "caption": "عدّاد الطواف والسعي",
+  "key": "conditions-ruler",
+  "file": "015-conditions-ruler.png",
+  "caption": "المسطرة التفاعلية: القبول المباشر والقرعة",
   "section": "A",
   "note": null
  },
  {
   "n": 16,
-  "key": "guide-bag",
-  "file": "016-guide-bag.png",
-  "caption": "حقيبة الحاج والصحة",
+  "key": "conditions-precheck",
+  "file": "016-conditions-precheck.png",
+  "caption": "فحص الأهلية المبدئي",
   "section": "A",
   "note": null
  },
  {
   "n": 17,
-  "key": "results-top",
-  "file": "017-results-top.png",
-  "caption": "صفحة نتائج القبول",
+  "key": "faq-page",
+  "file": "017-faq-page.png",
+  "caption": "صفحة الأسئلة الشائعة",
   "section": "A",
   "note": null
  },
  {
   "n": 18,
-  "key": "results-draw",
-  "file": "018-results-draw.png",
-  "caption": "جدول نتائج القرعة: سنوات الميلاد وأشهرها المسحوبة",
+  "key": "news",
+  "file": "018-news.png",
+  "caption": "صفحة الأخبار",
   "section": "A",
   "note": null
  },
  {
   "n": 19,
-  "key": "results-search",
-  "file": "019-results-search.png",
-  "caption": "البحث عن النتيجة بالرقم الوطني",
+  "key": "news-comments",
+  "file": "019-news-comments.png",
+  "caption": "التعليقات تحت الخبر: تعليقك باسمك، وزر حذفه",
   "section": "A",
   "note": null
  },
  {
   "n": 20,
-  "key": "verify-entity",
-  "file": "020-verify-entity.png",
-  "caption": "التحقق من جهة معتمدة",
+  "key": "prayer",
+  "file": "020-prayer.png",
+  "caption": "مواقيت الصلاة واتجاه القبلة، و«مواقيت موقعي» بين المدن",
   "section": "A",
   "note": null
  },
  {
   "n": 21,
-  "key": "verify-document",
-  "file": "021-verify-document.png",
-  "caption": "التحقق من إيصال أو شهادة",
+  "key": "guide-top",
+  "file": "021-guide-top.png",
+  "caption": "دليل المناسك — أقسام الدليل",
   "section": "A",
   "note": null
  },
  {
   "n": 22,
-  "key": "verify-directory",
-  "file": "022-verify-directory.png",
-  "caption": "التكتلات والمجموعات: التكتلات المعتمدة برؤسائها وفرقها ومجموعاتها",
+  "key": "guide-counter",
+  "file": "022-guide-counter.png",
+  "caption": "عدّاد الطواف والسعي",
   "section": "A",
   "note": null
  },
  {
   "n": 23,
-  "key": "about",
-  "file": "023-about.png",
-  "caption": "صفحة من نحن",
+  "key": "guide-bag",
+  "file": "023-guide-bag.png",
+  "caption": "حقيبة الحاج والصحة",
   "section": "A",
   "note": null
  },
  {
   "n": 24,
-  "key": "umrah",
-  "file": "024-umrah.png",
-  "caption": "صفحة العمرة (قريباً)",
+  "key": "results-top",
+  "file": "024-results-top.png",
+  "caption": "صفحة نتائج القبول",
   "section": "A",
   "note": null
  },
  {
   "n": 25,
-  "key": "tour-3d",
-  "file": "025-tour-3d.png",
-  "caption": "جولة ثلاثية الأبعاد: اختر المكان ثم اضغط «عرض المجسم ثلاثي الأبعاد»",
+  "key": "results-draw",
+  "file": "025-results-draw.png",
+  "caption": "جدول نتائج القرعة: سنوات الميلاد وأشهرها المسحوبة",
   "section": "A",
   "note": null
  },
  {
   "n": 26,
-  "key": "academy-guest",
-  "file": "026-academy-guest.png",
-  "caption": "الأكاديمية للزائر دون حساب",
+  "key": "results-search",
+  "file": "026-results-search.png",
+  "caption": "البحث عن النتيجة بالرقم الوطني",
   "section": "A",
   "note": null
  },
  {
   "n": 27,
+  "key": "verify-entity",
+  "file": "027-verify-entity.png",
+  "caption": "التحقق من جهة معتمدة",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 28,
+  "key": "verify-document",
+  "file": "028-verify-document.png",
+  "caption": "التحقق من إيصال أو شهادة",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 29,
+  "key": "verify-directory",
+  "file": "029-verify-directory.png",
+  "caption": "التكتلات والمجموعات: التكتلات المعتمدة برؤسائها وفرقها ومجموعاتها",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 30,
+  "key": "about",
+  "file": "030-about.png",
+  "caption": "صفحة من نحن",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 31,
+  "key": "umrah",
+  "file": "031-umrah.png",
+  "caption": "صفحة العمرة (قريباً)",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 32,
+  "key": "tour-3d",
+  "file": "032-tour-3d.png",
+  "caption": "جولة ثلاثية الأبعاد: اختر المكان ثم اضغط «عرض المجسم ثلاثي الأبعاد»",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 33,
+  "key": "academy-guest",
+  "file": "033-academy-guest.png",
+  "caption": "الأكاديمية للزائر دون حساب",
+  "section": "A",
+  "note": null
+ },
+ {
+  "n": 34,
   "key": "reg-1-empty",
-  "file": "027-reg-1-empty.png",
+  "file": "034-reg-1-empty.png",
   "caption": "إنشاء حساب — البيانات الأساسية",
   "section": "B",
   "note": null
  },
  {
-  "n": 28,
-  "key": "reg-1-errors",
-  "file": "028-reg-1-errors.png",
-  "caption": "رسائل التحقق عند ترك الحقول فارغة",
-  "section": "B",
-  "note": null
- },
- {
-  "n": 29,
-  "key": "reg-1-filled",
-  "file": "029-reg-1-filled.png",
-  "caption": "البيانات الأساسية بعد التعبئة",
-  "section": "B",
-  "note": null
- },
- {
-  "n": 30,
-  "key": "reg-2-otp",
-  "file": "030-reg-2-otp.png",
-  "caption": "رمز التحقق — الرسالة النصية تظهر في الأعلى",
-  "section": "B",
-  "note": null
- },
- {
-  "n": 31,
-  "key": "reg-2-otp-filled",
-  "file": "031-reg-2-otp-filled.png",
-  "caption": "بعد إدخال الرمز",
-  "section": "B",
-  "note": null
- },
- {
-  "n": 32,
-  "key": "reg-3-fetching",
-  "file": "032-reg-3-fetching.png",
-  "caption": "جلب البيانات من الشؤون المدنية",
-  "section": "B",
-  "note": null
- },
- {
-  "n": 33,
-  "key": "reg-3-data",
-  "file": "033-reg-3-data.png",
-  "caption": "بياناتك كما وردت من الشؤون المدنية",
-  "section": "B",
-  "note": null
- },
- {
-  "n": 34,
-  "key": "reg-4-extra",
-  "file": "034-reg-4-extra.png",
-  "caption": "معلومات إضافية اختيارية",
-  "section": "B",
-  "note": null
- },
- {
   "n": 35,
-  "key": "reg-4-extra-filled",
-  "file": "035-reg-4-extra-filled.png",
-  "caption": "بعد إدخال جهة الاتصال للطوارئ",
+  "key": "reg-demo",
+  "file": "035-reg-demo.png",
+  "caption": "بيانات تجريبية لإنشاء حساب: الحالات الست، وأشخاص للحج، وأشخاص للصفات الإدارية",
   "section": "B",
   "note": null
  },
  {
   "n": 36,
-  "key": "reg-5-done",
-  "file": "036-reg-5-done.png",
-  "caption": "تم إنشاء الحساب",
+  "key": "reg-1-errors",
+  "file": "036-reg-1-errors.png",
+  "caption": "رسائل التحقق عند ترك الحقول فارغة",
   "section": "B",
   "note": null
  },
  {
   "n": 37,
-  "key": "logout-home",
-  "file": "037-logout-home.png",
-  "caption": "بعد تسجيل الخروج تظهر صفحة دخول الحجاج",
-  "section": "C",
+  "key": "reg-1-filled",
+  "file": "037-reg-1-filled.png",
+  "caption": "البيانات الأساسية بعد التعبئة",
+  "section": "B",
   "note": null
  },
  {
   "n": 38,
+  "key": "reg-2-otp",
+  "file": "038-reg-2-otp.png",
+  "caption": "رمز التحقق — الرسالة النصية تظهر في الأعلى",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 39,
+  "key": "reg-2-otp-filled",
+  "file": "039-reg-2-otp-filled.png",
+  "caption": "بعد إدخال الرمز",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 40,
+  "key": "reg-3-fetching",
+  "file": "040-reg-3-fetching.png",
+  "caption": "جلب البيانات من الشؤون المدنية",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 41,
+  "key": "reg-3-data",
+  "file": "041-reg-3-data.png",
+  "caption": "بياناتك كما وردت من الشؤون المدنية",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 42,
+  "key": "reg-3-correction",
+  "file": "042-reg-3-correction.png",
+  "caption": "تصحيح البيانات المدنية: الحقل الخاطئ وقيمته الصحيحة، والوثيقة",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 43,
+  "key": "reg-4-extra",
+  "file": "043-reg-4-extra.png",
+  "caption": "معلومات إضافية اختيارية",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 44,
+  "key": "reg-4-extra-filled",
+  "file": "044-reg-4-extra-filled.png",
+  "caption": "بعد إدخال جهة الاتصال للطوارئ",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 45,
+  "key": "reg-5-done",
+  "file": "045-reg-5-done.png",
+  "caption": "تم إنشاء الحساب: الحج أو صفة إدارية أو ملفي",
+  "section": "B",
+  "note": null
+ },
+ {
+  "n": 46,
+  "key": "logout-home",
+  "file": "046-logout-home.png",
+  "caption": "بعد تسجيل الخروج تظهر صفحة تسجيل الدخول",
+  "section": "C",
+  "note": null
+ },
+ {
+  "n": 47,
   "key": "login-empty",
-  "file": "038-login-empty.png",
+  "file": "047-login-empty.png",
   "caption": "صفحة تسجيل الدخول",
   "section": "C",
   "note": null
  },
  {
-  "n": 39,
+  "n": 48,
   "key": "login-error",
-  "file": "039-login-error.png",
+  "file": "048-login-error.png",
   "caption": "كلمة مرور غير صحيحة",
   "section": "C",
   "note": null
  },
  {
-  "n": 40,
+  "n": 49,
   "key": "login-otp",
-  "file": "040-login-otp.png",
+  "file": "049-login-otp.png",
   "caption": "رمز التحقق عند الدخول",
   "section": "C",
   "note": null
  },
  {
-  "n": 41,
+  "n": 50,
   "key": "login-done",
-  "file": "041-login-done.png",
+  "file": "050-login-done.png",
   "caption": "بعد الدخول: العودة إلى ملفي",
   "section": "C",
   "note": null
  },
  {
-  "n": 42,
+  "n": 51,
   "key": "login-demo",
-  "file": "042-login-demo.png",
+  "file": "051-login-demo.png",
   "caption": "حسابات تجريبية تحت بطاقة الدخول (للعرض)",
   "section": "C",
   "note": null
  },
  {
-  "n": 43,
+  "n": 52,
   "key": "portal-sidebar",
-  "file": "043-portal-sidebar.png",
+  "file": "052-portal-sidebar.png",
   "caption": "القائمة الجانبية: صفحات حسابك، والمقفلة منها بما يفتحها",
   "section": "D",
   "note": null
  },
  {
-  "n": 44,
+  "n": 53,
+  "key": "portal-journey",
+  "file": "053-portal-journey.png",
+  "caption": "برنامج الرحلة: مراحل الموسم بمواعيدها، وما تفعله في كل منها",
+  "section": "D",
+  "note": null
+ },
+ {
+  "n": 54,
   "key": "portal-home",
-  "file": "044-portal-home.png",
-  "caption": "ملفي — الصفحة الرئيسية لحساب الحاج",
+  "file": "054-portal-home.png",
+  "caption": "ملفي — بطاقتك وبطاقة الموسم",
   "section": "D",
   "note": null
  },
  {
-  "n": 45,
+  "n": 55,
+  "key": "portal-member",
+  "file": "055-portal-member.png",
+  "caption": "قبل أن تختار: قائمة العضو في المنصة",
+  "section": "D",
+  "note": null
+ },
+ {
+  "n": 56,
+  "key": "portal-season-choice",
+  "file": "056-portal-season-choice.png",
+  "caption": "ما تفعله هذا الموسم: أتابع كحاج، أو أفتح ملفاً إدارياً جديداً",
+  "section": "D",
+  "note": null
+ },
+ {
+  "n": 57,
+  "key": "portal-season-admin",
+  "file": "057-portal-season-admin.png",
+  "caption": "بعد اختيار المسار الإداري: بطاقته، و«منصة الإداريين» في القائمة",
+  "section": "D",
+  "note": null
+ },
+ {
+  "n": 58,
   "key": "portal-home-2",
-  "file": "045-portal-home-2.png",
-  "caption": "ملفي — سجل المواسم والإشعارات وروابط سريعة",
+  "file": "058-portal-home-2.png",
+  "caption": "ملفي — أسفل بطاقة بياناتك",
   "section": "D",
   "note": null
  },
  {
-  "n": 46,
+  "n": 59,
+  "key": "portal-history",
+  "file": "059-portal-history.png",
+  "caption": "صفحة سجل المواسم: موسم 1446 مفتوحاً",
+  "section": "D",
+  "note": null
+ },
+ {
+  "n": 60,
   "key": "apply-cta",
-  "file": "046-apply-cta.png",
+  "file": "060-apply-cta.png",
   "caption": "من ملفي: زر «ابدأ الطلب الآن»",
   "section": "E",
   "note": null
  },
  {
-  "n": 47,
+  "n": 61,
   "key": "apply-intro",
-  "file": "047-apply-intro.png",
+  "file": "061-apply-intro.png",
   "caption": "شاشة البداية: ما تحتاجه قبل التقديم",
   "section": "E",
   "note": null
  },
  {
-  "n": 48,
+  "n": 62,
   "key": "apply-track",
-  "file": "048-apply-track.png",
+  "file": "062-apply-track.png",
   "caption": "اختيار نوع التسجيل: القبول المباشر أو القرعة",
   "section": "E",
   "note": null
  },
  {
-  "n": 49,
+  "n": 63,
   "key": "apply-forwhom",
-  "file": "049-apply-forwhom.png",
+  "file": "063-apply-forwhom.png",
   "caption": "لمن هذا الطلب؟",
   "section": "E",
   "note": null
  },
  {
-  "n": 50,
+  "n": 64,
   "key": "apply-residence",
-  "file": "050-apply-residence.png",
+  "file": "064-apply-residence.png",
   "caption": "أين تقيم حالياً؟ (يحدد المكتب تلقائياً)",
   "section": "E",
   "note": null
  },
  {
-  "n": 51,
+  "n": 65,
   "key": "apply-companions",
-  "file": "051-apply-companions.png",
+  "file": "065-apply-companions.png",
   "caption": "هل تود أن تصطحب أحداً معك؟",
   "section": "E",
   "note": null
  },
  {
-  "n": 52,
+  "n": 66,
   "key": "apply-method",
-  "file": "052-apply-method.png",
+  "file": "066-apply-method.png",
   "caption": "طريقة إضافة المرافقين",
   "section": "E",
   "note": null
  },
  {
-  "n": 53,
+  "n": 67,
   "key": "apply-booklet-number",
-  "file": "053-apply-booklet-number.png",
+  "file": "067-apply-booklet-number.png",
   "caption": "إدخال رقم دفتر العائلة أو تصويره",
   "section": "E",
   "note": null
  },
  {
-  "n": 54,
+  "n": 68,
   "key": "apply-booklet-scan",
-  "file": "054-apply-booklet-scan.png",
+  "file": "068-apply-booklet-scan.png",
   "caption": "تصوير دفتر العائلة (قراءة ضوئية)",
   "section": "E",
   "note": null
  },
  {
-  "n": 55,
+  "n": 69,
   "key": "apply-booklet-members",
-  "file": "055-apply-booklet-members.png",
+  "file": "069-apply-booklet-members.png",
   "caption": "أفراد الدفتر كما وردوا من الشؤون المدنية",
   "section": "E",
   "note": null
  },
  {
-  "n": 56,
+  "n": 70,
   "key": "apply-booklet-selected",
-  "file": "056-apply-booklet-selected.png",
+  "file": "070-apply-booklet-selected.png",
   "caption": "اختيار من سيسافر: الزوجة والابن",
   "section": "E",
   "note": null
  },
  {
-  "n": 57,
+  "n": 71,
   "key": "apply-review-1",
-  "file": "057-apply-review-1.png",
+  "file": "071-apply-review-1.png",
   "caption": "مراجعة أفراد الطلب",
   "section": "E",
   "note": null
  },
  {
-  "n": 58,
+  "n": 72,
   "key": "apply-elig-fail",
-  "file": "058-apply-elig-fail.png",
+  "file": "072-apply-elig-fail.png",
   "caption": "فحص الأهلية: صاحب الطلب دون عمر القبول المباشر",
   "section": "E",
   "note": null
  },
  {
-  "n": 59,
-  "key": "apply-elig-fixes",
-  "file": "059-apply-elig-fixes.png",
-  "caption": "الحلول المقترحة لتعديل الطلب",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 60,
-  "key": "apply-adder-id",
-  "file": "060-apply-adder-id.png",
-  "caption": "إضافة مرافق بالرقم الوطني (لوحة أرقام كبيرة)",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 61,
-  "key": "apply-adder-filled",
-  "file": "061-apply-adder-filled.png",
-  "caption": "بعد إدخال الرقم الوطني",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 62,
-  "key": "apply-adder-loading",
-  "file": "062-apply-adder-loading.png",
-  "caption": "الاستعلام من الشؤون المدنية",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 63,
-  "key": "apply-adder-confirm",
-  "file": "063-apply-adder-confirm.png",
-  "caption": "تأكيد الشخص الذي وجدناه",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 64,
-  "key": "apply-adder-relation",
-  "file": "064-apply-adder-relation.png",
-  "caption": "ما صلة القرابة؟",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 65,
-  "key": "apply-adder-verified",
-  "file": "065-apply-adder-verified.png",
-  "caption": "الشؤون المدنية تؤكد صلة القرابة",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 66,
-  "key": "apply-applicant-moved",
-  "file": "066-apply-applicant-moved.png",
-  "caption": "أصبح الطلب باسم خديجة لأنها الأكبر سناً",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 67,
-  "key": "apply-elig-elderly",
-  "file": "067-apply-elig-elderly.png",
-  "caption": "كبيرة السن تحتاج مرافقاً مسمّى",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 68,
-  "key": "apply-elderly-pick",
-  "file": "068-apply-elderly-pick.png",
-  "caption": "اختيار مرافق كبير السن",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 69,
-  "key": "apply-elderly-done",
-  "file": "069-apply-elderly-done.png",
-  "caption": "تم تحديد المرافق",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 70,
-  "key": "apply-elig-pass",
-  "file": "070-apply-elig-pass.png",
-  "caption": "جميع أفراد الطلب مستوفون للشروط",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 71,
-  "key": "apply-elig-pass-2",
-  "file": "071-apply-elig-pass-2.png",
-  "caption": "تفاصيل الفحص لكل فرد وشروط الطلب ككل",
-  "section": "E",
-  "note": null
- },
- {
-  "n": 72,
-  "key": "apply-consents",
-  "file": "072-apply-consents.png",
-  "caption": "طلبات الموافقة أُرسلت إلى أفراد الطلب",
-  "section": "E",
-  "note": null
- },
- {
   "n": 73,
-  "key": "apply-consents-later",
-  "file": "073-apply-consents-later.png",
-  "caption": "يمكنك الحفظ والعودة لاحقاً",
+  "key": "apply-elig-sim",
+  "file": "073-apply-elig-sim.png",
+  "caption": "للتجربة: «محاكاة: اعتبر الشرط محققاً للتجربة» تحت كل شرط لم يتحقق",
   "section": "E",
   "note": null
  },
  {
   "n": 74,
-  "key": "portal-draft",
-  "file": "074-portal-draft.png",
-  "caption": "ملفي: طلب محفوظ لم يُقدَّم بعد",
+  "key": "apply-elig-fixes",
+  "file": "074-apply-elig-fixes.png",
+  "caption": "الحلول المقترحة لتعديل الطلب",
   "section": "E",
   "note": null
  },
  {
   "n": 75,
-  "key": "apply-resume",
-  "file": "075-apply-resume.png",
-  "caption": "العودة إلى الطلب من حيث توقفت",
+  "key": "apply-adder-id",
+  "file": "075-apply-adder-id.png",
+  "caption": "إضافة مرافق بالرقم الوطني (لوحة أرقام كبيرة)",
   "section": "E",
   "note": null
  },
  {
   "n": 76,
-  "key": "apply-consents-all",
-  "file": "076-apply-consents-all.png",
-  "caption": "وافق جميع الأفراد",
+  "key": "apply-adder-filled",
+  "file": "076-apply-adder-filled.png",
+  "caption": "بعد إدخال الرقم الوطني",
   "section": "E",
   "note": null
  },
  {
   "n": 77,
-  "key": "apply-summary",
-  "file": "077-apply-summary.png",
-  "caption": "ملخص الطلب قبل الدفع",
+  "key": "apply-adder-loading",
+  "file": "077-apply-adder-loading.png",
+  "caption": "الاستعلام من الشؤون المدنية",
   "section": "E",
   "note": null
  },
  {
   "n": 78,
-  "key": "apply-summary-2",
-  "file": "078-apply-summary-2.png",
-  "caption": "ماذا يحدث بعد القبول؟ والمبلغ المطلوب الآن",
+  "key": "apply-adder-confirm",
+  "file": "078-apply-adder-confirm.png",
+  "caption": "تأكيد الشخص الذي وجدناه",
   "section": "E",
   "note": null
  },
  {
   "n": 79,
-  "key": "apply-pay-methods",
-  "file": "079-apply-pay-methods.png",
-  "caption": "اختيار طريقة الدفع",
+  "key": "apply-adder-relation",
+  "file": "079-apply-adder-relation.png",
+  "caption": "ما صلة القرابة؟",
   "section": "E",
   "note": null
  },
  {
   "n": 80,
-  "key": "apply-pay-bank",
-  "file": "080-apply-pay-bank.png",
-  "caption": "الدفع في المصرف المعتمد ورفع إشعار الدفع",
+  "key": "apply-adder-verified",
+  "file": "080-apply-adder-verified.png",
+  "caption": "الشؤون المدنية تؤكد صلة القرابة",
   "section": "E",
   "note": null
  },
  {
   "n": 81,
-  "key": "apply-pay-shamcash",
-  "file": "081-apply-pay-shamcash.png",
-  "caption": "الدفع عبر شام كاش",
+  "key": "apply-applicant-moved",
+  "file": "081-apply-applicant-moved.png",
+  "caption": "أصبح الطلب باسم خديجة لأنها الأكبر سناً",
   "section": "E",
   "note": null
  },
  {
   "n": 82,
-  "key": "apply-pay-shamcash-tx",
-  "file": "082-apply-pay-shamcash-tx.png",
-  "caption": "إدخال رقم العملية ثم تأكيد الدفع",
+  "key": "apply-elig-elderly",
+  "file": "082-apply-elig-elderly.png",
+  "caption": "كبيرة السن تحتاج مرافقاً مسمّى",
   "section": "E",
   "note": null
  },
  {
   "n": 83,
-  "key": "apply-pay-processing",
-  "file": "083-apply-pay-processing.png",
-  "caption": "التحقق من العملية",
+  "key": "apply-elderly-pick",
+  "file": "083-apply-elderly-pick.png",
+  "caption": "اختيار مرافق كبير السن",
   "section": "E",
   "note": null
  },
  {
   "n": 84,
-  "key": "apply-receipt",
-  "file": "084-apply-receipt.png",
-  "caption": "الإيصال الرقمي لرسم التسجيل والدفعة الأولى",
+  "key": "apply-elderly-done",
+  "file": "084-apply-elderly-done.png",
+  "caption": "تم تحديد المرافق",
   "section": "E",
   "note": null
  },
  {
   "n": 85,
-  "key": "track-submitted",
-  "file": "085-track-submitted.png",
-  "caption": "استلمنا طلبك — الإيصال والمكتب",
-  "section": "F",
+  "key": "apply-elig-pass",
+  "file": "085-apply-elig-pass.png",
+  "caption": "جميع أفراد الطلب مستوفون للشروط",
+  "section": "E",
   "note": null
  },
  {
   "n": 86,
-  "key": "apply-existing",
-  "file": "086-apply-existing.png",
-  "caption": "لديك طلب مُقدَّم بالفعل (طلب واحد لكل شخص)",
-  "section": "F",
+  "key": "apply-elig-pass-2",
+  "file": "086-apply-elig-pass-2.png",
+  "caption": "تفاصيل الفحص لكل فرد وشروط الطلب ككل",
+  "section": "E",
   "note": null
  },
  {
   "n": 87,
-  "key": "other-id",
-  "file": "087-other-id.png",
-  "caption": "طلب لشخص آخر: أدخل رقمه الوطني",
+  "key": "apply-consents",
+  "file": "087-apply-consents.png",
+  "caption": "طلبات الموافقة أُرسلت إلى أفراد الطلب",
   "section": "E",
   "note": null
  },
  {
   "n": 88,
-  "key": "other-confirm",
-  "file": "088-other-confirm.png",
-  "caption": "تأكيد صاحب الطلب",
+  "key": "apply-consents-later",
+  "file": "088-apply-consents-later.png",
+  "caption": "يمكنك الحفظ والعودة لاحقاً",
   "section": "E",
   "note": null
  },
  {
   "n": 89,
-  "key": "other-otp",
-  "file": "089-other-otp.png",
-  "caption": "رمز الموافقة يصل إلى هاتف صاحب الطلب",
+  "key": "portal-draft",
+  "file": "089-portal-draft.png",
+  "caption": "ملفي: طلب محفوظ لم يُقدَّم بعد",
   "section": "E",
   "note": null
  },
  {
   "n": 90,
-  "key": "other-residence",
-  "file": "090-other-residence.png",
-  "caption": "بعد الموافقة: أين يقيم صاحب الطلب؟",
+  "key": "apply-resume",
+  "file": "090-apply-resume.png",
+  "caption": "العودة إلى الطلب من حيث توقفت",
   "section": "E",
   "note": null
  },
  {
   "n": 91,
-  "key": "count",
-  "file": "091-count.png",
-  "caption": "كم شخصاً تريد أن تصطحب؟",
+  "key": "apply-consents-all",
+  "file": "091-apply-consents-all.png",
+  "caption": "وافق جميع الأفراد",
   "section": "E",
   "note": null
  },
  {
   "n": 92,
+  "key": "apply-summary",
+  "file": "092-apply-summary.png",
+  "caption": "ملخص الطلب قبل الدفع",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 93,
+  "key": "apply-summary-2",
+  "file": "093-apply-summary-2.png",
+  "caption": "ماذا يحدث بعد القبول؟ والمبلغ المطلوب الآن",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 94,
+  "key": "apply-pay-window",
+  "file": "094-apply-pay-window.png",
+  "caption": "لم يحن موعد الدفعة الأولى بعد: «محاكاة: حان موعد الدفعة الأولى»",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 95,
+  "key": "apply-pay-methods",
+  "file": "095-apply-pay-methods.png",
+  "caption": "اختيار طريقة الدفع",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 96,
+  "key": "apply-pay-bank",
+  "file": "096-apply-pay-bank.png",
+  "caption": "الدفع في المصرف المعتمد ورفع إشعار الدفع",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 97,
+  "key": "apply-pay-shamcash",
+  "file": "097-apply-pay-shamcash.png",
+  "caption": "الدفع عبر شام كاش",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 98,
+  "key": "apply-pay-shamcash-tx",
+  "file": "098-apply-pay-shamcash-tx.png",
+  "caption": "إدخال رقم العملية ثم تأكيد الدفع",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 99,
+  "key": "apply-pay-processing",
+  "file": "099-apply-pay-processing.png",
+  "caption": "التحقق من العملية",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 100,
+  "key": "apply-receipt",
+  "file": "100-apply-receipt.png",
+  "caption": "الإيصال الرقمي لرسم التسجيل والدفعة الأولى",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 101,
+  "key": "track-submitted",
+  "file": "101-track-submitted.png",
+  "caption": "استلمنا طلبك — الإيصال والمكتب",
+  "section": "F",
+  "note": null
+ },
+ {
+  "n": 102,
+  "key": "apply-existing",
+  "file": "102-apply-existing.png",
+  "caption": "لديك طلب مُقدَّم بالفعل (طلب واحد لكل شخص)",
+  "section": "F",
+  "note": null
+ },
+ {
+  "n": 103,
+  "key": "other-id",
+  "file": "103-other-id.png",
+  "caption": "طلب لشخص آخر: أدخل رقمه الوطني",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 104,
+  "key": "other-confirm",
+  "file": "104-other-confirm.png",
+  "caption": "تأكيد صاحب الطلب",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 105,
+  "key": "other-otp",
+  "file": "105-other-otp.png",
+  "caption": "رمز الموافقة يصل إلى هاتف صاحب الطلب",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 106,
+  "key": "other-residence",
+  "file": "106-other-residence.png",
+  "caption": "بعد الموافقة: أين يقيم صاحب الطلب؟",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 107,
+  "key": "count",
+  "file": "107-count.png",
+  "caption": "كم شخصاً تريد أن تصطحب؟",
+  "section": "E",
+  "note": null
+ },
+ {
+  "n": 108,
   "key": "track2-submitted",
-  "file": "092-track2-submitted.png",
+  "file": "108-track2-submitted.png",
   "caption": "استلمنا طلبك",
   "section": "F",
   "note": null
  },
  {
-  "n": 93,
+  "n": 109,
   "key": "track2-checking",
-  "file": "093-track2-checking.png",
+  "file": "109-track2-checking.png",
   "caption": "تدقيق البيانات: مطابقة الشؤون المدنية وشروط الموسم",
   "section": "F",
   "note": null
  },
  {
-  "n": 94,
+  "n": 110,
   "key": "track2-eligible",
-  "file": "094-track2-eligible.png",
+  "file": "110-track2-eligible.png",
   "caption": "جميع أفراد الطلب مؤهلون",
   "section": "F",
   "note": null
  },
  {
-  "n": 95,
+  "n": 111,
   "key": "track2-direct",
-  "file": "095-track2-direct.png",
+  "file": "111-track2-direct.png",
   "caption": "اعتماد القبول المباشر وفق الأكبر سناً",
   "section": "F",
   "note": null
  },
  {
-  "n": 96,
+  "n": 112,
   "key": "track2-accepted",
-  "file": "096-track2-accepted.png",
+  "file": "112-track2-accepted.png",
   "caption": "مبارك! تم قبول طلبك",
   "section": "F",
   "note": null
  },
  {
-  "n": 97,
+  "n": 113,
   "key": "post-steps",
-  "file": "097-post-steps.png",
+  "file": "113-post-steps.png",
   "caption": "الخطوات المطلوبة بعد القبول (7 خطوات)",
   "section": "G",
   "note": null
  },
  {
-  "n": 98,
+  "n": 114,
   "key": "post-confirm",
-  "file": "098-post-confirm.png",
+  "file": "114-post-confirm.png",
   "caption": "الخطوة 1: أكّد قبول الحج واقرأ التعليمات",
   "section": "G",
   "note": null
  },
  {
-  "n": 99,
+  "n": 115,
   "key": "post-confirm-read",
-  "file": "099-post-confirm-read.png",
+  "file": "115-post-confirm-read.png",
   "caption": "بعد قراءة الوثيقة كاملة: وقّع بالموافقة",
   "section": "G",
   "note": null
  },
  {
-  "n": 100,
+  "n": 116,
   "key": "post-confirm-done",
-  "file": "100-post-confirm-done.png",
+  "file": "116-post-confirm-done.png",
   "caption": "تم تأكيد قبولك — وتقييم المرحلة",
   "section": "G",
   "note": null
  },
  {
-  "n": 101,
+  "n": 117,
   "key": "post-docs",
-  "file": "101-post-docs.png",
+  "file": "117-post-docs.png",
   "caption": "الخطوة 2: الصورة الشخصية لكل فرد",
   "section": "G",
   "note": null
  },
  {
-  "n": 102,
+  "n": 118,
   "key": "post-docs-uploading",
-  "file": "102-post-docs-uploading.png",
+  "file": "118-post-docs-uploading.png",
   "caption": "جارٍ رفع الصورة ثم مراجعتها",
   "section": "G",
   "note": null
  },
  {
-  "n": 103,
+  "n": 119,
   "key": "post-docs-approved",
-  "file": "103-post-docs-approved.png",
+  "file": "119-post-docs-approved.png",
   "caption": "الصورة مقبولة — مطابقة لمواصفات التأشيرة",
   "section": "G",
   "note": null
  },
  {
-  "n": 104,
+  "n": 120,
   "key": "post-docs-done",
-  "file": "104-post-docs-done.png",
+  "file": "120-post-docs-done.png",
   "caption": "الصورة الشخصية مكتملة لجميع الأفراد",
   "section": "G",
   "note": null
  },
  {
-  "n": 105,
+  "n": 121,
   "key": "post-group",
-  "file": "105-post-group.png",
+  "file": "121-post-group.png",
   "caption": "الخطوة 3: الإلحاق بمجموعة في المكتب — ثلاث مراحل",
   "section": "G",
   "note": null
  },
  {
-  "n": 106,
-  "key": "post-group-dir",
-  "file": "106-post-group-dir.png",
-  "caption": "التكتلات والمجموعات: بطاقات التكتلات المعتمدة بمستواها ورئيسها وفنادقها ومقاعد مجموعاتها",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 107,
-  "key": "post-cluster-detail",
-  "file": "107-post-cluster-detail.png",
-  "caption": "صفحة التكتل: رئيسه، والسكن والنقل والبرامج",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 108,
-  "key": "post-cluster-team",
-  "file": "108-post-cluster-team.png",
-  "caption": "فريق التكتل: رئيسه ونائبه ومحاسبه ومعاونوه ومنسقوه وموجّهاته",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 109,
-  "key": "post-group-card",
-  "file": "109-post-group-card.png",
-  "caption": "بطاقة المجموعة: رئيسها وفريقها ومقاعدها المتبقية — للاطلاع",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 110,
-  "key": "post-group-done",
-  "file": "110-post-group-done.png",
-  "caption": "ألحقكم المكتب بمجموعة اللطيف — سلسلة العقد",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 111,
-  "key": "post-mygroup",
-  "file": "111-post-mygroup.png",
-  "caption": "مجموعتي وعقدي: المجموعة وفريقها وقناتها وعقدكم",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 112,
-  "key": "post-payment",
-  "file": "112-post-payment.png",
-  "caption": "الخطوة 4: نوع السكن — غرفتان بسريرين لأفراد الطلب الأربعة",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 113,
-  "key": "post-payment-receipts",
-  "file": "113-post-payment-receipts.png",
-  "caption": "إيصال مستقل لكل تكلفة",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 114,
-  "key": "post-payment-modal",
-  "file": "114-post-payment-modal.png",
-  "caption": "نافذة الدفع: اختر شام كاش أو المصرف",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 115,
-  "key": "post-payment-done",
-  "file": "115-post-payment-done.png",
-  "caption": "اكتمل دفع المبلغ كاملاً",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 116,
-  "key": "post-passport",
-  "file": "116-post-passport.png",
-  "caption": "الخطوة 5: جواز السفر لكل فرد — بعد الدفعة الثانية",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 117,
-  "key": "post-docs-rejected",
-  "file": "117-post-docs-rejected.png",
-  "caption": "أُعيد جواز كبيرة السن لأن صلاحيته قصيرة",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 118,
-  "key": "post-passport-done",
-  "file": "118-post-passport-done.png",
-  "caption": "جوازات السفر مكتملة لجميع الأفراد",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 119,
-  "key": "post-medical",
-  "file": "119-post-medical.png",
-  "caption": "الخطوة 6: الملف الطبي — المعلومات الصحية يسجّلها المنسق",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 120,
-  "key": "post-medical-needs",
-  "file": "120-post-medical-needs.png",
-  "caption": "احتياجات خديجة كما سجّلها المنسق: تُراعى في السكن والنقل دون كلفة",
-  "section": "G",
-  "note": null
- },
- {
-  "n": 121,
-  "key": "post-medical-health",
-  "file": "121-post-medical-health.png",
-  "caption": "المعلومات الصحية كما سجّلها المنسق — أكّدها أو اطلب تصحيحاً",
-  "section": "G",
-  "note": null
- },
- {
   "n": 122,
-  "key": "post-medical-docs",
-  "file": "122-post-medical-docs.png",
-  "caption": "شهادات اللقاحات والوثائق الطبية لكل فرد",
+  "key": "post-group-dir",
+  "file": "122-post-group-dir.png",
+  "caption": "تبويب «التكتلات»: بطاقة كل تكتل بمستواه ورئيسه وفنادقه، ومجموعاته في داخلها بمقاعدها",
   "section": "G",
   "note": null
  },
  {
   "n": 123,
-  "key": "post-medical-done",
-  "file": "123-post-medical-done.png",
-  "caption": "الملف الطبي مكتمل",
+  "key": "post-groups-tab",
+  "file": "123-post-groups-tab.png",
+  "caption": "تبويب «المجموعات»: كل المجموعات بفئتها ومستواها وتكتلها، ورئيسها ورقم هاتفه",
   "section": "G",
   "note": null
  },
  {
   "n": 124,
-  "key": "post-visa",
-  "file": "124-post-visa.png",
-  "caption": "الخطوة 7: التأشيرة والرحلة",
+  "key": "post-cluster-detail",
+  "file": "124-post-cluster-detail.png",
+  "caption": "صفحة التكتل: رئيسه، والسكن والنقل والبرامج",
   "section": "G",
   "note": null
  },
  {
   "n": 125,
-  "key": "post-visa-progress",
-  "file": "125-post-visa-progress.png",
-  "caption": "إصدار التأشيرات لكل فرد على حدة",
+  "key": "post-cluster-gallery",
+  "file": "125-post-cluster-gallery.png",
+  "caption": "معرض صور التكتل: الضغط على صورة يعرضها بملء الشاشة",
   "section": "G",
   "note": null
  },
  {
   "n": 126,
-  "key": "post-visa-done",
-  "file": "126-post-visa-done.png",
-  "caption": "صدرت التأشيرات — رحلتكم جاهزة",
+  "key": "post-cluster-contact",
+  "file": "126-post-cluster-contact.png",
+  "caption": "التواصل مع التكتل: معاون رئيس التكتل والمنسق التقني بأرقام هواتفهما",
   "section": "G",
   "note": null
  },
  {
   "n": 127,
+  "key": "post-cluster-team",
+  "file": "127-post-cluster-team.png",
+  "caption": "فريق التكتل: رئيسه ونائبه ومحاسبه ومعاونوه ومنسقوه وموجّهاته",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 128,
+  "key": "post-group-card",
+  "file": "128-post-group-card.png",
+  "caption": "بطاقة المجموعة: رئيسها ومقاعدها المتبقية، والضغط عليها يفتح فريقها",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 129,
+  "key": "post-group-dialog",
+  "file": "129-post-group-dialog.png",
+  "caption": "فريق المجموعة كاملاً: رئيسها وموجّهها ومعاونها والمنسق التقني وموجّهة الحاجّات",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 130,
+  "key": "post-group-done",
+  "file": "130-post-group-done.png",
+  "caption": "ألحقكم المكتب بمجموعة اللطيف — سلسلة العقد",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 131,
+  "key": "post-mygroup",
+  "file": "131-post-mygroup.png",
+  "caption": "مجموعتي: المجموعة وفريقها وقناتها",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 132,
+  "key": "post-payment",
+  "file": "132-post-payment.png",
+  "caption": "الخطوة 4: نوع السكن — غرفتان بسريرين لأفراد الطلب الأربعة",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 133,
+  "key": "post-payment-receipts",
+  "file": "133-post-payment-receipts.png",
+  "caption": "إيصال مستقل لكل تكلفة",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 134,
+  "key": "post-payment-modal",
+  "file": "134-post-payment-modal.png",
+  "caption": "نافذة الدفع: اختر شام كاش أو المصرف",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 135,
+  "key": "post-payment-done",
+  "file": "135-post-payment-done.png",
+  "caption": "اكتمل دفع المبلغ كاملاً",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 136,
+  "key": "post-passport",
+  "file": "136-post-passport.png",
+  "caption": "الخطوة 5: جواز السفر لكل فرد — بعد الدفعة الثانية",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 137,
+  "key": "post-docs-rejected",
+  "file": "137-post-docs-rejected.png",
+  "caption": "أُعيد جواز كبيرة السن لأن صلاحيته قصيرة",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 138,
+  "key": "post-passport-done",
+  "file": "138-post-passport-done.png",
+  "caption": "جوازات السفر مكتملة لجميع الأفراد",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 139,
+  "key": "post-medical",
+  "file": "139-post-medical.png",
+  "caption": "الخطوة 6: الملف الطبي — المعلومات الصحية يسجّلها المنسق",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 140,
+  "key": "post-medical-needs",
+  "file": "140-post-medical-needs.png",
+  "caption": "احتياجات خديجة كما سجّلها المنسق: تُراعى في السكن والنقل دون كلفة",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 141,
+  "key": "post-medical-health",
+  "file": "141-post-medical-health.png",
+  "caption": "المعلومات الصحية كما سجّلها المنسق — أكّدها أو اطلب تصحيحاً",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 142,
+  "key": "post-medical-docs",
+  "file": "142-post-medical-docs.png",
+  "caption": "شهادات اللقاحات والوثائق الطبية لكل فرد",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 143,
+  "key": "post-medical-done",
+  "file": "143-post-medical-done.png",
+  "caption": "الملف الطبي مكتمل",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 144,
+  "key": "post-visa",
+  "file": "144-post-visa.png",
+  "caption": "الخطوة 7: التأشيرة والرحلة — يضيفها رئيس المجموعة",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 145,
+  "key": "post-visa-progress",
+  "file": "145-post-visa-progress.png",
+  "caption": "يضيف رئيس المجموعة تأشيرة كل فرد",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 146,
+  "key": "post-visa-done",
+  "file": "146-post-visa-done.png",
+  "caption": "صدرت التأشيرات — رحلتكم جاهزة",
+  "section": "G",
+  "note": null
+ },
+ {
+  "n": 147,
   "key": "dossier-nav",
-  "file": "127-dossier-nav.png",
+  "file": "147-dossier-nav.png",
   "caption": "صفحات ملف الرحلة في القائمة الجانبية، مفتوحة كلها بعد صدور التأشيرة",
   "section": "H",
   "note": null
  },
  {
-  "n": 128,
+  "n": 148,
   "key": "dossier-documents",
-  "file": "128-dossier-documents.png",
-  "caption": "وثائق أفراد الطلب: الصورة والجواز والتأشيرة لكل فرد، وحال كل منها",
+  "file": "148-dossier-documents.png",
+  "caption": "خزنة الوثائق: كل وثائق الطلب في مكان واحد، وحال كل منها",
   "section": "H",
   "note": null
  },
  {
-  "n": 129,
+  "n": 149,
   "key": "dossier-document-open",
-  "file": "129-dossier-document-open.png",
-  "caption": "جواز السفر كما رُفع: صفحة بياناته",
+  "file": "149-dossier-document-open.png",
+  "caption": "جواز السفر مفتوحاً بتصميم الوثائق، وزر «طباعة»",
   "section": "H",
   "note": null
  },
  {
-  "n": 130,
+  "n": 150,
   "key": "dossier-cards",
-  "file": "130-dossier-cards.png",
-  "caption": "بطاقات الحجاج الرقمية",
+  "file": "150-dossier-cards.png",
+  "caption": "بطاقة الحاج الرقمية في خزنة الوثائق",
   "section": "H",
   "note": null
  },
  {
-  "n": 131,
+  "n": 151,
   "key": "dossier-flights",
-  "file": "131-dossier-flights.png",
+  "file": "151-dossier-flights.png",
   "caption": "رحلة الذهاب والعودة ومقاعد الأفراد",
   "section": "H",
   "note": null
  },
  {
-  "n": 132,
+  "n": 152,
   "key": "dossier-makkah",
-  "file": "132-dossier-makkah.png",
+  "file": "152-dossier-makkah.png",
   "caption": "فندق مكة: الغرف والوجبات والحافلة",
   "section": "H",
   "note": null
  },
  {
-  "n": 133,
+  "n": 153,
   "key": "dossier-madinah",
-  "file": "133-dossier-madinah.png",
+  "file": "153-dossier-madinah.png",
   "caption": "فندق المدينة وموعد الروضة",
   "section": "H",
   "note": null
  },
  {
-  "n": 134,
+  "n": 154,
   "key": "dossier-mashaer",
-  "file": "134-dossier-mashaer.png",
+  "file": "154-dossier-mashaer.png",
   "caption": "المشاعر المقدسة: المخيمات والمواقع",
   "section": "H",
   "note": null
  },
  {
-  "n": 135,
+  "n": 155,
   "key": "dossier-arafat",
-  "file": "135-dossier-arafat.png",
+  "file": "155-dossier-arafat.png",
   "caption": "تفاصيل مخيم عرفات",
   "section": "H",
   "note": null
  },
  {
-  "n": 136,
-  "key": "dossier-itinerary",
-  "file": "136-dossier-itinerary.png",
-  "caption": "برنامج الرحلة يوماً بيوم",
+  "n": 156,
+  "key": "trip-lists",
+  "file": "156-trip-lists.png",
+  "caption": "قوائمي: حافلة كل فرد لكل قائمة، وقائمة الروضة الشريفة",
   "section": "H",
   "note": null
  },
  {
-  "n": 137,
+  "n": 157,
   "key": "dossier-group",
-  "file": "137-dossier-group.png",
+  "file": "157-dossier-group.png",
   "caption": "فريق المجموعة وقناة المجموعة",
   "section": "H",
   "note": null
  },
  {
-  "n": 138,
+  "n": 158,
   "key": "dossier-contract",
-  "file": "138-dossier-contract.png",
-  "caption": "عقدكم مع المجموعة: حاله وخطواته وتكلفته",
+  "file": "158-dossier-contract.png",
+  "caption": "عقدكم مع المجموعة في خزنة الوثائق: رقمه وحاله",
   "section": "H",
   "note": null
  },
  {
-  "n": 139,
+  "n": 159,
   "key": "dossier-contract-open",
-  "file": "139-dossier-contract-open.png",
-  "caption": "العقد كما وُقّع، وزر «طباعة العقد»",
+  "file": "159-dossier-contract-open.png",
+  "caption": "العقد بتصميم الوثائق ثم نصه كما وُقّع، وزر «طباعة»",
   "section": "H",
   "note": null
  },
  {
-  "n": 140,
+  "n": 160,
   "key": "dossier-payments",
-  "file": "140-dossier-payments.png",
-  "caption": "التكاليف والإيصالات",
+  "file": "160-dossier-payments.png",
+  "caption": "الإيصالات في خزنة الوثائق: إيصال لكل تكلفة",
   "section": "H",
   "note": null
  },
  {
-  "n": 141,
+  "n": 161,
   "key": "dossier-rating",
-  "file": "141-dossier-rating.png",
+  "file": "161-dossier-rating.png",
   "caption": "تقييم وضوح القبول والقرعة",
   "section": "H",
   "note": null
  },
  {
-  "n": 142,
+  "n": 162,
   "key": "portal-accepted",
-  "file": "142-portal-accepted.png",
+  "file": "162-portal-accepted.png",
   "caption": "ملفي بعد القبول: حالة الطلب في الأعلى",
   "section": "I",
   "note": null
  },
  {
-  "n": 143,
+  "n": 163,
   "key": "app-emergency-btn",
-  "file": "143-app-emergency-btn.png",
+  "file": "163-app-emergency-btn.png",
   "caption": "زر الطوارئ الثابت في صفحة الطلب بعد صدور التأشيرة",
   "section": "I",
   "note": null
  },
  {
-  "n": 144,
-  "key": "season-top",
-  "file": "144-season-top.png",
-  "caption": "حالتي الآن — شريط الأيام والأزرار السريعة",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 145,
-  "key": "season-now",
-  "file": "145-season-now.png",
-  "caption": "بطاقة «أنت في» — المكان والتنقل والوجبة التالية وإشعارات اليوم",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 146,
-  "key": "season-day3",
-  "file": "146-season-day3.png",
-  "caption": "الانتقال بين الأيام: اليوم الثالث في مكة",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 147,
-  "key": "season-meals",
-  "file": "147-season-meals.png",
-  "caption": "وجبات اليوم",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 148,
-  "key": "season-trips",
-  "file": "148-season-trips.png",
-  "caption": "الحافلات والرحلات",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 149,
-  "key": "season-trip-joined",
-  "file": "149-season-trip-joined.png",
-  "caption": "بعد تأكيد الرغبة في رحلة",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 150,
-  "key": "season-lessons",
-  "file": "150-season-lessons.png",
-  "caption": "الدروس اليومية وسؤال شرعي خاص",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 151,
-  "key": "season-ask",
-  "file": "151-season-ask.png",
-  "caption": "إرسال سؤال إلى الموجّه الديني",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 152,
-  "key": "season-lost",
-  "file": "152-season-lost.png",
-  "caption": "قسم المفقودات",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 153,
-  "key": "season-lost-form",
-  "file": "153-season-lost-form.png",
-  "caption": "نموذج بلاغ المفقودات",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 154,
-  "key": "season-lost-ticket",
-  "file": "154-season-lost-ticket.png",
-  "caption": "تذكرة المفقودات ومتابعتها",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 155,
-  "key": "season-arafah",
-  "file": "155-season-arafah.png",
-  "caption": "يوم عرفة: تنبيهات الحرارة والمكان",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 156,
-  "key": "season-arafah-now",
-  "file": "156-season-arafah-now.png",
-  "caption": "بطاقة اليوم في عرفات مع إشعارات الحرارة والازدحام",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 157,
-  "key": "season-stage-rating",
-  "file": "157-season-stage-rating.png",
-  "caption": "سؤال قصير لتقييم المرحلة",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 158,
-  "key": "season-eid",
-  "file": "158-season-eid.png",
-  "caption": "يوم النحر: مسار الرمي والهدي",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 159,
-  "key": "sos-types",
-  "file": "159-sos-types.png",
-  "caption": "بلاغ طوارئ: اختر نوع الحالة",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 160,
-  "key": "sos-who",
-  "file": "160-sos-who.png",
-  "caption": "لمن الحالة؟",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 161,
-  "key": "sos-location",
-  "file": "161-sos-location.png",
-  "caption": "الموقع يُرسل تلقائياً",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 162,
-  "key": "sos-sent",
-  "file": "162-sos-sent.png",
-  "caption": "البلاغ قيد الاستجابة — الجهات التي وصلها",
-  "section": "I",
-  "note": null
- },
- {
-  "n": 163,
-  "key": "sos-onway",
-  "file": "163-sos-onway.png",
-  "caption": "الطبيبة في الطريق — التحديثات لحظياً",
-  "section": "I",
-  "note": null
- },
- {
   "n": 164,
-  "key": "season-tickets",
-  "file": "164-season-tickets.png",
-  "caption": "بلاغاتي وتذاكري",
+  "key": "season-top",
+  "file": "164-season-top.png",
+  "caption": "حالتي الآن — شريط الأيام وبطاقة «أنت في»",
   "section": "I",
   "note": null
  },
  {
   "n": 165,
-  "key": "complaint-types",
-  "file": "165-complaint-types.png",
-  "caption": "تقديم شكوى: أنواعها",
+  "key": "season-now",
+  "file": "165-season-now.png",
+  "caption": "بطاقة «أنت في» — المكان والتنقل والوجبة التالية",
   "section": "I",
   "note": null
  },
  {
   "n": 166,
-  "key": "complaint-form",
-  "file": "166-complaint-form.png",
-  "caption": "بيانات الشكوى تُعبّأ تلقائياً",
+  "key": "season-day3",
+  "file": "166-season-day3.png",
+  "caption": "الانتقال بين الأيام: اليوم الثالث في مكة",
   "section": "I",
   "note": null
  },
  {
   "n": 167,
-  "key": "complaint-ticket",
-  "file": "167-complaint-ticket.png",
-  "caption": "وصلت شكواك — تابعها من التذكرة",
+  "key": "portal-notifications",
+  "file": "167-portal-notifications.png",
+  "caption": "الإشعارات: ما سُجّل في أداء المناسك، وإشعارات اليوم، وما جرى على طلبك، وإعلانات الإدارة",
   "section": "I",
   "note": null
  },
  {
   "n": 168,
+  "key": "season-rites",
+  "file": "168-season-rites.png",
+  "caption": "أداء المناسك: مناسك حجّك، وما أدّاه كل فرد من عائلتك كما سجّله فريق المجموعة",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 169,
+  "key": "season-rites-log",
+  "file": "169-season-rites-log.png",
+  "caption": "سجل أداء المناسك: متى أُدّي المنسك وأين ومن سجّله، وما فعله كل فرد",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 170,
+  "key": "season-meals",
+  "file": "170-season-meals.png",
+  "caption": "الوجبات: وجبات اليوم",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 171,
+  "key": "season-lessons",
+  "file": "171-season-lessons.png",
+  "caption": "دروس اليوم وغداً وسؤال شرعي خاص، في أعلى دروس المجموعة",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 172,
+  "key": "season-ask",
+  "file": "172-season-ask.png",
+  "caption": "إرسال سؤال إلى الموجّه الديني",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 173,
+  "key": "lessons-page",
+  "file": "173-lessons-page.png",
+  "caption": "دروس المجموعة الدينية: مراحلها، والقادمة لعائلتك ومن يُدعى إليها",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 174,
+  "key": "lessons-record",
+  "file": "174-lessons-record.png",
+  "caption": "سجل حضور العائلة: ما حضره كل فرد من دروسه",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 175,
+  "key": "lessons-past",
+  "file": "175-lessons-past.png",
+  "caption": "الدروس السابقة: من حضر من عائلتك",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 176,
+  "key": "religious-page",
+  "file": "176-religious-page.png",
+  "caption": "النشاطات الدينية: ما حفظه كل فرد، والتالي، وسجل تسميعه",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 177,
+  "key": "portal-academy",
+  "file": "177-portal-academy.png",
+  "caption": "الأكاديمية في حسابك: تقدّمك في كل مسار والدرس التالي",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 178,
+  "key": "season-lost",
+  "file": "178-season-lost.png",
+  "caption": "المفقودات",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 179,
+  "key": "season-lost-form",
+  "file": "179-season-lost-form.png",
+  "caption": "نموذج بلاغ المفقودات",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 180,
+  "key": "season-lost-ticket",
+  "file": "180-season-lost-ticket.png",
+  "caption": "تذكرة المفقودات ومتابعتها",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 181,
+  "key": "season-arafah",
+  "file": "181-season-arafah.png",
+  "caption": "يوم عرفة: تنبيهات الحرارة والمكان",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 182,
+  "key": "season-arafah-now",
+  "file": "182-season-arafah-now.png",
+  "caption": "بطاقة اليوم في عرفات مع إشعارات الحرارة والازدحام",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 183,
+  "key": "season-stage-rating",
+  "file": "183-season-stage-rating.png",
+  "caption": "سؤال قصير لتقييم المرحلة",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 184,
+  "key": "season-eid",
+  "file": "184-season-eid.png",
+  "caption": "يوم النحر: مسار الرمي والهدي",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 185,
+  "key": "sos-types",
+  "file": "185-sos-types.png",
+  "caption": "بلاغ طوارئ: اختر نوع الحالة",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 186,
+  "key": "sos-who",
+  "file": "186-sos-who.png",
+  "caption": "لمن الحالة؟",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 187,
+  "key": "sos-location",
+  "file": "187-sos-location.png",
+  "caption": "الموقع يُرسل تلقائياً",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 188,
+  "key": "sos-sent",
+  "file": "188-sos-sent.png",
+  "caption": "البلاغ قيد الاستجابة — الجهات التي وصلها",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 189,
+  "key": "sos-onway",
+  "file": "189-sos-onway.png",
+  "caption": "الطبيبة في الطريق — التحديثات لحظياً",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 190,
+  "key": "season-tickets",
+  "file": "190-season-tickets.png",
+  "caption": "بلاغاتي: الطوارئ والشكوى، والبلاغات المفتوحة والمغلقة",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 191,
+  "key": "complaint-types",
+  "file": "191-complaint-types.png",
+  "caption": "تقديم شكوى: أنواعها",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 192,
+  "key": "complaint-form",
+  "file": "192-complaint-form.png",
+  "caption": "بيانات الشكوى تُعبّأ تلقائياً",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 193,
+  "key": "complaint-ticket",
+  "file": "193-complaint-ticket.png",
+  "caption": "وصلت شكواك — تابعها من التذكرة",
+  "section": "I",
+  "note": null
+ },
+ {
+  "n": 194,
   "key": "return-day",
-  "file": "168-return-day.png",
+  "file": "194-return-day.png",
   "caption": "يوم العودة: مطار المدينة ثم الهبوط في دمشق",
   "section": "J",
   "note": null
  },
  {
-  "n": 169,
+  "n": 195,
   "key": "return-home",
-  "file": "169-return-home.png",
+  "file": "195-return-home.png",
   "caption": "حمداً لله على السلامة",
   "section": "J",
   "note": null
  },
  {
-  "n": 170,
+  "n": 196,
   "key": "eval-form",
-  "file": "170-eval-form.png",
+  "file": "196-eval-form.png",
   "caption": "التقييم الشامل للرحلة (13 بنداً)",
   "section": "J",
   "note": null
  },
  {
-  "n": 171,
+  "n": 197,
   "key": "eval-filled",
-  "file": "171-eval-filled.png",
+  "file": "197-eval-filled.png",
   "caption": "بعد تعبئة جميع البنود",
   "section": "J",
   "note": null
  },
  {
-  "n": 172,
+  "n": 198,
   "key": "certificates",
-  "file": "172-certificates.png",
+  "file": "198-certificates.png",
   "caption": "شهادة أداء فريضة الحج لكل فرد",
   "section": "J",
   "note": null
  },
  {
-  "n": 173,
+  "n": 199,
   "key": "permanent-file",
-  "file": "173-permanent-file.png",
+  "file": "199-permanent-file.png",
   "caption": "ملفك الدائم — سجل المواسم",
   "section": "J",
   "note": null
  },
  {
-  "n": 174,
+  "n": 200,
   "key": "academy-search",
-  "file": "174-academy-search.png",
+  "file": "200-academy-search.png",
   "caption": "البحث في كل الدروس",
   "section": "K",
   "note": null
  },
  {
-  "n": 175,
+  "n": 201,
   "key": "academy-tracks",
-  "file": "175-academy-tracks.png",
+  "file": "201-academy-tracks.png",
   "caption": "المسارات مع نسبة تقدمك",
   "section": "K",
   "note": null
  },
  {
-  "n": 176,
+  "n": 202,
   "key": "track-top",
-  "file": "176-track-top.png",
+  "file": "202-track-top.png",
   "caption": "صفحة المسار",
   "section": "K",
   "note": null
  },
  {
-  "n": 177,
+  "n": 203,
   "key": "track-levels",
-  "file": "177-track-levels.png",
+  "file": "203-track-levels.png",
   "caption": "المستويات والدروس واختبار المستوى",
   "section": "K",
   "note": null
  },
  {
-  "n": 178,
+  "n": 204,
   "key": "lesson-top",
-  "file": "178-lesson-top.png",
+  "file": "204-lesson-top.png",
   "caption": "صفحة الدرس: المشغّل والشرح المسموع",
   "section": "K",
   "note": null
  },
  {
-  "n": 179,
+  "n": 205,
   "key": "lesson-actions",
-  "file": "179-lesson-actions.png",
+  "file": "205-lesson-actions.png",
   "caption": "تحديد الدرس كمكتمل وتقييمه",
   "section": "K",
   "note": null
  },
  {
-  "n": 180,
+  "n": 206,
   "key": "lesson-done",
-  "file": "180-lesson-done.png",
+  "file": "206-lesson-done.png",
   "caption": "أتممت هذا الدرس",
   "section": "K",
   "note": null
  },
  {
-  "n": 181,
+  "n": 207,
   "key": "lesson-tabs",
-  "file": "181-lesson-tabs.png",
+  "file": "207-lesson-tabs.png",
   "caption": "الملخص والنقاط والأسئلة والأدعية",
   "section": "K",
   "note": null
  },
  {
-  "n": 182,
+  "n": 208,
   "key": "track-complete",
-  "file": "182-track-complete.png",
+  "file": "208-track-complete.png",
   "caption": "المسار مكتمل",
   "section": "K",
   "note": null
  },
  {
-  "n": 183,
+  "n": 209,
   "key": "quiz-q1",
-  "file": "183-quiz-q1.png",
+  "file": "209-quiz-q1.png",
   "caption": "اختبار المستوى: سؤال من خمسة",
   "section": "K",
   "note": null
  },
  {
-  "n": 184,
+  "n": 210,
   "key": "quiz-feedback",
-  "file": "184-quiz-feedback.png",
+  "file": "210-quiz-feedback.png",
   "caption": "التغذية الراجعة بعد كل إجابة",
   "section": "K",
   "note": null
  },
  {
-  "n": 185,
+  "n": 211,
   "key": "quiz-result",
-  "file": "185-quiz-result.png",
+  "file": "211-quiz-result.png",
   "caption": "نتيجة الاختبار",
   "section": "K",
   "note": null
  },
  {
-  "n": 186,
+  "n": 212,
   "key": "academy-certificate",
-  "file": "186-academy-certificate.png",
+  "file": "212-academy-certificate.png",
   "caption": "شهادة إتمام المسار",
   "section": "K",
   "note": null
  },
  {
-  "n": 187,
+  "n": 213,
   "key": "academy-certificate-saved",
-  "file": "187-academy-certificate-saved.png",
+  "file": "213-academy-certificate-saved.png",
   "caption": "حُفظت الشهادة في خزنة الوثائق",
   "section": "K",
   "note": null
  },
  {
-  "n": 188,
+  "n": 214,
   "key": "sc-direct-age",
-  "file": "188-sc-direct-age.png",
+  "file": "214-sc-direct-age.png",
   "caption": "غسان (60 عاماً) اختار القبول المباشر: تنبيه قبل أي دفع",
   "section": "L",
   "note": null
  },
  {
-  "n": 189,
+  "n": 215,
   "key": "sc-direct-age-fix",
-  "file": "189-sc-direct-age-fix.png",
+  "file": "215-sc-direct-age-fix.png",
   "caption": "الحل: التسجيل الأولي على القرعة بدلاً من ذلك",
   "section": "L",
   "note": null
  },
  {
-  "n": 190,
+  "n": 216,
   "key": "sc-switched-lottery",
-  "file": "190-sc-switched-lottery.png",
+  "file": "216-sc-switched-lottery.png",
   "caption": "حُوّل الطلب إلى القرعة بالأفراد أنفسهم",
   "section": "L",
   "note": null
  },
  {
-  "n": 191,
+  "n": 217,
   "key": "sc-lottery-summary",
-  "file": "191-sc-lottery-summary.png",
+  "file": "217-sc-lottery-summary.png",
   "caption": "ملخص طلب القرعة: رسم التسجيل فقط الآن",
   "section": "L",
   "note": null
  },
  {
-  "n": 192,
+  "n": 218,
   "key": "sc-lottery-summary2",
-  "file": "192-sc-lottery-summary2.png",
+  "file": "218-sc-lottery-summary2.png",
   "caption": "الدفعة الأولى عند تثبيت التسجيل إن قُبل الطلب في القرعة",
   "section": "L",
   "note": null
  },
  {
-  "n": 193,
+  "n": 219,
   "key": "sc-lottery-not-drawn",
-  "file": "193-sc-lottery-not-drawn.png",
+  "file": "219-sc-lottery-not-drawn.png",
   "caption": "لم تُسحب سنة ميلاد صاحب الطلب: لم يُقبل في قرعة هذا الموسم",
   "section": "L",
   "note": null
  },
  {
-  "n": 194,
+  "n": 220,
   "key": "sc-lottery-summary-solo",
-  "file": "194-sc-lottery-summary-solo.png",
+  "file": "220-sc-lottery-summary-solo.png",
   "caption": "طلب فردي على القرعة: رسم التسجيل فقط الآن",
   "section": "L",
   "note": null
  },
  {
-  "n": 195,
+  "n": 221,
   "key": "sc-lottery-submitted",
-  "file": "195-sc-lottery-submitted.png",
+  "file": "221-sc-lottery-submitted.png",
   "caption": "طلب القرعة: مُقدَّم",
   "section": "L",
   "note": null
  },
  {
-  "n": 196,
+  "n": 222,
   "key": "sc-lottery-eligible",
-  "file": "196-sc-lottery-eligible.png",
+  "file": "222-sc-lottery-eligible.png",
   "caption": "طلب القرعة: مؤهل بانتظار السحب",
   "section": "L",
   "note": null
  },
  {
-  "n": 197,
+  "n": 223,
   "key": "sc-lottery-live",
-  "file": "197-sc-lottery-live.png",
+  "file": "223-sc-lottery-live.png",
   "caption": "القرعة العلنية ببث مباشر: تتوالى سنوات الميلاد المسحوبة",
   "section": "L",
   "note": null
  },
  {
-  "n": 198,
+  "n": 224,
   "key": "sc-lottery-won",
-  "file": "198-sc-lottery-won.png",
+  "file": "224-sc-lottery-won.png",
   "caption": "قُبلت بالقرعة: سُحبت مواليد 1980 كاملة",
   "section": "L",
   "note": null
  },
  {
-  "n": 199,
+  "n": 225,
   "key": "sc-lottery-steps",
-  "file": "199-sc-lottery-steps.png",
+  "file": "225-sc-lottery-steps.png",
   "caption": "المقبول بالقرعة: التأكيد ثم الدفعة الأولى",
   "section": "L",
   "note": null
  },
  {
-  "n": 200,
+  "n": 226,
+  "key": "sc-lottery-pay-window",
+  "file": "226-sc-lottery-pay-window.png",
+  "caption": "لم يحن موعد الدفعة الأولى بعد: تفتحه الإدارة لتثبيت تسجيل المقبولين بالقرعة",
+  "section": "L",
+  "note": null
+ },
+ {
+  "n": 227,
   "key": "sc-lottery-first-installment",
-  "file": "200-sc-lottery-first-installment.png",
+  "file": "227-sc-lottery-first-installment.png",
   "caption": "المقبول بالقرعة يدفع الدفعة الأولى بعد التأكيد",
   "section": "L",
   "note": null
  },
  {
-  "n": 201,
+  "n": 228,
   "key": "sc-mahram",
-  "file": "201-sc-mahram.png",
+  "file": "228-sc-mahram.png",
   "caption": "امرأة دون 44 عاماً: يلزم إضافة محرم",
   "section": "L",
   "note": null

@@ -25,6 +25,9 @@ c.goto("/portal", wait=800)
 p.evaluate("""() => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
   s.clock = { ...(s.clock || {}), today: '2026-08-12', time: undefined }; localStorage.setItem(k, JSON.stringify(s)); }""")
 c.goto("/portal")
+# run1 leaves the season's question unanswered: «أتابع كحاج» first (it opens the application), then back to ملفي
+c.click("[data-path='pilgrim']", wait=1500)
+c.goto("/portal")
 c.shot("apply-cta", "من ملفي: زر «ابدأ الطلب الآن»", hl=[("a:has-text('ابدأ الطلب الآن')", "")], section=S)
 c.click("a:has-text('ابدأ الطلب الآن')", wait=1500)
 c.shot("apply-intro", "شاشة البداية: ما تحتاجه قبل التقديم", hl=[("button:has-text('لنبدأ')", "")], section=S)

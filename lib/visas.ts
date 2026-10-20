@@ -31,7 +31,7 @@ export function removeVisa(sid: string, personId: string, by: string) {
   if (!app || !p?.visas?.[personId]) return;
   const visas = { ...p.visas };
   delete visas[personId];
-  actions.setPost(sid, { visas });
+  actions.setPost(sid, { visas, visaAt: undefined });
   actions.logEvent({ actor: by, role: "المنسق التقني", action: "حذف تأشيرة حاج", target: `طلب ${app.number}` });
 }
 

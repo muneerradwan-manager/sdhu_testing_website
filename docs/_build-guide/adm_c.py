@@ -152,7 +152,7 @@ if ONLY in (None, "tech"):
     p.locator("label:has-text('الاسم الأول') input").first.fill("خديجة"); c.settle(200)
     btn(p, c, "بحث", 2500)
     c.shot("tech-reg-found", "بيانات المواطن ورقم هاتفه الذي يمليه", section=S)
-    p.get_by_label("رقم هاتف المواطن").fill("0933123456"); c.settle(200)
+    p.locator("label:has-text('رقم هاتف المواطن') input[type=tel]").fill("0933123456"); c.settle(200)
     btn(p, c, "إرسال رمز التحقق", 1200)
     c.otp("1448")
     c.scroll_to("text=رمز الموافقة", 250)

@@ -43,7 +43,7 @@ def register_one(s):
     p.locator("label:has-text('الرقم الوطني') input").first.fill("01066600620")
     p.locator("label:has-text('الاسم الأول') input").first.fill("غسان"); c.settle(200)
     btn_role(s, "بحث", 2500)
-    p.get_by_label("رقم هاتف المواطن").fill("0933123456"); c.settle(200)
+    p.locator("label:has-text('رقم هاتف المواطن') input[type=tel]").fill("0933123456"); c.settle(200)
     btn_role(s, "إرسال رمز التحقق")
     c.otp("1448")
     btn_role(s, "تأكيد الموافقة ومتابعة", 1500)
