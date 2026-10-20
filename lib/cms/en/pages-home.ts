@@ -17,6 +17,8 @@ export const PAGES_EN_HOME: PagesEn = {
       primaryLabel: "Start your Hajj application",
       secondaryLabel: "Register as an administrator",
       trust: [{ text: "Your details come straight from the Civil Registry" }, { text: "A public lottery, streamed live" }],
+      appSoonTitle: "The app is coming soon",
+      appSoonText: "We are putting the final touches to the platform's mobile app and will announce its launch in the news. Until then, all of its services are here on the website.",
       soundOn: "Close the live stream",
       soundOff: "Live from the Haram",
       scrollHint: "Discover more",

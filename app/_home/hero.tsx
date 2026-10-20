@@ -11,6 +11,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { useHydrated } from "@/lib/store";
 import { AccountMenu, useOpenRegistrations } from "@/components/site/account-menu";
 import { LiveHaram } from "./live-haram";
+import { StoreButtons } from "./store-buttons";
 
 function useCountdown(target: Date) {
   const hydrated = useHydrated();
@@ -141,6 +142,8 @@ export function Hero() {
             )}
             {!open.hajj && !open.admin && <AccountMenu kind="login" variant="hero" />}
           </motion.div>
+          {/* The platform's apps: Google Play and the App Store, both coming */}
+          <StoreButtons />
 
           {trust.length > 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }} className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/65">
