@@ -1,16 +1,16 @@
 "use client";
 
-import { ArrowLeft, Landmark, UsersRound } from "lucide-react";
+import { Landmark, UsersRound } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { str } from "@/components/cms/bits";
-import { ButtonLink } from "@/components/ui/button";
 import { Reveal, SectionHeading } from "@/components/ui/motion";
 import { ClusterCard, GroupCard } from "@/app/clusters/_components/clusters-directory";
 import { useClusterDirectory } from "@/lib/cluster-profile";
 import { useSection } from "@/lib/cms/store";
 import { useT } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
+import { SectionMore } from "./section-more";
 
 type View = "clusters" | "groups";
 
@@ -76,12 +76,8 @@ export function DirectoryTeaser() {
             </ul>
           )}
 
-          <div className="mt-10 text-center">
-            <ButtonLink href={str(v, "ctaHref", "/clusters")} size="lg">
-              {str(v, "ctaLabel", t("عرض كل التكتلات والمجموعات", "See all clusters and groups"))} <ArrowLeft className="size-5" />
-            </ButtonLink>
-          </div>
         </Reveal>
+        <SectionMore href={str(v, "ctaHref", "/clusters")} label={str(v, "ctaLabel", t("عرض كل التكتلات والمجموعات", "See all clusters and groups"))} />
       </div>
     </section>
   );

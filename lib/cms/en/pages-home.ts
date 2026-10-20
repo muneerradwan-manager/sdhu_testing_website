@@ -47,7 +47,7 @@ export const PAGES_EN_HOME: PagesEn = {
       description: "Those who served the guests of the Most Merciful last season and were rated highest: by the pilgrims, the staff and the platform's record.",
       currentTitle: "The {current} AH season is under way",
       currentText: "Every administrator is rated throughout the season: the pilgrims 40%, the staff 45%, the platform's record 15%. The {current} roll is announced after the pilgrims return.",
-      ctaLabel: "The full Hall of Honour",
+      ctaLabel: "See the full Hall of Honour",
     },
     tutorials: {
       eyebrow: "Video tutorials",
@@ -99,7 +99,8 @@ export const PAGES_EN_HOME: PagesEn = {
         { n: "18", l: "lessons in the Fiqh of Hajj" },
         { n: "24/7", l: "always available" },
       ],
-      ctaLabel: "Enter the Academy",
+      ctaLabel: "See all the Academy's lessons",
+      prayerCtaLabel: "See the month's times and the Qibla",
       prayerEyebrow: "Prayer times",
       prayerTitle: "Pray on time, wherever you are",
       prayerDescription: "Damascus, Aleppo, Makkah and Madinah, with a countdown to the next prayer.",
@@ -111,7 +112,7 @@ export const PAGES_EN_HOME: PagesEn = {
     news: {
       eyebrow: "The Administration's blog",
       title: "Latest news and announcements",
-      ctaLabel: "All news",
+      ctaLabel: "See all news",
     },
     calendar: {
       eyebrow: "Season calendar",

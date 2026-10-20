@@ -191,7 +191,7 @@ const HOME: PageDef = {
           wide: true,
           def: "يُقيَّم كل إداري طوال الموسم: الحجاج 40%، والموظفون 45%، وسجل المنصة 15%. وتُعلن لوحة موسم {current} بعد عودة الحجاج.",
         },
-        { key: "ctaLabel", label: "نص الزر", kind: "text", def: "لوحة الشرف كاملة" },
+        { key: "ctaLabel", label: "نص الزر", kind: "text", def: "عرض لوحة الشرف كاملة" },
         { key: "ctaHref", label: "رابط الزر", kind: "url", def: "/honours" },
       ],
     },
@@ -324,8 +324,10 @@ const HOME: PageDef = {
             { n: "24/7", l: "متاحة دائماً" },
           ],
         },
-        { key: "ctaLabel", label: "نص الزر", kind: "text", def: "ادخل الأكاديمية" },
+        { key: "ctaLabel", label: "نص الزر", kind: "text", def: "عرض كل دروس الأكاديمية" },
         { key: "ctaHref", label: "رابط الزر", kind: "url", def: "/academy" },
+        { key: "prayerCtaLabel", label: "مواقيت الصلاة — نص الزر", kind: "text", def: "عرض مواقيت الشهر واتجاه القبلة" },
+        { key: "prayerCtaHref", label: "مواقيت الصلاة — رابط الزر", kind: "url", def: "/prayer-times" },
         { key: "prayerEyebrow", label: "مواقيت الصلاة — الشارة", kind: "text", def: "مواقيت الصلاة" },
         { key: "prayerTitle", label: "مواقيت الصلاة — العنوان", kind: "text", def: "صلاتك في وقتها أينما كنت", wide: true },
         {
@@ -363,7 +365,7 @@ const HOME: PageDef = {
       fields: [
         { key: "eyebrow", label: "الشارة", kind: "text", def: "مدونة الإدارة" },
         { key: "title", label: "العنوان", kind: "text", def: "آخر الأخبار والإعلانات", wide: true },
-        { key: "ctaLabel", label: "نص زر «كل الأخبار»", kind: "text", def: "كل الأخبار" },
+        { key: "ctaLabel", label: "نص زر «كل الأخبار»", kind: "text", def: "عرض كل الأخبار" },
         {
           key: "slugs",
           label: "الأخبار المعروضة",

@@ -1,15 +1,15 @@
 "use client";
 
-import { ArrowLeft, Hourglass, Landmark, Trophy } from "lucide-react";
+import { Hourglass, Landmark, Trophy } from "lucide-react";
 import { useMemo } from "react";
 import { str } from "@/components/cms/bits";
-import { ButtonLink } from "@/components/ui/button";
 import { Reveal, SectionHeading } from "@/components/ui/motion";
 import { useSection } from "@/lib/cms/store";
 import { useT } from "@/lib/i18n";
 import { AWARDS, CURRENT, LATEST, honourRolls } from "@/app/honours/_lib/roll";
 import { Podium } from "@/app/honours/_components/podium";
 import { Medallion, Stars, useWords } from "@/app/honours/_components/shared";
+import { SectionMore } from "./section-more";
 
 /**
  * «نجوم الموسم» on the home page: a glance at «لوحة الشرف». It always tells two seasons: the last one that ended and
@@ -78,7 +78,7 @@ export function HonoursTeaser() {
           </div>
 
           {/* The current season: still running, its roll comes after the return */}
-          <div className="mt-5 flex flex-col items-start gap-4 rounded-3xl border border-dashed border-gold-dark/50 bg-gold-light/40 p-5 dark:border-gold/40 dark:bg-gold/[.07] md:flex-row md:items-center md:p-6">
+          <div className="mt-5 flex items-center gap-4 rounded-3xl border border-dashed border-gold-dark/50 bg-gold-light/40 p-5 dark:border-gold/40 dark:bg-gold/[.07] md:p-6">
             <span className="grid size-13 shrink-0 place-items-center rounded-2xl bg-white text-maroon shadow-sm">
               <Hourglass className="size-6" />
             </span>
@@ -86,11 +86,9 @@ export function HonoursTeaser() {
               <p className="font-display text-lg font-bold text-green-dark">{fill(str(v, "currentTitle"))}</p>
               <p className="mt-1 text-sm leading-7 text-ink-soft">{fill(str(v, "currentText"))}</p>
             </div>
-            <ButtonLink href={str(v, "ctaHref", "/honours")} size="lg">
-              {str(v, "ctaLabel")} <ArrowLeft className="size-5" />
-            </ButtonLink>
           </div>
         </Reveal>
+        <SectionMore href={str(v, "ctaHref", "/honours")} label={str(v, "ctaLabel")} />
       </div>
     </section>
   );

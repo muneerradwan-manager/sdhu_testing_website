@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, Clock, MoonStar, Play, Sun, Sunrise, Sunset } from "lucide-react";
+import { MoonStar, Play, Sun, Sunrise, Sunset } from "lucide-react";
 import { useEffect, useState } from "react";
 import { str } from "@/components/cms/bits";
 import { CmsImage } from "@/components/cms/image";
@@ -45,6 +44,7 @@ export function PrayerWidget({ className }: { className?: string }) {
     <div className={cn("relative overflow-hidden rounded-[2rem] bg-green-dark p-6 text-white shadow-2xl md:p-8", className)}>
       <div className="bg-pattern absolute inset-0 opacity-20" />
       <div className="absolute -end-16 -top-16 size-56 rounded-full bg-green-light/30 blur-3xl" />
+      {/* Its times grow to fill the card's height, which beside the Academy on the home page is its column's */}
       <div className="relative flex h-full flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -96,9 +96,6 @@ export function PrayerWidget({ className }: { className?: string }) {
           })}
         </div>
 
-        <Link href="/prayer-times" className="mt-5 inline-flex items-center gap-1.5 self-start text-sm font-bold text-gold hover:underline">
-          <Clock className="size-4" /> {t("الجدول الشهري واتجاه القبلة", "Monthly timetable and Qibla direction")} <ArrowLeft className="size-4" />
-        </Link>
       </div>
     </div>
   );
@@ -112,7 +109,7 @@ export function AcademyTeaser() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="group relative block aspect-[4/3] w-full overflow-hidden rounded-[2rem] text-start shadow-2xl">
+      <button onClick={() => setOpen(true)} className="group relative block aspect-[4/3] w-full overflow-hidden rounded-[2rem] text-start shadow-2xl lg:aspect-video">
         <CmsImage src={v.videoPoster} alt={str(v, "videoTitle")} fill sizes="(min-width: 1024px) 50vw, 100vw" quality={70} className="object-cover transition duration-[1.2s] group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
         <span className="absolute left-1/2 top-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-white backdrop-blur-md transition duration-500 group-hover:scale-110 group-hover:bg-gold group-hover:text-ink">

@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Landmark, Megaphone } from "lucide-react";
+import { CalendarDays, Landmark, Megaphone } from "lucide-react";
 import { CmsSection, list, str } from "@/components/cms/bits";
 import { CmsImage } from "@/components/cms/image";
-import { ButtonLink } from "@/components/ui/button";
 import { Counter, Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
 import { useArticles } from "@/lib/cms/content";
 import { useSection } from "@/lib/cms/store";
@@ -16,6 +15,7 @@ import { Tutorials } from "./_home/tutorials";
 import { DirectoryTeaser } from "./_home/directory-teaser";
 import { HonoursTeaser } from "./_home/honours-teaser";
 import { AcademyTeaser, PrayerWidget } from "./_home/widgets";
+import { SectionMore } from "./_home/section-more";
 
 /**
  * الصفحة الرئيسية. لا نص ثابتاً هنا: كل عنوان وفقرة وبطاقة ورقم وصورة يقرأ من لوحة المحتوى
@@ -132,17 +132,15 @@ function AcademyAndPrayer() {
         />
         <Reveal className="flex flex-col gap-4 lg:col-start-1 lg:row-start-2">
           <AcademyTeaser />
-          <div className="grid grid-cols-[repeat(3,minmax(0,1fr))_auto] items-stretch gap-3 max-sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3">
             {stats.map((x, i) => (
               <div key={`${x.l}-${i}`} className="grid place-content-center rounded-2xl border border-gold/30 bg-white p-3 text-center">
                 <p className="font-display text-2xl font-bold text-green-dark">{x.n}</p>
                 <p className="text-xs text-ink-soft">{x.l}</p>
               </div>
             ))}
-            <ButtonLink href={str(v, "ctaHref", "/academy")} size="lg" className="max-sm:col-span-3 sm:h-full">
-              {str(v, "ctaLabel")} <ArrowLeft className="size-5" />
-            </ButtonLink>
           </div>
+          <SectionMore href={str(v, "ctaHref", "/academy")} label={str(v, "ctaLabel")} className="mt-auto pt-2" />
         </Reveal>
 
         <SectionHeading
@@ -152,8 +150,10 @@ function AcademyAndPrayer() {
           description={str(v, "prayerDescription")}
           className="!mb-0 mt-10 lg:col-start-2 lg:row-start-1 lg:mt-0"
         />
-        <Reveal delay={0.1} className="lg:col-start-2 lg:row-start-2">
-          <PrayerWidget className="h-full" />
+        {/* Both columns end on their button, on one line: the prayer card takes up what the academy's is taller by */}
+        <Reveal delay={0.1} className="flex flex-col gap-4 lg:col-start-2 lg:row-start-2">
+          <PrayerWidget className="flex-1" />
+          <SectionMore href={str(v, "prayerCtaHref", "/prayer-times")} label={str(v, "prayerCtaLabel")} className="mt-auto pt-2" />
         </Reveal>
       </section>
     </CmsSection>
@@ -202,14 +202,7 @@ function News() {
   return (
     <CmsSection page="home" section="news">
       <section className="mx-auto max-w-7xl px-4 py-24 md:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <SectionHeading align="start" eyebrow={str(v, "eyebrow")} title={str(v, "title")} className="mb-10" />
-          <Reveal className="mb-10">
-            <ButtonLink href="/news" variant="outline">
-              {str(v, "ctaLabel")} <ArrowLeft className="size-4" />
-            </ButtonLink>
-          </Reveal>
-        </div>
+        <SectionHeading eyebrow={str(v, "eyebrow")} title={str(v, "title")} />
         <Stagger className="grid gap-6 md:grid-cols-3">
           {picked.map((n) => (
             <StaggerItem key={n.slug}>
@@ -232,6 +225,7 @@ function News() {
             </StaggerItem>
           ))}
         </Stagger>
+        <SectionMore href="/news" label={str(v, "ctaLabel")} />
       </section>
     </CmsSection>
   );
