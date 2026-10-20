@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Award, BarChart3, ClipboardCheck, PlayCircle, UserPlus } from "lucide-react";
+import { useAcademyProgress } from "@/lib/account";
 import { useHydrated, useStore } from "@/lib/store";
 import { useLang, useT } from "@/lib/i18n";
 
@@ -14,7 +15,7 @@ export function GuestBanner({ path }: { path: Item[] }) {
   const en = useLang() === "en";
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
-  const academy = useStore((s) => s.academy);
+  const academy = useAcademyProgress();
 
   if (hydrated && session) {
     const next = path.find((i) => !academy[`${i.track}/${i.slug}`]);

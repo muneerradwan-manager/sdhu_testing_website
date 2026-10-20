@@ -3,12 +3,14 @@
 import { motion } from "motion/react";
 import { CalendarRange, Printer } from "lucide-react";
 import { useMemo } from "react";
+import { PrintDocument, PrintNote, PrintTable } from "@/components/print/print-document";
+import { PrintSheet } from "@/components/print/print-sheet";
 import { useLang, useT } from "@/lib/i18n";
-import { PRAYERS, type City } from "@/lib/prayer";
+import { PRAYERS, type City, type PrayerKey } from "@/lib/prayer";
 import { cn } from "@/lib/utils";
 import { cityName, prayerName } from "./names";
 import { PrayerIcon } from "./prayer-icon";
-import { DAY, datesIn, dayTimes, timeParts } from "./time";
+import { DAY, dateFmt as arDates, datesIn, dayTimes, timeParts } from "./time";
 
 export function MonthlyTable({ city, dayKey }: { city: City; dayKey: string }) {
   const t = useT();
@@ -105,6 +107,47 @@ export function MonthlyTable({ city, dayKey }: { city: City; dayKey: string }) {
           </tbody>
         </table>
       </div>
+
+      <PrintSheet>
+        <MonthlyPrint city={city} rows={rows} />
+      </PrintSheet>
     </div>
+  );
+}
+
+/**
+ * The thirty days on paper, in the platform's one print template. The template is Arabic (its letterhead, its
+ * direction), so the printed timetable is in Arabic whatever the page's language. Six prayer columns and three of
+ * dates stay short enough for a portrait page, which keeps the month on one sheet.
+ */
+function MonthlyPrint({ city, rows }: { city: City; rows: { i: number; date: Date; times: Record<PrayerKey, Date>; friday: boolean }[] }) {
+  const time = (d: Date) => {
+    const tp = timeParts(d, false, "ar");
+    return `${tp.time} ${tp.period}`;
+  };
+  const first = rows[0].date;
+  const last = rows[rows.length - 1].date;
+  return (
+    <PrintDocument
+      title={`إمساكية ${city.name} — 30 يوماً`}
+      source={`${arDates.hijriShort.format(first)} – ${arDates.hijri.format(last)}`}
+      meta={[
+        { label: "المدينة", value: city.country ? `${city.name}، ${city.country}` : city.name },
+        { label: "الفترة بالميلادي", value: `${arDates.gregorianShort.format(first)} – ${arDates.gregorian.format(last)}` },
+        { label: "عدد الأيام", value: rows.length },
+        { label: "طريقة الحساب", value: city.method === "ummalqura" ? "تقويم أم القرى" : "رابطة العالم الإسلامي" },
+      ]}
+    >
+      <PrintTable
+        head={["اليوم", "هجري", "ميلادي", ...PRAYERS.map((p) => prayerName(p.key, "ar"))]}
+        rows={rows.map((r) => [
+          r.i === 0 ? <b key="d">{arDates.weekday.format(r.date)} (اليوم)</b> : r.friday ? <b key="d">{arDates.weekday.format(r.date)}</b> : arDates.weekday.format(r.date),
+          arDates.hijriShort.format(r.date),
+          arDates.gregorianShort.format(r.date),
+          ...PRAYERS.map((p) => time(r.times[p.key])),
+        ])}
+      />
+      <PrintNote>المواقيت محسوبة فلكياً، وقد تختلف دقيقة أو دقيقتين عن التقويم المحلي. يُرجى الاحتياط في الصيام والإمساك.</PrintNote>
+    </PrintDocument>
   );
 }

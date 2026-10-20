@@ -1,38 +1,40 @@
 import { cn } from "@/lib/utils";
+import { EAGLE, MARK, STARS } from "./emblem-paths";
 import { BrandLockup } from "./lockup";
 
+/** The seal's radius around the mark, and its inner gold ring (units of the logo's pixels) */
+const SEAL = 84;
+const RING = 78;
+
 /**
- * Original emblem: an 8-point khatam star framing the Kaaba, ringed in gold. `gradientId` gives a second emblem
- * its own gold, for when the first one on the page is hidden (a printed sheet's header)
+ * The official emblem: the administration's gold eagle under three stars (./emblem-paths), in a green seal with a
+ * thin gold ring. `gradientId` gives a second emblem its own gold, for when the first one on the page is hidden
+ * (a printed sheet's header). `animated` (the loading screens) makes the three stars twinkle in turn
  */
 export function Emblem({ className, animated = false, gradientId = "emblem-gold" }: { className?: string; animated?: boolean; gradientId?: string }) {
+  const { cx, cy } = MARK;
+  const gold = `url(#${gradientId})`;
   return (
     // width/height keep it logo-sized in the instant before the stylesheet arrives (an SVG without them
     // fills the whole width); the size classes override them as soon as CSS is applied
-    <svg viewBox="0 0 64 64" width="44" height="44" className={cn("shrink-0", className)} aria-hidden>
+    <svg viewBox={`${cx - SEAL} ${cy - SEAL} ${SEAL * 2} ${SEAL * 2}`} width="44" height="44" className={cn("shrink-0", className)} aria-hidden>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#E4DDD3" />
-          <stop offset=".5" stopColor="#D9C89E" />
-          <stop offset="1" stopColor="#AD9E6E" />
+          <stop offset="0" stopColor="#DCCDA2" />
+          <stop offset=".55" stopColor="#C1B07E" />
+          <stop offset="1" stopColor="#A39364" />
         </linearGradient>
       </defs>
-      <circle cx="32" cy="32" r="31" fill="#00594F" />
-      <g className={animated ? "origin-center animate-spin-slow" : undefined} style={{ transformBox: "fill-box" }}>
-        <path
-          d="M32 5l7.6 18.4L58 31.99 39.6 39.6 32 58l-7.6-18.4L6 32l18.4-7.6z"
-          fill="none"
-          stroke={`url(#${gradientId})`}
-          strokeWidth="1.6"
-        />
-        <rect x="13.5" y="13.5" width="37" height="37" fill="none" stroke={`url(#${gradientId})`} strokeWidth="1.6" transform="rotate(0 32 32)" />
+      <circle cx={cx} cy={cy} r={SEAL - 0.5} fill="#00594F" />
+      <circle cx={cx} cy={cy} r={RING} fill="none" stroke={gold} strokeWidth="1.8" />
+      <g fill={gold}>
+        <path d={EAGLE} />
+        {STARS.map((d, i) => (
+          <path key={i} d={d}>
+            {animated && <animate attributeName="opacity" values="1;.25;1" dur="1.8s" begin={`${i * 0.3}s`} repeatCount="indefinite" />}
+          </path>
+        ))}
       </g>
-      <circle cx="32" cy="32" r="12.5" fill="#016D5D" stroke={`url(#${gradientId})`} strokeWidth="1.2" />
-      {/* Kaaba */}
-      <path d="M25.5 29.2l6.5-2.7 6.5 2.7v8.3l-6.5 2.7-6.5-2.7z" fill="#021526" />
-      <path d="M25.5 29.2l6.5 2.7 6.5-2.7" fill="none" stroke="#D9C89E" strokeWidth=".8" />
-      <path d="M25.5 31.4l6.5 2.7 6.5-2.7" fill="none" stroke="#D9C89E" strokeWidth="1.3" />
-      <path d="M32 31.9v8.3" stroke="#0a2438" strokeWidth=".6" />
     </svg>
   );
 }

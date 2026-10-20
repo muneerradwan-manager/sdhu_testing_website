@@ -21,7 +21,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Card, PortalShell } from "@/components/portal/shell";
+import { Card } from "@/components/portal/shell";
+import { PilgrimShell } from "../../_components/pilgrim-shell";
 import { DEMO_OTP, OtpInput } from "@/components/portal/bits";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
@@ -477,15 +478,15 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
 
   if (!preview && !hajj.open && !(existing && !previousDirect)) {
     return (
-      <PortalShell title="التسجيل على الحج">
+      <PilgrimShell title="التسجيل على الحج">
         <OperationClosed state={hajj.states.find((o) => o.status === "upcoming") ?? lotteryOp} text="التسجيل على الحج لا يضعك في أي مجموعة: الانضمام إلى مجموعة يأتي لاحقاً بعقد بينك وبين المجموعة." />
-      </PortalShell>
+      </PilgrimShell>
     );
   }
 
   if (existing && !previousDirect) {
     return (
-      <PortalShell title="لديك طلب مُقدَّم بالفعل">
+      <PilgrimShell title="لديك طلب مُقدَّم بالفعل">
         <Card className="text-center">
           <CheckCircle2 className="mx-auto size-16 text-green-light" />
           <p className="mt-4 font-display text-2xl font-bold text-green-dark">طلب رقم {existing.number} — {existing.members.length} أفراد</p>
@@ -510,7 +511,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
             </Button>
           </div>
         </Card>
-      </PortalShell>
+      </PilgrimShell>
     );
   }
 
@@ -542,7 +543,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
 
   const aside = (
         <>
-          <div className="rounded-3xl border border-gold/30 bg-white p-5 text-ink">
+          <div className="@container order-last rounded-3xl border border-gold/30 bg-white p-5 text-ink sm:col-span-2">
             <div className="flex items-center justify-between gap-2">
               <p className="font-display text-lg font-bold text-green-dark">ملخص الطلب</p>
               {saved && (
@@ -554,7 +555,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
             {members.length === 0 ? (
               <p className="mt-2 text-sm text-hint">سيظهر هنا أفراد طلبك.</p>
             ) : (
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3">
                 <AnimatePresence initial={false}>
                   {members.map((m) => (
                     <motion.li key={m.person.id} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex items-center gap-2 rounded-2xl bg-sand p-2.5">
@@ -591,7 +592,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
             )}
           </div>
           {!preview && (
-            <div className="rounded-3xl border border-gold/30 bg-white p-5">
+            <div className="h-full rounded-3xl border border-gold/30 bg-white p-5">
               <p className="font-bold">حجم الخط</p>
               <div className="mt-3 flex items-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => actions.setDisplayScale(scale - 0.1)} aria-label="تصغير">
@@ -606,7 +607,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
               </div>
             </div>
           )}
-          <div className="flex items-start gap-3 rounded-3xl bg-green-dark p-5 text-white">
+          <div className="flex h-full items-start gap-3 rounded-3xl bg-green-dark p-5 text-white">
             <HeadphonesIcon className="mt-0.5 size-6 shrink-0 text-gold" />
             <div className="text-sm leading-7">
               <p className="font-bold">تحتاج مساعدة؟</p>
@@ -619,7 +620,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
   const body = (
       <div>
         {/* Phase progress — completed phases are buttons, so any answer can be revisited and edited */}
-        <div className="mb-4 rounded-3xl bg-white/10 p-2 backdrop-blur">
+        <div className="mb-4 rounded-3xl border border-gold/30 bg-white p-2">
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}>
             {phases.map((label, i) => {
               const open = canOpenPhase(i);
@@ -635,20 +636,20 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                   }}
                   aria-current={i === phaseIdx ? "step" : undefined}
                   title={open ? `تعديل: ${label}` : undefined}
-                  className={cn("group rounded-2xl p-1.5 text-center transition", open ? "hover:bg-white/15" : "cursor-default")}
+                  className={cn("group rounded-2xl p-1.5 text-center transition", open ? "hover:bg-sand" : "cursor-default")}
                 >
-                  <div className="h-2 overflow-hidden rounded-full bg-white/20">
-                    <motion.div className="h-full bg-gold" initial={false} animate={{ width: finished ? "100%" : i === phaseIdx ? "50%" : "0%" }} transition={{ duration: 0.6 }} />
+                  <div className="h-2 overflow-hidden rounded-full bg-sand">
+                    <motion.div className="h-full bg-gold-dark" initial={false} animate={{ width: finished ? "100%" : i === phaseIdx ? "50%" : "0%" }} transition={{ duration: 0.6 }} />
                   </div>
-                  <p className={cn("mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold leading-tight sm:text-xs", i === phaseIdx ? "text-gold" : i <= maxPhase ? "text-white" : "text-white/50")}>
-                    {finished && <CheckCircle2 className="hidden size-3.5 shrink-0 text-gold sm:block" />}
+                  <p className={cn("mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold leading-tight sm:text-xs", i === phaseIdx ? "text-green-dark" : i <= maxPhase ? "text-ink-soft" : "text-hint")}>
+                    {finished && <CheckCircle2 className="hidden size-3.5 shrink-0 text-gold-dark sm:block" />}
                     {label}
                   </p>
                 </button>
               );
             })}
           </div>
-          {maxPhase > 0 && <p className="mt-1 text-center text-[11px] text-white/70">اضغط على أي مرحلة منجزة لتعديلها</p>}
+          {maxPhase > 0 && <p className="mt-1 text-center text-[11px] text-hint">اضغط على أي مرحلة منجزة لتعديلها</p>}
         </div>
 
         {blocked?.gate && currentStage?.kind === "system" && blocked.stage === currentStage.id && (
@@ -1409,9 +1410,14 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
       </div>
     );
   }
+  // In the account's pages, with its sidebar like every other. The question keeps the whole width — the pilgrim must
+  // see everything clearly — and under it the text size and the help line side by side, then the summary on its own row
   return (
-    <PortalShell title="طلب حج — موسم 1448هـ" subtitle="سؤال واحد في كل مرة. خذ وقتك، ويمكنك الرجوع متى شئت." aside={aside}>
+    <PilgrimShell title="طلب حج — موسم 1448هـ" subtitle="سؤال واحد في كل مرة. خذ وقتك، ويمكنك الرجوع متى شئت.">
       {body}
-    </PortalShell>
+      <aside aria-label="ملخص الطلب والمساعدة" className="mt-6 grid gap-4 sm:grid-cols-2">
+        {aside}
+      </aside>
+    </PilgrimShell>
   );
 }

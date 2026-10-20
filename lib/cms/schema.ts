@@ -6,13 +6,7 @@
  *
  * قاعدة: لا يُكتب أي نص يراه الزائر داخل مكوّنات الواجهة — يُكتب هنا، وتقرؤه الواجهة عبر useSection().
  */
-import type { Field, PageDef, SelectOption } from "./types";
-
-const TONES: SelectOption[] = [
-  { value: "green", label: "أخضر (الأساسي)" },
-  { value: "gold", label: "ذهبي (مميّز)" },
-  { value: "maroon", label: "عنّابي (تنبيه)" },
-];
+import type { Field, PageDef } from "./types";
 
 /** حقول متكررة: ترويسة قسم (شارة + عنوان + وصف) */
 const heading = (eyebrow: string, title: string, description = ""): Field[] => [
@@ -80,7 +74,7 @@ const HOME: PageDef = {
         { key: "primaryLabel", label: "الزر الأساسي — النص", kind: "text", def: "ابدأ طلب الحج" },
         { key: "primaryHref", label: "الزر الأساسي — الرابط", kind: "url", def: "/register" },
         { key: "secondaryLabel", label: "الزر الثانوي — النص", kind: "text", def: "التسجيل بصفة إداري" },
-        { key: "secondaryHref", label: "الزر الثانوي — الرابط", kind: "url", def: "/administrator/register" },
+        { key: "secondaryHref", label: "الزر الثانوي — الرابط", kind: "url", def: "/portal/role" },
         {
           key: "trust",
           label: "سطور الطمأنة",
@@ -169,60 +163,27 @@ const HOME: PageDef = {
       ],
     },
     {
-      id: "services",
-      label: "بطاقات الخدمات",
-      icon: "ClipboardList",
+      id: "honours",
+      label: "نجوم الموسم",
+      icon: "Trophy",
+      note: "لمحة من «لوحة الشرف»: الموسم الماضي (منصة أفضل ثلاثة رؤساء مجموعات، وأفضل تكتل، والأفضل في كل صفة)، ثم سطر عن الموسم الجاري. {last} تصير الموسم الماضي و{current} الموسم الجاري.",
       fields: [
         ...heading(
-          "متاح للجميع دون تسجيل دخول",
-          "كل ما تحتاجه في مكان واحد",
-          "تصفّح الأخبار والأكاديمية ومواقيت الصلاة ونتائج القبول بحرية، ولا نطلب منك حساباً إلا عندما تقدّم طلبك.",
+          "لوحة الشرف",
+          "نجوم موسم {last}هـ",
+          "من خدموا ضيوف الرحمن في الموسم الماضي فكانوا الأعلى تقييماً: من الحجاج والموظفين وسجل المنصة.",
         ),
+        { key: "currentTitle", label: "عنوان سطر الموسم الجاري", kind: "text", def: "موسم {current}هـ جارٍ الآن", wide: true },
         {
-          key: "items",
-          label: "الخدمات",
-          kind: "list",
-          itemName: "خدمة",
-          itemTitleKey: "title",
-          wide: true,
-          item: [
-            { key: "title", label: "العنوان", kind: "text", def: "" },
-            { key: "text", label: "الوصف", kind: "text", def: "" },
-            { key: "href", label: "الرابط", kind: "url", def: "/" },
-            { key: "icon", label: "الأيقونة", kind: "icon", def: "UsersRound" },
-            { key: "tone", label: "اللون", kind: "select", options: TONES, def: "green" },
-          ],
-          def: [
-            { href: "/register", icon: "UsersRound", title: "تقديم طلب حج", text: "لك ولعائلتك بخطوات بسيطة", tone: "gold" },
-            { href: "/results", icon: "FileSearch", title: "نتائج القبول", text: "ابحث برقمك الوطني", tone: "green" },
-            { href: "/academy", icon: "BookOpenText", title: "أكاديمية الدروس", text: "فيديو وصوت وملخصات", tone: "green" },
-            { href: "/guide", icon: "NotebookTabs", title: "دليل المناسك", text: "يوماً بيوم مع الأدعية", tone: "green" },
-            { href: "/prayer-times", icon: "Clock3", title: "مواقيت الصلاة", text: "واتجاه القبلة لمدينتك", tone: "green" },
-            { href: "/conditions", icon: "ScrollText", title: "الشروط والتكاليف", text: "مع فحص أهلية مبدئي", tone: "green" },
-            { href: "/verify", icon: "ShieldCheck", title: "التحقق من الجهات", text: "والإيصالات والشهادات", tone: "maroon" },
-            { href: "/news", icon: "Megaphone", title: "الإعلانات الرسمية", text: "قرارات وتعاميم الإدارة", tone: "green" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "umrahTeaser",
-      label: "بطاقة العمرة",
-      icon: "Hourglass",
-      fields: [
-        { key: "title", label: "العنوان", kind: "text", def: "خدمات العمرة" },
-        { key: "badge", label: "الشارة", kind: "text", def: "قريباً" },
-        {
-          key: "text",
-          label: "النص",
+          key: "currentText",
+          label: "نص سطر الموسم الجاري",
           kind: "textarea",
-          rows: 3,
+          rows: 2,
           wide: true,
-          def: "نعمل على إضافة التسجيل في رحلات العمرة والجهات المعتمدة ومتابعة الطلب. وحتى ذلك الحين، مسار «فقه العمرة» متاح في الأكاديمية.",
+          def: "يُقيَّم كل إداري طوال الموسم: الحجاج 40%، والموظفون 45%، وسجل المنصة 15%. وتُعلن لوحة موسم {current} بعد عودة الحجاج.",
         },
-        { key: "ctaLabel", label: "نص الرابط", kind: "text", def: "اعرف المزيد" },
-        { key: "href", label: "الرابط", kind: "url", def: "/umrah" },
-        { key: "icon", label: "الأيقونة", kind: "icon", def: "Hourglass" },
+        { key: "ctaLabel", label: "نص الزر", kind: "text", def: "لوحة الشرف كاملة" },
+        { key: "ctaHref", label: "رابط الزر", kind: "url", def: "/honours" },
       ],
     },
     {
@@ -752,8 +713,8 @@ const ABOUT: PageDef = {
       fields: [
         ...heading(
           "أنواع الحسابات",
-          "ثلاثة أطراف، حساب واحد لكل شخص",
-          "لكل شخص في المنصة نوع حساب واحد فقط، ولا يجمع بين نوعين. أما الزائر فيتصفح المحتوى العام دون حساب.",
+          "حساب واحد لكل شخص، ومسار يختاره كل موسم",
+          "حساب المنصة واحد لكل مواطن، وإنشاؤه متاح دائماً: يتعلّم به في الأكاديمية، ويختار به في كل موسم أن يكون حاجاً أو إدارياً، ولا يجمع بينهما في موسم واحد. والموظف حسابه تنشئه الإدارة. أما الزائر فيتصفح المحتوى العام دون حساب.",
         ),
         { key: "featuredBadge", label: "شارة البطاقة الأولى", kind: "text", def: "الأكثر شيوعاً" },
         {
@@ -780,17 +741,17 @@ const ABOUT: PageDef = {
               icon: "UserRound",
               tagline: "المواطن الذي يتقدم بطلب حج",
               who: "المواطن الذي يتقدم بطلب حج أو قُبل طلبه",
-              create: "ينشئه بنفسه بالرقم الوطني",
+              create: "حساب المنصة نفسه، يختار به الحج لهذا الموسم",
               permissions: "لا يملك صلاحيات إدارية؛ يرى بياناته وبيانات عائلته فقط",
               travel: "نعم، إن قُبل طلبه",
-              duration: "مرتبط بطلبه في كل موسم",
+              duration: "الحساب دائم، والحج يُختار موسماً بموسم",
             },
             {
               title: "الإداري الموسمي",
               icon: "BriefcaseBusiness",
               tagline: "يخدم الحجاج خلال الموسم",
               who: "رئيس تكتل أو مجموعة ومعاوناهما، والموجّه، والمنسق التقني",
-              create: "ينشئه بنفسه، ثم يتقدم برسم تسجيل ويؤدي الاختبار المؤتمت",
+              create: "حساب المنصة نفسه، يختار به المسار الإداري فيُفتح له ملف إداري، ثم يتقدم برسم تسجيل ويؤدي الاختبار المؤتمت",
               permissions: "تأتي تلقائياً من منصبه في الموسم، وتتغير بتغيّره",
               travel: "نعم دائماً، مع حجاجه",
               duration: "موسمي، يتجدد بالتقدم لكل موسم",
@@ -876,7 +837,7 @@ const ABOUT: PageDef = {
           ],
           def: [
             { title: "الرقم الوطني مفتاح المواطن", text: "بياناته الرسمية تأتي من الشؤون المدنية، وإن تعذّر الربط أدخلها بنفسه وتحقق منها الموظف." },
-            { title: "نوع حساب واحد لكل شخص", text: "حاج أو إداري أو موظف، ولا جمع بين نوعين." },
+            { title: "حساب واحد لكل شخص، ومسار لكل موسم", text: "يختار المواطن بحسابه في كل موسم: حاجاً أو إدارياً، ولا يجمع بينهما في الموسم نفسه. وسجلّ مواسمه وتقدّمه في الأكاديمية يبقيان معه. والموظف حسابه تنشئه الإدارة." },
             { title: "الموسم هو الإطار", text: "كل قاعدة وحصة ومنصب مرتبط بموسم، ويمكن أن يختلف في الموسم التالي." },
             {
               title: "تسجيلان منفصلان للقبول",
@@ -1366,6 +1327,7 @@ const GLOBAL: PageDef = {
             { href: "/verify", label: "التحقق من الجهات والوثائق", note: "حملات معتمدة، إيصالات، شهادات", soon: false },
             { href: "/3d", label: "جولة ثلاثية الأبعاد", note: "الحرمان والمشاعر ومسجدا عائشة وقباء", soon: false },
             { href: "/honours", label: "لوحة الشرف", note: "المتميّزون وترتيب أفضل رؤساء المجموعات في كل موسم", soon: false },
+            { href: "/administrator/job-descriptions", label: "مراجع الكادر", note: "التوصيف الوظيفي، النظام الإداري، المقررات، العقود، الخطط التشغيلية", soon: false },
           ],
         },
       ],
@@ -1399,10 +1361,10 @@ const GLOBAL: PageDef = {
             { key: "href", label: "الرابط", kind: "url", def: "/" },
           ],
           def: [
-            { label: "إنشاء حساب حاج", href: "/register" },
+            { label: "إنشاء حساب", href: "/register" },
             { label: "تقديم طلب حج", href: "/portal/apply" },
             { label: "متابعة الطلب", href: "/portal/application" },
-            { label: "بوابة الإداريين", href: "/administrator" },
+            { label: "مراجع الكادر", href: "/administrator/job-descriptions" },
             { label: "بوابة الموظفين", href: "/staff" },
           ],
         },

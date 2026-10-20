@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, BadgeCheck, ClipboardList, FileSignature, FileText, Printer, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
+import { PrintDocument, PrintSection } from "@/components/print/print-document";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -17,13 +18,8 @@ import { ReferencesShell } from "./references-shell";
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={cn("rounded-[1.75rem] border border-gold/30 bg-white p-6 shadow-[0_20px_60px_-40px_rgba(2,21,38,.4)]", className)}>{children}</div>;
 
-const SheetHead = ({ title, sub }: { title: string; sub?: string }) => (
-  <header className="mb-3 border-b-2 border-black pb-2">
-    <p className="text-[9pt]">إدارة الحج والعمرة السورية — قسم شؤون المجموعات والتكتلات</p>
-    <h1 className="text-[15pt] font-bold">{title}</h1>
-    {sub && <p className="text-[10pt]">{sub}</p>}
-  </header>
-);
+/** Where every reference comes from on paper, under the platform's letterhead */
+const SOURCE = "قسم شؤون المجموعات والتكتلات";
 
 // ───────────────────────── Job descriptions ─────────────────────────
 
@@ -77,21 +73,27 @@ export function JobDescriptionsPage() {
       </div>
       {sheet.length > 0 && (
         <PrintSheet>
-          <SheetHead title="التوصيف الوظيفي" sub="موسم 1448هـ" />
-          {sheet.map((j) => (
-            <section key={j.key} className="mb-4 break-inside-avoid text-[11pt] leading-7">
-              <h2 className="text-[13pt] font-bold">
-                {j.name} — {j.level}
-                {j.secondary ? " (صفة ثانوية)" : ""}
-              </h2>
-              <p>{j.summary}</p>
-              <ul className="list-disc pr-5">
-                {j.duties.map((d) => (
-                  <li key={d}>{d}</li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          <PrintDocument
+            title={sheet.length === 1 ? `التوصيف الوظيفي — ${sheet[0].name}` : "التوصيف الوظيفي"}
+            source={SOURCE}
+            meta={[{ label: "الموسم", value: "1448هـ" }, ...(sheet.length > 1 ? [{ label: "الصفات", value: sheet.length }] : [])]}
+          >
+            {/* The roles run on, each kept whole on its page, as the old sheet did: a page each would waste paper */}
+            {sheet.map((j) => (
+              <div key={j.key} className="break-inside-avoid">
+                <PrintSection title={j.name} meta={[{ label: "المستوى", value: j.level }, ...(j.secondary ? [{ label: "نوع الصفة", value: "صفة ثانوية في التكتل" }] : [])]}>
+                  <p className="mt-2">{j.summary}</p>
+                  {j.duties.length > 0 && (
+                    <ul className="mt-1 list-disc pr-5">
+                      {j.duties.map((d) => (
+                        <li key={d}>{d}</li>
+                      ))}
+                    </ul>
+                  )}
+                </PrintSection>
+              </div>
+            ))}
+          </PrintDocument>
         </PrintSheet>
       )}
     </ReferencesShell>
@@ -172,13 +174,13 @@ export function SystemPage() {
       </div>
       {printing && (
         <PrintSheet>
-          <SheetHead title="النظام الإداري" sub="موسم 1448هـ" />
-          {system.map((s) => (
-            <section key={s.id} className="mb-4 text-[11pt]">
-              <h2 className="text-[13pt] font-bold">{s.title}</h2>
-              <RefText body={s.body} className="text-black" />
-            </section>
-          ))}
+          <PrintDocument title="النظام الإداري" source={SOURCE} meta={[{ label: "الموسم", value: "1448هـ" }, { label: "الأقسام", value: system.length }]}>
+            {system.map((s) => (
+              <PrintSection key={s.id} title={s.title}>
+                <RefText body={s.body} className="mt-2 space-y-2 leading-7 text-black" />
+              </PrintSection>
+            ))}
+          </PrintDocument>
         </PrintSheet>
       )}
     </ReferencesShell>
@@ -215,9 +217,17 @@ function FileList({ items, icon: Icon, line }: { items: (Decision | ContractForm
       </div>
       {printing && (
         <PrintSheet>
-          <SheetHead title={printing.title} sub={line(printing)} />
-          <p className="text-[11pt] leading-8">{printing.desc}</p>
-          <p className="mt-6 text-[9pt]">النسخة المعتمدة: {printing.file}</p>
+          <PrintDocument
+            title={printing.title}
+            source={SOURCE}
+            meta={[
+              ...("year" in printing ? [{ label: "الموسم", value: `${printing.year}هـ` }] : []),
+              ...("party" in printing ? [{ label: "الطرفان", value: printing.party }] : []),
+              { label: "النسخة المعتمدة", value: printing.file },
+            ]}
+          >
+            <p className="mt-3 leading-8">{printing.desc}</p>
+          </PrintDocument>
         </PrintSheet>
       )}
     </>
@@ -284,7 +294,7 @@ export function PlansPage() {
           <Card>
             <p className="font-bold text-ink">أنت رئيس تكتل؟</p>
             <p className="mt-1 text-sm leading-7 text-ink-soft">قدّم خطة تكتلك من «إدارة التكتل» في حسابك، بعد اعتماد التكتل.</p>
-            <ButtonLink href="/administrator/clusters?tab=plan" className="mt-3 w-full">
+            <ButtonLink href="/portal/clusters?tab=plan" className="mt-3 w-full">
               قدّم الخطة <ArrowLeft className="size-4" />
             </ButtonLink>
           </Card>

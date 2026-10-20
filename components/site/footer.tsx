@@ -21,7 +21,7 @@ export function Footer() {
         <div>
           <div className="flex items-center gap-3">
             <Emblem className="size-14" />
-            <BrandLockup name={t(BRAND.name, "Hajj and Umrah Administration")} country={t(BRAND.country, "Syria")} nameClass="font-display text-xl font-bold text-white" countryClass="text-sm font-semibold text-gold" />
+            <BrandLockup name={t(BRAND.name, "Directorate of Hajj and Umrah")} country={t(BRAND.country, "Syria")} nameClass="font-display text-xl font-bold text-white" countryClass="text-sm font-semibold text-gold" />
           </div>
           {f.about && <p className="mt-5 max-w-sm leading-8">{f.about}</p>}
           {f.social.length > 0 && (

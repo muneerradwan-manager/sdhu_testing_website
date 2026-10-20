@@ -140,7 +140,7 @@ p.locator("main button[type=submit]:has-text('تسجيل')").first.click(); c.se
 c.shot("hall-present", "سُجّل حضوره: «حاضر» في قائمة المدرجين", section=HALL)
 
 # مروان on his device: the applicants' entry link, his national id
-c.goto("/administrator/exam", wait=2500)
+c.goto("/portal/exam", wait=2500)
 f = p.locator("input[aria-label='الرقم الوطني']").first
 f.fill(NID); c.settle(300)
 c.scroll_to("input[aria-label='الرقم الوطني']", 520)
@@ -167,14 +167,14 @@ c.goto("/staff/exam/manage/live", wait=2000)
 c.shot("ex-live", "الجلسات الفعالة: متابعة فقط، والإدارة من لوحة المشرف", section=EX)
 
 # مروان answers and submits
-c.goto("/administrator/exam", wait=2500)
+c.goto("/portal/exam", wait=2500)
 p.locator("button:has-text('محاكاة: إجابات ناجحة')").first.click(); c.settle(1000)
 p.locator("button:has-text('نعم، سلّم')").first.click(); c.settle(2000)
 s.login("nisreen")
 c.goto("/staff/hall", wait=1800)
 s.btn("المراقبة والتأكيد", 900)
 c.shot("hall-monitor", "المراقبة والتأكيد: سلّم — بانتظار التأكيد", hl=[("main tr:has-text('مروان') button:has-text('تأكيد')", "1"), ("main tr:has-text('مروان') button:has-text('لا أؤكد')", "2")], section=HALL)
-c.goto("/administrator/exam", wait=2500)
+c.goto("/portal/exam", wait=2500)
 p.locator("input#pin").first.fill("1448"); c.settle(300)
 c.shot("hall-pin-device", "على جهاز المتقدم: تكتب رمزك فيتأكد تسليمه", hl=[("input#pin", "1"), ("main button[type=submit]:has-text('تأكيد')", "2")], section=HALL)
 p.locator("main button[type=submit]:has-text('تأكيد')").first.click(); c.settle(2200)

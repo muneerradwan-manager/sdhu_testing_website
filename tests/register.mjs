@@ -10,6 +10,8 @@ const root = resolvePath(dirname(fileURLToPath(import.meta.url)), "..");
 registerHooks({
   resolve(specifier, context, next) {
     if (context.parentURL?.includes("/node_modules/")) return next(specifier, context);
+    // Next's subpath entries («next/navigation», «next/link») are files without an exports map: the bundler adds ".js"
+    if (/^next\/[a-z-]+$/.test(specifier)) return next(`${specifier}.js`, context);
     let spec = specifier;
     if (spec.startsWith("@/")) spec = pathToFileURL(resolvePath(root, spec.slice(2))).href;
     if ((spec.startsWith(".") || spec.startsWith("file:")) && context.parentURL) {

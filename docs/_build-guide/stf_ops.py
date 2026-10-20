@@ -33,7 +33,7 @@ def prep_pilgrim():
     c.goto("/register", wait=1200)
     c.fill("input[placeholder='01012345412']", "01012345412")
     c.fill("input[autocomplete='given-name']", "محمد")
-    c.fill("input[placeholder='09xxxxxxxx']", "0944345412")
+    c.fill("input[type='tel']", "944345412")
     c.fill("input[type='email']", "mohammad@example.com")
     c.fill("input[type='password']", "Hajj@1448")
     c.click("button[type='submit']", wait=1600)
@@ -207,6 +207,9 @@ if "ops" in PARTS:
     c.scroll_top(); c.settle(4500)  # the toast goes
     c.shot("ops-bus", "اقتراح المنصة: حافلة تاسعة لمزدلفة", hl=[("main button:has-text('قبول الاقتراح وطلب الحافلة')", "")], section=S)
     s.btn("قبول الاقتراح وطلب الحافلة", 1500)
+    # the clusters' daily reports, each from its head's «يومي»
+    p.locator(seg("الأقسام", "التقارير اليومية")).first.click(); c.settle(1500)
+    c.shot("ops-reports", "التقارير اليومية: تقرير كل تكتل من رئيسه", hl=[("main table", "")], section=S)
     # the internal tasks
     p.locator(seg("الأقسام", "المهام الداخلية")).first.click(); c.settle(1500)
     c.shot("ops-tasks", "المهام الداخلية: قائمة بحالة كل مهمة", hl=[("main button:has-text('+ مهمة جديدة')", "1"), ("main tbody tr:has-text('توزيع صورة سليم حسن') button:has-text('نقل إلى')", "2")], section=S)

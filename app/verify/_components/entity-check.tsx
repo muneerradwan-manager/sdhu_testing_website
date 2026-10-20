@@ -287,7 +287,7 @@ function Approved({ match, onOpen }: { match: Extract<EntityMatch, { kind: "appr
       <div className="relative flex flex-col gap-6 bg-gradient-to-br from-green-light/10 via-white to-white p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
         <div>
           <span className="inline-flex items-center gap-1.5 text-sm font-bold text-green">
-            <CircleCheck className="size-4" /> {t("جهة معتمدة من إدارة الحج والعمرة", "Approved by the Hajj and Umrah Administration")}
+            <CircleCheck className="size-4" /> {t("جهة معتمدة من إدارة الحج والعمرة", "Approved by the Directorate of Hajj and Umrah")}
           </span>
           <h3 className="mt-2 font-display text-3xl font-bold text-green-dark">{c.name}</h3>
           <div className="mt-3 flex flex-wrap gap-2">

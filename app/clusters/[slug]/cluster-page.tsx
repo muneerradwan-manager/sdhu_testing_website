@@ -256,7 +256,7 @@ export function ClusterPage({ slug }: { slug: string }) {
               <p className="mt-2 text-sm leading-7 text-white/80">
                 {t(
                   `هذا التكتل مرخّص من إدارة الحج والعمرة لموسم ${SEASON.hijriYear}هـ، وبرنامجه أعلاه هو ما التزم به أمامها. أي جهة خارج هذا الدليل ليست معتمدة، ولا تقبل منها تسجيلاً ولا دفعاً.`,
-                  `This cluster is licensed by the Hajj and Umrah Administration for the ${SEASON.hijriYear} AH season, and the programme above is what it has committed to. Any organisation outside this directory is not approved: do not register or pay through it.`,
+                  `This cluster is licensed by the Directorate of Hajj and Umrah for the ${SEASON.hijriYear} AH season, and the programme above is what it has committed to. Any organisation outside this directory is not approved: do not register or pay through it.`,
                 )}
               </p>
               <ButtonLink href="/clusters" variant="gold" size="sm" className="mt-4 w-full">

@@ -39,27 +39,13 @@ export const PAGES_EN_HOME: PagesEn = {
         { text: "New in the religious lessons Academy: the «Fiqh of Hajj» track — 18 lessons at three levels" },
       ],
     },
-    services: {
-      eyebrow: "Open to everyone, no sign-in needed",
-      title: "Everything you need in one place",
-      description:
-        "Browse the news, the Academy, prayer times and admission results freely. We only ask you for an account when you submit your application.",
-      items: [
-        { href: "/register", icon: "UsersRound", title: "Apply for Hajj", text: "For you and your family, in simple steps", tone: "gold" },
-        { href: "/results", icon: "FileSearch", title: "Admission results", text: "Search by your national number", tone: "green" },
-        { href: "/academy", icon: "BookOpenText", title: "Lessons Academy", text: "Video, audio and summaries", tone: "green" },
-        { href: "/guide", icon: "NotebookTabs", title: "Hajj rites guide", text: "Day by day, with the duas", tone: "green" },
-        { href: "/prayer-times", icon: "Clock3", title: "Prayer times", text: "And the Qibla direction for your city", tone: "green" },
-        { href: "/conditions", icon: "ScrollText", title: "Conditions and costs", text: "With a quick eligibility check", tone: "green" },
-        { href: "/verify", icon: "ShieldCheck", title: "Verify agencies", text: "Receipts and certificates too", tone: "maroon" },
-        { href: "/news", icon: "Megaphone", title: "Official announcements", text: "The Administration's decisions and circulars", tone: "green" },
-      ],
-    },
-    umrahTeaser: {
-      title: "Umrah services",
-      badge: "Coming soon",
-      text: "We are adding registration for Umrah trips, approved agencies and application tracking. Until then, the «Fiqh of Umrah» track is available in the Academy.",
-      ctaLabel: "Learn more",
+    honours: {
+      eyebrow: "Hall of Honour",
+      title: "The stars of the {last} AH season",
+      description: "Those who served the guests of the Most Merciful last season and were rated highest: by the pilgrims, the staff and the platform's record.",
+      currentTitle: "The {current} AH season is under way",
+      currentText: "Every administrator is rated throughout the season: the pilgrims 40%, the staff 45%, the platform's record 15%. The {current} roll is announced after the pilgrims return.",
+      ctaLabel: "The full Hall of Honour",
     },
     tutorials: {
       eyebrow: "Video tutorials",

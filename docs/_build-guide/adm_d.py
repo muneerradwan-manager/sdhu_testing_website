@@ -13,13 +13,13 @@ c = Cap(); p = c.page
 S = "N"
 DLG = "[role=dialog]"
 DAY = lambda no: f"main [data-day='{no}']"
-NAV_LISTS = "nav a[href*='/administrator/lists']"
+NAV_LISTS = "nav a[href*='/portal/lists']"
 TAB = lambda name: f"main [role=tab]:has-text('{name}')"
 UNIT = lambda label: f"main [data-unit='{label}']"
 VIEW_ONLY = "main p:has-text('للاطلاع فقط')"
 
-def admin(name, path="/administrator/lists"):
-    c.goto("/administrator/login?demo=all", wait=1500)
+def admin(name, path="/portal/lists"):
+    c.goto("/login?demo=all", wait=1500)
     card = p.locator(f"main button:has-text('{name} —')").first
     card.scroll_into_view_if_needed(); card.click(); c.settle(2500)
     c.goto(path, wait=2200)
@@ -30,18 +30,21 @@ c.shot("cfl-top", "القوائم ← الطيران: رحلات مجموعات 
 c.scroll_to("text=أيام رحلات التكتل", 110)
 c.shot("cfl-days", "أيام رحلات التكتل: الذهاب والعودة، ومقاعد التكتل على كل رحلة", hl=[(DAY("RB 507"), "")], section=S)
 
-b = p.locator(f"{DAY('RB 507')} button:has-text('إسناد مجموعات')").first
+# One button on each day, «إضافة مسافرين»: the groups as tabs, «الكل» for a whole group (put on the flight as a group)
+b = p.locator(f"{DAY('RB 507')} button:has-text('إضافة مسافرين')").first
 b.scroll_into_view_if_needed(); b.click(); c.settle(1000)
-p.locator(f"{DLG} button[aria-pressed]:has-text('مجموعة اللطيف')").first.click(); c.settle(500)
-c.shot("cfl-assign", "إسناد مجموعات: المجموعة كاملة، وعودتها من أيام التكتل مختارة سلفاً", hl=[(f"{DLG} select", "1"), (f"{DLG} button:has-text('إسناد') >> nth=-1", "2")], section=S)
-p.locator(f"{DLG} button:has-text('إسناد')").last.click(); c.settle(1600)
+p.locator(f"{DLG} [role=tab]:has-text('مجموعة اللطيف')").first.click(); c.settle(500)
+p.locator(f"{DLG} label:has-text('الكل في') input").first.check(); c.settle(500)
+c.shot("cfl-assign", "إضافة مسافرين: المجموعات تبويبات، و«الكل» يأخذ المجموعة كاملة، وعودتها مختارة سلفاً", hl=[(f"{DLG} [role=tablist]", "1"), (f"{DLG} label:has-text('الكل في')", "2"), (f"{DLG} select", "3")], section=S)
+p.locator(f"{DLG} button:has-text('إضافة إلى الرحلة')").last.click(); c.settle(1600)
 
-b = p.locator(f"{DAY('RB 538')} button:has-text('إضافة حجاج')").first
+# …or some of a group: whoever travels apart, moved from his group's flight
+b = p.locator(f"{DAY('RB 538')} button:has-text('إضافة مسافرين')").first
 b.scroll_into_view_if_needed(); b.click(); c.settle(1000)
-p.locator(f"{DLG} select[aria-label='المجموعة']").select_option("27"); c.settle(700)
-p.locator(f"{DLG} button[aria-pressed]:not([disabled])").first.click(); c.settle(400)
-c.shot("cfl-pilgrims", "إضافة حجاج فرادى: من يسافر وحده يُنقل من رحلة مجموعته", hl=[(f"{DLG} button[aria-pressed='true']", "1"), (f"{DLG} button:has-text('إضافة') >> nth=-1", "2")], section=S)
-p.locator(f"{DLG} button:has-text('إضافة')").last.click(); c.settle(1600)
+p.locator(f"{DLG} [role=tab]:has-text('مجموعة اللطيف')").first.click(); c.settle(500)
+p.locator(f"{DLG} label:not(:has-text('الكل في')) input[type=checkbox]:not([disabled])").first.check(); c.settle(400)
+c.shot("cfl-pilgrims", "إضافة مسافرين فرادى: تعلّم من يسافر وحده، فيُنقل من رحلة مجموعته", hl=[(f"{DLG} label:has(input:checked) >> nth=0", "1"), (f"{DLG} button:has-text('إضافة إلى الرحلة')", "2")], section=S)
+p.locator(f"{DLG} button:has-text('إضافة إلى الرحلة')").last.click(); c.settle(1600)
 c.scroll_to(DAY("RB 538"), 160)
 c.shot("cfl-apart", "على الرحلة فرادى خارج رحلة مجموعتهم، ولكل مجموعة وفرد زر الإزالة", hl=[(f"{DAY('RB 538')} div:has-text('فرادى خارج رحلة مجموعتهم') >> nth=-1", "")], section=S)
 c.scroll_to("text=مجموعاتي ورحلاتها", 110)
@@ -53,12 +56,18 @@ p.locator(TAB("التروية")).first.click(); c.settle(1500)
 c.shot("lists-page", "قائمة التروية: أرقامها وطباعتها، وحافلات التكتل بمن عليها", hl=[(TAB("التروية"), "1"), ("main button:has-text('طباعة قائمة')", "2")], section=S)
 bus = p.locator("main [data-unit]").first
 label = bus.get_attribute("data-unit")
-bus.locator("button[aria-haspopup='listbox']").click(); c.settle(700)
-panel = f"{UNIT(label)} [role=listbox]"
-p.locator(f"{panel} label:has-text('— الكل') input").first.check(); c.settle(500)
-c.scroll_to(UNIT(label), 120)
-c.shot("lists-add", "أضف إلى الحافلة: مجموعة كاملة أو إداريون وحجاج بأسمائهم، ثم «إضافة»", hl=[(f"{panel} button:has-text('إضافة (')", "")], section=S)
-p.locator(f"{panel} button:has-text('إضافة (')").first.click(); c.settle(1600)
+def fill_from_picker(confirm):
+    """The picker of «القوائم»: «الكل» in the first group, then untick down to the seats left"""
+    p.locator(f"{DLG} label:has-text('الكل في') input").first.check(); c.settle(400)
+    btn = p.locator(f"{DLG} button:has-text('{confirm}')").last
+    boxes = p.locator(f"{DLG} label:not(:has-text('الكل في')) input[type=checkbox]:checked")
+    while not btn.is_enabled() and boxes.count():
+        boxes.last.uncheck(); c.settle(40)
+    return btn
+bus.locator("button:has-text('أضف إلى')").click(); c.settle(900)
+add = fill_from_picker(f"أضف إلى {label}")
+c.shot("lists-add", "أضف إلى الحافلة: المجموعات تبويبات، «الكل» ثم إزالة من لا يذهب", hl=[(f"{DLG} [role=tablist]", "1"), (f"{DLG} label:has-text('الكل في')", "2")], section=S)
+add.click(); c.settle(1600)
 c.scroll_to(UNIT(label), 120)
 c.shot("lists-bus", "الحافلة بركابها: × لإزالة أحدهم، ورمز الطابعة يطبعها وحدها", hl=[(f"{UNIT(label)} button[aria-label^='طباعة']", "")], section=S)
 c.settle(3000)  # the toast goes
@@ -66,10 +75,9 @@ c.scroll_top()
 p.locator(TAB("حجز الروضة الشريفة")).first.click(); c.settle(1500)
 for g in ["الروضة الشريفة — الرجال", "الروضة الشريفة — النساء"]:
     u = p.locator(UNIT(g)).first
-    if u.count() and u.locator("button[aria-haspopup='listbox']").count():
-        u.locator("button[aria-haspopup='listbox']").click(); c.settle(600)
-        p.locator(f"{UNIT(g)} [role=listbox] label:has-text('— الكل') input").first.check(); c.settle(300)
-        p.locator(f"{UNIT(g)} [role=listbox] button:has-text('إضافة (')").first.click(); c.settle(1500)
+    if u.count() and u.locator("button:has-text('أضف إلى')").count():
+        u.locator("button:has-text('أضف إلى')").click(); c.settle(800)
+        fill_from_picker(f"أضف إلى {g}").click(); c.settle(1500)
 c.settle(3000)
 c.scroll_to("main [data-unit] >> nth=0", 220)
 c.shot("lists-rawdah", "حجز الروضة الشريفة: قائمة للرجال وقائمة للنساء، بلا حافلات ولا حد للمقاعد", hl=[(UNIT("الروضة الشريفة — الرجال"), "")], section=S)
@@ -90,9 +98,9 @@ c.shot("gfl-list", "كشف المجموعة: رحلة كل فرد وحالته",
 S = "V"
 c.goto("/login", wait=1200)
 p.locator("button:has-text('يوسف القطان')").first.click(); c.settle(2500)
-admin("سامر نبيل نجار", "/administrator/visas")
+admin("سامر نبيل نجار", "/portal/visas")
 p.locator("main button[aria-pressed]:has-text('اللطيف')").first.click(); c.settle(1200)
-c.shot("visas-list", "التأشيرات: كل عائلة ألحقها المكتب بمجموعتك، وتأشيرة كل فرد", hl=[("nav a[href*='/administrator/visas']", "1")], section=S)
+c.shot("visas-list", "التأشيرات: كل عائلة ألحقها المكتب بمجموعتك، وتأشيرة كل فرد", hl=[("nav a[href*='/portal/visas']", "1")], section=S)
 fam = p.locator("main [data-family]").first
 fam.locator("button[aria-label^='حذف تأشيرة']").first.click(); c.settle(900)
 fam.locator("input[aria-label^='رقم تأشيرة']").first.fill("HV-1448-7731-2"); c.settle(300)
@@ -102,8 +110,8 @@ c.shot("visas-done", "اكتملت تأشيرات العائلة: صدرت خط�
 
 # ───────── religious lessons ─────────
 S = "R"
-admin("الشيخ خالد الرفاعي", "/administrator/lessons")
-c.shot("lessons-guide", "الدروس الدينية: دروس الموجّه القادمة والمنتهية", hl=[("nav a[href*='/administrator/lessons']", "1"), ("main button:has-text('درس جديد')", "2")], section=S)
+admin("الشيخ خالد الرفاعي", "/portal/guide-lessons")
+c.shot("lessons-guide", "الدروس الدينية: دروس الموجّه القادمة والمنتهية", hl=[("nav a[href*='/portal/guide-lessons']", "1"), ("main button:has-text('درس جديد')", "2")], section=S)
 p.locator("main button:has-text('درس جديد')").first.click(); c.settle(900)
 d = p.locator(DLG).last
 d.locator("input[placeholder^='مثل: أحكام الإحرام']").fill("آداب الإقامة في مكة وصلاة الجماعة في الحرم")
@@ -124,8 +132,8 @@ p.locator("main [role=tab]:has-text('المنتهية')").click(); c.settle(800)
 c.shot("lessons-done", "الدروس المنتهية: من حضر من المدعوين", section=S)
 
 # ───────── religious activities ─────────
-c.goto("/administrator/activities", wait=2000)
-c.shot("act-list", "النشاطات الدينية: حلقات التحفيظ ومتوسط إنجاز كل منها", hl=[("nav a[href*='/administrator/activities']", "1"), ("main button:has-text('نشاط جديد')", "2")], section=S)
+c.goto("/portal/activities", wait=2000)
+c.shot("act-list", "النشاطات الدينية: حلقات التحفيظ ومتوسط إنجاز كل منها", hl=[("nav a[href*='/portal/activities']", "1"), ("main button:has-text('نشاط جديد')", "2")], section=S)
 p.locator("main button:has-text('نشاط جديد')").first.click(); c.settle(900)
 d = p.locator(DLG).last
 d.locator("input[placeholder^='مثل: الأحد']").fill("بعد صلاة الفجر يومياً")
@@ -143,18 +151,18 @@ p.locator(f"{DLG} button:has-text('حفظ')").last.click(); c.settle(1000)
 p.keyboard.press("Escape"); c.settle(600)
 
 # ───────── the female guide: her lessons for the women, her shared reading ─────────
-admin("هالة الدقر", "/administrator/lessons")
+admin("هالة الدقر", "/portal/guide-lessons")
 p.locator("main button:has-text('درس جديد')").first.click(); c.settle(900)
 c.shot("lessons-female", "درس الموجّهة: للنساء وحدهن، ولمجموعاتها", hl=[(f"{DLG} [role=radiogroup][aria-label='لمن الدرس']", "")], section=S)
 p.keyboard.press("Escape"); c.settle(600)
-c.goto("/administrator/activities", wait=2000)
+c.goto("/portal/activities", wait=2000)
 b = p.locator("main [data-activity='ac-f-khatma'] button:has-text('المتابعة')").first
 b.scroll_into_view_if_needed(); b.click(); c.settle(1200)
 c.shot("act-khatma", "الختمة الجماعية: الأجزاء الثلاثون ومن قرأ كل جزء", section=S)
 p.keyboard.press("Escape"); c.settle(600)
 
 # ───────── the group's head follows them ─────────
-admin("أحمد سليمان الحمصي", "/administrator/lessons")
+admin("أحمد سليمان الحمصي", "/portal/guide-lessons")
 c.shot("lessons-head", "رئيس المجموعة يتابع دروس مجموعته", section=S)
 c.close()
 print("DONE adm_d")

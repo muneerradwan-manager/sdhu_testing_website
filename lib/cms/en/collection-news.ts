@@ -35,7 +35,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
     body: [
       {
         type: "p",
-        text: "The Hajj and Umrah Administration is opening applications for administrative work in the 1448 AH Hajj season. This announcement covers the following seasonal roles: group leader, assistant group leader, religious guide and technical coordinator. Cluster leadership is not applied for here, and it is not elected: a group leader who meets the conditions submits the request to form a cluster, within the set period.",
+        text: "The Directorate of Hajj and Umrah is opening applications for administrative work in the 1448 AH Hajj season. This announcement covers the following seasonal roles: group leader, assistant group leader, religious guide and technical coordinator. Cluster leadership is not applied for here, and it is not elected: a group leader who meets the conditions submits the request to form a cluster, within the set period.",
       },
       { type: "h", text: "How to apply" },
       {
@@ -53,7 +53,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
         type: "callout",
         tone: "gold",
         title: "Important",
-        text: "Each person can hold only one type of account on the platform. Anyone who creates an “Administrator” account cannot apply for Hajj as a pilgrim in the same season.",
+        text: "Each person has one account on the platform, and chooses one path with it each season: anyone who applies for an administrative role cannot apply for Hajj in the same season, but may in another season.",
       },
       { type: "h", text: "Key dates" },
       {
@@ -132,7 +132,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
     body: [
       {
         type: "p",
-        text: "The Hajj and Umrah Administration announces that direct acceptance registration for the 1448 AH (2027) season is open on the National Hajj Platform from Wednesday 12 to Tuesday 25 August 2026, corresponding to 29 Safar – 12 Rabi' al-Awwal 1448 AH. Pilgrims register themselves, or are registered by someone the Administration has authorised to do so, and registering does not place anyone in a group. This season, direct acceptance is for applications whose main applicant is 66 or older (35% of the quota), and the platform checks age at registration, before any payment; anyone younger registers for the lottery. The lists are approved on 26 August.",
+        text: "The Directorate of Hajj and Umrah announces that direct acceptance registration for the 1448 AH (2027) season is open on the National Hajj Platform from Wednesday 12 to Tuesday 25 August 2026, corresponding to 29 Safar – 12 Rabi' al-Awwal 1448 AH. Pilgrims register themselves, or are registered by someone the Administration has authorised to do so, and registering does not place anyone in a group. This season, direct acceptance is for applications whose main applicant is 66 or older (35% of the quota), and the platform checks age at registration, before any payment; anyone younger registers for the lottery. The lists are approved on 26 August.",
       },
       { type: "h", text: "The season's quota and how acceptance works" },
       {
@@ -197,7 +197,7 @@ const ARTICLES_EN: Record<string, ArticleEn> = {
     body: [
       {
         type: "p",
-        text: "The Hajj and Umrah Administration warns citizens about adverts spreading on social media and messaging apps, posted by organisations calling themselves “campaigns” that promise a guaranteed place in the 1448 AH Hajj in exchange for money.",
+        text: "The Directorate of Hajj and Umrah warns citizens about adverts spreading on social media and messaging apps, posted by organisations calling themselves “campaigns” that promise a guaranteed place in the 1448 AH Hajj in exchange for money.",
       },
       {
         type: "callout",

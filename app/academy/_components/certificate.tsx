@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Award, FolderLock, Lock, Printer } from "lucide-react";
 import { useState, type PointerEvent } from "react";
 import { useToast } from "@/components/ui/widgets";
+import { useAcademyProgress } from "@/lib/account";
 import { useHydrated, useStore } from "@/lib/store";
 import { fullName, getPerson } from "@/lib/registry";
 import { cn, maskNationalId, seeded } from "@/lib/utils";
@@ -28,7 +29,7 @@ export function Certificate({
   const { t, en } = x;
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
-  const academy = useStore((s) => s.academy);
+  const academy = useAcademyProgress();
   const toast = useToast();
   const [issued] = useState(() => new Date());
 
@@ -36,8 +37,9 @@ export function Certificate({
   const done = loggedIn ? lessonSlugs.filter((l) => academy[`${trackSlug}/${l}`]).length : 0;
   const unlocked = loggedIn && done === lessonSlugs.length;
   const person = loggedIn && session ? getPerson(session) : null;
-  const name = person ? fullName(person) : t("اسم الحاج الكامل", "Pilgrim's full name");
-  const title = person?.gender === "F" ? "الحاجة" : "الحاج";
+  // The certificate is the account's, pilgrim or administrator alike
+  const name = person ? fullName(person) : t("الاسم الكامل", "Full name");
+  const title = person?.gender === "F" ? "السيدة" : "السيد";
   const rand = seeded(`${session ?? "guest"}-${trackSlug}`);
   const certNo = `ACD-${trackSlug.slice(0, 3).toUpperCase()}-${Math.floor(rand() * 900000 + 100000)}`;
 
@@ -143,7 +145,7 @@ export function Certificate({
                   </svg>
                 ))}
 
-                <p className="text-[11px] font-bold tracking-wide text-gold-dark sm:text-xs">{t("الجمهورية العربية السورية • إدارة الحج والعمرة", "Syrian Arab Republic • Hajj and Umrah Administration")}</p>
+                <p className="text-[11px] font-bold tracking-wide text-gold-dark sm:text-xs">{t("الجمهورية العربية السورية • إدارة الحج والعمرة", "Syrian Arab Republic • Directorate of Hajj and Umrah")}</p>
                 <p className="mt-1 font-display text-sm text-green-dark sm:text-base">{t("أكاديمية الدروس الدينية", "Religious Lessons Academy")}</p>
                 <h3 className="mt-3 font-display text-3xl font-bold text-maroon sm:text-5xl">{t("شهادة إتمام", "Certificate of Completion")}</h3>
                 <svg viewBox="0 0 120 12" className="mx-auto mt-2 h-3 w-28" aria-hidden>

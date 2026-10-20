@@ -18,7 +18,7 @@ import { RecordHistory, Records } from "./records";
 import { Field, Pick, Segments, selectClass } from "./ui";
 
 /** The applicants' own page, whose QR code every hall screen shows */
-const ENTRY = "/administrator/exam";
+const ENTRY = "/portal/exam";
 const displayPath = (n?: number) => (n ? `/exam-display/${n}` : "/exam-display");
 const LIST = "/staff/exam/manage";
 const editHref = (id?: string) => (id ? `/staff/exam/manage/edit?id=${id}` : "/staff/exam/manage/edit");

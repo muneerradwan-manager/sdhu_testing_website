@@ -1,7 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Emblem } from "@/components/brand/logo";
+import { PrintDocument, PrintNote, PrintSection, PrintTable, type PrintMeta } from "@/components/print/print-document";
 import { groupName } from "@/lib/groups";
 import { dayHijri, dayLabel, useToday } from "@/lib/operations";
 import { useStore } from "@/lib/store";
@@ -158,27 +157,10 @@ export function ClusterReport({ req, dark = false, signatures = false }: { req: 
   );
 }
 
-/** A table's cells on paper: thin black rules, a lightly tinted head */
-const TH = "border border-black/50 bg-[#e6efec] px-2 py-1 text-right align-middle font-bold";
-const TD = "border border-black/50 px-2 py-1 align-top";
-
-function Part({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="mt-3">
-      {/* Room above the title: a tanween («رابعاً») drawn above its line would otherwise stay on the page before */}
-      <h2 className="mb-2 flex items-center gap-2 pt-2 text-[12pt] leading-loose font-bold break-inside-avoid break-after-avoid">
-        <span aria-hidden className="h-[1.1em] w-1 shrink-0 bg-[#00594F]" />
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
 /**
- * The report on paper — what «طباعة» gives, inside a PrintSheet: one official A4 document with the platform's
- * heading, the cluster's data and numbers, its own cadre, every group with its head and cadre, the
- * administration's notes, and the signatures (the head's, the stamp, the branch director's approval).
+ * The report on paper — what «طباعة» gives, inside a PrintSheet: the platform's printed template with the
+ * cluster's data and numbers, its own cadre, every group with its head and cadre, the administration's notes, and
+ * the signatures (the head's, the stamp, the branch director's approval).
  */
 export function ClusterPrint({ req }: { req: ClusterRequest }) {
   const s = useStructure();
@@ -206,86 +188,42 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
     ...c.femaleGuides.filter(yes).map((x) => ({ ...x, task: POOLS["guide-f"].title, note: carried(c.guideSorting, x.id) })),
   ];
   const capacity = req.groups.reduce((n, g) => n + g.capacity, 0);
-  const data: [string, string][] = [
-    ["اسم التكتل", c.name || "—"],
-    ["رئيس التكتل", req.headName],
-    ["الفرع", req.branches.join(" و") || "—"],
-    ["مستوى التكتل", s.tiers.find((t) => t.id === c.tier)?.name ?? "—"],
-    [ACCOUNTANT_TITLE, yes(c.accountant) ? c.accountant!.name : "—"],
-    ["حالة الطلب", STATUS[c.status].label],
-    ["تاريخ الإرسال", date(c.sentAt)],
+  const data: PrintMeta[] = [
+    { label: "اسم التكتل", value: c.name || "—" },
+    { label: "رئيس التكتل", value: req.headName },
+    { label: "الفرع", value: req.branches.join(" و") || "—" },
+    { label: "مستوى التكتل", value: s.tiers.find((t) => t.id === c.tier)?.name ?? "—" },
+    { label: ACCOUNTANT_TITLE, value: yes(c.accountant) ? c.accountant!.name : "—" },
+    { label: "معاون التكتل", value: c.assistants.filter(yes).map((x) => x.name).join("، ") || "—" },
+    { label: "حالة الطلب", value: STATUS[c.status].label },
+    { label: "تاريخ الإرسال", value: date(c.sentAt) },
   ];
-  if (c.decision) data.push([c.decision.status === "approved" ? "اعتمده" : "أعاده بملاحظات", `${c.decision.by} — ${date(c.decision.at)}`]);
+  if (c.decision) data.push({ label: c.decision.status === "approved" ? "اعتمده" : "أعاده بملاحظات", value: `${c.decision.by} — ${date(c.decision.at)}` });
+  if (c.byAdministration) data.push({ label: "أنشأته الإدارة نيابة عن رئيسه", value: c.byAdministration.reason });
+  const n = req.groups.length;
 
   return (
-    <article className="text-[10pt] leading-relaxed text-black">
-      <header className="flex items-center justify-between gap-6 border-b-2 border-[#00594F] pb-3">
-        <div className="flex items-center gap-3">
-          <Emblem className="size-16" gradientId="emblem-gold-print" />
-          <div className="leading-snug">
-            <p className="font-display text-[15pt] font-bold text-[#00594F]">المنصة الوطنية للحج</p>
-            <p className="text-[10.5pt] font-bold">إدارة الحج والعمرة السورية</p>
-            <p className="text-[9pt] text-black/70">إدارة الإداريين — تشكيل التكتلات</p>
-          </div>
-        </div>
-        <div className="text-left text-[9pt] leading-6">
-          <p>
-            الموسم: <b>1448هـ</b>
-          </p>
-          <p>
-            تاريخ الطباعة: <b>{dayLabel(today, true)}</b>
-          </p>
-          <p className="text-black/70">{dayHijri(today)}</p>
-        </div>
-      </header>
+    <PrintDocument
+      title="تقرير تشكيل تكتل"
+      source={c.name || undefined}
+      meta={[
+        { label: "الموسم", value: "1448هـ" },
+        // The platform's day, which a rehearsal may set apart from the printer's clock
+        { label: "تاريخ التقرير", value: `${dayLabel(today, true)} — ${dayHijri(today)}` },
+      ]}
+    >
+      <PrintSection title="أولاً: بيانات التكتل" meta={data} />
 
-      <div className="mt-5 text-center">
-        <h1 className="font-display text-[18pt] font-bold">تقرير تشكيل تكتل</h1>
-        <p className="mt-1 font-display text-[14pt] font-bold text-[#00594F]">{c.name || "—"}</p>
-        {c.byAdministration && <p className="mt-1 text-[9pt]">أنشأته الإدارة نيابة عن رئيسه — {c.byAdministration.reason}</p>}
-      </div>
-
-      <Part title="أولاً: بيانات التكتل">
-        <table className="w-full border-collapse">
-          <tbody>
-            {Array.from({ length: Math.ceil(data.length / 2) }, (_, i) => data.slice(i * 2, i * 2 + 2)).map((row) => (
-              <tr key={row[0][0]} className="break-inside-avoid">
-                {row.map(([k, v], j) => (
-                  <Pair key={k} k={k} v={v} span={row.length === 1 && j === 0} />
-                ))}
-              </tr>
-            ))}
-            <tr className="break-inside-avoid">
-              <td className={cn(TD, "w-[18%] bg-[#f4f7f6] font-bold")}>معاون التكتل</td>
-              <td className={TD} colSpan={3}>
-                {c.assistants.filter(yes).map((x) => x.name).join("، ") || "—"}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Part>
-
-      <Part title="ثانياً: أرقام التكتل">
-        <table className="w-full border-collapse text-center">
-          <thead>
-            <tr>
-              {["عدد المجموعات", "إجمالي الفئات", "عدد الحجاج", "عدد الكوادر", "متوسط أعمار الكادر"].map((k) => (
-                <th key={k} className={cn(TH, "text-center")}>
-                  {k}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {[formatNumber(req.groups.length), formatNumber(req.weight), formatNumber(req.pilgrims), formatNumber(req.cadre), req.age.avg === null ? "—" : `${req.age.avg} سنة`].map((v, i) => (
-                <td key={i} className={cn(TD, "text-center text-[13pt] font-bold")}>
-                  {v}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+      <PrintSection
+        title="ثانياً: أرقام التكتل"
+        meta={[
+          { label: "عدد المجموعات", value: formatNumber(n) },
+          { label: "إجمالي الفئات", value: formatNumber(req.weight) },
+          { label: "عدد الحجاج", value: formatNumber(req.pilgrims) },
+          { label: "عدد الكوادر", value: formatNumber(req.cadre) },
+          { label: "متوسط أعمار الكادر", value: req.age.avg === null ? "—" : `${req.age.avg} سنة` },
+        ]}
+      >
         {req.pilgrims !== capacity && (
           <p className="mt-2">
             الحجاج: {formatNumber(capacity)} بفئات المجموعات، و{formatNumber(req.pilgrims - capacity)} يأخذهم «معاون بعدد».
@@ -294,109 +232,69 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
         <p className="mt-1">
           الشارات المستحقة: <b>{earned.length ? earned.map((k) => BADGES[k].label).join("، ") : "لا شارات"}</b>
         </p>
-      </Part>
+      </PrintSection>
 
-      <Part title="ثالثاً: كادر التكتل العام">
-        {team.length ? (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={cn(TH, "w-8 text-center")}>#</th>
-                <th className={TH}>الاسم</th>
-                <th className={TH}>الصفة الإدارية</th>
-                <th className={TH}>المهمة في التكتل</th>
-                <th className={TH}>المجموعات التي وُزّع عليها</th>
-              </tr>
-            </thead>
-            <tbody>
-              {team.map((x, i) => (
-                <tr key={`${x.task}-${x.id}`} className="break-inside-avoid">
-                  <td className={cn(TD, "text-center")}>{i + 1}</td>
-                  <td className={cn(TD, "font-bold")}>{x.name}</td>
-                  <td className={TD}>{role(x.id)}</td>
-                  <td className={TD}>{x.task}</td>
-                  <td className={TD}>{x.note || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>لم يقبل أحد بعد.</p>
-        )}
-      </Part>
+      <PrintSection title="ثالثاً: كادر التكتل العام">
+        <PrintTable
+          head={["#", "الاسم", "الصفة الإدارية", "المهمة في التكتل", "المجموعات التي وُزّع عليها"]}
+          narrow={[0]}
+          rows={team.map((x, i) => [i + 1, <b key="n">{x.name}</b>, role(x.id), x.task, x.note || "—"])}
+          empty="لم يقبل أحد بعد."
+        />
+      </PrintSection>
 
-      <Part title="رابعاً: مجموعات التكتل">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className={cn(TH, "w-8 text-center")}>#</th>
-              <th className={TH}>المجموعة</th>
-              <th className={TH}>الفئة</th>
-              <th className={cn(TH, "text-center")}>الحجاج</th>
-              <th className={TH}>رئيس المجموعة</th>
-              <th className={TH}>كادر المجموعة</th>
-              <th className={TH}>المنسق</th>
-            </tr>
-          </thead>
-          <tbody>
-            {req.groups.map((g, i) => {
+      <PrintSection title="رابعاً: مجموعات التكتل">
+        <PrintTable
+          head={["#", "المجموعة", "الفئة", "الحجاج", "رئيس المجموعة", "كادر المجموعة", "المنسق"]}
+          narrow={[0, 3]}
+          rows={[
+            ...req.groups.map((g, i) => {
               const seats = (c.seats[g.number] ?? []).filter((x) => yes(x.who));
               const coordinator = c.coordinators.find((x) => yes(x) && x.id === c.sorting[g.number]);
-              return (
-                <tr key={g.number} className="break-inside-avoid">
-                  <td className={cn(TD, "text-center")}>{i + 1}</td>
-                  <td className={cn(TD, "font-bold")}>{groupName(g.number)}</td>
-                  <td className={TD}>
-                    {g.categoryName} ({s.categories.find((x) => x.id === g.category)?.weight ?? 0})
-                  </td>
-                  <td className={cn(TD, "text-center")}>{formatNumber(g.capacity)}</td>
-                  <td className={TD}>
-                    {g.head}
-                  </td>
-                  <td className={TD}>
-                    {seats.length
-                      ? seats.map((x, j) => (
-                          <span key={j} className="block">
-                            {x.who!.name} <span className="text-[8.5pt] text-black/70">— {role(x.who!.id)}{x.who!.id === c.accountant?.id && yes(c.accountant) ? ` · ${ACCOUNTANT_TITLE}` : ""}</span>
-                          </span>
-                        ))
-                      : "رئيسها وحده"}
-                  </td>
-                  <td className={TD}>{coordinator?.name ?? "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="break-inside-avoid font-bold">
-              <td className={cn(TD, "bg-[#f4f7f6]")} colSpan={2}>
-                المجموع: {formatNumber(req.groups.length)} {req.groups.length === 1 ? "مجموعة" : req.groups.length === 2 ? "مجموعتان" : req.groups.length <= 10 ? "مجموعات" : "مجموعة"}
-              </td>
-              <td className={cn(TD, "bg-[#f4f7f6]")}>{formatNumber(req.weight)}</td>
-              <td className={cn(TD, "bg-[#f4f7f6] text-center")}>{formatNumber(capacity)}</td>
-              <td className={cn(TD, "bg-[#f4f7f6]")} colSpan={3} />
-            </tr>
-          </tfoot>
-        </table>
-      </Part>
+              return [
+                i + 1,
+                <b key="g">{groupName(g.number)}</b>,
+                `${g.categoryName} (${s.categories.find((x) => x.id === g.category)?.weight ?? 0})`,
+                formatNumber(g.capacity),
+                g.head,
+                seats.length
+                  ? seats.map((x, j) => (
+                      <span key={j} className="block">
+                        {x.who!.name} — {role(x.who!.id)}
+                        {x.who!.id === c.accountant?.id && yes(c.accountant) ? ` · ${ACCOUNTANT_TITLE}` : ""}
+                      </span>
+                    ))
+                  : "رئيسها وحده",
+                coordinator?.name ?? "—",
+              ];
+            }),
+            // The totals, as the last row: the template's table has no foot
+            ...(n
+              ? [["", <b key="t">المجموع: {formatNumber(n)} {n === 1 ? "مجموعة" : n === 2 ? "مجموعتان" : n <= 10 ? "مجموعات" : "مجموعة"}</b>, <b key="w">{formatNumber(req.weight)}</b>, <b key="c">{formatNumber(capacity)}</b>, "", "", ""]]
+              : []),
+          ]}
+          empty="لا مجموعات بعد."
+        />
+      </PrintSection>
 
       {c.decision?.note && (
-        <Part title="ملاحظات الإدارة">
-          <p className="border border-black/50 p-2">{c.decision.note}</p>
-        </Part>
+        <PrintSection title="ملاحظات الإدارة">
+          <p className="mt-2">{c.decision.note}</p>
+        </PrintSection>
       )}
       {!req.complete && (
-        <Part title="شروط لم تكتمل بعد">
-          <ul className="list-disc pr-5">
+        <PrintSection title="شروط لم تكتمل بعد">
+          <ul className="mt-2 list-disc pr-5">
             {req.checks
               .filter((x) => !x.ok && !x.warn)
               .map((x) => (
                 <li key={x.key}>{x.label}</li>
               ))}
           </ul>
-        </Part>
+        </PrintSection>
       )}
 
+      {/* Signed by hand on paper: the head's, the stamp, the branch director's approval */}
       <section className="mt-10 grid grid-cols-3 gap-6 text-center break-inside-avoid">
         <div>
           <p className="font-bold">رئيس التكتل</p>
@@ -414,21 +312,8 @@ export function ClusterPrint({ req }: { req: ClusterRequest }) {
         </div>
       </section>
 
-      <footer className="mt-8 border-t border-black/30 pt-2 text-center text-[8.5pt] text-black/70">
-        طُبع من المنصة الوطنية للحج — بوابة الإداريين — {dayLabel(today, true)}
-      </footer>
-    </article>
-  );
-}
-
-function Pair({ k, v, span }: { k: string; v: string; span: boolean }) {
-  return (
-    <>
-      <td className={cn(TD, "w-[18%] bg-[#f4f7f6] font-bold")}>{k}</td>
-      <td className={TD} colSpan={span ? 3 : 1}>
-        {v}
-      </td>
-    </>
+      <PrintNote>طُبع من المنصة الوطنية للحج — بوابة الإداريين، إدارة الإداريين — تشكيل التكتلات.</PrintNote>
+    </PrintDocument>
   );
 }
 

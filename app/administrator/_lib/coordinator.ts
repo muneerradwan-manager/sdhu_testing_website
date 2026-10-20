@@ -16,6 +16,7 @@ import { applicationNumberFor } from "@/lib/journey";
 import { fullName, getPerson, type Person } from "@/lib/registry";
 import type { Member } from "@/lib/rules";
 import { actions, getState, type Application } from "@/lib/store";
+import { currentSeasonOf, seasonPathOf } from "@/lib/account";
 import { officeFor } from "@/lib/season";
 import { ACTIVE_SEASON } from "@/lib/registration/defaults";
 import { liveVersion, nowKey, regOf } from "@/lib/registration/engine";
@@ -30,16 +31,12 @@ export type Block =
   | { kind: "self"; text: string };
 
 /**
- * يفحص أهلية المواطن للتسجيل قبل فتح الطلب: لا يسجَّل من له طلب هذا الموسم،
- * ولا من يملك حساباً إدارياً (نوع حساب واحد لكل شخص)، ولا يسجّل المنسق لنفسه من هنا.
+ * يفحص أهلية المواطن للتسجيل قبل فتح الطلب: لا يسجَّل من له طلب هذا الموسم، ولا من اختار المسار
+ * الإداري في هذا الموسم (مسار واحد في الموسم)، ولا يسجّل المنسق لنفسه من هنا.
  */
-export function blockFor(
-  citizenId: string,
-  coordinatorId: string,
-  state: { applications: Record<string, Application>; admins: Record<string, unknown> },
-): Block {
-  if (citizenId === coordinatorId) return { kind: "self", text: "هذا رقمك الوطني. حسابك إداري، ولا يُسجَّل الإداري حاجاً من مكتبه." };
-  if (state.admins[citizenId]) return { kind: "admin", text: "هذا الرقم الوطني يملك حساباً إدارياً. لكل شخص نوع حساب واحد في المنصة." };
+export function blockFor(citizenId: string, coordinatorId: string, state: Parameters<typeof seasonPathOf>[0]): Block {
+  if (citizenId === coordinatorId) return { kind: "self", text: "هذا رقمك الوطني. أنت إداري في هذا الموسم، ولا يُسجَّل الإداري حاجاً من مكتبه." };
+  if (seasonPathOf(state, citizenId) === "admin") return { kind: "admin", text: `هذا المواطن إداري في موسم ${currentSeasonOf(state)}، ولا يكون حاجاً في الموسم نفسه.` };
   const existing = state.applications[citizenId];
   if (existing) return { kind: "applied", text: `لهذا المواطن طلب مقدَّم هذا الموسم برقم ${existing.number}.`, number: existing.number };
   return { kind: "ok" };

@@ -211,7 +211,7 @@ export function DemoClock() {
               <p className="px-4 pb-3 text-center text-[11px] leading-5 text-hint">
                 {t(
                   "مواعيد موسم 1448 كما أعلنتها إدارة الحج والعمرة. ما لم تعلنه بعد موعد تقديري على نمط الموسم الماضي.",
-                  "The 1448 season dates as announced by the Hajj and Umrah Administration. Dates it has not announced yet are estimates following last season's pattern.",
+                  "The 1448 season dates as announced by the Directorate of Hajj and Umrah. Dates it has not announced yet are estimates following last season's pattern.",
                 )}
               </p>
             </motion.div>

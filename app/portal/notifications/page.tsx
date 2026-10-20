@@ -10,6 +10,8 @@ import { forFamily, useGroupPosts } from "@/lib/group-channel";
 import { doneWhen, useGroupRites } from "@/lib/musters";
 import { getPerson } from "@/lib/registry";
 import { useStore } from "@/lib/store";
+import { useAccount } from "@/lib/account";
+import { AdminNotifications } from "../_components/admin-notifications/notifications";
 import { PilgrimShell } from "../_components/pilgrim-shell";
 import { NoticesFeed } from "../season/_components/notices";
 import { useSeasonCtx } from "../season/_components/season-shell";
@@ -21,7 +23,13 @@ const when = (at: number) => new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "
  * zone's, his own); then what was done on his application by the office, his group and its team, the medical team;
  * and the administration's announcements. What he did himself stays in «سجل نشاطي».
  */
+/** One page for the account: an administrator's this season, else the pilgrim's (or the member's) */
 export default function NotificationsPage() {
+  const acc = useAccount();
+  return acc?.path === "admin" && acc.admin ? <AdminNotifications /> : <PilgrimNotificationsPage />;
+}
+
+function PilgrimNotificationsPage() {
   const sid = useStore((s) => s.sessionId) ?? "";
   const app = useStore((s) => s.applications[sid]);
   const events = useStore((s) => s.events);

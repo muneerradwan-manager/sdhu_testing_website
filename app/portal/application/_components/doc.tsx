@@ -3,8 +3,9 @@
 import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
 import { Download, Eye, Lock, Printer, type LucideIcon } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
+import { PrintDocument, PrintNote, PrintSection } from "@/components/print/print-document";
 import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
 import { Badge, Modal } from "@/components/ui/widgets";
@@ -42,26 +43,10 @@ function Tear({ notch = "bg-white", small = false }: { notch?: string; small?: b
   );
 }
 
-/**
- * One document, whole. `aside` takes the QR column's place (a photo); `children` sit between the tear and the
- * fields (the file the group's head uploaded); `notch` is the colour around the document, for its tear.
- */
-export function DocFrame({
-  tone = "green",
-  kind,
-  title,
-  sub,
-  code,
-  icon: Icon,
-  fields = [],
-  qr,
-  qrCaption,
-  aside,
-  children,
-  footer,
-  demo,
-  notch,
-}: {
+/** Set by DocViewer around what it prints: a DocFrame inside it is drawn as the platform's printed document */
+const OnPaper = createContext(false);
+
+type DocFrameProps = {
   tone?: DocTone;
   kind: string;
   title: ReactNode;
@@ -76,7 +61,65 @@ export function DocFrame({
   footer?: ReactNode;
   demo?: boolean;
   notch?: string;
-}) {
+};
+
+/**
+ * One document, whole. `aside` takes the QR column's place (a photo); `children` sit between the tear and the
+ * fields (the file the group's head uploaded); `notch` is the colour around the document, for its tear. On paper
+ * it is the one printed template every report uses, with the same fields, code and verification QR.
+ */
+export function DocFrame(props: DocFrameProps) {
+  const paper = useContext(OnPaper);
+  return paper ? <DocPaper {...props} /> : <DocTicket {...props} />;
+}
+
+/** The text of a title or a line, when it is one: a printed heading takes a string */
+const textOf = (x: ReactNode) => (typeof x === "string" || typeof x === "number" ? String(x) : "");
+
+/**
+ * The document on A4: the kind as the title under the letterhead, its number in a box (and «تجريبية» for the
+ * demo's drawings), whose it is as the section's heading with every field in a box, the uploaded file, the photo
+ * or the verification code, and the ticket's footer as a note.
+ */
+function DocPaper({ kind, title, sub, code, fields = [], qr, qrCaption, aside, children, footer, demo }: DocFrameProps) {
+  const heading = [textOf(title), textOf(sub)].filter(Boolean).join(" — ");
+  return (
+    <PrintDocument
+      title={kind}
+      source="موسم حج 1448هـ"
+      meta={[...(code ? [{ label: "الرقم", value: <span dir="ltr">{code}</span> }] : []), ...(demo ? [{ label: "النسخة", value: "تجريبية" }] : [])]}
+    >
+      <PrintSection title={heading || kind} meta={fields.map((f) => ({ label: f.k, value: f.ltr ? <span dir="ltr">{f.v}</span> : f.v }))}>
+        {children && <div className="mt-3">{children}</div>}
+        {(qr || aside) && (
+          <div className="mt-3 flex flex-col items-start gap-1">
+            {aside ?? <QRCodeSVG value={qr!} size={92} fgColor="#021526" />}
+            {qrCaption && <PrintNote>{qrCaption}</PrintNote>}
+          </div>
+        )}
+        {footer && <PrintNote>{footer}</PrintNote>}
+      </PrintSection>
+    </PrintDocument>
+  );
+}
+
+/** The document on the screen: the ticket */
+function DocTicket({
+  tone = "green",
+  kind,
+  title,
+  sub,
+  code,
+  icon: Icon,
+  fields = [],
+  qr,
+  qrCaption,
+  aside,
+  children,
+  footer,
+  demo,
+  notch,
+}: DocFrameProps) {
   return (
     <article className="on-paper overflow-hidden rounded-[2rem] bg-white text-right shadow-[0_30px_60px_-30px_rgba(2,21,38,.4)] ring-1 ring-gold/40 [print-color-adjust:exact]">
       <header className={cn("relative overflow-hidden p-5 md:p-6", BAND[tone])}>
@@ -223,8 +266,9 @@ export function UploadedFile({ url, type, alt }: { url: string; type?: string; a
 }
 
 /**
- * The document opened large: itself, then printing it (on its own A4 sheet), downloading the file it came as, and
- * closing. `print` is what goes on paper when it differs from the screen (the contract's full text).
+ * The document opened large: itself, then printing it (on its own A4 sheet, in the platform's printed template),
+ * downloading the file it came as, and closing. `print` is what goes on paper when it differs from the screen (the
+ * contract's full text).
  */
 export function DocViewer({ open, onClose, children, print, file, wide }: { open: boolean; onClose: () => void; children: ReactNode; print?: ReactNode; file?: { url: string; name?: string }; wide?: boolean }) {
   return (
@@ -249,7 +293,11 @@ export function DocViewer({ open, onClose, children, print, file, wide }: { open
           </div>
         )}
       </Modal>
-      {open && <PrintSheet>{print ?? children}</PrintSheet>}
+      {open && (
+        <PrintSheet>
+          <OnPaper.Provider value>{print ?? children}</OnPaper.Provider>
+        </PrintSheet>
+      )}
     </>
   );
 }

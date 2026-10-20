@@ -1,7 +1,7 @@
 "use client";
 
 import { ShieldCheck, UserRoundPlus, UsersRound } from "lucide-react";
-import { RegistrationDesk, type Registrar } from "@/app/administrator/(desk)/pilgrims/pilgrims";
+import { RegistrationDesk, type Registrar } from "@/app/portal/(admin)/pilgrims/pilgrims";
 import { Gate, PageHeader, logAs, useStaffUser } from "../_components/kit";
 
 /**

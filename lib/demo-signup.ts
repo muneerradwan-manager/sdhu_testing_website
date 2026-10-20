@@ -48,6 +48,13 @@ const ADMINS: Want[] = [
   { key: "guide-f-c", section: "الموجّهات الدينيات", title: "موجّهة دينية ج", note: "أولى درجات الموجّهات.", gender: "F", born: [1975, 1995] },
 ];
 
+/** People who create an account and register for nothing: they learn in the Academy, comment on the news, choose later */
+const MEMBERS: Want[] = [
+  { key: "member-young", title: "شاب يتعلّم في الأكاديمية", note: "لم يقرر شيئاً بعد: ينشئ حسابه ليتعلّم مناسك الحج في الأكاديمية ويعلّق على الأخبار.", gender: "M", born: [1996, 2004] },
+  { key: "member-woman", title: "امرأة تتابع المنصة", note: "تنشئ حسابها وتتابع الأكاديمية والأخبار، وتختار الحج أو صفة إدارية في موسم لاحق.", gender: "F", born: [1975, 1995] },
+  { key: "member-later", title: "رجل يستعد لموسم قادم", note: "يستعد قبل أن يسجّل: يتعلّم في الأكاديمية، ويسجّل على الحج حين يُفتح تسجيله.", gender: "M", born: [1962, 1975] },
+];
+
 function build(list: Want[], prefix: string, password: string, taken: (id: string) => boolean): SignupDemo[] {
   return list.flatMap((w, i) => {
     const person = find(`${prefix}${String(i).padStart(2, "0")}`, w, taken);
@@ -62,6 +69,11 @@ export function pilgrimSignups(taken: (id: string) => boolean): SignupDemo[] {
     ? []
     : [{ key: "example", title: "المثال الكامل", note: "رب أسرة (58 عاماً)، يضيف زوجته وابنه من دفتر العائلة ووالدته بالرقم الوطني.", person: example, phone: "0944345412", password: "Hajj@1448" }];
   return [...first, ...build(PILGRIMS, "05055", "Hajj@1448", taken)];
+}
+
+/** The members' cards: people who register for nothing this season */
+export function memberSignups(taken: (id: string) => boolean): SignupDemo[] {
+  return build(MEMBERS, "05088", "Hajj@1448", taken);
 }
 
 /** The administrators' cards: one citizen for every role open for application */

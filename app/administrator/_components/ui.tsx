@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
@@ -11,6 +10,10 @@ import {
   ClipboardList,
   BookMarked,
   BookOpenText,
+  CalendarClock,
+  Megaphone,
+  Siren,
+
   FileSignature,
   FlaskConical,
   FolderOpen,
@@ -36,11 +39,12 @@ import { useEffect, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { PortalShell } from "@/components/portal/shell";
 import { ButtonLink } from "@/components/ui/button";
-import { statusLabel, useOperations, type OperationKey, type OperationState } from "@/lib/operations";
+import { useOperations, type OperationKey, type OperationState } from "@/lib/operations";
 import { actions, getState, useHydrated, useStore, type AdminProfile } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { effectiveRole, isClusterRole, isTechCoordinator, logAdmin, positionLabelOf, servedBefore, useAdmin } from "../_lib/admin";
+import { isClusterRole, isTechCoordinator, servedBefore, useAdmin } from "../_lib/admin";
 import { useClusterChannel } from "../_lib/channel";
+import { AccountSidebar } from "@/app/portal/_components/account-sidebar";
 import { groupPagesOf, myGroupNumbers, pageWriterOf } from "../_lib/directory";
 import { scopeOf } from "../_lib/scope";
 import { permissionRole, useRolePermissions, type AdminPermission } from "../_lib/permissions";
@@ -49,17 +53,20 @@ import { permissionRole, useRolePermissions, type AdminPermission } from "../_li
 
 export function AdminGate({ children }: { children: ReactNode }) {
   const hydrated = useHydrated();
-  const sessionId = useStore((s) => s.adminSessionId);
-  const hasProfile = useStore((s) => !!(s.adminSessionId && s.admins[s.adminSessionId]));
+  // The account's one session; his administrative file is what opens these pages
+  const sessionId = useStore((s) => s.sessionId);
+  const hasProfile = useStore((s) => !!(s.sessionId && s.admins[s.sessionId]));
   // An account the administration stopped or deleted («الكادر الإداري») opens nothing
-  const stopped = useStore((s) => (s.adminSessionId ? s.cadre.status[s.adminSessionId] : undefined));
+  const stopped = useStore((s) => (s.sessionId ? s.cadre.status[s.sessionId] : undefined));
   const router = useRouter();
   const pathname = usePathname();
   const ok = !!sessionId && hasProfile;
 
   useEffect(() => {
-    if (hydrated && !ok) router.replace(`/administrator/login?next=${encodeURIComponent(pathname)}`);
-  }, [hydrated, ok, router, pathname]);
+    if (!hydrated || ok) return;
+    // Signed in without an administrative file: he opens it from his account, choosing the administrators' way this season
+    router.replace(sessionId ? "/portal?choose=admin" : `/login?next=${encodeURIComponent(pathname)}`);
+  }, [hydrated, ok, sessionId, router, pathname]);
 
   // While his portal is open he is «متصل الآن» on the staff's roster, and his last moment stays «آخر ظهور»
   useEffect(() => {
@@ -130,41 +137,46 @@ const groupsTab = (c: NavCtx) =>
 const ownGroups = (c: NavCtx) => c.inGroup && !c.cluster && !c.guide;
 
 const NAV: NavItem[] = [
-  { href: "/administrator/dashboard", label: "ملفي", icon: LayoutDashboard },
+  { href: "/portal", label: "ملفي", icon: LayoutDashboard },
   // The permanent file of whoever served before: his documents, languages and skills between seasons
-  { href: "/administrator/files", label: "وثائقي ومهاراتي", icon: FolderOpen, show: (c) => c.served },
+  { href: "/portal/files", label: "وثائقي ومهاراتي", icon: FolderOpen, show: (c) => c.served },
   // His own: what reached him, and what he did — each a tab, not a card inside «ملفي»
-  { href: "/administrator/notifications", label: "الإشعارات", icon: BellRing },
-  { href: "/administrator/activity", label: "سجل نشاطي", icon: ScrollText },
+  { href: "/portal/notifications", label: "الإشعارات", icon: BellRing },
+  { href: "/portal/activity", label: "سجل نشاطي", icon: ScrollText },
   // His letters to the administration and its replies
-  { href: "/administrator/letters", label: "المراسلات", icon: Mails },
+  { href: "/portal/letters", label: "المراسلات", icon: Mails },
   // Registering a pilgrim on the Hajj never puts him in a group
-  { href: "/administrator/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
-  { href: "/administrator/apply", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
-  { href: "/administrator/exam", label: "الاختبار المؤتمت والشفهي", icon: GraduationCap, ops: ["admin-exams", "admin-orals"] },
-  { href: "/administrator/groups", label: groupsTab, icon: UsersRound, ops: ["group-management"], show: ownGroups },
-  { href: "/administrator/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
+  { href: "/portal/pilgrims", label: "التسجيل على الحج", icon: UserRoundPlus, ops: ["hajj-direct", "hajj-lottery"], show: (c) => c.register },
+  { href: "/portal/role", label: "التسجيل كإداري", icon: ClipboardList, ops: ["admin-registration"] },
+  { href: "/portal/exam", label: "الاختبار المؤتمت والشفهي", icon: GraduationCap, ops: ["admin-exams", "admin-orals"] },
+  { href: "/portal/groups", label: groupsTab, icon: UsersRound, ops: ["group-management"], show: ownGroups },
+  { href: "/portal/clusters", label: "إدارة التكتل", icon: Landmark, ops: ["cluster-management"], show: (c) => c.cluster },
   // The groups and the clusters are formed at the office, each with its paper contract that everyone in it signs
-  { href: "/administrator/my-contracts", label: "العقود", icon: FileSignature, show: (c) => c.contracts },
+  { href: "/portal/my-contracts", label: "العقود", icon: FileSignature, show: (c) => c.contracts },
   // Everyone in a cluster reads its channel; who writes is by role, as its head sets it
-  { href: "/administrator/channel", label: "قناة التكتل", icon: MessagesSquare, show: (c) => c.inChannel },
+  { href: "/portal/channel", label: "قناة التكتل", icon: MessagesSquare, show: (c) => c.inChannel },
   // What the pilgrims read of the cluster: its team writes it once it is approved, the administration approves it
-  { href: "/administrator/cluster-page", label: "صفحة التكتل العامة", icon: Globe, show: (c) => !!pageWriterOf(c.p) },
+  { href: "/portal/cluster-page", label: "صفحة التكتل العامة", icon: Globe, show: (c) => !!pageWriterOf(c.p) },
   // The groups' own: their pictures, words and galleries — the cluster's head all its groups', a group's head or assistant his
-  { href: "/administrator/group-page", label: (c) => ((groupPagesOf(c.p)?.groups.length ?? 0) > 1 ? "صفحات المجموعات العامة" : "صفحة المجموعة العامة"), icon: Images, show: (c) => !!groupPagesOf(c.p) },
-  { href: "/administrator/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
+  { href: "/portal/group-page", label: (c) => ((groupPagesOf(c.p)?.groups.length ?? 0) > 1 ? "صفحات المجموعات العامة" : "صفحة المجموعة العامة"), icon: Images, show: (c) => !!groupPagesOf(c.p) },
+  { href: "/portal/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   // The visas the Saudi foreign ministry emails to the group's head, added by him to each of his pilgrims
-  { href: "/administrator/visas", label: "التأشيرات", icon: Stamp, show: operating },
+  { href: "/portal/visas", label: "التأشيرات", icon: Stamp, show: operating },
   // The flights out and back, then before each rite who goes and on which of the buses the Hajj and Umrah staff
   // gave — the coordinator's; a group's head and assistant see their group's, the cluster's head follows
-  { href: "/administrator/lists", label: "القوائم", icon: Bus, show: operating },
-  { href: "/administrator/field", label: "الميدان", icon: MapPinned, show: operating },
+  { href: "/portal/lists", label: "القوائم", icon: Bus, show: operating },
+  // The group's records after each rite, visit and leg of the journey: its coordinator and its head record them
+  { href: "/portal/field", label: "الميدان", icon: MapPinned, show: operating },
+  // The group's day, which every administrator who works in it uses: its channel, a report to the operations room, his day
+  { href: "/portal/group-channel", label: "قناة المجموعة", icon: Megaphone, show: serving },
+  { href: "/portal/report", label: "بلاغ لغرفة العمليات", icon: Siren, show: serving },
+  { href: "/portal/my-day", label: "يومي", icon: CalendarClock, show: serving },
   // The guides' lessons to their groups' pilgrims, with who came; the heads follow them
-  { href: "/administrator/lessons", label: "الدروس الدينية", icon: BookOpenText, show: serving },
+  { href: "/portal/guide-lessons", label: "الدروس الدينية", icon: BookOpenText, show: serving },
   // What they follow pilgrim by pilgrim: memorising the Quran and hadith, the supplications, a shared reading
-  { href: "/administrator/activities", label: "النشاطات الدينية", icon: BookMarked, show: serving },
+  { href: "/portal/activities", label: "النشاطات الدينية", icon: BookMarked, show: serving },
   // After the season: his self-evaluation, his cadre's if he heads a cluster, and his result
-  { href: "/administrator/evaluation", label: "التقييم بعد الموسم", icon: Star, ops: ["self-evaluation", "peer-evaluation"], show: serving },
+  { href: "/portal/evaluation", label: "التقييم بعد الموسم", icon: Star, ops: ["self-evaluation", "peer-evaluation"], show: serving },
 ];
 
 function navCtx(id: string | undefined, p: AdminProfile | undefined, table: Record<AdminPermission, string[]>, inChannel: boolean): NavCtx {
@@ -196,73 +208,9 @@ export function useAdminNav(): AdminNavEntry[] {
       icon: n.icon,
       open: !states.length || states.some((o) => o.open),
       shown: states.find((o) => o.open) ?? states.find((o) => o.status === "upcoming") ?? states.at(-1),
-      badge: n.href === "/administrator/channel" ? channel?.unread : undefined,
+      badge: n.href === "/portal/channel" ? channel?.unread : undefined,
     };
   });
-}
-
-export function AdminSidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const admin = useAdmin();
-  const role = effectiveRole(admin?.profile);
-  const items = useAdminNav();
-  // As in the staff portal: at the foot of the menu, and on phones (where the menu is a strip) on his card
-  const logout = () => {
-    if (admin) logAdmin(admin.id, "تسجيل خروج الإداري");
-    actions.adminLogout();
-    router.push("/administrator");
-  };
-  return (
-    <aside className="min-w-0 self-start lg:sticky lg:top-28">
-      <div className="overflow-hidden rounded-3xl border border-gold/30 bg-white shadow-[0_30px_80px_-40px_rgba(2,21,38,.45)]">
-        <div className="flex items-center gap-3 bg-gradient-to-l from-green-dark to-[#00352f] p-4 text-white">
-          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gold font-display text-xl font-bold text-ink">{admin?.person.firstName[0]}</span>
-          <div className="min-w-0">
-            <p className="truncate font-bold">{admin?.name}</p>
-            <p className="truncate text-xs text-white/65">{role ? `${positionLabelOf(role)} — موسم 1448` : "لم يتقدم لصفة هذا الموسم بعد"}</p>
-          </div>
-          <button type="button" onClick={logout} aria-label="تسجيل الخروج" title="تسجيل الخروج" className="mr-auto grid size-10 shrink-0 place-items-center rounded-xl text-white/70 transition hover:bg-maroon/40 hover:text-white lg:hidden">
-            <LogOut className="size-5" />
-          </button>
-        </div>
-        <nav aria-label="أقسام حساب الإداري" className="scrollbar-none flex gap-1 overflow-x-auto p-2 lg:block lg:space-y-1 lg:overflow-visible">
-          {items.map((n) => {
-            const active = pathname.startsWith(n.href) && (n.href !== "/administrator/group" || !pathname.startsWith("/administrator/groups")) && (n.href !== "/administrator/cluster" || !pathname.startsWith("/administrator/clusters"));
-            const { open, shown, label, badge } = n;
-            return (
-              <Link
-                key={n.href}
-                href={n.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-bold transition",
-                  active ? "on-light text-ink" : open ? "text-ink-soft hover:bg-sand" : "text-hint hover:bg-sand",
-                )}
-              >
-                {active && <motion.span layoutId="admin-nav" className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light" transition={{ type: "spring", damping: 30, stiffness: 350 }} />}
-                <span className={cn("relative", active ? "text-green-dark" : open ? "text-gold-dark" : "text-hint")}>{open ? <n.icon className="size-[18px]" /> : <Lock className="size-[18px]" />}</span>
-                <span className="relative min-w-0">
-                  <span className="block whitespace-nowrap">{label}</span>
-                  {shown && shown.status !== "always" && <span className={cn("hidden whitespace-nowrap text-[11px] font-semibold lg:block", active ? "text-green-dark/80" : shown.open ? "text-green" : "text-hint")}>{statusLabel(shown)}</span>}
-                </span>
-                {!!badge && (
-                  <span className="relative mr-auto grid min-w-5 place-items-center rounded-full bg-maroon px-1.5 text-[11px] font-bold leading-5 text-white" aria-label={`${badge} غير مقروءة`}>
-                    {badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="hidden border-t border-gold/30 p-2 lg:block">
-          <button type="button" onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-ink-soft transition hover:bg-maroon/10 hover:text-maroon">
-            <LogOut className="size-4" /> تسجيل الخروج
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
 }
 
 export function AdminShell({
@@ -288,7 +236,7 @@ export function AdminShell({
       }
     >
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <AdminSidebar />
+        <AccountSidebar />
         <div className="min-w-0">{children}</div>
       </div>
     </PortalShell>

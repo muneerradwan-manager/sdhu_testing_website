@@ -366,6 +366,9 @@ for e in doc.element.body.iter(qn("w:p")):
     if m:
         fig += 1
         if m.group(1) != str(fig): assert replace_in(e, f"صورة {m.group(1)}:", f"صورة {fig}:")
+# the cover logo is the platform's icon, so a new emblem reaches this patched guide as it reaches the rebuilt ones
+cover_rid, _ = doc.part.get_or_add_image(str(ROOT.parent.parent / "public" / "icons" / "icon-512.png"))
+next(doc.element.body.iter(qn("a:blip"))).set(qn("r:embed"), cover_rid)
 blips = list(doc.element.body.iter(qn("a:blip")))
 pictured = [s for s in c_order if s["img"]]
 print("pictures:", len(blips), "| steps with pictures:", len(pictured), "| figures:", fig, "| swapped:", swapped, "| new:", sorted(new_keys))

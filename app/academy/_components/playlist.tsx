@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { CheckCircle2, Headphones, PlayCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useAcademyProgress } from "@/lib/account";
 import { useHydrated, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useAcademyText } from "./i18n";
@@ -18,7 +19,7 @@ export function Playlist({ trackSlug, trackTitle, levels, current }: { trackSlug
   const { t } = x;
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
-  const academy = useStore((s) => s.academy);
+  const academy = useAcademyProgress();
   const listRef = useRef<HTMLDivElement>(null);
   const total = levels.reduce((n, l) => n + l.lessons.length, 0);
   const loggedIn = hydrated && !!session;

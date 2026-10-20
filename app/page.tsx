@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Landmark, Megaphone } from "lucide-react";
-import { CmsIcon, CmsSection, list, str, tone, toneClass } from "@/components/cms/bits";
+import { CmsSection, list, str } from "@/components/cms/bits";
 import { CmsImage } from "@/components/cms/image";
 import { ButtonLink } from "@/components/ui/button";
 import { Counter, Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
@@ -14,6 +14,7 @@ import { Hero } from "./_home/hero";
 import { SeasonDock } from "./_home/season-dock";
 import { Tutorials } from "./_home/tutorials";
 import { DirectoryTeaser } from "./_home/directory-teaser";
+import { HonoursTeaser } from "./_home/honours-teaser";
 import { AcademyTeaser, PrayerWidget } from "./_home/widgets";
 
 /**
@@ -29,7 +30,7 @@ export default function Home() {
         <Hero />
       </CmsSection>
       <Ticker />
-      <Services />
+      <HonoursTeaser />
       <CmsSection page="home" section="tutorials">
         <Tutorials />
       </CmsSection>
@@ -75,77 +76,6 @@ function Ticker() {
         </div>
       </div>
     </CmsSection>
-  );
-}
-
-// ───────────────────────── الخدمات + بطاقة العمرة ─────────────────────────
-
-type ServiceItem = { href: string; icon: string; title: string; text: string; tone: string };
-
-function Services() {
-  const v = useSection("home", "services");
-  const u = useSection("home", "umrahTeaser");
-  const items = list<ServiceItem>(v, "items");
-
-  return (
-    <section id="services" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-24 md:px-8">
-      <CmsSection page="home" section="services">
-        <SectionHeading eyebrow={str(v, "eyebrow")} title={str(v, "title")} description={str(v, "description")} />
-        <Stagger className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-4">
-          {items.map((s, i) => {
-            const t = tone(s.tone);
-            const featured = t === "gold";
-            return (
-              <StaggerItem key={`${s.href}-${i}`}>
-                <Link
-                  href={s.href || "/"}
-                  className={`group relative flex h-full flex-col overflow-hidden rounded-3xl border p-5 transition duration-500 hover:-translate-y-1.5 md:p-7 ${
-                    featured
-                      ? "border-transparent bg-green-dark text-white shadow-[0_24px_50px_-24px_rgba(0,89,79,.8)]"
-                      : "border-gold/30 bg-white hover:border-gold-dark/50 hover:shadow-[0_24px_50px_-30px_rgba(2,21,38,.35)]"
-                  }`}
-                >
-                  {featured && <div className="bg-pattern absolute inset-0 opacity-20" />}
-                  <span
-                    className={`relative grid size-13 place-items-center rounded-2xl transition duration-500 group-hover:scale-110 group-hover:rotate-[-6deg] ${
-                      featured ? "bg-gold text-ink" : toneClass[t].chip
-                    }`}
-                  >
-                    <CmsIcon name={s.icon} className="size-6" fallback="UsersRound" />
-                  </span>
-                  <h3 className={`relative mt-5 font-display text-lg font-bold md:text-xl ${featured ? "" : "text-green-dark"}`}>{s.title}</h3>
-                  <p className={`relative mt-1 text-sm ${featured ? "text-white/70" : "text-ink-soft"}`}>{s.text}</p>
-                  <ArrowLeft className={`relative mt-4 size-5 transition duration-500 group-hover:-translate-x-2 ltr:group-hover:translate-x-2 ${featured ? "text-gold" : "text-gold-dark"}`} />
-                </Link>
-              </StaggerItem>
-            );
-          })}
-        </Stagger>
-      </CmsSection>
-
-      <CmsSection page="home" section="umrahTeaser">
-        <Reveal delay={0.1} className="mt-5">
-          <Link
-            href={str(u, "href", "/umrah")}
-            className="group relative flex flex-col items-start gap-4 overflow-hidden rounded-3xl border border-dashed border-gold-dark/60 bg-gold-light/50 p-5 transition duration-500 hover:border-gold-dark hover:bg-gold-light dark:border-gold/40 dark:bg-gold/[.07] dark:hover:bg-gold/[.12] md:flex-row md:items-center md:p-6"
-          >
-            <span className="grid size-13 shrink-0 place-items-center rounded-2xl bg-white text-maroon shadow-sm">
-              <CmsIcon name={str(u, "icon")} className="size-6" fallback="Hourglass" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="flex flex-wrap items-center gap-2 font-display text-xl font-bold text-green-dark">
-                {str(u, "title")}
-                {str(u, "badge") && <span className="rounded-full bg-maroon px-2.5 py-0.5 text-xs font-bold text-white">{str(u, "badge")}</span>}
-              </p>
-              <p className="mt-1 text-ink-soft">{str(u, "text")}</p>
-            </div>
-            <span className="flex items-center gap-1.5 font-bold text-green-dark transition group-hover:gap-3">
-              {str(u, "ctaLabel")} <ArrowLeft className="size-5" />
-            </span>
-          </Link>
-        </Reveal>
-      </CmsSection>
-    </section>
   );
 }
 

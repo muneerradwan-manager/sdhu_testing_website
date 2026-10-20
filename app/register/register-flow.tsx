@@ -6,16 +6,17 @@ import { useOperation } from "@/lib/operations";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import confetti from "canvas-confetti";
-import { ArrowLeft, ArrowRight, BadgeCheck, Camera, PencilLine, ShieldQuestion, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Briefcase, CalendarClock, Camera, GraduationCap, PencilLine, ShieldQuestion, UserRound } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { AuthShell, CivilRecordCard, DemoAccounts, EmailField, FirstNameField, FormError, NationalIdField, OtpStep, PasswordField, PhoneField, StepTitle, SwitchLine } from "@/components/portal/auth";
 import { DEMO_OTP, Field, ProgressChecklist, inputClass } from "@/components/portal/bits";
 import { Button } from "@/components/ui/button";
-import { SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
+import { Badge, SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { useLang, useT } from "@/lib/i18n";
 import { DEMO_SCENARIOS, FIRST_NAME_TRIES, ageOf, firstNameMatches, getPerson, isValidNationalId, type Person } from "@/lib/registry";
-import { pilgrimSignups, type SignupDemo } from "@/lib/demo-signup";
-import { actions, useStore } from "@/lib/store";
+import { adminSignups, memberSignups, pilgrimSignups, type SignupDemo } from "@/lib/demo-signup";
+import { participations } from "@/lib/account";
+import { actions, getState, seasonNow, useStore } from "@/lib/store";
 import { cn, digitsOnly } from "@/lib/utils";
 import { CivilCorrection, type CivilDraft } from "./civil-correction";
 
@@ -32,7 +33,10 @@ const registryEn = (v: string) => {
 export function RegisterFlow() {
   const t = useT();
   const en = useLang() === "en";
-  /** Step 0 (account type) was removed: this page creates a pilgrim account directly */
+  /**
+   * One account for everyone on the platform, with no type: it is not asked what it is for. Its holder may only learn
+   * in the Academy; each season he chooses the Hajj or an administrative role (lib/account.ts)
+   */
   const STEPS = [t("البيانات الأساسية", "Basic details"), t("رمز التحقق", "Verification code"), t("الشؤون المدنية", "Civil Registry"), t("معلومات إضافية", "Extra details"), t("الحساب جاهز", "Account ready")];
   const router = useRouter();
   const toast = useToast();
@@ -52,6 +56,8 @@ export function RegisterFlow() {
   const [claim, setClaim] = useState<CivilDraft | null>(null);
   const [extra, setExtra] = useState({ altPhone: "", emergencyName: "", emergencyPhone: "", photo: "" });
   const [rating, setRating] = useState(0);
+  // The demo data, filtered as on the sign-in page: the pilgrims' people, or the administrators'
+  const [demoTab, setDemoTab] = useState<"pilgrims" | "admins" | "members">("pilgrims");
 
   const go = (n: number) => {
     setDir(n > step ? 1 : -1);
@@ -61,6 +67,8 @@ export function RegisterFlow() {
 
   // The demo's ready-made people, each with no account on this device yet
   const signups = useMemo(() => pilgrimSignups((x) => !!accounts[x] || !!admins[x]), [accounts, admins]);
+  const adminPeople = useMemo(() => adminSignups((x) => !!accounts[x] || !!admins[x]), [accounts, admins]);
+  const memberPeople = useMemo(() => memberSignups((x) => !!accounts[x] || !!admins[x]), [accounts, admins]);
   const fillDemo = (d: SignupDemo) => {
     setForm({ ...form, nationalId: d.person.id, firstName: d.person.firstName, phone: toInternational(d.phone), password: d.password });
     setTouched(false);
@@ -95,9 +103,7 @@ export function RegisterFlow() {
   };
   // Nothing about a national number — not even that it has an account — until its first name matches
   const owner = isValidNationalId(form.nationalId) && firstNameMatches(form.nationalId, form.firstName);
-  const exists = touched && owner && accounts[form.nationalId];
-  /** One account type per person: an administrator cannot also hold a pilgrim account */
-  const isAdmin = touched && owner && !!admins[form.nationalId];
+  const exists = touched && owner && (!!accounts[form.nationalId] || !!admins[form.nationalId]);
   const locked = tries >= FIRST_NAME_TRIES;
 
   const sendOtp = () => {
@@ -130,6 +136,15 @@ export function RegisterFlow() {
 
   const onFetched = useCallback(() => setFetched(true), []);
 
+  /** The administrators' way for this season: his administrative file opens on the account, then «التسجيل كإداري» */
+  const toAdmin = () => {
+    if (!person) return;
+    actions.chooseSeasonPath(person.id, seasonNow(getState()), "admin");
+    router.push("/portal/role");
+  };
+  // Whoever took part in an earlier season (the Hajj or a role) finds his record with his account
+  const past = person ? participations(getState(), person.id).filter((r) => !r.current && r.kind !== "none") : [];
+
   const finish = () => {
     actions.register({
       nationalId: form.nationalId,
@@ -149,8 +164,8 @@ export function RegisterFlow() {
         toast({
           title: t(`أهلاً ${person?.firstName}`, `Welcome, ${person?.firstName}`),
           body: t(
-            "تم إنشاء حسابك في منصة الحج الوطنية. التسجيل على القبول المباشر لموسم 1448هـ من 12 إلى 25 آب، والتسجيل الأولي على القرعة بطلب مستقل من 26 آب إلى 10 أيلول، ومعك حتى ثلاثة مرافقين.",
-            "Your account on the National Hajj Platform has been created. Registration for direct acceptance for the 1448 AH season runs from 12 to 25 August, and lottery pre-registration, a separate application, from 26 August to 10 September. You can bring up to three companions.",
+            "تم إنشاء حسابك في منصة الحج الوطنية. به تتعلّم في الأكاديمية متى شئت، وتختار في كل موسم: التسجيل على الحج، أو التقدّم لصفة إدارية.",
+            "Your account on the National Hajj Platform has been created. With it you learn in the Academy whenever you like, and each season you choose: register for Hajj, or apply for an administrative role.",
           ),
           icon: "🕋",
           tone: "success",
@@ -163,46 +178,106 @@ export function RegisterFlow() {
     <AuthShell
       portal="pilgrim"
       page="register"
-      title={t("إنشاء حساب حاج", "Create a pilgrim account")}
-      subtitle={t("حساب الحاج لتقديم طلب الحج لك ولعائلتك ومتابعته. لا نطلب منك إلا خمسة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "A pilgrim account lets you apply for Hajj for yourself and your family, and follow the application. We ask for just five fields; your official details come straight from the Civil Registry.")}
+      title={t("إنشاء حساب في المنصة", "Create an account on the platform")}
+      subtitle={t("حساب واحد لك في المنصة كلها: تتعلّم به في الأكاديمية، وتختار به في كل موسم أن تسجّل على الحج أو تتقدّم لصفة إدارية. لا نطلب منك إلا خمسة حقول، وبياناتك الرسمية تصل من الشؤون المدنية مباشرة.", "One account for the whole platform: learn in the Academy, and each season choose to register for Hajj or apply for an administrative role. We ask for just five fields; your official details come straight from the Civil Registry.")}
       steps={STEPS}
       step={step - 1}
-      note={t("لكل شخص نوع حساب واحد في المنصة: حاج، أو إداري، أو موظف. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة.", "Each person holds one type of account on the platform: pilgrim, administrator or staff. Staff accounts cannot be self-created; the Administration creates them.")}
+      note={t("حساب واحد لكل شخص، لا نوع له: إنشاؤه متاح دائماً، وفي كل موسم تختار به الحج أو صفة إدارية، ولا تجمع بينهما في موسم واحد. وسجلّ مواسمك وتقدّمك في الأكاديمية يبقيان معك. وحساب الموظف لا يُنشأ ذاتياً؛ تنشئه الإدارة.", "One account per person, with no type: you can create it at any time, and each season you choose the Hajj or an administrative role with it, never both in one season. Your record of seasons and your Academy progress stay with you. Staff accounts are created by the Administration.")}
       below={
         step === 1 && (
-          <DemoAccounts
-            heading={t("بيانات تجريبية لإنشاء حساب", "Demo data to create an account")}
-            action={t("املأ النموذج", "Fill the form")}
-            hint={t(
-              "اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل كما يكمل الحاج: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية. وبعد إنشاء الحساب يأخذك زر الحالة إلى ما بعدها: تقديم الطلب، أو متابعته، أو الموسم.",
-              "A person from the demo Civil Registry for each situation, with no account yet. Click a card to fill the fields, then go on as a pilgrim would: the verification code 1448, then your details from the Civil Registry.",
+          <div className="space-y-4">
+            <div role="tablist" aria-label={t("البيانات التجريبية", "Demo data")} className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["pilgrims", t("حجاج", "Pilgrims")],
+                  ["admins", t("إداريون", "Administrators")],
+                  ["members", t("أشخاص لن يسجّلوا على شيء", "People registering for nothing")],
+                ] as const
+              ).map(([k, l]) => (
+                <button key={k} type="button" role="tab" aria-selected={demoTab === k} onClick={() => setDemoTab(k)} className={cn("rounded-2xl px-4 py-2 text-sm font-bold transition", demoTab === k ? "bg-green-dark text-white" : "bg-white text-green-dark ring-1 ring-gold/40 hover:bg-sand")}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {demoTab === "pilgrims" ? (
+            <DemoAccounts
+              heading={t("بيانات تجريبية لإنشاء حساب", "Demo data to create an account")}
+              action={t("املأ النموذج", "Fill the form")}
+              hint={t(
+                "اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية. وبعد إنشاء الحساب يأخذك زر الحالة إلى ما بعدها: تقديم الطلب، أو متابعته، أو الموسم؛ أو تختار ما تفعله هذا الموسم: الحج، أو صفة إدارية.",
+                "A person from the demo Civil Registry for each situation, with no account yet. Click a card to fill the fields, then go on: the verification code 1448, then your details from the Civil Registry. Once the account is created, choose what you do this season: the Hajj, or an administrative role.",
+              )}
+              groups={[
+                {
+                  label: t("الحالات الست: أنشئ حسابها، ثم تكمل منه حالتها", "The six cases: create the account, then carry on with its case"),
+                  items: cases.map((s) => ({
+                    key: s.id,
+                    title: s.title,
+                    subtitle: t(`الحالة ${s.outcome} من 6`, `Case ${s.outcome} of 6`),
+                    note: s.note,
+                    code: s.id,
+                    initial: String(s.outcome),
+                    onPick: () => pickCase(s.id),
+                  })),
+                },
+                {
+                  label: t("أشخاص لتجربة إنشاء الحساب والطلب من أوله", "People for trying the account and the application from the start"),
+                  items: signups.map((d) => ({
+                    key: d.key,
+                    title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
+                    note: `${d.note} ${t(`مواليد ${d.person.birthDate.slice(0, 4)}.`, `Born ${d.person.birthDate.slice(0, 4)}.`)}`,
+                    code: d.person.id,
+                    initial: d.person.firstName[0],
+                    onPick: () => fillDemo(d),
+                  })),
+                },
+              ]}
+            />
+            ) : demoTab === "admins" ? (
+            <DemoAccounts
+              heading={t("بيانات تجريبية لإنشاء حساب", "Demo data to create an account")}
+              action={t("املأ النموذج", "Fill the form")}
+              hint={t(
+                "اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل: رمز التحقق 1448، ثم بياناتك من الشؤون المدنية. وبعد إنشاء الحساب يأخذك زر الحالة إلى ما بعدها: تقديم الطلب، أو متابعته، أو الموسم؛ أو تختار ما تفعله هذا الموسم: الحج، أو صفة إدارية.",
+                "A person from the demo Civil Registry for each situation, with no account yet. Click a card to fill the fields, then go on: the verification code 1448, then your details from the Civil Registry. Once the account is created, choose what you do this season: the Hajj, or an administrative role.",
+              )}
+              groups={[
+                {
+                  label: t("أشخاص لتجربة التقدّم لصفة إدارية: أنشئ الحساب، ثم اختر المسار الإداري لهذا الموسم", "People for trying an administrative role: create the account, then choose the administrators' way this season"),
+                  items: adminPeople.map((d) => ({
+                    key: `admin-${d.key}`,
+                    title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
+                    note: `${d.note} ${t(`مواليد ${d.person.birthDate.slice(0, 4)}.`, `Born ${d.person.birthDate.slice(0, 4)}.`)}`,
+                    code: d.person.id,
+                    initial: d.person.firstName[0],
+                    onPick: () => fillDemo(d),
+                  })),
+                },
+              ]}
+            />
+            ) : (
+              <DemoAccounts
+                heading={t("أشخاص لن يسجّلوا على شيء هذا الموسم", "People registering for nothing this season")}
+                action={t("املأ النموذج", "Fill the form")}
+                hint={t(
+                  "اضغط على بطاقة فتُملأ الحقول بها، ثم أكمل إنشاء الحساب. بعده اضغط «ملفي»: تكون عضواً في المنصة، تتعلّم في الأكاديمية وتعلّق على الأخبار، وتختار الحج أو صفة إدارية متى شئت.",
+                  "Click a card to fill the fields, then create the account. Then press «My profile»: you are a member of the platform, learning in the Academy and commenting on the news, choosing the Hajj or a role whenever you like.",
+                )}
+                groups={[
+                  {
+                    items: memberPeople.map((d) => ({
+                      key: `member-${d.key}`,
+                      title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
+                      note: `${d.note} ${t(`مواليد ${d.person.birthDate.slice(0, 4)}.`, `Born ${d.person.birthDate.slice(0, 4)}.`)}`,
+                      code: d.person.id,
+                      initial: d.person.firstName[0],
+                      onPick: () => fillDemo(d),
+                    })),
+                  },
+                ]}
+              />
             )}
-            groups={[
-              {
-                label: t("الحالات الست: أنشئ حسابها، ثم تكمل منه حالتها", "The six cases: create the account, then carry on with its case"),
-                items: cases.map((s) => ({
-                  key: s.id,
-                  title: s.title,
-                  subtitle: t(`الحالة ${s.outcome} من 6`, `Case ${s.outcome} of 6`),
-                  note: s.note,
-                  code: s.id,
-                  initial: String(s.outcome),
-                  onPick: () => pickCase(s.id),
-                })),
-              },
-              {
-                label: t("أشخاص لتجربة إنشاء الحساب والطلب من أوله", "People for trying the account and the application from the start"),
-                items: signups.map((d) => ({
-                  key: d.key,
-                  title: `${d.person.firstName} ${d.person.lastName} — ${d.title}`,
-                  note: `${d.note} ${t(`مواليد ${d.person.birthDate.slice(0, 4)}.`, `Born ${d.person.birthDate.slice(0, 4)}.`)}`,
-                  code: d.person.id,
-                  initial: d.person.firstName[0],
-                  onPick: () => fillDemo(d),
-                })),
-              },
-            ]}
-          />
+          </div>
         )
       }
     >
@@ -257,10 +332,8 @@ export function RegisterFlow() {
                           `The first name does not match the national ID in the Civil Registry. Type it as on your ID card (${FIRST_NAME_TRIES - tries} tries left).`,
                         )
                       : exists
-                        ? t("هذا الرقم لديه حساب حاج بالفعل.", "This number already has a pilgrim account.")
-                        : isAdmin
-                          ? t("هذا الرقم مسجّل بحساب إداري في منصة الإداريين، ولكل شخص نوع حساب واحد.", "This number belongs to an account on the administrators' platform, and each person holds one type of account.")
-                          : null
+                        ? t("لهذا الرقم حساب في المنصة بالفعل، حاجاً كان صاحبه أو إدارياً.", "This number already has an account on the platform, as a pilgrim or an administrator.")
+                        : null
                 }
                 link={locked || mismatch ? undefined : exists ? { href: "/login", label: t("سجّل الدخول", "Sign in") } : undefined}
               />
@@ -329,6 +402,25 @@ export function RegisterFlow() {
                         [t("رقم دفتر العائلة", "Family book number"), person.familyBookNo],
                       ]}
                     />
+                    {past.length > 0 && (
+                      <div className="mt-4 rounded-2xl border border-gold/40 p-4">
+                        <p className="flex items-center gap-2 text-sm font-bold text-green-dark">
+                          <CalendarClock className="size-4 text-gold-dark" /> {t("سجلك الموسمي (يُجلب تلقائياً)", "Your record of seasons (fetched automatically)")}
+                        </p>
+                        <ul className="mt-2 flex flex-wrap gap-2">
+                          {past.map((h) => (
+                            <li key={h.season}>
+                              <Badge tone={h.kind === "admin" ? "maroon" : "green"}>
+                                {h.season} — {h.kind === "admin" ? t("إداري", "Administrator") : t("حاج", "Pilgrim")}: {h.label}
+                                {h.detail && ` — ${h.detail}`}
+                                {h.rating ? ` — ${t("تقييم", "rated")} ${h.rating}` : ""}
+                              </Badge>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 text-xs leading-5 text-hint">{t("يبقى سجلك معك في حسابك، وتختار في كل موسم ما تفعله.", "Your record stays with your account, and each season you choose what you do.")}</p>
+                      </div>
+                    )}
                     <div className="mt-8 flex flex-wrap justify-between gap-3">
                       <Button variant="outline" onClick={() => setCorrecting(true)}>
                         <PencilLine className="size-4" /> {t("البيانات غير صحيحة", "These details are wrong")}
@@ -410,7 +502,10 @@ export function RegisterFlow() {
               </motion.div>
               <h2 className="mt-6 font-display text-3xl font-bold text-green-dark md:text-4xl">{t(`أهلاً ${person.firstName}، حسابك جاهز`, `Welcome, ${person.firstName}. Your account is ready`)}</h2>
               <p className="mx-auto mt-3 max-w-lg leading-8 text-ink-soft">
-                {t("تم إنشاء ملف الحاج الخاص بك، وهو ملف دائم يبقى معك عبر المواسم. التسجيل لموسم 1448هـ مفتوح الآن.", "Your pilgrim profile has been created. It is permanent and stays with you from one season to the next. Registration for the 1448 AH season is now open.")}
+                {t(
+                  "حسابك دائم يبقى معك عبر المواسم. تعلّم في الأكاديمية متى شئت، واختر ما تفعله في موسم 1448هـ: التسجيل على الحج، أو التقدّم لصفة إدارية. وفي الموسم التالي تختار من جديد.",
+                  "Your account is permanent and stays with you from one season to the next. Learn in the Academy whenever you like, and choose what you do in the 1448 AH season: register for Hajj, or apply for an administrative role. Next season you choose again.",
+                )}
               </p>
               {claim && (
                 <div className="mx-auto mt-6 flex max-w-lg items-start gap-3 rounded-2xl bg-gold/15 p-4 text-start text-sm leading-7 text-ink">
@@ -443,12 +538,22 @@ export function RegisterFlow() {
                     {caseLink} <ArrowLeft className="size-6" />
                   </Button>
                 ) : (
-                  <Button size="xl" variant="gold" onClick={() => router.push("/portal/apply")}>
-                    {t("تقديم طلب حج الآن", "Apply for Hajj now")} <ArrowLeft className="size-6" />
-                  </Button>
+                  <>
+                    <Button size="xl" variant="gold" onClick={() => router.push("/portal/apply")}>
+                      {t("تقديم طلب حج", "Apply for Hajj")} <ArrowLeft className="size-6" />
+                    </Button>
+                    <Button size="xl" variant="maroon" onClick={toAdmin}>
+                      <Briefcase className="size-6" /> {t("التقدّم لصفة إدارية", "Apply for an administrative role")}
+                    </Button>
+                  </>
                 )}
                 <Button size="xl" variant="outline" onClick={() => router.push("/portal")}>
                   <UserRound className="size-6" /> {t("ملفي", "My profile")}
+                </Button>
+              </div>
+              <div className="mt-4 flex justify-center">
+                <Button variant="ghost" onClick={() => router.push("/academy")}>
+                  <GraduationCap className="size-5" /> {t("أو ابدأ بالأكاديمية الآن", "Or start with the Academy now")}
                 </Button>
               </div>
             </div>

@@ -28,11 +28,11 @@ const STEPS: Step[] = [
   },
   {
     route: "/",
-    selector: "#services",
-    title: { ar: "البوابة العامة — دون تسجيل دخول", en: "The public portal — no sign-in needed" },
+    selector: "#honours",
+    title: { ar: "نجوم الموسم", en: "The stars of the season" },
     text: {
-      ar: "الأخبار والأكاديمية ومواقيت الصلاة ونتائج القبول متاحة للجميع. لا نطلب الحساب إلا عند تقديم الطلب.",
-      en: "The news, the Academy, prayer times and admission results are open to everyone. We only ask for an account when you apply.",
+      ar: "لوحة شرف الموسم الماضي: أفضل رؤساء المجموعات وأفضل تكتل والأفضل في كل صفة، بتقييم الحجاج والموظفين. والأخبار والأكاديمية ومواقيت الصلاة في الشريط العلوي، مفتوحة للجميع دون حساب.",
+      en: "Last season's Hall of Honour: the best group heads, the best cluster and the best in every role, as the pilgrims and the staff rated them. The news, the Academy and prayer times are in the top bar, open to everyone without an account.",
     },
   },
   {
@@ -370,7 +370,7 @@ export function GuidedTour() {
                           <span className="text-sm text-white/70">{t({ ar: "من التقديم حتى القبول والرحلة", en: "From applying to acceptance and the journey" })}</span>
                         </span>
                       </button>
-                      <button onClick={() => { close(); router.push("/administrator"); }} className="flex items-center gap-3 rounded-2xl bg-maroon p-3.5 text-start text-white transition hover:bg-maroon-dark">
+                      <button onClick={() => { close(); router.push("/login?demo=admins"); }} className="flex items-center gap-3 rounded-2xl bg-maroon p-3.5 text-start text-white transition hover:bg-maroon-dark">
                         <Briefcase className="size-6 shrink-0 text-gold" />
                         <span>
                           <span className="block font-bold">{t({ ar: "الإداري: أحمد سليمان الحمصي", en: "Administrator: أحمد سليمان الحمصي" })}</span>

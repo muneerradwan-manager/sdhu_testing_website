@@ -3,9 +3,9 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, ChartColumn, Printer } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
+import { PrintDocument, PrintNote, PrintSection, PrintTable } from "@/components/print/print-document";
 import { Button } from "@/components/ui/button";
 import { getPerson } from "@/lib/registry";
-import { dayLabel, useToday } from "@/lib/operations";
 import { cn } from "@/lib/utils";
 import { useAllQuestions } from "@/app/administrator/_lib/admin-rules";
 import { roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
@@ -71,38 +71,12 @@ function SortTable<T>({ rows, cols, rowKey, start, empty }: { rows: T[]; cols: C
   );
 }
 
-/** The same table on paper, in the order it was built */
-function PrintTable<T>({ title, rows, cols, rowKey }: { title: string; rows: T[]; cols: Col<T>[]; rowKey: (r: T) => string }) {
+/** The same table on paper, in the order it was built: a section of the printed statistics */
+function PaperTable<T>({ title, rows, cols }: { title: string; rows: T[]; cols: Col<T>[] }) {
   return (
-    <section className="mt-5 break-inside-avoid">
-      <h2 className="mb-1.5 text-[11pt] font-bold text-[#00594F]">{title}</h2>
-      {rows.length === 0 ? (
-        <p className="text-[9pt]">لا بيانات.</p>
-      ) : (
-        <table className="w-full border-collapse text-[9pt]">
-          <thead>
-            <tr>
-              {cols.map((c) => (
-                <th key={c.key} className="border border-black/40 bg-black/5 px-1.5 py-1 text-right">
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={rowKey(r)}>
-                {cols.map((c) => (
-                  <td key={c.key} className="border border-black/30 px-1.5 py-1">
-                    {c.text ? c.text(r) : c.value(r)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
+    <PrintSection title={title}>
+      <PrintTable head={cols.map((c) => c.label)} rows={rows.map((r) => cols.map((c) => (c.text ? c.text(r) : c.value(r))))} empty="لا بيانات." />
+    </PrintSection>
   );
 }
 
@@ -139,7 +113,6 @@ export function Stats() {
   const halls = useHalls();
   const sittings = useSittingRows(desk);
   const questions = useAllQuestions();
-  const today = useToday();
   const confirmedAll = desk.attempts.filter((a) => a.status === "confirmed");
   const [examId, setExamId] = useState(() => halls.exams.find((e) => confirmedAll.some((a) => examOfAttempt(a) === e.id))?.id ?? halls.exams[0]?.id ?? "");
   const [absentFail, setAbsentFail] = useState(false);
@@ -280,33 +253,20 @@ export function Stats() {
           </Panel>
 
           <PrintSheet>
-            <article className="text-[10pt] leading-relaxed text-black">
-              <header className="border-b-2 border-[#00594F] pb-2">
-                <p className="text-[9pt] text-[#555]">إدارة الامتحانات — الإحصائيات</p>
-                <h1 className="font-display text-[15pt] font-bold text-[#00594F]">{exam.name}</h1>
-                <p className="text-[9pt]">
-                  لصفة {roleLabelOf(exam.role)} · {dayLabel(today, true)} · مبنية على المحاولات المؤكَّدة فقط{absentFail ? " · الغائبون محسوبون راسبين" : ""}
-                </p>
-              </header>
-              <table className="mt-3 w-full border-collapse text-[9pt]">
-                <tbody>
-                  {[0, 4].map((i) => (
-                    <tr key={i}>
-                      {kpis.slice(i, i + 4).map(([k, v, h]) => (
-                        <td key={k} className="border border-black/30 px-1.5 py-1">
-                          {k}: <b>{v}</b>
-                          {h ? ` (${h})` : ""}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <PrintTable title="حسب القسم" rows={bySection} cols={sectionCols} rowKey={(s) => s.id} />
-              <PrintTable title="حسب الجلسة" rows={bySitting} cols={sittingCols} rowKey={(g) => g.key} />
-              <PrintTable title="حسب المحافظة" rows={byGov} cols={govCols} rowKey={(g) => g.key} />
-              <PrintTable title="حسب السؤال" rows={byQuestion} cols={questionCols} rowKey={(q) => String(q.id)} />
-            </article>
+            <PrintDocument
+              title="إحصائيات الاختبار"
+              source={`${exam.name} — إدارة الامتحانات`}
+              meta={[
+                { label: "الصفة", value: roleLabelOf(exam.role) },
+                ...kpis.map(([k, v, h]) => ({ label: k, value: h ? `${v} (${h})` : v })),
+              ]}
+            >
+              <PrintNote>مبنية على المحاولات المؤكَّدة فقط{absentFail ? "، والغائبون محسوبون راسبين" : ""}.</PrintNote>
+              <PaperTable title="حسب القسم" rows={bySection} cols={sectionCols} />
+              <PaperTable title="حسب الجلسة" rows={bySitting} cols={sittingCols} />
+              <PaperTable title="حسب المحافظة" rows={byGov} cols={govCols} />
+              <PaperTable title="حسب السؤال" rows={byQuestion} cols={questionCols} />
+            </PrintDocument>
           </PrintSheet>
         </>
       )}

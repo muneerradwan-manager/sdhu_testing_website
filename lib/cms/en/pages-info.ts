@@ -8,7 +8,7 @@ export const PAGES_EN_INFO: PagesEn = {
       title: "About",
       highlight: "us",
       description:
-        "The Syrian Hajj and Umrah Administration: we serve the guests of the Most Merciful from their homes in the governorates until they return safely, under published rules and on one national platform.",
+        "The Syrian Directorate of Hajj and Umrah: we serve the guests of the Most Merciful from their homes in the governorates until they return safely, under published rules and on one national platform.",
       crumb: "About us",
     },
     intro: {
@@ -109,8 +109,8 @@ export const PAGES_EN_INFO: PagesEn = {
     },
     accounts: {
       eyebrow: "Account types",
-      title: "Three parties, one account per person",
-      description: "Everyone on the platform has exactly one type of account and never two. Visitors browse the public content without an account.",
+      title: "One account per person, and a path chosen each season",
+      description: "Each citizen has one platform account, which can be created at any time: with it they learn in the Academy and choose each season to be a pilgrim or an administrator, never both in one season. Staff accounts are created by the Administration. Visitors browse the public content without an account.",
       featuredBadge: "Most common",
       items: [
         {
@@ -118,17 +118,17 @@ export const PAGES_EN_INFO: PagesEn = {
           icon: "UserRound",
           tagline: "A citizen applying for Hajj",
           who: "A citizen applying for Hajj, or whose application has been accepted",
-          create: "Created by the citizen with their national number",
+          create: "The same platform account, choosing the Hajj for this season",
           permissions: "No administrative permissions; sees only their own and their family's data",
           travel: "Yes, if accepted",
-          duration: "Linked to their application each season",
+          duration: "The account is permanent; the Hajj is chosen season by season",
         },
         {
           title: "Seasonal administrator",
           icon: "BriefcaseBusiness",
           tagline: "Serves pilgrims during the season",
           who: "A cluster or group leader and their two assistants, the guide, and the technical coordinator",
-          create: "Created by the administrator, who then pays a registration fee and takes the automated test",
+          create: "The same platform account, choosing the administrators' way, which opens an administrative file; then a registration fee and the automated test",
           permissions: "Come automatically from their role in the season, and change when the role changes",
           travel: "Always, with their pilgrims",
           duration: "Seasonal; renewed by applying for each season",
@@ -169,7 +169,7 @@ export const PAGES_EN_INFO: PagesEn = {
       description: "Fixed principles the National Hajj Platform is built on, from opening an account to archiving the season.",
       items: [
         { title: "The national number is the citizen's key", text: "Official details come from the Civil Registry; if the link is unavailable, the citizen enters them and a member of staff verifies them." },
-        { title: "One account type per person", text: "Pilgrim, administrator or staff — never two at once." },
+        { title: "One account per person, one path per season", text: "Each season a citizen chooses with their account to be a pilgrim or an administrator, never both in the same season. Their record of seasons and Academy progress stay with them. Staff accounts are created by the Administration." },
         { title: "The season is the framework", text: "Every rule, quota and role belongs to a season, and may differ in the next one." },
         {
           title: "Two separate registrations for acceptance",

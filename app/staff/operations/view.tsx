@@ -7,7 +7,8 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { KIND_LABELS, SLA_MINUTES, type Zone } from "@/lib/data/staff-seed";
-import { actions, useStore, type Ticket } from "@/lib/store";
+import { actions, useStore, type DailyReport, type Ticket } from "@/lib/store";
+import { useAdministrationReports } from "@/lib/daily-reports";
 import { cn } from "@/lib/utils";
 import { useAllEvents, useTicketQueue, type QueueTicket } from "../_components/data";
 import { ago, Drawer, fmtTime, Gate, logAs, PageHeader, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
@@ -38,7 +39,8 @@ function Operations() {
   const now = useNow(1000);
   const params = useSearchParams();
   const router = useRouter();
-  const view = params.get("view") === "tasks" ? "tasks" : "tickets";
+  const view = params.get("view") === "tasks" ? "tasks" : params.get("view") === "reports" ? "reports" : "tickets";
+  const reports = useAdministrationReports();
   const tickets = useTicketQueue();
   const tasks = useTasks();
   const active = tickets.filter((t) => t.status !== "resolved").length;
@@ -70,17 +72,65 @@ function Operations() {
 
       <Segments
         value={view}
-        onChange={(v) => router.replace(v === "tasks" ? `${BASE}?view=tasks` : BASE, { scroll: false })}
+        onChange={(v) => router.replace(v === "tickets" ? BASE : `${BASE}?view=${v}`, { scroll: false })}
         label="الأقسام"
         items={[
           { value: "tickets", label: "البلاغات", count: active, tone: "maroon" },
           { value: "tasks", label: "المهام الداخلية", count: tasks.filter((t) => t.column !== "verified").length },
+          { value: "reports", label: "التقارير اليومية", count: reports.filter((r) => !r.readAt).length },
         ]}
       />
 
-      {view === "tasks" ? <TasksList /> : <Tickets tickets={tickets} now={now} />}
+      {view === "tasks" ? <TasksList /> : view === "reports" ? <DailyReports reports={reports} /> : <Tickets tickets={tickets} now={now} />}
 
       <ShiftLog now={now} />
+    </div>
+  );
+}
+
+// ───────────────────────── Daily reports ─────────────────────────
+
+/**
+ * The clusters' daily reports: each cluster's head sends his cluster's day, gathered from its groups' reports to him.
+ * Opening one marks it read, and its sender sees by whom and when.
+ */
+function DailyReports({ reports }: { reports: DailyReport[] }) {
+  const user = useStaffUser()!;
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = reports.find((r) => r.id === openId) ?? null;
+  const show = (r: DailyReport) => {
+    setOpenId(r.id);
+    if (!r.readAt) actions.readDailyReport(r.id, user.name);
+  };
+  return (
+    <div className="space-y-4">
+      <ListTable head={["التكتل", "رئيسه", "الحالة العامة", "أُرسل", "الحالة"]} minWidth="44rem">
+        {reports.length === 0 && <EmptyRow cols={5}>لم يصل تقرير بعد. يرسل رئيس كل تكتل تقرير تكتله اليومي من «يومي» في بوابته.</EmptyRow>}
+        {reports.map((r) => (
+          <tr key={r.id} className="align-top">
+            <td className="p-3">
+              <button type="button" onClick={() => show(r)} className="text-right font-bold text-gold hover:underline">{r.clusterName ?? r.clusterId}</button>
+            </td>
+            <td className="p-3 text-white/80">{r.by}</td>
+            <td className="p-3 text-white/80">{r.general}</td>
+            <td className="p-3 text-white/70">{fmtTime(r.at)}</td>
+            <td className="p-3"><Tag tone={r.readAt ? "green" : "maroon"}>{r.readAt ? "مقروء" : "جديد"}</Tag></td>
+          </tr>
+        ))}
+      </ListTable>
+      <Drawer open={!!open} onClose={() => setOpenId(null)} title={open ? `تقرير ${open.clusterName ?? ""} — ${open.by}` : ""}>
+        {open && (
+          <dl className="space-y-3 text-sm">
+            {([["الحالة العامة", open.general], ["الحالات الصحية", open.health], ["الشكاوى", open.complaints], ["ملاحظات", open.notes]] as const).filter(([, v]) => v).map(([k, v]) => (
+              <div key={k} className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+                <dt className="text-xs text-white/60">{k}</dt>
+                <dd className="mt-1 font-semibold text-white">{v}</dd>
+              </div>
+            ))}
+            {open.readAt && <p className="text-xs text-white/60">قرأه {open.readBy} — {fmtTime(open.readAt)}</p>}
+          </dl>
+        )}
+      </Drawer>
     </div>
   );
 }

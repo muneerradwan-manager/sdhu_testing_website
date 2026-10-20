@@ -3,7 +3,7 @@
  * - Build assets, images, fonts, lesson audio: cache first (they are immutable or rarely change).
  * - API calls and videos are never cached (videos are large and range-requested).
  */
-const VERSION = "sdhu-v2";
+const VERSION = "sdhu-v3"; // v3: the official eagle emblem replaced the icons
 /** "" locally, "/sdhu_testing_website" on GitHub Pages — derived from where the worker is registered */
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
 const PAGES = `${VERSION}-pages`;

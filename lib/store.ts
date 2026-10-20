@@ -5,7 +5,17 @@ import type { Member } from "./rules";
 import type { DrawPick } from "./lottery";
 import type { Accommodation } from "./rooms";
 import type { Answers, AppPolicy, RegState } from "./registration/types";
+import { SEASON } from "./season";
 
+/** What an account does in a season: registers on the Hajj, or serves as an administrator — never both in one season */
+export type SeasonPath = "pilgrim" | "admin";
+
+/**
+ * One account per person on the platform, with no type: whoever creates it may only learn in the Academy, and
+ * each season chooses what to do with it — apply for the Hajj, or apply for an administrative role (whose file,
+ * `admins[id]`, opens on this account the first time). Next season he may choose otherwise; nothing he did in an
+ * earlier season is ever removed.
+ */
 export type Account = {
   nationalId: string;
   phone: string;
@@ -18,6 +28,8 @@ export type Account = {
   rating?: number;
   /** Details the pilgrim says the civil registry got wrong: «غير مؤكدة» until a registration officer decides */
   civil?: CivilClaim;
+  /** What he chose to do in each Hijri season (lib/account.ts infers it from what he did when he chose nothing) */
+  seasons?: Record<number, { path: SeasonPath; chosenAt: number }>;
 };
 
 /**
@@ -485,6 +497,8 @@ export type ClusterRecord = {
 export type AdminProfile = {
   nationalId: string;
   createdAt: number;
+  /** The Hijri season his seasonal fields (role, exam, group, cluster…) belong to; 1448 when absent */
+  season?: number;
   phone: string;
   email?: string;
   /** Set at registration, as for a pilgrim; profiles from before passwords have none */
@@ -707,8 +721,39 @@ export type EvaluationObjection = { stages: string[]; reason: string; at: number
 /** One staff member's scores of an administrator, a group or a cluster that lived where he was posted */
 export type PeerEvaluation = { kind: "staff"; by: string; role: string; place?: string; stages: StageScores; note?: string; at: number };
 
+/**
+ * «يومي»: the day's report. Whoever works in a group sends his group's to the head of its cluster; the cluster's
+ * head sends the cluster's to the administration, where the operations room reads it. Each is read by whom it is for.
+ */
+export type DailyReport = {
+  id: string;
+  at: number;
+  /** The day it is the report of (YYYY-MM-DD, the demo's day) */
+  day: string;
+  byId: string;
+  by: string;
+  role: string;
+  to: "cluster" | "administration";
+  clusterId?: string;
+  clusterName?: string;
+  groupNumber?: number;
+  general: string;
+  health: string;
+  complaints: string;
+  notes?: string;
+  readAt?: number;
+  readBy?: string;
+};
+
+/** A comment an account wrote under a news post: its writer may take it down (it goes) */
+export type NewsComment = { id: string; by: string; name: string; text: string; at: number };
+
 export type State = {
   accounts: Record<string, Account>;
+  /** The comments under each news post, by the post's slug, oldest first */
+  newsComments: Record<string, NewsComment[]>;
+  /** The day's reports, from the groups to their cluster's head and from the clusters to the administration */
+  dailyReports: DailyReport[];
   sessionId: string | null;
   applications: Record<string, Application>;
   /** Visitor's zoom on top of the automatic one (renamed from textScale so values saved before auto-zoom are dropped) */
@@ -929,6 +974,8 @@ export type CadreKey = "seasonal" | "category" | "branches" | "primary" | "added
 const KEY = "sdhu-demo-v1";
 const initial: State = {
   accounts: {},
+  newsComments: {},
+  dailyReports: [],
   sessionId: null,
   applications: {},
   displayScale: 1,
@@ -989,6 +1036,18 @@ const initial: State = {
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
+/** The season the platform lives in: the one the administration began last, else the demo's */
+export const seasonNow = (s: Pick<State, "formation">) => s.formation?.season ?? SEASON.hijriYear;
+
+/** An account's progress in the Academy is kept under its own national number: `${id}:${track}/${lesson}` */
+export const academyKey = (id: string, lessonKey: string) => `${id}:${lessonKey}`;
+
+/** The account a file needs: one opened with the administrator's own phone and password, when he has none yet */
+function withAccount(s: State, id: string, from: { phone?: string; email?: string; password?: string; createdAt?: number }): State["accounts"] {
+  if (s.accounts[id]) return s.accounts;
+  return { ...s.accounts, [id]: { nationalId: id, phone: from.phone ?? "", email: from.email, password: from.password ?? "hajj1448", createdAt: from.createdAt ?? Date.now() } };
+}
+
 let state: State = initial;
 let loaded = false;
 const listeners = new Set<() => void>();
@@ -1029,8 +1088,21 @@ function normalize(s: State): State {
       return [id, { ...noDeputy(p), cluster: { ...k, groups: obj(k.groups), seats: obj(k.seats), assistants: list(k.assistants), coordinators: list(k.coordinators), femaleGuides: list(k.femaleGuides), sorting: obj(k.sorting), guideSorting: obj(k.guideSorting) } as ClusterRecord }];
     }),
   ) as State["admins"];
+  // One account per person: an administrator's file opened before accounts were one gets the account it lacked
+  let accounts = obj(s.accounts) as State["accounts"];
+  for (const a of Object.values(admins)) accounts = withAccount({ ...s, accounts }, a.nationalId, a);
+  // The Academy's progress saved before it was kept per account belongs to whoever is signed in, else to nobody
+  const academy = Object.fromEntries(
+    Object.entries(obj(s.academy)).flatMap(([k, v]) => (k.includes(":") ? [[k, v]] : s.sessionId ? [[academyKey(s.sessionId, k), v]] : [])),
+  ) as State["academy"];
   return {
     ...s,
+    accounts,
+    academy,
+    newsComments: obj(s.newsComments) as State["newsComments"],
+    dailyReports: list(s.dailyReports) as DailyReport[],
+    // One session for the account, whichever door he came in by
+    adminSessionId: s.sessionId ?? null,
     admins,
     formation: {
       overrides: Object.fromEntries(Object.entries(obj(f.overrides)).map(([k, v]) => [k, withoutDeputy(v as ClusterRecord)])) as State["formation"]["overrides"],
@@ -1159,7 +1231,26 @@ export function useHydrated() {
 
 export const actions = {
   register(account: Account) {
-    setState((s) => ({ ...s, accounts: { ...s.accounts, [account.nationalId]: account }, sessionId: account.nationalId }));
+    setState((s) => ({ ...s, accounts: { ...s.accounts, [account.nationalId]: account }, sessionId: account.nationalId, adminSessionId: account.nationalId }));
+  },
+  /**
+   * What the account does this season (or another): register on the Hajj, or serve as an administrator. Choosing
+   * the administrators' way opens his administrative file on the account when he has none. null takes the choice
+   * back (only while nothing was started on it — the screens offer it only then).
+   */
+  chooseSeasonPath(id: string, season: number, path: SeasonPath | null) {
+    setState((s) => {
+      const a = s.accounts[id];
+      if (!a) return s;
+      const seasons = { ...a.seasons };
+      if (path) seasons[season] = { path, chosenAt: Date.now() };
+      else delete seasons[season];
+      const admins =
+        path === "admin" && !s.admins[id]
+          ? { ...s.admins, [id]: { nationalId: id, createdAt: Date.now(), season, phone: a.phone, email: a.email, password: a.password, positions: [], languages: [], skills: [], documents: [], joinDecisions: {}, musters: [] } }
+          : s.admins;
+      return { ...s, admins, accounts: { ...s.accounts, [id]: { ...a, seasons } } };
+    });
   },
   /**
    * Creates a pilgrim account without signing that pilgrim in — the technical coordinator opens
@@ -1179,11 +1270,12 @@ export const actions = {
   updateAccount(id: string, patch: Partial<Account>) {
     setState((s) => ({ ...s, accounts: { ...s.accounts, [id]: { ...s.accounts[id], ...patch } } }));
   },
+  /** One session for the account, whichever door he came in by (the pilgrims' or the administrators') */
   login(id: string) {
-    setState((s) => ({ ...s, sessionId: id }));
+    setState((s) => ({ ...s, sessionId: id, adminSessionId: id }));
   },
   logout() {
-    setState((s) => ({ ...s, sessionId: null }));
+    setState((s) => ({ ...s, sessionId: null, adminSessionId: null }));
   },
   saveApplication(app: Application) {
     setState((s) => ({ ...s, applications: { ...s.applications, [app.applicantId]: app } }));
@@ -1207,7 +1299,11 @@ export const actions = {
     // The approvals are the service's to record: what the page sends never touches them
     setState((s) => {
       const prev = s.drafts[sessionId];
-      return { ...s, drafts: { ...s.drafts, [sessionId]: { ...draft, consents: prev?.consents ?? {}, applicantConsent: prev?.applicantConsent, configVersion: prev?.configVersion ?? draft.configVersion, updatedAt: at } } };
+      // Starting an application is choosing the Hajj for the season, if he had not chosen yet
+      const acc = s.accounts[sessionId];
+      const season = seasonNow(s);
+      const accounts = acc && !acc.seasons?.[season] ? { ...s.accounts, [sessionId]: { ...acc, seasons: { ...acc.seasons, [season]: { path: "pilgrim" as const, chosenAt: at } } } } : s.accounts;
+      return { ...s, accounts, drafts: { ...s.drafts, [sessionId]: { ...draft, consents: prev?.consents ?? {}, applicantConsent: prev?.applicantConsent, configVersion: prev?.configVersion ?? draft.configVersion, updatedAt: at } } };
     });
   },
   /** Send (or resend, or withdraw with null) one companion's approval request */
@@ -1258,8 +1354,24 @@ export const actions = {
   setDisplayScale(scale: number) {
     setState((s) => ({ ...s, displayScale: Math.min(1.4, Math.max(0.7, Math.round(scale * 100) / 100)) }));
   },
-  completeLesson(key: string) {
-    setState((s) => ({ ...s, academy: { ...s.academy, [key]: true } }));
+  sendDailyReport(r: Omit<DailyReport, "id" | "at">) {
+    setState((s) => ({ ...s, dailyReports: [...s.dailyReports, { ...r, id: uid(), at: Date.now() }] }));
+  },
+  /** Whom it is for opened it: its sender sees it was read */
+  readDailyReport(id: string, by: string) {
+    setState((s) => ({ ...s, dailyReports: s.dailyReports.map((r) => (r.id === id && !r.readAt ? { ...r, readAt: Date.now(), readBy: by } : r)) }));
+  },
+  /** Any account may comment under a news post, pilgrim, administrator or a member who chose nothing yet */
+  addNewsComment(slug: string, c: Omit<NewsComment, "id" | "at">) {
+    setState((s) => ({ ...s, newsComments: { ...s.newsComments, [slug]: [...(s.newsComments[slug] ?? []), { ...c, id: uid(), at: Date.now() }] } }));
+  },
+  /** Its writer takes his comment down */
+  removeNewsComment(slug: string, id: string) {
+    setState((s) => ({ ...s, newsComments: { ...s.newsComments, [slug]: (s.newsComments[slug] ?? []).filter((c) => c.id !== id) } }));
+  },
+  /** A lesson done, kept on the account for good: the Academy is not a season's, and is the pilgrim's and the administrator's alike */
+  completeLesson(id: string, key: string) {
+    setState((s) => ({ ...s, academy: { ...s.academy, [academyKey(id, key)]: true } }));
   },
   resetDemo() {
     setState(() => initial);
@@ -1268,7 +1380,8 @@ export const actions = {
   forgetPilgrim(id: string) {
     setState((s) => {
       const drop = <T,>(r: Record<string, T>) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== id));
-      return { ...s, accounts: drop(s.accounts), applications: drop(s.applications), post: drop(s.post), inSeason: drop(s.inSeason), sessionId: s.sessionId === id ? null : s.sessionId };
+      const out = s.sessionId === id;
+      return { ...s, accounts: drop(s.accounts), applications: drop(s.applications), post: drop(s.post), inSeason: drop(s.inSeason), drafts: drop(s.drafts), sessionId: out ? null : s.sessionId, adminSessionId: out ? null : s.adminSessionId };
     });
   },
 
@@ -1282,12 +1395,14 @@ export const actions = {
   staffLogout() {
     setState((s) => ({ ...s, staffSessionId: null }));
   },
+  /** The same session as login(): the administrators' door opens the same account */
   adminLogin(id: string) {
-    setState((s) => ({ ...s, adminSessionId: id }));
+    setState((s) => ({ ...s, sessionId: id, adminSessionId: id }));
   },
   adminLogout() {
-    setState((s) => ({ ...s, adminSessionId: null }));
+    setState((s) => ({ ...s, sessionId: null, adminSessionId: null }));
   },
+  /** His administrative file, on his account (opened with the file's phone and password when he had none) */
   upsertAdmin(id: string, patch: Partial<AdminProfile>) {
     setState((s) => {
       const base: AdminProfile = s.admins[id] ?? {
@@ -1301,7 +1416,8 @@ export const actions = {
         joinDecisions: {},
         musters: [],
       };
-      return { ...s, admins: { ...s.admins, [id]: { ...base, ...patch } } };
+      const next = { ...base, ...patch };
+      return { ...s, accounts: withAccount(s, id, next), admins: { ...s.admins, [id]: next } };
     });
   },
   setReview(applicantId: string, review: Review) {

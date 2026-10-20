@@ -3,6 +3,7 @@
 import { Lock, LockOpen, Paperclip, Printer, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
+import { PrintDocument, PrintSection, PrintTable } from "@/components/print/print-document";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import type { Letter } from "@/lib/store";
@@ -184,31 +185,39 @@ function Thread({ l }: { l: Letter }) {
   );
 }
 
-/** The letter on one sheet: its heading, then its thread */
+/** The letter on paper in the platform's one print template: its particulars in boxes, then its thread as a table */
 export function LetterPrint({ l }: { l: Letter }) {
   return (
-    <article className="text-[11pt] leading-7 text-black">
-      <header className="border-b-2 border-black pb-2">
-        <p className="text-[9pt]">إدارة الحج والعمرة السورية — قسم شؤون المجموعات والتكتلات</p>
-        <h1 className="text-[15pt] font-bold">مراسلة {l.number}</h1>
-        <p>
-          الموضوع: <b>{l.subject}</b> — النوع: {l.kind}
-        </p>
-        <p>
-          من: {l.adminName} — {fmtDateTime(l.at)} {l.closed ? `— أُغلقت ${fmtDateTime(l.closed.at)}` : ""}
-        </p>
-      </header>
-      <ol className="mt-3 space-y-3">
-        {l.messages.map((m) => (
-          <li key={m.id} className="break-inside-avoid">
-            <p className="font-bold">
-              {m.name} {m.from === "staff" ? "(الإدارة)" : ""} — {fmtDateTime(m.at)}
-            </p>
-            <p className="whitespace-pre-line">{m.text}</p>
-            {m.file && <p className="text-[9pt]">مرفق: {m.file}</p>}
-          </li>
-        ))}
-      </ol>
-    </article>
+    <PrintDocument
+      title={`مراسلة ${l.number}`}
+      source="قسم شؤون المجموعات والتكتلات"
+      meta={[
+        { label: "الموضوع", value: l.subject },
+        { label: "النوع", value: l.kind },
+        { label: "من", value: l.adminName },
+        { label: "أُرسلت", value: fmtDateTime(l.at) },
+        { label: "الحالة", value: l.closed ? `أُغلقت ${fmtDateTime(l.closed.at)}` : LETTER_STATE[letterState(l)].label },
+      ]}
+    >
+      <PrintSection title="سياق المراسلة">
+        <PrintTable
+          head={["#", "الكاتب", "التاريخ", "النص"]}
+          narrow={[0, 2]}
+          rows={l.messages.map((m, i) => [
+            i + 1,
+            <>
+              <b>{m.name}</b>
+              {m.from === "staff" ? " (الإدارة)" : ""}
+            </>,
+            fmtDateTime(m.at),
+            <>
+              <span className="whitespace-pre-line">{m.text}</span>
+              {m.file && <span className="block text-[8.5pt]">مرفق: {m.file}</span>}
+            </>,
+          ])}
+          empty="لا رسائل فيها."
+        />
+      </PrintSection>
+    </PrintDocument>
   );
 }

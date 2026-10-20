@@ -10,7 +10,7 @@ import { seedCoordinatorWork } from "./coordinator";
 import { SEED_CLUSTERS } from "./cluster";
 import { DEFAULT_ROLES, examRoleOf, examRolesOf, roleKeyByName, roleName, seasonalOf, structureNow } from "./structure";
 import { demoOral } from "./oral";
-import { actions, getState, useStore, type AdminProfile, type AdminRecord, type AdminRules, type Attempt, type AttemptStatus, type ClusterRecord, type OralState, type VaultDoc } from "@/lib/store";
+import { actions, getState, seasonNow, useStore, type AdminProfile, type AdminRecord, type AdminRules, type Attempt, type AttemptStatus, type ClusterRecord, type OralState, type VaultDoc } from "@/lib/store";
 
 export const ADMIN_ROLE = "إداري";
 
@@ -599,23 +599,23 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0, written?: 
     return rangeLabel(o.start, o.end);
   };
   const raw: (Omit<JourneyStep, "state"> & { done: boolean; headOnly?: boolean; groupOnly?: boolean })[] = [
-    { key: "account", title: "إنشاء الحساب الإداري", date: "دائم", href: "/administrator/dashboard", detail: "ملف إداري دائم مؤكد من الشؤون المدنية", done: !!p },
-    { key: "apply", title: "التسجيل كإداري والتحقق من الأهلية", date: when("admin-registration"), href: "/administrator/apply", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
-    { key: "fee", title: "رسم التسجيل", date: when("admin-registration"), href: "/administrator/apply", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
-    { key: "test", title: "الاختبار المؤتمت", date: written?.date ? written.date.replace(" 1448", "") : when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.confirmed ? `سُلّم وأكّده المشرف${r.parts.length > 1 ? " — الاختباران" : ""}` : r.parts.some((x) => x.status === "submitted") ? "سُلّم — بانتظار تأكيد المشرف" : r.parts.some((x) => x.status === "unconfirmed") ? "لم يُؤكَّد تسليمك — تقرر فيه الإدارة" : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || r.confirmed },
-    { key: "result", title: "نتيجة الاختبار المؤتمت", date: when("admin-exams"), href: "/administrator/exam", detail: r.exempt ? "مؤهل بالتجديد — دون اختبار" : r.published ? `${r.score ?? "—"}% — ${r.written ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}` : r.confirmed ? "تظهر حين تعرضها الإدارة" : "النجاح ببلوغ النسبة المطلوبة في كل قسم", done: !!r.published && r.written },
-    { key: "oral", title: "الامتحان الشفهي", date: when("admin-orals"), href: "/administrator/exam", detail: r.exempt ? "معفى بالتجديد" : r.oral?.status === "passed" ? `ناجح أمام اللجنة${r.oral.score !== undefined ? ` — ${r.oral.score}%` : ""}` : r.oral?.status === "failed" ? "لم يجتزه هذا الموسم" : r.oral?.status === "absent" ? "غاب عن موعده" : r.oral ? "موعده محجوز" : "بعد نجاحك في المؤتمت: تختار موعدك أمام لجنة صفتك", done: r.passed },
+    { key: "account", title: "الحساب والملف الإداري", date: "دائم", href: "/portal", detail: "حسابك في المنصة مؤكد من الشؤون المدنية، وملفك الإداري الدائم يُفتح به حين تختار المسار الإداري", done: !!p },
+    { key: "apply", title: "التسجيل كإداري والتحقق من الأهلية", date: when("admin-registration"), href: "/portal/role", detail: p?.eligibleAt ? `مؤهل لصفة ${positionLabelOf(p.positions[0] ?? "")} — ${p.renewal === "keep" ? "تجديد الصفة نفسها" : p.renewal === "change" ? "صفة جديدة" : "أول موسم"}` : "ملفك، ثم صفة واحدة تستوفي شروطها في جدول الإدارة، ثم التحقق قبل الدفع", done: !!p?.eligibleAt },
+    { key: "fee", title: "رسم التسجيل", date: when("admin-registration"), href: "/portal/role", detail: p?.receipt ? `الإيصال ${p.receipt}` : "30 $ — بعد ثبوت الأهلية", done: !!p?.feePaidAt },
+    { key: "test", title: "الاختبار المؤتمت", date: written?.date ? written.date.replace(" 1448", "") : when("admin-exams"), href: "/portal/exam", detail: r.exempt ? "معفى — الصفة نفسها بتقييم مستوفٍ" : r.confirmed ? `سُلّم وأكّده المشرف${r.parts.length > 1 ? " — الاختباران" : ""}` : r.parts.some((x) => x.status === "submitted") ? "سُلّم — بانتظار تأكيد المشرف" : r.parts.some((x) => x.status === "unconfirmed") ? "لم يُؤكَّد تسليمك — تقرر فيه الإدارة" : written ? `في قاعة ${written.center ?? "مركزك"} — ${written.questions} سؤالاً في ${written.minutes} دقيقة` : "في قاعة مركزك الامتحاني", done: r.exempt || r.confirmed },
+    { key: "result", title: "نتيجة الاختبار المؤتمت", date: when("admin-exams"), href: "/portal/exam", detail: r.exempt ? "مؤهل بالتجديد — دون اختبار" : r.published ? `${r.score ?? "—"}% — ${r.written ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}` : r.confirmed ? "تظهر حين تعرضها الإدارة" : "النجاح ببلوغ النسبة المطلوبة في كل قسم", done: !!r.published && r.written },
+    { key: "oral", title: "الامتحان الشفهي", date: when("admin-orals"), href: "/portal/exam", detail: r.exempt ? "معفى بالتجديد" : r.oral?.status === "passed" ? `ناجح أمام اللجنة${r.oral.score !== undefined ? ` — ${r.oral.score}%` : ""}` : r.oral?.status === "failed" ? "لم يجتزه هذا الموسم" : r.oral?.status === "absent" ? "غاب عن موعده" : r.oral ? "موعده محجوز" : "بعد نجاحك في المؤتمت: تختار موعدك أمام لجنة صفتك", done: r.passed },
     teamMember
-      ? { key: "team", title: tech ? "مكانك في تكتل منسقاً تقنياً" : "مكانك في تكتل", date: when("cluster-formation"), href: "/administrator/dashboard", detail: post ? posted : tech ? "يختارك رئيس تكتل في المكتب عند تشكيله، ويوزّعك على مجموعات منه" : "في مقعد مجموعة يُجلسك فيه المكتب عند تشكيلها، أو يختارك رئيس تكتل للتكتل كله عند تشكيله في المكتب", done: !!post }
-      : { key: "group", title: "تشكيل المجموعة في المكتب", date: when("group-formation"), href: "/administrator/my-contracts", detail: g?.approvedAt ? `${groupName(g.number)} — شكّلها ${g.approvedBy ?? "موظف المكتب"}، ووقّعتم عقدها` : "تحضر مع فريقك إلى المكتب: اسمها الذي تختاره، ورسمها 200 $، وعقدها الذي توقّعونه", done: !!g?.approvedAt },
-    { key: "cluster", title: "تشكيل التكتل في المكتب", date: when("cluster-formation"), href: p?.cluster ? "/administrator/clusters" : "/administrator/my-contracts", detail: p?.cluster?.status === "approved" ? `${p.cluster.name} — شُكّل في المكتب` : g?.clusterId ? "مجموعتك في تكتل شُكّل في المكتب" : "يحضر رئيس التكتل ورؤساء مجموعاته وكادره إلى المكتب، فيُشكَّل ويوقّعون عقده", done: p?.cluster?.status === "approved" || !!g?.clusterId, headOnly: true },
+      ? { key: "team", title: tech ? "مكانك في تكتل منسقاً تقنياً" : "مكانك في تكتل", date: when("cluster-formation"), href: "/portal", detail: post ? posted : tech ? "يختارك رئيس تكتل في المكتب عند تشكيله، ويوزّعك على مجموعات منه" : "في مقعد مجموعة يُجلسك فيه المكتب عند تشكيلها، أو يختارك رئيس تكتل للتكتل كله عند تشكيله في المكتب", done: !!post }
+      : { key: "group", title: "تشكيل المجموعة في المكتب", date: when("group-formation"), href: "/portal/my-contracts", detail: g?.approvedAt ? `${groupName(g.number)} — شكّلها ${g.approvedBy ?? "موظف المكتب"}، ووقّعتم عقدها` : "تحضر مع فريقك إلى المكتب: اسمها الذي تختاره، ورسمها 200 $، وعقدها الذي توقّعونه", done: !!g?.approvedAt },
+    { key: "cluster", title: "تشكيل التكتل في المكتب", date: when("cluster-formation"), href: p?.cluster ? "/portal/clusters" : "/portal/my-contracts", detail: p?.cluster?.status === "approved" ? `${p.cluster.name} — شُكّل في المكتب` : g?.clusterId ? "مجموعتك في تكتل شُكّل في المكتب" : "يحضر رئيس التكتل ورؤساء مجموعاته وكادره إلى المكتب، فيُشكَّل ويوقّعون عقده", done: p?.cluster?.status === "approved" || !!g?.clusterId, headOnly: true },
     teamMember
-      ? { key: "requests", title: "حجاج مجموعاتي", date: when("group-joining"), href: "/administrator/requests", detail: tech ? "حجاج المجموعات التي وُزّعت عليها كما يلحقهم المكتب، وملفاتهم الصحية" : "حجاج المجموعات التي تعمل فيها", done: joinCount > 0 }
+      ? { key: "requests", title: "حجاج مجموعاتي", date: when("group-joining"), href: "/portal/requests", detail: tech ? "حجاج المجموعات التي وُزّعت عليها كما يلحقهم المكتب، وملفاتهم الصحية" : "حجاج المجموعات التي تعمل فيها", done: joinCount > 0 }
       : isClusterRole(p)
         ? // The cluster's head oversees all its groups, not one of them
-          { key: "requests", title: "حجاج مجموعات التكتل", date: when("group-joining"), href: "/administrator/clusters", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج كل مجموعة من مجموعات التكتل كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 }
-        : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: "/administrator/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج مجموعتك كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 },
-    { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/administrator/field", detail: p?.musters.some((m) => m.closedAt) ? "سُجّل أول منسك أُدّي" : "أداء المناسك والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
+          { key: "requests", title: "حجاج مجموعات التكتل", date: when("group-joining"), href: "/portal/clusters", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج كل مجموعة من مجموعات التكتل كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 }
+        : { key: "requests", title: "حجاج المجموعة", date: when("group-joining"), href: "/portal/requests", detail: joinCount ? `${joinCount} عائلات تم الترحيب بها` : "حجاج مجموعتك كما يلحقهم المكتب، وملفاتهم الصحية", done: joinCount > 0 },
+    { key: "field", title: "الميدان", date: "24 ذو القعدة", href: "/portal/field", detail: p?.musters.some((m) => m.closedAt) ? "سُجّل أول منسك أُدّي" : "أداء المناسك والإعلانات والتقييم", done: !!p?.musters.some((m) => m.closedAt) },
   ];
   let currentGiven = false;
   return raw.filter((s) => !(teamMember && (s.headOnly || s.groupOnly))).map(({ done, headOnly: _headOnly, groupOnly: _groupOnly, ...s }) => {
@@ -630,8 +630,8 @@ export function journeyOf(p: AdminProfile | undefined, joinCount = 0, written?: 
 
 /** The logged-in administrator (null when signed out) */
 export function useAdmin() {
-  const id = useStore((s) => s.adminSessionId);
-  const profile = useStore((s) => (s.adminSessionId ? s.admins[s.adminSessionId] : undefined));
+  const id = useStore((s) => s.sessionId);
+  const profile = useStore((s) => (s.sessionId ? s.admins[s.sessionId] : undefined));
   return useMemo(() => {
     if (!id) return null;
     const person = getPerson(id);
@@ -648,19 +648,22 @@ export function passedAttempt(id: string, exam: string, startedAt: number, submi
 /**
  * Demo shortcut. "start" opens a fresh file; "field" fast-forwards to an approved group with
  * signed contracts so the requests and field screens can be tried right away.
- * Returns an error message when the national id already belongs to a pilgrim account.
+ * Returns an error message when the account is a pilgrim this season (one path a season).
  */
 export function demoAdminLogin(
   state: { accounts: Record<string, unknown>; admins: Record<string, AdminProfile> },
   id: string,
   mode: DemoAdminMode = "start",
 ): string | null {
-  if (state.accounts[id]) return "هذا الرقم الوطني لديه حساب حاج. لكل شخص نوع حساب واحد في المنصة.";
+  const chosen = (state.accounts[id] as { seasons?: Record<number, { path: string }> } | undefined)?.seasons?.[seasonNow(getState())]?.path;
+  if (chosen === "pilgrim") return "هذا الحساب مسجّل على الحج في هذا الموسم، ولا يكون حاجاً وإدارياً في الموسم نفسه.";
   const demo = DEMO_ADMINS.find((d) => d.id === id);
   const existing = state.admins[id];
   const now = Date.now();
-  // The demo administrators' password is the demo pilgrims' one, for anyone who types it in the form
+  // The demo administrators' password is the demo pilgrims' one, for anyone who types it in the form; the file opens on his account
   if (!existing) actions.upsertAdmin(id, { createdAt: now, phone: demo?.phone ?? `0944${id.slice(-6)}`, password: "hajj1448" });
+  // Entering as an administrator is choosing the administrators' way this season
+  actions.chooseSeasonPath(id, seasonNow(getState()), "admin");
   const min = 60_000;
   // ملف مكتمل حتى آخر مرحلة، فتظهر كل شاشات الصفة: حجاج المجموعة والملفات الصحية والميدان
   if (mode !== "start") {
@@ -670,6 +673,7 @@ export function demoAdminLogin(
     const last = lastServed(id);
     const keep = last?.roleKey === position && (last.rating ?? 0) >= SEASON.administrators.keepRole.minRating;
     actions.upsertAdmin(id, {
+      season: seasonNow(getState()),
       positions: [position],
       renewal: keep ? "keep" : last ? "change" : "first",
       examExempt: keep,

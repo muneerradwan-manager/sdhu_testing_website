@@ -17,6 +17,8 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useState } from "react";
+import { PrintSheet } from "@/components/print/print-sheet";
+import { PrintDocument, PrintNote, PrintSection, PrintTable } from "@/components/print/print-document";
 import { Button } from "@/components/ui/button";
 import { Counter } from "@/components/ui/motion";
 import { EXEC } from "@/lib/data/staff-seed";
@@ -42,7 +44,7 @@ function Executive() {
   const splitTotal = EXEC.split.reduce((a, s) => a + s.value, 0);
 
   return (
-    <div className="[-webkit-print-color-adjust:exact] [print-color-adjust:exact]">
+    <div>
       <PageHeader
         eyebrow="تقرير نهاية الموسم"
         title="لوحة الإدارة العليا — موسم 1448"
@@ -310,6 +312,93 @@ function Executive() {
           </div>
         </Panel>
       </div>
+
+      <PrintSheet>
+        <ExecutivePrint />
+      </PrintSheet>
     </div>
+  );
+}
+
+/**
+ * The season's report on paper, in the platform's one print template: what the page draws as bars and donuts goes
+ * down as numbers in tables, so «طباعة التقرير» gives the report rather than a picture of the screen.
+ */
+function ExecutivePrint() {
+  const applied = EXEC.headline[0].value;
+  const splitTotal = EXEC.split.reduce((a, s) => a + s.value, 0);
+  const p = EXEC.people;
+  return (
+    <PrintDocument
+      title="تقرير نهاية الموسم — موسم 1448"
+      source="لوحة الإدارة العليا"
+      meta={[
+        { label: "التقييم العام للحجاج", value: "4.3 / 5 (من 4.0 في 1447)" },
+        { label: "المتقدمون", value: formatNumber(applied) },
+        { label: "أدّوا الحج فعلاً", value: formatNumber(EXEC.headline[EXEC.headline.length - 1].value) },
+        { label: "الشكاوى", value: formatNumber(EXEC.complaints.total) },
+        { label: "متوسط زمن الإغلاق", value: `${EXEC.complaints.avgHours} ساعة` },
+      ]}
+    >
+      <PrintNote>أرقام الموسم للقراءة: من تقدّم ومن حجّ، ورضا الحجاج، وأين يلزم التحسين في الموسم القادم.</PrintNote>
+
+      <PrintSection title="من التقديم إلى أداء الفريضة">
+        <PrintTable head={["المرحلة", "العدد", "من المتقدمين"]} rows={EXEC.headline.map((h) => [h.label, formatNumber(h.value), `${Math.round((h.value / applied) * 100)}%`])} />
+      </PrintSection>
+
+      <PrintSection title="الكوادر والحالات">
+        <PrintTable
+          head={["المؤشر", "العدد", "ملاحظة"]}
+          rows={[
+            ["الإداريون", formatNumber(p.admins), `${formatNumber(p.adminsCompleted)} أكملوا الموسم`],
+            ["الموظفون المسافرون", formatNumber(p.travellingStaff), "البعثات الأربع وفريق المطار"],
+            ["الحالات الحرجة", formatNumber(p.critical), "جميعها أُغلقت"],
+            ["المفقودون", formatNumber(p.missing), `متوسط العثور ${p.missingMinutes} دقيقة`],
+            ["متوسط أداء الإداريين", formatNumber(p.adminAvg), "من 100"],
+            ["إداريون تحت 70", formatNumber(p.adminsBelow), "لا يُرشَّحون تلقائياً في 1449"],
+          ]}
+        />
+      </PrintSection>
+
+      <PrintSection title="نتائج القبول المباشر والقرعة" meta={[{ label: "الطلبات المؤهلة", value: formatNumber(splitTotal) }]}>
+        <PrintTable head={["النتيجة", "العدد", "النسبة"]} rows={EXEC.split.map((s) => [s.label, formatNumber(s.value), `${Math.round((s.value / splitTotal) * 100)}%`])} />
+      </PrintSection>
+
+      <PrintSection title="رضا الحجاج حسب المرحلة">
+        <PrintTable
+          head={["المرحلة", "1447", "1448", "الفرق", "ملاحظة"]}
+          rows={EXEC.stages.map((s) => {
+            const delta = Math.round((s.y1448 - s.y1447) * 10) / 10;
+            return [s.stage, s.y1447.toFixed(1), <b key="v">{s.y1448.toFixed(1)}</b>, delta >= 0 ? `+${delta}` : delta, s.y1448 < 3.8 ? "دون 3.8 — تحتاج خطة تحسين" : "—"];
+          })}
+        />
+      </PrintSection>
+
+      <PrintSection title="أكثر الشكاوى تكراراً" meta={[{ label: "مجموع الشكاوى", value: formatNumber(EXEC.complaints.total) }, { label: "متوسط زمن الإغلاق", value: `${EXEC.complaints.avgHours} ساعة` }]}>
+        <PrintTable head={["الموضوع", "النسبة"]} rows={EXEC.complaints.parts.map((c) => [c.label, `${c.value}%`])} />
+        <PrintNote>أكثر من نصف الشكاوى عن الوجبات والنقل، وهو ما يوجّه قرارات التعاقد.</PrintNote>
+      </PrintSection>
+
+      <PrintSection title="ترتيب التكتلات: الجهات المقيّمة مقابل التقييم الذاتي">
+        <PrintTable
+          head={["#", "التكتل", "الجهات المقيّمة", "التقييم الذاتي", "الفرق", "ملاحظة"]}
+          narrow={[0]}
+          rows={EXEC.clusters.map((c, i) => {
+            const gap = Math.round((c.self - c.evaluators) * 10) / 10;
+            return [i + 1, c.name, c.evaluators, c.self, `+${gap}`, gap > 1 ? "فرق أكثر من نقطة — للمراجعة" : "—"];
+          })}
+        />
+      </PrintSection>
+
+      <PrintSection title="مقارنة 1447 مقابل 1448">
+        <PrintTable head={["المؤشر", "1447", "1448", "الاتجاه"]} rows={EXEC.compare.map((r) => [r.label, r.y1447, <b key="v">{r.y1448}</b>, r.better ? "تحسّن" : "تراجع"])} />
+      </PrintSection>
+
+      <PrintSection title="مقدّمو الخدمات">
+        <PrintTable head={["المقدّم", "الخدمة", "التقييم"]} rows={EXEC.providers.map((x) => [x.name, x.kind, x.rating])} />
+        <PrintNote>أفضل مقدّم نقل: شركة (س) 4.7 — أفضل تكتل: النور 4.6</PrintNote>
+        <PrintNote>أدنى مقدّم إعاشة: شركة (ص) 3.1 ← توصية: مراجعة العقد قبل موسم 1449</PrintNote>
+      </PrintSection>
+    </PrintDocument>
   );
 }

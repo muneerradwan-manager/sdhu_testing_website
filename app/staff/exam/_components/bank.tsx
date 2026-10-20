@@ -3,6 +3,7 @@
 import { Check, Lock, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrintSheet } from "@/components/print/print-sheet";
+import { PrintDocument, PrintNote, PrintTable } from "@/components/print/print-document";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { EXAM_CATEGORIES, QUESTION_TYPES, TRUE_FALSE, typeOf, type ExamCategory, type ExamQuestion, type QuestionType } from "@/lib/data/admin-exam";
@@ -423,36 +424,42 @@ export function Bank() {
       </Drawer>
 
       <PrintSheet>
-        <article className="text-[10pt] leading-relaxed text-black">
-          <header className="border-b-2 border-[#00594F] pb-2">
-            <p className="text-[9pt] text-[#555]">إدارة الامتحانات</p>
-            <h1 className="font-display text-[15pt] font-bold text-[#00594F]">بنك الأسئلة — موسم 1448</h1>
-            <p className="text-[9pt]">
-              {shown.length} سؤالاً{role ? ` · صفة ${roleLabelOf(role)}` : ""}
-              {category ? ` · فئة ${category}` : ""} · {showOff ? "المعطّلة" : "الفعّالة"}. الخيارات تُخلط في كل ورقة؛ هنا بترتيب البنك.
-            </p>
-          </header>
-          <ol className="mt-3 space-y-2.5">
-            {shown.map((x) => (
-              <li key={x.id} className="break-inside-avoid">
-                <p className="font-bold">
-                  {x.id}. {x.text}
-                </p>
-                <p className="text-[8.5pt] text-[#444]">
-                  {x.category} · {QUESTION_TYPES[typeOf(x)]} · يدخل اختبار: {x.roles.map(roleLabelOf).join("، ")}
-                </p>
-                <ul className="mt-0.5 ps-4">
-                  {x.options.map((o, i) => (
-                    <li key={i} className={i === x.answer ? "font-bold" : ""}>
-                      {LETTERS[i]}) {o}
-                      {i === x.answer ? " ✓" : ""}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
-        </article>
+        <PrintDocument
+          title="بنك الأسئلة — موسم 1448"
+          source="إدارة الامتحانات"
+          meta={[
+            { label: "عدد الأسئلة", value: shown.length },
+            { label: "الحالة", value: showOff ? "المعطّلة" : "الفعّالة" },
+            ...(role ? [{ label: "الصفة", value: roleLabelOf(role) }] : []),
+            ...(category ? [{ label: "الفئة", value: category }] : []),
+            ...(type !== "all" ? [{ label: "النوع", value: QUESTION_TYPES[type] }] : []),
+            ...(q.trim() ? [{ label: "البحث", value: q.trim() }] : []),
+          ]}
+        >
+          <PrintNote>الخيارات تُخلط في كل ورقة؛ هنا بترتيب البنك، والإجابة الصحيحة بالخط العريض مع ✓.</PrintNote>
+          <PrintTable
+            head={["الرقم", "السؤال وخياراته", "الفئة والنوع", "يدخل اختبار"]}
+            narrow={[0]}
+            rows={shown.map((x) => [
+              x.id,
+              <>
+                <b>{x.text}</b>
+                {x.options.map((o, i) => (
+                  <span key={i} className={cn("block ps-3", i === x.answer && "font-bold")}>
+                    {LETTERS[i]}) {o}
+                    {i === x.answer ? " ✓" : ""}
+                  </span>
+                ))}
+              </>,
+              <>
+                {x.category}
+                <span className="block">{QUESTION_TYPES[typeOf(x)]}</span>
+              </>,
+              x.roles.map(roleLabelOf).join("، ") || "—",
+            ])}
+            empty="لا أسئلة بهذا البحث."
+          />
+        </PrintDocument>
       </PrintSheet>
     </div>
   );

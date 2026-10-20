@@ -14,6 +14,7 @@ import { useLang, useT } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
 import { ArticleBody, headingId } from "../_components/article-body";
 import { Feedback, ShareBar, TableOfContents } from "../_components/article-actions";
+import { ArticleComments } from "../_components/article-comments";
 import { categoryLabel } from "../_components/categories";
 import { CategoryBadge, NewsCard } from "../_components/news-card";
 import { ReadingProgress } from "../_components/reading-progress";
@@ -137,6 +138,10 @@ export function ArticleView({ slug }: { slug: string }) {
 
               <div className="mt-8 print:hidden">
                 <Feedback />
+              </div>
+
+              <div className="mt-8 print:hidden">
+                <ArticleComments slug={article.slug} />
               </div>
 
               <nav aria-label={t("التنقل بين المنشورات", "Post navigation")} className="mt-8 grid gap-3 sm:grid-cols-2 print:hidden">

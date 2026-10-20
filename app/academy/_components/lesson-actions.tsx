@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Circle, Lock } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import { StarRating, useToast } from "@/components/ui/widgets";
+import { useAcademyProgress } from "@/lib/account";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -20,14 +21,14 @@ export function LessonActions({ lessonKey, lessonTitle, isLastInTrack }: { lesso
   const t = useT();
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
-  const done = useStore((s) => !!s.academy[lessonKey]);
+  const done = !!useAcademyProgress()[lessonKey];
   const toast = useToast();
   const [rating, setRating] = useState(0);
   const loggedIn = hydrated && !!session;
 
   const complete = (e: MouseEvent<HTMLButtonElement>) => {
-    if (done) return;
-    actions.completeLesson(lessonKey);
+    if (done || !session) return;
+    actions.completeLesson(session, lessonKey);
     const r = e.currentTarget.getBoundingClientRect();
     void celebrate((r.left + r.width / 2) / window.innerWidth, (r.top + r.height / 2) / window.innerHeight);
     toast({

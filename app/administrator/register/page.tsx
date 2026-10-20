@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
-import { AdminRegisterFlow } from "./register-flow";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "إنشاء حساب إداري" };
-
+/**
+ * The account is one for everyone: it is created at «إنشاء حساب في المنصة», and the administrative file opens on it
+ * when its holder chooses the administrators' way for a season. This old address leads there.
+ */
 export default function AdminRegisterPage() {
-  return <AdminRegisterFlow />;
+  redirect("/register");
 }

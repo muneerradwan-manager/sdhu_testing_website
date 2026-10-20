@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { fullName, getPerson } from "@/lib/registry";
 import { useStore } from "@/lib/store";
+import { useAccount } from "@/lib/account";
+import { AdminActivity } from "../_components/admin-activity/activity";
 import { cn } from "@/lib/utils";
 import { PilgrimShell } from "../_components/pilgrim-shell";
 
@@ -15,7 +17,13 @@ const when = (at: number) => new Intl.DateTimeFormat("ar-SY-u-nu-latn", { day: "
  * «سجل نشاطي»: what the pilgrim did on the platform, and what was done for his application — the office that
  * reviewed his documents and attached him to his group, his group's head, the medical team — newest first.
  */
+/** One page for the account: an administrator's this season, else the pilgrim's (or the member's) */
 export default function ActivityPage() {
+  const acc = useAccount();
+  return acc?.path === "admin" && acc.admin ? <AdminActivity /> : <PilgrimActivityPage />;
+}
+
+function PilgrimActivityPage() {
   const sid = useStore((s) => s.sessionId) ?? "";
   const app = useStore((s) => s.applications[sid]);
   const events = useStore((s) => s.events);

@@ -13,7 +13,16 @@ import { seedPilgrimScenario } from "@/lib/demo-scenarios";
 import { enterDemoCase } from "@/lib/demo-cases";
 import { useOperation } from "@/lib/operations";
 import { DEMO_SCENARIOS, getPerson, isValidNationalId } from "@/lib/registry";
-import { actions, useStore } from "@/lib/store";
+import { DEMO_ADMINS, DEMO_GROUPS, DEMO_LISTED, demoAdminLogin } from "@/app/administrator/_lib/admin";
+import { cn } from "@/lib/utils";
+import { actions, getState, seasonNow, useStore } from "@/lib/store";
+
+/** The members of the demo: accounts that chose nothing this season — new, a pilgrim before, an administrator before */
+const MEMBERS = [
+  { id: "09099912345", title: "عضو جديد", note: "لم يشارك في أي موسم: يتعلّم في الأكاديمية، ويختار الحج أو صفة إدارية متى شاء." },
+  { id: "06055500711", title: "حجّ في موسم 1445", note: "يُذكَّر بموسمه حاجاً، ويُسأل: يكمل كحاج هذا الموسم، أو يفتح ملفاً إدارياً جديداً." },
+  { id: "01033300899", title: "رئيس مجموعة في موسم 1447", note: "يُذكَّر بصفته وتقييمه 4.4، ويُسأل: يكمل كإداري بملفه الدائم، أو يفتح ملف حاج لهذا الموسم." },
+];
 import { nowMs } from "@/lib/utils";
 
 /** The demo pilgrims in English: the situation after the name (the name stays as it is) */
@@ -39,9 +48,13 @@ export function LoginFlow() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/portal";
+  // «?demo=all» lists every demo administrator, beyond today's test (the guides' captures open it so)
+  const allAdmins = params.get("demo") === "all";
+  const [tab, setTab] = useState<"pilgrims" | "admins" | "members">(params.get("demo") === "admins" || allAdmins ? "admins" : "pilgrims");
+  const admins = useStore((s) => s.admins);
+  const cadre = useStore((s) => s.cadre);
   const toast = useToast();
   const accounts = useStore((s) => s.accounts);
-  const admins = useStore((s) => s.admins);
   const applications = useStore((s) => s.applications);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
@@ -70,11 +83,9 @@ export function LoginFlow() {
     e.preventDefault();
     setError(null);
     if (!isValidNationalId(id)) return setError({ text: t("الرقم الوطني يتكون من 11 رقماً.", "The national ID has 11 digits.") });
+    // One account for everyone, pilgrim or administrator: this door and the administrators' open the same account
     const acc = accounts[id];
-    if (!acc) {
-      if (admins[id]) return setError({ text: t("هذا الرقم مسجّل كحساب إداري، لا كحساب حاج: ادخل من منصة الإداريين.", "This number belongs to an administrator account, not a pilgrim account: sign in on the administrators' platform.") });
-      return setError({ text: t("لا يوجد حساب حاج بهذا الرقم.", "There is no pilgrim account with this number."), link: { href: "/register", label: t("أنشئ حساباً", "Create an account") } });
-    }
+    if (!acc) return setError({ text: t("لا يوجد حساب في المنصة بهذا الرقم.", "There is no account on the platform with this number."), link: { href: "/register", label: t("أنشئ حساباً", "Create an account") } });
     if (acc.password !== password) return setError({ text: t("كلمة المرور غير صحيحة.", "The password is incorrect.") });
     setOtpStage(true);
     sendCode();
@@ -86,6 +97,8 @@ export function LoginFlow() {
     } else {
       actions.login(nationalId);
     }
+    // A demo pilgrim is a pilgrim this season: his card is his choice
+    actions.chooseSeasonPath(nationalId, seasonNow(getState()), "pilgrim");
     const scenario = DEMO_SCENARIOS.find((s) => s.id === nationalId);
     const to = enterDemoCase(nationalId, { direct: directOp, lottery: lotteryOp });
     if (!to) seedPilgrimScenario(nationalId, { applications }, nowMs());
@@ -95,6 +108,43 @@ export function LoginFlow() {
     // Every step done: straight into the season
     router.push(to ?? next);
   };
+
+  /** A demo administrator: his file as his card says (finished, at the start of his work, or not registered for the season) */
+  const quickAdmin = (nationalId: string, mode: "start" | "ready" | "done") => {
+    const st = cadre.status[nationalId];
+    if (st) return setError({ text: `${st.state === "disabled" ? "حسابه موقوف من الإدارة" : "حسابه محذوف من الكادر"}: ${st.reason}.` });
+    const err = demoAdminLogin({ accounts, admins }, nationalId, mode);
+    if (err) return setError({ text: err });
+    toast({ title: t(`مرحباً ${getPerson(nationalId)?.firstName}`, `Welcome, ${getPerson(nationalId)?.firstName}`), body: t("دخول تجريبي سريع", "Quick demo sign-in"), icon: "⚡", tone: "success" });
+    router.push(next);
+  };
+
+  /** A member of the platform: an account that chose nothing this season, to try the season's question */
+  const quickMember = (nationalId: string) => {
+    if (!accounts[nationalId]) actions.register({ nationalId, phone: `0944${nationalId.slice(-6)}`, password: "hajj1448", createdAt: nowMs() });
+    else actions.login(nationalId);
+    actions.chooseSeasonPath(nationalId, seasonNow(getState()), null);
+    toast({ title: t(`مرحباً ${getPerson(nationalId)?.firstName}`, `Welcome, ${getPerson(nationalId)?.firstName}`), body: t("دخول تجريبي سريع", "Quick demo sign-in"), icon: "⚡", tone: "success" });
+    router.push("/portal");
+  };
+
+  const listed = allAdmins || !DEMO_LISTED ? DEMO_ADMINS : DEMO_ADMINS.filter((d) => DEMO_LISTED!.includes(d.id));
+  const adminGroups = DEMO_GROUPS.filter((g) => listed.some((d) => d.section === g)).map((g) => ({
+    label: g,
+    items: listed.filter((d) => d.section === g).map((d) => ({
+      key: d.id,
+      title: d.title,
+      note: d.note,
+      code: d.id,
+      initial: d.title[0],
+      badge: d.mode === "done" ? { text: "أنهى رحلته", tone: "green" as const } : d.mode === "ready" ? { text: "لم يبدأ بعد", tone: "maroon" as const } : { text: "لم يسجّل للموسم بعد", tone: "maroon" as const },
+      onPick: () => quickAdmin(d.id, d.mode),
+    })),
+  }));
+  const memberCards = MEMBERS.map((m) => {
+    const p = getPerson(m.id)!;
+    return { key: m.id, title: `${p.firstName} ${p.lastName} — ${m.title}`, note: m.note, code: m.id, initial: p.firstName[0], onPick: () => quickMember(m.id) };
+  });
 
   const enter = () => {
     actions.login(id);
@@ -106,25 +156,56 @@ export function LoginFlow() {
     <AuthShell
       portal="pilgrim"
       page="login"
-      title={t("دخول الحجاج", "Pilgrim sign-in")}
-      subtitle={t("تابع طلبك، واطلع على مجموعتك وفندقك ورحلتك. الدخول بالرقم الوطني وكلمة المرور، ثم رمز تحقق يصل إلى هاتفك.", "Track your application and see your group, hotel and flight. Sign in with your national ID and password, then a verification code sent to your phone.")}
+      title={t("تسجيل الدخول", "Sign in")}
+      subtitle={t("ادخل إلى حسابك في المنصة: تابع طلب حجك ومجموعتك ورحلتك، أو اختر ما تفعله هذا الموسم، أو تابع تعلّمك في الأكاديمية. الدخول بالرقم الوطني وكلمة المرور، ثم رمز تحقق يصل إلى هاتفك.", "Sign in to your account on the platform: follow your Hajj application, group and trip, choose what you do this season, or carry on learning in the Academy. Sign in with your national ID and password, then a verification code sent to your phone.")}
       steps={[t("الرقم الوطني وكلمة المرور", "National ID and password"), t("رمز التحقق", "Verification code"), t("ملفي", "My profile")]}
       step={otpStage ? 1 : 0}
       note={t("نسخة تجريبية: لا تُرسل أي رسالة حقيقية ولا تُحفظ البيانات إلا في متصفحك.", "Demo version: no real messages are sent, and your data is kept only in your browser.")}
       below={
-        <DemoAccounts
-          heading={t("جرّب المنصة: ست حالات", "Try the platform: six cases")}
-          hint={t("حالتان تبدآن من الصفر فتقدّم الطلب بنفسك، وأربع طلباتها مقدَّمة بنتائجها. اضغط البطاقة فتدخل مباشرة، دون كلمة مرور ولا رمز تحقق، وتصل إلى الصفحة التي تخصها.", "Two cases start from scratch, so you apply yourself; four have applied, with their results. Click a card to sign in straight away, with no password or code, and land on its page.")}
-          groups={[
-            { items: DEMO_SCENARIOS.filter((s) => s.outcome).sort((a, b) => a.outcome! - b.outcome!).map(card) },
-            ...(more ? [{ label: t("حالات لتجربة نموذج التسجيل نفسه", "Cases for trying the registration form itself"), items: DEMO_SCENARIOS.filter((s) => !s.outcome).map(card) }] : []),
-          ]}
-          footer={
-            <button type="button" onClick={() => setMore((v) => !v)} className="mt-4 text-sm font-bold text-green-dark underline-offset-4 hover:underline">
-              {more ? t("إخفاء حالات التسجيل الأخرى", "Hide the other registration cases") : t("حالات أخرى لتجربة نموذج التسجيل", "Other cases for trying the registration form")}
-            </button>
-          }
-        />
+        <div className="space-y-4">
+          <div role="tablist" aria-label={t("الحسابات التجريبية", "Demo accounts")} className="flex flex-wrap gap-2">
+            {(
+              [
+                ["pilgrims", t("حجاج", "Pilgrims")],
+                ["admins", t("إداريون", "Administrators")],
+                ["members", t("أعضاء لم يسجّلوا على شيء", "Members with nothing yet")],
+              ] as const
+            ).map(([k, l]) => (
+              <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={cn("rounded-2xl px-4 py-2 text-sm font-bold transition", tab === k ? "bg-green-dark text-white" : "bg-white text-green-dark ring-1 ring-gold/40 hover:bg-sand")}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {tab === "pilgrims" && (
+            <DemoAccounts
+              heading={t("جرّب المنصة: ست حالات", "Try the platform: six cases")}
+              hint={t("حالتان تبدآن من الصفر فتقدّم الطلب بنفسك، وأربع طلباتها مقدَّمة بنتائجها. اضغط البطاقة فتدخل مباشرة، دون كلمة مرور ولا رمز تحقق، وتصل إلى الصفحة التي تخصها.", "Two cases start from scratch, so you apply yourself; four have applied, with their results. Click a card to sign in straight away, with no password or code, and land on its page.")}
+              groups={[
+                { items: DEMO_SCENARIOS.filter((s) => s.outcome).sort((a, b) => a.outcome! - b.outcome!).map(card) },
+                ...(more ? [{ label: t("حالات لتجربة نموذج التسجيل نفسه", "Cases for trying the registration form itself"), items: DEMO_SCENARIOS.filter((s) => !s.outcome).map(card) }] : []),
+              ]}
+              footer={
+                <button type="button" onClick={() => setMore((v) => !v)} className="mt-4 text-sm font-bold text-green-dark underline-offset-4 hover:underline">
+                  {more ? t("إخفاء حالات التسجيل الأخرى", "Hide the other registration cases") : t("حالات أخرى لتجربة نموذج التسجيل", "Other cases for trying the registration form")}
+                </button>
+              }
+            />
+          )}
+          {tab === "admins" && (
+            <DemoAccounts
+              heading={t("حسابات تجريبية للإداريين", "Demo administrators")}
+              hint={t("لكل صفة حسابان: «أنهى رحلته» — سجّل للموسم وتأهّل ودخل تكتله، فيعمل الآن بصلاحيات صفته؛ و«لم يسجّل للموسم بعد» — يجرّب التقدّم للصفة من أوله حتى التأهل. ورئاسة التكتل ومحاسبته ومعاونه أماكن يعطيها التكتل حين يُشكَّل في المكتب: حسابها الثاني «في أول عمله». اضغط على بطاقة للدخول مباشرة.", "Each role has two accounts: one who finished and works with his role's permissions, and one not registered for the season yet. Click a card to sign in straight away.")}
+              groups={adminGroups}
+            />
+          )}
+          {tab === "members" && (
+            <DemoAccounts
+              heading={t("أعضاء لم يسجّلوا على شيء هذا الموسم", "Members with nothing chosen this season")}
+              hint={t("حسابات لم تختر شيئاً في موسم 1448: تدخل فترى «ملفي» بسؤال الموسم. من شارك في موسم سابق يُذكَّر بما كان فيه ويُسأل: يكمل كما كان، أو يفتح ملفاً للشيء الجديد.", "Accounts that chose nothing in 1448: sign in and «My profile» asks what you do this season. Whoever took part before is reminded of it and asked how to go on.")}
+              groups={[{ items: memberCards }]}
+            />
+          )}
+        </div>
       }
     >
       <AnimatePresence mode="wait">

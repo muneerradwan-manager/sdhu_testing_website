@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ChevronLeft, Clock, Layers, ListVideo } from "lucide-react";
+import { useAcademyProgress } from "@/lib/account";
 import { useHydrated, useStore } from "@/lib/store";
 import type { TrackIcon as TrackIconName } from "@/lib/data/academy";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ export function TrackGrid({ tracks }: { tracks: TrackCardData[] }) {
   const x = useAcademyText();
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
-  const academy = useStore((s) => s.academy);
+  const academy = useAcademyProgress();
   const loggedIn = hydrated && !!session;
 
   return (

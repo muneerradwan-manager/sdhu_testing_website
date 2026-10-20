@@ -10,9 +10,9 @@ ONLY = sys.argv[2] if len(sys.argv) > 2 else None
 NAMES = {"01033300881": "عبد الرحمن العلي", "01033300882": "نبيل الساعاتي", "01033300883": "بسام درويش", "01033300884": "وليد القصاب",
          "01033300871": "أحمد سليمان الحمصي", "01033300872": "ياسر عبد الله", "01033300873": "الشيخ خالد الرفاعي", "01033300874": "سامر نبيل نجار",
          "01033300891": "صلاح الدين المارديني", "01033300896": "الشيخ عبد الهادي البغدادي", "01033300944": "مهند السيد", "01033300981": "هالة الدقر"}
-def session(demo_id, path="/administrator/dashboard"):
+def session(demo_id, path="/portal"):
     c = Cap(); p = c.page
-    c.goto("/administrator/login?demo=all", wait=1500)
+    c.goto("/login?demo=all", wait=1500)
     card = p.locator(f"main button:has-text('{NAMES[demo_id]} —')").first
     card.scroll_into_view_if_needed(); card.click(); c.settle(2500)
     if path: c.goto(path, wait=1800)
@@ -34,11 +34,11 @@ def tab(p, c, name, wait=1200):
 # ───────── returning administrator: keep the role ─────────
 if ONLY in (None, "ret"):
     c = Cap(); p = c.page
-    c.goto("/administrator/login?demo=all", wait=1500)
+    c.goto("/login?demo=all", wait=1500)
     p.locator("main button:has-text('معتصم العرقسوسي —')").first.scroll_into_view_if_needed(); c.settle(400)
     c.shot("quick-login", "الدخول الفوري بحساب تجريبي من صفحة الدخول", hl=[("main button:has-text('معتصم العرقسوسي —')", "")], section="B")
     p.locator("main button:has-text('معتصم العرقسوسي —')").first.click(); c.settle(2500)
-    c.goto("/administrator/apply", wait=1800)
+    c.goto("/portal/role", wait=1800)
     jump(p, c)
     c.shot("ret-docs", "إداري عائد: ملفه الدائم أول الطلب، ووثيقة منتهية الصلاحية تحتاج تحديثاً", section="D")
     up = p.locator("button:has-text('حدّثها الآن')")
@@ -52,7 +52,7 @@ if ONLY in (None, "ret"):
     c.scroll_to("text=الاستمرار في الصفة نفسها", 150)
     c.shot("ret-role-keep", "الاستمرار في الصفة نفسها: معفى من الاختبار", section="D")
     c.close()
-    c, p = session("01033300884", "/administrator/apply")
+    c, p = session("01033300884", "/portal/role")
     jump(p, c)
     up = p.locator("button:has-text('حدّثها الآن')")
     if up.count():
@@ -66,12 +66,12 @@ if ONLY in (None, "ret"):
 if ONLY in (None, "head"):
     S = "J"
     # before: a holder of «رئيس تكتل» whose cluster the office has not formed yet
-    c, p = session("01033300882", "/administrator/clusters")
+    c, p = session("01033300882", "/portal/clusters")
     c.shot("head-before", "إدارة التكتل قبل التشكيل: يُشكَّل التكتل في المكتب، ويظهر هنا فور إنشائه", section=S)
     c.close()
     c, p = session("01033300881")
     c.shot("head-dash", "رئيس التكتل: ملفي — صفته وتكتله المعتمد", section=S)
-    c.goto("/administrator/clusters", wait=2000)
+    c.goto("/portal/clusters", wait=2000)
     c.shot("head-manage", "إدارة التكتل: شُكّل في المكتب — مجموعاته بفئاتها ومقاعد فريقها، وتبويبات الكادر والخطة", section=S)
     p.locator("main button:has-text('افتحها')").first.click(); c.settle(1500)
     c.scroll_top()
@@ -95,11 +95,16 @@ if ONLY in (None, "head"):
     c.scroll_top()
     c.shot("head-plan-sent", "قُدّمت الخطة: تنتظر قرار الإدارة، ويصلك هنا وفي الإشعارات", section=S)
     # the groups' operations he follows without doing any: the visas, as one of them
-    c.goto("/administrator/visas", wait=2000)
+    c.goto("/portal/visas", wait=2000)
     c.shot("chead-viewonly", "رئيس التكتل يتابع للاطلاع: «للاطلاع فقط» في أعلى الصفحة، وأزرار مجموعات التكتل", hl=[("main p:has-text('للاطلاع فقط')", "")], section=S)
+    # «يومي» of the cluster's head: his groups' reports of the day, and the cluster's own to the administration
+    c.goto("/portal/my-day", wait=2000)
+    p.locator("main li button:not([disabled])").first.click(); c.settle(800)
+    c.shot("chead-day", "يومي لرئيس التكتل: تقارير مجموعاته اليوم، وتقرير التكتل إلى الإدارة", hl=[("main h3:has-text('تقارير مجموعات')", "1"), ("main button:has-text('إرسال تقرير التكتل إلى الإدارة')", "2")], section=S)
+    p.locator("main button:has-text('إرسال تقرير التكتل إلى الإدارة')").first.click(); c.settle(1500)
     # the public page has its own entry in the sidebar
-    c.goto("/administrator/cluster-page", wait=1800)
-    c.shot("head-profile", "صفحة التكتل العامة في «التكتلات والمجموعات»: التعديل", hl=[("aside a[href='/administrator/cluster-page']", "")], section=S)
+    c.goto("/portal/cluster-page", wait=1800)
+    c.shot("head-profile", "صفحة التكتل العامة في «التكتلات والمجموعات»: التعديل", hl=[("aside a[href='/portal/cluster-page']", "")], section=S)
     ta = p.locator("main textarea").first
     if ta.count():
         ta.fill(ta.input_value() + " ونوفّر حافلة خاصة لكبار السن إلى الحرم.")
@@ -111,8 +116,8 @@ if ONLY in (None, "head"):
     c.shot("head-profile-pending", "تعديلك عند الإدارة للاعتماد", section=S)
     # the group's own page: its picture, a word and its gallery, from the head's sidebar
     pics = ROOT.parent.parent / "public" / "images"
-    c.goto("/administrator/group-page", wait=1500)
-    c.shot("group-page", "صفحات المجموعات العامة: رئيس التكتل يختار أي مجموعة من مجموعاته", hl=[("aside a[href='/administrator/group-page']", "")], section=S)
+    c.goto("/portal/group-page", wait=1500)
+    c.shot("group-page", "صفحات المجموعات العامة: رئيس التكتل يختار أي مجموعة من مجموعاته", hl=[("aside a[href='/portal/group-page']", "")], section=S)
     p.locator("input[type=file][aria-label='صورة المجموعة']").set_input_files(str(pics / "mina-arrive.jpg")); c.settle(1500)
     p.get_by_label("نبذة عن المجموعة").fill("مجموعة من دمشق منذ 1444هـ، فريقها من المواسم السابقة، ولها درس يومي بعد العصر في مكة.")
     p.locator("input[type=file][aria-label='صور المعرض']").set_input_files([str(pics / n) for n in ("kaaba-hajj.jpg", "tawaf-night.jpg", "jamarat.jpg")]); c.settle(2500)
@@ -138,9 +143,9 @@ if ONLY in (None, "tech"):
     c, p = session("01033300874")
     S = "L"
     c.shot("tech-dash", "المنسق التقني: ملفي — منسق في تكتل النور لثلاث من مجموعاته", section=S)
-    c.goto("/administrator/groups", wait=1800)
+    c.goto("/portal/groups", wait=1800)
     c.shot("tech-groups", "إدارة المجموعات: المجموعات التي وُزّع عليها حين شُكّل التكتل في المكتب", section=S)
-    c.goto("/administrator/pilgrims", wait=1800)
+    c.goto("/portal/pilgrims", wait=1800)
     jump(p, c)
     c.shot("tech-reg", "التسجيل على الحج: البحث عن المواطن في الشؤون المدنية", section=S)
     p.locator("label:has-text('الرقم الوطني') input").first.fill("01012340078")
@@ -158,13 +163,13 @@ if ONLY in (None, "tech"):
     p.wait_for_timeout(6000); c.scroll_top()
     c.shot("tech-reg-elig", "فحص الأهلية", section=S)
     c.close()
-    c, p = session("01033300874", "/administrator/pilgrims")
+    c, p = session("01033300874", "/portal/pilgrims")
     jump(p, c)
     det = p.locator("text=عرض التفاصيل").first
     if det.count():
         det.click(); c.settle(1800); c.scroll_top()
         c.shot("tech-detail", "تفاصيل طلب سجّله المنسق", section=S)
-    c.goto("/administrator/requests", wait=1800)
+    c.goto("/portal/requests", wait=1800)
     jump(p, c)
     c.shot("tech-requests", "حجاج مجموعاتي: حجاج المجموعات التي وُزّع عليها، وملفاتهم الصحية", section=S)
     c.close()
@@ -175,34 +180,34 @@ if ONLY in (None, "members"):
     # the group's assistant does its operations with its head
     c, p = session("01033300872")
     c.shot("gdep-dash", "معاون المجموعة: ملفي", section=S)
-    c.goto("/administrator/groups", wait=1800)
+    c.goto("/portal/groups", wait=1800)
     c.shot("gdep-group", "معاون المجموعة: إدارة المجموعة", section=S)
-    c.goto("/administrator/requests", wait=1800)
+    c.goto("/portal/requests", wait=1800)
     jump(p, c)
     c.shot("gdep-requests", "معاون المجموعة: حجاج المجموعة، ويستقبل العائلات", section=S)
-    c.goto("/administrator/field", wait=1800)
-    c.shot("gdep-field", "معاون المجموعة: الميدان — أداء المناسك وقناة المجموعة", section=S)
+    c.goto("/portal/field", wait=1800)
+    c.shot("gdep-field", "معاون المجموعة: الميدان — أداء المناسك والمزارات والسفر", section=S)
     c.close()
     # the guide: the religious lessons and activities only — the field is locked to him
     c, p = session("01033300873")
     c.shot("guide-dash", "موجّه المجموعة: ملفي، وفي قائمته الدروس والنشاطات الدينية", section=S)
-    c.goto("/administrator/field", wait=1800)
-    c.shot("guide-field-locked", "الميدان لفريق عمليات المجموعة: عمل الموجّه في الدروس والنشاطات الدينية", hl=[("main a[href='/administrator/lessons'] >> nth=-1", "")], section=S)
+    c.goto("/portal/field", wait=1800)
+    c.shot("guide-field-locked", "الميدان لفريق عمليات المجموعة: عمل الموجّه في الدروس والنشاطات الدينية", hl=[("main a[href='/portal/guide-lessons'] >> nth=-1", "")], section=S)
     c.close()
     # The field of someone who works in several groups: his groups on top with their pictures, the first one's tools under them
-    c, p = session("01033300874", "/administrator/field")
+    c, p = session("01033300874", "/portal/field")
     c.shot("field-pick", "الميدان لمن يعمل في أكثر من مجموعة: مجموعاته في الأعلى بصورها، وأدوات المختارة منها تحتها", hl=[("main [role=radiogroup][aria-label='المجموعة']", "")], section=S)
     c.close()
     # The cluster's public page: its team writes it, not its head alone
-    c, p = session("01033300872", "/administrator/cluster-page")
-    c.shot("team-page", "صفحة التكتل العامة لفريق التكتل: معاون المجموعة يكتب فيها ويرسلها للاعتماد", hl=[("aside a[href='/administrator/cluster-page']", "")], section=S)
+    c, p = session("01033300872", "/portal/cluster-page")
+    c.shot("team-page", "صفحة التكتل العامة لفريق التكتل: معاون المجموعة يكتب فيها ويرسلها للاعتماد", hl=[("aside a[href='/portal/cluster-page']", "")], section=S)
     c.close()
 
 # ───────── «قناة التكتل»: its head, then a member who reads ─────────
 if ONLY in (None, "channel"):
     S = "N2"
-    c, p = session("01033300881", "/administrator/channel")
-    c.shot("chan-head", "قناة التكتل: رسائل كادر التكتل، ومن يكتب فيها", hl=[("aside a[href*='/administrator/channel']", "")], section=S)
+    c, p = session("01033300881", "/portal/channel")
+    c.shot("chan-head", "قناة التكتل: رسائل كادر التكتل، ومن يكتب فيها", hl=[("aside a[href*='/portal/channel']", "")], section=S)
     p.locator("main div.group:has-text('هل نحضر قوائم') button:has-text('ردّ')").first.click(); c.settle(400)
     p.get_by_label("نص الرسالة").fill("نعم، تكفي على المنصة. وأرسلوا أسماء معاونيكم قبل الاجتماع.")
     c.settle(300)
@@ -217,22 +222,22 @@ if ONLY in (None, "channel"):
     c.shot("chan-mute", "إيقاف كتابة عضو: يبقى يقرأ، ولا يكتب حتى تعيدها له", hl=[("[role=dialog] button:has-text('إيقاف الكتابة')", "")], section=S)
     p.locator("[role=dialog] button:has-text('إيقاف الكتابة')").first.click(); c.settle(1200)
     c.close()
-    c, p = session("01033300874", "/administrator/dashboard")
-    c.shot("chan-badge", "رسائل جديدة في قناة التكتل: عددها بجانب «قناة التكتل»", hl=[("aside a[href*='/administrator/channel']", "")], section=S)
-    c.goto("/administrator/channel", wait=2500)
+    c, p = session("01033300874", "/portal")
+    c.shot("chan-badge", "رسائل جديدة في قناة التكتل: عددها بجانب «قناة التكتل»", hl=[("aside a[href*='/portal/channel']", "")], section=S)
+    c.goto("/portal/channel", wait=2500)
     c.shot("chan-member", "عضو يقرأ: الكتابة لمن حددهم رئيس التكتل", hl=[("main p:has-text('كما حدّدها رئيس التكتل')", "")], section=S)
     c.close()
 
 # ───────── notifications, Telegram, letters, and the PIN ─────────
 if ONLY in (None, "letters"):
     S = "C2"
-    c, p = session("01033300871", "/administrator/notifications")
+    c, p = session("01033300871", "/portal/notifications")
     c.shot("notif-list", "الإشعارات: ما وصلك من الإدارة ومن رؤساء التكتلات", section=S)
     c.scroll_to("main button:has-text('محاكاة: أرسلتُ الرمز إلى البوت')", 160)
     c.shot("notif-telegram", "تيليجرام: رمز الربط ببوت المنصة", hl=[("button:has-text('محاكاة: أرسلتُ الرمز إلى البوت')", "")], section=S)
     btn(p, c, "محاكاة: أرسلتُ الرمز إلى البوت", 1200)
     c.shot("notif-telegram-linked", "رُبط تيليجرام: رمز دخولك يظهر ويصلك من البوت", section=S)
-    c.goto("/administrator/letters", wait=1800)
+    c.goto("/portal/letters", wait=1800)
     btn(p, c, "رسالة جديدة إلى الإدارة", 800)
     p.get_by_label("الموضوع").fill("موعد اجتماع رؤساء المجموعات في تكتل النور")
     p.get_by_label("نص الرسالة").fill("متى يُعقد اجتماع رؤساء المجموعات قبل السفر؟ وهل يلزم حضور معاون المجموعة؟")
@@ -249,16 +254,16 @@ if ONLY in (None, "letters"):
     p.locator("main button:has-text('موعد اجتماع رؤساء المجموعات')").first.click(); c.settle(1200)
     p.get_by_label("الرد").fill("يُعقد الأحد 15 تشرين الثاني الساعة 11 في مبنى الإدارة بالمزة، ويحضره رئيس المجموعة ومعاونها.")
     p.locator("[role=dialog] button:has-text('إرسال الرد')").first.click(); c.settle(1200)
-    c.goto("/administrator/letters", wait=1800)
+    c.goto("/portal/letters", wait=1800)
     c.shot("letters-list", "رسائلي: «رد جديد» على الرسالة التي ردّت عليها الإدارة", section=S)
     p.locator("main button:has-text('موعد اجتماع رؤساء المجموعات')").first.click(); c.settle(1200)
     c.shot("letters-reply", "رد الإدارة في سياق الرسالة، وتردّ فيه ما دامت مفتوحة", section=S)
     c.close()
     # the cadre's references, public pages
     c = Cap(); p = c.page
-    c.goto("/administrator", wait=2000)
-    c.scroll_to("text=ما يعمل به الكادر", 140)
-    c.shot("refs-landing", "مراجع الكادر في صفحة الإداري: خمس صفحات تنشرها الإدارة", section="A")
+    c.goto("/", wait=2000)
+    p.locator("header button:has-text('المزيد')").first.click(); c.settle(800)
+    c.shot("refs-landing", "«مراجع الكادر» في قائمة «المزيد»", hl=[("a:has-text('مراجع الكادر')", "1")], section="A")
     c.goto("/administrator/job-descriptions", wait=2000)
     c.shot("pub-jobs", "التوصيف الوظيفي: الهيكل التنظيمي للتكتل، ثم بطاقة لكل صفة", section="A")
     c.goto("/administrator/system", wait=2000)

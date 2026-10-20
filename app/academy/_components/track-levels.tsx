@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, ChevronDown, ChevronLeft, ClipboardCheck, Headphones, Lock, PlayCircle } from "lucide-react";
 import { useState } from "react";
+import { useAcademyProgress } from "@/lib/account";
 import { useHydrated, useStore } from "@/lib/store";
 import type { QuizQuestion } from "@/lib/data/academy";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,7 @@ export function TrackLevels({ trackSlug, levels }: { trackSlug: string; levels: 
   const { t } = x;
   const hydrated = useHydrated();
   const session = useStore((s) => s.sessionId);
-  const academy = useStore((s) => s.academy);
+  const academy = useAcademyProgress();
   const loggedIn = hydrated && !!session;
   const [open, setOpen] = useState(0);
   const [quiz, setQuiz] = useState<number | null>(null);

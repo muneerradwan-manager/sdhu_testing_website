@@ -100,7 +100,7 @@ function Screen({ n, full = false, armed = false, onTimeUp, onFull }: { n: numbe
   const origin = useOrigin();
   const center = halls.centerByDisplay(n);
   const { shown, next } = center ? onScreen(halls, center, demoNow, now) : {};
-  const entry = `${origin}${asset("/administrator/exam")}`;
+  const entry = `${origin}${asset("/portal/exam")}`;
   const run = shown?.run;
   const attempts = shown ? attemptsAt(rows.map((r) => r.profile), shown.key) : [];
   const counts = {
@@ -201,7 +201,7 @@ function Screen({ n, full = false, armed = false, onTimeUp, onFull }: { n: numbe
               <div className="mt-[2cqmin] flex items-end gap-[1.6cqmin] self-end">
                 <p className="max-w-[22cqmin] text-[1.9cqmin] leading-snug text-white/70">للدخول: امسح الرمز وادخل رقمك الوطني</p>
                 <div className="size-[15cqmin] rounded-[1.6cqmin] bg-white p-[1cqmin]">
-                  <QRCodeSVG value={entry || "/administrator/exam"} size={256} level="M" marginSize={0} className="h-full w-full" />
+                  <QRCodeSVG value={entry || "/portal/exam"} size={256} level="M" marginSize={0} className="h-full w-full" />
                 </div>
               </div>
             </div>
@@ -223,7 +223,7 @@ function Screen({ n, full = false, armed = false, onTimeUp, onFull }: { n: numbe
             </div>
             <div className="flex flex-col items-center">
               <div className="size-[50cqmin] rounded-[3cqmin] bg-white p-[2.4cqmin] shadow-2xl">
-                <QRCodeSVG value={entry || "/administrator/exam"} size={512} level="M" marginSize={0} className="h-full w-full" />
+                <QRCodeSVG value={entry || "/portal/exam"} size={512} level="M" marginSize={0} className="h-full w-full" />
               </div>
               <p className="mt-[2cqmin] font-display text-[3.6cqmin] font-bold">امسح الرمز وادخل رقمك الوطني</p>
               <p className="mt-[0.6cqmin] text-[1.9cqmin] text-white/60" dir="ltr">

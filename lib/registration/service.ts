@@ -183,6 +183,15 @@ export function submissionErrors(s: State, input: Omit<SubmitInput, "paymentId" 
     if (both) errors.push({ code: "duplicate-person", message: `${both.person.firstName} مدرج في الطلب ${app.number}`, stageId: "eligibility" });
   }
 
+  // One path a season: whoever serves as an administrator this season is not a pilgrim in it (lib/account.ts)
+  for (const m of input.members) {
+    const id = m.person.id;
+    const p = s.admins[id];
+    const chosen = s.accounts[id]?.seasons?.[ACTIVE_SEASON]?.path;
+    const serving = chosen === "admin" || (!chosen && !!p && (p.season ?? ACTIVE_SEASON) === ACTIVE_SEASON && (p.positions.length > 0 || !!p.eligibleAt || !!p.feePaidAt));
+    if (serving) errors.push({ code: "admin-season", message: `${m.person.firstName} إداري في موسم ${ACTIVE_SEASON}: لا يكون حاجاً في الموسم نفسه`, stageId: "eligibility" });
+  }
+
   // Every adult approved from his own side, as recorded
   for (const m of consentPeople(input.members, input.owner)) {
     const c = draft?.consents[m.person.id];

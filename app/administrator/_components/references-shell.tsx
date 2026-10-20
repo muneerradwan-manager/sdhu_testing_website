@@ -31,8 +31,8 @@ export function ReferencesShell({ title, description, children }: { title: strin
                 الرئيسية
               </Link>
               <span>/</span>
-              <Link href="/administrator" className="hover:text-gold">
-                الإداري الموسمي
+              <Link href="/administrator/job-descriptions" className="hover:text-gold">
+                مراجع الكادر
               </Link>
               <span>/</span>
               <span className="text-gold">{title}</span>

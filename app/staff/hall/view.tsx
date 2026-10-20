@@ -458,7 +458,7 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
 
             <Box title="الروابط">
               <CopyLink icon={<MonitorPlay />} label="شاشة عرض القاعة" hint="على شاشة القاعة: رمز الدخول قبل البدء، ثم التعليمات والوقت." path={`/exam-display/${halls.displayOf(center)}`} />
-              <CopyLink icon={<Smartphone />} label="رابط دخول المتقدمين" hint="يفتحه المتقدم على جهازه ويُدخل رقمه الوطني." path="/administrator/exam" />
+              <CopyLink icon={<Smartphone />} label="رابط دخول المتقدمين" hint="يفتحه المتقدم على جهازه ويُدخل رقمه الوطني." path="/portal/exam" />
             </Box>
 
             <PinBox refKey={key} />

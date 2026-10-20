@@ -10,26 +10,20 @@ import { useHydrated } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /**
- * The public pages' ways into the two platforms a visitor has an account on (the staff have their own address):
- * signing in, in the top bar and on the home page's opening when no registration is open; and creating the
- * account. Each asks first as whom, since each platform has its own address.
+ * The public pages' ways into the platform (the staff have their own address). The account is one for everyone and
+ * created at one page, at any time; it has two doors to sign in by — the account's own, and the administrators',
+ * which opens the same account on its administrative file.
  */
 export const ACCOUNT_MENUS = {
   register: {
     label: { ar: "إنشاء حساب", en: "Create account" },
     icon: UserRoundPlus,
-    items: [
-      { href: "/register", icon: UserRound, label: { ar: "إنشاء حساب كحاج", en: "Create a pilgrim account" } },
-      { href: "/administrator/register", icon: Briefcase, label: { ar: "إنشاء حساب كإداري", en: "Create an administrator account" } },
-    ],
+    items: [{ href: "/register", icon: UserRound, label: { ar: "إنشاء حساب في المنصة", en: "Create an account" } }],
   },
   login: {
     label: { ar: "تسجيل الدخول", en: "Sign in" },
     icon: LogIn,
-    items: [
-      { href: "/login", icon: UserRound, label: { ar: "الدخول كحاج", en: "Sign in as a pilgrim" } },
-      { href: "/administrator/login", icon: Briefcase, label: { ar: "الدخول كإداري", en: "Sign in as an administrator" } },
-    ],
+    items: [{ href: "/login", icon: UserRound, label: { ar: "الدخول إلى حسابي", en: "Sign in to my account" } }],
   },
 } as const;
 
@@ -54,6 +48,19 @@ export function AccountMenu({ kind, variant }: { kind: keyof typeof ACCOUNT_MENU
   const { open, setOpen, ref } = useDropdown();
   const menu = ACCOUNT_MENUS[kind];
   const hero = variant === "hero";
+  const buttonClass = cn(
+    "flex items-center gap-1.5 whitespace-nowrap font-bold transition",
+    hero
+      ? "h-14 rounded-2xl bg-gold px-7 text-lg text-ink shadow-2xl hover:bg-gold-dark hover:text-white"
+      : "rounded-2xl bg-gold px-3 py-2 text-[13px] text-ink shadow-lg shadow-gold-dark/20 hover:bg-gold-dark hover:text-white sm:px-4 sm:py-2.5 sm:text-sm",
+  );
+  // One way only (one account, one sign-in, one sign-up): the button goes there, with no menu to open
+  if (menu.items.length === 1)
+    return (
+      <Link href={menu.items[0].href} className={buttonClass}>
+        <menu.icon className={hero ? "size-5" : "size-4"} /> {t(menu.label.ar, menu.label.en)}
+      </Link>
+    );
   return (
     <div ref={ref} className="relative">
       <button
@@ -104,8 +111,8 @@ export function VisitorMenu({ solid }: { solid: boolean }) {
         ? t(`انتهى لهذا الموسم في ${day(p.day)}`, `Closed for this season on ${day(p.day)}`)
         : t("متوقف حالياً", "Paused for now");
   const rows = [
-    { icon: UserRound, label: t("إنشاء حساب الحاج", "Pilgrim accounts"), phase: hajj },
-    { icon: Briefcase, label: t("إنشاء حساب الإداري", "Administrator accounts"), phase: admin },
+    { icon: UserRound, label: t("التسجيل على الحج", "Hajj registration"), phase: hajj },
+    { icon: Briefcase, label: t("التسجيل على الصفات الإدارية", "Administrative roles"), phase: admin },
   ];
   const allOver = hajj.kind === "closed" && admin.kind === "closed";
   return (
@@ -136,8 +143,11 @@ export function VisitorMenu({ solid }: { solid: boolean }) {
             <div className="px-3 pb-3 pt-2">
               <p className="font-bold text-green-dark">{t("أنت تتصفح المنصة زائراً", "You are browsing as a visitor")}</p>
               <p className="mt-1 text-xs leading-relaxed text-hint">
-                {t("صفحات المنصة كلها مفتوحة لك دون حساب. أما إنشاء الحسابات فله مواعيده:", "Every page is open to you without an account. Creating one has its dates:")}
+                {t("صفحات المنصة كلها مفتوحة لك دون حساب. وإنشاء الحساب متاح دائماً: به تتعلّم في الأكاديمية، وتسجّل على الحج أو على صفة إدارية في مواعيدهما:", "Every page is open to you without an account. Creating one is always open: with it you learn in the Academy, and register for Hajj or an administrative role on their dates:")}
               </p>
+              <Link href="/register" onClick={() => setOpen(false)} className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-bold text-ink hover:bg-gold-dark hover:text-white">
+                <UserRoundPlus className="size-3.5" /> {t("إنشاء حساب في المنصة", "Create an account")}
+              </Link>
             </div>
             <ul className="grid gap-1">
               {rows.map((r) => (
@@ -154,7 +164,7 @@ export function VisitorMenu({ solid }: { solid: boolean }) {
             </ul>
             <p className="px-3 pb-1 pt-3 text-xs leading-relaxed text-ink-soft">
               {allOver
-                ? t("انتهى إنشاء الحسابات لهذا الموسم. ننتظرك في الموسم القادم بإذن الله، وتعلن الإدارة مواعيده في الأخبار.", "Account creation is over for this season. We look forward to seeing you next season; its dates are announced in the news.")
+                ? t("انتهى التسجيل لهذا الموسم. ننتظرك في الموسم القادم بإذن الله، وتعلن الإدارة مواعيده في الأخبار.", "Registration is over for this season. We look forward to seeing you next season; its dates are announced in the news.")
                 : t("تعلن الإدارة كل موعد في الأخبار قبل حلوله.", "The administration announces every date in the news beforehand.")}
             </p>
             <Link href="/news" onClick={() => setOpen(false)} className="mx-3 mb-1 mt-1 inline-flex text-xs font-bold text-gold-dark hover:underline">

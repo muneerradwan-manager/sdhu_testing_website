@@ -24,7 +24,7 @@ export type AuthPortal = "pilgrim" | "admin" | "staff";
 
 const PORTALS: Record<AuthPortal, { image: string; home?: { href: string; label: string } }> = {
   pilgrim: { image: "/images/haram-2022.jpg" },
-  admin: { image: "/images/umayyad.jpg", home: { href: "/administrator", label: "بوابة الإداريين" } },
+  admin: { image: "/images/umayyad.jpg" },
   staff: { image: "/images/clock-tower.jpg", home: { href: "/staff", label: "بوابة الموظفين" } },
 };
 

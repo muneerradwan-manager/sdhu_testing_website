@@ -135,7 +135,7 @@ export function Hero() {
               </ButtonLink>
             )}
             {open.admin && (
-              <ButtonLink href={str(v, "secondaryHref", "/administrator/register")} variant={open.hajj ? "glass" : "gold"} size="lg" className={open.hajj ? undefined : "shadow-2xl"}>
+              <ButtonLink href={str(v, "secondaryHref", "/portal/role")} variant={open.hajj ? "glass" : "gold"} size="lg" className={open.hajj ? undefined : "shadow-2xl"}>
                 <BriefcaseBusiness className="size-5" /> {str(v, "secondaryLabel")}
               </ButtonLink>
             )}
@@ -211,10 +211,10 @@ export function Hero() {
       <LiveHaram open={live} onClose={() => setLive(false)} sources={{ makkah: str(v, "liveMakkah"), madinah: str(v, "liveMadinah") }} />
 
       <motion.a
-        href="#services"
+        href="#honours"
         style={{ opacity: fade }}
         className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-xs text-white/60"
-        aria-label={t("انتقل إلى الخدمات", "Go to the services")}
+        aria-label={t("انتقل إلى نجوم الموسم", "Go to the stars of the season")}
       >
         {str(v, "scrollHint")}
         <motion.span animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>

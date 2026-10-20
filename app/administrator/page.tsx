@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
-import { AdministratorLanding } from "./_components/landing";
+"use client";
 
-export const metadata: Metadata = {
-  description: "رئيس تكتل، رئيس مجموعة، معاون، موجّه، منسق تقني — رحلة الإداري من الاختبار إلى تشكيل المجموعة إلى الميدان.",
-};
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
+/**
+ * The administrators had a landing page here; with one account and one sign-in its content lives elsewhere: signing in
+ * and creating an account in the header, the roles and their conditions in «التسجيل كإداري», the cadre's references
+ * in «المزيد» and in the administrator's sidebar («مراجع الكادر»). The old address leads to «ملفي», which asks a
+ * visitor to sign in first
+ */
 export default function AdministratorPage() {
-  return <AdministratorLanding />;
+  const router = useRouter();
+  useEffect(() => router.replace("/portal"), [router]);
+  return null;
 }

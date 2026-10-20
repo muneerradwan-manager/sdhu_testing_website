@@ -32,6 +32,7 @@ import { useNav } from "@/lib/cms/site";
 import { cn } from "@/lib/utils";
 import { PRAYER_EN, hijriDateIn } from "./en-format";
 import { ACCOUNT_MENUS, AccountMenu, VisitorMenu, useOpenRegistrations } from "./account-menu";
+import { useAccount } from "@/lib/account";
 
 type Area = "pilgrim" | "admin" | "staff";
 type Identity = { initial: string; name: string; role: string; href: string; area: Area };
@@ -50,8 +51,8 @@ type Label = { ar: string; en: string; enShort?: string };
 const SIGN_IN: Record<Area, { login: { href: string; label: Label }; join?: { href: string; label: Label } }> = {
   pilgrim: { login: { href: "/login", label: { ar: "دخول", en: "Sign in" } }, join: { href: "/register", label: { ar: "إنشاء حساب", en: "Create account", enShort: "Sign up" } } },
   admin: {
-    login: { href: "/administrator/login", label: { ar: "دخول الإداري", en: "Administrator sign-in" } },
-    join: { href: "/administrator/register", label: { ar: "تسجيل إداري", en: "Register as administrator" } },
+    login: { href: "/login", label: { ar: "دخول", en: "Sign in" } },
+    join: { href: "/register", label: { ar: "إنشاء حساب", en: "Create account", enShort: "Sign up" } },
   },
   staff: { login: { href: "/staff/login", label: { ar: "دخول الموظفين", en: "Staff sign-in" } } },
 };
@@ -205,19 +206,25 @@ export function Header() {
   const hydrated = useHydrated();
   const sessionId = useStore((s) => s.sessionId);
   const staffId = useStore((s) => s.staffSessionId);
-  const adminId = useStore((s) => s.adminSessionId);
+  const admins = useStore((s) => s.admins);
+  const account = useAccount();
   // The home page's opening holds «تسجيل الدخول» while both registrations are closed: the bar does not repeat it
   const regs = useOpenRegistrations();
   const heroLogin = pathname === "/" && !regs.hajj && !regs.admin;
 
-  // Each role has its own identity: the pilgrim never shows up inside the staff or administrator areas, and
-  // vice versa. Shared public pages show whoever is signed in (pilgrim first), else the pilgrim sign-in.
+  // One account, whichever door he came in by: its name, and what it does this season (the Hajj, an administrative
+  // role, or nothing chosen yet). In the administrators' pages it leads to his administrative file, if he has one.
+  // The staff keep their own identity.
   const identities: Partial<Record<Area, Identity>> = {};
   if (hydrated) {
-    const pilgrim = sessionId ? getPerson(sessionId) : null;
-    if (pilgrim) identities.pilgrim = { initial: pilgrim.firstName[0], name: pilgrim.firstName, role: t("حاج", "Pilgrim"), href: "/portal", area: "pilgrim" };
-    const admin = adminId ? getPerson(adminId) : null;
-    if (admin) identities.admin = { initial: admin.firstName[0], name: admin.firstName, role: t("إداري", "Administrator"), href: "/administrator/dashboard", area: "admin" };
+    const person = sessionId ? getPerson(sessionId) : null;
+    if (person) {
+      const path = account?.path;
+      const role = path === "admin" ? t("إداري", "Administrator") : path === "pilgrim" ? t("حاج", "Pilgrim") : t("حسابي", "My account");
+      const base = { initial: person.firstName[0], name: person.firstName, role };
+      identities.pilgrim = { ...base, href: "/portal", area: path === "admin" ? "admin" : "pilgrim" };
+      identities.admin = { ...base, href: sessionId && admins[sessionId] ? "/portal" : "/portal", area: path === "pilgrim" ? "pilgrim" : "admin" };
+    }
     const staff = getStaff(staffId);
     if (staff) identities.staff = { initial: staff.initials, name: staff.name.split(" ")[0], role: t(staff.title, "Staff"), href: "/staff/dashboard", area: "staff" };
   }
@@ -289,7 +296,7 @@ export function Header() {
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:h-20 sm:gap-4 md:px-8">
           <Link href="/" className="min-w-0" aria-label={t("الصفحة الرئيسية", "Home page")}>
-            <Logo light={!solid} name={t(BRAND.name, "Hajj and Umrah Administration")} authority={t(BRAND.country, "Syria")} />
+            <Logo light={!solid} name={t(BRAND.name, "Directorate of Hajj and Umrah")} authority={t(BRAND.country, "Syria")} />
           </Link>
 
           <nav className="hidden items-center gap-1 xl:flex">

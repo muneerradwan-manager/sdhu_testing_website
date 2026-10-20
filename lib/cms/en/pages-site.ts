@@ -5,7 +5,7 @@ export const PAGES_EN_SITE: PagesEn = {
   global: {
     identity: {
       name: "National Hajj Platform",
-      authority: "Syrian Hajj and Umrah Administration",
+      authority: "Syrian Directorate of Hajj and Umrah",
       season: "1448 AH season",
     },
     nav: {
@@ -26,6 +26,7 @@ export const PAGES_EN_SITE: PagesEn = {
         { href: "/verify", label: "Verify agencies and documents", note: "Approved campaigns, receipts, certificates", soon: false },
         { href: "/3d", label: "3D tour", note: "The Two Holy Mosques, the holy sites, Aisha and Quba mosques", soon: false },
         { href: "/honours", label: "Hall of Honour", note: "The distinguished and the best group heads of every season", soon: false },
+        { href: "/administrator/job-descriptions", label: "Staff references", note: "Job descriptions, the administrative system, decisions, contracts, operating plans", soon: false },
       ],
     },
     footer: {
@@ -34,10 +35,10 @@ export const PAGES_EN_SITE: PagesEn = {
       col1Title: "Public portal",
       col2Title: "Pilgrim services",
       col2: [
-        { label: "Create a pilgrim account", href: "/register" },
+        { label: "Create an account", href: "/register" },
         { label: "Apply for Hajj", href: "/portal/apply" },
         { label: "Track your application", href: "/portal/application" },
-        { label: "Administrators' portal", href: "/administrator" },
+        { label: "Staff references", href: "/administrator/job-descriptions" },
         { label: "Staff portal", href: "/staff" },
       ],
       contactTitle: "Contact us",

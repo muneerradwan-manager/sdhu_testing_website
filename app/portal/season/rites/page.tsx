@@ -1,10 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CheckCircle2, CircleDashed, Clock, FlaskConical, MapPin, UserRound } from "lucide-react";
+import { CheckCircle2, CircleDashed, Clock, FlaskConical, Landmark, MapPin, Plane, UserRound } from "lucide-react";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
-import { RITES, doneWhen, performed, performedText, useGroupRites, type GroupMuster } from "@/lib/musters";
+import { RITES, categoryOf, doneWhen, performed, performedText, useGroupRites, type GroupMuster } from "@/lib/musters";
 import { actions, getState, useStore } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
 import { LEADER_ID } from "../../application/_components/post/model";
@@ -23,11 +23,16 @@ export default function RitesPage() {
 function Rites({ ctx }: { ctx: SeasonCtx }) {
   const number = useStore((s) => s.post[ctx.sessionId]?.groupNumber);
   const records = useGroupRites(number);
+  const visitRecords = useGroupRites(number, "visits");
+  const travelRecords = useGroupRites(number, "travel");
   const toast = useToast();
   const members = ctx.app.members;
   const ids = members.map((m) => m.person.id);
   // Only the records that hold this family: made on its group's list
-  const ours = records.filter((m) => ids.some((id) => m.present.includes(id) || m.detail?.[id] || m.absent?.[id]));
+  const holds = (m: GroupMuster) => ids.some((id) => m.present.includes(id) || m.detail?.[id] || m.absent?.[id]);
+  const ours = records.filter(holds);
+  const visits = visitRecords.filter(holds);
+  const legs = travelRecords.filter(holds);
 
   // The demo has no team in the field: its coordinator records the Umrah of tamattu' the family made
   const simulate = () => {
@@ -77,6 +82,25 @@ function Rites({ ctx }: { ctx: SeasonCtx }) {
           </div>
         )}
       </section>
+
+      {/* The visits the group made in Makkah and Madinah, and the legs of its journey: recorded the same way */}
+      <section>
+        <SeasonHeading icon={<Landmark className="size-6" />} title="المزارات" text="كل مزار تزوره مجموعتك يسجّله فريقها بعد الزيارة: من ذهب من عائلتك، ومتى." />
+        {visits.length === 0 ? (
+          <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-ink-soft">لم يُسجَّل مزار لعائلتك بعد.</p>
+        ) : (
+          <div className="space-y-4">{visits.map((m, i) => <Record key={m.id} m={m} i={i} ctx={ctx} />)}</div>
+        )}
+      </section>
+
+      <section>
+        <SeasonHeading icon={<Plane className="size-6" />} title="السفر" text="كل محطة من سفر مجموعتك، من الانطلاق إلى مطار دمشق حتى العودة: من كان فيها مع المجموعة من عائلتك." />
+        {legs.length === 0 ? (
+          <p className="rounded-[1.75rem] border border-dashed border-gold-dark/50 bg-white/70 p-6 text-ink-soft">لم تُسجَّل محطة من السفر بعد.</p>
+        ) : (
+          <div className="space-y-4">{legs.map((m, i) => <Record key={m.id} m={m} i={i} ctx={ctx} />)}</div>
+        )}
+      </section>
     </div>
   );
 }
@@ -93,7 +117,7 @@ function Record({ m, i, ctx }: { m: GroupMuster; i: number; ctx: SeasonCtx }) {
             <span className="flex items-center gap-1"><UserRound className="size-4 text-gold-dark" /> سجّله {m.by}</span>
           </p>
         </div>
-        <Badge tone="green">أُدّي</Badge>
+        <Badge tone="green">{categoryOf(m.kind) === "visits" ? "زيارة" : categoryOf(m.kind) === "travel" ? "محطة سفر" : "أُدّي"}</Badge>
       </div>
       <ul className="mt-4 space-y-2">
         {ctx.app.members.map((x) => {

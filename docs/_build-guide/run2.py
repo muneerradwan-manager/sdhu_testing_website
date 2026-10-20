@@ -152,9 +152,9 @@ c.scroll_to("#steps", 100)
 c.shot("post-steps", "الخطوات المطلوبة بعد القبول (7 خطوات)", section="G")
 # The account's sidebar, with the pages a step has not opened yet locked
 c.scroll_top()
-c.shot("portal-sidebar", "القائمة الجانبية: صفحات حسابك، والمقفلة منها بما يفتحها", hl=[("nav[aria-label='أقسام حساب الحاج']", "")], section="D")
+c.shot("portal-sidebar", "القائمة الجانبية: صفحات حسابك، والمقفلة منها بما يفتحها", hl=[("nav[aria-label='أقسام حسابي']", "")], section="D")
 c.goto("/portal/journey", wait=1500)
-c.shot("portal-journey", "برنامج الرحلة: مراحل الموسم بمواعيدها، وما تفعله في كل منها", hl=[("nav[aria-label='أقسام حساب الحاج'] a[href='/portal/journey']", "")], section="D")
+c.shot("portal-journey", "برنامج الرحلة: مراحل الموسم بمواعيدها، وما تفعله في كل منها", hl=[("nav[aria-label='أقسام حسابي'] a[href='/portal/journey']", "")], section="D")
 c.goto("/portal/application", wait=1500)
 c.scroll_to("#steps", 100)
 c.save_state(str(ROOT / "state-submitted.json"))
@@ -236,7 +236,7 @@ p.locator("button:has-text('محاكاة: وقّعنا العقد')").first.clic
 c.scroll_to("#steps", 100)
 c.shot("post-group-done", "ألحقكم المكتب بمجموعة اللطيف — سلسلة العقد", section=S)
 c.goto("/portal/application/group", wait=1800)
-c.shot("post-mygroup", "مجموعتي: المجموعة وفريقها وقناتها", hl=[("nav[aria-label='أقسام حساب الحاج'] a[href='/portal/application/group']", "")], section=S)
+c.shot("post-mygroup", "مجموعتي: المجموعة وفريقها وقناتها", hl=[("nav[aria-label='أقسام حسابي'] a[href='/portal/application/group']", "")], section=S)
 open_step("الدفعة الثانية")
 
 # 4. the second payment (its window is open once the first installment was paid; else opened by simulation)
@@ -308,9 +308,9 @@ c.save_state(str(ROOT / "state-accepted.json"))
 S = "H"
 c.settle(5000)  # the visa's toasts go
 c.scroll_top()
-c.shot("dossier-nav", "صفحات ملف الرحلة في القائمة الجانبية، مفتوحة كلها بعد صدور التأشيرة", hl=[("nav[aria-label='أقسام حساب الحاج']", "")], section=S)
+c.shot("dossier-nav", "صفحات ملف الرحلة في القائمة الجانبية، مفتوحة كلها بعد صدور التأشيرة", hl=[("nav[aria-label='أقسام حسابي']", "")], section=S)
 c.goto("/portal/application/documents", wait=2200)
-c.shot("dossier-documents", "خزنة الوثائق: كل وثائق الطلب في مكان واحد، وحال كل منها", hl=[("nav[aria-label='أقسام حساب الحاج'] a[href='/portal/application/documents']", "1")], section=S)
+c.shot("dossier-documents", "خزنة الوثائق: كل وثائق الطلب في مكان واحد، وحال كل منها", hl=[("nav[aria-label='أقسام حسابي'] a[href='/portal/application/documents']", "1")], section=S)
 b = p.locator("main button[aria-label^='جواز السفر —']").first
 b.scroll_into_view_if_needed(); b.click(); c.settle(1200)
 c.shot("dossier-document-open", "جواز السفر مفتوحاً بتصميم الوثائق، وزر «طباعة»", section=S)

@@ -24,15 +24,17 @@ def field(label):
 
 # ───────── landing ─────────
 S = "A"
-c.goto("/administrator", wait=1500)
-c.shot("landing", "بوابة الإداريين: الصفحة الأولى", hl=[("a:has-text('أنشئ حسابك الإداري')", "1"), ("a:has-text('تسجيل الدخول')", "2")], section=S)
+c.goto("/login?demo=admins", wait=1500)
+c.shot("landing", "صفحة الدخول الواحدة، وتبويب «إداريون» في الحسابات التجريبية", hl=[("[role=tab]:has-text('إداريون')", "1")], section=S)
 
 # ───────── register ─────────
 S = "B"
-c.goto("/administrator/register", wait=1500)
-c.shot("reg-basic", "إنشاء حساب إداري: البيانات الأساسية", section=S)
-c.scroll_to("section[aria-labelledby='demo-accounts']", 110)
-c.shot("reg-demo", "بيانات تجريبية لإنشاء حساب إداري: شخص لكل صفة، والضغط على بطاقته يملأ النموذج", hl=[("section[aria-labelledby='demo-accounts'] h2", "")], section=S)
+# One account for everyone: the administrator creates it at the platform's own page, then chooses the administrators' way
+c.goto("/register", wait=1500)
+c.shot("reg-basic", "إنشاء حساب في المنصة: البيانات الأساسية", section=S)
+p.get_by_role("tab", name="إداريون").click(); c.settle(500)
+c.scroll_to("text=أشخاص لتجربة التقدّم لصفة إدارية", 140)
+c.shot("reg-demo", "بيانات تجريبية، تبويب «إداريون»: الضغط على بطاقة يملأ النموذج", hl=[("[role=tablist]", "1"), ("text=أشخاص لتجربة التقدّم لصفة إدارية", "2")], section=S)
 c.scroll_top()
 field("الرقم الوطني").fill(ID); field("الاسم الأول").fill("مروان"); field("رقم الهاتف").fill("0944300885"); field("كلمة المرور").fill("Admin@1448"); c.settle(300)
 c.scroll_to("button:has-text('إرسال رمز التحقق')", 640)
@@ -42,16 +44,24 @@ c.otp("1448")
 c.shot("reg-otp", "رمز التحقق", hl=[("button:has-text('تحقق')", "")], section=S)
 btn("تحقق", wait=800)
 p.wait_for_selector("text=بياناتك كما وردت من الشؤون المدنية", timeout=20000); c.settle(1200)
-c.shot("reg-civil", "بياناتك من الشؤون المدنية وسجلك الموسمي", hl=[("button:has-text('نعم، أنشئ ملفي الإداري')", "")], section=S)
-btn("نعم، أنشئ ملفي الإداري", wait=1800)
-c.scroll_top(); c.shot("reg-done", "ملفك الإداري جاهز", hl=[("button:has-text('تقديم طلب المشاركة'), a:has-text('تقديم طلب المشاركة')", "1")], section=S)
+c.shot("reg-civil", "بياناتك من الشؤون المدنية (وسجلك الموسمي لمن شارك من قبل)", hl=[("button:has-text('نعم، بياناتي صحيحة')", "")], section=S)
+btn("نعم، بياناتي صحيحة", wait=900)
+btn("إنشاء الحساب", wait=1800)
+c.scroll_top(); c.shot("reg-done", "حسابك جاهز: اختر «التقدّم لصفة إدارية»", hl=[("button:has-text('التقدّم لصفة إدارية')", "1")], section=S)
+# Choosing the administrators' way opens his administrative file, and «التسجيل كإداري»
+btn("التقدّم لصفة إدارية", wait=2500)
 
 # ───────── dashboard (new) ─────────
 S = "C"
-c.goto("/administrator/dashboard", wait=1800)
-c.shot("dash-new", "ملفي كإداري: الخطوة التالية وتقدّم الرحلة", section=S)
+c.goto("/portal", wait=1800)
+c.shot("dash-new", "ملفي: بطاقة الموسم على المسار الإداري — الخطوة التالية، وبجانبها بطاقة الإداري", hl=[("[data-card='admin-id']", "1")], section=S)
 c.scroll_by(650)
 c.shot("dash-new-2", "رحلتي — من الاختبار إلى الميدان", section=S)
+# Before he qualifies the menu holds his application and his exams only; his seasons are in «سجل المواسم»
+c.shot("dash-menu", "القائمة قبل التأهل: «طلبي الإداري» وحده مع صفحات الحساب", hl=[("aside nav", "")], section=S)
+c.goto("/portal/history", wait=1800)
+c.shot("dash-history", "سجل المواسم", hl=[("nav a[href='/portal/history']", "")], section=S)
+c.goto("/portal", wait=1500)
 
 # ───────── logout / login ─────────
 S = "B"
@@ -60,10 +70,10 @@ lo = p.locator("button:has-text('تسجيل الخروج')").first
 lo.scroll_into_view_if_needed(); c.settle(400)
 c.shot("dash-logout", "زر تسجيل الخروج في ملفك", hl=[("button:has-text('تسجيل الخروج')", "")], section=S)
 lo.click(); c.settle(1800); c.wait_splash()
-c.goto("/administrator/login", wait=1500)
+c.goto("/login?demo=admins", wait=1500)
 c.shot("login", "دخول الإداريين: الرقم الوطني وكلمة المرور", section=S)
 field("الرقم الوطني").fill("01099999999"); btn("متابعة", wait=900)
-c.shot("login-unknown", "رقم ليس له حساب إداري", section=S)
+c.shot("login-unknown", "رقم ليس له حساب في المنصة", section=S)
 field("الرقم الوطني").fill(ID); field("كلمة المرور").fill("Admin@1448"); btn("متابعة", wait=1200)
 c.otp("1448")
 c.shot("login-otp", "رمز التحقق عند الدخول", hl=[("main button:text-is('دخول')", "")], section=S)
@@ -77,7 +87,7 @@ S = "D"
 def upload(label):
     b = p.locator("main li", has_text=label).first.locator("button:text-is('رفع')")
     b.scroll_into_view_if_needed(); b.click(); c.settle(2300)
-c.goto("/administrator/apply", wait=1800)
+c.goto("/portal/role", wait=1800)
 jump()
 c.shot("apply-docs", "طلب المشاركة — الخطوة 1: وثائقك وشهاداتك، وبجانب كل وثيقة الصفات التي تفتحها", hl=[("main li:has-text('لا حكم عليه') button:text-is('رفع')", "1")], section=S)
 for label in ["لا حكم عليه", "الشهادة الجامعية", "إسعافات أولية"]:
@@ -115,7 +125,7 @@ c.save_state(str(ROOT / "admin" / "state-eligible.json"))
 
 # ───────── the automated test: in the hall of his centre ─────────
 S = "E"
-c.goto("/administrator/exam", wait=1800)
+c.goto("/portal/exam", wait=1800)
 jump()  # the tests' period
 jump()  # his sitting's day, half an hour before it
 c.scroll_to("main ol:has(li:has-text('يفتح المشرف القاعة'))", 330)
