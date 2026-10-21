@@ -1,0 +1,191 @@
+# -*- coding: utf-8 -*-
+from .dsl import *
+
+INVITE = enum("pending", "accepted", "declined")
+
+MODULE = M("formation", "التشكيل: المجموعات والتكتلات وصفحاتها العامة وخططها", [
+    "بعد نتائج الاختبارات تُشكَّل المجموعات في المكتب: يأتي رئيس المجموعة المؤهل إلى المكتب باسم مجموعته وفريقها، ويسدد رسم التشكيل (200 $)، "
+    "ويوقّع العقد ورقياً، فيشكّلها موظف «إدارة الإداريين» (نافذة group-formation). ثم تُشكَّل التكتلات بالطريقة نفسها: رئيس التكتل ومستواه ومجموعاته "
+    "ومعاونوه ومنسقوه وموجّهاته ومحاسبه، والرسم 500 $، والعقد (نافذة cluster-formation).",
+    "المجموعة تُعرف للناس باسمها لا برقمها («مجموعة اللطيف»)، والرقم داخلي. وللتكتل معرّف نصي (al-nour) هو نفسه رابط صفحته العامة.",
+    "في النسخة التجريبية المجموعة جزء من ملف رئيسها، والتكتل جزء من ملف رئيسه أو في تعديلات الإدارة، والمواقع (منسق، موجّهة، معاون…) منسوخة على ملفات أصحابها. "
+    "هنا جداول مستقلة، والموقع يُقرأ من مكان واحد.",
+], [
+    T("admin_groups", "المجموعات", "مجموعة واحدة لكل رئيس مجموعة في الموسم.", [
+        pk(), season(),
+        c("number", "SMALLINT UNSIGNED", "الرقم الداخلي في الموسم (لا يُعرض). أول رقم حر بعد 26"),
+        c("name", "VARCHAR(40)", "الاسم كما اختاره رئيسها، كلمة أو كلمتان دون «مجموعة» (يُعرض «مجموعة <الاسم>»). فريد في الموسم، ولا يساوي اسم تكتل"),
+        account("head_account_id", "رئيس المجموعة (مؤهل: نجح ونُشرت نتيجته)"),
+        code_ref("category_key", "group_categories", "الفئة (فئة رئيسها)", col="category_key", length=20),
+        c("capacity", "SMALLINT UNSIGNED", "سعة الحجاج بحسب الفئة والمستوى (0 حتى الاعتماد)", d="0"),
+        c("category_name_snapshot", "VARCHAR(60)", "اسم الفئة وقت الاعتماد", null=True),
+        ref("cluster_id", "clusters", "التكتل الذي انضمت إليه", null=True),
+        c("formed_at_office", "TINYINT(1)", "شُكّلت في المكتب (المسار الحالي)؛ 0 = طلب قديم قُدّم على المنصة", d="1"),
+        c("requested_at", "DATETIME(3)", "وقت الطلب أو الحضور إلى المكتب", d="CURRENT_TIMESTAMP(3)"),
+        ref("fee_payment_id", "payments", "دفعة رسم التشكيل", null=True),
+        c("fee_paid_at", "DATETIME(3)", "دفع الرسم", null=True),
+        c("fee_receipt_no", "VARCHAR(24)", "إيصال الرسم {season}-G-{رقم المجموعة:06} (الكود يعرضه ولا يخزّنه)", null=True, uq=True),
+        file_("contract_file_id", "صورة العقد الموقّع من رئيس المجموعة وكل فريقها"),
+        c("approved_at", "DATETIME(3)", "الاعتماد", null=True),
+        staff("approved_by_staff_id", "من اعتمدها (صلاحية admins.manage)"),
+        c("returned_at", "DATETIME(3)", "أُعيدت إلى رئيسها (الطلبات القديمة)", null=True),
+        staff("returned_by_staff_id", "من أعادها"),
+        c("return_note", "VARCHAR(500)", "ما ينقصها (5 أحرف على الأقل). الرسم لا يُرد", null=True),
+        *stamps(),
+    ], uq=[("season_year", "number"), ("season_year", "name"), ("season_year", "head_account_id")],
+       src="AdminProfile.group؛ app/staff/admins/_components/groups.tsx FormAtOffice؛ lib/groups.ts؛ capacity.ts nextGroupNumber",
+       rules=["الحالة محسوبة: unpaid «بانتظار رسم التشكيل»، waiting «تنتظر قرارك»، returned «أُعيدت إلى رئيسها»، approved «معتمدة».",
+              "التشكيل في المكتب يحتاج: رئيساً مؤهلاً، اسماً سليماً، فئة، الرسم، كل مقاعد الفريق مشغولة، العقد مرفوعاً، وتأكيد توقيع الجميع.",
+              "حجاج المجموعة لا يُخزَّنون هنا: هم الطلبات التي في post_acceptance.group_id."]),
+
+    T("group_seats", "مقاعد فريق المجموعة", "مقاعد الموجّه والمعاون والمقاعد الحرة بحسب فئة المجموعة ومستوى تكتلها، ومن يشغلها. ومعها «معاون بعدد» حين لا مقعد معاون في الفئة.", [
+        pk(), ref("group_id", "admin_groups", "المجموعة", od="CASCADE"),
+        c("seat_no", "TINYINT UNSIGNED", "رقم المقعد"),
+        c("kind", enum("guide", "assistant", "count-assistant"), "guide مقعد «موجّه المجموعة»، assistant «معاون المجموعة»، count-assistant «معاون بعدد» (يضيف حجاجاً إلى التكتل)"),
+        c("is_free", "TINYINT(1)", "مقعد حر يشغله موجّه أو معاون", d="0"),
+        account("account_id", "شاغل المقعد", null=True),
+        c("status", INVITE, "pending بانتظار (مسار الدعوات القديم)، accepted مقبول (التشكيل في المكتب يقبل فوراً)، declined اعتذر", d="'accepted'"),
+        c("assigned_at", "DATETIME(3)", "وقت الشغل", null=True),
+        c("decline_reason", "VARCHAR(300)", "سبب الاعتذار (مسار الدعوات)", null=True),
+        c("by_administration_reason", "VARCHAR(300)", "إن شغله تعديل استثنائي من الإدارة: السبب («بتعديل استثنائي من الإدارة»)", null=True),
+        staff("by_administration_staff_id", "الموظف صاحب التعديل الاستثنائي"),
+    ], uq=[("group_id", "seat_no")], idx=[("account_id",)], src="lib/store.ts:385 Seat؛ ClusterRecord.seats؛ group.countAssistant؛ formation.ts fitSeats",
+       rules=["عند تغيير مستوى التكتل يُعاد بناء المقاعد (refit) بأعداد المستوى الجديد.",
+              "الشخص لا يشغل مقعدين في الموسم، ولا يكون رئيس المجموعة نفسه."]),
+
+    T("clusters", "التكتلات", "التكتل برئيسه ومستواه وحالة تشكيله.", [
+        pk(), season(),
+        c("slug", "VARCHAR(60)", "المعرّف النصي ورابط الصفحة العامة: al-nour، al-safa… أو cluster-adm-<…> لما يُنشأ في المكتب", uq=True),
+        c("name", "VARCHAR(80)", "الاسم «تكتل …» (3 أحرف على الأقل)"),
+        account("head_account_id", "رئيس التكتل (يُمنح بالصفة الموسمية cluster-head أو الصفة الأساسية)"),
+        code_ref("tier_key", "service_tiers", "المستوى", null=True, col="tier_key", length=20),
+        c("status", enum("draft", "pending", "reviewing", "approved", "rejected"),
+          "draft «قيد التشكيل في المكتب»، pending «قيد المراجعة»، reviewing «جاري المراجعة»، approved «شُكّل في المكتب»، rejected «مرفوض — بملاحظات»", d="'draft'"),
+        c("sent_at", "DATETIME(3)", "آخر إرسال", null=True),
+        c("first_sent_at", "DATETIME(3)", "أول إرسال (أساس شارة الالتزام بالمواعيد)", null=True),
+        c("decision_note", "VARCHAR(1000)", "ملاحظات القرار عند الرفض", null=True),
+        staff("decided_by_staff_id", "من قرر"),
+        c("decided_at", "DATETIME(3)", "وقت القرار", null=True),
+        c("created_at_office", "TINYINT(1)", "أُنشئ في المكتب نيابة عن رئيسه («بدء تشكيل تكتل في المكتب»)", d="1"),
+        staff("created_by_staff_id", "الموظف الذي بدأه في المكتب"),
+        c("administration_reason", "VARCHAR(500)", "سبب آخر تصرّف للإدارة نيابة عن رئيسه («شُكّل في المكتب»، أو سبب تعديل استثنائي)", null=True),
+        c("administration_at", "DATETIME(3)", "وقت ذلك التصرّف", null=True),
+        ref("fee_payment_id", "payments", "دفعة رسم التكتل", null=True),
+        c("fee_paid_at", "DATETIME(3)", "دفع الرسم (500 $)", null=True),
+        file_("contract_file_id", "عقد التكتل الموقّع من رئيسه وكل من فيه"),
+        c("archived_at", "DATETIME(3)", "أُرشف (يخرج من الدليل والمنشورات)", null=True),
+        staff("archived_by_staff_id", "من أرشفه"),
+        c("formation_note", "TEXT", "ملاحظة الإدارة الحرة على التكتل في الدليل", null=True),
+        *stamps(),
+    ], uq=[("season_year", "head_account_id")], src="lib/store.ts:459 ClusterRecord؛ State.formation؛ app/staff/admins/_components/clusters.tsx",
+       rules=["شروط الإنشاء (analyse): اسم، مستوى صالح، مجموعة مقبولة على الأقل، وزن الفئات ضمن حدود المستوى، كل مقاعد المجموعات مشغولة، معاونو التكتل بالعدد المطلوب، "
+              "المنسقون والموجّهات بالعدد المطلوب (ومنسق واحد على الأقل من صفة «معاون ومنسق تقني»)، لا منسق ولا موجّهة فوق حدّه، المحاسب من أعضاء التكتل وليس موجّهة، لا دعوات معلّقة. "
+              "وتنبيه فقط: متوسط أعمار الكادر ≤ 50.",
+              "يعدّل الرئيس طلبه فقط وهو draft أو pending أو rejected، ونافذة cluster-formation مفتوحة. وبعد الموعد النهائي تتحرر مجموعات الطلبات غير المعتمدة («مجموعات خارج التكتلات»).",
+              "الشارات محسوبة: العمر 🌟 (متوسط ≤ 40)، التميّز في التوجيه 🧭، الالتزام بالمواعيد ⏱️ (first_sent_at ≤ الموعد الأول)."]),
+
+    T("cluster_status_history", "تاريخ حالات التكتل", "الإرسال، المراجعة، الاعتماد، الرفض، إعادة الفتح.", [
+        pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
+        c("status", "VARCHAR(20)", "الحالة الجديدة"),
+        c("event", enum("send", "resend", "review", "approve", "reject", "reopen", "office-create", "administration-edit", "cancel"), "الحدث: send إرسال، resend «إعادة إرسال»، review بدء المراجعة، approve اعتماد، reject رفض، reopen إعادة فتح، office-create إنشاء في المكتب، administration-edit تعديل استثنائي من الإدارة (سببه في note)، cancel «إلغاء تشكيل تكتل قبل إنشائه»"),
+        c("at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+        staff("staff_user_id", "الموظف"),
+        account("account_id", "رئيس التكتل", null=True),
+        c("note", "VARCHAR(1000)", "ملاحظة", null=True),
+    ], new=True),
+
+    T("cluster_groups", "مجموعات التكتل", "المجموعات المنضمة إلى التكتل، ومن يخدمها من المنسقين والموجّهات (التوزيع ضمن حدود الوحدات).", [
+        pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
+        ref("group_id", "admin_groups", "المجموعة (في تكتل واحد فقط)", uq=True),
+        c("status", INVITE, "حالة الانضمام", d="'accepted'"),
+        c("joined_at", "DATETIME(3)", "وقت الانضمام", d="CURRENT_TIMESTAMP(3)"),
+        c("decline_reason", "VARCHAR(300)", "سبب اعتذار رئيس المجموعة (مسار الدعوات)", null=True),
+        account("coordinator_account_id", "المنسق التقني الموزَّع على المجموعة", null=True),
+        account("female_guide_account_id", "الموجّهة الموزَّعة على المجموعة", null=True),
+        c("by_administration_reason", "VARCHAR(300)", "إضافة بقرار الإدارة (تعديل استثنائي أو مجموعة من خارج التكتلات بعد الموعد): السبب", null=True),
+        staff("by_administration_staff_id", "الموظف صاحب القرار"),
+    ], src="ClusterRecord.groups، sorting، guideSorting؛ lib/store.ts:383 GroupInvite؛ distribution.ts",
+       rules=["حمل المنسق = مجموع أوزان فئات مجموعاته ≤ units_per_coordinator، وكذلك الموجّهة ≤ units_per_female_guide. «توزيع تلقائي ضمن الحدود» يضع الأثقل أولاً.",
+              "مجموعة رئيس التكتل نفسه لا تُزال من التكتل."]),
+
+    T("cluster_members", "أعضاء التكتل", "معاونو التكتل ومنسقوه وموجّهاته ومحاسبه.", [
+        pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
+        account("account_id", "العضو"),
+        c("pool", enum("assistant", "coordinator", "female_guide", "accountant"), "الموقع: assistant «معاون التكتل» (ومعه «معاون بعدد»)، coordinator «منسق تقني بالتكتل»، female_guide «موجّهة دينية بالتكتل»، accountant «محاسب التكتل»"),
+        c("status", INVITE, "الحالة", d="'accepted'"),
+        c("reason", "VARCHAR(300)", "سبب الاعتذار أو سبب التعديل الاستثنائي", null=True),
+        staff("by_administration_staff_id", "إن أضافه تعديل استثنائي"),
+        c("at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+    ], uq=[("cluster_id", "account_id", "pool")], src="ClusterRecord.assistants، coordinators، femaleGuides، accountant؛ lib/store.ts:378 ClusterInvite",
+       rules=["محاسب واحد للتكتل، من أعضائه، وليس موجّهة. الموقع الثانوي لا يُلغي موقعه الأصلي.",
+              "المرشحون من الكادر المؤهل في فروع رئيس التكتل، بحسب سلوك صفاتهم (assistant_pool، coordinator_pool، guide_pool)، وغير محجوزين في مكان آخر."]),
+
+    T("formation_notes", "ملاحظات الإدارة على المجموعات", "ملاحظة حرة يكتبها موظف «إدارة الإداريين» على مجموعة في الدليل (ملاحظة التكتل في clusters.formation_note).", [
+        c("group_id", "BIGINT UNSIGNED", "المجموعة", pk=True, fk="admin_groups", od="CASCADE"),
+        c("note", "TEXT", "الملاحظة"),
+        staff("updated_by_staff_id", "آخر من كتب"),
+        updated(),
+    ], src="State.formation.notes"),
+
+    T("season_rollovers", "بدء موسم تشكيل جديد", "حين تبدأ الإدارة موسماً جديداً تُؤرشف التشكيلات المعتمدة للموسم الجاري وتُختم التشكيلات الجديدة بالموسم التالي. يمكن التراجع.", [
+        pk(),
+        c("from_season", "SMALLINT UNSIGNED", "من موسم", fk="seasons.season_year"),
+        c("to_season", "SMALLINT UNSIGNED", "إلى موسم", fk="seasons.season_year"),
+        c("archived_cluster_ids", "JSON", "التكتلات التي أُرشفت بهذا الفعل"),
+        c("reason", "VARCHAR(500)", "السبب (3 أحرف على الأقل)"),
+        staff("started_by_staff_id", "من بدأه", null=False),
+        c("started_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+        c("undone_at", "DATETIME(3)", "التراجع", null=True),
+    ], src="State.formation.seasonStarted؛ app/staff/admins/_components/directory.tsx",
+       rules=["التأكيد بكتابة رقم الموسم التالي."]),
+
+    T("cluster_profile_versions", "الصفحة العامة للتكتل", "برنامج التكتل المنشور في «التكتلات والمجموعات»: يكتبه فريق التكتل ويرسله، فتعتمده «إدارة الإداريين» أو تعيده بسبب. "
+      "كل إرسال صف، والمنشور آخر صف معتمد.", [
+        pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
+        c("status", enum("pending", "approved", "rejected", "superseded"), "pending «عند الإدارة»، approved «معتمدة»، rejected «أُعيدت إليك»، superseded حلّت محلها نسخة أحدث", d="'pending'"),
+        c("fields", "JSON", "الحقول: specialty «التخصص»، about «نبذة عن التكتل»، makkahHotel، makkahArea، makkahDistance، makkahRooms «نوع الغرف»، makkahFeatures[]، madinahHotel، madinahArea، madinahDistance، "
+          "makkahAt و madinahAt {lat,lng}، transport[] «النقل»، meals[] «الإعاشة»، programs[] «البرامج»، rooms {1,2,3,4} «السكن الخاص — للفرد بحسب أسرّة الغرفة»، cover، gallery[] (معرّفات files)"),
+        c("note", "VARCHAR(500)", "ملاحظة المرسل", null=True),
+        account("submitted_by_account_id", "من أرسل (رئيس التكتل أو منسقه أو معاونه أو معاون مجموعة أو رئيس مجموعة معتمدة فيه؛ لا الموجّهون)"),
+        c("submitted_by_label", "VARCHAR(160)", "«<الاسم> — <الموقع>»"),
+        c("submitted_at", "DATETIME(3)", "وقت الإرسال", d="CURRENT_TIMESTAMP(3)"),
+        staff("decided_by_staff_id", "من قرر"),
+        c("decided_at", "DATETIME(3)", "وقت القرار", null=True),
+        c("reject_reason", "VARCHAR(500)", "سبب الإعادة (5 أحرف على الأقل)، مثل «الوصف لا يطابق العقد الموقّع مع الفندق»، «المسافة المذكورة غير دقيقة»، «خدمة موصوفة دون تعاقد يثبتها»، «صياغة دعائية لا تصف خدمة»", null=True),
+    ], idx=[("cluster_id", "status")], src="lib/cluster-profile.ts ClusterProfileState، ClusterProfileFields؛ actions.submitClusterProfile، decideClusterProfile",
+       rules=["لا يعدّل الفريق: التقييم، عدد المراجعات، المستوى، تاريخ الاعتماد، المجموعات (تأتي من التشكيل والتقييمات).",
+              "يُرسل فقط ما فيه تغيير، والتكتل معتمد. الفروق تُعرض للموظف حقلاً حقلاً."]),
+
+    T("group_profile_versions", "الصفحة العامة للمجموعة", "صورة المجموعة ونبذتها ومعرض صورها، بالدورة نفسها.", [
+        pk(), ref("group_id", "admin_groups", "المجموعة", od="CASCADE"),
+        c("status", enum("pending", "approved", "rejected", "superseded"), "الحالة", d="'pending'"),
+        file_("cover_file_id", "صورة المجموعة"),
+        c("about", "TEXT", "نبذة عن المجموعة", null=True),
+        c("gallery_file_ids", "JSON", "معرض الصور (حتى 24 صورة)", null=True),
+        c("note", "VARCHAR(500)", "ملاحظة المرسل", null=True),
+        account("submitted_by_account_id", "رئيس المجموعة المعتمدة أو معاونها (ورئيس التكتل لكل مجموعاته)"),
+        c("submitted_at", "DATETIME(3)", "وقت الإرسال", d="CURRENT_TIMESTAMP(3)"),
+        staff("decided_by_staff_id", "من قرر"),
+        c("decided_at", "DATETIME(3)", "وقت القرار", null=True),
+        c("reject_reason", "VARCHAR(500)", "سبب الإعادة، مثل «صورة لا تخص المجموعة أو موسمها»، «صورة تظهر فيها وجوه حجاج دون إذنهم»، «نبذة دعائية لا تصف المجموعة»، «نص أو صورة غير لائقة»", null=True),
+    ], idx=[("group_id", "status")], src="lib/group-profile.ts GroupProfileState؛ actions.submitGroupProfile، decideGroupProfile",
+       rules=["بلا نسخة معتمدة تُعرض «صور المنصة» الافتراضية."]),
+
+    T("operational_plans", "الخطط التشغيلية للتكتلات", "الخطة التشغيلية التي يرفعها رئيس التكتل المعتمد، فتقبلها الإدارة أو تعيدها بملاحظات.", [
+        pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
+        c("title", "VARCHAR(160)", "العنوان (3 أحرف على الأقل)"),
+        c("summary", "TEXT", "الملخص (20 حرفاً على الأقل)"),
+        file_("file_id", "ملف الخطة (pdf، doc، docx)", null=False),
+        c("status", enum("submitted", "accepted", "returned"), "submitted «تنتظر القرار»، accepted «مقبولة»، returned «أُعيدت بملاحظات»", d="'submitted'"),
+        account("submitted_by_account_id", "رئيس التكتل"),
+        c("submitted_at", "DATETIME(3)", "وقت الرفع", d="CURRENT_TIMESTAMP(3)"),
+        staff("decided_by_staff_id", "من قرر"),
+        c("decided_at", "DATETIME(3)", "وقت القرار", null=True),
+        c("decision_note", "VARCHAR(1000)", "الملاحظات (5 أحرف على الأقل عند الإعادة)", null=True),
+    ], src="lib/store.ts:644 OperationalPlan؛ app/portal/(admin)/cluster/plan.tsx؛ references.tsx",
+       rules=["يُرفع فقط إن لم تكن خطة، أو أُعيدت الأخيرة. المقدَّمة والمقبولة تقفلان الرفع."]),
+], flow=[
+    "يحضر رئيس المجموعة المؤهل إلى المكتب: تُنشأ admin_groups بمقاعدها group_seats، ويُدفع الرسم ويُرفع العقد، فتُعتمد.",
+    "يبدأ الموظف تشكيل التكتل clusters (draft)، ويضيف المجموعات cluster_groups والأعضاء cluster_members، ويوزّع المنسقين والموجّهات، ثم ينشئه approved بالرسم والعقد.",
+    "يكتب فريق التكتل صفحته العامة cluster_profile_versions والمجموعة صفحتها group_profile_versions، فتُعتمد وتظهر في «التكتلات والمجموعات». ويرفع الرئيس خطته operational_plans.",
+])
