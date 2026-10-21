@@ -119,7 +119,7 @@ if mm.count():
     mm.first.click(); c.settle(1500)
 c.shot("return-home", "حمداً لله على السلامة", section=S)
 c.scroll_to("#evaluation", 120)
-c.shot("eval-form", "التقييم الشامل للرحلة (13 بنداً)", section=S)
+c.shot("eval-form", "التقييم الشامل للرحلة (11 بنداً)", section=S)
 # rate all: star ratings buttons
 stars = p.locator("#evaluation li")
 n = stars.count()
