@@ -4,7 +4,7 @@ one Word document, draws every machine (Graphviz through viz.js, like build_erd.
 reference first: src is a file and line of the site, data a table or table.column of the model, route a
 folder under app/, and every transition joins two states of its machine.
 
-    Perm(key, label, text, routes=[...], actions=[...], src=[...], data=[...], manages=False)  a staff permission
+    Perm(key, label, text, routes=[...], actions=[...], src=[...], data=[...], manages=False)  a system of the staff portal
     Actor(key, label, text, can=[...], cannot=[...], src=[...])                               a kind of user
     State(value, label, text="", final=False)                                                 a state
     Move(src_state, dst_state, trigger, actor, src=[...], auto=False)                         a transition
@@ -16,14 +16,14 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Perm:
-    key: str                # the Permission literal in lib/staff.ts, e.g. "registration.manage"
+    key: str                # a system of lib/permissions.ts CATALOG, e.g. "flights" (its resources come from there)
     label: str              # its Arabic name as the portal shows it
-    text: str               # what it lets the holder do, Arabic
-    routes: list = field(default_factory=list)   # ["app/staff/registration", ...] the screens it opens
-    actions: list = field(default_factory=list)  # ["يعتمد نتائج القرعة وينشرها", ...] what the holder can do there
-    src: list = field(default_factory=list)      # ["lib/staff.ts:20", ...] where it is declared and checked
+    text: str               # what its permissions open, Arabic
+    routes: list = field(default_factory=list)   # ["app/staff/flights", ...] the screens it opens
+    actions: list = field(default_factory=list)  # rules the code enforces beyond the catalog, Arabic
+    src: list = field(default_factory=list)      # ["app/staff/flights/layout.tsx:6", ...] where it is checked
     data: list = field(default_factory=list)     # tables it writes
-    manages: bool = False   # the management of a whole file (MANAGEMENT_PERMISSIONS)
+    manages: bool = False   # a management file (lib/systems.ts SYSTEMS): a summary and operations in the menu
 
 
 @dataclass

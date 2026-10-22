@@ -36,8 +36,30 @@ export const emptyDraft = (): Draft => ({
  * the Syrian and Saudi numbers, and languages. Registration for this season is a switch here too, under
  * the season tab's guard: `lock` says why he cannot leave the season (he holds a post in it), and keeps it on.
  * On the edit screen the form has no buttons of its own: the save button in the side box submits it by its `id`.
+ * What the viewer may not do stays shown and locked: `readOnly` the whole record, `pii` his national id, phones
+ * and email (`"hidden"`: masked), `season` registering him in the season or taking him out.
  */
-export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?: string; initial: Draft; all: Employee[]; lock: string | null; onSave: (d: Draft) => void; onCancel?: () => void }) {
+export function EmployeeForm({
+  id,
+  initial,
+  all,
+  lock,
+  onSave,
+  onCancel,
+  readOnly = false,
+  pii = "edit",
+  season = { add: true, remove: true },
+}: {
+  id?: string;
+  initial: Draft;
+  all: Employee[];
+  lock: string | null;
+  onSave: (d: Draft) => void;
+  onCancel?: () => void;
+  readOnly?: boolean;
+  pii?: "edit" | "view" | "hidden";
+  season?: { add: boolean; remove: boolean };
+}) {
   const [d, setD] = useState<Draft>(initial);
   const [tried, setTried] = useState(false);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
@@ -55,7 +77,10 @@ export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?
   const valid = Object.keys(errors).length === 0;
 
   const participates = d.seasons.includes(CURRENT_SEASON);
-  const locked = participates && !!lock;
+  const locked = (participates && !!lock) || (participates ? !season.remove : !season.add);
+  const piiLocked = pii !== "edit";
+  // Masked: the last three digits or letters, enough to tell two records apart
+  const shown = (v: string | undefined) => (pii === "hidden" && v ? `•••• ${v.slice(-3)}` : (v ?? ""));
   const err = (k: keyof Draft) => tried && errors[k] && <span className="mt-1 block text-[11px] font-bold text-[#ffb4c8]">{errors[k]}</span>;
   const ring = (k: keyof Draft) => tried && errors[k] && "border-maroon/80";
 
@@ -69,6 +94,7 @@ export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?
       }}
       className="space-y-5"
     >
+      <fieldset disabled={readOnly} className="contents">
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="الاسم الأول">
           <input value={d.firstName} onChange={(e) => set("firstName", e.target.value)} className={cn(fieldClass, ring("firstName"))} autoFocus />
@@ -96,7 +122,7 @@ export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?
           <input type="number" min={1950} max={2005} value={d.birthYear} onChange={(e) => set("birthYear", Number(e.target.value))} className={fieldClass} dir="ltr" />
         </Field>
         <Field label="الرقم الوطني">
-          <input inputMode="numeric" maxLength={11} value={d.nationalId} onChange={(e) => set("nationalId", digitsOnly(e.target.value))} className={cn(fieldClass, "tabular-nums", ring("nationalId"))} dir="ltr" />
+          <input inputMode="numeric" maxLength={11} value={shown(d.nationalId)} disabled={piiLocked} onChange={(e) => set("nationalId", digitsOnly(e.target.value))} className={cn(fieldClass, "tabular-nums", ring("nationalId"))} dir="ltr" />
           {err("nationalId")}
         </Field>
       </div>
@@ -147,16 +173,17 @@ export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="هاتف سوريا">
-          <input value={d.phoneSy} onChange={(e) => set("phoneSy", e.target.value)} placeholder="09xx xxx xxx" className={cn(fieldClass, "tabular-nums", ring("phoneSy"))} dir="ltr" />
+          <input value={shown(d.phoneSy)} disabled={piiLocked} onChange={(e) => set("phoneSy", e.target.value)} placeholder="09xx xxx xxx" className={cn(fieldClass, "tabular-nums", ring("phoneSy"))} dir="ltr" />
           {err("phoneSy")}
         </Field>
         <Field label="هاتف السعودية" hint="يُضاف بعد استلام الشريحة هناك">
-          <input value={d.phoneSa ?? ""} onChange={(e) => set("phoneSa", e.target.value || undefined)} placeholder="+966 5x xxx xxxx" className={cn(fieldClass, "tabular-nums")} dir="ltr" />
+          <input value={shown(d.phoneSa)} disabled={piiLocked} onChange={(e) => set("phoneSa", e.target.value || undefined)} placeholder="+966 5x xxx xxxx" className={cn(fieldClass, "tabular-nums")} dir="ltr" />
         </Field>
         <Field label="البريد الإلكتروني">
-          <input type="email" value={d.email ?? ""} onChange={(e) => set("email", e.target.value || undefined)} className={fieldClass} dir="ltr" />
+          <input type={pii === "hidden" ? "text" : "email"} value={shown(d.email)} disabled={piiLocked} onChange={(e) => set("email", e.target.value || undefined)} className={fieldClass} dir="ltr" />
         </Field>
       </div>
+      {piiLocked && <p className="-mt-2 text-xs text-white/55">الرقم الوطني والهواتف والبريد بيانات شخصية: {pii === "hidden" ? "عرضها" : "تعديلها"} يحتاج صلاحية «{pii === "hidden" ? "عرض" : "تعديل"} — الرقم الوطني والهواتف والبريد».</p>}
 
       <Field label="اللغات">
         <div className="flex flex-wrap gap-2">
@@ -188,20 +215,21 @@ export function EmployeeForm({ id, initial, all, lock, onSave, onCancel }: { id?
         <span>
           <span className="block font-bold text-white">مشارك في موسم {CURRENT_SEASON}</span>
           <span className="block text-xs leading-5 text-white/65">لا يظهر في قوائم الإسناد في الملفات التشغيلية إلا المشاركون في الموسم.</span>
-          {locked && <span className="mt-1 block text-xs font-bold leading-5 text-gold">{lock}</span>}
+          {locked && <span className="mt-1 block text-xs font-bold leading-5 text-gold">{participates && lock ? lock : participates ? "إلغاء مشاركته يحتاج صلاحية «حذف — المشاركون في الموسم»." : "تسجيله في الموسم يحتاج صلاحية «إضافة — المشاركون في الموسم»."}</span>}
         </span>
       </label>
 
       <Field label="ملاحظات">
         <textarea rows={2} value={d.notes ?? ""} onChange={(e) => set("notes", e.target.value || undefined)} className={textareaClass} />
       </Field>
+      </fieldset>
 
       {onCancel && (
         <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
           <Button type="button" variant="glass" onClick={onCancel}>
             إلغاء
           </Button>
-          <Button type="submit" variant="gold">
+          <Button type="submit" variant="gold" disabled={readOnly}>
             <Save className="size-4" /> {d.id ? "حفظ التعديلات" : "إضافة الموظف"}
           </Button>
         </div>

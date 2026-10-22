@@ -23,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Counter } from "@/components/ui/motion";
 import { EXEC } from "@/lib/data/staff-seed";
 import { cn, formatNumber } from "@/lib/utils";
-import { Donut, Gate, Legend, PageHeader, Panel, Tabs } from "../_components/kit";
+import { can, Donut, Gate, Legend, logAs, PageHeader, Panel, Tabs, useStaffUser } from "../_components/kit";
+import { viewKeys } from "@/lib/permissions";
 
 // Seed colours were picked for white cards; these keep every segment distinct on the dark ones.
 const SPLIT_ON_DARK: Record<string, string> = { "#AD9E6E": "#D9C89E", "#00594F": "#289E92", "#289E92": "#FFFFFF", "#E4DDD3": "rgba(228,221,211,.35)" };
@@ -32,13 +33,14 @@ const onDark = (map: Record<string, string>, c: string) => map[c.toUpperCase()] 
 
 export function ExecutiveView() {
   return (
-    <Gate perms={["season.settings", "audit.read"]}>
+    <Gate perms={viewKeys("executive")}>
       <Executive />
     </Gate>
   );
 }
 
 function Executive() {
+  const user = useStaffUser()!;
   const [stageView, setStageView] = useState<"compare" | "1448">("compare");
   const funnelMax = EXEC.headline[0].value;
   const splitTotal = EXEC.split.reduce((a, s) => a + s.value, 0);
@@ -51,9 +53,18 @@ function Executive() {
         icon={<BarChart3 />}
         description="أرقام الموسم للقراءة: من تقدّم ومن حجّ، ورضا الحجاج، وأين يلزم التحسين في الموسم القادم."
         actions={
-          <Button variant="glass" size="sm" onClick={() => window.print()}>
-            <Printer className="size-4" /> طباعة التقرير
-          </Button>
+          can(user, "executive.dashboard.print") && (
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => {
+                logAs(user, { action: "طباعة لوحة الإدارة العليا", target: "تقرير نهاية الموسم 1448" });
+                window.print();
+              }}
+            >
+              <Printer className="size-4" /> طباعة التقرير
+            </Button>
+          )
         }
       />
 

@@ -9,7 +9,7 @@ import { getPageDef, CMS_PAGES } from "@/lib/cms/schema";
 import { cms, useCms } from "@/lib/cms/store";
 import type { StaffUser } from "@/lib/staff";
 import { cn, countOf } from "@/lib/utils";
-import { Empty, fmtDateTime, logAs, Panel, Tabs } from "../../_components/kit";
+import { can, Empty, fmtDateTime, logAs, Panel, Tabs } from "../../_components/kit";
 
 /**
  * سجل المراجعات: كل نشر أو تغيير حالة يحفظ لقطة من المحتوى السابق.
@@ -33,7 +33,11 @@ export function RevisionsView({ user, focusPage, onOpenPage }: { user: StaffUser
     ];
   }, [revisions]);
 
+  const mayRestore = can(user, "content.revisions.restore");
+  const mayDelete = can(user, "content.revisions.DELETE");
+
   const restore = (id: string, pageId: string, label: string) => {
+    if (!mayRestore) return;
     cms.restoreRevision(id, { name: user.name, title: user.title });
     logAs(user, { action: "استعادة نسخة سابقة", target: label, detail: "وُضعت في المسودة بانتظار النشر" });
     toast({ title: "استُعيدت النسخة إلى المسودة", body: "راجعها ثم اضغط «نشر»", tone: "success", icon: "🕘" });
@@ -75,22 +79,27 @@ export function RevisionsView({ user, focusPage, onOpenPage }: { user: StaffUser
                         </p>
                       </div>
                       <div className="flex shrink-0 gap-1.5">
-                        <button
-                          onClick={() => restore(r.id, r.pageId, target?.label ?? r.pageId)}
-                          className="flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-bold text-ink transition hover:bg-gold-light"
-                        >
-                          <Undo2 className="size-3.5" /> استعادة
-                        </button>
-                        <button
-                          onClick={() => {
-                            cms.deleteRevision(r.id);
-                            toast({ title: "حُذفت النسخة من السجل", tone: "warning", icon: "🗑️" });
-                          }}
-                          className="grid size-8 place-items-center rounded-xl bg-white/10 text-white/60 transition hover:bg-maroon/40 hover:text-white"
-                          title="حذف النسخة"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                        {mayRestore && (
+                          <button
+                            onClick={() => restore(r.id, r.pageId, target?.label ?? r.pageId)}
+                            className="flex items-center gap-1.5 rounded-xl bg-gold px-3 py-1.5 text-xs font-bold text-ink transition hover:bg-gold-light"
+                          >
+                            <Undo2 className="size-3.5" /> استعادة
+                          </button>
+                        )}
+                        {mayDelete && (
+                          <button
+                            onClick={() => {
+                              cms.deleteRevision(r.id);
+                              logAs(user, { action: "حذف نسخة سابقة", target: target?.label ?? r.pageId, detail: `${r.note} — ${fmtDateTime(r.at)}` });
+                              toast({ title: "حُذفت النسخة من السجل", tone: "warning", icon: "🗑️" });
+                            }}
+                            className="grid size-8 place-items-center rounded-xl bg-white/10 text-white/60 transition hover:bg-maroon/40 hover:text-white"
+                            title="حذف النسخة"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </motion.li>

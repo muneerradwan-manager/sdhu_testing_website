@@ -70,7 +70,7 @@ export function ExamSummary() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`صلاحيتك: ${SYSTEMS.exams.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+        eyebrow={`${SYSTEMS.exams.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.exams.summary.label}
         icon={<Gauge />}
         description="أرقام الاختبار الآن. للعمل استعمل القائمة الجانبية."
@@ -187,7 +187,7 @@ function RaisedList({ onRaise }: { onRaise: () => void }) {
   if (!raised.length)
     return (
       <p>
-        ما لا تحسمه وحدك — قاعة لم تُتح، موعد يتعارض، قرار خارج النظام — ارفعه إلى مديرة الموسم.{" "}
+        ما لا تحسمه وحدك — قاعة لم تُتح، موعد يتعارض، قرار خارج النظام — ارفعه إلى مدير الموسم.{" "}
         <button type="button" onClick={onRaise} className="font-bold text-gold hover:underline">
           رفع أمر
         </button>

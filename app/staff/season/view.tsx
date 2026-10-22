@@ -12,10 +12,11 @@ import { DEFAULT_MEALS, mergeSeason, type LiveSeason } from "@/lib/season-live";
 import { actions, useStore, type SeasonOverrides } from "@/lib/store";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
-import { ago, fmtDateTime, Gate, logAs, PageHeader, smallInputClass, useNow, useStaffUser } from "../_components/kit";
+import { ago, can, fmtDateTime, Gate, logAs, PageHeader, smallInputClass, useNow, useStaffUser } from "../_components/kit";
 import { OperationsPanel } from "../_components/operations";
 import { Box, SettingsRow, SettingsSection, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
+import { viewKeys } from "@/lib/permissions";
 
 /** The meal times are text and have their own tab («مواعيد الوجبات»); the form holds the numbers */
 type MealKey = "mealMakkahBreakfast" | "mealMakkahLunch" | "mealMadinahBreakfast" | "mealMadinahLunch";
@@ -159,7 +160,7 @@ type Section = "values" | "operations" | "meals";
 
 export function SeasonView() {
   return (
-    <Gate perms={["season.settings"]}>
+    <Gate perms={viewKeys("season")}>
       <Season />
     </Gate>
   );
@@ -173,7 +174,15 @@ function Season() {
   const overrides = useStore((s) => s.season);
   const params = useSearchParams();
   const router = useRouter();
-  const section: Section = params.get("section") === "operations" ? "operations" : params.get("section") === "meals" ? "meals" : "values";
+  const user = useStaffUser();
+  // Each section opens to whoever may view it: the values, the operations' windows (any of them), the meals
+  const allowed: Record<Section, boolean> = {
+    values: can(user, "season.values.GET"),
+    operations: !!user?.grants.some((g) => g.key === "season.windows.GET"),
+    meals: can(user, "season.meals.GET"),
+  };
+  const asked: Section = params.get("section") === "operations" ? "operations" : params.get("section") === "meals" ? "meals" : "values";
+  const section: Section = allowed[asked] ? asked : (["values", "operations", "meals"] as const).find((k) => allowed[k]) ?? "values";
   const [confirmReset, setConfirmReset] = useState(false);
 
   return (
@@ -183,7 +192,8 @@ function Season() {
         icon={<Settings2 />}
         description="شروط الموسم وحدوده ورسومه ومواعيد عملياته. ما تحفظه يُطبَّق على الطلبات التالية فوراً."
         actions={
-          section === "values" && (
+          section === "values" &&
+          can(user, "season.values.reset") && (
             <Button variant="glass" size="sm" onClick={() => setConfirmReset(true)} disabled={Object.keys(overrides).length === 0}>
               <RotateCcw className="size-4" /> القيم الافتراضية
             </Button>
@@ -196,10 +206,10 @@ function Season() {
         onChange={(v) => router.replace(v === "values" ? "/staff/season" : `/staff/season?section=${v}`, { scroll: false })}
         label="أقسام الإعدادات"
         items={[
-          { value: "values", label: "الشروط والرسوم" },
-          { value: "operations", label: "مواعيد العمليات" },
-          { value: "meals", label: "مواعيد الوجبات" },
-        ]}
+          { value: "values" as const, label: "الشروط والرسوم" },
+          { value: "operations" as const, label: "مواعيد العمليات" },
+          { value: "meals" as const, label: "مواعيد الوجبات" },
+        ].filter((x) => allowed[x.value])}
       />
 
       {section === "operations" ? (
@@ -219,6 +229,8 @@ function SeasonForm({ overrides, confirmReset, onCloseReset }: { overrides: Seas
   const saved = useMemo(() => valuesOf(mergeSeason(overrides)), [overrides]);
   const [draft, setDraft] = useState<Values>(saved);
   const [decision, setDecision] = useState("");
+  // Viewing the values is one permission, changing them another
+  const editable = can(user, "season.values.PUT");
 
   const changes = (Object.keys(draft) as Key[]).filter((k) => draft[k] !== saved[k]);
   const invalid = GROUPS.flatMap((g) => g.fields).filter((f) => draft[f.key] < f.min || draft[f.key] > f.max);
@@ -260,6 +272,7 @@ function SeasonForm({ overrides, confirmReset, onCloseReset }: { overrides: Seas
   return (
     <>
       <div className="space-y-6">
+        <fieldset disabled={!editable} className="min-w-0 space-y-6">
         {GROUPS.map((g, gi) => (
           <SettingsSection key={g.title} title={g.title}>
             {g.fields.map((f) => (
@@ -285,6 +298,7 @@ function SeasonForm({ overrides, confirmReset, onCloseReset }: { overrides: Seas
             )}
           </SettingsSection>
         ))}
+        </fieldset>
 
         <SettingsSection title="شروط ثابتة لا تتغير">
           <SettingsRow label="في كل موسم" hint="محمية في البرمجة، ولا تظهر حقولاً لأي موظف.">
@@ -400,6 +414,7 @@ function MealsForm({ overrides }: { overrides: SeasonOverrides }) {
     ...(draft[m.menu].trim() !== saved[m.menu] ? [{ k: m.menu as MealKey | MenuKey, label: `قائمة ${m.meal} — ${m.hotel}` }] : []),
   ]);
   const invalid = MEALS.filter((m) => !RANGE.test(draft[m.key].trim()));
+  const editable = can(user, "season.meals.PUT");
   const save = () => {
     if (!changes.length || invalid.length) return;
     actions.setSeason(Object.fromEntries(changes.map((c) => [c.k, c.k.startsWith("meal") ? draft[c.k].trim().replace(/\s*[–-]\s*/, " – ") : draft[c.k].trim()])) as SeasonOverrides);
@@ -408,6 +423,7 @@ function MealsForm({ overrides }: { overrides: SeasonOverrides }) {
   };
   return (
     <SettingsSection title="مواعيد الوجبات">
+      <fieldset disabled={!editable} className="min-w-0">
       <SettingsRow label="الوجبات في الموسم" hint="وجبتان في اليوم، الفطور والغداء، في فندق مكة وفي فندق المدينة: أربع وجبات، لكل منها موعدها وقائمتها. لا وجبات من الإدارة في أيام السفر ولا في المشاعر.">
         <div className="grid gap-3 sm:grid-cols-2">
           {MEALS.map((m) => {
@@ -433,6 +449,7 @@ function MealsForm({ overrides }: { overrides: SeasonOverrides }) {
           </Button>
         </div>
       </SettingsRow>
+      </fieldset>
     </SettingsSection>
   );
 }

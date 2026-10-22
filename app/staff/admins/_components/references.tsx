@@ -9,15 +9,18 @@ import { actions, useStore, type AdminRefs, type OperationalPlan } from "@/lib/s
 import { cn, nowMs } from "@/lib/utils";
 import { RefText } from "@/app/administrator/_components/ref-text";
 import { DEFAULT_CONTRACTS, DEFAULT_DECISIONS, DEFAULT_SYSTEM, useAdminRefs, type JobDescription, type SystemSection } from "@/app/administrator/_lib/references";
-import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { InfoGrid } from "../../_components/ops-ui";
 import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { RecordHistory } from "../../_components/system";
-import { Filters, Lead, Order, TitleCell, Views, useView } from "./ui";
+import { Filters, Lead, Locked, Order, TitleCell, Views, useView } from "./ui";
 import { logAdmins } from "../desk";
 
 const TABS = ["jobs", "system", "decisions", "contracts", "plans"] as const;
 type Tab = (typeof TABS)[number];
+
+/** What viewing each list needs */
+const TAB_GET: Record<Tab, string> = { jobs: "admins.job-descriptions.GET", system: "admins.system-sections.GET", decisions: "admins.decisions.GET", contracts: "admins.contract-templates.GET", plans: "admins.operational-plans.GET" };
 
 /**
  * «المراجع الإدارية» — what the administration publishes to its cadre, one list at a time from the row at the
@@ -30,6 +33,8 @@ export function ReferencesTab() {
   const plans = useStore((s) => s.plans);
   const tab = useView<Tab>("tab", TABS);
   const waiting = Object.values(plans).filter((p) => p.status === "submitted").length;
+  const may = useCan();
+  if (!may(TAB_GET[tab])) return <Locked perm={TAB_GET[tab]} />;
   return (
     <div className="space-y-6">
       <Views
@@ -43,7 +48,7 @@ export function ReferencesTab() {
           { key: "decisions", label: "المقررات الإدارية", count: refs.decisions.length },
           { key: "contracts", label: "العقود", count: refs.contracts.length },
           { key: "plans", label: waiting ? `الخطط التشغيلية — ${waiting} تنتظر` : "الخطط التشغيلية", count: Object.keys(plans).length },
-        ]}
+        ].filter((x) => may(TAB_GET[x.key as Tab]))}
       />
       {tab === "jobs" && <Jobs />}
       {tab === "system" && <System />}
@@ -68,6 +73,8 @@ function Jobs() {
   const toast = useToast();
   const { jobs, edited } = useAdminRefs();
   const [editing, setEditing] = useState<JobDescription | null>(null);
+  const may = useCan();
+  const mayEdit = may("admins.job-descriptions.PUT");
   const save = (patch: AdminRefs, action: string, target: string) => {
     actions.setAdminRefs(patch);
     logAdmins(user, "references", { action, target, ref: "jobs" });
@@ -90,10 +97,12 @@ function Jobs() {
               onOpen={() => setEditing(j)}
               sub={<span className="line-clamp-2">{j.summary}</span>}
               actions={
-                <RowActions>
-                  <RowLink onClick={() => setEditing(j)}>تعديل</RowLink>
-                  <RowLink onClick={() => toggle(j)}>{j.hidden ? "إظهار" : "إخفاء"}</RowLink>
-                </RowActions>
+                mayEdit && (
+                  <RowActions>
+                    <RowLink onClick={() => setEditing(j)}>تعديل</RowLink>
+                    <RowLink onClick={() => toggle(j)}>{j.hidden ? "إظهار" : "إخفاء"}</RowLink>
+                  </RowActions>
+                )
               }
             />
             <td className="p-3 align-top text-white/80">
@@ -102,12 +111,12 @@ function Jobs() {
             <td className="p-3 align-top tabular-nums text-white/80">{j.duties.length}</td>
             <td className="p-3 align-top">{j.hidden ? <Tag tone="maroon">مخفية</Tag> : <Tag tone="green">منشورة</Tag>}</td>
             <td className="p-3 align-top">
-              <Order name={j.name} first={i === 0} last={i === jobs.length - 1} onUp={() => move(i, -1)} onDown={() => move(i, 1)} />
+              <Order name={j.name} first={i === 0} last={i === jobs.length - 1} onUp={() => move(i, -1)} onDown={() => move(i, 1)} disabled={!mayEdit} />
             </td>
           </tr>
         ))}
       </ListTable>
-      {(edited.jobs || edited.jobOrder) && (
+      {(edited.jobs || edited.jobOrder) && may("admins.job-descriptions.reset") && (
         <Box title="خيارات متقدمة" open={false}>
           <Button size="sm" variant="glass" onClick={() => save({ jobs: undefined, jobOrder: undefined }, "إعادة التوصيف الوظيفي إلى الأصل", "كل الصفات")}>
             <RotateCcw className="size-4" /> إعادة التوصيف الوظيفي إلى الأصل
@@ -118,6 +127,7 @@ function Jobs() {
         {editing && (
           <JobForm
             j={editing}
+            locked={!mayEdit}
             onSave={(summary, duties) => {
               save({ jobs: { ...edited.jobs, [editing.key]: { ...edited.jobs?.[editing.key], summary, duties } } }, "تعديل توصيف صفة", editing.name);
               toast({ title: `حُفظ توصيف «${editing.name}»`, tone: "success", icon: "💾" });
@@ -130,7 +140,7 @@ function Jobs() {
   );
 }
 
-function JobForm({ j, onSave }: { j: JobDescription; onSave: (summary: string, duties: string[]) => void }) {
+function JobForm({ j, onSave, locked }: { j: JobDescription; onSave: (summary: string, duties: string[]) => void; locked?: boolean }) {
   const [summary, setSummary] = useState(j.summary);
   const [duties, setDuties] = useState(j.duties.join("\n"));
   return (
@@ -143,7 +153,7 @@ function JobForm({ j, onSave }: { j: JobDescription; onSave: (summary: string, d
         <span className="mb-1 block text-xs text-white/60">المهام — مهمة في كل سطر</span>
         <textarea rows={8} value={duties} onChange={(e) => setDuties(e.target.value)} className={textareaClass} />
       </label>
-      <Button variant="gold" disabled={!summary.trim()} onClick={() => onSave(summary.trim(), duties.split("\n").map((d) => d.trim()).filter(Boolean))}>
+      <Button variant="gold" disabled={!summary.trim() || locked} onClick={() => onSave(summary.trim(), duties.split("\n").map((d) => d.trim()).filter(Boolean))}>
         حفظ التوصيف
       </Button>
     </div>
@@ -157,6 +167,7 @@ function System() {
   const toast = useToast();
   const { system, edited } = useAdminRefs();
   const [open, setOpen] = useState<SystemSection | "new" | null>(null);
+  const may = useCan();
   const save = (next: SystemSection[], action: string, target: string) => {
     actions.setAdminRefs({ system: next });
     logAdmins(user, "references", { action, target, ref: "system", important: true });
@@ -171,7 +182,7 @@ function System() {
       <Title
         action={
           <>
-            <AddButton onClick={() => setOpen("new")}>إضافة قسم</AddButton>
+            {may("admins.system-sections.POST") && <AddButton onClick={() => setOpen("new")}>إضافة قسم</AddButton>}
             <PublicLink href="/administrator/system" />
           </>
         }
@@ -189,26 +200,28 @@ function System() {
               sub={<span className="line-clamp-2">{sec.body}</span>}
               actions={
                 <RowActions>
-                  <RowLink onClick={() => setOpen(sec)}>تعديل</RowLink>
-                  <RowLink
-                    danger
-                    onClick={() => {
-                      save(system.filter((x) => x.id !== sec.id), "حذف قسم من النظام الإداري", sec.title);
-                      toast({ title: "حُذف القسم", body: sec.title, tone: "info", icon: "🗑️" });
-                    }}
-                  >
-                    حذف
-                  </RowLink>
+                  {may("admins.system-sections.PUT") && <RowLink onClick={() => setOpen(sec)}>تعديل</RowLink>}
+                  {may("admins.system-sections.DELETE") && (
+                    <RowLink
+                      danger
+                      onClick={() => {
+                        save(system.filter((x) => x.id !== sec.id), "حذف قسم من النظام الإداري", sec.title);
+                        toast({ title: "حُذف القسم", body: sec.title, tone: "info", icon: "🗑️" });
+                      }}
+                    >
+                      حذف
+                    </RowLink>
+                  )}
                 </RowActions>
               }
             />
             <td className="p-3 align-top">
-              <Order name={sec.title} first={i === 0} last={i === system.length - 1} onUp={() => move(i, -1)} onDown={() => move(i, 1)} />
+              <Order name={sec.title} first={i === 0} last={i === system.length - 1} onUp={() => move(i, -1)} onDown={() => move(i, 1)} disabled={!may("admins.system-sections.PUT")} />
             </td>
           </tr>
         ))}
       </ListTable>
-      {edited.system && (
+      {edited.system && may("admins.system-sections.reset") && (
         <Box title="خيارات متقدمة" open={false}>
           <Button
             size="sm"
@@ -226,6 +239,7 @@ function System() {
         {open && (
           <SectionForm
             sec={open === "new" ? { id: `s-${nowMs().toString(36)}`, title: "", body: "" } : open}
+            locked={!may(open === "new" ? "admins.system-sections.POST" : "admins.system-sections.PUT")}
             onSave={(sec) => {
               const exists = system.some((x) => x.id === sec.id);
               save(exists ? system.map((x) => (x.id === sec.id ? sec : x)) : [...system, sec], exists ? "تعديل قسم من النظام الإداري" : "إضافة قسم إلى النظام الإداري", sec.title);
@@ -239,7 +253,7 @@ function System() {
   );
 }
 
-function SectionForm({ sec, onSave }: { sec: SystemSection; onSave: (s: SystemSection) => void }) {
+function SectionForm({ sec, onSave, locked }: { sec: SystemSection; onSave: (s: SystemSection) => void; locked?: boolean }) {
   const [title, setTitle] = useState(sec.title);
   const [body, setBody] = useState(sec.body);
   return (
@@ -248,7 +262,7 @@ function SectionForm({ sec, onSave }: { sec: SystemSection; onSave: (s: SystemSe
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان القسم" aria-label="عنوان القسم" className={smallInputClass} />
         <textarea rows={16} value={body} onChange={(e) => setBody(e.target.value)} className={textareaClass} aria-label="نص القسم" />
         <p className="text-xs leading-6 text-white/55">سطر فارغ يفصل الفقرات، و«- » يبدأ بنداً، و«**كلمة**» بخط عريض.</p>
-        <Button variant="gold" disabled={!title.trim() || !body.trim()} onClick={() => onSave({ ...sec, title: title.trim(), body: body.trim() })}>
+        <Button variant="gold" disabled={!title.trim() || !body.trim() || locked} onClick={() => onSave({ ...sec, title: title.trim(), body: body.trim() })}>
           حفظ القسم
         </Button>
       </div>
@@ -272,6 +286,8 @@ function Files({ kind }: { kind: "decisions" | "contracts" }) {
   const list = kind === "decisions" ? refs.decisions : refs.contracts;
   const isDecisions = kind === "decisions";
   const [draft, setDraft] = useState<FileDraft | null>(null);
+  const may = useCan();
+  const res = isDecisions ? "admins.decisions" : "admins.contract-templates";
   const write = (next: typeof list, action: string, target: string) => {
     actions.setAdminRefs(isDecisions ? { decisions: next as AdminRefs["decisions"] } : { contracts: next as AdminRefs["contracts"] });
     logAdmins(user, "references", { action, target, ref: kind, important: isDecisions });
@@ -292,7 +308,7 @@ function Files({ kind }: { kind: "decisions" | "contracts" }) {
       <Title
         action={
           <>
-            <AddButton onClick={() => setDraft({ title: "", second: isDecisions ? "1448" : "", desc: "", file: "" })}>{isDecisions ? "إضافة مقرر" : "إضافة نموذج"}</AddButton>
+            {may(`${res}.POST`) && <AddButton onClick={() => setDraft({ title: "", second: isDecisions ? "1448" : "", desc: "", file: "" })}>{isDecisions ? "إضافة مقرر" : "إضافة نموذج"}</AddButton>}
             <PublicLink href={isDecisions ? "/administrator/decisions" : "/administrator/contracts"} />
           </>
         }
@@ -310,10 +326,12 @@ function Files({ kind }: { kind: "decisions" | "contracts" }) {
               sub={x.desc}
               actions={
                 <RowActions>
-                  <RowLink onClick={() => edit(x)}>تعديل</RowLink>
-                  <RowLink danger onClick={() => write(list.filter((y) => y.id !== x.id) as typeof list, isDecisions ? "حذف مقرر إداري" : "حذف نموذج عقد", x.title)}>
-                    حذف
-                  </RowLink>
+                  {may(`${res}.PUT`) && <RowLink onClick={() => edit(x)}>تعديل</RowLink>}
+                  {may(`${res}.DELETE`) && (
+                    <RowLink danger onClick={() => write(list.filter((y) => y.id !== x.id) as typeof list, isDecisions ? "حذف مقرر إداري" : "حذف نموذج عقد", x.title)}>
+                      حذف
+                    </RowLink>
+                  )}
                 </RowActions>
               }
             />
@@ -322,7 +340,7 @@ function Files({ kind }: { kind: "decisions" | "contracts" }) {
           </tr>
         ))}
       </ListTable>
-      {(isDecisions ? refs.edited.decisions : refs.edited.contracts) && (
+      {(isDecisions ? refs.edited.decisions : refs.edited.contracts) && may(`${res}.reset`) && (
         <Box title="خيارات متقدمة" open={false}>
           <Button size="sm" variant="glass" onClick={() => write((isDecisions ? DEFAULT_DECISIONS : DEFAULT_CONTRACTS) as typeof list, "إعادة القائمة إلى الأصل", isDecisions ? "المقررات" : "العقود")}>
             <RotateCcw className="size-4" /> إعادة القائمة إلى الأصل
@@ -336,7 +354,7 @@ function Files({ kind }: { kind: "decisions" | "contracts" }) {
         width="max-w-lg"
         footer={
           draft && (
-            <Button variant="gold" disabled={draft.title.trim().length < 3 || !draft.second.trim() || !draft.file} onClick={save}>
+            <Button variant="gold" disabled={draft.title.trim().length < 3 || !draft.second.trim() || !draft.file || !may(`${res}.${draft.id ? "PUT" : "POST"}`)} onClick={save}>
               {draft.id ? "حفظ" : "نشر"}
             </Button>
           )
@@ -383,6 +401,9 @@ function Plans() {
   const [open, setOpen] = useState<string | null>(null);
   const [returning, setReturning] = useState<OperationalPlan | null>(null);
   const [note, setNote] = useState("");
+  const may = useCan();
+  const mayAccept = may("admins.operational-plans.approve");
+  const mayReturn = may("admins.operational-plans.return");
   const shown = plans.filter((p) => filter === "all" || p.status === filter);
   const sheet = plans.find((p) => p.clusterId === open);
   const decide = (p: OperationalPlan, status: "accepted" | "returned", why?: string) => {
@@ -418,8 +439,8 @@ function Plans() {
               actions={
                 <RowActions>
                   <RowLink onClick={() => setOpen(p.clusterId)}>{p.status === "submitted" ? "مراجعة" : "فتح"}</RowLink>
-                  {p.status === "submitted" && <RowLink onClick={() => decide(p, "accepted")}>قبول</RowLink>}
-                  {p.status === "submitted" && (
+                  {p.status === "submitted" && mayAccept && <RowLink onClick={() => decide(p, "accepted")}>قبول</RowLink>}
+                  {p.status === "submitted" && mayReturn && (
                     <RowLink danger onClick={() => setReturning(p)}>
                       إعادة بملاحظات
                     </RowLink>
@@ -441,12 +462,12 @@ function Plans() {
         onClose={() => setOpen(null)}
         title={sheet ? `${sheet.clusterName} — ${sheet.title}` : ""}
         footer={
-          sheet?.status === "submitted" && (
+          sheet?.status === "submitted" && (mayAccept || mayReturn) && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="gold" onClick={() => decide(sheet, "accepted")}>
+              <Button variant="gold" disabled={!mayAccept} onClick={() => decide(sheet, "accepted")}>
                 <BadgeCheck className="size-4" /> قبول الخطة
               </Button>
-              <Button variant="glass" onClick={() => setReturning(sheet)}>
+              <Button variant="glass" disabled={!mayReturn} onClick={() => setReturning(sheet)}>
                 <X className="size-4" /> إعادة بملاحظات
               </Button>
             </div>

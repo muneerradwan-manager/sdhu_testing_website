@@ -45,6 +45,7 @@ function moveStage(stages: StageDef[], i: number, by: -1 | 1): StageDef[] {
 
 export function PagesList() {
   const ed = useRegEditor();
+
   const [filter, setFilter] = useState<"all" | "on" | "off">("all");
   const [removing, setRemoving] = useState<StageDef | null>(null);
   const stages = ed.config.stages;
@@ -55,7 +56,7 @@ export function PagesList() {
     <div className="space-y-5">
       <Title
         action={
-          !ed.readOnly && (
+          ed.may("pages", "POST") && (
             <Link href="/staff/hajj/manage/edit" className="inline-flex items-center gap-1.5 rounded-xl border border-gold/60 px-3 py-1.5 text-sm font-bold text-gold hover:bg-gold hover:text-ink">
               <Plus className="size-4" /> إضافة صفحة جديدة
             </Link>
@@ -84,10 +85,10 @@ export function PagesList() {
                 </Link>
                 {s.kind === "system" && <p className="text-xs text-white/55">{ESSENTIAL[s.system!]}</p>}
                 <RowActions>
-                  <RowLink href={`/staff/hajj/manage/edit?id=${s.id}`}>{ed.readOnly ? "عرض" : "تعديل"}</RowLink>
+                  <RowLink href={`/staff/hajj/manage/edit?id=${s.id}`}>{ed.may("pages", "PUT") ? "تعديل" : "عرض"}</RowLink>
                   <RowLink href="/staff/hajj/manage/preview">معاينة</RowLink>
-                  {!ed.readOnly && !required && <RowLink onClick={() => toggle(s)}>{s.enabled ? "إخفاء" : "إظهار"}</RowLink>}
-                  {!ed.readOnly && s.kind !== "system" && (
+                  {ed.may("pages", "PUT") && !required && <RowLink onClick={() => toggle(s)}>{s.enabled ? "إخفاء" : "إظهار"}</RowLink>}
+                  {ed.may("pages", "DELETE") && s.kind !== "system" && (
                     <RowLink danger onClick={() => setRemoving(s)}>
                       حذف
                     </RowLink>
@@ -106,7 +107,7 @@ export function PagesList() {
                 {!s.enabled ? <Kind tone="maroon">مخفية</Kind> : s.window ? <Kind tone="green">بمواعيد</Kind> : <Kind tone="green">ظاهرة</Kind>}
               </td>
               <td className="p-3">
-                {!ed.readOnly && filter === "all" && (
+                {ed.may("pages", "PUT") && filter === "all" && (
                   <span className="flex">
                     <button type="button" aria-label={`نقل ${s.name} إلى الأعلى`} disabled={i === 0} onClick={() => ed.edit((c) => ({ ...c, stages: moveStage(c.stages, i, -1) }), { action: "ترتيب الصفحات", area: "stages", detail: `${s.name} ↑`, ref: s.id })} className="grid size-8 place-items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-25">
                       <ArrowUp className="size-4" />
@@ -156,24 +157,25 @@ export function PagesList() {
 /** The few sentences around the form */
 function Messages() {
   const ed = useRegEditor();
+
   const [m, setM] = useState(ed.config.messages);
   const changed = JSON.stringify(m) !== JSON.stringify(ed.config.messages);
   return (
     <Box title="نصوص عامة" open={false}>
       <label className="block">
         رقم المساعدة (بجانب الطلب)
-        <textarea rows={2} value={m.helpLine} onChange={(e) => setM({ ...m, helpLine: e.target.value })} className={cn(textareaClass, "mt-1")} disabled={ed.readOnly} />
+        <textarea rows={2} value={m.helpLine} onChange={(e) => setM({ ...m, helpLine: e.target.value })} className={cn(textareaClass, "mt-1")} disabled={!ed.may("general-texts", "PUT")} />
       </label>
       <label className="block">
         حين يحفظ الحاج طلبه ليكمله لاحقاً
-        <textarea rows={2} value={m.savedLater} onChange={(e) => setM({ ...m, savedLater: e.target.value })} className={cn(textareaClass, "mt-1")} disabled={ed.readOnly} />
+        <textarea rows={2} value={m.savedLater} onChange={(e) => setM({ ...m, savedLater: e.target.value })} className={cn(textareaClass, "mt-1")} disabled={!ed.may("general-texts", "PUT")} />
       </label>
       <label className="block">
         فوق الخطوات بعد القبول
-        <textarea rows={2} value={m.postHeader} onChange={(e) => setM({ ...m, postHeader: e.target.value })} className={cn(textareaClass, "mt-1")} disabled={ed.readOnly} />
+        <textarea rows={2} value={m.postHeader} onChange={(e) => setM({ ...m, postHeader: e.target.value })} className={cn(textareaClass, "mt-1")} disabled={!ed.may("general-texts", "PUT")} />
       </label>
-      {changed && !ed.readOnly && (
-        <Button size="sm" variant="gold" onClick={() => ed.edit((c) => ({ ...c, messages: m }), { action: "تعديل النصوص العامة", area: "stages" })}>
+      {changed && ed.may("general-texts", "PUT") && (
+        <Button size="sm" variant="gold" onClick={() => ed.edit((c) => ({ ...c, messages: m }), { action: "تعديل النصوص العامة", area: "stages", perm: "registration.general-texts.PUT" })}>
           <Save className="size-4" /> حفظ
         </Button>
       )}
@@ -201,12 +203,15 @@ export function PageEditor() {
 
 function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; isNew: boolean; defaultAfter?: string }) {
   const ed = useRegEditor();
+
   const toast = useToast();
   const router = useRouter();
   const [s, setS] = useState(initial);
   const others = ed.config.stages.filter((x) => x.id !== s.id);
   const at = ed.config.stages.findIndex((x) => x.id === s.id);
   const isNew = opened && at < 0;
+  // A new page needs adding, a stored one changing
+  const ro = !ed.may("pages", isNew ? "POST" : "PUT");
   const [after, setAfter] = useState<string>(defaultAfter ?? (at > 0 ? ed.config.stages[at - 1].id : "__first"));
   const [removing, setRemoving] = useState(false);
   const set = (p: Partial<StageDef>) => setS((x) => ({ ...x, ...p }));
@@ -249,7 +254,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-        <fieldset disabled={ed.readOnly} className="min-w-0 space-y-5">
+        <fieldset disabled={ro} className="min-w-0 space-y-5">
           {system && (
             <p className="flex items-start gap-2 rounded-2xl bg-gold/10 p-4 text-sm leading-7 text-white/85 ring-1 ring-gold/30">
               <ShieldCheck className="mt-1 size-4 shrink-0 text-gold" /> صفحة أساسية: {ESSENTIAL[s.system!]} يعمل فيها نظام المنصة، فتُعدَّل هنا كلماتها ومكانها فقط. اترك العنوان فارغاً لتبقى صياغة المنصة التي تتبع حال الحاج.
@@ -286,7 +291,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
         </fieldset>
 
         <aside className="space-y-4">
-          {!ed.readOnly && (
+          {!ro && (
             <Box title="الحفظ">
               {!required && (
                 <span className="flex items-center gap-2 font-bold text-white">
@@ -297,7 +302,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
                 <Save className="size-4" /> {isNew ? "إضافة الصفحة" : "حفظ"}
               </Button>
               <p className="text-xs leading-5 text-white/55">{dirty ? "لديك تعديلات لم تُحفظ." : "محفوظة."} بعد الحفظ تظهر للحجاج حين تضغط «نشر التغييرات».</p>
-              {!isNew && !system && (
+              {!isNew && !system && ed.may("pages", "DELETE") && (
                 <button type="button" onClick={() => setRemoving(true)} className="text-xs font-bold text-[#ffb4c8] hover:underline">
                   حذف الصفحة
                 </button>
@@ -316,7 +321,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
                   if (!system) set({ phase: (e.target.value === "__first" ? others[0] : others.find((x) => x.id === e.target.value))?.phase ?? s.phase });
                 }}
                 className={cn(selectClass, "mt-1")}
-                disabled={ed.readOnly}
+                disabled={ro}
               >
                 <option value="__first">— في البداية —</option>
                 {others.map((x) => (
@@ -328,7 +333,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
             </label>
             <label className="block">
               في شريط التقدم تحت
-              <input list="reg-phases" value={s.phase} onChange={(e) => set({ phase: e.target.value })} className={cn(smallInputClass, "mt-1")} disabled={ed.readOnly} />
+              <input list="reg-phases" value={s.phase} onChange={(e) => set({ phase: e.target.value })} className={cn(smallInputClass, "mt-1")} disabled={ro} />
               <datalist id="reg-phases">
                 {phases.map((p) => (
                   <option key={p} value={p} />

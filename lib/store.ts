@@ -875,10 +875,15 @@ export type State = {
   /** The written exam's halls: who supervises each centre, who sits where, and each sitting as its supervisor runs it */
   examHalls: ExamHalls;
   /**
-   * Who holds each file's management permission (lib/systems.ts) once the director granted or took one back,
-   * and when she last looked at each file's important events. A missing list means the accounts as opened.
+   * When the director last looked at each system's important events (lib/systems.ts). `grants` is the former
+   * management-file assignment, read once into `staffPermissions` and no longer written.
    */
   systems: { grants?: Record<string, { staffId: string; at?: number; by?: string }[]>; seen?: Record<string, number> };
+  /**
+   * Each staff account's permissions, one by one (lib/permissions.ts), once the holder of «صلاحيات الموظفين»
+   * changed them; a missing account keeps those it opened with (lib/staff.ts STAFF).
+   */
+  staffPermissions?: Record<string, import("./permissions").PermGrant[]>;
   /**
    * The Hajj registration as configuration (lib/registration): the seasons, each one's working draft, the
    * versions published, and the payments the providers confirmed
@@ -955,7 +960,7 @@ export type ExamHalls = {
   centers?: import("./data/admin-exam").ExamCenter[];
   /** Exams the owner edited or created, in full, by id (the five main exams are keyed by their role) */
   exams?: Record<string, import("./data/admin-exam").ExamDef>;
-  /** centre id -> the staff account supervising its hall (an empty string takes the default away) */
+  /** Legacy: centre id -> the hall's supervisor, before supervising a hall became the `hall.*` permission for it (read nowhere) */
   supervisors?: Record<string, string>;
   /** applicants the exam desk moved to another centre than their governorate's: national id -> centre id */
   moved?: Record<string, string>;
@@ -1558,6 +1563,10 @@ export const actions = {
           : { ...cur, pending: undefined, rejected: { at: Date.now(), by, reason: reason ?? "", fields: cur.pending.fields } };
       return { ...s, groupProfiles: { ...s.groupProfiles, [String(no)]: { ...cur, ...next } } };
     });
+  },
+  /** One employee's permissions replaced as a whole (the access screen saves them together) */
+  setStaffPermissions(staffId: string, grants: import("./permissions").PermGrant[]) {
+    setState((s) => ({ ...s, staffPermissions: { ...s.staffPermissions, [staffId]: grants } }));
   },
   setAdminRules(patch: AdminRules) {
     setState((s) => ({ ...s, adminRules: { ...s.adminRules, ...patch } }));

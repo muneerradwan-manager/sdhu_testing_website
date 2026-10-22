@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Roles and permissions of the platform as the demo site implements them: who uses it (ACTORS), every staff
-permission in lib/staff.ts (PERMS, in ALL_PERMISSIONS order), the rules of granting them (GRANTS) and the demo's
-staff accounts (DEMO_ACCOUNTS). The real server must enforce every check written here; the demo does it in the
+"""Roles and permissions of the platform as the demo site implements them: who uses it (ACTORS), every system of
+the staff portal's permission catalog (PERMS, one per system of lib/permissions.ts CATALOG, in its order — its
+resources and verbs are read from the catalog itself, flows/catalog.py), the rules of granting them (GRANTS) and the
+demo's staff accounts with what each opens with (DEMO_ACCOUNTS). The real server must enforce every check written here; the demo does it in the
 browser only."""
 from .dsl import *
 
@@ -89,219 +90,226 @@ ACTORS = [
            "app/portal/(admin)/exam/exam.tsx:100", "app/portal/(admin)/role/apply.tsx:73", "app/portal/(admin)/cluster/cluster.tsx:58"]),
 
     A("staff", "الموظف",
-      "موظف الإدارة أو البعثة، يدخل «بوابة الموظفين» باسم مستخدم وكلمة مرور (لا ينشئ حسابه بنفسه). لكل حساب صلاحيات مهام ثابتة، "
-      "ويُمنح بعضهم صلاحية إدارة ملف كامل. والصلاحيات الفعلية = صلاحيات المهام + صلاحيات الإدارة الممنوحة الآن (withGrants). "
-      "تُبنى قائمته من صلاحياته ومواقعه الميدانية، وصفحته الأولى: لوحة تحكم أول ملف يديره، وإلا «لوحتي» إن حمل صلاحية مهمة، وإلا «قاعتي الامتحانية»، وإلا «رحلات مطاري»، وإلا «ملفاتي التشغيلية».",
+      "موظف الإدارة أو البعثة، يدخل «بوابة الموظفين» باسم مستخدم وكلمة مرور (لا ينشئ حسابه بنفسه). لا يُسند إلى نظام: تُمنح له على الأنظمة الواحد والعشرين "
+      "صلاحيات واحدة واحدة، لكل مورد عرضه (GET) وإضافته (POST) وتعديله (PUT) وحذفه (DELETE) وأفعال بأسمائها، وبعضها لنطاق بعينه (قاعة، مطار، عملية…). "
+      "والعرض نفسه صلاحية: يظهر النظام في قائمته إن ملك فيه عرض شيء، وتظهر كل عملية من ملفات الإدارة إن ملك عرض ما فيها. وصفحته الأولى: لوحة تحكم أول ملف إدارة يرى لوحته، "
+      "وإلا أول عملية فيه، وإلا «لوحتي» إن ملك شيئاً في نظام آخر، وإلا «قاعتي الامتحانية»، وإلا «رحلات مطاري»، وإلا «ملفاتي التشغيلية».",
       can=[
-          "كل موظف: «ملفاتي التشغيلية» — أين يسكن، ورحلته، ومكانه في منى وعرفات — ظاهرة دائماً لكل حساب.",
-          "صاحب صلاحية مهمة واحدة على الأقل: «لوحتي» تجمع ما ينتظره من كل صلاحية.",
-          "صاحب صلاحية إدارة ملف: لوحة تحكم الملف ثم كل عملية من عملياته مدخلاً مستقلاً في القائمة، ويرفع أمراً إلى المدير من لوحة الملف.",
-          "مواقع ميدانية لا تحتاج صلاحية، يعطيها صاحب ملف بالبيانات: مشرف قاعة امتحانية يسنده صاحب «إدارة الامتحانات» فتظهر له «قاعتي الامتحانية» (يفتح الجلسة، يقبل الأجهزة، يؤكد التسليم برمزه)؛ مندوب مطار يسنده صاحب «إدارة الطيران» فتظهر له «رحلات مطاري» (يسجّل الإقلاع والهبوط)؛ موظف مُسند في برج أو مخيم سكنه تكتل يسنده صاحب «الملفات التشغيلية» فتظهر له «تقييم الإداريين» بعد الموسم.",
+          "كل موظف: «ملفاتي التشغيلية» — أين يسكن، ورحلته، ومكانه في منى وعرفات — ظاهرة دائماً لكل حساب، بلا صلاحية.",
+          "من يملك عرض شيء في نظام غير ملفات الإدارة: «لوحتي» تجمع ما ينتظره في تلك الأنظمة.",
+          "من يملك عرض لوحة ملف إدارة (‹الملف›.summary.GET): لوحة تحكمه، ويرفع منها أمراً إلى المدير. وكل عملية في الملف مدخل مستقل يظهر لمن يملك عرض ما فيها.",
+          "مشرف القاعة من يملك «قاعة الامتحان» (hall.*) لمركز بعينه، فتظهر له «قاعتي الامتحانية» لذلك المركز وحده؛ ومندوب المطار من يملك «رحلات المطار» (airport.*) لمطار بعينه، فيسجّل إقلاع رحلاته وهبوطها فيه وحده.",
+          "من يملك «تقييم الإداريين بعد الموسم» يقيّم التكتلات التي سكنت حيث رابط في الملفات التشغيلية، ما دامت نافذة التقييم مفتوحة.",
       ],
       cannot=[
-          "لا يرى صفحة صلاحية لا يحملها: «خارج صلاحياتك» (Gate) لصلاحيات المهام، و«صلاحية … ليست لك» (SystemGate) لملفات الإدارة.",
-          "لا يغيّر حالة عملية موسمية أو مواعيدها إلا صاحب صلاحيتها المتحكمة أو صاحب «إعدادات الموسم».",
-          "لا يرى «قاعتي الامتحانية» أو «رحلات مطاري» أو «تقييم الإداريين» ما لم يُسند إلى قاعة أو مطار أو برج/مخيم؛ وإن فتحها برابطها رأى «لست مندوب مطار» وما يشبهها.",
-          "في النسخة التجريبية: كل التحقق في المتصفح (إخفاء من القائمة، Gate، أزرار معطّلة)، إلا ملف «إدارة التسجيل على الحج» فطبقة خدمته (lib/registration/service.ts) ترفض التعديل وتسجّل «محاولة تعديل غير مصرح بها». الحسابات ثابتة في lib/staff.ts بكلمة مرور مشتركة 1448.",
+          "لا يرى صفحة لا يملك عرض ما فيها: «خارج صلاحياتك» (Gate) لصفحات الأنظمة، و«… ليست لك» (SystemGate) لصفحات ملفات الإدارة، مع اسم الصلاحية المطلوبة.",
+          "لا يجد في الصفحة التي يراها زراً لفعل لا يملكه: يُخفى أو يُعطَّل مع اسم صلاحيته، ولا تظهر له البيانات الحساسة (الرقم الوطني، الهواتف، الأجوبة الصحيحة، الكشوف…) دون عرضها.",
+          "لا يغيّر مواعيد عملية موسمية إلا من يملك season.windows.PUT لها.",
+          "لا يسحب من نفسه «تعديل — صلاحيات الموظفين»، ولا يعتمد نتائج القرعة من أدخلها.",
+          "في النسخة التجريبية: التحقق في المتصفح (القائمة، Gate، SystemGate، الأزرار)، إلا «إدارة التسجيل على الحج» فطبقة خدمته (lib/registration/service.ts) ترفض الفعل بلا صلاحيته وتسجّل «محاولة تعديل غير مصرح بها». الحسابات ثابتة في lib/staff.ts بكلمة مرور مشتركة 1448.",
       ],
-      src=["app/staff/_components/frame.tsx:185", "app/staff/_components/frame.tsx:295", "app/staff/_components/kit.tsx:19", "app/staff/_components/kit.tsx:33",
-           "app/staff/_components/kit.tsx:246", "app/staff/_components/system.tsx:44", "lib/systems.ts:144", "app/staff/hall/view.tsx:135",
-           "app/staff/airport/view.tsx:49", "app/staff/evaluate/view.tsx:32", "lib/registration/service.ts:359"]),
+      src=["lib/staff.ts:40", "lib/permissions.ts:401", "app/staff/_components/frame.tsx:295", "app/staff/_components/kit.tsx:75", "app/staff/_components/kit.tsx:304", "app/staff/_components/system.tsx:49"]),
 ]
 
 PERMS = [
-    P("systems.assign", "منح صلاحيات الإدارة ومتابعتها",
-      "صلاحية مديرة الموسم على ملفات الإدارة الخمسة: تمنح صلاحية إدارة كل ملف لمن تشاء وتسحبها، وتتابع حال كل ملف وما يعطّله وأحداثه المهمة دون أن تدخل تفاصيله. "
-      "صاحبها لا يفتح الملف نفسه إلا إن منح نفسه صلاحيته (قائمة المنح تشمل كل الحسابات غير الحاملة لها، ومنها حسابه).",
-      routes=["app/staff/systems", "app/staff/dashboard"],
-      actions=["يرى بطاقة لكل ملف: حاله وأرقامه الأربعة وما يعطّله وما رفعه أصحابه إليه وأحداثه المهمة", "يمنح صلاحية إدارة ملف لموظف من «من يحملها»", "يسحب الصلاحية من حاملها بعد تأكيد (ويُنبَّه إن بقي الملف بلا من يديره)", "يرى سجل المنح والسحب لكل ملف", "تُعلَّم الأحداث المهمة مقروءة حين يفتح الصفحة"],
-      src=["lib/staff.ts:15", "app/staff/_components/frame.tsx:155", "app/staff/systems/view.tsx:34", "lib/systems.ts:183", "lib/systems.ts:187", "app/staff/dashboard/view.tsx:197"],
-      data=["system_grants", "system_seen"]),
+    P("access", "صلاحيات الموظفين",
+      "منح كل موظف صلاحياته وسحبها من «صلاحيات الموظفين»: مصفوفة لكل موظف، الأنظمة أقساماً والموارد صفوفاً والأفعال أعمدة، والحساس معلّماً، والنطاق لما له نطاق. "
+      "يُعاين الفرق قبل الحفظ، ويُكتب كل نظام تغيّر حدثاً مهماً. ومنها متابعة ملفات الإدارة الخمسة: حالها وما يعطّلها وأحداثها المهمة وما رُفع إلى المدير.",
+      routes=["app/staff/access", "app/staff/dashboard"],
+      actions=["يفتح صلاحيات موظف ويعدّلها، ويختار نطاق ما له نطاق (المراكز، المطارات، العمليات، المجموعات، أنواع الملفات)",
+               "ينسخ صلاحيات موظف إلى آخر مرة واحدة (copy)، ولا دور مخزَّن",
+               "يرى «من يملك ماذا» في كل نظام، صلاحيةً صلاحية ونطاقها",
+               "لا يسحب من نفسه access.permissions.PUT: يسحبها منه غيره"],
+      src=["app/staff/access/view.tsx:31", "app/staff/access/view.tsx:302", "app/staff/access/view.tsx:335", "app/staff/access/overview.tsx:69", "lib/store.ts:1568"],
+      data=["staff_user_permissions", "staff_user_permission_scopes", "system_seen", "escalations", "audit_events"]),
 
-    P("staff.manage", "إدارة الموظفين",
-      "الملف كله لصاحبه: سجل موظفي البعثة الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم وأين أُسندوا وعلى أي رحلة. "
-      "في النسخة التجريبية: الحسابات وصلاحيات المهام ثابتة في الكود، فشاشة «حسابات البوابة» تعرضها ولا تمنح صلاحية مهمة ولا تسحبها، مع أن رسالة «خارج صلاحياتك» تقول إن الصلاحيات «تُمنح من الموارد البشرية واحدة واحدة».",
+    P("staff", "إدارة الموظفين",
+      "سجل موظفي البعثة الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم وأين أُسندوا وعلى أي رحلة. الرقم الوطني والهواتف والبريد مورد حساس مستقل: "
+      "بلا عرضه تُقنَّع ولا يُبحث بها، وبلا تعديله تبقى كما هي عند الحفظ.",
       routes=["app/staff/employees", "app/staff/employees/manage", "app/staff/employees/manage/edit", "app/staff/employees/manage/accounts", "app/staff/employees/manage/season"],
-      actions=["يضيف موظفاً ويعدّل بياناته (لا يُحذف موظف)", "يحدد مشاركة الموظف في الموسم أو يلغيها", "يربط حساب بوابة بسجل موظف أو يفك ربطه", "يرسل كلمة مرور مؤقتة إلى هاتف السجل", "يرى صلاحيات كل حساب ومواقعه الميدانية ومن منحه صلاحية الإدارة", "يرفع أمراً إلى المدير"],
-      src=["lib/staff.ts:16", "lib/systems.ts:27", "app/staff/employees/layout.tsx:6", "app/staff/_components/frame.tsx:144", "app/staff/employees/accounts.tsx:38", "app/staff/_components/kit.tsx:257"],
-      data=["employees", "employee_seasons", "employee_languages"], manages=True),
+      actions=["حسابات البوابة تعرض ما يملكه كل حساب نظاماً نظاماً، ولا تمنح منها صلاحية: المنح من «صلاحيات الموظفين»"],
+      src=["app/staff/employees/layout.tsx:6", "app/staff/employees/sheet.tsx:94", "app/staff/employees/accounts.tsx:54"],
+      data=["employees", "employee_seasons", "employee_languages", "staff_users"], manages=True),
 
-    P("registration.manage", "إدارة التسجيل على الحج",
-      "الملف كله لصاحبه: صفحات التسجيل التي يمر بها الحاج وأسئلتها، والخطوات بعد القبول، وشروط الأهلية الإضافية، والدفعات والمسارات ومواعيد التسجيل، "
-      "تُعدَّل في مسودة ثم تُعايَن ثم تُنشر إصداراً لا يغيّر طلباً بدأه حاج قبله. ومتابعة الطلبات للاطلاع فقط. "
-      "هي الصلاحية الوحيدة التي تتحقق منها طبقة الخدمة أيضاً (managerOf) لا الواجهة وحدها.",
+    P("registration", "إدارة التسجيل على الحج",
+      "صفحات التسجيل التي يمر بها الحاج وأسئلتها، والخطوات بعد القبول، وشروط الأهلية، والدفعات والمساران، تُعدَّل في مسودة ثم تُعاين ثم تُنشر إصداراً لا يغيّر طلباً بدأه حاج قبله. "
+      "والطلبات للاطلاع، وإجاباتها ودفعاتها المؤكدة موردان حساسان. وهي الوحيدة التي تتحقق طبقة الخدمة من صلاحية كل فعل فيها (managerOf، draftPerm).",
       routes=["app/staff/hajj", "app/staff/hajj/manage", "app/staff/hajj/manage/edit", "app/staff/hajj/manage/preview", "app/staff/hajj/manage/steps", "app/staff/hajj/manage/steps/edit",
               "app/staff/hajj/manage/rules", "app/staff/hajj/manage/rules/edit", "app/staff/hajj/manage/payments", "app/staff/hajj/manage/applications", "app/staff/hajj/manage/history"],
-      actions=["يضيف صفحة تسجيل ويعدّلها ويحذفها ويرتّبها ويحدد لمن تظهر", "يرتّب الخطوات بعد القبول ويضيف خطوة ويحذفها ويفعّلها", "يضيف شرط أهلية ويحذفه", "يعدّل الدفعات ومبالغها ومواعيدها وطرق الدفع ومساري التسجيل",
-               "يفتح نافذتي التسجيل (القبول المباشر، القرعة) أو يوقفهما ويغيّر مواعيدهما", "يعاين المسودة وينشرها أو يجدول نشرها أو يلغي تعديلاتها", "يستعيد إصداراً سابقاً إلى المسودة، وينشئ موسم تسجيل بنسخ إعدادات", "يتابع الطلبات للاطلاع فقط"],
-      src=["lib/staff.ts:20", "lib/systems.ts:40", "app/staff/hajj/layout.tsx:6", "lib/registration/service.ts:359", "app/staff/hajj/_components/payments.tsx:23", "lib/operations.ts:238"],
-      data=["reg_config_drafts", "reg_config_versions", "reg_form_fields", "operation_windows"], manages=True),
+      actions=["تعديل المسودة يحتاج صلاحية موردها: الإضافة POST والحذف DELETE وما سواهما PUT (draftPerm)", "نافذتا التسجيل تتغيران بـseason.windows.PUT لهما"],
+      src=["app/staff/hajj/layout.tsx:6", "lib/registration/service.ts:355", "lib/registration/service.ts:382", "app/staff/hajj/_components/applications.tsx:73"],
+      data=["reg_config_drafts", "reg_config_versions", "reg_form_fields"], manages=True),
 
-    P("admins.manage", "إدارة الإداريين",
-      "الملف كله لصاحبه عبر المواسم: قواعد الصفات وشروطها ومراجعها، والكادر الدائم وأحداث ملف كل فرد، والمتقدمون وملفاتهم، وتشكيل المجموعات والتكتلات في المكتب، "
-      "ودليل التكتلات والمجموعات، والمراسلات، والتقييم والتصنيف. ويعدّل جدول صلاحيات الصفات في البوابة الإدارية، ويتحكم بعمليات الإداريين ومواعيدها.",
+    P("reviews", "مراجعة الطلبات والوثائق",
+      "ما لا تحسمه المنصة آلياً: طلبات الحج التي دخلت قائمة المراجعة، وطلبات تصحيح البيانات المدنية، وإلحاق الحجاج المقبولين بالمجموعات بعقودهم. لكل منها عرضه، ولكل قرار صلاحيته.",
+      routes=["app/staff/reviews", "app/staff/dashboard"],
+      src=["app/staff/reviews/view.tsx:27", "app/staff/reviews/view.tsx:48", "app/staff/reviews/civil.tsx:170", "app/staff/reviews/contracts.tsx:46", "lib/assignment.ts:171"],
+      data=["application_reviews", "civil_claims", "group_enrollment_contracts", "post_acceptance"]),
+
+    P("office", "التسجيل في المكتب",
+      "إدخال بيانات في المكتب: يسجّل مواطناً يراجعه على الحج بالخطوات نفسها التي يمر بها الحاج، بموافقته برمز يصل إلى هاتفه. يحتاج البحث في السجل المدني (حساس) وتسجيل الطلب معاً. "
+      "والمفتاح pilgrims.register صلاحية مستقلة للإداريين في جدول صلاحيات الصفات، بالشاشة نفسها.",
+      routes=["app/staff/registration", "app/staff/dashboard"],
+      actions=["في النسخة التجريبية: نطاق المكتب معرّف في الكتالوج ولا يُفحص، لأن الحسابات لا تحمل مكتباً"],
+      src=["app/staff/registration/view.tsx:26", "app/staff/registration/view.tsx:28", "app/administrator/_lib/permissions.ts:14"],
+      data=["application_drafts", "applications", "application_members", "application_consents"]),
+
+    P("lottery", "القبول المباشر والقرعة",
+      "أربع خطوات: إرسال الأعمار المقبولة مباشرة للاعتماد ثم اعتمادها وإعلانها، وتصدير إحصاء التسجيل على القرعة، وإدخال نتائج البث وإرسالها، ثم اعتمادها ونشرها. "
+      "لكل خطوة صلاحيتها، فيُمنح الإدخال لموظف والاعتماد لآخر.",
+      routes=["app/staff/lottery", "app/staff/dashboard"],
+      actions=["من أدخل نتائج البث لا يعتمدها ولو ملك الصلاحيتين (lottery.entry.by)"],
+      src=["app/staff/lottery/view.tsx:59", "app/staff/lottery/view.tsx:95", "app/staff/lottery/view.tsx:594"],
+      data=["direct_age_announcements", "lottery_draws", "lottery_draw_picks", "season_settings"]),
+
+    P("admins", "إدارة الإداريين",
+      "قواعد الإداريين وصلاحيات صفاتهم في البوابة الإدارية، والقوائم المرجعية والمراجع، والكادر الدائم وأحداثه، والمتقدمون، وتشكيل المجموعات والتكتلات، والدليل، والمراسلات، والتقييم والتصنيف. "
+      "أكبر الأنظمة: لكل قائمة مرجعية إضافتها وتعديلها وحذفها وإرجاعها إلى الأصل، وهواتف الكادر ورسوم المتقدمين والعقود موارد حساسة.",
       routes=["app/staff/admins", "app/staff/admins/manage", "app/staff/admins/manage/reference", "app/staff/admins/manage/references", "app/staff/admins/manage/cadre",
               "app/staff/admins/manage/applicants", "app/staff/admins/manage/groups", "app/staff/admins/manage/clusters", "app/staff/admins/manage/directory",
               "app/staff/admins/manage/letters", "app/staff/admins/manage/evaluation", "app/staff/admins/manage/grading"],
-      actions=["يعدّل قواعد الإداريين والتزاماتهم وجدول شروط الصفات، ويعيدها إلى الأصل", "يعدّل القوائم المرجعية: الصفات والفئات والفروع واللغات والمهارات والشهادات", "يعدّل جدول صلاحيات الصفات («التسجيل على الحج» لأي صفة)",
-               "يفتح عمليات الإداريين أو يوقفها ويغيّر مواعيدها (التسجيل، تشكيل المجموعات والتكتلات، إدارتها، التقييم، الاعتراض)", "يضيف فرداً إلى الكادر ويعدّل بياناته وصفته وحسابه ويضيف حدثاً إلى ملفه", "يراجع ملفات المتقدمين ووثائقهم",
-               "يشكّل المجموعة في المكتب ويحدد فئتها ويعتمدها أو يعيد طلبها إلى رئيسه", "يشكّل التكتل في المكتب ويرفع عقده الموقّع، ويجري تعديلاً استثنائياً عليه", "يعتمد صفحات التكتلات والمجموعات العامة وخططها التشغيلية أو يعيدها",
-               "يرد على مراسلات الإداريين ويرسل رسالة تيليجرام إلى الكادر", "يقيّم الإداريين مرحلةً مرحلة ويقرر في اعتراضاتهم", "يعتمد التصنيف وينشره، ويبدأ موسماً جديداً أو يتراجع عنه"],
-      src=["lib/staff.ts:17", "lib/systems.ts:57", "app/staff/admins/layout.tsx:6", "app/staff/admins/_components/rules.tsx:46", "app/staff/admins/_components/rules.tsx:47", "lib/operations.ts:62"],
-      data=["admin_season_rules", "role_requirements", "admin_role_permissions", "admin_commitments", "cadre_people", "cadre_events", "admin_groups", "group_seats", "clusters",
-            "cluster_groups", "cluster_members", "formation_notes", "cluster_profile_versions", "group_profile_versions", "operational_plans", "letter_messages",
-            "telegram_messages", "staff_evaluations", "evaluation_objections", "grading_results", "grading_publications", "season_rollovers", "operation_windows"],
+      actions=["عمليات الإداريين ومواعيدها تتغير بـseason.windows.PUT لها"],
+      src=["app/staff/admins/layout.tsx:6", "app/staff/admins/_components/rules.tsx:44", "app/staff/admins/_components/groups.tsx:62", "app/staff/admins/_components/applicants.tsx:105"],
+      data=["admin_season_rules", "role_requirements", "admin_role_permissions", "admin_commitments", "cadre_people", "cadre_events", "admin_groups", "clusters",
+            "cluster_groups", "operational_plans", "letter_messages", "telegram_messages", "staff_evaluations", "evaluation_objections", "grading_results"],
       manages=True),
 
-    P("exams.manage", "إدارة الامتحانات",
-      "الملف كله لصاحبه: تأهيل الإداريين بالاختبار المؤتمت (القاعات ومحافظاتها ومشرفوها، والاختبارات وأقسامها، وبنك الأسئلة، والمتقدمون، والجلسات ومتابعتها، والمراجعة والنتائج والإحصائيات)، "
-      "ثم الامتحان الشفهي أمام لجنة كل صفة. ويسند مشرف كل قاعة، فتظهر للمشرف «قاعتي الامتحانية» دون أي صلاحية.",
+    P("exams", "إدارة الامتحانات",
+      "القاعات ومحافظاتها، والاختبارات وأقسامها، وبنك الأسئلة، والمتقدمون، والجلسات ومتابعتها، والمراجعة والنتائج والإحصائيات، والامتحان الشفهي. "
+      "الأجوبة الصحيحة، والأرقام الوطنية والباركود، وإجابات المتقدمين موارد حساسة. ومشرفو القاعات لا يُسندون هنا: المشرف من يملك «قاعة الامتحان» لمركزها.",
       routes=["app/staff/exam", "app/staff/exam/manage", "app/staff/exam/manage/edit", "app/staff/exam/manage/exams", "app/staff/exam/manage/exams/edit", "app/staff/exam/manage/bank",
               "app/staff/exam/manage/people", "app/staff/exam/manage/sittings", "app/staff/exam/manage/live", "app/staff/exam/manage/review", "app/staff/exam/manage/results",
               "app/staff/exam/manage/oral", "app/staff/exam/manage/stats"],
-      actions=["يضيف قاعة ويعدّلها ويحدد محافظاتها وشاشتها، ويسند مشرفها", "ينشئ اختباراً لكل صفة واختبار استدراك، ويعدّل أقسامه وموعده، وينشره أو يحذفه", "يضيف سؤالاً إلى البنك ويعدّله ويعطّله",
-               "يوزّع المتقدمين على القاعات وينقل محددين منهم", "يفتح الاختبارات والامتحانات الشفهية أو يوقفها ويغيّر مددها", "يتابع الجلسات الفعالة للاطلاع (يديرها المشرف)",
-               "يقرر في المحاولات التي تحتاج قراراً والحالات المشتبه بها", "يراجع إجابات كل متقدم ويصدّر النتائج والحضور والإحصائيات", "يسجّل نتيجة الامتحان الشفهي"],
-      src=["lib/staff.ts:18", "lib/systems.ts:77", "app/staff/exam/_components/shell.tsx:16", "app/staff/exam/_components/exams.tsx:265", "app/staff/exam/_components/centers.tsx:338", "lib/operations.ts:63"],
-      data=["exam_centers", "exam_center_governorates", "exams", "exam_sections", "exam_section_categories", "exam_questions", "exam_question_options", "exam_center_moves",
-            "exam_sittings", "exam_attempts", "oral_slots", "oral_bookings", "operation_windows"],
+      actions=["الاختبارات والامتحانات الشفهية تُفتح وتُوقف بـseason.windows.PUT لها"],
+      src=["app/staff/exam/_components/shell.tsx:16", "app/staff/exam/_components/bank.tsx:164", "app/staff/exam/_components/people.tsx:52", "app/staff/exam/_components/review.tsx:85"],
+      data=["exam_centers", "exam_center_governorates", "exams", "exam_sections", "exam_questions", "exam_question_options", "exam_center_moves", "exam_attempts", "oral_slots", "oral_bookings"],
       manages=True),
 
-    P("flights.manage", "إدارة الطيران",
-      "الملف كله لصاحبه: رحلات الموسم ذهاباً وعودة للحجاج والموظفين، إنشاؤها ونشرها، وإعطاء كل تكتل أيام رحلاته ومقاعده، ووضع الموظفين عليها، وإقفالها وكشوف ركابها، "
-      "ومندوبو المطارات الذين يسجلون الإقلاع والهبوط (يسندهم هو، فتظهر لهم «رحلات مطاري» دون أي صلاحية).",
+    P("hall", "قاعة الامتحان",
+      "إدارة جلسة الاختبار في قاعة: فتحها وبدؤها وإنهاؤها، والشبكة، والحضور، وطلبات دخول الأجهزة، وتأكيد التسليم برمز المشرف. تُمنح لمركز بعينه أو أكثر، "
+      "ومن يملكها لمركز هو مشرف قاعته: يراه صاحب «إدارة الامتحانات» في شاشة القاعات للقراءة.",
+      routes=["app/staff/hall"],
+      actions=["كل فعل يُفحص لمركز الجلسة (useHallCan)"],
+      src=["app/staff/hall/view.tsx:93", "app/administrator/_lib/halls.ts:219", "app/administrator/_lib/halls.ts:244"],
+      data=["exam_attempts", "exam_supervisor_pins", "staff_user_permission_scopes"]),
+
+    P("flights", "إدارة الطيران",
+      "المطارات والناقلون، ورحلات الموسم ذهاباً وعودة، وركابها ومقاعدهم، وكشوفها، وأيام التكتلات، والتفويج. لكل تغيير في حالة الرحلة صلاحيته (نشر، إقفال، تأجيل، موعد جديد، تحويل، إلغاء، إقلاع، هبوط). "
+      "ومندوبو المطارات لا يُسندون هنا: المندوب من يملك «رحلات المطار» لمطاره.",
       routes=["app/staff/flights", "app/staff/flights/manage", "app/staff/flights/manage/carriers", "app/staff/flights/manage/flights", "app/staff/flights/manage/allotments", "app/staff/flights/manage/dispatch"],
-      actions=["يضيف مطاراً ويعدّله ويؤرشفه ويسند مندوبه", "يضيف ناقلاً جوياً ويعدّله ويؤرشفه", "ينشئ رحلة وينشرها ويقفلها، ويؤجلها أو يعيد جدولتها أو يلغيها أو يحوّلها إلى مطار آخر", "يعطي كل تكتل أيام رحلاته ومقاعده عليها أو يسحبها",
-               "يضع مجموعات وموظفين على رحلة وينقلهم ويرفعهم، ويسجّل من يسافر بوسيلة أخرى", "يصدر كشف الركاب ويعيد إصداره ويصدّره", "يسجّل الإقلاع والهبوط إن لزم"],
-      src=["lib/staff.ts:19", "lib/systems.ts:97", "app/staff/flights/layout.tsx:6", "app/staff/flights/flight-screen.tsx:89", "app/staff/flights/refs.tsx:178"],
-      data=["airports", "airport_representatives", "carriers", "flights", "cluster_flight_allotments", "group_flight_legs", "flight_assignments", "other_means_travelers", "flight_manifests", "flight_manifest_rows"],
+      actions=["كل تصدير لكشف الركاب يُسجَّل في سجل الأحداث"],
+      src=["app/staff/flights/layout.tsx:6", "app/staff/flights/flight-screen.tsx:90", "app/staff/flights/allotments.tsx:40", "app/staff/flights/dispatch.tsx:56"],
+      data=["airports", "carriers", "flights", "cluster_flight_allotments", "group_flight_legs", "flight_assignments", "other_means_travelers", "flight_manifests", "flight_manifest_rows"],
       manages=True),
 
-    P("pilgrims.register", "التسجيل على الحج",
-      "إدخال بيانات في المكتب: يسجّل أي مواطن يراجعه على الحج في مدة التسجيل، بالخطوات نفسها التي يمر بها الحاج على هاتفه، بموافقة المواطن برمز يصل إلى هاتفه، ويُختم اسمه على الطلب. "
-      "لا يضع الحاج في أي مجموعة ولا يمنح أي صلاحية في المجموعات. ولا يقبض المكتب مالاً: يدفع المواطن بنفسه. "
-      "والمفتاح نفسه صلاحية مستقلة للإداريين في جدول صلاحيات الصفات (المنسق التقني افتراضياً)، بالشاشة نفسها.",
-      routes=["app/staff/registration", "app/staff/dashboard"],
-      actions=["يبحث عن المواطن برقمه الوطني ويعبّئ طلبه على القبول المباشر أو القرعة حسب النافذة المفتوحة", "يرسل رمز الموافقة إلى هاتف كل بالغ ويثبته", "يقدّم الطلب باسمه"],
-      src=["lib/staff.ts:21", "app/staff/_components/frame.tsx:169", "app/staff/registration/view.tsx:25", "app/staff/dashboard/view.tsx:209", "app/administrator/_lib/permissions.ts:14"],
-      data=["application_drafts", "applications", "application_members", "application_consents"]),
+    P("airport", "رحلات المطار",
+      "تسجيل إقلاع الرحلات من مطار بعينه ومن تخلّف عنها (يفتح لكل متخلّف بلاغ نقل)، وهبوط الرحلات فيه. تُمنح لمطار أو أكثر، ومن يملكها لمطار هو مندوبه.",
+      routes=["app/staff/airport"],
+      actions=["الإقلاع يُفحص لمطار المغادرة، والهبوط لمطار الوصول (أو المحوَّل إليه)"],
+      src=["app/staff/airport/view.tsx:112", "app/staff/airport/view.tsx:113", "lib/flights.ts:548"],
+      data=["flights", "flight_assignments", "staff_user_permission_scopes"]),
 
-    P("registration.review", "مراجعة الطلبات والوثائق",
-      "ما لا تحسمه المنصة آلياً: طلبات الحج التي دخلت قائمة المراجعة (صلة قرابة غير مؤكدة، اسم أم غير مطابق، تنبيه في فحص الأهلية)، وطلبات تصحيح البيانات المدنية عند إنشاء الحساب، "
-      "وإلحاق الحجاج المقبولين بالمجموعات في المكتب بعقودهم الموقّعة. "
-      "في النسخة التجريبية: عملية «إلحاق الحجاج بالمجموعات» يتحكم بمواعيدها صاحب «إعدادات الموسم» لا صاحب هذه الصلاحية الذي يجري الإلحاق.",
-      routes=["app/staff/reviews", "app/staff/dashboard"],
-      actions=["يعتمد طلب حج أو يرفضه بسبب يقرؤه صاحبه", "يقبل تصحيح البيانات المدنية أو يرفضه بسبب", "يلحق طلباً كاملاً بمجموعة في حدود سعتها برفع عقده الموقّع", "يعتمد عقد مجموعة رفعته المجموعة أو يعيده بسبب"],
-      src=["lib/staff.ts:22", "app/staff/_components/frame.tsx:170", "app/staff/reviews/view.tsx:26", "app/staff/reviews/view.tsx:361", "app/staff/reviews/civil.tsx:175", "lib/assignment.ts:171", "app/staff/dashboard/view.tsx:187"],
-      data=["application_reviews", "civil_claims", "group_enrollment_contracts", "post_acceptance"]),
-
-    P("season.settings", "إعدادات الموسم",
-      "قيم الموسم في نموذج واحد يُحفظ مرة واحدة (الحصة والأعمار المقبولة، شروط سنوات الميلاد، حدود الطلب، الرسوم والتكاليف، رسوم الإداريين، صلاحية وثائقهم، حد الاستمرار في الصفة، نسب التصنيف)، "
-      "ومواعيد الوجبات، ومواعيد كل العمليات الموسمية: صاحبها يتحكم بكل عملية أياً كانت صلاحيتها المتحكمة. وتفتح معها «لوحة الإدارة العليا». "
-      "في النسخة التجريبية: lib/operations.ts يعامل حامل «إعدادات الموسم» كأنه مديرة الموسم، فلبنى الشهابي (مديرة موسم مساعدة) تتحكم بكل العمليات مثلها، والنص تحت كل عملية يقول «ومديرة الموسم».",
-      routes=["app/staff/season", "app/staff/executive", "app/staff/dashboard"],
-      actions=["يعدّل قيم الموسم ويحفظها مرة واحدة، أو يعيدها إلى الافتراضي", "يفتح أي عملية موسمية أو يوقفها أو يعيدها إلى التلقائي، ويغيّر تاريخ وساعة بدايتها ونهايتها", "يعدّل مواعيد الوجبات وقوائمها", "يرى لوحة الإدارة العليا ويطبع تقريرها"],
-      src=["lib/staff.ts:23", "app/staff/_components/frame.tsx:165", "app/staff/season/view.tsx:162", "lib/operations.ts:238", "app/staff/_components/operations.tsx:51", "app/staff/executive/view.tsx:35", "app/staff/dashboard/view.tsx:196"],
+    P("season", "إعدادات الموسم",
+      "قيم الموسم في نموذج واحد (الحصة والأعمار والرسوم والتكاليف ورسوم الإداريين ونسب التصنيف)، ومواعيد الوجبات، ومواعيد العمليات الموسمية. "
+      "مواعيد العمليات مورد بنطاق العملية: من يملك season.windows.PUT لعملية يفتحها ويوقفها ويغيّر مواعيدها، وبلا نطاق لكلها.",
+      routes=["app/staff/season", "app/staff/dashboard"],
+      src=["app/staff/season/view.tsx:163", "app/staff/season/view.tsx:233", "app/staff/_components/operations.tsx:35", "lib/operations.ts:238"],
       data=["season_settings", "operation_windows", "season_meals"]),
 
-    P("lottery.import", "إدخال نتائج القرعة",
-      "النصف الأول من «القبول والقرعة»: يصدر الأعمار المقبولة مباشرة من ترتيب الطلبات المؤهلة ويرسلها للاعتماد، ويصدّر إحصاء التسجيل الأولي على القرعة بعد إغلاقه، "
-      "ويدخل سنوات الميلاد وأشهرها كما سُحبت في البث ويرسلها للاعتماد. لا ينشر شيئاً.",
-      routes=["app/staff/lottery", "app/staff/dashboard"],
-      actions=["يصدر الأعمار المقبولة ويرسلها للاعتماد", "يصدّر إحصاء التسجيل الأولي على القرعة", "يدخل نتائج البث سطراً سطراً ويرسلها للاعتماد", "في النسخة التجريبية: «إعادة التجربة» تمسح الخطوات وتسحب النتائج المنشورة، وهي متاحة لصاحب أي من صلاحيتي القرعة"],
-      src=["lib/staff.ts:24", "app/staff/_components/frame.tsx:171", "app/staff/lottery/view.tsx:58", "app/staff/lottery/view.tsx:94", "app/staff/lottery/view.tsx:476", "app/staff/dashboard/view.tsx:194"],
-      data=["direct_age_announcements", "lottery_draws", "lottery_draw_picks"]),
-
-    P("lottery.approve", "اعتماد ونشر النتائج",
-      "النصف الثاني من «القبول والقرعة»: يعتمد الأعمار المقبولة ويعلنها (فتُكتب في إعدادات الموسم ويصل إشعار لكل مقبول)، ويعتمد نتائج القرعة المرسلة وينشرها، فلا يقرر القبول إلا السحب المنشور. "
-      "في النسخة التجريبية: مديرة الموسم تحمل صلاحيتي الإدخال والاعتماد معاً، فتستطيع إدخال النتائج واعتمادها بنفسها؛ على الخادم يُمنع أن يعتمد الشخص ما أدخله.",
-      routes=["app/staff/lottery", "app/staff/dashboard"],
-      actions=["يعتمد الأعمار المقبولة مباشرة ويعلنها", "يعتمد نتائج القرعة المرسلة وينشرها بعد تأكيد"],
-      src=["lib/staff.ts:25", "app/staff/_components/frame.tsx:171", "app/staff/lottery/view.tsx:58", "app/staff/lottery/view.tsx:95", "app/staff/lottery/view.tsx:585", "app/staff/dashboard/view.tsx:195"],
-      data=["direct_age_announcements", "lottery_draws", "season_settings"]),
-
-    P("operations.room", "غرفة العمليات",
-      "البلاغات الحية من الحجاج وفرق المجموعات وزمن الاستجابة لكل بلاغ حتى إغلاقه، والمهام الداخلية للغرفة، والتقارير اليومية للتكتلات، وقرارات مثل اعتماد حافلة إضافية. "
-      "وتفتح «الملفات التشغيلية» للاطلاع دون تعديل.",
-      routes=["app/staff/operations", "app/staff/operational-files", "app/staff/dashboard"],
-      actions=["يسند بلاغاً إلى جهة ويضيف تحديثاً ويغيّر حالته حتى الحل", "ينشئ مهمة داخلية وينقلها بين أعمدتها", "يقرأ تقرير التكتل اليومي فيُعلَّم مقروءاً باسمه", "يعتمد اقتراح المنصة بحافلة إضافية", "يطّلع على الملفات التشغيلية"],
-      src=["lib/staff.ts:26", "app/staff/_components/frame.tsx:172", "app/staff/operations/view.tsx:26", "app/staff/operations/view.tsx:287", "app/staff/operational-files/view.tsx:51", "app/staff/dashboard/view.tsx:204"],
+    P("operations", "غرفة العمليات",
+      "البلاغات الحية كلها وزمن الاستجابة حتى الإغلاق، والمهام الداخلية، والتقارير اليومية للتكتلات (حساسة)، وقرارات الغرفة مثل اعتماد حافلة إضافية، وسجل المناوبة.",
+      routes=["app/staff/operations", "app/staff/dashboard"],
+      src=["app/staff/operations/view.tsx:27", "app/staff/operations/view.tsx:215"],
       data=["tickets", "ticket_updates", "internal_tasks", "internal_task_moves", "daily_reports", "ops_decisions"]),
 
-    P("audit.read", "سجل الأحداث",
-      "سجل كل إجراء باسم صاحبه ووقته والقيمة قبل وبعد، للقراءة فقط: لا يُعدَّل ولا يُحذف. ويُسجَّل اطلاعه وتصديره هو أيضاً. وتفتح معها «لوحة الإدارة العليا». "
-      "في النسخة التجريبية: «لوحتي» تعرض لصاحبها مهمة ثابتة «الرد على اعتراض الطلب 51877 مع الدليل» تقود إلى سجل الأحداث، ولا مكان فيه للرد.",
-      routes=["app/staff/audit", "app/staff/executive", "app/staff/dashboard"],
-      actions=["يصفّي السجل ويقرؤه", "يصدّر السجل", "يرى لوحة الإدارة العليا ويطبع تقريرها"],
-      src=["lib/staff.ts:27", "app/staff/_components/frame.tsx:175", "app/staff/audit/view.tsx:19", "app/staff/executive/view.tsx:35", "app/staff/dashboard/view.tsx:219"],
-      data=["audit_events"]),
-
-    P("content.manage", "إدارة محتوى الموقع",
-      "كل عنوان وفقرة وصورة في الموقع العام، ومجموعات المحتوى (الأخبار، الأسئلة الشائعة، أيام الدليل وأدعيته…): مسودة ثم نشر، مع نسخ سابقة تُستعاد. "
-      "صلاحية واحدة تسمح بكل شيء: التحرير والنشر والأرشفة والإرجاع، بلا فصل بين المحرر والناشر.",
-      routes=["app/staff/content", "app/staff/dashboard"],
-      actions=["يعدّل حقول أي قسم في أي صفحة في مسودة", "ينشر محتوى صفحة أو مجموعة محتوى أو يتجاهل المسودة", "ينشئ عنصراً في مجموعة محتوى ويعدّله ويؤرشفه", "يغيّر حالة صفحة ويؤرشف قسماً ويستعيده", "يرجع قسماً أو صفحة إلى نصها الأصلي", "يستعيد نسخة سابقة"],
-      src=["lib/staff.ts:28", "app/staff/_components/frame.tsx:168", "app/staff/content/view.tsx:30", "app/staff/dashboard/view.tsx:208"],
-      data=["cms_pages", "cms_page_sections", "cms_field_values", "cms_revisions", "news_articles", "faqs", "guide_days"]),
-
     P("medical", "الفريق الطبي",
-      "الوثائق الطبية التي يرفعها الحجاج بعد الانضمام إلى مجموعة، يعتمدها أو يعيدها بسبب؛ والملفات الصحية التي يأخذها المنسقون (من به مرض أو احتياج أو دواء دائم) للاطلاع؛ "
-      "والبلاغات الصحية من الميدان، تُفتح في بطاقة غرفة العمليات نفسها فيسندها ويحدّثها ويغيّر حالتها.",
+      "الوثائق الطبية التي يرفعها الحجاج، يعتمدها أو يعيدها؛ والحالات الصحية للمجموعات للاطلاع؛ والبلاغات الصحية من الميدان.",
       routes=["app/staff/medical", "app/staff/dashboard"],
-      actions=["يعتمد وثيقة طبية أو يعيدها مع ما فيها من خطأ", "يطّلع على الملفات الصحية للمجموعات", "يسند بلاغاً صحياً ويحدّثه ويغيّر حالته"],
-      src=["lib/staff.ts:29", "app/staff/_components/frame.tsx:173", "app/staff/medical/view.tsx:33", "app/staff/medical/view.tsx:127", "app/staff/dashboard/view.tsx:210"],
+      src=["app/staff/medical/view.tsx:35", "app/staff/medical/view.tsx:132"],
       data=["member_medical_documents", "tickets", "ticket_updates"]),
 
     P("transport", "المواصلات",
-      "بلاغات النقل من الميدان، ومن تحتاج حافلاتهم تجهيزاً (كرسي متحرك، صعوبة مشي، أكسجين، 75 عاماً فأكثر) بحسب الملفات الصحية، "
-      "والحافلات التي يعطيها لكل تكتل لكل قائمة قبل المناسك فيُجلس عليها منسقوه حجاجهم، وطلبات الحافلات الإضافية من المنسقين.",
+      "بلاغات النقل، ومن تحتاج حافلاتهم تجهيزاً (حساس، من الملفات الصحية)، والحافلات التي تُعطى لكل تكتل لكل قائمة، وطلبات الحافلات الإضافية من المنسقين.",
       routes=["app/staff/transport", "app/staff/dashboard"],
-      actions=["يضيف حافلة لتكتل على قائمة ويزيلها", "يعتمد طلب حافلة إضافية (49 مقعداً) أو يرفضه بسبب يراه المنسق", "يسند بلاغ نقل ويحدّثه ويغيّر حالته", "يرى من تحتاج حافلاتهم تجهيزاً"],
-      src=["lib/staff.ts:30", "app/staff/_components/frame.tsx:174", "app/staff/transport/view.tsx:29", "app/staff/transport/buses.tsx:122", "app/staff/dashboard/view.tsx:214"],
+      src=["app/staff/transport/view.tsx:30", "app/staff/transport/buses.tsx:20"],
       data=["rite_list_units", "bus_requests", "tickets", "ticket_updates"]),
 
-    P("ops.files", "الملفات التشغيلية والبيانات المرجعية",
-      "أماكن كل موسم (فنادق مكة والمدينة، قطاعات مكة، مراكز منى وعرفات، مخيماتها) والملفات التشغيلية لكل نوع (التسكين في مكة، مخيمات منى، مخيمات عرفات): "
-      "شجرة أماكن يُسند فيها الموظفون إلى أدوار وتُوزَّع عليها التكتلات. التعديل لموسم الحالي فقط وما لم ينتهِ الملف. ومن يسنده في برج أو مخيم يقيّم بعد الموسم إداريي التكتلات التي سكنته.",
-      routes=["app/staff/reference", "app/staff/operational-files", "app/staff/dashboard"],
-      actions=["يضيف فندقاً أو قطاعاً أو مركزاً أو مخيماً ويعدّله ويؤرشفه، وينقل عناصر من موسم سابق", "ينشئ ملفاً تشغيلياً فارغاً أو من ملف الموسم السابق", "يعدّل معلومات الملف ويُسند الموظفين إلى أدواره ويوزّع التكتلات على أماكنه",
-               "يفعّل الملف بعد سد المناصب الإلزامية وإدخال أرقام القرارات، أو يعيده إلى مسودة، أو يحذف مسودته"],
-      src=["lib/staff.ts:31", "app/staff/_components/frame.tsx:166", "app/staff/reference/view.tsx:40", "app/staff/reference/view.tsx:97", "app/staff/operational-files/view.tsx:125", "app/staff/operational-files/view.tsx:348", "app/staff/dashboard/view.tsx:220"],
-      data=["hotels", "sectors", "mashaer_centers", "camps", "operational_files", "op_file_outer_nodes", "op_file_inner_nodes", "op_inner_node_clusters", "op_file_assignments"]),
+    P("opfiles", "الملفات التشغيلية",
+      "ملف التسكين في مكة وملفا مخيمات منى وعرفات: أماكنها وتكتلاتها وإسناد الموظفين فيها، والتفعيل بعد سد المناصب الإلزامية وإدخال أرقام القرارات. تُمنح لنوع ملف أو أكثر، "
+      "وهواتف الموظفين فيها مورد حساس. وغرفة العمليات تُمنح عرضها وحده.",
+      routes=["app/staff/operational-files", "app/staff/dashboard"],
+      actions=["التعديل لموسم الحالي فقط وما لم ينتهِ الملف، وكل تصدير يُسجَّل"],
+      src=["app/staff/operational-files/view.tsx:52", "app/staff/operational-files/view.tsx:127"],
+      data=["operational_files", "op_file_outer_nodes", "op_file_inner_nodes", "op_inner_node_clusters", "op_file_assignments"]),
+
+    P("reference", "البيانات المرجعية",
+      "أماكن كل موسم: فنادق مكة والمدينة، وقطاعات مكة، ومراكز منى وعرفات، ومخيماتها. لكل قائمة إضافتها وتعديلها وأرشفتها ونقلها من الموسم السابق.",
+      routes=["app/staff/reference", "app/staff/dashboard"],
+      src=["app/staff/reference/view.tsx:41"],
+      data=["hotels", "sectors", "mashaer_centers", "camps"]),
+
+    P("audit", "سجل الأحداث",
+      "سجل كل إجراء باسم صاحبه ووقته والقيمة قبل وبعد، للقراءة فقط: لا يُعدَّل ولا يُحذف. وتصديره وتتبّع طلب فيه فعلان مستقلان، والتصدير نفسه يُسجَّل.",
+      routes=["app/staff/audit", "app/staff/dashboard"],
+      src=["app/staff/audit/view.tsx:20", "app/staff/audit/view.tsx:85"],
+      data=["audit_events"]),
+
+    P("executive", "لوحة الإدارة العليا",
+      "تقرير نهاية الموسم للإدارة العليا، وطباعته (تُسجَّل).",
+      routes=["app/staff/executive", "app/staff/dashboard"],
+      src=["app/staff/executive/view.tsx:36", "app/staff/executive/view.tsx:56"],
+      data=["audit_events"]),
+
+    P("content", "محتوى الموقع",
+      "كل عنوان وفقرة وصورة في الموقع العام، ومجموعات المحتوى (الأخبار، الأسئلة الشائعة، أيام الدليل…)، ومكتبة الوسائط، والنسخ السابقة: مسودة ثم نشر. "
+      "التحرير والنشر صلاحيتان، فيُفصل المحرر عن الناشر؛ وعناصر المجموعات تُمنح لمجموعة بعينها. وكل فعل فيه يُسجَّل، ومنه النسخ الاحتياطي واستيراده.",
+      routes=["app/staff/content", "app/staff/dashboard"],
+      src=["app/staff/content/view.tsx:32", "app/staff/content/_components/editor.tsx:44", "app/staff/content/_components/media.tsx:234", "app/staff/content/_components/revisions.tsx:36"],
+      data=["cms_pages", "cms_page_sections", "cms_field_values", "cms_revisions", "news_articles", "faqs", "guide_days"]),
+
+    P("evaluate", "تقييم الإداريين بعد الموسم",
+      "بعد الموسم يقيّم الموظف التكتلات التي سكنت حيث رابط في الملفات التشغيلية (برج أو مخيم)، ومجموعاتها وإدارييها، مرحلةً مرحلة، ما دامت نافذة تقييم الموظفين مفتوحة. "
+      "النطاق مواقعه في الملفات التشغيلية، لا يُختار في شاشة المنح.",
+      routes=["app/staff/evaluate"],
+      src=["app/staff/evaluate/view.tsx:70", "app/staff/evaluate/view.tsx:86"],
+      data=["staff_evaluations", "op_file_assignments"]),
 ]
 
 GRANTS = [
-    "نوعان من الصلاحيات (lib/staff.ts:44 و:68): صلاحيات المهام الاثنتا عشرة، كل منها تفتح مهمة واحدة؛ وصلاحيات الإدارة الخمس (إدارة الموظفين، التسجيل على الحج، الإداريين، الامتحانات، الطيران)، كل منها تفتح ملفاً كاملاً بلوحة تحكمه وكل عملياته، وتكفي وحدها لإدارته.",
-    "صلاحيات الإدارة يمنحها ويسحبها صاحب «منح صلاحيات الإدارة ومتابعتها» (مديرة الموسم) من «صلاحيات الإدارة» ← «من يحملها». يُسجَّل كل منح وسحب حدثاً مهماً باسم من فعله ووقته (lib/systems.ts:183، :187)، ويمكن أن يحمل الملفَ أكثر من موظف، وأن يبقى بلا حامل (تُنبَّه المديرة فقط).",
-    "صلاحيات المهام ثابتة لكل حساب. في النسخة التجريبية هي مكتوبة في الكود (STAFF) ولا شاشة تمنحها أو تسحبها؛ الخادم الحقيقي يحتاج شاشة منح لها (جدول staff_user_permissions) بسجل أحداث كالإدارة.",
-    "الصلاحيات تتراكب: الصلاحيات الفعلية للحساب = صلاحيات مهامه + صلاحيات الإدارة الممنوحة له الآن (withGrants، lib/systems.ts:144). تظهر في القائمة كل مداخلها معاً، والصفحة التي تقبل عدة صلاحيات تُفتح بأي منها (canAny، app/staff/_components/kit.tsx:57).",
-    "حين تُسحب صلاحية إدارة يختفي الملف من قائمة صاحبه فوراً وتُقفل صفحاته (SystemGate)، ولا يتغير شيء من بيانات الملف ولا مما فعله فيه: يبقى كل ذلك في سجل الأحداث باسمه، ويكمل الحاملون الآخرون.",
-    "مديرة الموسم تحمل كل صلاحيات المهام (ومنها منح صلاحيات الإدارة) ولا تحمل أي صلاحية إدارة: تتابع حال الملفات من الأعلى، ولا تفتح ملفاً إلا إن منحت نفسها صلاحيته. ويرفع إليها صاحب كل ملف «أمراً إلى المدير» من لوحة ملفه.",
-    "مواعيد العمليات الموسمية وحالتها يغيّرها صاحب الصلاحية المتحكمة بالعملية (control في lib/operations.ts) أو صاحب «إعدادات الموسم» (controls، lib/operations.ts:238)، وكل تغيير حدث مهم.",
-    "المواقع الميدانية ليست صلاحيات: مشرف القاعة يسنده صاحب «إدارة الامتحانات»، ومندوب المطار يسنده صاحب «إدارة الطيران»، والموظف في برج أو مخيم يسنده صاحب «الملفات التشغيلية». تظهر الصفحة ما دام الإسناد قائماً، وتختفي بإلغائه.",
-    "للإداريين جدول صلاحيات خاص بالصفات (app/administrator/_lib/permissions.ts:21) يعدّله صاحب «إدارة الإداريين»؛ فيه صلاحية واحدة الآن: «التسجيل على الحج»، للمنسق التقني افتراضياً. وتُفحص بصفة الإداري التي تقدّم بها، لا بفئته ولا بمكانه.",
-    "على الخادم: كل ما في هذه الوثيقة يُتحقق منه في كل طلب، لا بإخفاء الواجهة. في النسخة التجريبية التحقق كله في المتصفح، إلا ملف «إدارة التسجيل على الحج» (lib/registration/service.ts:355) الذي يرفض التعديل ويسجّل «محاولة تعديل غير مصرح بها».",
+    "الصلاحية مفتاح ‹النظام›.‹المورد›.‹الفعل› (lib/permissions.ts:48 CATALOG): 21 نظاماً، و132 مورداً، و399 صلاحية. الأفعال الأربعة GET (عرض) وPOST (إضافة) وPUT (تعديل) وDELETE (حذف)، "
+    "وأفعال بأسمائها حيث لا تكفي (اعتماد، نشر، إقفال، تصدير، إرجاع إلى الأصل…). والعرض نفسه صلاحية.",
+    "لا أدوار ولا إسناد لنظام: تُمنح كل صلاحية للموظف مباشرة (StaffUser.grants)، ويحفظ المنح من منح ومتى. يمنحها ويسحبها من يملك access.permissions.PUT من «صلاحيات الموظفين»، "
+    "و«نسخ من موظف آخر» يملأ المسودة مرة واحدة ولا يربط الموظفين بدور.",
+    "كل فعل على مورد يحتاج عرضه: من يُمنح POST أو PUT أو DELETE أو فعلاً خاصاً يُمنح GET المورد معه، ومن يُسحب منه GET يُسحب منه كل ما على المورد (app/staff/access/view.tsx:310).",
+    "النطاق: بعض الأنظمة والموارد تُمنح لمعرّفات بعينها — المركز في «قاعة الامتحان»، والمطار في «رحلات المطار»، والعملية في «مواعيد العمليات»، والمجموعة في «عناصر مجموعات المحتوى»، والمكتب، ونوع الملف التشغيلي. "
+    "بلا نطاق تسري في كل مكان. can(user, key, scopeId) يقبل بلا معرّف إن ملكها في أي مكان، فتظهر الصفحة، وكل قاعة أو مطار يفحص معرّفه (lib/permissions.ts:401).",
+    "يظهر النظام في القائمة لمن يملك عرض شيء فيه (seesSystem)، والصفحة تُفتح بأي من صلاحيات العرض فيها (Gate، SystemGate)، والأزرار تُخفى أو تُعطَّل بلا صلاحية فعلها، والبيانات الحساسة تُقنَّع بلا عرضها.",
+    "يُعاين المانح الفرق قبل الحفظ، ويُكتب كل نظام تغيّر حدثاً مهماً (system = access) بما مُنح وما سُحب وما تغيّر نطاقه. ولا يسحب أحد من نفسه access.permissions.PUT (app/staff/access/view.tsx:302).",
+    "حين تُسحب صلاحية يختفي ما تفتحه من قائمة صاحبها فوراً وتُقفل صفحتها، ولا يتغير شيء من البيانات ولا مما فعله: يبقى في سجل الأحداث باسمه.",
+    "فصل المهام: من أدخل نتائج القرعة لا يعتمدها ولو ملك الصلاحيتين (app/staff/lottery/view.tsx:594). والتحرير والنشر في المحتوى صلاحيتان، فيُمنح كل منهما لموظف.",
+    "للإداريين جدول صلاحيات خاص بالصفات (app/administrator/_lib/permissions.ts:21) يعدّله من يملك admins.role-permissions.PUT؛ فيه صلاحية واحدة الآن: «التسجيل على الحج»، للمنسق التقني افتراضياً.",
+    "على الخادم: كل ما في هذه الوثيقة يُتحقق منه في كل طلب، بالمفتاح ونطاقه. في النسخة التجريبية التحقق في المتصفح، إلا «إدارة التسجيل على الحج» (lib/registration/service.ts:355) الذي يرفض الفعل ويسجّل «محاولة تعديل غير مصرح بها».",
 ]
 
 DEMO_ACCOUNTS = [
-    ("سهى مراد", "suha", "مديرة الموسم", "كل صلاحيات المهام الاثنتي عشرة، ومنها «منح صلاحيات الإدارة ومتابعتها»؛ ولا صلاحية إدارة"),
-    ("رنا حداد", "rana", "إدارة التسجيل", "مراجعة الطلبات والوثائق"),
-    ("رزان الحسن", "razan", "إدخال بيانات — التسجيل على الحج", "التسجيل على الحج"),
-    ("هبة القدسي", "hiba", "مسؤولة إدارة التسجيل على الحج", "إدارة التسجيل على الحج"),
-    ("كنان الأحمد", "kinan", "إدارة التسجيل — إدخال نتائج القرعة", "إدخال نتائج القرعة"),
-    ("يوسف الزعبي", "yousef", "لجنة اعتماد ونشر نتائج القرعة", "اعتماد ونشر النتائج"),
-    ("منير السيد", "munir", "مسؤول الامتحانات", "إدارة الامتحانات"),
-    ("مازن الحلبي", "mazen", "مدير المكتب", "إدارة الإداريين"),
-    ("فادي سلوم", "fadi", "غرفة العمليات — مكة", "غرفة العمليات"),
-    ("عمر الشامي", "omar", "مندوب مطار دمشق — الإقلاع والهبوط", "لا صلاحية؛ مندوب مطار دمشق يسنده صاحب «إدارة الطيران»"),
-    ("د. ليلى شمس", "layla", "الفريق الطبي", "الفريق الطبي"),
-    ("هيثم زيدان", "haitham", "مسؤول الطيران", "إدارة الطيران"),
-    ("باسل النوري", "bassel", "فريق المواصلات", "المواصلات"),
-    ("طارق مصطفى", "tarek", "التدقيق", "سجل الأحداث"),
-    ("سامي حلاق (أبو سامي)", "abusami", "الموارد البشرية", "إدارة الموظفين"),
-    ("نور العابد", "nour", "محرّرة محتوى المنصة", "إدارة محتوى الموقع"),
-    ("غسان العمر", "ghassan", "مدير شؤون البعثة — الملفات التشغيلية", "الملفات التشغيلية والبيانات المرجعية"),
-    ("لبنى الشهابي", "lubna", "مديرة موسم مساعدة — لا تملك صلاحية النشر", "إعدادات الموسم"),
-    ("وسام خوري", "wissam", "مشرف برج — فندق أبراج النور", "لا صلاحية؛ مشرف برج يسنده صاحب «الملفات التشغيلية»، ويقيّم بعد الموسم إداريي تكتل النور"),
-    ("نسرين الحكيم", "nisreen", "مشرفة قاعة امتحانية — مركز دمشق", "لا صلاحية؛ مشرفة قاعة يسندها صاحب «إدارة الامتحانات»"),
+    ("نور الأعرج", "nour.a", "مدير الموسم", "صلاحيات الموظفين، التسجيل في المكتب، المراجعة، إعدادات الموسم، القرعة، غرفة العمليات، سجل الأحداث، لوحة الإدارة العليا، المحتوى، الطبي، المواصلات، الملفات التشغيلية، البيانات المرجعية — كاملة"),
+    ("رنا حداد", "rana", "إدارة التسجيل", "مراجعة الطلبات والوثائق — كاملة"),
+    ("رزان الحسن", "razan", "إدخال بيانات — التسجيل على الحج", "التسجيل في المكتب — كاملة"),
+    ("هبة القدسي", "hiba", "مسؤولة إدارة التسجيل على الحج", "إدارة التسجيل على الحج — كاملة؛ مواعيد نافذتي التسجيل"),
+    ("كنان الأحمد", "kinan", "إدارة التسجيل — إدخال نتائج القرعة", "القرعة: إرسال الأعمار، تصدير الإحصاء، إدخال النتائج وإرسالها"),
+    ("يوسف الزعبي", "yousef", "لجنة اعتماد ونشر نتائج القرعة", "القرعة: اعتماد الأعمار، اعتماد النتائج ونشرها"),
+    ("منير السيد", "munir", "مسؤول الامتحانات", "إدارة الامتحانات — كاملة؛ مواعيد الاختبارات والشفهي"),
+    ("مازن الحلبي", "mazen", "مدير المكتب", "إدارة الإداريين — كاملة؛ مواعيد عمليات الإداريين التسع"),
+    ("فادي سلوم", "fadi", "غرفة العمليات — مكة", "غرفة العمليات — كاملة؛ عرض الملفات التشغيلية"),
+    ("عمر الشامي", "omar", "مندوب مطار دمشق — الإقلاع والهبوط", "رحلات المطار — مطار دمشق"),
+    ("د. ليلى شمس", "layla", "الفريق الطبي", "الفريق الطبي — كاملة؛ تقييم الإداريين"),
+    ("هيثم زيدان", "haitham", "مسؤول الطيران", "إدارة الطيران — كاملة"),
+    ("باسل النوري", "bassel", "فريق المواصلات", "المواصلات — كاملة؛ تقييم الإداريين"),
+    ("طارق مصطفى", "tarek", "التدقيق", "سجل الأحداث، لوحة الإدارة العليا"),
+    ("سامي حلاق (أبو سامي)", "abusami", "الموارد البشرية", "إدارة الموظفين — كاملة"),
+    ("نور العابد", "nour", "محرّرة محتوى المنصة", "محتوى الموقع — كاملة"),
+    ("غسان العمر", "ghassan", "مدير شؤون البعثة — الملفات التشغيلية", "الملفات التشغيلية، البيانات المرجعية — كاملة"),
+    ("لبنى الشهابي", "lubna", "مديرة موسم مساعدة — لا تملك صلاحية النشر", "إعدادات الموسم، لوحة الإدارة العليا"),
+    ("وسام خوري", "wissam", "مشرف برج — فندق أبراج النور", "تقييم الإداريين بعد الموسم (يقيّم إداريي تكتل النور)"),
+    ("نسرين الحكيم", "nisreen", "مشرفة قاعة امتحانية — مركز دمشق", "قاعة الامتحان — مركز دمشق"),
 ]

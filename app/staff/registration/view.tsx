@@ -1,14 +1,16 @@
 "use client";
 
-import { ShieldCheck, UserRoundPlus, UsersRound } from "lucide-react";
+import { Lock, ShieldCheck, UserRoundPlus, UsersRound } from "lucide-react";
 import { RegistrationDesk, type Registrar } from "@/app/portal/(admin)/pilgrims/pilgrims";
-import { Gate, PageHeader, logAs, useStaffUser } from "../_components/kit";
+import { can, Empty, Gate, PageHeader, logAs, useStaffUser } from "../_components/kit";
+import { viewKeys } from "@/lib/permissions";
 
 /**
- * «التسجيل على الحج» for a staff member who holds that permission alone — data entry. He registers any
- * pilgrim in the registration's dates, with the same steps and the citizen's consent by code. The
- * permission gives nothing else: no group, no cluster, no administrator; registering never puts the
- * pilgrim in a group.
+ * «التسجيل على الحج» for a staff member at the office — data entry. He registers any pilgrim in the
+ * registration's dates, with the same steps and the citizen's consent by code: the desk searches the civil
+ * registry (`office.citizens.GET`, sensitive) and files the application (`office.applications.POST`), so it
+ * opens with both. Nothing else comes with them: no group, no cluster, no administrator; registering never puts
+ * the pilgrim in a group.
  */
 export function RegistrationView() {
   const user = useStaffUser()!;
@@ -21,13 +23,17 @@ export function RegistrationView() {
     staff: true,
     log: (action, target, detail) => logAs(user, { action, target, detail }),
   };
+  const desk = can(user, "office.citizens.GET") && can(user, "office.applications.POST");
   return (
-    <Gate perms={["pilgrims.register"]}>
+    <Gate perms={viewKeys("office")}>
       <PageHeader
         title="التسجيل على الحج"
         icon={<UserRoundPlus />}
         description="سجّل من يراجع المكتب على الحج في مدة التسجيل، بموافقته برمز يصل إلى هاتفه. يُختم اسمك على الطلب."
       />
+      {!desk ? (
+        <Empty icon={<Lock />} title="التسجيل يحتاج صلاحيتين" text="«عرض — البحث في السجل المدني» و«إضافة — الطلبات التي سجّلها» معاً: يُبحث عن المواطن في السجل المدني ثم يُسجَّل طلبه. تُمنحان من «صلاحيات الموظفين»." />
+      ) : (
       <div className="rounded-[2rem] bg-sand p-4 text-ink md:p-6">
         <RegistrationDesk
           registrar={registrar}
@@ -46,6 +52,7 @@ export function RegistrationView() {
           }
         />
       </div>
+      )}
     </Gate>
   );
 }

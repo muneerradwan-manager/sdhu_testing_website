@@ -62,7 +62,7 @@ import {
 } from "@/app/administrator/_lib/halls";
 import { useExamDesk, type AttemptRow } from "../exam/_components/desk";
 import type { AdminRow } from "../_components/data";
-import { Empty, PageHeader, Tabs, fmtTime, logAs, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
+import { can, Empty, PageHeader, Tabs, fmtTime, logAs, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
 import { SearchBox } from "../_components/ops-ui";
 import { Box, EditLayout, EmptyRow, ListTable, RowActions, RowLink } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
@@ -89,6 +89,17 @@ const CONFIRM_AFTER_CLOSE = 3 * 3_600_000;
 const DARK_MODAL = "max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white";
 
 /** «09:41» — hours only when there are some */
+/** May the signed-in supervisor do this in this hall: every act of «قاعة الامتحان» is granted for a centre */
+function useHallCan(center: ExamCenter) {
+  const user = useStaffUser();
+  return (key: string) => can(user, `hall.${key}`, center.id);
+}
+
+/** In place of a button its holder lacks: what it needs */
+function Needs({ what }: { what: string }) {
+  return <span className="text-xs text-white/55">يحتاج صلاحية «{what}» لهذه القاعة.</span>;
+}
+
 function clock(ms: number) {
   const s = Math.max(0, Math.ceil(ms / 1000));
   const p = (n: number) => String(n).padStart(2, "0");
@@ -135,8 +146,8 @@ export function HallView() {
   if (!centers.length) {
     return (
       <div>
-        <PageHeader eyebrow="الاختبار المؤتمت" title="قاعتي الامتحانية" icon={<DoorClosed />} description="تظهر هذه الصفحة لمن يسنده صاحب صلاحية «إدارة الامتحانات» مشرفاً على قاعة." />
-        <Empty icon={<Lock />} title="لست مشرف قاعة في أي قاعة" text="يسند صاحب صلاحية «إدارة الامتحانات» مشرف كل قاعة من «القاعات والمحافظات»." />
+        <PageHeader eyebrow="الاختبار المؤتمت" title="قاعتي الامتحانية" icon={<DoorClosed />} description="تظهر هذه الصفحة لمن يملك صلاحية «قاعة الامتحان» لقاعة بعينها." />
+        <Empty icon={<Lock />} title="لست مشرف قاعة في أي قاعة" text="تُمنح صلاحية «قاعة الامتحان» لقاعة بعينها من «صلاحيات الموظفين»." />
       </div>
     );
   }
@@ -204,7 +215,7 @@ function Sittings({ items, onOpen }: { items: SittingRef[]; onOpen: (key: string
   const demoNow = useDemoNow();
   return (
     <ListTable head={["جلساتي", "الموعد", "الحالة"]} minWidth="36rem">
-      {!items.length && <EmptyRow cols={3}>لا توجد جلسات اختبار مسندة إليك. تظهر هنا جلسة كل اختبار منشور في قاعتك حين ينشره صاحب صلاحية «إدارة الامتحانات».</EmptyRow>}
+      {!items.length && <EmptyRow cols={3}>لا توجد جلسات اختبار مسندة إليك. تظهر هنا جلسة كل اختبار منشور في قاعتك حين يُنشر من «إدارة الامتحانات».</EmptyRow>}
       {items.map(({ exam, center, key }) => {
         const run = halls.runs[key];
         const stage = stageOf(run);
@@ -301,6 +312,7 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
   const bank = useExamBank();
   const demoNow = useDemoNow();
   const s = useSitting(center, exam);
+  const may = useHallCan(center);
   const { key, run, stage, counts } = s;
   const pin = halls.pins[user.id];
   const target = `${exam.name} — ${center.name}`;
@@ -313,18 +325,21 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
   const log = (action: string, detail?: string) => logAs(user, { action, target, detail, system: "exams", area: "sittings", ref: key });
 
   const open = (reason: string) => {
+    if (!may("sittings.open")) return;
     hallActions.open(key, user.name, outside ? reason : undefined);
     log("فتح قاعة", outside ? `خارج موعدها (${WINDOW_LABEL[win]}) — ${reason}` : `${counts.listed} مدرجين`);
     toast({ title: "فُتحت القاعة", body: "سجّل حضور المتقدمين، ثم وافق على طلبات دخول أجهزتهم.", tone: "success", icon: "🚪" });
     setTab("attendance");
   };
   const start = () => {
+    if (!may("sittings.start")) return;
     hallActions.start(key);
     log("بدء اختبار", `${counts.ready} مقترنين — ${exam.minutes} دقيقة لكل منهم من لحظة دخوله`);
     toast({ title: "بدأ الاختبار", body: "بدأ المقترنون الآن، ومن يدخل لاحقاً يبدأ وقته من دخوله.", tone: "success", icon: "▶️" });
     setTab("monitor");
   };
   const end = () => {
+    if (!may("sittings.end")) return;
     hallActions.end(key, bank, () => pin);
     log("إنهاء جلسة", `${counts.present} حاضرين، ${counts.absent} غائبين — سُلّم تلقائياً ${counts.active}، وأُلغي ${counts.ready}`);
     toast({ title: "انتهت الجلسة وأُغلقت القاعة", body: target, tone: "success", icon: "🏁" });
@@ -370,23 +385,32 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
                 {stage === "closed" && `حضر ${counts.present} وغاب ${counts.absent}. المؤكَّدة ${counts.confirmed}، وبانتظار التأكيد ${counts.submitted}، وغير المؤكَّدة ${counts.unconfirmed}، والملغاة ${counts.voided}.`}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                {stage === "idle" && (
-                  <Button variant="gold" onClick={() => setAsk("open")}>
-                    <DoorOpen className="size-4" /> فتح القاعة
-                  </Button>
-                )}
-                {stage === "open" && (
-                  <Button variant="gold" onClick={() => setAsk("start")}>
-                    <Play className="size-4" /> بدء الاختبار
-                  </Button>
-                )}
-                {stage === "running" && (
-                  <Button variant="maroon" onClick={() => setAsk("end")}>
-                    <Square className="size-4" /> إنهاء الاختبار وإغلاق القاعة
-                  </Button>
-                )}
+                {stage === "idle" &&
+                  (may("sittings.open") ? (
+                    <Button variant="gold" onClick={() => setAsk("open")}>
+                      <DoorOpen className="size-4" /> فتح القاعة
+                    </Button>
+                  ) : (
+                    <Needs what="فتح القاعة" />
+                  ))}
+                {stage === "open" &&
+                  (may("sittings.start") ? (
+                    <Button variant="gold" onClick={() => setAsk("start")}>
+                      <Play className="size-4" /> بدء الاختبار
+                    </Button>
+                  ) : (
+                    <Needs what="بدء الاختبار" />
+                  ))}
+                {stage === "running" &&
+                  (may("sittings.end") ? (
+                    <Button variant="maroon" onClick={() => setAsk("end")}>
+                      <Square className="size-4" /> إنهاء الاختبار وإغلاق القاعة
+                    </Button>
+                  ) : (
+                    <Needs what="إنهاء الاختبار وإغلاق القاعة" />
+                  ))}
                 {stage === "running" && run?.startedAt && <TimeLeft startedAt={run.startedAt} minutes={exam.minutes} />}
-                {stage === "closed" && (
+                {stage === "closed" && may("sittings.open") && (
                   <Sim onClick={() => hallActions.reset(key)}>
                     <RotateCcw className="size-4" /> إعادة التجربة: الجلسة من بدايتها
                   </Sim>
@@ -448,8 +472,8 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
               </p>
               {stage === "open" || stage === "running" ? (
                 <div className="flex flex-col items-start gap-2">
-                  <RowLink onClick={pickNetwork}>تحديد شبكة القاعة</RowLink>
-                  {!run?.mobileData && <RowLink onClick={() => setAsk("mobile")}>السماح ببيانات الجوال (طوارئ)</RowLink>}
+                  {may("network.PUT") && <RowLink onClick={pickNetwork}>تحديد شبكة القاعة</RowLink>}
+                  {!run?.mobileData && may("network.allow-mobile-data") && <RowLink onClick={() => setAsk("mobile")}>السماح ببيانات الجوال (طوارئ)</RowLink>}
                 </div>
               ) : (
                 <p className="text-xs text-white/55">تُسجَّل شبكة القاعة حين تفتحها.</p>
@@ -461,7 +485,7 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
               <CopyLink icon={<Smartphone />} label="رابط دخول المتقدمين" hint="يفتحه المتقدم على جهازه ويُدخل رقمه الوطني." path="/portal/exam" />
             </Box>
 
-            <PinBox refKey={key} />
+            {can(user, "hall.pin.PUT", center.id) && <PinBox refKey={key} />}
           </>
         }
       />
@@ -512,6 +536,7 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
         title={target}
         confirm="تسجيلها شبكة القاعة"
         onConfirm={() => {
+          if (!may("network.PUT")) return;
           hallActions.setNetwork(key, net);
           log("تحديد شبكة القاعة", `${run?.network ?? "—"} ← ${net}`);
           toast({ title: "سُجّلت شبكة القاعة", body: net, tone: "success", icon: "📶" });
@@ -529,6 +554,7 @@ function SittingPage({ center, exam, onBack }: { center: ExamCenter; exam: ExamD
         title={target}
         confirm="السماح ببيانات الجوال"
         onConfirm={() => {
+          if (!may("network.allow-mobile-data")) return;
           hallActions.allowMobileData(key);
           log("سماح ببيانات الجوال", "تعطّلت شبكة القاعة");
           toast({ title: "سُمح ببيانات الجوال", body: "حتى نهاية الجلسة.", tone: "warning", icon: "📱" });
@@ -580,12 +606,16 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
   const [q, setQ] = useState("");
   const [show, setShow] = useState<"all" | "absent" | "present">("all");
   const [undo, setUndo] = useState<Sitter | null>(null);
+  const may = useHallCan(center);
+  const canCheckIn = may("attendance.POST");
+  const canUndo = may("attendance.DELETE");
   const live = s.stage === "open" || s.stage === "running";
   const isPresent = (id: string) => !!s.run?.present[id];
   const where = `${exam.name} — ${center.name}`;
   const log = (action: string, x: Sitter, detail: string) => logAs(user, { action, target: x.name, detail: `${detail} — ${where}`, system: "exams", area: "sittings", ref: s.key });
 
   const checkIn = (x: Sitter, how: string) => {
+    if (!canCheckIn) return;
     hallActions.checkIn(s.key, x.id);
     log("تسجيل حضور", x, how);
   };
@@ -621,7 +651,9 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
   return (
     <div className="space-y-4">
       <Section icon={<ScanBarcode />} title="تسجيل الحضور">
-        {live ? (
+        {live && !canCheckIn ? (
+          <Needs what="إضافة — الحضور" />
+        ) : live ? (
           <>
             <form
               onSubmit={(e) => {
@@ -697,7 +729,7 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
           </div>
         </div>
         <ListTable head={["المتقدم", "الحال", ""]} minWidth="30rem">
-          {!s.sitters.length && <EmptyRow cols={3}>لا مدرجين في هذه الجلسة: يُدرج هنا كل من سدّد رسم التسجيل لصفة هذا الاختبار وقاعته هذه، أو نقله إليها صاحب صلاحية «إدارة الامتحانات».</EmptyRow>}
+          {!s.sitters.length && <EmptyRow cols={3}>لا مدرجين في هذه الجلسة: يُدرج هنا كل من سدّد رسم التسجيل لصفة هذا الاختبار وقاعته هذه، أو نقله إليها من يملك «نقل متقدمين إلى قاعة».</EmptyRow>}
           {!!s.sitters.length && !shown.length && <EmptyRow cols={3}>لا أحد يطابق البحث.</EmptyRow>}
           {shown.map((x) => {
             const present = isPresent(x.id);
@@ -723,12 +755,12 @@ function Attendance({ s, exam, center }: { s: SittingData; exam: ExamDef; center
                   )}
                 </td>
                 <td className="p-3 text-left">
-                  {live && !present && (
+                  {live && !present && canCheckIn && (
                     <Button size="sm" variant="gold" onClick={() => checkIn(x, "يدوياً من القائمة")}>
                       <UserCheck className="size-4" /> تسجيل حضور
                     </Button>
                   )}
-                  {live && present && (
+                  {live && present && canUndo && (
                     <Button size="sm" variant="glass" disabled={!!why} title={why || undefined} onClick={() => setUndo(x)}>
                       تراجع عن الحضور
                     </Button>
@@ -770,6 +802,9 @@ function Requests({ s, exam, center }: { s: SittingData; exam: ExamDef; center: 
   const [approving, setApproving] = useState<{ x: Sitter; r: EntryRequest } | null>(null);
   const [rejecting, setRejecting] = useState<{ x: Sitter; r: EntryRequest } | null>(null);
   const [suspicious, setSuspicious] = useState(false);
+  const may = useHallCan(center);
+  const canApprove = may("entry-requests.approve");
+  const canReject = may("entry-requests.reject");
   const live = s.stage === "open" || s.stage === "running";
   const where = `${exam.name} — ${center.name}`;
   const log = (action: string, x: Sitter, detail: string, important?: boolean) => logAs(user, { action, target: x.name, detail: `${detail} — ${where}`, important, system: "exams", area: "sittings", ref: s.key });
@@ -778,6 +813,7 @@ function Requests({ s, exam, center }: { s: SittingData; exam: ExamDef; center: 
     .map(([id, r]) => ({ x: s.sitters.find((y) => y.id === id) ?? { id, name: adminName(id) }, r }));
 
   const approve = (x: Sitter, r: EntryRequest, reason?: string) => {
+    if (!canApprove) return;
     hallActions.approve(s.key, x.id, sourceOf(exam, bank));
     log("موافقة اقتران", x, [`رمز ${r.code}`, r.offNetwork && "من خارج شبكة القاعة", r.resume && "استئناف / إعادة دخول", reason].filter(Boolean).join(" — "));
     toast({ title: `دخل ${x.name.split(" ")[0]}`, body: s.stage === "running" ? "بدأ وقته من الآن." : "يبدأ حين تبدأ الاختبار.", tone: "success", icon: "📱" });
@@ -844,14 +880,15 @@ function Requests({ s, exam, center }: { s: SittingData; exam: ExamDef; center: 
                 )}
               </div>
               <div className="mt-3 flex gap-2">
-                <Button size="sm" variant="gold" className="flex-1" disabled={!live} onClick={() => (r.offNetwork || r.resume ? setApproving({ x, r }) : approve(x, r))}>
+                <Button size="sm" variant="gold" className="flex-1" disabled={!live || !canApprove} title={canApprove ? undefined : "يحتاج صلاحية «موافقة» على طلبات الدخول"} onClick={() => (r.offNetwork || r.resume ? setApproving({ x, r }) : approve(x, r))}>
                   <Check className="size-4" /> موافقة
                 </Button>
                 <Button
                   size="sm"
                   variant="glass"
                   className="flex-1"
-                  disabled={!live}
+                  disabled={!live || !canReject}
+                  title={canReject ? undefined : "يحتاج صلاحية «رفض» طلبات الدخول"}
                   onClick={() => {
                     setSuspicious(false);
                     setRejecting({ x, r });
@@ -891,6 +928,7 @@ function Requests({ s, exam, center }: { s: SittingData; exam: ExamDef; center: 
         confirm="رفض الطلب"
         onConfirm={(reason) => {
           if (!rejecting) return;
+          if (!canReject) return;
           hallActions.reject(s.key, rejecting.x.id);
           log(suspicious ? "رفض مشبوه" : "رفض اقتران", rejecting.x, [`رمز ${rejecting.r.code}`, reason].filter(Boolean).join(" — "), suspicious || undefined);
           toast({ title: suspicious ? "رُفض الطلب وسُجّل مشبوهاً" : "رُفض الطلب", body: rejecting.x.name, tone: "warning", icon: "⛔" });
@@ -938,6 +976,10 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
   const [picked, setPicked] = useState<string[]>([]);
   const [confirming, setConfirming] = useState<AttemptRow | null>(null);
   const [refusing, setRefusing] = useState<AttemptRow | null>(null);
+  const may = useHallCan(center);
+  const canOne = may("submissions.confirm");
+  const canBatch = may("submissions.confirm-batch");
+  const canRefer = may("submissions.refer");
   const where = `${exam.name} — ${center.name}`;
   const closedAt = s.run?.closedAt ?? s.run?.endedAt;
   const canConfirm = s.stage === "open" || s.stage === "running" || (s.stage === "closed" && !!closedAt && now - closedAt < CONFIRM_AFTER_CLOSE);
@@ -948,6 +990,7 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
   const log = (action: string, target: string, detail: string) => logAs(user, { action, target, detail: `${detail} — ${where}`, system: "exams", area: "sittings", ref: s.key });
 
   const confirmBatch = () => {
+    if (!canBatch) return;
     hallActions.confirm(s.key, chosen, user.name, "batch");
     log("تأكيد جماعي", where, `${chosen.length} محاولات بلا تنبيهات`);
     toast({ title: `أُكّدت ${chosen.length} محاولات`, body: "المحاولات ذات التنبيهات تُؤكَّد واحدة واحدة.", tone: "success", icon: "✅" });
@@ -975,7 +1018,7 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
             محاكاة: يسلّم من يختبرون{active.length ? ` (${active.length})` : ""}
           </Sim>
         )}
-        {canConfirm && clean.length > 0 && (
+        {canConfirm && canBatch && clean.length > 0 && (
           <>
             <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm font-bold ring-1 ring-white/10">
               <input type="checkbox" checked={chosen.length === clean.length} onChange={(e) => setPicked(e.target.checked ? clean : [])} className="size-4 accent-[#D9C89E]" />
@@ -1028,14 +1071,18 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
                 </span>
               </td>
               <td className="p-3 text-left">
-                {a.status === "submitted" && canConfirm && (
+                {a.status === "submitted" && canConfirm && (canOne || canRefer) && (
                   <span className="inline-flex gap-2">
-                    <Button size="sm" variant="gold" onClick={() => setConfirming(a)}>
-                      <ShieldCheck className="size-4" /> تأكيد
-                    </Button>
-                    <Button size="sm" variant="glass" onClick={() => setRefusing(a)}>
-                      لا أؤكد
-                    </Button>
+                    {canOne && (
+                      <Button size="sm" variant="gold" onClick={() => setConfirming(a)}>
+                        <ShieldCheck className="size-4" /> تأكيد
+                      </Button>
+                    )}
+                    {canRefer && (
+                      <Button size="sm" variant="glass" onClick={() => setRefusing(a)}>
+                        لا أؤكد
+                      </Button>
+                    )}
                   </span>
                 )}
               </td>
@@ -1053,6 +1100,7 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
         onConfirm={() => {
           if (!confirming) return;
           const alerts = alertLabels(confirming.attempt);
+          if (!canOne) return;
           hallActions.confirm(s.key, [confirming.row.id], user.name, "panel");
           log("تأكيد تسليم", confirming.row.name, `من لوحة المشرف${alerts.length ? ` — مع تنبيهات: ${alerts.join("، ")}` : ""}`);
           toast({ title: "أُكّد التسليم", body: confirming.row.name, tone: "success", icon: "✅" });
@@ -1076,6 +1124,7 @@ function Monitor({ s, exam, center }: { s: SittingData; exam: ExamDef; center: E
         confirm="إحالة إلى الإدارة"
         onConfirm={(reason) => {
           if (!refusing) return;
+          if (!canRefer) return;
           hallActions.unconfirm(s.key, refusing.row.id, reason);
           log("عدم تأكيد", refusing.row.name, reason);
           toast({ title: "أُحيلت المحاولة إلى الإدارة", body: refusing.row.name, tone: "warning", icon: "📨" });

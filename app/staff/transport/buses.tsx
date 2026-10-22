@@ -6,16 +6,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { allClusterIds, clusterName } from "@/lib/flights";
 import { LIST_KINDS, listKind, listsActions, plannedUnits, useClusterUnits, useLists, type ListKind } from "@/lib/rite-lists";
-import { smallInputClass, useStaffUser } from "../_components/kit";
+import { can, smallInputClass, useStaffUser } from "../_components/kit";
 import { EmptyRow, ListTable, Tag } from "../_components/wp";
 
 /**
  * The buses each cluster rides before each rite: the transport team gives them here; the cluster's technical
  * coordinators seat their groups' pilgrims and administrators on them in «القوائم». (The Rawdah's lists, of its men
- * and its women, need no bus.)
+ * and its women, need no bus.) Giving one needs `transport.buses.POST`, taking it back `.DELETE`; the
+ * coordinators' requests `transport.bus-requests.…`.
  */
 export function ClusterBuses() {
   const user = useStaffUser();
+  const mayAdd = can(user, "transport.buses.POST");
+  const mayRemove = can(user, "transport.buses.DELETE");
   const toast = useToast();
   const clusters = allClusterIds();
   const [clusterId, setClusterId] = useState(clusters[0] ?? "");
@@ -30,7 +33,7 @@ export function ClusterBuses() {
 
   const add = () => {
     const n = Number(seats);
-    if (!clusterId || !label.trim() || !(n > 0)) return;
+    if (!mayAdd || !clusterId || !label.trim() || !(n > 0)) return;
     listsActions.addUnit({ clusterId, kind, label: label.trim(), plate: plate.trim() || undefined, driver: driver.trim() || undefined, seats: n, when: k.when, by: user?.name ?? "فريق المواصلات" });
     toast({ title: `أُسندت ${label.trim()}`, body: `${clusterName(clusterId)} — قائمة ${k.label}. يراها منسقو التكتل في «القوائم».`, tone: "success", icon: "🚌" });
     setLabel("");
@@ -40,65 +43,73 @@ export function ClusterBuses() {
 
   return (
     <div className="space-y-4">
-      <BusRequestsDesk />
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="block text-sm text-white/75">
-          التكتل
-          <select value={clusterId} onChange={(e) => setClusterId(e.target.value)} className={`${smallInputClass} mt-1`} aria-label="التكتل">
-            {clusters.map((id) => <option key={id} value={id} className="text-ink">{clusterName(id)}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm text-white/75">
-          القائمة
-          <select value={kind} onChange={(e) => setKind(e.target.value as ListKind)} className={`${smallInputClass} mt-1`} aria-label="القائمة">
-            {LIST_KINDS.filter((x) => x.key !== "rawdah").map((x) => <option key={x.key} value={x.key} className="text-ink">{x.label} — {x.when}</option>)}
-          </select>
-        </label>
-      </div>
+      {can(user, "transport.bus-requests.GET") && <BusRequestsDesk />}
+      {can(user, "transport.buses.GET") && (
+        <>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="block text-sm text-white/75">
+              التكتل
+              <select value={clusterId} onChange={(e) => setClusterId(e.target.value)} className={`${smallInputClass} mt-1`} aria-label="التكتل">
+                {clusters.map((id) => <option key={id} value={id} className="text-ink">{clusterName(id)}</option>)}
+              </select>
+            </label>
+            <label className="block text-sm text-white/75">
+              القائمة
+              <select value={kind} onChange={(e) => setKind(e.target.value as ListKind)} className={`${smallInputClass} mt-1`} aria-label="القائمة">
+                {LIST_KINDS.filter((x) => x.key !== "rawdah").map((x) => <option key={x.key} value={x.key} className="text-ink">{x.label} — {x.when}</option>)}
+              </select>
+            </label>
+          </div>
 
-      <ListTable head={["الحافلة", "اللوحة والسائق", "المقاعد", "عليها", ""]}>
-        {units.length === 0 && <EmptyRow cols={5}>لا حافلات لهذا التكتل في هذه القائمة. أسندها من النموذج أدناه.</EmptyRow>}
-        {units.map((u) => {
-          const on = lists.seats[u.id]?.length ?? 0;
-          return (
-            <tr key={u.id}>
-              <td className="p-3 font-bold">
-                {u.label}
-                <span className="block text-xs font-normal text-white/55">{u.when}</span>
-              </td>
-              <td className="p-3 text-white/80">{u.plate ?? "—"}{u.driver && <span className="block text-xs text-white/55">{u.driver}{u.driverPhone && <> — <span dir="ltr">{u.driverPhone}</span></>}</span>}</td>
-              <td className="p-3 tabular-nums">{u.seats}</td>
-              <td className="p-3">{on >= u.seats ? <Tag tone="gold">اكتملت {on}</Tag> : on ? <Tag tone="green">{on}</Tag> : <Tag>لا أحد</Tag>}</td>
-              <td className="p-3 text-end">
-                <button
-                  type="button"
-                  aria-label={`سحب ${u.label}`}
-                  onClick={() => {
-                    listsActions.removeUnit(u, user?.name ?? "فريق المواصلات");
-                    toast({ title: `سُحبت ${u.label}`, body: on ? `ونُزل عنها ${on} — يعيد المنسق وضعهم على غيرها.` : undefined, tone: "info" });
-                  }}
-                  className="rounded-lg p-1.5 text-white/70 hover:bg-maroon hover:text-white"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </ListTable>
+          <ListTable head={["الحافلة", "اللوحة والسائق", "المقاعد", "عليها", ""]}>
+            {units.length === 0 && <EmptyRow cols={5}>لا حافلات لهذا التكتل في هذه القائمة. أسندها من النموذج أدناه.</EmptyRow>}
+            {units.map((u) => {
+              const on = lists.seats[u.id]?.length ?? 0;
+              return (
+                <tr key={u.id}>
+                  <td className="p-3 font-bold">
+                    {u.label}
+                    <span className="block text-xs font-normal text-white/55">{u.when}</span>
+                  </td>
+                  <td className="p-3 text-white/80">{u.plate ?? "—"}{u.driver && <span className="block text-xs text-white/55">{u.driver}{u.driverPhone && <> — <span dir="ltr">{u.driverPhone}</span></>}</span>}</td>
+                  <td className="p-3 tabular-nums">{u.seats}</td>
+                  <td className="p-3">{on >= u.seats ? <Tag tone="gold">اكتملت {on}</Tag> : on ? <Tag tone="green">{on}</Tag> : <Tag>لا أحد</Tag>}</td>
+                  <td className="p-3 text-end">
+                    {mayRemove && (
+                      <button
+                        type="button"
+                        aria-label={`سحب ${u.label}`}
+                        onClick={() => {
+                          listsActions.removeUnit(u, user?.name ?? "فريق المواصلات");
+                          toast({ title: `سُحبت ${u.label}`, body: on ? `ونُزل عنها ${on} — يعيد المنسق وضعهم على غيرها.` : undefined, tone: "info" });
+                        }}
+                        className="rounded-lg p-1.5 text-white/70 hover:bg-maroon hover:text-white"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </ListTable>
 
-      <div className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
-        <p className="mb-3 font-bold text-white">إسناد حافلة إلى {clusterName(clusterId)} — {k.label}</p>
-        <div className="grid gap-3 md:grid-cols-4">
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="حافلة 9" aria-label="الاسم" className={smallInputClass} />
-          <input value={plate} onChange={(e) => setPlate(e.target.value)} placeholder="اللوحة" aria-label="اللوحة" className={smallInputClass} />
-          <input value={driver} onChange={(e) => setDriver(e.target.value)} placeholder="السائق" aria-label="السائق" className={smallInputClass} />
-          <input value={seats} onChange={(e) => setSeats(e.target.value.replace(/\D/g, ""))} inputMode="numeric" aria-label="المقاعد" className={smallInputClass} />
-        </div>
-        <Button className="mt-3" onClick={add} disabled={!clusterId || !label.trim() || !(Number(seats) > 0)}>
-          <Plus className="size-4" /> إسناد
-        </Button>
-      </div>
+          {mayAdd && (
+            <div className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+              <p className="mb-3 font-bold text-white">إسناد حافلة إلى {clusterName(clusterId)} — {k.label}</p>
+              <div className="grid gap-3 md:grid-cols-4">
+                <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="حافلة 9" aria-label="الاسم" className={smallInputClass} />
+                <input value={plate} onChange={(e) => setPlate(e.target.value)} placeholder="اللوحة" aria-label="اللوحة" className={smallInputClass} />
+                <input value={driver} onChange={(e) => setDriver(e.target.value)} placeholder="السائق" aria-label="السائق" className={smallInputClass} />
+                <input value={seats} onChange={(e) => setSeats(e.target.value.replace(/\D/g, ""))} inputMode="numeric" aria-label="المقاعد" className={smallInputClass} />
+              </div>
+              <Button className="mt-3" onClick={add} disabled={!clusterId || !label.trim() || !(Number(seats) > 0)}>
+                <Plus className="size-4" /> إسناد
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -114,10 +125,13 @@ function BusRequestsDesk() {
   const [refusing, setRefusing] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const by = user?.name ?? "فريق المواصلات";
+  const mayApprove = can(user, "transport.bus-requests.approve");
+  const mayReject = can(user, "transport.bus-requests.reject");
   const pending = lists.requests.filter((r) => r.status === "pending");
   const decided = lists.requests.filter((r) => r.status !== "pending").slice(0, 5);
   if (!lists.requests.length) return null;
   const approve = (r: (typeof pending)[number]) => {
+    if (!mayApprove) return;
     const n = lists.units.filter((u) => u.clusterId === r.clusterId && u.kind === r.kind).length + plannedUnits(r.clusterId).filter((u) => u.kind === r.kind).length + 1;
     listsActions.approveBus(r, by, { label: `حافلة ${n}`, plate: `${1000 + ((r.at / 1000) % 8999 | 0)} ح ج ع`, seats: 49 });
     toast({ title: `أُسندت حافلة ${n} إلى ${clusterName(r.clusterId)}`, body: `قائمة ${listKind(r.kind).label} — يراها ${r.by} في «القوائم».`, tone: "success", icon: "🚌" });
@@ -136,14 +150,22 @@ function BusRequestsDesk() {
                 <span className="block text-xs text-white/55">{r.by}</span>
               </span>
               {r.status === "pending" ? (
-                <span className="flex gap-2">
-                  <Button size="sm" onClick={() => approve(r)}>
-                    <Check className="size-4" /> إسناد حافلة
-                  </Button>
-                  <Button size="sm" variant="glass" onClick={() => { setRefusing(r.id); setReason(""); }}>
-                    رفض
-                  </Button>
-                </span>
+                mayApprove || mayReject ? (
+                  <span className="flex gap-2">
+                    {mayApprove && (
+                      <Button size="sm" onClick={() => approve(r)}>
+                        <Check className="size-4" /> إسناد حافلة
+                      </Button>
+                    )}
+                    {mayReject && (
+                      <Button size="sm" variant="glass" onClick={() => { setRefusing(r.id); setReason(""); }}>
+                        رفض
+                      </Button>
+                    )}
+                  </span>
+                ) : (
+                  <Tag tone="maroon">بانتظار القرار</Tag>
+                )
               ) : r.status === "approved" ? (
                 <Tag tone="green">أُسندت{r.decidedBy ? ` — ${r.decidedBy}` : ""}</Tag>
               ) : (

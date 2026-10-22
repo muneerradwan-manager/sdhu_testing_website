@@ -16,7 +16,7 @@ type Base = Omit<Employee, "id" | "languages" | "nationalId" | "phoneSy"> & { la
 type Named = Base & { handle: string };
 
 const STAFF_PEOPLE: Named[] = [
-  { handle: "suha", firstName: "سهى", fatherName: "عبد الكريم", surname: "مراد", gender: "female", birthYear: 1978, city: "دمشق", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1445, 1446, 1447] },
+  { handle: "nour.a", firstName: "نور", fatherName: "محمد", surname: "الأعرج", gender: "male", birthYear: 1978, city: "دمشق", jobTitle: "مدير إدارة", mission: "البعثة الإدارية", kind: "permanent", seasons: [1445, 1446, 1447] },
   { handle: "rana", firstName: "رنا", fatherName: "جورج", surname: "حداد", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
   { handle: "maher", firstName: "ماهر", fatherName: "سليم", surname: "عيسى", gender: "male", birthYear: 1980, city: "حمص", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [1446, 1447] },
   { handle: "mazen", firstName: "مازن", fatherName: "محمود", surname: "الحلبي", gender: "male", birthYear: 1975, city: "حلب", jobTitle: "مدير مكتب", mission: "البعثة الإدارية", kind: "permanent", seasons: [1444, 1445, 1447] },

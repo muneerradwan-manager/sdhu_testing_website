@@ -60,7 +60,7 @@ if ONLY in (None, "a"):
     c.scroll_top()
     s.btn("رفع أمر إلى المدير", 900)
     p.locator(f"{D} textarea[aria-label='الأمر المرفوع']").first.fill("رئيس تكتل ابن الوليد يطلب مهلة يومين بعد الموعد النهائي ليستبدل منسقاً اعتذر. نحتاج قراراً قبل إغلاق الطلبات."); c.settle(300)
-    c.shot("adm-escalate", "رفع أمر إلى المدير: ما لا تحسمه وحدك يصل إلى مديرة الموسم طلبَ تدخّل", hl=[(f"{D} button:has-text('إرسال')", "")], section=S_DASH)
+    c.shot("adm-escalate", "رفع أمر إلى المدير: ما لا تحسمه وحدك يصل إلى مدير الموسم طلبَ تدخّل", hl=[(f"{D} button:has-text('إرسال')", "")], section=S_DASH)
     esc(c, p)
 
     # ── the rules ──

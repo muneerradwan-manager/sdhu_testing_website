@@ -7,16 +7,17 @@ import { useToast } from "@/components/ui/widgets";
 import { OBJECTION_APP } from "@/lib/data/staff-seed";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
-import { fmtDate, fmtTime, Gate, logAs, PageHeader, useStaffUser } from "../_components/kit";
+import { can, fmtDate, fmtTime, Gate, logAs, PageHeader, useStaffUser } from "../_components/kit";
 import { FilterSelect } from "../_components/ops-ui";
 import { AddButton, Box, EmptyRow, ListTable, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
+import { viewKeys } from "@/lib/permissions";
 
 type Scope = "all" | "live" | "archive";
 
 export function AuditView() {
   return (
-    <Gate perms={["audit.read"]}>
+    <Gate perms={viewKeys("audit")}>
       <Audit />
     </Gate>
   );
@@ -81,6 +82,7 @@ function Audit() {
   };
 
   const exportCsv = () => {
+    if (!can(user, "audit.events.export")) return;
     const header = ["الوقت", "الموظف", "الصفة", "الإجراء", "الهدف", "قبل", "بعد", "التفاصيل"];
     const rows = filtered.map((e) => [new Date(e.at).toISOString(), e.actor, e.role, e.action, e.target ?? "", e.before ?? "", e.after ?? "", e.detail ?? ""]);
     const csv = "﻿" + [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -112,18 +114,22 @@ function Audit() {
         icon={<ScrollText />}
         description="كل إجراء في المنصة: من فعل، ومتى، والقيمة قبل التعديل وبعده. للقراءة فقط — لا يُعدَّل حدث ولا يُحذف."
         actions={
-          <AddButton onClick={exportCsv}>
-            <Download className="size-4" /> تصدير ما يظهر (CSV)
-          </AddButton>
+          can(user, "audit.events.export") && (
+            <AddButton onClick={exportCsv}>
+              <Download className="size-4" /> تصدير ما يظهر (CSV)
+            </AddButton>
+          )
         }
       />
 
-      <Box title="مثال: اعتراض على نتيجة القرعة" open={false}>
-        <p>«أنا من مواليد شباط 1972، وشباط مسحوب في القرعة، ولم يُقبل طلبي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من أدخل نتائج البث، ومن اعتمدها ونشرها، ومتى.</p>
-        <Button size="sm" variant={tracing ? "glass" : "gold"} onClick={trace} disabled={tracing}>
-          <SearchCheck className="size-4" /> تتبّع الطلب {OBJECTION_APP}
-        </Button>
-      </Box>
+      {can(user, "audit.events.trace") && (
+        <Box title="مثال: اعتراض على نتيجة القرعة" open={false}>
+          <p>«أنا من مواليد شباط 1972، وشباط مسحوب في القرعة، ولم يُقبل طلبي» — حوّلت رنا التذكرة إلى التدقيق. تتبّع ما جرى على الطلب {OBJECTION_APP}: من أدخل نتائج البث، ومن اعتمدها ونشرها، ومتى.</p>
+          <Button size="sm" variant={tracing ? "glass" : "gold"} onClick={trace} disabled={tracing}>
+            <SearchCheck className="size-4" /> تتبّع الطلب {OBJECTION_APP}
+          </Button>
+        </Box>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segments

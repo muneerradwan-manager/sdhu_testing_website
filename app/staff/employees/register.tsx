@@ -6,11 +6,12 @@ import { FilterX, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CURRENT_SEASON, GOVERNORATES, JOB_TITLES, MISSIONS, employeeHaystack, fullName, inSeason, matches, type Employee } from "@/lib/ops";
 import { cn } from "@/lib/utils";
+import { useCan } from "../_components/kit";
 import { Avatar, FilterSelect, SearchBox } from "../_components/ops-ui";
 import { AddButton, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../_components/wp";
 import { missingOf, useEmployeesDesk } from "./desk";
 import { FilterLinks, HowTo, ListToolbar, MoreRows } from "./list-ui";
-import { useSuspend } from "./sheet";
+import { maskPhone, useSuspend } from "./sheet";
 
 type View = "all" | "active" | "suspended" | "incomplete";
 const PAGE = 40;
@@ -27,6 +28,7 @@ export function Register() {
   const router = useRouter();
   const desk = useEmployeesDesk();
   const suspend = useSuspend();
+  const may = useCan();
   const { employees, postings } = desk;
   const asked = params.get("e");
   useEffect(() => {
@@ -54,7 +56,7 @@ export function Register() {
         .filter((e) => !title || e.jobTitle === title)
         .filter((e) => !city || e.city === city)
         .filter((e) => !gender || e.gender === gender)
-        .filter((e) => matches(q, employeeHaystack(e)))
+        .filter((e) => matches(q, employeeHaystack(e, may("staff.employees-pii.GET"))))
         .sort((a, b) => fullName(a).localeCompare(fullName(b), "ar")),
     [employees, view, kind, mission, title, city, gender, q],
   );
@@ -70,9 +72,11 @@ export function Register() {
     <div className="space-y-4">
       <Title
         action={
-          <AddButton href="/staff/employees/manage/edit">
-            <UserPlus className="size-4" /> إضافة موظف
-          </AddButton>
+          may("staff.employees.POST") && (
+            <AddButton href="/staff/employees/manage/edit">
+              <UserPlus className="size-4" /> إضافة موظف
+            </AddButton>
+          )
         }
       />
 
@@ -140,10 +144,12 @@ export function Register() {
                         </p>
                       )}
                       <RowActions>
-                        <RowLink href={href}>{missing.length ? "أكمل سجله" : "تعديل"}</RowLink>
-                        <RowLink danger={!e.suspended} onClick={() => suspend.toggle(e)}>
-                          {e.suspended ? "إعادته إلى العمل" : "إيقاف"}
-                        </RowLink>
+                        <RowLink href={href}>{!may("staff.employees.PUT") ? "عرض" : missing.length ? "أكمل سجله" : "تعديل"}</RowLink>
+                        {may("staff.employees.suspend") && (
+                          <RowLink danger={!e.suspended} onClick={() => suspend.toggle(e)}>
+                            {e.suspended ? "إعادته إلى العمل" : "إيقاف"}
+                          </RowLink>
+                        )}
                       </RowActions>
                     </div>
                   </div>
@@ -151,7 +157,7 @@ export function Register() {
                 <td className="p-3 text-white/85">{e.city}</td>
                 <td className="p-3 text-white/85">{e.mission.replace("البعثة ", "")}</td>
                 <td className="p-3 tabular-nums text-white/85" dir="ltr">
-                  <span className="block text-right">{e.phoneSy || "—"}</span>
+                  <span className="block text-right">{e.phoneSy ? (may("staff.employees-pii.GET") ? e.phoneSy : maskPhone(e.phoneSy)) : "—"}</span>
                 </td>
                 <td className="p-3">{postings.has(e.id) ? <Tag tone="gold">مُسند</Tag> : inSeason(e) ? <Tag tone="green">مشارك</Tag> : <span className="text-xs text-white/45">غير مشارك</span>}</td>
               </tr>
@@ -164,7 +170,7 @@ export function Register() {
       <HowTo>
         <p>موظفو الإدارة الدائمون ومن تنتدبهم الجهات الأخرى للموسم. افتح أي موظف باسمه لتعديل سجله، أو أضف موظفاً من الزر في الأعلى.</p>
         <p>البحث بأي جزء من الاسم أو المسمى أو المحافظة أو الهاتف أو آخر أرقام الرقم الوطني، ويتجاهل الهمزات والتشكيل.</p>
-        <p>من المشاركين في الموسم وحدهم يُختار من يُسند إلى الملفات التشغيلية. وإيقاف من له موقع يصل إلى مديرة الموسم.</p>
+        <p>من المشاركين في الموسم وحدهم يُختار من يُسند إلى الملفات التشغيلية. وإيقاف من له موقع يصل إلى مدير الموسم.</p>
       </HowTo>
       <RecordsBox system="staff" area="register" title="سجل الإضافة والتعديل والإيقاف" />
       {suspend.node}

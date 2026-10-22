@@ -19,12 +19,12 @@ import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
 import { STATUS, fitSeats, useClusterRequests, usePicks, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, roleName, roleOf, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { patchAdmin } from "../../_components/data";
-import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory } from "../../_components/system";
 import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow, type GroupState } from "../desk";
-import { Filters, Help, Lead, TitleCell } from "./ui";
+import { Filters, Help, Lead, Locked, TitleCell } from "./ui";
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
@@ -55,10 +55,11 @@ export function GroupsTab() {
   const [forming, setForming] = useState(false);
   const decide = useDecision();
   const sheet = desk.groups.find((x) => x.g.number === open);
+  const may = useCan();
 
   return (
     <div className="space-y-5">
-      <Title action={<AddButton onClick={() => setForming(true)}>تشكيل مجموعة</AddButton>}>مجموعات الموسم</Title>
+      <Title action={may("admins.groups.POST") && <AddButton onClick={() => setForming(true)}>تشكيل مجموعة</AddButton>}>مجموعات الموسم</Title>
       <Lead>يأتي رئيس المجموعة المؤهل إلى المكتب باسم مجموعته ويسدد رسمها، فتشكّلها بفئته. افتح أي مجموعة لترى شروطها وسجلّها.</Lead>
       <GroupsList desk={desk} onOpen={setOpen} onReturn={setReturning} />
 
@@ -102,6 +103,7 @@ export function GroupsTab() {
  * season's records — filtered by its state (with its count), category and branch.
  */
 function GroupsList({ desk, onOpen, onReturn }: { desk: AdminsDesk; onOpen: (n: number) => void; onReturn: (x: GroupRow) => void }) {
+  const may = useCan();
   const s = useStructure();
   const cadre = useCadre();
   const [view, setView] = useState<View>(desk.waiting.length ? "waiting" : "all");
@@ -168,8 +170,8 @@ function GroupsList({ desk, onOpen, onReturn }: { desk: AdminsDesk; onOpen: (n: 
               actions={
                 g.x && (
                   <RowActions>
-                    <RowLink onClick={() => onOpen(g.number)}>{g.state === "waiting" ? "مراجعة واعتماد" : "فتح"}</RowLink>
-                    {g.state === "waiting" && (
+                    <RowLink onClick={() => onOpen(g.number)}>{g.state === "waiting" && may("admins.groups.approve") ? "مراجعة واعتماد" : "فتح"}</RowLink>
+                    {g.state === "waiting" && may("admins.groups.return") && (
                       <RowLink danger onClick={() => onReturn(g.x!)}>
                         إعادة إلى رئيسها
                       </RowLink>
@@ -237,6 +239,7 @@ function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }
   const [seated, setSeated] = useState<Record<number, string>>({});
   const [counted, setCounted] = useState("");
   const [contract, setContract] = useState<SignedContract | null>(null);
+  const mayContract = useCan()("admins.contracts.PUT");
   const [signed, setSigned] = useState(false);
   const [uploading, setUploading] = useState(false);
   const picks = usePicks(undefined);
@@ -401,10 +404,14 @@ function FormAtOffice({ desk, onDone }: { desk: AdminsDesk; onDone: () => void }
               <div className="space-y-2 rounded-2xl bg-white/[.04] p-3 ring-1 ring-white/10">
                 <p className="text-xs font-bold text-white/80">عقد المجموعة</p>
                 <p className="text-xs leading-6 text-white/60">يوقّعه رئيس المجموعة وكل فريقها ورقياً في المكتب. صوّره أو امسحه وارفعه هنا: يراه كل من في المجموعة في «العقود».</p>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
-                  <Upload className="size-4" /> {uploading ? "جارٍ الرفع…" : contract ? "استبدال العقد" : "رفع صورة العقد الموقّع"}
-                  <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد المجموعة" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
-                </label>
+                {mayContract ? (
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+                    <Upload className="size-4" /> {uploading ? "جارٍ الرفع…" : contract ? "استبدال العقد" : "رفع صورة العقد الموقّع"}
+                    <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد المجموعة" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
+                  </label>
+                ) : (
+                  <Locked perm="admins.contracts.PUT">رفع العقد لغيرك.</Locked>
+                )}
                 {contract && <p className="text-xs text-green-light">رُفع: {contract.name}</p>}
                 <label className="flex items-center gap-2 text-white/85">
                   <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} className="size-4 accent-[#D9C89E]" />
@@ -505,6 +512,8 @@ function Checks({ x }: { x: GroupRow }) {
 function Decision({ x, onApprove, onReturn }: { x: GroupRow; onApprove: (category: string) => void; onReturn: () => void }) {
   const s = useStructure();
   const [category, setCategory] = useState(x.category ?? s.categories[0]?.id ?? "");
+  const may = useCan();
+  if (!may("admins.groups.approve") && !may("admins.groups.return")) return <Locked perm="admins.groups.approve">القرار في الطلب لغيرك.</Locked>;
   return (
     <div className="space-y-3 rounded-2xl bg-white/[.06] p-4 ring-1 ring-gold/30">
       <p className="font-bold text-gold">القرار</p>
@@ -519,10 +528,10 @@ function Decision({ x, onApprove, onReturn }: { x: GroupRow; onApprove: (categor
         </select>
       </label>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="gold" disabled={!x.complete || !category} onClick={() => onApprove(category)}>
+        <Button size="sm" variant="gold" disabled={!x.complete || !category || !may("admins.groups.approve")} onClick={() => onApprove(category)}>
           <BadgeCheck className="size-4" /> اعتماد المجموعة
         </Button>
-        <Button size="sm" variant="glass" onClick={onReturn}>
+        <Button size="sm" variant="glass" disabled={!may("admins.groups.return")} onClick={onReturn}>
           <CornerDownLeft className="size-4" /> إعادة إلى رئيسها
         </Button>
       </div>

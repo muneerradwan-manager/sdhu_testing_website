@@ -19,9 +19,9 @@ import { OPERATIONS, stateOf, type OperationKey } from "../operations";
 import { evaluate, withSimulated, type Member } from "../rules";
 import { countryOf, officeArea, officeFor } from "../season";
 import { mergeSeason } from "../season-live";
-import { getStaff } from "../staff";
+import { can, permLabel } from "../permissions";
+import { getStaff, withPermissions } from "../staff";
 import type { Application, ApplyDraft, AuditEvent, State } from "../store";
-import { withGrants } from "../systems";
 import type { FactContext } from "./conditions";
 import { ACTIVE_SEASON } from "./defaults";
 import { draftOf, failingGate, liveVersion, nowKey, pinnedVersion, prunedAnswers, regOf, seasonsOf, stageErrors, versionById, versionsOf, visibleStages, withConfigured } from "./engine";
@@ -351,19 +351,19 @@ export function payFirstInstallment(s: State, owner: string, method: "shamcash" 
 
 // ───────────────────────── Staff: the configuration ─────────────────────────
 
-/** The signed-in employee, if he holds «إدارة التسجيل على الحج» as the director's grants stand now */
-export function managerOf(s: State) {
+/** The signed-in employee, if he holds this permission (`registration.…`) as the grants stand now */
+export function managerOf(s: State, key: string) {
   const u = getStaff(s.staffSessionId);
   if (!u) return null;
-  const g = withGrants(u, s.systems?.grants);
-  return g.permissions.includes("registration.manage") ? g : null;
+  const g = withPermissions(u, s.staffPermissions);
+  return can(g, key) ? g : null;
 }
 
-function refuse<T>(s: State, what: string, at: number): Result<T> {
+function refuse<T>(s: State, what: string, at: number, key: string): Result<T> {
   const u = getStaff(s.staffSessionId);
   return {
     ok: false,
-    errors: [{ code: "forbidden", message: "هذا الإجراء لحامل صلاحية «إدارة التسجيل على الحج» وحده" }],
+    errors: [{ code: "forbidden", message: `هذا الإجراء يحتاج صلاحية «${permLabel(key)}»` }],
     state: withEvent(s, { actor: u?.name ?? "غير مسجّل", role: u?.title ?? "—", action: "محاولة تعديل غير مصرح بها", target: "إدارة التسجيل على الحج", detail: what, system: "registration", important: true }, at),
   };
 }
@@ -372,12 +372,25 @@ function seasonOf(reg: RegState, year: number) {
   return seasonsOf(reg).find((x) => x.year === year);
 }
 
-export type DraftMeta = { action: string; area: string; detail?: string; ref?: string };
+/** `perm`: the permission the edit needs, when not the one its area and action say */
+export type DraftMeta = { action: string; area: string; detail?: string; ref?: string; perm?: string };
+
+/** The resource each area of the draft edits */
+const AREA_RESOURCE: Record<string, string> = { stages: "pages", steps: "post-steps", rules: "eligibility-rules", payments: "payments-tracks" };
+
+/** What an edit to the draft needs: adding, deleting or changing that area's resource */
+export function draftPerm(meta: DraftMeta) {
+  if (meta.perm) return meta.perm;
+  const res = AREA_RESOURCE[meta.area] ?? "pages";
+  const verb = res === "payments-tracks" ? "PUT" : /^(إضافة|نسخ)/.test(meta.action) ? "POST" : /^حذف/.test(meta.action) ? "DELETE" : "PUT";
+  return `registration.${res}.${verb}`;
+}
 
 /** One edit to a season's draft: the published versions and every application stay as they are */
 export function editDraft(s: State, season: number, change: (c: RegConfig) => RegConfig, meta: DraftMeta, at: number): Result<RegConfig> {
-  const m = managerOf(s);
-  if (!m) return refuse(s, meta.action, at);
+  const key = draftPerm(meta);
+  const m = managerOf(s, key);
+  if (!m) return refuse(s, meta.action, at, key);
   const reg = regOf(s);
   const ss = seasonOf(reg, season);
   if (!ss) return fail("season", "موسم غير موجود");
@@ -390,8 +403,8 @@ export function editDraft(s: State, season: number, change: (c: RegConfig) => Re
 
 /** The draft back to the season's live version */
 export function discardDraft(s: State, season: number, at: number): Result<null> {
-  const m = managerOf(s);
-  if (!m) return refuse(s, "إلغاء تعديلات المسودة", at);
+  const m = managerOf(s, "registration.draft.discard");
+  if (!m) return refuse(s, "إلغاء تعديلات المسودة", at, "registration.draft.discard");
   const reg = regOf(s);
   const drafts = { ...reg.drafts };
   delete drafts[String(season)];
@@ -400,8 +413,8 @@ export function discardDraft(s: State, season: number, at: number): Result<null>
 
 /** An earlier version's configuration into the draft, to be checked and published as a new version */
 export function restoreVersion(s: State, versionId: string, at: number): Result<null> {
-  const m = managerOf(s);
-  if (!m) return refuse(s, "استعادة إصدار", at);
+  const m = managerOf(s, "registration.versions.restore");
+  if (!m) return refuse(s, "استعادة إصدار", at, "registration.versions.restore");
   const reg = regOf(s);
   const v = versionById(reg, versionId);
   if (!v) return fail("version", "إصدار غير موجود");
@@ -416,8 +429,8 @@ export function restoreVersion(s: State, versionId: string, at: number): Result<
  * while any error stands. Applications already started keep their version; new ones start on this one.
  */
 export function publishDraft(s: State, season: number, opts: { effectiveFrom?: string; note: string }, at: number): Result<RegVersion> {
-  const m = managerOf(s);
-  if (!m) return refuse(s, "نشر إصدار", at);
+  const m = managerOf(s, "registration.draft.publish");
+  if (!m) return refuse(s, "نشر إصدار", at, "registration.draft.publish");
   const reg = regOf(s);
   const ss = seasonOf(reg, season);
   if (!ss) return fail("season", "موسم غير موجود");
@@ -458,8 +471,8 @@ export function publishDraft(s: State, season: number, opts: { effectiveFrom?: s
 
 /** A new season prepared from a published version: its draft is a copy, edited and published on its own */
 export function createSeason(s: State, year: number, fromVersion: string, at: number): Result<null> {
-  const m = managerOf(s);
-  if (!m) return refuse(s, "إنشاء موسم تسجيل", at);
+  const m = managerOf(s, "registration.seasons.POST");
+  if (!m) return refuse(s, "إنشاء موسم تسجيل", at, "registration.seasons.POST");
   const reg = regOf(s);
   if (seasonOf(reg, year)) return fail("exists", "الموسم موجود");
   if (!Number.isInteger(year) || year < ACTIVE_SEASON) return fail("year", "سنة غير صالحة");

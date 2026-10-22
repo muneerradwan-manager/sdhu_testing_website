@@ -9,6 +9,7 @@ import { Modal, useToast } from "@/components/ui/widgets";
 import { STATUS_LABEL, airportOf, allClusterIds, carrierOf, clusterName, flightWarnings, flightsActions, fmtClock, fmtGregShort, fmtHijriShort, groupsOnFlight, seatStats, useFlightsData, type Flight, type FlightStatus } from "@/lib/flights";
 import { groupsName } from "@/lib/groups";
 import { cn } from "@/lib/utils";
+import { useCan } from "../_components/kit";
 import { Chip, FilterSelect, SearchBox } from "../_components/ops-ui";
 import { OperationHeader } from "../_components/system";
 import { AddButton, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Title } from "../_components/wp";
@@ -36,6 +37,7 @@ function List() {
   const router = useRouter();
   const toast = useToast();
   const form = useFlightForm((id, created) => created && router.push(flightHref(id)));
+  const may = useCan();
   const [status, setStatus] = useState<"" | FlightStatus>("");
   const [dir, setDir] = useState("");
   const [from, setFrom] = useState("");
@@ -67,9 +69,11 @@ function List() {
       <OperationHeader system="flights" icon={<Plane />} />
       <Title
         action={
-          <AddButton onClick={form.create}>
-            <Plus className="size-4" /> إضافة رحلة
-          </AddButton>
+          may("flights.flights.POST") && (
+            <AddButton onClick={form.create}>
+              <Plus className="size-4" /> إضافة رحلة
+            </AddButton>
+          )
         }
       />
 
@@ -108,9 +112,9 @@ function List() {
                     </span>
                     <RowActions>
                       <RowLink href={flightHref(f.id)}>فتح</RowLink>
-                      {["draft", "published", "full", "locked"].includes(f.status) && <RowLink onClick={() => form.edit(f)}>تعديل البيانات</RowLink>}
-                      {f.status === "draft" && <RowLink onClick={() => publish(f)}>نشر</RowLink>}
-                      {f.status === "draft" && (
+                      {may("flights.flights.PUT") && ["draft", "published", "full", "locked"].includes(f.status) && <RowLink onClick={() => form.edit(f)}>تعديل البيانات</RowLink>}
+                      {may("flights.flights.publish") && f.status === "draft" && <RowLink onClick={() => publish(f)}>نشر</RowLink>}
+                      {may("flights.flights.DELETE") && f.status === "draft" && (
                         <RowLink danger onClick={() => setRemoving(f)}>
                           حذف
                         </RowLink>

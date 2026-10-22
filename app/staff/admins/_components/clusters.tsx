@@ -25,10 +25,10 @@ import { HEADS_POOL } from "@/app/administrator/_lib/cluster";
 import { ACCOUNTANT_TITLE, STATUS, exceptionalEdit, fitSeats, newCluster, roleOfPerson, useFormingSeason, useGroupPool, usePicks, writeCluster, type Cluster, type ClusterRequest, placedIn, cadreOf, refit } from "@/app/administrator/_lib/formation";
 import { categoryOf, categoryOfId, does, roleName, seatsLabel, seatsOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useCadreRows } from "./cadre";
-import { Drawer, fmtDateTime, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { RecordHistory } from "../../_components/system";
 import { AddButton, Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
-import { Filters, Help, Lead, NotFound, SaveLine, TitleCell, Views, useHrefWith, useOpenId, useView } from "./ui";
+import { Filters, Help, Lead, Locked, NotFound, SaveLine, TitleCell, Views, needs, useHrefWith, useOpenId, useView } from "./ui";
 import { logAdmins, useAdminsDesk, type AdminsDesk, type OutsideGroup } from "../desk";
 
 /** The shared input without its full width, for an input given its own */
@@ -47,27 +47,27 @@ export function ClustersTab() {
   const desk = useAdminsDesk();
   const id = useOpenId();
   const view = useView("v", VIEWS);
-  if (id) return <RequestScreen id={id} desk={desk} />;
+  const may = useCan();
+  // Each view is its own resource: the clusters, their programmes, the groups' pages
+  const sees = (v: (typeof VIEWS)[number]) => may(v === "programmes" ? "admins.programmes.GET" : v === "group-pages" ? "admins.group-pages.GET" : "admins.clusters.GET");
+  if (id) return may("admins.clusters.GET") ? <RequestScreen id={id} desk={desk} /> : <Locked perm="admins.clusters.GET" />;
+  const items = [
+    { key: "requests" as const, label: "التكتلات", count: desk.live.length },
+    { key: "outside" as const, label: "مجموعات خارج التكتلات", count: desk.outside.length },
+    { key: "programmes" as const, label: "برامج التكتلات", count: desk.pendingProgrammes.length },
+    { key: "group-pages" as const, label: "صفحات المجموعات", count: desk.pendingGroupPages.length },
+    { key: "archived" as const, label: "المؤرشفة", count: desk.archivedClusters.length },
+  ].filter((v) => sees(v.key));
   return (
     <div className="space-y-5">
-      <Views
-        param="v"
-        value={view}
-        label="التكتلات"
-        items={[
-          { key: "requests", label: "التكتلات", count: desk.live.length },
-          { key: "outside", label: "مجموعات خارج التكتلات", count: desk.outside.length },
-          { key: "programmes", label: "برامج التكتلات", count: desk.pendingProgrammes.length },
-          { key: "group-pages", label: "صفحات المجموعات", count: desk.pendingGroupPages.length },
-          { key: "archived", label: "المؤرشفة", count: desk.archivedClusters.length },
-        ]}
-      />
-      {(view === "requests" || view === "archived") && <Requests key={view} desk={desk} shelf={view === "archived" ? "archived" : "live"} />}
-      {view === "outside" && <Outside desk={desk} />}
-      {view === "programmes" && <Programmes desk={desk} />}
-      {view === "group-pages" && <GroupPages desk={desk} />}
+      <Views param="v" value={view} label="التكتلات" items={items} />
+      {!sees(view) && <Locked perm={view === "programmes" ? "admins.programmes.GET" : view === "group-pages" ? "admins.group-pages.GET" : "admins.clusters.GET"} />}
+      {sees(view) && (view === "requests" || view === "archived") && <Requests key={view} desk={desk} shelf={view === "archived" ? "archived" : "live"} />}
+      {sees(view) && view === "outside" && <Outside desk={desk} />}
+      {sees(view) && view === "programmes" && <Programmes desk={desk} />}
+      {sees(view) && view === "group-pages" && <GroupPages desk={desk} />}
       <div className="grid gap-4 lg:grid-cols-2">
-        <WindowBox desk={desk} />
+        {may("admins.clusters.GET") && <WindowBox desk={desk} />}
         <Help>
           <p>لا انتخاب ولا طلب على المنصة: يحضر من يحمل صفة «رئيس تكتل» أساسيةً أو موسمية ومعه رؤساء المجموعات وكادره إلى المكتب. تُدخل التكتل بالترتيب — المستوى، المجموعات بفرقها، كادر التكتل (المنسقون والموجّهات ومعاونه) وتوزيعه، المحاسب — ثم رسمه وعقده الموقّع، فيُنشأ معتمداً.</p>
           <p>يُنشأ التكتل معتمداً حين تكمل في المكتب رسمه وعقده الموقّع، ولا مراجعة بعده. وما يتغير فيه بعد إنشائه تعدّله أنت في المكتب «تعديلاً استثنائياً» بسبب يُكتب في سجله وسجل الشخص.</p>
@@ -124,7 +124,7 @@ function WindowBox({ desk }: { desk: AdminsDesk }) {
           <input type="time" value={earlyTime} onChange={(e) => setEarlyTime(e.target.value || "23:59")} className={cn(sizedInput, "w-28 [color-scheme:dark]")} dir="ltr" />
         </label>
       </div>
-      <SaveLine dirty={early !== s.earlyDeadline || earlyTime !== s.earlyTime} onSave={save} label="حفظ الموعد الأول" />
+      <SaveLine dirty={early !== s.earlyDeadline || earlyTime !== s.earlyTime} onSave={save} label="حفظ الموعد الأول" perm="admins.clusters.PUT" />
     </Box>
   );
 }
@@ -150,9 +150,10 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
   const pool = shelf === "live" ? desk.live : desk.archivedClusters;
   const inTier = pool.filter((r) => !tier || r.cluster.tier === tier);
   const list = inTier.filter((r) => filter === "all" || r.status === filter);
+  const may = useCan();
   return (
     <div className="space-y-4">
-      <Title action={shelf === "live" && <AddButton onClick={() => setCreating(true)}>تشكيل تكتل في المكتب</AddButton>}>{shelf === "live" ? "التكتلات" : "التشكيلات المؤرشفة"}</Title>
+      <Title action={shelf === "live" && may("admins.clusters.POST") && <AddButton onClick={() => setCreating(true)}>تشكيل تكتل في المكتب</AddButton>}>{shelf === "live" ? "التكتلات" : "التشكيلات المؤرشفة"}</Title>
       <Lead>{shelf === "live" ? "يُشكَّل التكتل في المكتب بحضور رئيسه وكل من فيه: «تشكيل تكتل في المكتب»، ثم أدخل مجموعاته وكادره وتوزيعه، وخذ رسمه، وارفع عقده الموقّع، وأنشئه." : "تشكيلات أُرشفت واحداً واحداً، أو كلها عند «بدء موسم جديد» في «التكتلات والمجموعات»."}</Lead>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Filters label="حال الطلبات" value={filter} onChange={setFilter} items={FILTERS.map((f) => ({ ...f, count: f.key === "all" ? inTier.length : inTier.filter((r) => r.status === f.key).length }))} />
@@ -185,7 +186,7 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
                 actions={
                   <RowActions>
                     <RowLink href={href}>{r.status === "draft" ? "متابعة التشكيل" : "فتح"}</RowLink>
-                    <RowLink onClick={() => exportCluster(r)}>Excel</RowLink>
+                    {may("admins.clusters.export") && <RowLink onClick={() => exportCluster(r)}>Excel</RowLink>}
                   </RowActions>
                 }
               />
@@ -582,6 +583,7 @@ function OfficeFinish({ x, onCancel }: { x: ClusterRequest; onCancel: () => void
   const [signed, setSigned] = useState(false);
   const [contract, setContract] = useState<SignedContract | null>(c.contract ?? null);
   const [uploading, setUploading] = useState(false);
+  const may = useCan();
   const ready = x.complete && paid && signed && !!contract;
   const upload = async (files: FileList | null) => {
     const f = files?.[0];
@@ -617,23 +619,29 @@ function OfficeFinish({ x, onCancel }: { x: ClusterRequest; onCancel: () => void
       </label>
       <div className="space-y-2 rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
         <p className="text-xs leading-6 text-white/70">عقد التكتل الورقي: يوقّعه رئيسه وكل من فيه. صوّره أو امسحه وارفعه، فيراه كل أعضاء التكتل في «العقود».</p>
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
-          <Upload className="size-4" /> {uploading ? "جارٍ الرفع…" : contract ? "استبدال العقد" : "رفع صورة العقد الموقّع"}
-          <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد التكتل" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
-        </label>
+        {may("admins.contracts.PUT") ? (
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+            <Upload className="size-4" /> {uploading ? "جارٍ الرفع…" : contract ? "استبدال العقد" : "رفع صورة العقد الموقّع"}
+            <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد التكتل" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
+          </label>
+        ) : (
+          <Locked perm="admins.contracts.PUT">رفع العقد لغيرك.</Locked>
+        )}
         {contract && <p className="text-xs text-green-light">رُفع: {contract.name}</p>}
         <label className="flex items-center gap-2 text-sm text-white/85">
           <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} className="size-4 accent-[#D9C89E]" />
           وقّع العقدَ كلُّ من في التكتل ({x.cadre} شخصاً)
         </label>
       </div>
-      <Button variant="gold" className="w-full" disabled={!ready} onClick={create}>
+      <Button variant="gold" className="w-full" disabled={!ready || !may("admins.clusters.create")} title={may("admins.clusters.create") ? undefined : needs("admins.clusters.create")} onClick={create}>
         <BadgeCheck className="size-4" /> إنشاء التكتل
       </Button>
       {!x.complete && <p className="text-xs text-gold">أكمل الشروط أعلاه أولاً.</p>}
-      <button type="button" onClick={onCancel} className="w-full text-center text-xs font-bold text-white/50 hover:text-maroon">
-        إلغاء هذا التشكيل
-      </button>
+      {may("admins.clusters.DELETE") && (
+        <button type="button" onClick={onCancel} className="w-full text-center text-xs font-bold text-white/50 hover:text-maroon">
+          إلغاء هذا التشكيل
+        </button>
+      )}
     </Box>
   );
 }
@@ -647,6 +655,7 @@ function ContractBox({ x }: { x: ClusterRequest }) {
   // a cluster formed before the demo began carries the contract uploaded then, as its members see it
   const shown = c.contract ?? (c.status === "approved" ? seedContract("cluster", `عقد ${c.name}`) : undefined);
   const url = useMediaUrl(shown?.ref);
+  const may = useCan();
   const replace = async (files: FileList | null) => {
     const f = files?.[0];
     if (!f) return;
@@ -660,7 +669,9 @@ function ContractBox({ x }: { x: ClusterRequest }) {
   };
   return (
     <Box title="عقد التكتل">
-      {shown ? (
+      {!may("admins.contracts.GET") ? (
+        <Locked perm="admins.contracts.GET">العقد الموقّع مخفي.</Locked>
+      ) : shown ? (
         <>
           {shown.type.startsWith("image/") ? (
             <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-white/5">
@@ -681,10 +692,12 @@ function ContractBox({ x }: { x: ClusterRequest }) {
       ) : (
         <p className="text-xs text-gold">لم يُرفع عقده بعد.</p>
       )}
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
-        <Upload className="size-4" /> {c.contract ? "استبدال العقد" : "رفع العقد الموقّع"}
-        <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد التكتل" onChange={(e) => { void replace(e.target.files); e.target.value = ""; }} />
-      </label>
+      {may("admins.contracts.PUT") && (
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+          <Upload className="size-4" /> {c.contract ? "استبدال العقد" : "رفع العقد الموقّع"}
+          <input type="file" accept="image/*,application/pdf" hidden aria-label="عقد التكتل" onChange={(e) => { void replace(e.target.files); e.target.value = ""; }} />
+        </label>
+      )}
     </Box>
   );
 }
@@ -700,6 +713,7 @@ function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
   const admins = useStore((s) => s.admins);
   const x = desk.requests.find((r) => r.cluster.id === id);
   const back = hrefWith({ id: null });
+  const may = useCan();
   if (!x) return <NotFound back={back} backLabel="التكتلات" what="هذا التكتل" />;
   const c = x.cluster;
   const forming = c.status !== "approved";
@@ -731,16 +745,22 @@ function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
       <EditLayout
         main={
           forming ? (
-            <OfficeDesk x={x} />
+            // The draft's desk: everything in it is changing the draft
+            <fieldset disabled={!may("admins.clusters.PUT")} className="min-w-0 space-y-4">
+              <Locked perm="admins.clusters.PUT" />
+              <OfficeDesk x={x} />
+            </fieldset>
           ) : (
             <>
               <ClusterReport req={x} dark />
               <PrintSheet>
                 <ClusterPrint req={x} />
               </PrintSheet>
-              <Box title="تعديل استثنائي (بعد إنشائه)" open={false}>
-                <Exceptional x={x} />
-              </Box>
+              {may("admins.clusters.exceptional-edit") && (
+                <Box title="تعديل استثنائي (بعد إنشائه)" open={false}>
+                  <Exceptional x={x} />
+                </Box>
+              )}
             </>
           )
         }
@@ -766,17 +786,24 @@ function RequestScreen({ id, desk }: { id: string; desk: AdminsDesk }) {
               <ContractBox x={x} />
               <Box title="طباعة وتصدير">
                 <RowActions>
-                  <RowLink onClick={() => window.print()}>
-                    <Printer className="me-1 inline size-3.5" /> طباعة التقرير
-                  </RowLink>
-                  <RowLink onClick={() => exportCluster(x)}>
-                    <Download className="me-1 inline size-3.5" /> Excel
-                  </RowLink>
+                  {may("admins.clusters.print") && (
+                    <RowLink onClick={() => window.print()}>
+                      <Printer className="me-1 inline size-3.5" /> طباعة التقرير
+                    </RowLink>
+                  )}
+                  {may("admins.clusters.export") && (
+                    <RowLink onClick={() => exportCluster(x)}>
+                      <Download className="me-1 inline size-3.5" /> Excel
+                    </RowLink>
+                  )}
                 </RowActions>
+                <Locked perm="admins.clusters.export" />
               </Box>
               <Box title="الأرشيف" open={!!x.archived}>
                 <p className="text-xs leading-6 text-white/60">المؤرشف يبقى في «التكتلات والمجموعات» بموسمه، ويخرج من عمل الموسم.</p>
-                {x.archived ? (
+                {!may("admins.clusters.archive") ? (
+                  <Locked perm="admins.clusters.archive" />
+                ) : x.archived ? (
                   <Button size="sm" variant="glass" onClick={() => archive(false)}>
                     <ArchiveRestore className="size-4" /> استعادته من الأرشيف
                   </Button>
@@ -980,6 +1007,7 @@ function Outside({ desk }: { desk: AdminsDesk }) {
   const [adding, setAdding] = useState<OutsideGroup | null>(null);
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
+  const mayAdd = useCan()("admins.clusters.add-outside-group");
 
   const add = () => {
     const r = targets.find((x) => x.cluster.id === to);
@@ -1004,13 +1032,13 @@ function Outside({ desk }: { desk: AdminsDesk }) {
         {desk.outside.length === 0 && <EmptyRow cols={5}>كل مجموعة مشكّلة في تكتل.</EmptyRow>}
         {desk.outside.map((g) => {
           const cat = categoryOfId(s, g.category);
-          const can = desk.deadlinePassed && !!g.category && targets.length > 0;
+          const can = mayAdd && desk.deadlinePassed && !!g.category && targets.length > 0;
           return (
             <tr key={g.number}>
               <TitleCell
                 title={groupName(g.number)}
                 sub={g.headName}
-                actions={<RowActions>{can ? <RowLink onClick={() => setAdding(g)}>أضفها إلى تكتل</RowLink> : <span className="font-normal text-white/45">{!g.category ? "بلا فئة بعد" : !desk.deadlinePassed ? "بعد الموعد النهائي" : "لا تكتل يقبلها"}</span>}</RowActions>}
+                actions={<RowActions>{can ? <RowLink onClick={() => setAdding(g)}>أضفها إلى تكتل</RowLink> : <span className="font-normal text-white/45">{!mayAdd ? "للاطلاع" : !g.category ? "بلا فئة بعد" : !desk.deadlinePassed ? "بعد الموعد النهائي" : "لا تكتل يقبلها"}</span>}</RowActions>}
               />
               <td className="p-3 align-top text-white/80">{g.branch}</td>
               <td className="p-3 align-top text-white/80">
@@ -1070,6 +1098,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
   const published = desk.programmes.filter((x) => x.state?.approved);
   const list = filter === "pending" ? desk.pendingProgrammes : published;
   const sheet = desk.programmes.find((x) => x.cluster.slug === open);
+  const may = useCan();
 
   const decide = (slug: string, name: string, decision: "approved" | "rejected", why?: string) => {
     actions.decideClusterProfile(slug, decision, user.name, why);
@@ -1122,12 +1151,12 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
         onClose={() => setOpen(null)}
         title={sheet ? `برنامج ${sheet.cluster.name}` : ""}
         footer={
-          sheet?.state?.pending && (
+          sheet?.state?.pending && (may("admins.programmes.approve") || may("admins.programmes.return")) && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="gold" onClick={() => decide(sheet.cluster.slug, sheet.cluster.name, "approved")}>
+              <Button variant="gold" disabled={!may("admins.programmes.approve")} onClick={() => decide(sheet.cluster.slug, sheet.cluster.name, "approved")}>
                 <BadgeCheck className="size-4" /> اعتماد ونشر
               </Button>
-              <Button variant="glass" onClick={() => setRejecting(sheet.cluster.slug)}>
+              <Button variant="glass" disabled={!may("admins.programmes.return")} onClick={() => setRejecting(sheet.cluster.slug)}>
                 <X className="size-4" /> إعادة مع السبب
               </Button>
             </div>
@@ -1216,6 +1245,7 @@ function GroupPages({ desk }: { desk: AdminsDesk }) {
   const list = filter === "pending" ? desk.pendingGroupPages : published;
   const sheet = desk.groupPages.find((x) => x.no === open);
   const shown = sheet ? (sheet.state.pending?.fields ?? sheet.state.approved?.fields) : undefined;
+  const may = useCan();
 
   const decide = (no: number, decision: "approved" | "rejected", why?: string) => {
     actions.decideGroupProfile(no, decision, user.name, why);
@@ -1267,12 +1297,12 @@ function GroupPages({ desk }: { desk: AdminsDesk }) {
         onClose={() => setOpen(null)}
         title={sheet ? `صفحة ${groupName(sheet.no)}` : ""}
         footer={
-          sheet?.state.pending && (
+          sheet?.state.pending && (may("admins.group-pages.approve") || may("admins.group-pages.return")) && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="gold" onClick={() => decide(sheet.no, "approved")}>
+              <Button variant="gold" disabled={!may("admins.group-pages.approve")} onClick={() => decide(sheet.no, "approved")}>
                 <BadgeCheck className="size-4" /> اعتماد ونشر
               </Button>
-              <Button variant="glass" onClick={() => setRejecting(sheet.no)}>
+              <Button variant="glass" disabled={!may("admins.group-pages.return")} onClick={() => setRejecting(sheet.no)}>
                 <X className="size-4" /> إعادة مع السبب
               </Button>
             </div>

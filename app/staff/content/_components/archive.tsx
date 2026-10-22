@@ -8,11 +8,12 @@ import { getCollectionDef } from "@/lib/cms/collections";
 import { CMS_PAGES, getPageDef, getSectionDef } from "@/lib/cms/schema";
 import { archivedItems, archivedSections, cms, cmsMemo, useCms } from "@/lib/cms/store";
 import type { StaffUser } from "@/lib/staff";
-import { Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
+import { can, Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
 
 /**
  * سلة الأرشيف: الصفحات والأقسام التي أخرجها الموظف من الموقع.
- * لا شيء يُحذف نهائياً — الاستعادة تعيده إلى مكانه في المسودة.
+ * لا شيء يُحذف نهائياً — الاستعادة تعيده إلى مكانه في المسودة. استعادة صفحة تحتاج «تغيير حالة الصفحة»، وقسم
+ * «تعديل — الصفحات وأقسامها»، وعنصر «أرشفة واستعادة» لمجموعته.
  */
 export function ArchiveView({ user, onOpenPage }: { user: StaffUser; onOpenPage: (pageId: string) => void }) {
   const toast = useToast();
@@ -22,7 +23,13 @@ export function ArchiveView({ user, onOpenPage }: { user: StaffUser; onOpenPage:
   const sections = useCms(archivedSections);
   const items = useCms(archivedItems);
 
+  const mayPage = can(user, "content.pages.set-status");
+  const maySection = can(user, "content.pages.PUT");
+  const mayItem = (colId: string) => can(user, "content.items.archive", colId);
+  const NO = "لا تملك صلاحية الاستعادة";
+
   const restorePage = (id: string, label: string) => {
+    if (!mayPage) return;
     cms.setPageStatus(id, "draft", author);
     logAs(user, { action: "استعادة صفحة من الأرشيف", target: label, after: "مسودة" });
     toast({ title: "استُعيدت الصفحة كمسودة", body: "راجعها ثم انشرها للزوار", tone: "success", icon: "📄" });
@@ -30,12 +37,14 @@ export function ArchiveView({ user, onOpenPage }: { user: StaffUser; onOpenPage:
   };
 
   const restoreSection = (pageId: string, sectionId: string, label: string) => {
+    if (!maySection) return;
     cms.setSectionArchived(pageId, sectionId, false, author);
     logAs(user, { action: "استعادة قسم من الأرشيف", target: label });
     toast({ title: "استُعيد القسم", body: "انشر الصفحة ليظهر للزوار", tone: "success", icon: "↩️" });
   };
 
   const restoreItem = (colId: string, itemId: string, label: string) => {
+    if (!mayItem(colId)) return;
     cms.setItemArchived(colId, itemId, false, author);
     logAs(user, { action: "استعادة عنصر من الأرشيف", target: label });
     toast({ title: "استُعيد العنصر", body: "انشر المجموعة ليظهر للزوار", tone: "success", icon: "↩️" });
@@ -76,7 +85,9 @@ export function ArchiveView({ user, onOpenPage }: { user: StaffUser; onOpenPage:
                     </div>
                     <button
                       onClick={() => restorePage(p.id, p.label)}
-                      className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-light"
+                      disabled={!mayPage}
+                      title={mayPage ? undefined : NO}
+                      className="flex shrink-0 disabled:opacity-40 items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-light"
                     >
                       <ArchiveRestore className="size-4" /> استعادة
                     </button>
@@ -120,7 +131,9 @@ export function ArchiveView({ user, onOpenPage }: { user: StaffUser; onOpenPage:
                     </button>
                     <button
                       onClick={() => restoreSection(pageId, sectionId, `${page.label} — ${section.label}`)}
-                      className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-light"
+                      disabled={!maySection}
+                      title={maySection ? undefined : NO}
+                      className="flex shrink-0 disabled:opacity-40 items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-light"
                     >
                       <ArchiveRestore className="size-4" /> استعادة
                     </button>
@@ -163,7 +176,9 @@ export function ArchiveView({ user, onOpenPage }: { user: StaffUser; onOpenPage:
                     </button>
                     <button
                       onClick={() => restoreItem(colId, itemId, `${col.label} — ${title}`)}
-                      className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-light"
+                      disabled={!mayItem(colId)}
+                      title={mayItem(colId) ? undefined : NO}
+                      className="flex shrink-0 disabled:opacity-40 items-center gap-1.5 rounded-xl bg-gold px-3.5 py-2 text-sm font-bold text-ink transition hover:bg-gold-light"
                     >
                       <ArchiveRestore className="size-4" /> استعادة
                     </button>

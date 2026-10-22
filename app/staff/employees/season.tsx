@@ -6,6 +6,7 @@ import { UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CURRENT_SEASON, MISSIONS, employeeHaystack, fullName, matches, postingLabel, type Employee } from "@/lib/ops";
 import { cn } from "@/lib/utils";
+import { useCan } from "../_components/kit";
 import { Avatar, FilterSelect, SearchBox } from "../_components/ops-ui";
 import { AddButton, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../_components/wp";
 import { useEmployeesDesk } from "./desk";
@@ -29,6 +30,7 @@ export function Season() {
   const router = useRouter();
   const desk = useEmployeesDesk();
   const act = useEmployeeActions();
+  const may = useCan();
   const asked = params.get("e");
   useEffect(() => {
     if (asked) router.replace(`/staff/employees/manage/edit?id=${asked}`);
@@ -45,7 +47,7 @@ export function Season() {
   const lists: Record<Exclude<View, "in" | "out">, { e: Employee }[]> = { posted: desk.posted, free: desk.free, noflight: desk.noOutbound, suspended: desk.suspendedIn };
   const only = view !== "in" && view !== "out" ? new Set(lists[view].map((p) => p.e.id)) : null;
   const participants = desk.participants.filter((p) => (!only || only.has(p.e.id)) && (!mission || p.e.mission === mission) && matches(q, employeeHaystack(p.e)));
-  const outside = desk.outside.filter((e) => (!mission || e.mission === mission) && matches(q, employeeHaystack(e)));
+  const outside = desk.outside.filter((e) => (!mission || e.mission === mission) && matches(q, employeeHaystack(e, may("staff.employees-pii.GET"))));
   const count = view === "out" ? outside.length : participants.length;
   const edit = (e: Employee) => `/staff/employees/manage/edit?id=${e.id}`;
 
@@ -65,14 +67,14 @@ export function Season() {
           {e.jobTitle} · {e.mission.replace("البعثة ", "")}
         </p>
         <RowActions>
-          <RowLink href={edit(e)}>تعديل</RowLink>
-          {view === "out" ? (
-            <RowLink onClick={() => act.setSeason(e, true)}>تسجيله في الموسم</RowLink>
-          ) : (
-            <RowLink danger onClick={() => act.setSeason(e, false)}>
-              إلغاء المشاركة
-            </RowLink>
-          )}
+          <RowLink href={edit(e)}>{may("staff.employees.PUT") ? "تعديل" : "عرض"}</RowLink>
+          {view === "out"
+            ? may("staff.season-participation.POST") && <RowLink onClick={() => act.setSeason(e, true)}>تسجيله في الموسم</RowLink>
+            : may("staff.season-participation.DELETE") && (
+                <RowLink danger onClick={() => act.setSeason(e, false)}>
+                  إلغاء المشاركة
+                </RowLink>
+              )}
         </RowActions>
       </div>
     </div>
@@ -82,7 +84,8 @@ export function Season() {
     <div className="space-y-4">
       <Title
         action={
-          view !== "out" && (
+          view !== "out" &&
+          may("staff.season-participation.POST") && (
             <AddButton onClick={() => go("out")}>
               <UserPlus className="size-4" /> تسجيل موظف في الموسم
             </AddButton>
@@ -168,7 +171,7 @@ export function Season() {
         <p>
           المشارك في موسم {CURRENT_SEASON} وحده يظهر في قوائم الإسناد في الملفات التشغيلية وفي قوائم الطيران: يسنده {desk.posters.length ? desk.posters.join(" و") : "صاحب «الملفات التشغيلية»"} إلى موقعه، ويضعه صاحب «إدارة الطيران» على رحلتيه.
         </p>
-        <p>لا تُلغى مشاركة من أُسند إلى موقع قبل أن يُزال منه، وإلغاء أي مشاركة يصل إلى مديرة الموسم.</p>
+        <p>لا تُلغى مشاركة من أُسند إلى موقع قبل أن يُزال منه، وإلغاء أي مشاركة يصل إلى مدير الموسم.</p>
       </HowTo>
       <RecordsBox system="staff" area="season" title="سجل المشاركة في الموسم" />
     </div>

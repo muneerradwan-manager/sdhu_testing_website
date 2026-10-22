@@ -45,10 +45,11 @@ import { FilterLinks, HowTo, ListToolbar } from "../employees/list-ui";
 import { InnerDrawer, Occupancy, RoleBlock } from "./inner";
 import { assign, download, membersAt, setHousing, toCsv, unassign, type Target } from "./model";
 import { EmployeePicker } from "./picker";
+import { viewKeys } from "@/lib/permissions";
 
 export function OperationalFilesView() {
   return (
-    <Gate perms={["ops.files", "operations.room"]}>
+    <Gate perms={viewKeys("opfiles")}>
       <OperationalFiles />
     </Gate>
   );
@@ -98,6 +99,7 @@ function FilesList() {
     const t = fileTypeOf(f.type);
     const opts = optionsFor(t, f.season, refs);
     download(`${t.short.replace(/ /g, "-")}-${f.season}.csv`, toCsv(f, employees, new Map([...opts.outer, ...opts.inner].map((p) => [p.id, p]))));
+    logAs(user, { action: "تصدير ملف تشغيلي", target: `${t.short} — ${f.season}`, detail: "Excel (CSV)" });
   };
 
   return (
@@ -122,7 +124,7 @@ function FilesList() {
           const state = f ? fileState(f) : undefined;
           const Icon = TYPE_ICON[t.code];
           const href = fileHref(t.code, season);
-          const canCreate = can(user, "ops.files") && season === CURRENT_SEASON;
+          const canCreate = can(user, "opfiles.files.POST", t.code) && season === CURRENT_SEASON;
           return (
             <tr key={t.code} className="align-top">
               <td className="p-3">
@@ -136,8 +138,8 @@ function FilesList() {
                     </Link>
                     <p className="text-xs text-white/60">{st ? `${st.outer} ${t.outer.plural} · ${st.inner} ${t.inner.plural} · ${st.people} موظفاً · ${formatNumber(st.pilgrims)} حاجاً` : `لا ملف لموسم ${season} بعد`}</p>
                     <RowActions>
-                      {f ? <RowLink href={href}>{can(user, "ops.files") && state !== "ended" ? "تعديل" : "عرض"}</RowLink> : canCreate ? <RowLink href={href}>إنشاء</RowLink> : <RowLink href={href}>عن هذا النوع</RowLink>}
-                      {f && <RowLink onClick={() => exportFile(f)}>تصدير Excel</RowLink>}
+                      {f ? <RowLink href={href}>{can(user, "opfiles.files.PUT", t.code) && state !== "ended" ? "تعديل" : "عرض"}</RowLink> : canCreate ? <RowLink href={href}>إنشاء</RowLink> : <RowLink href={href}>عن هذا النوع</RowLink>}
+                      {f && can(user, "opfiles.files.export", t.code) && <RowLink onClick={() => exportFile(f)}>تصدير Excel</RowLink>}
                     </RowActions>
                   </div>
                 </div>
@@ -219,7 +221,7 @@ function FileScreen({ type, season }: { type: FileType; season: number }) {
       {file ? (
         <FileView key={file.id} file={file} />
       ) : (
-        <EditLayout main={<CreateFile type={type} season={season} previous={previous} canCreate={can(user, "ops.files") && season === CURRENT_SEASON} />} side={<TypeBox type={type} open />} />
+        <EditLayout main={<CreateFile type={type} season={season} previous={previous} canCreate={can(user, "opfiles.files.POST", type.code) && season === CURRENT_SEASON} />} side={<TypeBox type={type} open />} />
       )}
     </div>
   );
@@ -234,7 +236,7 @@ function CreateFile({ type, season, previous, canCreate }: { type: FileType; sea
   const employees = useEmployees();
   const [withPeople, setWithPeople] = useState(true);
 
-  if (!canCreate) return <Empty icon={<FileText />} title={`لا يوجد ملف «${type.short}» لموسم ${season}`} text={season === CURRENT_SEASON ? "يُنشئه من يملك صلاحية الملفات التشغيلية." : undefined} />;
+  if (!canCreate) return <Empty icon={<FileText />} title={`لا يوجد ملف «${type.short}» لموسم ${season}`} text={season === CURRENT_SEASON ? "يُنشئه من يملك صلاحية «إضافة — الملفات» لهذا النوع من الملفات التشغيلية." : undefined} />;
 
   const create = (from?: OpFile) => {
     if (from) {
@@ -345,7 +347,18 @@ function FileView({ file }: { file: OpFile }) {
   const index = useMemo(() => new Map([...places.outer, ...places.inner].map((p) => [p.id, p])), [places]);
   const placeOf = (id?: string) => (id ? index.get(id) : undefined);
   const state = fileState(file);
-  const editable = can(user, "ops.files") && state !== "ended";
+  // Each act its own permission, for this file's type; an ended file is read only
+  const open = state !== "ended";
+  const may = (key: string) => open && can(user, `opfiles.${key}`, file.type);
+  const acts: Acts = {
+    addNode: may("nodes.POST"),
+    editNode: may("nodes.PUT"),
+    removeNode: may("nodes.DELETE"),
+    assign: may("assignments.POST") || may("assignments.PUT"),
+    unassign: may("assignments.DELETE"),
+    contact: can(user, "opfiles.staff-contact.GET", file.type),
+  };
+  const editable = acts.addNode || acts.editNode || acts.removeNode || acts.assign || acts.unassign;
   const stats = fileStats(file);
   const gaps = gapsOf(file);
 
@@ -382,7 +395,7 @@ function FileView({ file }: { file: OpFile }) {
   };
 
   const pick = (ids: string[], moveIds: string[]) => {
-    if (!picking) return;
+    if (!picking || !acts.assign) return;
     const { target, role, place } = picking;
     const moving = ids.filter((id) => moveIds.includes(id));
     let next = moving.length ? assign(file, target, role.code, moving, true) : file;
@@ -515,7 +528,7 @@ function FileView({ file }: { file: OpFile }) {
           <Lock className="size-4 shrink-0 text-gold" /> انتهى هذا الملف ({type.endCondition.replace("ينتهي العمل ", "").replace(/\.$/, "")}). يبقى للرجوع إليه، ويُبنى عليه ملف الموسم التالي.
         </p>
       )}
-      {!editable && state !== "ended" && <p className="rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/80 ring-1 ring-white/15">للاطلاع فقط: التعديل يحتاج صلاحية الملفات التشغيلية.</p>}
+      {!editable && state !== "ended" && <p className="rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/80 ring-1 ring-white/15">للاطلاع فقط: التعديل يحتاج صلاحيات الأماكن أو الإسناد في الملفات التشغيلية لهذا النوع.</p>}
 
       {gaps.length > 0 && state !== "ended" && (
         <section className="rounded-2xl bg-maroon/15 p-4 ring-1 ring-maroon/50">
@@ -529,10 +542,10 @@ function FileView({ file }: { file: OpFile }) {
               const target: Target = { outer: o?.id, inner: c?.id };
               return (
                 <li key={i}>
-                  <button disabled={!editable} onClick={() => openPicker(target, g.role)} className="flex items-center gap-2 rounded-xl bg-maroon/30 px-3 py-1.5 text-sm text-white ring-1 ring-maroon/60 transition enabled:hover:bg-maroon/50">
+                  <button disabled={!acts.assign} onClick={() => openPicker(target, g.role)} className="flex items-center gap-2 rounded-xl bg-maroon/30 px-3 py-1.5 text-sm text-white ring-1 ring-maroon/60 transition enabled:hover:bg-maroon/50">
                     <span className="font-bold">{g.role.name}</span>
                     <span className="text-white/70">— {targetName(target)}</span>
-                    {editable && <span className="text-xs font-bold text-gold">إسناد ←</span>}
+                    {acts.assign && <span className="text-xs font-bold text-gold">إسناد ←</span>}
                   </button>
                 </li>
               );
@@ -549,7 +562,7 @@ function FileView({ file }: { file: OpFile }) {
           </p>
           <div className="grid gap-2.5 md:grid-cols-2">
             {fileRoles.map((r) => (
-              <RoleBlock key={r.code} role={r} holders={file.members.filter((m) => m.role === r.code)} editable={editable} onAdd={() => openPicker({}, r)} onRemove={(id) => remove({}, r, id)} />
+              <RoleBlock key={r.code} role={r} holders={file.members.filter((m) => m.role === r.code)} editable={acts.assign} removable={acts.unassign} contact={acts.contact} onAdd={() => openPicker({}, r)} onRemove={(id) => remove({}, r, id)} />
             ))}
           </div>
         </section>
@@ -559,7 +572,7 @@ function FileView({ file }: { file: OpFile }) {
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <h2 className="font-display text-2xl font-bold text-white">{type.outer.plural}</h2>
-          {editable && (
+          {acts.addNode && (
             <AddButton onClick={() => setAddOuter(true)}>
               <Plus className="size-4" /> إضافة {bare(type.outer.name)}
             </AddButton>
@@ -588,7 +601,7 @@ function FileView({ file }: { file: OpFile }) {
                 file={file}
                 node={o}
                 shown={children}
-                editable={editable}
+                acts={acts}
                 placeOf={placeOf}
                 onPick={(role, inner) => openPicker({ outer: o.id, inner }, role)}
                 onRemove={(role, id, inner) => remove({ outer: o.id, inner }, role, id)}
@@ -626,7 +639,8 @@ function FileView({ file }: { file: OpFile }) {
         </p>
         {file.startNote && <p className="text-xs leading-6 text-white/65">بداية العمل: {file.startNote}</p>}
         {file.endNote && <p className="text-xs leading-6 text-white/65">نهاية العمل: {file.endNote}</p>}
-        {editable &&
+        {open &&
+          can(user, "opfiles.files.activate", file.type) &&
           (state === "draft" ? (
             <Button variant="gold" className="w-full" onClick={activate}>
               <Power className="size-4" /> تفعيل الملف
@@ -636,18 +650,27 @@ function FileView({ file }: { file: OpFile }) {
               إعادته مسودة
             </Button>
           ))}
-        {editable && state === "draft" && <p className="text-xs leading-5 text-white/55">يُفعَّل بعد إدخال رقم القرار وشغل كل منصب إلزامي، فيصل إلى كل موظف إشعار بموقعه.</p>}
+        {can(user, "opfiles.files.activate", file.type) && state === "draft" && <p className="text-xs leading-5 text-white/55">يُفعَّل بعد إدخال رقم القرار وشغل كل منصب إلزامي، فيصل إلى كل موظف إشعار بموقعه.</p>}
         {state === "active" && editable && <p className="text-xs leading-5 text-white/55">الملف مفعّل: كل تغيير في الإسناد يصل إشعاره إلى الموظف المعني.</p>}
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
-          {editable && (
+          {may("files.PUT") && (
             <button type="button" onClick={() => setEditInfo(true)} className="text-gold hover:underline">
               معلومات الملف
             </button>
           )}
-          <button type="button" onClick={() => download(`${type.short.replace(/ /g, "-")}-${file.season}.csv`, toCsv(file, employees, index))} className="text-gold hover:underline">
-            تصدير Excel
-          </button>
-          {editable && state === "draft" && (
+          {can(user, "opfiles.files.export", file.type) && (
+            <button
+              type="button"
+              onClick={() => {
+                download(`${type.short.replace(/ /g, "-")}-${file.season}.csv`, toCsv(file, employees, index));
+                logAs(user, { action: "تصدير ملف تشغيلي", target: `${type.short} — ${file.season}`, detail: "Excel (CSV)" });
+              }}
+              className="text-gold hover:underline"
+            >
+              تصدير Excel
+            </button>
+          )}
+          {may("files.DELETE") && state === "draft" && (
             <button type="button" onClick={() => setConfirmDelete(true)} className="text-[#ffb4c8] hover:underline">
               حذف المسودة
             </button>
@@ -675,7 +698,7 @@ function FileView({ file }: { file: OpFile }) {
         node={openInner}
         place={placeOf(openInner?.refId)}
         outerName={name(openOuter?.refId)}
-        editable={editable}
+        acts={acts}
         onPatch={(p) => innerOpen && patchInner(innerOpen.outer, innerOpen.inner, p)}
         onAdd={(role) => innerOpen && openPicker({ outer: innerOpen.outer, inner: innerOpen.inner }, role)}
         onRemove={(role, id) => innerOpen && remove({ outer: innerOpen.outer, inner: innerOpen.inner }, role, id)}
@@ -776,6 +799,9 @@ function FileView({ file }: { file: OpFile }) {
   );
 }
 
+/** What he may do in one operational file, each its own permission for the file's type */
+export type Acts = { addNode: boolean; editNode: boolean; removeNode: boolean; assign: boolean; unassign: boolean; contact: boolean };
+
 /**
  * One sector / centre: its name with «إضافة برج | إزالة» under it, its own posts, then its towers / camps
  * as a table whose rows open their sheet on the name, with «تعديل | إزالة» under it.
@@ -785,7 +811,7 @@ function OuterSection({
   file,
   node,
   shown,
-  editable,
+  acts,
   placeOf,
   onPick,
   onRemove,
@@ -800,7 +826,7 @@ function OuterSection({
   node: OuterNode;
   /** The inner nodes to show (all of them, or those matching the search) */
   shown: InnerNode[];
-  editable: boolean;
+  acts: Acts;
   placeOf: (id?: string) => Place | undefined;
   onPick: (role: Role, inner?: string) => void;
   onRemove: (role: Role, employeeId: string, inner?: string) => void;
@@ -834,12 +860,14 @@ function OuterSection({
           <p className="text-xs text-white/65">
             {outer?.sub} · {node.children.length} {type.inner.plural} · {formatNumber(pilgrims)} حاجاً · {people} موظفاً
           </p>
-          {editable && (
+          {(acts.addNode || acts.removeNode) && (
             <RowActions>
-              <RowLink onClick={onAddInner}>إضافة {innerWord}</RowLink>
-              <RowLink danger onClick={onRemoveOuter}>
-                إزالة من الملف
-              </RowLink>
+              {acts.addNode && <RowLink onClick={onAddInner}>إضافة {innerWord}</RowLink>}
+              {acts.removeNode && (
+                <RowLink danger onClick={onRemoveOuter}>
+                  إزالة من الملف
+                </RowLink>
+              )}
             </RowActions>
           )}
         </div>
@@ -851,13 +879,15 @@ function OuterSection({
             key={r.code}
             role={r}
             holders={node.members.filter((m) => m.role === r.code)}
-            editable={editable}
+            editable={acts.assign}
+            removable={acts.unassign}
+            contact={acts.contact}
             onAdd={() => onPick(r)}
             onRemove={(id) => onRemove(r, id)}
             extra={
               type.housing
                 ? (m) =>
-                    editable && housingOptions.length ? (
+                    acts.assign && housingOptions.length ? (
                       <label className="mt-1 flex items-center gap-1.5 text-[11px] text-white/60">
                         يسكن في
                         <select value={m.housingHotelId ?? ""} onChange={(e) => onHousing(m.employeeId, e.target.value)} className="rounded-lg bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none ring-1 ring-white/15 [&>option]:text-ink">
@@ -907,8 +937,8 @@ function OuterSection({
                       </p>
                     )}
                     <RowActions>
-                      <RowLink onClick={() => onOpenInner(c.id)}>{editable ? "تعديل" : "عرض"}</RowLink>
-                      {editable && (
+                      <RowLink onClick={() => onOpenInner(c.id)}>{acts.editNode || acts.assign ? "تعديل" : "عرض"}</RowLink>
+                      {acts.removeNode && (
                         <RowLink danger onClick={() => onRemoveInner(c)}>
                           إزالة
                         </RowLink>

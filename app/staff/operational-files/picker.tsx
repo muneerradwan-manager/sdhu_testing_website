@@ -22,7 +22,7 @@ import {
   type Seat,
 } from "@/lib/ops";
 import { cn } from "@/lib/utils";
-import { Drawer, Empty } from "../_components/kit";
+import { Drawer, Empty, useCan } from "../_components/kit";
 import { Avatar, Chip, FilterSelect, SearchBox } from "../_components/ops-ui";
 
 /**
@@ -76,6 +76,9 @@ function PickerBody({ file, role, holders, onPick }: { file: OpFile; role: Role;
   const others = useMemo(() => files.filter((f) => f.season === file.season && f.id !== file.id).map((f) => ({ f, idx: postingIndex(f) })), [files, file]);
   const seatName = (s: Seat, t = type) => `${roleIn(t, s.role).name} — ${places.get(s.innerId ?? s.outerId ?? "")?.name ?? t.team ?? t.short}`;
 
+  const may = useCan();
+  // A national id or a phone finds someone only for whoever may see them
+  const pii = may("staff.employees-pii.GET");
   const rows = useMemo(
     () =>
       employees
@@ -85,10 +88,10 @@ function PickerBody({ file, role, holders, onPick }: { file: OpFile; role: Role;
         .filter((e) => !city || e.city === city)
         .filter((e) => !gender || e.gender === gender)
         .filter((e) => !freeOnly || !index.has(e.id))
-        .filter((e) => matches(q, employeeHaystack(e)))
+        .filter((e) => matches(q, employeeHaystack(e, pii)))
         // Free in this file first, then the most experienced
         .sort((a, b) => Number(index.has(a.id)) - Number(index.has(b.id)) || b.seasons.length - a.seasons.length || fullName(a).localeCompare(fullName(b), "ar")),
-    [employees, file.season, holders, mission, title, city, gender, freeOnly, index, q],
+    [employees, file.season, holders, mission, title, city, gender, freeOnly, index, q, pii],
   );
 
   const choose = (id: string, move: boolean) => {

@@ -76,7 +76,7 @@ export function RegistrationSummary() {
           ))}
         </ol>
         <button type="button" onClick={() => setRaise(true)} className="mt-3 text-xs font-bold text-white/60 hover:text-white hover:underline">
-          تحتاج شيئاً لا تستطيعه من هنا؟ ارفعه إلى مديرة الموسم
+          تحتاج شيئاً لا تستطيعه من هنا؟ ارفعه إلى مدير الموسم
         </button>
       </Panel>
 

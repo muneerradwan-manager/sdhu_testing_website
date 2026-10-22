@@ -34,10 +34,9 @@ import {
 } from "@/lib/flights";
 import { groupName, groupShort, groupsName } from "@/lib/groups";
 import { fullName, useEmployees } from "@/lib/ops";
-import { useOwns } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
 import { useAllEvents } from "../_components/data";
-import { fmtDateTime, textareaClass, useStaffUser } from "../_components/kit";
+import { fmtDateTime, textareaClass, useCan, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
 import { Box, EditHeader, EditLayout } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
@@ -84,9 +83,32 @@ function Screen({ f }: { f: Flight }) {
   const employees = useEmployees();
   const events = useAllEvents();
   const form = useFlightForm();
-  // The screen opens inside the flights file's management, for its holder: he does all of it. The airports'
-  // representatives record take-offs and landings from their own page (/staff/airport)
-  const officer = useOwns(user, "flights");
+  // Each act on the flight is a permission of its own (lib/permissions.ts). The airports' representatives
+  // record take-offs and landings from their own page (/staff/airport)
+  const may = useCan();
+  const p = {
+    publish: may("flights.flights.publish"),
+    lock: may("flights.flights.lock"),
+    depart: may("flights.flights.depart"),
+    arrive: may("flights.flights.arrive"),
+    reschedule: may("flights.flights.reschedule"),
+    postpone: may("flights.flights.postpone"),
+    divert: may("flights.flights.divert"),
+    cancel: may("flights.flights.cancel"),
+    edit: may("flights.flights.PUT"),
+    remove: may("flights.flights.DELETE"),
+    assign: may("flights.passengers.POST"),
+    move: may("flights.passengers.PUT"),
+    unassign: may("flights.passengers.DELETE"),
+    allotments: may("flights.allotments.GET"),
+    needs: may("flights.passengers-pii.GET"),
+    notes: may("flights.flight-notes.GET"),
+    manifests: may("flights.manifests.GET"),
+    reissue: may("flights.manifests.reissue"),
+    exportManifest: may("flights.manifests.export"),
+  };
+  // Ticking travellers serves moving them or taking their seats back
+  const selecting = p.move || p.unassign;
   const actor: Actor = { name: user.name, role: user.title };
   const [who, setWho] = useState<Who>(f.audience === "staff" ? "staff" : "pilgrims");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -198,31 +220,36 @@ function Screen({ f }: { f: Flight }) {
   };
 
   /** The one next step of the flight, by its status: the side box's main button */
-  const next: ReactNode = !officer ? null : f.status === "draft" ? (
-    <Button variant="gold" className="w-full" onClick={() => simple(() => flightsActions.publish(f.id, actor), paired?.status === "draft" ? "نُشرت الرحلتان" : "نُشرت الرحلة", "صارت متاحة للإسناد")}>
+  const need = (label: string) => <p className="text-xs text-white/50">الخطوة التالية تحتاج صلاحية «{label}».</p>;
+  const next: ReactNode = f.status === "draft" ? (
+    !p.publish ? need("نشر — الرحلات") : <Button variant="gold" className="w-full" onClick={() => simple(() => flightsActions.publish(f.id, actor), paired?.status === "draft" ? "نُشرت الرحلتان" : "نُشرت الرحلة", "صارت متاحة للإسناد")}>
       <Send className="size-4" /> {paired?.status === "draft" ? "نشر الرحلتين" : "نشر"}
     </Button>
   ) : f.status === "published" || f.status === "full" ? (
-    <Button variant="gold" className="w-full" onClick={() => simple(() => flightsActions.lock(f.id, actor), "أُقفلت الرحلة", "صدر كشف الركاب — يُصدَّر إلى نسك مسار والناقل")}>
+    !p.lock ? need("إقفال وإصدار الكشف") : <Button variant="gold" className="w-full" onClick={() => simple(() => flightsActions.lock(f.id, actor), "أُقفلت الرحلة", "صدر كشف الركاب — يُصدَّر إلى نسك مسار والناقل")}>
       <Lock className="size-4" /> إقفال وإصدار الكشف
     </Button>
   ) : f.status === "locked" ? (
     <>
-      {stale && (
+      {stale && p.reissue && (
         <Button variant="gold" className="w-full" onClick={() => flightsActions.reissueManifest(f.id, actor)}>
           <FileText className="size-4" /> كشف بإصدار جديد
         </Button>
       )}
-      <Button variant={stale ? "glass" : "gold"} className="w-full" onClick={() => { setNoShow([]); setDialog({ kind: "depart" }); }}>
-        <PlaneTakeoff className="size-4" /> تسجيل الإقلاع
-      </Button>
+      {p.depart ? (
+        <Button variant={stale && p.reissue ? "glass" : "gold"} className="w-full" onClick={() => { setNoShow([]); setDialog({ kind: "depart" }); }}>
+          <PlaneTakeoff className="size-4" /> تسجيل الإقلاع
+        </Button>
+      ) : (
+        need("تسجيل الإقلاع")
+      )}
     </>
   ) : f.status === "departed" ? (
-    <Button variant="gold" className="w-full" onClick={() => simple(() => flightsActions.arrive(f.id, actor), "سُجّل الهبوط", "تقدمت حالة المسافرين إلى «وصل»")}>
+    !p.arrive ? need("تسجيل الهبوط") : <Button variant="gold" className="w-full" onClick={() => simple(() => flightsActions.arrive(f.id, actor), "سُجّل الهبوط", "تقدمت حالة المسافرين إلى «وصل»")}>
       <PlaneLanding className="size-4" /> تسجيل الهبوط
     </Button>
   ) : f.status === "postponed" ? (
-    <Button variant="gold" className="w-full" onClick={openReschedule}>
+    !p.reschedule ? need("تحديد موعد جديد") : <Button variant="gold" className="w-full" onClick={openReschedule}>
       <CalendarClock className="size-4" /> تحديد الموعد الجديد
     </Button>
   ) : null;
@@ -276,7 +303,7 @@ function Screen({ f }: { f: Flight }) {
                 <p className="font-bold text-gold">
                   التكتلات التي أُعطيت الرحلة <span className="font-normal text-white/60">({allots.length})</span>
                 </p>
-                {officer && (
+                {p.allotments && (
                   <Link href={ALLOTMENTS} className="text-sm font-bold text-gold hover:underline">
                     أيام التكتلات
                   </Link>
@@ -305,7 +332,7 @@ function Screen({ f }: { f: Flight }) {
                 <p className="font-bold text-gold">
                   المجموعات على الرحلة <span className="font-normal text-white/60">({legs.length})</span>
                 </p>
-                {officer && acceptsAssignment(f) && (
+                {p.assign && acceptsAssignment(f) && (
                   <Button size="sm" variant="gold" onClick={() => setGroupPicker(true)} disabled={s.remaining <= 0}>
                     <Users className="size-4" /> إضافة مجموعات ({s.remaining} متبقٍّ)
                   </Button>
@@ -321,7 +348,7 @@ function Screen({ f }: { f: Flight }) {
                       <span className="text-xs text-white/60">
                         {clusterName(g.clusterId)} — {active.filter((a) => a.clusterId === g.clusterId && a.groupNumber === g.groupNumber).length}
                       </span>
-                      {officer && acceptsAssignment(f) && (
+                      {p.unassign && acceptsAssignment(f) && (
                         <button type="button" className="rounded-lg px-2 py-0.5 text-xs font-bold text-maroon-light hover:bg-white/10" onClick={() => { setReason(""); setDialog({ kind: "removeGroup", legId: g.id, label: `${groupName(g.groupNumber)} (${clusterName(g.clusterId)})` }); }}>
                           إزالة
                         </button>
@@ -331,11 +358,11 @@ function Screen({ f }: { f: Flight }) {
                 </ul>
               )}
             </div>
-            {officer && selected.length > 0 && (
+            {selecting && selected.length > 0 && (
               <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-gold/15 px-3 py-2 text-sm ring-1 ring-gold/40">
                 <span className="font-bold">{selected.length} مختاراً</span>
-                <Button size="sm" variant="glass" onClick={() => { setReason(""); setDialog({ kind: "unassign", ids: selected }); }}>إلغاء الإسناد</Button>
-                <Button size="sm" variant="glass" onClick={() => { setReason(""); setMoveTo(sameWay[0]?.id ?? ""); setDialog({ kind: "move", ids: selected }); }} disabled={!sameWay.length}>نقل إلى رحلة أخرى</Button>
+                {p.unassign && <Button size="sm" variant="glass" onClick={() => { setReason(""); setDialog({ kind: "unassign", ids: selected }); }}>إلغاء الإسناد</Button>}
+                {p.move && <Button size="sm" variant="glass" onClick={() => { setReason(""); setMoveTo(sameWay[0]?.id ?? ""); setDialog({ kind: "move", ids: selected }); }} disabled={!sameWay.length}>نقل إلى رحلة أخرى</Button>}
                 <button type="button" className="text-white/70 hover:text-white" onClick={() => setSelected([])}>إلغاء التحديد</button>
               </div>
             )}
@@ -359,11 +386,11 @@ function Screen({ f }: { f: Flight }) {
                     <div className="mb-1.5 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
                         {fam.members.map((a) => (
-                          <label key={a.id} className={cn("flex items-center gap-2 text-sm", officer && "cursor-pointer")}>
-                            {officer && <input type="checkbox" className="accent-gold" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} aria-label={`اختيار ${a.name}`} />}
+                          <label key={a.id} className={cn("flex items-center gap-2 text-sm", selecting && "cursor-pointer")}>
+                            {selecting && <input type="checkbox" className="accent-gold" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} aria-label={`اختيار ${a.name}`} />}
                             <span className="font-bold text-white">{a.name}</span>
                             {a.travelerKind === "administrator" && <Chip tone="gold">إداري</Chip>}
-                            {a.needs?.map((n) => (
+                            {p.needs && a.needs?.map((n) => (
                               <Chip key={n} tone="maroon">
                                 {n}
                               </Chip>
@@ -385,7 +412,7 @@ function Screen({ f }: { f: Flight }) {
 
         {who === "staff" && (
           <div>
-            {officer && (f.status === "published" || f.status === "full" || f.status === "draft") && (
+            {p.assign && (f.status === "published" || f.status === "full" || f.status === "draft") && (
               <Button size="sm" variant="gold" className="mb-3" onClick={() => setPicker(true)} disabled={s.remainingStaff <= 0}>
                 <UserRoundPlus className="size-4" /> إسناد موظفين ({s.remainingStaff} متبقٍّ)
               </Button>
@@ -398,7 +425,7 @@ function Screen({ f }: { f: Flight }) {
                   const e = employees.find((x) => x.id === a.travelerId);
                   return (
                     <li key={a.id} className="flex items-center gap-3 px-3 py-2">
-                      {officer && <input type="checkbox" className="accent-gold" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} aria-label={`اختيار ${nameOf(a)}`} />}
+                      {p.unassign && <input type="checkbox" className="accent-gold" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} aria-label={`اختيار ${nameOf(a)}`} />}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-bold text-white">{nameOf(a)}</span>
                         <span className="block truncate text-xs text-white/60">{e ? `${e.jobTitle} — ${e.mission}` : "موظف"}</span>
@@ -409,7 +436,7 @@ function Screen({ f }: { f: Flight }) {
                 })}
               </ul>
             )}
-            {officer && selected.length > 0 && (
+            {p.unassign && selected.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-gold/15 px-3 py-2 text-sm ring-1 ring-gold/40">
                 <span className="font-bold">{selected.length} مختاراً</span>
                 <Button size="sm" variant="glass" onClick={() => { setReason(""); setDialog({ kind: "unassign", ids: selected }); }}>إلغاء الإسناد</Button>
@@ -420,9 +447,10 @@ function Screen({ f }: { f: Flight }) {
         )}
       </section>
 
-      <Box title={`كشف الركاب (${manifests.length})`} open={manifests.length > 0}>
-        {manifests.length === 0 && <p className="text-white/60">يصدر كشف الركاب عند إقفال الرحلة.</p>}
-        {manifests.map((m) => (
+      <Box title={`كشف الركاب (${manifests.length})`} open={p.manifests && manifests.length > 0}>
+        {!p.manifests && <p className="text-white/60">كشوف الركاب بيانات شخصية: تحتاج صلاحية «عرض — كشوف الركاب».</p>}
+        {p.manifests && manifests.length === 0 && <p className="text-white/60">يصدر كشف الركاب عند إقفال الرحلة.</p>}
+        {(p.manifests ? manifests : []).map((m) => (
           <div key={m.id} className={cn("rounded-2xl bg-white/5 p-4 ring-1", m.version === f.manifestVersion ? "ring-gold/50" : "ring-white/10")}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-bold text-white">
@@ -434,14 +462,16 @@ function Screen({ f }: { f: Flight }) {
               {m.version === f.manifestVersion && !stale && <Chip tone="green">الحالي</Chip>}
               {m.version === f.manifestVersion && stale && <Chip tone="maroon">تغيّرت الإسنادات بعده</Chip>}
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button size="sm" variant="glass" onClick={() => { download(`${f.flightNo.replace(/\s/g, "")}-masar-v${m.version}.csv`, manifestCsv(m, f, data)); if (officer) flightsActions.exportManifest(m.id, "masar", actor); }}>
-                <Download className="size-4" /> تصدير إلى نسك مسار
-              </Button>
-              <Button size="sm" variant="glass" onClick={() => { download(`${f.flightNo.replace(/\s/g, "")}-carrier-v${m.version}.csv`, manifestCsv(m, f, data)); if (officer) flightsActions.exportManifest(m.id, "carrier", actor); }}>
-                <Download className="size-4" /> تصدير للناقل
-              </Button>
-            </div>
+            {p.exportManifest && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button size="sm" variant="glass" onClick={() => { download(`${f.flightNo.replace(/\s/g, "")}-masar-v${m.version}.csv`, manifestCsv(m, f, data)); flightsActions.exportManifest(m.id, "masar", actor); }}>
+                  <Download className="size-4" /> تصدير إلى نسك مسار
+                </Button>
+                <Button size="sm" variant="glass" onClick={() => { download(`${f.flightNo.replace(/\s/g, "")}-carrier-v${m.version}.csv`, manifestCsv(m, f, data)); flightsActions.exportManifest(m.id, "carrier", actor); }}>
+                  <Download className="size-4" /> تصدير للناقل
+                </Button>
+              </div>
+            )}
             {m.exports.length > 0 && <p className="mt-2 text-xs text-white/60">{m.exports.map((x) => `${x.to === "masar" ? "مسار" : "الناقل"} ${fmtDateTime(x.at)} (${x.by})`).join(" · ")}</p>}
             <details className="mt-2 text-sm">
               <summary className="cursor-pointer text-gold">عرض الصفوف</summary>
@@ -461,7 +491,7 @@ function Screen({ f }: { f: Flight }) {
                         <td className="p-1">{r.name}</td>
                         <td className="p-1">{KIND_LABEL[r.kind]}</td>
                         <td className="p-1">{r.groupNumber !== undefined ? groupShort(r.groupNumber) : "—"}</td>
-                        <td className="p-1">{r.needs.join("، ")}</td>
+                        <td className="p-1">{p.needs ? r.needs.join("، ") : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -499,12 +529,12 @@ function Screen({ f }: { f: Flight }) {
         </p>
         <p className="text-xs leading-5 text-white/65">{STATUS_LINE[f.status]}</p>
         {next}
-        {officer && editable && (
+        {p.edit && editable && (
           <Button variant="glass" className="w-full" onClick={() => form.edit(f)}>
             تعديل بيانات الرحلة
           </Button>
         )}
-        {officer && f.status === "draft" && (
+        {p.remove && f.status === "draft" && (
           <button type="button" onClick={() => setDialog({ kind: "deleteDraft" })} className="text-xs font-bold text-[#ffb4c8] hover:underline">
             حذف المسودة
           </button>
@@ -544,31 +574,37 @@ function Screen({ f }: { f: Flight }) {
             }
           />
           <Fact k="البوابة والتجمّع" v={`${f.gate ?? "—"} — ${f.gathering ?? "—"}`} />
-          <Fact k="ملاحظات" v={f.notes ?? ""} />
+          <Fact k="ملاحظات" v={p.notes ? (f.notes ?? "") : <span className="text-white/40">تحتاج صلاحية «عرض — ملاحظات الرحلة»</span>} />
         </dl>
       </Box>
 
-      {officer && troubled && (
+      {troubled && (p.postpone || p.reschedule || p.divert || p.cancel) && (
         <Box title="ظروف طارئة" open={f.status === "postponed"}>
           <p className="text-xs leading-5 text-white/55">حين يتغيّر شيء عند الناقل أو في الأجواء. يُبلَّغ المسافرون بكل تغيير.</p>
           {f.status !== "postponed" && (
             <>
-              <Button size="sm" variant="glass" className="w-full" onClick={() => setDialog({ kind: "postpone" })}>
-                <CalendarClock className="size-4" /> تأجيل
-              </Button>
-              <Button size="sm" variant="glass" className="w-full" onClick={openReschedule}>
-                موعد جديد
-              </Button>
-              {!f.divertedToId && (
+              {p.postpone && (
+                <Button size="sm" variant="glass" className="w-full" onClick={() => setDialog({ kind: "postpone" })}>
+                  <CalendarClock className="size-4" /> تأجيل
+                </Button>
+              )}
+              {p.reschedule && (
+                <Button size="sm" variant="glass" className="w-full" onClick={openReschedule}>
+                  موعد جديد
+                </Button>
+              )}
+              {p.divert && !f.divertedToId && (
                 <Button size="sm" variant="glass" className="w-full" onClick={() => setDialog({ kind: "divert" })}>
                   <ArrowLeftRight className="size-4" /> تحويل الوجهة
                 </Button>
               )}
             </>
           )}
-          <Button size="sm" variant="glass" className="w-full text-maroon-light" onClick={() => setDialog({ kind: "cancel" })}>
-            <Ban className="size-4" /> إلغاء الرحلة
-          </Button>
+          {p.cancel && (
+            <Button size="sm" variant="glass" className="w-full text-maroon-light" onClick={() => setDialog({ kind: "cancel" })}>
+              <Ban className="size-4" /> إلغاء الرحلة
+            </Button>
+          )}
         </Box>
       )}
     </>

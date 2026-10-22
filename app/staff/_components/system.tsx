@@ -8,22 +8,23 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { useStore, type AuditEvent } from "@/lib/store";
-import { SYSTEM_KEYS, SYSTEMS, operationAt, useHolders, useOwns, type SystemKey } from "@/lib/systems";
+import { permLabel } from "@/lib/permissions";
+import { SYSTEM_KEYS, SYSTEMS, canOperation, operationAt, type SystemKey } from "@/lib/systems";
 import { cn } from "@/lib/utils";
 import { useAllEvents } from "./data";
-import { ago, Empty, fmtDateTime, logAs, PageHeader, Panel, textareaClass, useNow, useStaffUser } from "./kit";
+import { ago, can, Empty, fmtDateTime, logAs, PageHeader, Panel, textareaClass, useNow, useStaffUser } from "./kit";
 
 /**
- * What every system shares, whoever owns it: the gate that opens it to its owner alone, the list of what
- * waits for him, the request he raises to the director, the tabs of its management page and the records
- * kept in each of them. A new system is its own data and screens on top of these.
+ * What every management file shares: the gate that opens each of its pages to whoever may view what it holds,
+ * the list of what waits there, the request raised to the director, and the records kept in each operation.
+ * A new file is its own data and screens on top of these.
  */
 
 /** Something the owner has to act on. `high` blocks the work: it also reaches the director */
 export type Alert = { id: string; level: "high" | "work"; title: string; hint: string; href: string; action: string };
 
 /**
- * How a file stands on the director's page, in the few words and numbers she needs: a state line, four
+ * How a file stands on the director's page, in the few words and numbers he needs: a state line, four
  * numbers in the order the work is done, and the blockers (its `high` alerts). Each file provides its own.
  */
 export type SystemStatus = { state: { label: string; tone: "green" | "maroon"; icon: ReactNode }; numbers: { k: string; v: ReactNode; hint?: string }[]; high: Alert[] };
@@ -34,27 +35,34 @@ export function useSystemEvents(system: SystemKey, importantOnly = false) {
   return useMemo(() => events.filter((e) => e.system === system && (!importantOnly || e.important)), [events, system, importantOnly]);
 }
 
-/** Important events of every system the director has not seen yet, for her menu's badge */
+/** Important events of every system the director has not seen yet, for his menu's badge */
 export function useSystemsUnseen() {
   const seen = useStore((s) => s.systems?.seen);
   const events = useAllEvents();
   return useMemo(() => events.filter((e) => e.live && e.important && SYSTEM_KEYS.includes(e.system as SystemKey) && e.at > (seen?.[e.system!] ?? 0)).length, [events, seen]);
 }
 
+/**
+ * A page of a management file opens to whoever may view what it holds: the summary to `‹file›.summary.GET`, an
+ * operation to any of its `perms` (lib/systems.ts). What he may do inside it is checked act by act.
+ */
 export function SystemGate({ system, children }: { system: SystemKey; children: ReactNode }) {
   const user = useStaffUser()!;
-  const owns = useOwns(user, system);
-  const holders = useHolders()[system];
-  if (owns) return children;
+  const pathname = usePathname().replace(/\/+$/, "");
+  const def = SYSTEMS[system];
+  const summary = pathname === def.summary.href;
+  const op = operationAt(system, pathname);
+  const perms = summary ? [`${system}.summary.GET`] : op.perms;
+  if (summary ? can(user, perms[0]) : canOperation(user, op)) return children;
   return (
     <div className="grid min-h-[calc(50vh/var(--zoom))] place-items-center">
       <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="relative max-w-md overflow-hidden rounded-3xl border border-gold/30 bg-gradient-to-br from-green-dark/95 to-[#00352f]/95 p-8 text-center text-white">
         <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-maroon/40 text-gold">
           <Lock className="size-8" />
         </span>
-        <h1 className="mt-4 font-display text-2xl font-bold">صلاحية «{SYSTEMS[system].label}» ليست لك</h1>
+        <h1 className="mt-4 font-display text-2xl font-bold">«{summary ? def.summary.label : op.label}» ليست لك</h1>
         <p className="mt-2 leading-7 text-white/75">
-          {holders.length ? `يحملها ${holders.map((h) => h.staff.name).join(" و")}، ويدير بها الملف كله.` : "لم تُمنح لأحد بعد."} يمنح مدير الموسم صلاحيات الإدارة ويسحبها من «صلاحيات الإدارة»، ويتابع حال كل ملف وأحداثه المهمة من هناك.
+          تحتاج صلاحية: {perms.map((p) => permLabel(p)).join(" أو ")}. تُمنح الصلاحيات للموظف واحدة واحدة من «صلاحيات الموظفين»، ويُسجَّل منحها في سجل الأحداث.
         </p>
       </motion.div>
     </div>
@@ -97,12 +105,12 @@ export function Todo({ alerts, empty }: { alerts: Alert[]; empty: string }) {
           ))}
         </ul>
       )}
-      <p className="mt-3 text-xs leading-5 text-white/55">ما عليه علامة حمراء يعطّل العمل، فيصل إلى مديرة الموسم أيضاً حتى تعالجه.</p>
+      <p className="mt-3 text-xs leading-5 text-white/55">ما عليه علامة حمراء يعطّل العمل، فيصل إلى مدير الموسم أيضاً حتى يعالجه.</p>
     </Panel>
   );
 }
 
-/** What the owner cannot settle alone goes to the director, as a request she sees on her board */
+/** What the owner cannot settle alone goes to the director, as a request he sees on his board */
 export function Escalate({ system, open, onClose, example }: { system: SystemKey; open: boolean; onClose: () => void; example: string }) {
   const user = useStaffUser()!;
   const toast = useToast();
@@ -110,7 +118,7 @@ export function Escalate({ system, open, onClose, example }: { system: SystemKey
   const send = () => {
     if (text.trim().length < 5) return;
     logAs(user, { action: "رفع أمر إلى المدير", target: SYSTEMS[system].label, detail: text.trim(), system, important: true });
-    toast({ title: "وصل الأمر إلى مديرة الموسم", body: "يظهر عندها في «صلاحيات الإدارة» طلبَ تدخّل.", tone: "success", icon: "📨" });
+    toast({ title: "وصل الأمر إلى مدير الموسم", body: "يظهر عنده في «صلاحيات الموظفين» طلبَ تدخّل.", tone: "success", icon: "📨" });
     setText("");
     onClose();
   };
@@ -200,7 +208,7 @@ export function SystemRecords({ system, area, title }: { system: SystemKey; area
         </Button>
       )}
       <p className="mt-3 flex items-center gap-1.5 text-xs text-white/50">
-        <Star className="size-3 fill-gold text-gold" /> وصل إلى مديرة الموسم أيضاً.
+        <Star className="size-3 fill-gold text-gold" /> وصل إلى مدير الموسم أيضاً.
       </p>
     </Panel>
   );

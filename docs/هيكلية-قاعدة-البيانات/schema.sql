@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- هيكلية قاعدة البيانات — الجداول والعلاقات للمنصة الوطنية للحج
 -- المنصة الوطنية للحج — إدارة الحج والعمرة السورية
--- MySQL 8.0.16+ / MariaDB 10.6+   |   246 جدولاً   |   مولَّد من docs/_build-guide/schema في 2026-10-21
+-- MySQL 8.0.16+ / MariaDB 10.6+   |   248 جدولاً   |   مولَّد من docs/_build-guide/schema في 2026-10-22
 -- لا تعدّل هذا الملف يدوياً: عدّل النموذج ثم شغّل build_schema.py
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -104,10 +104,9 @@ CREATE TABLE `operations` (
   `code` VARCHAR(40) NOT NULL COMMENT 'مفتاح العملية: hajj-direct، hajj-lottery، admin-registration، admin-exams، admin-orals، group-formation، group-joining، cluster-formation، group-management، cluster-management، pilgrim-evaluation، self-evaluation، peer-evaluation، evaluation-objection',
   `label` VARCHAR(120) NOT NULL COMMENT 'الاسم، مثل «التسجيل على الحج — القبول المباشر»',
   `description` TEXT NOT NULL COMMENT 'الشرح المعروض للموظف',
-  `control_permission` VARCHAR(40) NOT NULL COMMENT 'الصلاحية التي تتحكم بها (registration.manage، admins.manage، exams.manage، season.settings). وصاحب season.settings يتحكم بكل عملية',
   `permanent` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = عملية دائمة بلا مواعيد (group-management، cluster-management)',
   PRIMARY KEY (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='العمليات الموسمية ومواعيدها — كل عملية في المنصة تُفتح وتُغلق بمواعيد: التسجيل بنوعيه، التسجيل كإداري، الاختبارات، التشكيل، الإلحاق، التقييمات. التعريف ثابت (المفتاح والاسم وصاحب الصلاحية)، والمواعيد لكل موسم في operation_windows.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='العمليات الموسمية ومواعيدها — كل عملية في المنصة تُفتح وتُغلق بمواعيد: التسجيل بنوعيه، التسجيل كإداري، الاختبارات، التشكيل، الإلحاق، التقييمات. التعريف ثابت (المفتاح والاسم)، والمواعيد لكل موسم في operation_windows.';
 
 CREATE TABLE `operation_windows` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
@@ -166,7 +165,7 @@ CREATE TABLE `audit_events` (
   `actor_role` VARCHAR(160) NOT NULL COMMENT 'صفته وقت الحدث: المسمى الوظيفي للموظف، أو «حاج»، أو «إداري — رئيس مجموعة»…',
   `action` VARCHAR(200) NOT NULL COMMENT 'الفعل بالعربية كما يُعرض: «تقديم طلب حج — التسجيل على القبول المباشر»، «منح صلاحية»، «اعتماد وثيقة طبية»…',
   `action_code` VARCHAR(60) NULL COMMENT 'رمز ثابت للفعل للبحث والتقارير (مقترح، الكود لا يملكه)',
-  `system_code` VARCHAR(20) NULL COMMENT 'ملف الإدارة الذي وقع فيه الحدث: staff، registration، admins، exams، flights (والقيم الأخرى مثل transport تُكتب في area)',
+  `system_code` VARCHAR(20) NULL COMMENT 'النظام الذي وقع فيه الحدث: ملفات الإدارة (staff، registration، admins، exams، flights)، أو access لمنح الصلاحيات وسحبها، أو غيرها من الأنظمة',
   `area` VARCHAR(40) NULL COMMENT 'تبويب داخل الملف: rules، cadre، groups، clusters، stages، payments، dispatch…',
   `target` VARCHAR(300) NULL COMMENT 'على ماذا وقع، نصاً: «طلب 4512»، اسم شخص، «بلاغ OR-1207»…',
   `ref_type` VARCHAR(40) NULL COMMENT 'نوع السجل المعني (application، account، flight، cluster، group، exam، operation…)',
@@ -176,7 +175,7 @@ CREATE TABLE `audit_events` (
   `detail` TEXT NULL COMMENT 'تفاصيل',
   `before_value` TEXT NULL COMMENT 'القيمة قبل (نص مقروء)',
   `after_value` TEXT NULL COMMENT 'القيمة بعد',
-  `important` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = يصل إلى مديرة الموسم في «صلاحيات الإدارة»',
+  `important` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = يصل إلى مدير الموسم في «صلاحيات الموظفين» ← «ملفات الإدارة»',
   `ip_address` VARCHAR(45) NULL COMMENT 'عنوان IP (مقترح)',
   PRIMARY KEY (`id`),
   KEY `ix_audit_events_occurred_at` (`occurred_at`),
@@ -912,7 +911,7 @@ CREATE TABLE `ticket_kinds` (
   `sla_minutes` SMALLINT UNSIGNED NOT NULL COMMENT 'مهلة الاستجابة: missing 0 (فوري)، health 10، transport 30، meal و room و lost 120، complaint 240',
   `default_severity` ENUM('low','medium','high','critical') NOT NULL COMMENT 'الخطورة الافتراضية',
   `default_assignee_label` VARCHAR(120) NULL COMMENT 'الجهة الافتراضية: «د. ليلى شمس — الفريق الطبي»، «فادي سلوم — غرفة العمليات»، «هيثم زيدان — فريق المواصلات»، «وسام خوري — مشرف البرج»…',
-  `handling_permission` VARCHAR(40) NULL COMMENT 'الصلاحية التي تعالجه (operations.room، medical، transport)',
+  `handling_permission` VARCHAR(80) NULL COMMENT 'الصلاحية التي تعالجه (operations.tickets.PUT، medical.tickets.PUT، transport.tickets.PUT)',
   PRIMARY KEY (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='أنواع البلاغات — نوع البلاغ ومهلة الاستجابة والجهة الافتراضية.';
 
@@ -1270,7 +1269,6 @@ CREATE TABLE `exam_centers` (
   `lng` DECIMAL(9,6) NULL COMMENT 'خط الطول',
   `capacity` SMALLINT UNSIGNED NULL COMMENT 'السعة (120 لدمشق…)',
   `display_no` SMALLINT UNSIGNED NOT NULL COMMENT 'رقم شاشة العرض /exam-display/<n> (1–9999)',
-  `supervisor_staff_id` BIGINT UNSIGNED NULL COMMENT 'مشرف القاعة (أي موظف، ويمكن أن يشرف على أكثر من قاعة)',
   `active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'فعّال (لا يُعطَّل وفيه جلسة جارية)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_exam_centers_code` (`code`),
@@ -2255,14 +2253,6 @@ CREATE TABLE `airport_return_targets` (
   PRIMARY KEY (`airport_id`, `return_airport_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='مطارات العودة المسموحة — من يقلع من مطار يعود إلى أحد هذه المطارات (الافتراضي المطار نفسه).';
 
-CREATE TABLE `airport_representatives` (
-  `airport_id` BIGINT UNSIGNED NOT NULL COMMENT 'المطار',
-  `staff_user_id` BIGINT UNSIGNED NOT NULL COMMENT 'المندوب',
-  `assigned_by_staff_id` BIGINT UNSIGNED NULL COMMENT 'من أسنده',
-  `assigned_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'الوقت',
-  PRIMARY KEY (`airport_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='مندوبو المطارات — موظف يسجّل إقلاع رحلات مطاره وهبوطها من «رحلات مطاري». مندوب واحد لكل مطار، وقد يمثل الموظف أكثر من مطار.';
-
 CREATE TABLE `carriers` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
   `code` VARCHAR(4) NOT NULL COMMENT 'الرمز: RB، SV، XY',
@@ -2436,20 +2426,45 @@ CREATE TABLE `flight_manifest_exports` (
 -- الموظفون والصلاحيات والملفات التشغيلية
 -- ───────────────────────────────────────────────────────────────
 
-CREATE TABLE `permissions` (
-  `code` VARCHAR(40) NOT NULL COMMENT 'المفتاح',
-  `label` VARCHAR(120) NOT NULL COMMENT 'الاسم: systems.assign «منح صلاحيات الإدارة ومتابعتها»، staff.manage «إدارة الموظفين»، registration.manage «إدارة التسجيل على الحج»، admins.manage «إدارة الإداريين»، exams.manage «إدارة الامتحانات»، flights.manage «إدارة الطيران»، pilgrims.register «التسجيل على الحج»، registration.review «مراجعة الطلبات والوثائق»، season.settings «إعدادات الموسم»، lottery.import «إدخال نتائج القرعة»، lottery.approve «اعتماد ونشر النتائج»، operations.room «غرفة العمليات»، audit.read «سجل الأحداث»، content.manage «إدارة محتوى الموقع»، medical «الفريق الطبي»، transport «المواصلات»، ops.files «الملفات التشغيلية والبيانات المرجعية»',
-  `kind` ENUM('task','management') NOT NULL COMMENT 'task صلاحية مهمة ثابتة؛ management إدارة ملف تُمنح عبر system_grants',
+CREATE TABLE `permission_systems` (
+  `code` VARCHAR(20) NOT NULL COMMENT 'المفتاح: access، staff، registration، reviews، office، lottery، admins، exams، hall، flights، airport، season، operations، medical، transport، opfiles، reference، audit، executive، content، evaluate',
+  `label` VARCHAR(80) NOT NULL COMMENT 'الاسم: «صلاحيات الموظفين»، «إدارة الموظفين»، «إدارة التسجيل على الحج»، «مراجعة الطلبات والوثائق»، «التسجيل في المكتب»، «القبول المباشر والقرعة»، «إدارة الإداريين»، «إدارة الامتحانات»، «قاعة الامتحان»، «إدارة الطيران»، «رحلات المطار»، «إعدادات الموسم»، «غرفة العمليات»، «الفريق الطبي»، «المواصلات»، «الملفات التشغيلية»، «البيانات المرجعية»، «سجل الأحداث»، «لوحة الإدارة العليا»، «محتوى الموقع»، «تقييم الإداريين بعد الموسم»',
+  `description` VARCHAR(300) NOT NULL COMMENT 'الشرح',
+  `href` VARCHAR(120) NOT NULL COMMENT 'رابط النظام في البوابة',
+  `scope_kind` ENUM('center','airport','operation','collection','office','opfileType','posting') NULL COMMENT 'نطاق صلاحيات النظام كله إن وُجد: center للقاعة، airport للمطار، office للمكتب، opfileType لنوع الملف التشغيلي، posting لمواقع الموظف في الملفات التشغيلية',
   `sort_order` TINYINT NOT NULL DEFAULT 0 COMMENT 'الترتيب',
   PRIMARY KEY (`code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='الصلاحيات — صلاحيات الموظفين: مهام ثابتة لكل حساب، وإدارة ملفات تُمنح وتُسحب.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='أنظمة بوابة الموظفين — الأنظمة الواحد والعشرون التي تُمنح عليها الصلاحيات، بترتيب القائمة.';
+
+CREATE TABLE `permission_resources` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
+  `system_code` VARCHAR(20) NOT NULL COMMENT 'النظام',
+  `resource_key` VARCHAR(40) NOT NULL COMMENT 'مفتاح المورد في النظام (flights، manifests، questions-answers…)',
+  `label` VARCHAR(120) NOT NULL COMMENT 'الاسم المعروض',
+  `sensitive` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'بيانات شخصية أو سرية تُمنح وحدها (الرقم الوطني، الهواتف، الأجوبة الصحيحة، الكشوف…)',
+  `scope_kind` ENUM('center','airport','operation','collection','office','opfileType','posting') NULL COMMENT 'نطاق المورد إن كان له نطاق غير نطاق نظامه: operation لمواعيد العمليات، collection لعناصر مجموعات المحتوى',
+  `note` VARCHAR(200) NULL COMMENT 'قاعدة تُفرض في الكود («من أدخل النتائج لا يعتمدها»)',
+  `sort_order` TINYINT NOT NULL DEFAULT 0 COMMENT 'الترتيب',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_permission_resources_system_code_resource_key` (`system_code`, `resource_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='موارد كل نظام — ما يُمنح عليه في كل نظام: الرحلات، الكشوف، بنك الأسئلة، الكادر… مع علامة الحساس والنطاق.';
+
+CREATE TABLE `permissions` (
+  `code` VARCHAR(80) NOT NULL COMMENT 'المفتاح ‹النظام›.‹المورد›.‹الفعل›: flights.flights.GET، flights.flights.lock، lottery.draw.publish…',
+  `resource_id` BIGINT UNSIGNED NOT NULL COMMENT 'المورد',
+  `verb` VARCHAR(30) NOT NULL COMMENT 'الفعل: GET، POST، PUT، DELETE، أو اسم فعل خاص (approve، publish، export، lock…)',
+  `kind` ENUM('verb','special') NOT NULL COMMENT 'verb أحد الأفعال الأربعة؛ special فعل خاص بالاسم',
+  `label` VARCHAR(120) NOT NULL COMMENT 'الاسم: «عرض»، «إضافة»، «تعديل»، «حذف»، أو اسم الفعل الخاص («إقفال وإصدار الكشف»)',
+  PRIMARY KEY (`code`),
+  UNIQUE KEY `uq_permissions_resource_id_verb` (`resource_id`, `verb`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='الصلاحيات — كل صلاحية تُمنح على حدة: فعل على مورد في نظام.';
 
 CREATE TABLE `staff_users` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
   `username` VARCHAR(40) NOT NULL COMMENT 'اسم الدخول (أحرف صغيرة)',
   `national_id` CHAR(11) NULL COMMENT 'الرقم الوطني للموظف',
   `name` VARCHAR(120) NOT NULL COMMENT 'الاسم المعروض (يظهر فاعلاً في سجل الأحداث)',
-  `title` VARCHAR(160) NOT NULL COMMENT 'المسمى في البوابة («مديرة الموسم»، «مسؤول الطيران»، «مشرفة قاعة امتحانية — مركز دمشق»)',
+  `title` VARCHAR(160) NOT NULL COMMENT 'المسمى في البوابة («مدير الموسم»، «مسؤول الطيران»، «مشرفة قاعة امتحانية — مركز دمشق»)',
   `initials` VARCHAR(4) NOT NULL COMMENT 'حرف الصورة الرمزية',
   `travels` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'مسافر مع البعثة («مسافر مع البعثة»)',
   `password_hash` VARCHAR(255) NOT NULL COMMENT 'بصمة كلمة المرور',
@@ -2464,15 +2479,24 @@ CREATE TABLE `staff_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='حسابات الموظفين — حساب الدخول إلى بوابة الموظفين. ينشئه قسم الموارد البشرية من الرقم الوطني والهاتف، وتُرسل كلمة مرور مؤقتة تُغيَّر عند أول دخول.';
 
 CREATE TABLE `staff_user_permissions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
   `staff_user_id` BIGINT UNSIGNED NOT NULL COMMENT 'الحساب',
-  `permission_code` VARCHAR(40) NOT NULL COMMENT 'الصلاحية',
-  PRIMARY KEY (`staff_user_id`, `permission_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='صلاحيات المهام للحساب — صلاحيات المهام الثابتة لكل حساب. مديرة الموسم تحمل كل صلاحيات المهام.';
+  `permission_code` VARCHAR(80) NOT NULL COMMENT 'الصلاحية',
+  `granted_by_staff_id` BIGINT UNSIGNED NULL COMMENT 'من منحها (فارغ لما فُتح به الموسم)',
+  `granted_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'وقت المنح',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_staff_user_permissions_staff_user_id_permission_code` (`staff_user_id`, `permission_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='صلاحيات كل موظف — الصلاحيات الممنوحة لكل حساب مباشرة، بلا أدوار وبلا إسناد لنظام. يمنحها ويسحبها من يملك access.permissions.PUT من «صلاحيات الموظفين».';
+
+CREATE TABLE `staff_user_permission_scopes` (
+  `staff_user_permission_id` BIGINT UNSIGNED NOT NULL COMMENT 'الصلاحية الممنوحة',
+  `scope_id` VARCHAR(40) NOT NULL COMMENT 'معرّف ما تقتصر عليه، بحسب scope_kind لمورده أو نظامه: معرّف المركز (exam_centers)، أو المطار (airports)، أو مفتاح العملية (operations)، أو المجموعة (cms_collections)، أو المكتب، أو نوع الملف التشغيلي',
+  PRIMARY KEY (`staff_user_permission_id`, `scope_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='نطاق كل صلاحية ممنوحة — حين تُمنح صلاحية لنطاق بعينه: المراكز أو المطارات أو العمليات أو المجموعات التي تقتصر عليها. بلا أسطر هنا تسري الصلاحية في كل مكان.';
 
 CREATE TABLE `management_systems` (
   `code` VARCHAR(20) NOT NULL COMMENT 'المفتاح: staff، registration، admins، exams، flights (الترتيب يحدد القائمة وصفحة الدخول)',
   `label` VARCHAR(80) NOT NULL COMMENT 'الاسم: «إدارة الموظفين»، «إدارة التسجيل على الحج»، «إدارة الإداريين»، «إدارة الامتحانات»، «إدارة الطيران»',
-  `permission_code` VARCHAR(40) NOT NULL COMMENT 'صلاحية الإدارة المقابلة',
   `description` TEXT NOT NULL COMMENT 'الشرح',
   `summary_href` VARCHAR(120) NOT NULL COMMENT 'رابط «لوحة التحكم»',
   `manage_href` VARCHAR(120) NOT NULL COMMENT 'رابط الإدارة',
@@ -2491,24 +2515,19 @@ CREATE TABLE `management_system_operations` (
   PRIMARY KEY (`system_code`, `area`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='عمليات كل ملف — التبويبات في القائمة الجانبية لكل ملف (المنطقة area تُكتب في سجل الأحداث).';
 
-CREATE TABLE `system_grants` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
+CREATE TABLE `management_operation_permissions` (
   `system_code` VARCHAR(20) NOT NULL COMMENT 'الملف',
-  `staff_user_id` BIGINT UNSIGNED NOT NULL COMMENT 'الموظف الممنوح',
-  `granted_by_staff_id` BIGINT UNSIGNED NOT NULL COMMENT 'من منح',
-  `granted_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'الوقت',
-  `revoked_at` DATETIME(3) NULL COMMENT 'سُحبت',
-  `revoked_by_staff_id` BIGINT UNSIGNED NULL COMMENT 'من سحب',
-  PRIMARY KEY (`id`),
-  KEY `ix_system_grants_system_code_staff_user_id` (`system_code`, `staff_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='منح صلاحيات إدارة الملفات — من يدير كل ملف. تمنحها وتسحبها مديرة الموسم (صلاحية systems.assign)، وكل منح وسحب حدث مهم.';
+  `area` VARCHAR(30) NOT NULL COMMENT 'العملية',
+  `permission_code` VARCHAR(80) NOT NULL COMMENT 'صلاحية عرض تفتحها',
+  PRIMARY KEY (`system_code`, `area`, `permission_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='ما يفتح كل عملية — صلاحيات العرض التي يكفي أحدها لتظهر العملية في قائمة الموظف وتُفتح صفحتها.';
 
 CREATE TABLE `system_seen` (
   `staff_user_id` BIGINT UNSIGNED NOT NULL COMMENT 'الموظف',
   `system_code` VARCHAR(20) NOT NULL COMMENT 'الملف',
   `seen_at` DATETIME(3) NOT NULL COMMENT 'الوقت',
   PRIMARY KEY (`staff_user_id`, `system_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='آخر اطلاع على أحداث الملفات — متى اطلعت المديرة آخر مرة على الأحداث المهمة لكل ملف (لعدّ الجديد منها).';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='آخر اطلاع على أحداث الملفات — متى اطلع المدير آخر مرة على الأحداث المهمة لكل ملف (لعدّ الجديد منها).';
 
 CREATE TABLE `escalations` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
@@ -2516,11 +2535,11 @@ CREATE TABLE `escalations` (
   `raised_by_staff_id` BIGINT UNSIGNED NOT NULL COMMENT 'من رفعه',
   `text` TEXT NOT NULL COMMENT 'النص (5 أحرف على الأقل)',
   `raised_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT 'الوقت',
-  `reply` TEXT NULL COMMENT 'رد المديرة',
+  `reply` TEXT NULL COMMENT 'رد المدير',
   `resolved_by_staff_id` BIGINT UNSIGNED NULL COMMENT 'من أغلقه',
   `resolved_at` DATETIME(3) NULL COMMENT 'الإغلاق',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='رفع أمر إلى المدير — طلب يرفعه صاحب ملف إدارة إلى مديرة الموسم. الكود يحفظه حدثاً في السجل فقط بلا رد.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='رفع أمر إلى المدير — طلب يرفعه من يعمل في ملف إدارة إلى مدير الموسم، ويراه من يملك access.escalations.GET. الكود يحفظه حدثاً في السجل فقط بلا رد.';
 
 CREATE TABLE `job_titles` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
@@ -3417,7 +3436,7 @@ CREATE TABLE `cms_staff_roles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='أدوار المحتوى — الكود يملك صلاحية واحدة (content.manage) تسمح بكل شيء: التحرير والنشر والأرشفة والإرجاع واستيراد الحالة كلها وحذف الوسائط. هنا فصل بين المحرر والناشر، ونطاق اختياري.';
 
 -- ───────────────────────────────────────────────────────────────
--- العلاقات (596 مفتاحاً أجنبياً)
+-- العلاقات (592 مفتاحاً أجنبياً)
 -- ───────────────────────────────────────────────────────────────
 
 ALTER TABLE `seasons` ADD CONSTRAINT `fk_seasons_copied_from_version_id` FOREIGN KEY (`copied_from_version_id`) REFERENCES `reg_config_versions` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
@@ -3426,7 +3445,6 @@ ALTER TABLE `season_settings` ADD CONSTRAINT `fk_season_settings_season_year` FO
 ALTER TABLE `season_settings` ADD CONSTRAINT `fk_season_settings_updated_by_staff_id` FOREIGN KEY (`updated_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `season_calendar` ADD CONSTRAINT `fk_season_calendar_season_year` FOREIGN KEY (`season_year`) REFERENCES `seasons` (`season_year`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `offices` ADD CONSTRAINT `fk_offices_governorate_code` FOREIGN KEY (`governorate_code`) REFERENCES `governorates` (`code`) ON DELETE SET NULL ON UPDATE RESTRICT;
-ALTER TABLE `operations` ADD CONSTRAINT `fk_operations_control_permission` FOREIGN KEY (`control_permission`) REFERENCES `permissions` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `operation_windows` ADD CONSTRAINT `fk_operation_windows_season_year` FOREIGN KEY (`season_year`) REFERENCES `seasons` (`season_year`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `operation_windows` ADD CONSTRAINT `fk_operation_windows_operation_code` FOREIGN KEY (`operation_code`) REFERENCES `operations` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `operation_windows` ADD CONSTRAINT `fk_operation_windows_updated_by_staff_id` FOREIGN KEY (`updated_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
@@ -3434,7 +3452,7 @@ ALTER TABLE `files` ADD CONSTRAINT `fk_files_uploaded_by_staff_id` FOREIGN KEY (
 ALTER TABLE `files` ADD CONSTRAINT `fk_files_uploaded_by_account_id` FOREIGN KEY (`uploaded_by_account_id`) REFERENCES `accounts` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `audit_events` ADD CONSTRAINT `fk_audit_events_actor_staff_id` FOREIGN KEY (`actor_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `audit_events` ADD CONSTRAINT `fk_audit_events_actor_account_id` FOREIGN KEY (`actor_account_id`) REFERENCES `accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `audit_events` ADD CONSTRAINT `fk_audit_events_system_code` FOREIGN KEY (`system_code`) REFERENCES `management_systems` (`code`) ON DELETE SET NULL ON UPDATE RESTRICT;
+ALTER TABLE `audit_events` ADD CONSTRAINT `fk_audit_events_system_code` FOREIGN KEY (`system_code`) REFERENCES `permission_systems` (`code`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `audit_events` ADD CONSTRAINT `fk_audit_events_subject_account_id` FOREIGN KEY (`subject_account_id`) REFERENCES `accounts` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `audit_events` ADD CONSTRAINT `fk_audit_events_application_id` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `notifications` ADD CONSTRAINT `fk_notifications_account_id` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
@@ -3632,7 +3650,6 @@ ALTER TABLE `exam_questions` ADD CONSTRAINT `fk_exam_questions_created_by_staff_
 ALTER TABLE `exam_question_options` ADD CONSTRAINT `fk_exam_question_options_question_id` FOREIGN KEY (`question_id`) REFERENCES `exam_questions` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `exam_question_roles` ADD CONSTRAINT `fk_exam_question_roles_question_id` FOREIGN KEY (`question_id`) REFERENCES `exam_questions` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `exam_question_roles` ADD CONSTRAINT `fk_exam_question_roles_role_key` FOREIGN KEY (`role_key`) REFERENCES `admin_roles` (`role_key`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `exam_centers` ADD CONSTRAINT `fk_exam_centers_supervisor_staff_id` FOREIGN KEY (`supervisor_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `exam_center_governorates` ADD CONSTRAINT `fk_exam_center_governorates_center_id` FOREIGN KEY (`center_id`) REFERENCES `exam_centers` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `exam_center_governorates` ADD CONSTRAINT `fk_exam_center_governorates_governorate_code` FOREIGN KEY (`governorate_code`) REFERENCES `governorates` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `exam_supervisor_pins` ADD CONSTRAINT `fk_exam_supervisor_pins_staff_user_id` FOREIGN KEY (`staff_user_id`) REFERENCES `staff_users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
@@ -3830,9 +3847,6 @@ ALTER TABLE `honours_awards` ADD CONSTRAINT `fk_honours_awards_cluster_id` FOREI
 ALTER TABLE `honours_awards` ADD CONSTRAINT `fk_honours_awards_publication_id` FOREIGN KEY (`publication_id`) REFERENCES `grading_publications` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `airport_return_targets` ADD CONSTRAINT `fk_airport_return_targets_airport_id` FOREIGN KEY (`airport_id`) REFERENCES `airports` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `airport_return_targets` ADD CONSTRAINT `fk_airport_return_targets_return_airport_id` FOREIGN KEY (`return_airport_id`) REFERENCES `airports` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `airport_representatives` ADD CONSTRAINT `fk_airport_representatives_airport_id` FOREIGN KEY (`airport_id`) REFERENCES `airports` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
-ALTER TABLE `airport_representatives` ADD CONSTRAINT `fk_airport_representatives_staff_user_id` FOREIGN KEY (`staff_user_id`) REFERENCES `staff_users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `airport_representatives` ADD CONSTRAINT `fk_airport_representatives_assigned_by_staff_id` FOREIGN KEY (`assigned_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `flights` ADD CONSTRAINT `fk_flights_season_year` FOREIGN KEY (`season_year`) REFERENCES `seasons` (`season_year`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `flights` ADD CONSTRAINT `fk_flights_carrier_id` FOREIGN KEY (`carrier_id`) REFERENCES `carriers` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `flights` ADD CONSTRAINT `fk_flights_from_airport_id` FOREIGN KEY (`from_airport_id`) REFERENCES `airports` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
@@ -3867,15 +3881,16 @@ ALTER TABLE `flight_manifest_rows` ADD CONSTRAINT `fk_flight_manifest_rows_manif
 ALTER TABLE `flight_manifest_rows` ADD CONSTRAINT `fk_flight_manifest_rows_assignment_id` FOREIGN KEY (`assignment_id`) REFERENCES `flight_assignments` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `flight_manifest_exports` ADD CONSTRAINT `fk_flight_manifest_exports_manifest_id` FOREIGN KEY (`manifest_id`) REFERENCES `flight_manifests` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `flight_manifest_exports` ADD CONSTRAINT `fk_flight_manifest_exports_exported_by_staff_id` FOREIGN KEY (`exported_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `permission_resources` ADD CONSTRAINT `fk_permission_resources_system_code` FOREIGN KEY (`system_code`) REFERENCES `permission_systems` (`code`) ON DELETE CASCADE ON UPDATE RESTRICT;
+ALTER TABLE `permissions` ADD CONSTRAINT `fk_permissions_resource_id` FOREIGN KEY (`resource_id`) REFERENCES `permission_resources` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `staff_users` ADD CONSTRAINT `fk_staff_users_national_id` FOREIGN KEY (`national_id`) REFERENCES `civil_persons` (`national_id`) ON DELETE SET NULL ON UPDATE RESTRICT;
 ALTER TABLE `staff_user_permissions` ADD CONSTRAINT `fk_staff_user_permissions_staff_user_id` FOREIGN KEY (`staff_user_id`) REFERENCES `staff_users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `staff_user_permissions` ADD CONSTRAINT `fk_staff_user_permissions_permission_code` FOREIGN KEY (`permission_code`) REFERENCES `permissions` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `management_systems` ADD CONSTRAINT `fk_management_systems_permission_code` FOREIGN KEY (`permission_code`) REFERENCES `permissions` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `staff_user_permissions` ADD CONSTRAINT `fk_staff_user_permissions_granted_by_staff_id` FOREIGN KEY (`granted_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
+ALTER TABLE `staff_user_permission_scopes` ADD CONSTRAINT `fk_staff_user_permission_scopes_staff_user_permission_id` FOREIGN KEY (`staff_user_permission_id`) REFERENCES `staff_user_permissions` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `management_system_operations` ADD CONSTRAINT `fk_management_system_operations_system_code` FOREIGN KEY (`system_code`) REFERENCES `management_systems` (`code`) ON DELETE CASCADE ON UPDATE RESTRICT;
-ALTER TABLE `system_grants` ADD CONSTRAINT `fk_system_grants_system_code` FOREIGN KEY (`system_code`) REFERENCES `management_systems` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `system_grants` ADD CONSTRAINT `fk_system_grants_staff_user_id` FOREIGN KEY (`staff_user_id`) REFERENCES `staff_users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
-ALTER TABLE `system_grants` ADD CONSTRAINT `fk_system_grants_granted_by_staff_id` FOREIGN KEY (`granted_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-ALTER TABLE `system_grants` ADD CONSTRAINT `fk_system_grants_revoked_by_staff_id` FOREIGN KEY (`revoked_by_staff_id`) REFERENCES `staff_users` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
+ALTER TABLE `management_operation_permissions` ADD CONSTRAINT `fk_management_operation_permissions_system_code` FOREIGN KEY (`system_code`) REFERENCES `management_systems` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `management_operation_permissions` ADD CONSTRAINT `fk_management_operation_permissions_permission_code` FOREIGN KEY (`permission_code`) REFERENCES `permissions` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `system_seen` ADD CONSTRAINT `fk_system_seen_staff_user_id` FOREIGN KEY (`staff_user_id`) REFERENCES `staff_users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 ALTER TABLE `system_seen` ADD CONSTRAINT `fk_system_seen_system_code` FOREIGN KEY (`system_code`) REFERENCES `management_systems` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE `escalations` ADD CONSTRAINT `fk_escalations_system_code` FOREIGN KEY (`system_code`) REFERENCES `management_systems` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT;

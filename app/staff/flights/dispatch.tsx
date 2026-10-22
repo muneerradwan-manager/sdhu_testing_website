@@ -29,9 +29,8 @@ import {
 import { groupName } from "@/lib/groups";
 import { fullName } from "@/lib/ops";
 import { useStore } from "@/lib/store";
-import { useOwns } from "@/lib/systems";
 import { cn } from "@/lib/utils";
-import { useStaffUser } from "../_components/kit";
+import { useCan, useStaffUser } from "../_components/kit";
 import { FilterSelect } from "../_components/ops-ui";
 import { OperationHeader } from "../_components/system";
 import { EmptyRow, ListTable, RecordsBox, RowActions, RowLink } from "../_components/wp";
@@ -44,7 +43,7 @@ const VIEWS: View[] = ["groups", "needs", "staff", "alerts"];
 
 /**
  * «التفويج»: who travels on what, as lists — the groups and their two flights (their clusters' heads put them on
- * their days; the officer can put a group on both in one step), who lost a seat, which staff have none, and what
+ * their days; whoever may add passengers can put a group on both in one step), who lost a seat, which staff have none, and what
  * the flights warn of. `?view=` opens one of them (the
  * summary's «ما ينتظرك» links there, and to `?state=` for the groups without a flight).
  */
@@ -52,7 +51,10 @@ export function DispatchPage() {
   const desk = useFlightsDesk();
   const data = desk.data;
   const user = useStaffUser()!;
-  const officer = useOwns(user, "flights");
+  const may = useCan();
+  // Putting travellers on a flight, and marking one as going by other means, are each a permission
+  const assigner = may("flights.passengers.POST");
+  const otherMeans = may("flights.passengers.other-means");
   const actor = { name: user.name, role: user.title };
   const toast = useToast();
   const router = useRouter();
@@ -160,7 +162,7 @@ export function DispatchPage() {
           </div>
           <ListTable head={["المجموعة", "التكتل", "الأفراد", "الذهاب", "العودة", "تنبيهات"]} minWidth="50rem">
             {groups.map((r) => (
-              <GroupLine key={`${r.g.clusterId}-${r.g.number}`} r={r} officer={officer} onAssign={openGroup} />
+              <GroupLine key={`${r.g.clusterId}-${r.g.number}`} r={r} officer={assigner} onAssign={openGroup} />
             ))}
             {groups.length === 0 && <EmptyRow cols={6}>لا مجموعة تطابق التصفية.</EmptyRow>}
           </ListTable>
@@ -174,10 +176,10 @@ export function DispatchPage() {
             <tr key={`${t.id}-${dir}`} className="align-top">
               <td className="p-3">
                 <p className="font-bold text-white">{t.name}</p>
-                {officer && (
+                {(assigner || otherMeans) && (
                   <RowActions>
-                    <RowLink onClick={() => { setAssignOne({ t, dir }); setTarget(""); }}>إسناد</RowLink>
-                    <RowLink onClick={() => { flightsActions.setOtherMeans(t.id, t.name, "بقرار مسؤول الطيران", actor); toast({ title: "عُلّم: وسيلة أخرى", body: t.name, tone: "info" }); }}>وسيلة أخرى</RowLink>
+                    {assigner && <RowLink onClick={() => { setAssignOne({ t, dir }); setTarget(""); }}>إسناد</RowLink>}
+                    {otherMeans && <RowLink onClick={() => { flightsActions.setOtherMeans(t.id, t.name, "بقرار مسؤول الطيران", actor); toast({ title: "عُلّم: وسيلة أخرى", body: t.name, tone: "info" }); }}>وسيلة أخرى</RowLink>}
                   </RowActions>
                 )}
               </td>

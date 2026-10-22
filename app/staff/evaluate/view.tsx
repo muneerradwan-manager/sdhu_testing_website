@@ -16,7 +16,7 @@ import { acceptedGroups } from "@/app/administrator/_lib/cluster";
 import { avgOf, cadreMembers, round1, staffPlacesOf } from "@/app/administrator/_lib/evaluation";
 import { useClusterRequests } from "@/app/administrator/_lib/formation";
 import { StageScoresForm, cleanScores, scoresReady } from "@/app/administrator/_components/stage-scores";
-import { Empty, PageHeader, logAs, stamp, useStaffUser } from "../_components/kit";
+import { can, Empty, Gate, PageHeader, logAs, stamp, useStaffUser } from "../_components/kit";
 
 /**
  * Something a staff member rates after the season: a cluster as a whole («c-<cluster>»), one of its groups
@@ -64,7 +64,16 @@ const KINDS: { kind: Evaluatee["kind"]; title: string; icon: ReactNode }[] = [
   { kind: "admin", title: "إداريوه", icon: <UserRound className="size-4" /> },
 ];
 
+/** Viewing needs `evaluate.evaluations.GET`; rating, `.PUT` while the operation is open */
 export function EvaluateView() {
+  return (
+    <Gate perms={["evaluate.evaluations.GET"]}>
+      <Evaluate />
+    </Gate>
+  );
+}
+
+function Evaluate() {
   const user = useStaffUser()!;
   const op = useOperation("peer-evaluation");
   const { places, items } = useEvaluatees(user);
@@ -74,7 +83,7 @@ export function EvaluateView() {
   const one = items.find((x) => x.key === open);
   const done = items.filter((x) => peers[x.key]?.[mineKey]).length;
 
-  if (one) return <EvaluateOne who={one} onBack={() => setOpen(null)} editable={op.open} />;
+  if (one) return <EvaluateOne who={one} onBack={() => setOpen(null)} editable={op.open && can(user, "evaluate.evaluations.PUT")} />;
   const clusters = [...new Set(items.map((x) => x.clusterId))];
 
   return (
@@ -155,7 +164,7 @@ function EvaluateOne({ who, onBack, editable }: { who: Evaluatee; onBack: () => 
 
   const save = () => {
     setTried(true);
-    if (!ready.ok) return;
+    if (!editable || !ready.ok) return;
     const now = cleanScores(draft);
     actions.setPeerEvaluation(who.key, mineKey, { kind: "staff", by: user.name, role: user.title, place: who.place, stages: now, note: note.trim() || undefined, at: stamp() });
     logAs(user, { action: `تقييم ${what} بعد الموسم`, target: `${who.title} — ${who.clusterName}`, after: `${round1(avgOf(now))} من 5 — ${Object.keys(now).length} مراحل`, detail: `${who.subtitle} — ${who.place}`, system: "admins", area: "evaluation", ref: who.key });

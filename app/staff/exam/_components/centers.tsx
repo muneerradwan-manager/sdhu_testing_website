@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button";
 import { MapPicker, mapsLink, type LatLng } from "@/components/ui/map-picker";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { GOVERNORATE_SEATS, GOVERNORATES } from "@/lib/ops";
-import { getStaff, STAFF } from "@/lib/staff";
 import { asset, cn } from "@/lib/utils";
 import { hallActions, runKey, STAGE_LABEL, stageOf, useHalls, type ExamCenter } from "@/app/administrator/_lib/halls";
-import { logAs, smallInputClass, useStaffUser } from "../../_components/kit";
+import { logAs, smallInputClass, useCan, useStaffUser } from "../../_components/kit";
 import { AddButton, Box, EditHeader, EditLayout, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk } from "./desk";
 import { RecordHistory, Records } from "./records";
-import { Field, Pick, Segments, selectClass } from "./ui";
+import { Field, Pick, Segments } from "./ui";
 
 /** The applicants' own page, whose QR code every hall screen shows */
 const ENTRY = "/portal/exam";
@@ -68,7 +67,7 @@ function OffDialog({ center, onClose }: { center: ExamCenter | null; onClose: ()
         <div>
           <p className="font-display text-xl font-bold">تعطيل {center.name}؟</p>
           <p className="mt-2 text-sm leading-7 text-white/75">
-            {here ? `${here} متقدمين ينتظرون فيها يصبحون بلا قاعة حتى تضيف محافظاتهم إلى قاعة أخرى أو تنقلهم.` : "لا أحد ينتظر فيها الآن."} ويصل الخبر إلى مديرة الموسم.
+            {here ? `${here} متقدمين ينتظرون فيها يصبحون بلا قاعة حتى تضيف محافظاتهم إلى قاعة أخرى أو تنقلهم.` : "لا أحد ينتظر فيها الآن."} ويصل الخبر إلى مدير الموسم.
           </p>
           <div className="mt-4 flex gap-2">
             <Button variant="maroon" onClick={() => setActive(center, false) && onClose()}>
@@ -96,6 +95,7 @@ export function Centers() {
   const desk = useExamDesk();
   const copy = useCopy();
   const setActive = useSetActive();
+  const may = useCan();
   const [filter, setFilter] = useState<"all" | "on" | "off">("all");
   const [offing, setOffing] = useState<ExamCenter | null>(null);
   const served = new Set(halls.live.flatMap((c) => c.governorates));
@@ -106,9 +106,11 @@ export function Centers() {
     <div className="space-y-5">
       <Title
         action={
-          <AddButton href={editHref()}>
-            <Plus className="size-4" /> إضافة قاعة
-          </AddButton>
+          may("exams.centers.POST") && (
+            <AddButton href={editHref()}>
+              <Plus className="size-4" /> إضافة قاعة
+            </AddButton>
+          )
         }
       />
       {uncovered.length > 0 && (
@@ -150,17 +152,20 @@ export function Centers() {
                   )}
                 </p>
                 <RowActions>
-                  <RowLink href={editHref(c.id)}>تعديل</RowLink>
+                  <RowLink href={editHref(c.id)}>{may("exams.centers.PUT") ? "تعديل" : "عرض"}</RowLink>
                   <RowLink href={`/staff/exam/manage/people?c=${c.id}`}>متقدموها</RowLink>
                   <a href={asset(displayPath(n))} target="_blank" rel="noreferrer" className="text-gold hover:underline">
                     فتح الشاشة
                   </a>
                   <RowLink onClick={() => copy(displayPath(n), `رابط شاشة ${c.name}`)}>نسخ رابط الشاشة</RowLink>
-                  {c.off ? <RowLink onClick={() => setActive(c, true)}>تفعيل</RowLink> : (
-                    <RowLink danger onClick={() => setOffing(c)}>
-                      تعطيل
-                    </RowLink>
-                  )}
+                  {may("exams.centers.disable") &&
+                    (c.off ? (
+                      <RowLink onClick={() => setActive(c, true)}>تفعيل</RowLink>
+                    ) : (
+                      <RowLink danger onClick={() => setOffing(c)}>
+                        تعطيل
+                      </RowLink>
+                    ))}
                 </RowActions>
               </td>
               <td className="p-3 text-white/80">{c.governorates.length ? c.governorates.join("، ") : <span className="text-white/50">لا محافظة — بالنقل فقط</span>}</td>
@@ -243,7 +248,7 @@ export function Centers() {
 
 // ───────────────────────── Edit one hall ─────────────────────────
 
-type Draft = { name: string; hall: string; at?: LatLng; governorates: string[]; capacity: string; supervisor: string; display: string };
+type Draft = { name: string; hall: string; at?: LatLng; governorates: string[]; capacity: string; display: string };
 
 /** One hall on its own screen (`?id=`; none: a new one) */
 export function CenterEditor() {
@@ -272,6 +277,9 @@ function CenterForm({ center }: { center: ExamCenter | null }) {
   const halls = useHalls();
   const copy = useCopy();
   const setActive = useSetActive();
+  const may = useCan();
+  // A new hall is added (POST), an existing one changed (PUT)
+  const allowed = may(center ? "exams.centers.PUT" : "exams.centers.POST");
   const [offing, setOffing] = useState(false);
   const others = halls.centers.filter((c) => c.id !== center?.id);
   const initial = (): Draft => ({
@@ -280,7 +288,6 @@ function CenterForm({ center }: { center: ExamCenter | null }) {
     at: center?.at,
     governorates: center?.governorates ?? [],
     capacity: center?.capacity ? String(center.capacity) : "",
-    supervisor: center ? (halls.supervisors[center.id] ?? "") : "",
     // A new hall takes the first screen number no other hall has
     display: String(center ? halls.displayOf(center) : Array.from({ length: 9999 }, (_, i) => i + 1).find((n) => !others.some((c) => halls.displayOf(c) === n))),
   });
@@ -290,6 +297,7 @@ function CenterForm({ center }: { center: ExamCenter | null }) {
   const ownerOf = (g: string) => others.find((c) => c.governorates.includes(g));
 
   const save = () => {
+    if (!allowed) return;
     const display = /^\d+$/.test(d.display.trim()) ? Number(d.display.trim()) : NaN;
     const problem = !d.name.trim() || !d.hall.trim()
       ? "أكمل اسم القاعة ومكانها."
@@ -333,12 +341,8 @@ function CenterForm({ center }: { center: ExamCenter | null }) {
       ref: id,
       important: !center,
     });
-    const before = center ? (halls.supervisors[center.id] ?? "") : "";
-    if (d.supervisor !== before) {
-      hallActions.assignSupervisor(id, d.supervisor);
-      logAs(user, { action: d.supervisor ? "إسناد مشرف قاعة اختبار" : "إلغاء إسناد مشرف قاعة", target: next.name, before: getStaff(before)?.name, after: getStaff(d.supervisor)?.name ?? "—", system: "exams", area: "centers", ref: id });
-    }
-    toast({ title: center ? `حُفظت ${next.name}` : `أُضيفت ${next.name}`, body: d.supervisor ? `مشرفها ${getStaff(d.supervisor)?.name}، وتظهر جلساتها في لوحته.` : "لم يُسند لها مشرف بعد.", tone: "success", icon: "🏛️" });
+    const sups = halls.supervisorsOf(id);
+    toast({ title: center ? `حُفظت ${next.name}` : `أُضيفت ${next.name}`, body: sups.length ? `مشرفها ${sups.map((u) => u.name).join("، ")}، وتظهر جلساتها في لوحته.` : "لا مشرف لها بعد: تُمنح صلاحية «قاعة الامتحان» لهذه القاعة من «صلاحيات الموظفين».", tone: "success", icon: "🏛️" });
     setSaved(d);
     if (!center) router.replace(editHref(id));
   };
@@ -406,30 +410,34 @@ function CenterForm({ center }: { center: ExamCenter | null }) {
               {live && (
                 <p className="flex flex-wrap items-center gap-2">
                   {live.off ? <Tag>معطّلة</Tag> : <Tag tone="green">فعّالة</Tag>}
-                  {live.off ? (
-                    <RowLink onClick={() => setActive(live, true)}>تفعيلها</RowLink>
-                  ) : (
-                    <RowLink danger onClick={() => setOffing(true)}>
-                      تعطيلها
-                    </RowLink>
-                  )}
+                  {may("exams.centers.disable") &&
+                    (live.off ? (
+                      <RowLink onClick={() => setActive(live, true)}>تفعيلها</RowLink>
+                    ) : (
+                      <RowLink danger onClick={() => setOffing(true)}>
+                        تعطيلها
+                      </RowLink>
+                    ))}
                 </p>
               )}
-              <Button variant="gold" className="w-full" onClick={save} disabled={!dirty}>
+              <Button variant="gold" className="w-full" onClick={save} disabled={!dirty || !allowed}>
                 <Save className="size-4" /> {center ? "حفظ القاعة" : "إضافة القاعة"}
               </Button>
-              <p className="text-xs text-white/55">{dirty ? "لديك تعديلات لم تُحفظ." : "محفوظة."}</p>
+              <p className="text-xs text-white/55">{!allowed ? `للاطلاع: ${center ? "تعديل القاعات" : "إضافة القاعات"} يحتاج صلاحيته.` : dirty ? "لديك تعديلات لم تُحفظ." : "محفوظة."}</p>
             </Box>
             <Box title="مشرف القاعة">
-              <select value={d.supervisor} onChange={(e) => setD({ ...d, supervisor: e.target.value })} className={selectClass} aria-label="مشرف القاعة">
-                <option value="">— لم يُسند —</option>
-                {STAFF.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — {s.title}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs leading-5 text-white/55">يفتح القاعة ويسجّل الحضور ويوافق على دخول الأجهزة ويؤكد التسليم برمزه. تظهر له جلساتها في «قاعتي الامتحانية»، ولا يمنحه الإسناد شيئاً آخر.</p>
+              {center && halls.supervisorsOf(center.id).length ? (
+                <ul className="space-y-1 text-sm">
+                  {halls.supervisorsOf(center.id).map((u) => (
+                    <li key={u.id}>
+                      <b>{u.name}</b> <span className="text-xs text-white/55">— {u.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-white/70">لا مشرف لها بعد.</p>
+              )}
+              <p className="text-xs leading-5 text-white/55">مشرف القاعة من يملك صلاحية «قاعة الامتحان» لهذه القاعة، وتُمنح من «صلاحيات الموظفين» لا من هنا. يفتح القاعة ويسجّل الحضور ويوافق على دخول الأجهزة ويؤكد التسليم برمزه، وتظهر له جلساتها في «قاعتي الامتحانية».</p>
             </Box>
             <Box title="الشاشة والمقاعد">
               <Field label="رقم الشاشة" hint="من 1 إلى 9999، لا يتكرر">

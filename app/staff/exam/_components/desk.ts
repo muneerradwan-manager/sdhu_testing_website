@@ -134,9 +134,9 @@ export function useExamDesk() {
         id: `sup-${c.id}`,
         level: "high" as const,
         title: `${c.name} بلا مشرف قاعة`,
-        hint: `فيه ${expected.filter((a) => a.center?.id === c.id).length} متقدمين ينتظرون اختبارهم، ولا تُفتح قاعته دون مشرف.`,
+        hint: `فيه ${expected.filter((a) => a.center?.id === c.id).length} متقدمين ينتظرون اختبارهم، ولا تُفتح قاعته دون مشرف. المشرف من يملك «قاعة الامتحان» لهذه القاعة، وتُمنح من «صلاحيات الموظفين».`,
         href: "/staff/exam/manage",
-        action: "أسند مشرفاً",
+        action: "اعرض القاعات",
       })),
       ...crowded.map(({ center, exam, n }) => ({
         id: `full-${center.id}-${exam.id}`,

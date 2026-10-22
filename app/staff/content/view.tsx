@@ -10,7 +10,8 @@ import { CMS_GROUPS, CMS_PAGES, getPageDef } from "@/lib/cms/schema";
 import { cms, editedFieldCount, editedItemCount, hasCollectionDraft, hasDraft, pageState, readCollection, useCms, useCmsHydrated } from "@/lib/cms/store";
 import type { CmsState } from "@/lib/cms/types";
 import { cn, countOf } from "@/lib/utils";
-import { Gate, PageHeader, Panel, fmtDateTime, useStaffUser } from "../_components/kit";
+import { can, Gate, PageHeader, Panel, fmtDateTime, logAs, useStaffUser } from "../_components/kit";
+import type { StaffUser } from "@/lib/staff";
 import { FilterSelect } from "../_components/ops-ui";
 import { Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
@@ -20,6 +21,7 @@ import { PageEditor, StatusChip } from "./_components/editor";
 import { MediaLibrary } from "./_components/media";
 import { RevisionsView } from "./_components/revisions";
 import { useContentSummary } from "./_components/summary";
+import { viewKeys } from "@/lib/permissions";
 
 type Tab = "pages" | "media" | "revisions" | "archive";
 const TABS: Tab[] = ["pages", "media", "revisions", "archive"];
@@ -27,7 +29,7 @@ const BASE = "/staff/content";
 
 export function ContentView() {
   return (
-    <Gate perms={["content.manage"]}>
+    <Gate perms={viewKeys("content")}>
       <Inner />
     </Gate>
   );
@@ -36,7 +38,8 @@ export function ContentView() {
 /**
  * The site's content, as a site's admin: the pages and collections in a list, each edited on its own screen
  * (`?id=` for a page, `?collection=` for a collection); the media, the earlier versions and the archive beside it
- * (`?tab=`). Its numbers are on «لوحتي».
+ * (`?tab=`). Its numbers are on «لوحتي». Each part shows to whoever may view it: the pages `content.pages.GET`, each
+ * collection `content.items.GET` for it, the media `content.media.GET`, the versions `content.revisions.GET`.
  */
 function Inner() {
   const user = useStaffUser();
@@ -49,12 +52,16 @@ function Inner() {
 
   const openId = params.get("id");
   const tabParam = params.get("tab") as Tab | null;
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : "pages";
+  const tabs = TABS.filter((t) => user && (t === "pages" ? can(user, "content.pages.GET") || CMS_COLLECTIONS.some((c) => can(user, "content.items.GET", c.id)) : t === "media" ? can(user, "content.media.GET") : t === "revisions" ? can(user, "content.revisions.GET") : can(user, "content.pages.GET")));
+  const tab: Tab = tabParam && tabs.includes(tabParam) ? tabParam : (tabs[0] ?? "pages");
   const focus = params.get("focus") ?? undefined;
   // A collection opens by its own parameter: a page and a collection may share an id («الأخبار» and its articles)
   const collectionId = params.get("collection");
-  const page = openId ? getPageDef(openId) : null;
-  const collection = collectionId ? getCollectionDef(collectionId) : openId && !page ? getCollectionDef(openId) : null;
+  const pageDef = openId ? getPageDef(openId) : null;
+  const collectionDef = collectionId ? getCollectionDef(collectionId) : openId && !pageDef ? getCollectionDef(openId) : null;
+  // A page or a collection he may not view opens the list instead
+  const page = pageDef && user && can(user, "content.pages.GET") ? pageDef : null;
+  const collection = collectionDef && user && can(user, "content.items.GET", collectionDef.id) ? collectionDef : null;
 
   if (!user) return null;
 
@@ -71,9 +78,11 @@ function Inner() {
         description="ما يظهر لزوار الموقع: عدّل، احفظ مسودة، عاين، ثم انشر."
         actions={
           <>
+            {can(user, "content.site.preview") && (
             <button
               onClick={() => {
                 cms.setPreview(!preview);
+                logAs(user, { action: preview ? "إيقاف وضع المعاينة" : "تشغيل وضع المعاينة", target: "محتوى الموقع" });
                 toast({
                   title: preview ? "أُوقف وضع المعاينة" : "شُغّل وضع المعاينة",
                   body: preview ? "تصفّح الموقع كما يراه الزوار" : "الموقع يعرض لك الآن المسودات غير المنشورة",
@@ -85,6 +94,7 @@ function Inner() {
             >
               {preview ? <Eye className="size-4" /> : <EyeOff className="size-4" />} وضع المعاينة
             </button>
+            )}
             <Link href="/" target="_blank" className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/20">
               <ExternalLink className="size-4" /> فتح الموقع
             </Link>
@@ -107,15 +117,15 @@ function Inner() {
             onChange={(v) => router.replace(v === "pages" ? BASE : `${BASE}?tab=${v}`, { scroll: false })}
             label="أقسام المحتوى"
             items={[
-              { value: "pages", label: "الصفحات والمجموعات", count: CMS_PAGES.length + CMS_COLLECTIONS.length },
-              { value: "media", label: "مكتبة الوسائط", count: stats.media },
-              { value: "revisions", label: "النسخ السابقة", count: stats.revisions },
-              { value: "archive", label: "الأرشيف", count: stats.archived },
-            ]}
+              { value: "pages" as const, label: "الصفحات والمجموعات", count: CMS_PAGES.length + CMS_COLLECTIONS.length },
+              { value: "media" as const, label: "مكتبة الوسائط", count: stats.media },
+              { value: "revisions" as const, label: "النسخ السابقة", count: stats.revisions },
+              { value: "archive" as const, label: "الأرشيف", count: stats.archived },
+            ].filter((x) => tabs.includes(x.value))}
           />
 
-          {tab === "pages" && <PagesList onOpen={goto} onOpenCollection={gotoCollection} onRevisions={openRevisions} />}
-          {tab === "media" && <MediaLibrary by={user.name} />}
+          {tab === "pages" && <PagesList user={user} onOpen={goto} onOpenCollection={gotoCollection} onRevisions={openRevisions} />}
+          {tab === "media" && <MediaLibrary user={user} />}
           {tab === "revisions" && <RevisionsView key={focus ?? "all"} user={user} focusPage={focus} onOpenPage={goto} />}
           {tab === "archive" && <ArchiveView user={user} onOpenPage={goto} />}
         </div>
@@ -126,7 +136,9 @@ function Inner() {
 
 // ───────────────────────── قائمة الصفحات ─────────────────────────
 
-function PagesList({ onOpen, onOpenCollection, onRevisions }: { onOpen: (id: string) => void; onOpenCollection: (id: string) => void; onRevisions: (id: string) => void }) {
+function PagesList({ user, onOpen, onOpenCollection, onRevisions }: { user: StaffUser; onOpen: (id: string) => void; onOpenCollection: (id: string) => void; onRevisions: (id: string) => void }) {
+  const seesPages = can(user, "content.pages.GET");
+  const revisions = can(user, "content.revisions.GET");
   const [q, setQ] = useState("");
   const [group, setGroup] = useState("");
   const [drafts, setDrafts] = useState<"all" | "drafts">("all");
@@ -137,21 +149,23 @@ function PagesList({ onOpen, onOpenCollection, onRevisions }: { onOpen: (id: str
     () =>
       CMS_PAGES.filter(
         (p) =>
+          seesPages &&
           (!group || p.group === group) &&
           (drafts === "all" || hasDraft(state, p.id)) &&
           (!needle || p.label.includes(needle) || (p.description ?? "").includes(needle) || p.path.includes(needle) || p.sections.some((s) => s.label.includes(needle) || s.fields.some((f) => f.label.includes(needle)))),
       ),
-    [needle, group, drafts, state],
+    [needle, group, drafts, state, seesPages],
   );
 
   const collections = useMemo(
     () =>
       CMS_COLLECTIONS.filter(
         (c) =>
+          can(user, "content.items.GET", c.id) &&
           (drafts === "all" || hasCollectionDraft(state, c.id)) &&
           (!needle || c.label.includes(needle) || c.itemName.includes(needle) || (c.description ?? "").includes(needle) || c.fields.some((f) => f.label.includes(needle))),
       ),
-    [needle, drafts, state],
+    [needle, drafts, state, user],
   );
 
   const draftCount = CMS_PAGES.filter((p) => hasDraft(state, p.id)).length + CMS_COLLECTIONS.filter((c) => hasCollectionDraft(state, c.id)).length;
@@ -183,12 +197,14 @@ function PagesList({ onOpen, onOpenCollection, onRevisions }: { onOpen: (id: str
         </label>
       </div>
 
-      <ListTable head={["الصفحة", "قسم الموقع", "الحالة", "آخر تعديل"]}>
-        {pages.length === 0 && <EmptyRow cols={4}>لا صفحات مطابقة.</EmptyRow>}
-        {pages.map((p) => (
-          <PageRow key={p.id} id={p.id} state={state} onOpen={onOpen} onRevisions={onRevisions} />
-        ))}
-      </ListTable>
+      {seesPages && (
+        <ListTable head={["الصفحة", "قسم الموقع", "الحالة", "آخر تعديل"]}>
+          {pages.length === 0 && <EmptyRow cols={4}>لا صفحات مطابقة.</EmptyRow>}
+          {pages.map((p) => (
+            <PageRow key={p.id} id={p.id} state={state} onOpen={onOpen} onRevisions={revisions ? onRevisions : undefined} edit={can(user, "content.pages.PUT")} />
+          ))}
+        </ListTable>
+      )}
 
       {!group && (
         <>
@@ -196,20 +212,22 @@ function PagesList({ onOpen, onOpenCollection, onRevisions }: { onOpen: (id: str
           <ListTable head={["المجموعة", "المنشور", "الحالة", "آخر تعديل"]}>
             {collections.length === 0 && <EmptyRow cols={4}>لا مجموعات مطابقة.</EmptyRow>}
             {collections.map((c) => (
-              <CollectionRow key={c.id} id={c.id} state={state} onOpen={onOpenCollection} onRevisions={onRevisions} />
+              <CollectionRow key={c.id} id={c.id} state={state} onOpen={onOpenCollection} onRevisions={revisions ? onRevisions : undefined} />
             ))}
           </ListTable>
         </>
       )}
 
-      <Box title="خيارات متقدمة: نسخة احتياطية من المحتوى" open={false}>
-        <BackupButtons />
-      </Box>
+      {(can(user, "content.site.backup-export") || can(user, "content.site.backup-import")) && (
+        <Box title="خيارات متقدمة: نسخة احتياطية من المحتوى" open={false}>
+          <BackupButtons user={user} />
+        </Box>
+      )}
     </div>
   );
 }
 
-function PageRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsState; onOpen: (id: string) => void; onRevisions: (id: string) => void }) {
+function PageRow({ id, state, onOpen, onRevisions, edit }: { id: string; state: CmsState; onOpen: (id: string) => void; onRevisions?: (id: string) => void; edit: boolean }) {
   const page = getPageDef(id)!;
   const p = pageState(state, id);
   const dirty = hasDraft(state, id);
@@ -223,9 +241,9 @@ function PageRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsSta
         </button>
         <p className="line-clamp-1 text-xs text-white/55">{page.description}</p>
         <RowActions>
-          <RowLink onClick={() => onOpen(id)}>تعديل</RowLink>
+          <RowLink onClick={() => onOpen(id)}>{edit ? "تعديل" : "فتح"}</RowLink>
           <RowLink href={page.path}>عرض</RowLink>
-          <RowLink onClick={() => onRevisions(id)}>النسخ السابقة</RowLink>
+          {onRevisions && <RowLink onClick={() => onRevisions(id)}>النسخ السابقة</RowLink>}
         </RowActions>
       </td>
       <td className="p-3 text-xs text-white/70">{page.group}</td>
@@ -245,7 +263,7 @@ function PageRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsSta
   );
 }
 
-function CollectionRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsState; onOpen: (id: string) => void; onRevisions: (id: string) => void }) {
+function CollectionRow({ id, state, onOpen, onRevisions }: { id: string; state: CmsState; onOpen: (id: string) => void; onRevisions?: (id: string) => void }) {
   const collection = getCollectionDef(id)!;
   const all = readCollection(state, id);
   const live = all.filter((i) => !i.archived).length;
@@ -262,7 +280,7 @@ function CollectionRow({ id, state, onOpen, onRevisions }: { id: string; state: 
         <p className="line-clamp-1 text-xs text-white/55">{collection.description}</p>
         <RowActions>
           <RowLink onClick={() => onOpen(id)}>فتح</RowLink>
-          <RowLink onClick={() => onRevisions(id)}>النسخ السابقة</RowLink>
+          {onRevisions && <RowLink onClick={() => onRevisions(id)}>النسخ السابقة</RowLink>}
         </RowActions>
       </td>
       <td className="p-3 text-white/80">
@@ -281,11 +299,15 @@ function CollectionRow({ id, state, onOpen, onRevisions }: { id: string; state: 
 
 // ───────────────────────── نسخ احتياطي ─────────────────────────
 
-function BackupButtons() {
+/** Downloading the whole content needs `content.site.backup-export`; importing one, `.backup-import`. Both are logged */
+function BackupButtons({ user }: { user: StaffUser }) {
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
+  const mayExport = can(user, "content.site.backup-export");
+  const mayImport = can(user, "content.site.backup-import");
 
   const exportJson = () => {
+    if (!mayExport) return;
     const blob = new Blob([JSON.stringify(cms.snapshot(), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -293,15 +315,17 @@ function BackupButtons() {
     a.download = `محتوى-المنصة-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    logAs(user, { action: "تنزيل نسخة احتياطية من المحتوى", target: "محتوى الموقع", detail: a.download });
     toast({ title: "نُزّل ملف المحتوى", body: "يحوي نصوص الصفحات دون ملفات الصور", tone: "success", icon: "⬇️" });
   };
 
   const importJson = async (file?: File) => {
-    if (!file) return;
+    if (!file || !mayImport) return;
     try {
       const parsed = JSON.parse(await file.text());
       if (!parsed || typeof parsed !== "object" || !("pages" in parsed)) throw new Error("ملف غير صالح");
       cms.importState(parsed);
+      logAs(user, { action: "استيراد نسخة احتياطية من المحتوى", target: "محتوى الموقع", detail: `${file.name} — حلّت محل المحتوى الحالي`, important: true });
       toast({ title: "استُورد المحتوى", body: "حدّث الصفحة لترى النتيجة", tone: "success", icon: "⬆️" });
     } catch {
       toast({ title: "تعذّر الاستيراد", body: "تأكد أنه ملف صدّرته من هذه اللوحة", tone: "warning", icon: "⚠️" });
@@ -312,12 +336,16 @@ function BackupButtons() {
     <>
       <p className="text-white/65">ملف بنصوص الموقع كلها (دون الصور)، للحفظ أو للنقل إلى جهاز آخر. الاستيراد يستبدل المحتوى الحالي.</p>
       <div className="flex flex-wrap gap-2">
-        <button onClick={exportJson} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
-          <Download className="size-4" /> تنزيل نسخة من المحتوى
-        </button>
-        <button onClick={() => input.current?.click()} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
-          <Upload className="size-4" /> استيراد محتوى
-        </button>
+        {mayExport && (
+          <button onClick={exportJson} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
+            <Download className="size-4" /> تنزيل نسخة من المحتوى
+          </button>
+        )}
+        {mayImport && (
+          <button onClick={() => input.current?.click()} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
+            <Upload className="size-4" /> استيراد محتوى
+          </button>
+        )}
       </div>
       <input
         ref={input}

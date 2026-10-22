@@ -11,11 +11,12 @@ import type { CheckStatus } from "@/lib/rules";
 import { actions, useStore } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { useCivilClaims, useReviewQueue, type ReviewItem } from "../_components/data";
-import { fmtDateTime, Gate, logAs, PageHeader, textareaClass, useStaffUser } from "../_components/kit";
+import { can, fmtDateTime, Gate, logAs, PageHeader, textareaClass, useStaffUser } from "../_components/kit";
 import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 import { CivilClaims } from "./civil";
 import { ContractsScreen } from "./contracts";
+import { viewKeys } from "@/lib/permissions";
 
 type Filter = "pending" | "approved" | "rejected" | "all";
 
@@ -23,7 +24,7 @@ const BASE = "/staff/reviews";
 
 export function ReviewsView() {
   return (
-    <Gate perms={["registration.review"]}>
+    <Gate perms={viewKeys("reviews")}>
       <Reviews />
     </Gate>
   );
@@ -42,10 +43,14 @@ function Reviews() {
   const post = useStore((s) => s.post);
   const id = params.get("id");
   const v = params.get("view");
-  const view = v === "groups" || v === "civil" ? v : "reviews";
+  const user = useStaffUser();
+  // Each part opens to whoever may view it: the applications, the civil corrections, the group contracts
+  const allowed = { reviews: can(user, "reviews.applications.GET"), civil: can(user, "reviews.civil-claims.GET"), groups: can(user, "reviews.group-contracts.GET") };
+  const asked = v === "groups" || v === "civil" ? v : "reviews";
+  const view = allowed[asked] ? asked : (["reviews", "civil", "groups"] as const).find((k) => allowed[k]) ?? "reviews";
 
   if (view === "civil" && id) return <CivilClaims key={id} id={id} />;
-  if (id) return <ReviewScreen key={id} id={id} />;
+  if (id && allowed.reviews) return <ReviewScreen key={id} id={id} />;
 
   const pending = queue.filter((q) => !q.review).length;
   const contracts = Object.values(post).filter((p) => p.contract?.status === "pending").length;
@@ -58,10 +63,10 @@ function Reviews() {
         onChange={(v) => router.replace(v === "reviews" ? BASE : `${BASE}?view=${v}`, { scroll: false })}
         label="الأقسام"
         items={[
-          { value: "reviews", label: "طلبات تحتاج قراراً", count: pending, tone: "maroon" },
-          { value: "civil", label: "تصحيح البيانات المدنية", count: civil.filter((c) => c.claim.status === "pending").length, tone: "maroon" },
-          { value: "groups", label: "الإلحاق بالمجموعات", count: contracts, tone: "maroon" },
-        ]}
+          { value: "reviews" as const, label: "طلبات تحتاج قراراً", count: pending, tone: "maroon" as const },
+          { value: "civil" as const, label: "تصحيح البيانات المدنية", count: civil.filter((c) => c.claim.status === "pending").length, tone: "maroon" as const },
+          { value: "groups" as const, label: "الإلحاق بالمجموعات", count: contracts, tone: "maroon" as const },
+        ].filter((x) => allowed[x.value])}
       />
       {view === "groups" ? <ContractsScreen /> : view === "civil" ? <CivilClaims id={null} /> : <ReviewList queue={queue} />}
     </div>
@@ -353,6 +358,9 @@ function ReviewDecision({ item, onDone }: { item: ReviewItem; onDone: () => void
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
   const valid = note.trim().length >= 8;
+  const mayApprove = can(user, "reviews.applications.approve");
+  const mayReject = can(user, "reviews.applications.reject");
+  if (!mayApprove && !mayReject) return <p className="text-xs leading-5 text-white/60">للاطلاع: القرار يحتاج صلاحية «اعتماد الطلب» أو «رفض الطلب».</p>;
 
   const decide = (status: "approved" | "rejected") => {
     setTried(true);
@@ -395,12 +403,16 @@ function ReviewDecision({ item, onDone }: { item: ReviewItem; onDone: () => void
         )}
       </label>
       <div className="flex gap-2">
-        <Button variant="gold" className="flex-1" onClick={() => decide("approved")}>
-          <CheckCircle2 className="size-4" /> اعتماد
-        </Button>
-        <Button variant="maroon" className="flex-1" onClick={() => decide("rejected")}>
-          <Ban className="size-4" /> رفض
-        </Button>
+        {mayApprove && (
+          <Button variant="gold" className="flex-1" onClick={() => decide("approved")}>
+            <CheckCircle2 className="size-4" /> اعتماد
+          </Button>
+        )}
+        {mayReject && (
+          <Button variant="maroon" className="flex-1" onClick={() => decide("rejected")}>
+            <Ban className="size-4" /> رفض
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -86,9 +86,9 @@ function SettingsForm() {
     });
 
   return (
-    <fieldset disabled={ed.readOnly} className="space-y-6">
+    <fieldset disabled={!ed.may("payments-tracks", "PUT")} className="space-y-6">
       <Section title="دفعات تكلفة الحج">
-        <Row label="تكلفة الحج للفرد" hint="تُغيَّر من «إعدادات الموسم» عند مديرة الموسم.">
+        <Row label="تكلفة الحج للفرد" hint="تُغيَّر من «إعدادات الموسم» عند مدير الموسم.">
           <p className="pt-2 font-display text-xl font-bold text-white">{formatUSD(fees.hajjCost)}</p>
         </Row>
         <Row label="عدد الدفعات">
@@ -187,7 +187,7 @@ function SettingsForm() {
         <IssuesFor where="مسارات التسجيل" />
       </Section>
 
-      {!ed.readOnly && (
+      {ed.may("payments-tracks", "PUT") && (
         <div className="flex items-center gap-3">
           <Button variant="gold" onClick={save} disabled={!dirty}>
             <Save className="size-4" /> حفظ التغييرات

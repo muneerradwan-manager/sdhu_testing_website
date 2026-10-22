@@ -19,11 +19,11 @@ import { useFormingSeason } from "@/app/administrator/_lib/formation";
 import { HEADS_POOL, ROSTER } from "@/app/administrator/_lib/people";
 import { ageOfId, branchOf, branchesOf, categoryOf, primaryOf, roleKeyByName, roleName, roleOf, seasonalOf, seasonalText, useCadre, useStructure, type SeasonalRole } from "@/app/administrator/_lib/structure";
 import { useAdminRows } from "../../_components/data";
-import { Drawer, fmtDateTime, smallInputClass, textareaClass, useNow, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, smallInputClass, textareaClass, useCan, useNow, useStaffUser } from "../../_components/kit";
 import { FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory } from "../../_components/system";
 import { AddButton, Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, SettingsRow, SettingsSection, Tag, Title } from "../../_components/wp";
-import { Filters, Help, Lead, NotFound, SaveLine, TitleCell, Tool, Views, useHrefWith, useOpenId, useView } from "./ui";
+import { Filters, Help, Lead, Locked, NotFound, SaveLine, TitleCell, Tool, Views, useHrefWith, useOpenId, useView } from "./ui";
 import { logAdmins, type Area } from "../desk";
 
 const selectInput = cn(smallInputClass, "[&>option]:text-ink");
@@ -41,6 +41,7 @@ export function CadreTab() {
   const events = useCadreEvents();
   const sent = useStore((s) => s.cadre.telegram);
   const rows = useCadreRows();
+  const may = useCan();
   if (id) return <PersonScreen id={id} />;
   return (
     <div className="space-y-5">
@@ -49,14 +50,14 @@ export function CadreTab() {
         value={view}
         label="الكادر وأحداثه"
         items={[
-          { key: "roster", label: "الكادر", count: rows.filter((r) => r.status?.state !== "deleted").length },
-          { key: "events", label: "أحداث الكادر", count: events.length },
-          { key: "telegram", label: "رسائل تيليجرام", count: sent.length },
+          { key: "roster" as const, label: "الكادر", count: rows.filter((r) => r.status?.state !== "deleted").length },
+          ...(may("admins.cadre-events.GET") ? [{ key: "events" as const, label: "أحداث الكادر", count: events.length }] : []),
+          ...(may("admins.telegram.GET") ? [{ key: "telegram" as const, label: "رسائل تيليجرام", count: sent.length }] : []),
         ]}
       />
       {view === "roster" && <Roster />}
-      {view === "events" && <Events />}
-      {view === "telegram" && <TelegramLog />}
+      {view === "events" && (may("admins.cadre-events.GET") ? <Events /> : <Locked perm="admins.cadre-events.GET" />)}
+      {view === "telegram" && (may("admins.telegram.GET") ? <TelegramLog /> : <Locked perm="admins.telegram.GET" />)}
       <RecordsBox system="admins" area="cadre" title="سجل الكادر الإداري" />
     </div>
   );
@@ -163,6 +164,9 @@ const COLUMNS: { key: ColKey; label: string; on: boolean }[] = [
 
 const COLS_KEY = "sdhu-cadre-columns";
 
+/** His phone, birth, age, barcode, Telegram and presence: seen only with «هاتف الكادر وباركوده…» */
+const CONTACT_COLS: ColKey[] = ["phone", "birth", "age", "barcode", "telegram", "presence"];
+
 /** The columns this viewer chose, kept in his browser only (a convenience, not the cadre's data) */
 function useColumns() {
   const [cols, setCols] = useState<ColKey[]>(() => COLUMNS.filter((c) => c.on).map((c) => c.key));
@@ -247,6 +251,8 @@ function Roster() {
   const [choosing, setChoosing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [sending, setSending] = useState(false);
+  const may = useCan();
+  const mayContact = may("admins.cadre-contact.GET");
 
   const found = rows
     .filter((r) => (state === "all" ? r.status?.state !== "deleted" : state === "active" ? !r.status : r.status?.state === state))
@@ -254,14 +260,14 @@ function Roster() {
     .filter((r) => !branch || r.branch === branch || r.extra.includes(branch))
     .filter((r) => !post || (post === "free" ? !r.place : post === "seasonal" ? !!r.seasonal : !!r.place))
     .filter((r) => !tg || (tg === "linked" ? !!r.chatId : !r.chatId))
-    .filter((r) => !q.trim() || [r.name, r.phone ?? "", r.barcode ?? "", r.place?.clusterName ?? "", roleName(r.primary, s)].some((t) => t.includes(q.trim())));
-  const visible = COLUMNS.filter((c) => cols.includes(c.key));
+    .filter((r) => !q.trim() || [r.name, ...(mayContact ? [r.phone ?? "", r.barcode ?? ""] : []), r.place?.clusterName ?? "", roleName(r.primary, s)].some((t) => t.includes(q.trim())));
+  const visible = COLUMNS.filter((c) => cols.includes(c.key) && (mayContact || !CONTACT_COLS.includes(c.key)));
 
   const exportAll = () => downloadCsv(`الكادر-الإداري-${dayOf(new Date())}.csv`, [["الاسم", ...visible.map((c) => c.label), "الحالة"], ...found.map((r) => [r.name, ...visible.map((c) => text(r, c.key)), r.status ? (r.status.state === "disabled" ? "موقوف" : "محذوف") : "فعّال"])]);
 
   return (
     <div className="space-y-4">
-      <Title action={<AddButton onClick={() => setAdding(true)}>إضافة فرد إلى الكادر</AddButton>}>الكادر الإداري</Title>
+      <Title action={may("admins.cadre.POST") && <AddButton onClick={() => setAdding(true)}>إضافة فرد إلى الكادر</AddButton>}>الكادر الإداري</Title>
       <Lead>كل فرد مرة واحدة عبر المواسم. افتح أي فرد لتعديل بياناته وصفته وفئته وفروعه، أو لإيقاف حسابه.</Lead>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -280,20 +286,20 @@ function Roster() {
           <Tool onClick={() => setChoosing(true)}>
             <Columns3 /> الأعمدة
           </Tool>
-          <Tool onClick={exportAll}>
+          <Tool onClick={exportAll} perm="admins.cadre.export">
             <Download /> Excel
           </Tool>
-          <Tool onClick={() => setSending(true)}>
+          <Tool onClick={() => setSending(true)} perm="admins.telegram.send">
             <Send /> إرسال تيليجرام
           </Tool>
         </span>
       </div>
       <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-        <SearchBox value={q} onChange={setQ} placeholder="الاسم، الهاتف، الباركود، التكتل" label="بحث في الكادر" className="md:col-span-3 xl:col-span-2" />
+        <SearchBox value={q} onChange={setQ} placeholder={mayContact ? "الاسم، الهاتف، الباركود، التكتل" : "الاسم، التكتل، الصفة"} label="بحث في الكادر" className="md:col-span-3 xl:col-span-2" />
         <FilterSelect label="الصفة" all="كل الصفات" value={role} onChange={setRole} options={s.roles.map((r) => ({ value: r.key, label: `${r.name} (${rows.filter((x) => x.primary === r.key || x.seasonal?.role === r.key).length})` }))} />
         <FilterSelect label="الفرع" all="كل الفروع" value={branch} onChange={setBranch} options={s.branches.map((b) => b.name)} />
         <FilterSelect label="المكان" all="كل الأماكن" value={post} onChange={setPost} options={[{ value: "placed", label: "في تكتل معتمد" }, { value: "free", label: "بلا تكتل" }, { value: "seasonal", label: "له صفة موسمية" }]} />
-        <FilterSelect label="تيليجرام" all="تيليجرام: الكل" value={tg} onChange={setTg} options={[{ value: "linked", label: "مربوط" }, { value: "unlinked", label: "غير مربوط" }]} />
+        {mayContact && <FilterSelect label="تيليجرام" all="تيليجرام: الكل" value={tg} onChange={setTg} options={[{ value: "linked", label: "مربوط" }, { value: "unlinked", label: "غير مربوط" }]} />}
       </div>
 
       <ListTable head={["الاسم", ...visible.map((c) => c.label)]} minWidth="60rem">
@@ -340,7 +346,7 @@ function Roster() {
         <p className="text-xs font-bold text-gold">أعمدة الجدول</p>
         <p className="mt-1 text-sm text-white/70">يُحفظ اختيارك في متصفحك، ويُصدَّر إلى Excel ما تختاره.</p>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          {COLUMNS.map((c) => (
+          {COLUMNS.filter((c) => mayContact || !CONTACT_COLS.includes(c.key)).map((c) => (
             <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm ring-1 ring-white/10">
               <input type="checkbox" checked={cols.includes(c.key)} onChange={(e) => setCols(e.target.checked ? COLUMNS.filter((x) => x.key === c.key || cols.includes(x.key)).map((x) => x.key) : cols.filter((k) => k !== c.key))} className="size-4 accent-[#D9C89E]" /> {c.label}
             </label>
@@ -373,6 +379,7 @@ function PersonScreen({ id }: { id: string }) {
   const now = useNow(30_000);
   const r = rows.find((x) => x.id === id);
   const back = hrefWith({ id: null });
+  const may = useCan();
   if (!r) return <NotFound back={back} backLabel="الكادر الإداري" what="هذا الفرد" />;
   const p = presenceOf(r.id, presence, now);
   return (
@@ -396,22 +403,22 @@ function PersonScreen({ id }: { id: string }) {
                 ["العمر", r.age ? `${r.age} سنة` : undefined],
                 ["الصفة الأساسية", roleName(r.primary)],
                 ["مكانه هذا الموسم", r.place ? `${r.place.clusterName} — ${r.place.posts.join("، ")}${r.place.group !== undefined ? ` (${groupName(r.place.group)})` : ""}` : "لم يدخل تكتلاً معتمداً"],
-                ["الحضور", p.online ? <b className="text-green-light">● متصل الآن</b> : p.at ? `آخر ظهور: ${fmtDateTime(p.at)}` : "غير متصل"],
+                ["الحضور", !may("admins.cadre-contact.GET") ? "—" : p.online ? <b className="text-green-light">● متصل الآن</b> : p.at ? `آخر ظهور: ${fmtDateTime(p.at)}` : "غير متصل"],
               ]}
             />
-            <ContactForm key={`${r.phone}-${r.barcode}-${r.birth}`} r={r} />
+            {may("admins.cadre-contact.GET") ? <ContactForm key={`${r.phone}-${r.barcode}-${r.birth}`} r={r} /> : <Locked perm="admins.cadre-contact.GET">بياناته (الهاتف والميلاد والباركود) مخفية.</Locked>}
             <SettingsSection title="الصفة والفئة والفروع">
               <div className="py-4">
                 <PersonCadre id={r.id} name={r.name} applied={r.applied} area="cadre" history={false} />
               </div>
             </SettingsSection>
-            <PersonEvents r={r} />
+            {may("admins.cadre-events.GET") && <PersonEvents r={r} />}
           </>
         }
         side={
           <>
-            <AccountBox r={r} />
-            <SignInBox r={r} />
+            {may("admins.cadre-accounts.GET") && <AccountBox r={r} />}
+            {may("admins.cadre-contact.GET") && <SignInBox r={r} />}
             <Box title="سجلّه" open={false}>
               <RecordHistory system="admins" refId={r.id} bare />
             </Box>
@@ -447,7 +454,7 @@ function ContactForm({ r }: { r: CadreRow }) {
         <input value={barcode} onChange={(e) => setBarcode(e.target.value.replace(/\D/g, ""))} className={cn(smallInputClass, "max-w-xs")} dir="ltr" aria-label="رقم الباركود" />
       </SettingsRow>
       <div className="py-4">
-        <SaveLine dirty={dirty} onSave={save} label="حفظ البيانات" />
+        <SaveLine dirty={dirty} onSave={save} label="حفظ البيانات" perm="admins.cadre-contact.PUT" />
       </div>
     </SettingsSection>
   );
@@ -460,6 +467,8 @@ function AccountBox({ r }: { r: CadreRow }) {
   const router = useRouter();
   const [acting, setActing] = useState<"disable" | "enable" | "delete" | null>(null);
   const [reason, setReason] = useState("");
+  const may = useCan();
+  const mayStatus = may("admins.cadre-accounts.PUT");
   const log = (action: string, detail?: string, important = false) => logAdmins(user, "cadre", { action, target: r.name, detail, ref: r.id, important });
   const act = () => {
     const why = reason.trim();
@@ -487,18 +496,25 @@ function AccountBox({ r }: { r: CadreRow }) {
   return (
     <Box title="الحساب">
       <p>{r.status ? <Tag tone="maroon">{r.status.state === "disabled" ? "موقوف" : "محذوف"}</Tag> : <Tag tone="green">فعّال</Tag>}</p>
+      <Locked perm="admins.cadre-accounts.PUT" />
       {r.status ? (
+        (r.status.state === "deleted" ? may("admins.cadre-accounts.DELETE") : mayStatus) && (
         <Button size="sm" variant="gold" className="w-full" onClick={() => setActing("enable")}>
           <RotateCcw className="size-4" /> {r.status.state === "deleted" ? "استعادته إلى الكادر" : "تفعيل الحساب"}
         </Button>
+        )
       ) : (
         <div className="flex flex-col gap-2">
-          <Button size="sm" variant="glass" onClick={() => setActing("disable")}>
-            <Ban className="size-4" /> إيقاف الحساب
-          </Button>
-          <button type="button" onClick={() => setActing("delete")} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ffb4c8] hover:underline">
-            <Trash2 className="size-3.5" /> حذف من الكادر نهائياً
-          </button>
+          {mayStatus && (
+            <Button size="sm" variant="glass" onClick={() => setActing("disable")}>
+              <Ban className="size-4" /> إيقاف الحساب
+            </Button>
+          )}
+          {may("admins.cadre-accounts.DELETE") && (
+            <button type="button" onClick={() => setActing("delete")} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ffb4c8] hover:underline">
+              <Trash2 className="size-3.5" /> حذف من الكادر نهائياً
+            </button>
+          )}
         </div>
       )}
       <Modal open={!!acting} onClose={() => setActing(null)} className="max-w-lg border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
@@ -529,6 +545,7 @@ function AccountBox({ r }: { r: CadreRow }) {
 function SignInBox({ r }: { r: CadreRow }) {
   const user = useStaffUser()!;
   const log = (action: string, detail?: string) => logAdmins(user, "cadre", { action, target: r.name, detail, ref: r.id });
+  const mayUnlink = useCan()("admins.cadre-accounts.unlink-telegram");
   const unlink = () => {
     // An empty chat id is kept as "unlinked" (an absent one would fall back to the season's records)
     actions.setCadre("contact", r.id, { ...storedContact(r.id), chatId: "", telegram: undefined });
@@ -541,9 +558,11 @@ function SignInBox({ r }: { r: CadreRow }) {
         {r.chatId ? (
           <>
             <b className="text-green-light">مربوط</b> <span dir="ltr">({r.chatId})</span>{" "}
-            <button type="button" onClick={unlink} className="font-bold text-gold hover:underline">
-              فك الربط
-            </button>
+            {mayUnlink && (
+              <button type="button" onClick={unlink} className="font-bold text-gold hover:underline">
+                فك الربط
+              </button>
+            )}
           </>
         ) : (
           <b className="text-gold">غير مربوط — يربطه بنفسه من «الإشعارات» في حسابه</b>
@@ -561,9 +580,10 @@ const storedContact = (id: string) => getState().cadre.contact[id] ?? {};
 function PersonEvents({ r }: { r: CadreRow }) {
   const events = useCadreEvents().filter((e) => e.personId === r.id);
   const [adding, setAdding] = useState(false);
+  const may = useCan();
   return (
     <section className="space-y-3">
-      <Title action={<AddButton onClick={() => setAdding(true)}>إضافة حدث</AddButton>}>أحداث ملفه</Title>
+      <Title action={may("admins.cadre-events.POST") && <AddButton onClick={() => setAdding(true)}>إضافة حدث</AddButton>}>أحداث ملفه</Title>
       <ListTable head={["الحدث", "الموسم", "التاريخ"]} minWidth="30rem">
         {events.length === 0 && <EmptyRow cols={3}>لا أحداث بعد: يُكتب هنا انضمامه إلى تكتل، وكل تعديل على صفته وفئته وفرعه، وما تكتبه بيدك.</EmptyRow>}
         {events.map((e) => (
@@ -691,6 +711,7 @@ function Events() {
   const events = useCadreEvents();
   const rows = useCadreRows();
   const hrefWith = useHrefWith();
+  const may = useCan();
   const [type, setType] = useState("");
   const [ofSeason, setOfSeason] = useState("");
   const [q, setQ] = useState("");
@@ -708,14 +729,14 @@ function Events() {
     ]);
   return (
     <div className="space-y-4">
-      <Title action={<AddButton onClick={() => setAdding(true)}>إضافة حدث</AddButton>}>أحداث الكادر</Title>
+      <Title action={may("admins.cadre-events.POST") && <AddButton onClick={() => setAdding(true)}>إضافة حدث</AddButton>}>أحداث الكادر</Title>
       <Lead>ملف كل فرد عبر المواسم: انضمامه إلى تكتل، والتعديلات التي مسّته، وما تكتبه الإدارة بيدها.</Lead>
       <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_auto]">
         <SearchBox value={q} onChange={setQ} placeholder="الفرد، التغيير، التوضيح، من سجّله" label="بحث في الأحداث" />
         <FilterSelect label="النوع" all="كل الأنواع" value={type} onChange={setType} options={(Object.keys(EVENT_TYPES) as CadreEventType[]).map((t) => ({ value: t, label: `${eventLabel(t)} (${events.filter((e) => e.type === t).length})` }))} />
         <FilterSelect label="الموسم" all="كل المواسم" value={ofSeason} onChange={setOfSeason} options={[...seasons.map((y) => ({ value: String(y), label: `موسم ${y}` })), { value: "none", label: "بلا موسم" }]} />
         <span className="self-center">
-          <Tool onClick={exportAll}>
+          <Tool onClick={exportAll} perm="admins.cadre-events.export">
             <Download /> Excel
           </Tool>
         </span>
@@ -1107,7 +1128,7 @@ export function PersonCadre({ id, name, applied, history = true, area = "cadre" 
           <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} className={textareaClass} placeholder="مثال: اتحاد مع مجموعة أخرى — بناءً على كتاب تشكيل التكتلات" />
         </label>
       )}
-      <SaveLine dirty={dirty} disabled={reason.trim().length < 3} onSave={save} note={dirty && reason.trim().length < 3 ? "اكتب السبب ثم احفظ." : undefined} />
+      <SaveLine dirty={dirty} disabled={reason.trim().length < 3} onSave={save} note={dirty && reason.trim().length < 3 ? "اكتب السبب ثم احفظ." : undefined} perm="admins.cadre.PUT" />
       {history && <RecordHistory system="admins" refId={id} />}
     </div>
   );

@@ -31,7 +31,7 @@ MODULE = M("season", "الحاج في الموسم وبعد العودة: الب
         c("sla_minutes", "SMALLINT UNSIGNED", "مهلة الاستجابة: missing 0 (فوري)، health 10، transport 30، meal و room و lost 120، complaint 240"),
         c("default_severity", enum("low", "medium", "high", "critical"), "الخطورة الافتراضية"),
         c("default_assignee_label", "VARCHAR(120)", "الجهة الافتراضية: «د. ليلى شمس — الفريق الطبي»، «فادي سلوم — غرفة العمليات»، «هيثم زيدان — فريق المواصلات»، «وسام خوري — مشرف البرج»…", null=True),
-        code_ref("handling_permission", "permissions", "الصلاحية التي تعالجه (operations.room، medical، transport)", null=True),
+        code_ref("handling_permission", "permissions", "الصلاحية التي تعالجه (operations.tickets.PUT، medical.tickets.PUT، transport.tickets.PUT)", null=True, length=80),
     ], src="lib/store.ts:239 TicketKind؛ lib/data/staff-seed.ts:518 SLA_MINUTES، :528 KIND_LABELS"),
 
     T("tickets", "البلاغات", "بلاغ طوارئ أو شكوى أو مفقودات أو اعتراض: يفتحه الحاج (زر الطوارئ، الشكوى، المفقودات، الاعتراض على المراجعة)، أو فريق المجموعة («بلاغ لغرفة العمليات»)، "

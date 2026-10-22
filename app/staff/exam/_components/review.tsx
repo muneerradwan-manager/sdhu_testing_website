@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { ATTEMPT_LABEL, STAGE_LABEL, hallActions, roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
-import { Drawer, fmtDateTime, logAs, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, logAs, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk, type AttemptRow } from "./desk";
 import { Records } from "./records";
@@ -81,6 +81,9 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
   const [viewing, setViewing] = useState<AttemptRow | null>(null);
   const [deciding, setDeciding] = useState<{ a: AttemptRow; kind: "approve" | "void" } | null>(null);
   const [note, setNote] = useState("");
+  const may = useCan();
+  const seeAnswers = may("exams.attempt-answers.GET");
+  const seePii = may("exams.applicants-pii.GET");
   const view = (a: AttemptRow) => {
     setViewing(a);
     logAnswers(user, a, "review", where(a).exam);
@@ -89,6 +92,7 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
   const decide = () => {
     if (!deciding || note.trim().length < 3) return;
     const { a, kind } = deciding;
+    if (!may(`exams.attempts.${kind}`)) return;
     const w = where(a);
     hallActions.decide(a.row.id, a.role, kind, user.name, note.trim());
     logAs(user, {
@@ -114,7 +118,7 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
 
   return (
     <>
-      <p className="text-sm text-white/70">ما لم يؤكده مشرف القاعة، وما سُلّم في جلسة انتهت دون تأكيده: راجع إجاباته، ثم اعتمده أو ألغه بملاحظة. يصل كل قرار إلى مديرة الموسم.</p>
+      <p className="text-sm text-white/70">ما لم يؤكده مشرف القاعة، وما سُلّم في جلسة انتهت دون تأكيده: راجع إجاباته، ثم اعتمده أو ألغه بملاحظة. يصل كل قرار إلى مدير الموسم.</p>
       <ListTable head={["المتقدم", "الاختبار والقاعة", "لماذا", "النسبة والأقسام", "التنبيهات"]} minWidth="60rem">
         {rows.length === 0 && <EmptyRow cols={5}>لا محاولات تحتاج قراراً: كل محاولة سُلّمت أكّدها مشرف قاعتها، أو قررت فيها الإدارة.</EmptyRow>}
         {rows.map((a) => {
@@ -122,18 +126,26 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
           return (
             <tr key={`${a.row.id}-${a.role}`} className="align-top">
               <td className="p-3">
-                <button type="button" onClick={() => view(a)} className="text-right font-bold text-white hover:text-gold">
-                  {a.row.name}
-                </button>
-                <p className="text-xs text-white/55" dir="ltr">
-                  {a.row.id}
-                </p>
+                {seeAnswers ? (
+                  <button type="button" onClick={() => view(a)} className="text-right font-bold text-white hover:text-gold">
+                    {a.row.name}
+                  </button>
+                ) : (
+                  <p className="font-bold text-white">{a.row.name}</p>
+                )}
+                {seePii && (
+                  <p className="text-xs text-white/55" dir="ltr">
+                    {a.row.id}
+                  </p>
+                )}
                 <RowActions>
-                  <RowLink onClick={() => view(a)}>مراجعة الإجابات</RowLink>
-                  <RowLink onClick={() => setDeciding({ a, kind: "approve" })}>اعتماد إداري</RowLink>
-                  <RowLink danger onClick={() => setDeciding({ a, kind: "void" })}>
-                    إلغاء إداري
-                  </RowLink>
+                  {seeAnswers && <RowLink onClick={() => view(a)}>مراجعة الإجابات</RowLink>}
+                  {may("exams.attempts.approve") && <RowLink onClick={() => setDeciding({ a, kind: "approve" })}>اعتماد إداري</RowLink>}
+                  {may("exams.attempts.void") && (
+                    <RowLink danger onClick={() => setDeciding({ a, kind: "void" })}>
+                      إلغاء إداري
+                    </RowLink>
+                  )}
                 </RowActions>
               </td>
               <td className="p-3 text-white/80">
@@ -207,12 +219,14 @@ function Decisions({ rows }: { rows: AttemptRow[] }) {
 
 function Attendance({ sittings }: { sittings: SittingRow[] }) {
   const user = useStaffUser()!;
+  const may = useCan();
+  const seePii = may("exams.applicants-pii.GET");
   const [open, setOpen] = useState<string | null>(null);
   const current = sittings.find((s) => s.key === open);
   const download = () => {
     downloadCsv("الحضور-والغياب-1448.csv", [
-      ["الاختبار", "القاعة", "حالة الجلسة", "الاسم", "الرقم الوطني", "الحال"],
-      ...sittings.flatMap((s) => s.listed.map((r) => [s.exam.name, s.center.name, STAGE_LABEL[s.stage], r.name, r.id, seatOf(s, r.id).label])),
+      ["الاختبار", "القاعة", "حالة الجلسة", "الاسم", ...(seePii ? ["الرقم الوطني"] : []), "الحال"],
+      ...sittings.flatMap((s) => s.listed.map((r) => [s.exam.name, s.center.name, STAGE_LABEL[s.stage], r.name, ...(seePii ? [r.id] : []), seatOf(s, r.id).label])),
     ]);
     logAs(user, { action: "تصدير الحضور والغياب", target: `${sittings.length} جلسات`, system: "exams", area: "review" });
   };
@@ -220,7 +234,8 @@ function Attendance({ sittings }: { sittings: SittingRow[] }) {
     <>
       <Title
         action={
-          sittings.length > 0 && (
+          sittings.length > 0 &&
+          may("exams.attempts.export") && (
             <span className="text-sm font-bold">
               <RowLink onClick={download}>تصدير Excel</RowLink>
             </span>
@@ -303,6 +318,9 @@ function SittingNames({ s }: { s: SittingRow }) {
 function Suspicious({ rows }: { rows: AttemptRow[] }) {
   const user = useStaffUser()!;
   const where = useWhere();
+  const may = useCan();
+  const seeAnswers = may("exams.attempt-answers.GET");
+  const seePii = may("exams.applicants-pii.GET");
   const [viewing, setViewing] = useState<AttemptRow | null>(null);
   const view = (a: AttemptRow) => {
     setViewing(a);
@@ -310,10 +328,10 @@ function Suspicious({ rows }: { rows: AttemptRow[] }) {
   };
   const download = () => {
     downloadCsv("الحالات-المشتبه-بها-1448.csv", [
-      ["الاسم", "الرقم الوطني", "الاختبار", "القاعة", "الحالة", "النسبة", "التنبيهات", "عددها"],
+      ["الاسم", ...(seePii ? ["الرقم الوطني"] : []), "الاختبار", "القاعة", "الحالة", "النسبة", "التنبيهات", "عددها"],
       ...rows.map((a) => {
         const w = where(a);
-        return [a.row.name, a.row.id, w.exam, w.hall, ATTEMPT_LABEL[a.status], a.attempt.score ?? "", alertParts(a.attempt).join("، "), a.alerts];
+        return [a.row.name, ...(seePii ? [a.row.id] : []), w.exam, w.hall, ATTEMPT_LABEL[a.status], a.attempt.score ?? "", alertParts(a.attempt).join("، "), a.alerts];
       }),
     ]);
     logAs(user, { action: "تصدير الحالات المشتبه بها", target: `${rows.length} محاولات`, system: "exams", area: "review" });
@@ -322,7 +340,8 @@ function Suspicious({ rows }: { rows: AttemptRow[] }) {
     <>
       <Title
         action={
-          rows.length > 0 && (
+          rows.length > 0 &&
+          may("exams.attempts.export") && (
             <span className="text-sm font-bold">
               <RowLink onClick={download}>تصدير Excel</RowLink>
             </span>
@@ -339,17 +358,19 @@ function Suspicious({ rows }: { rows: AttemptRow[] }) {
             return (
               <tr key={`${a.row.id}-${a.role}`} className="align-top">
                 <td className="p-3">
-                  {a.attempt.paper ? (
+                  {a.attempt.paper && seeAnswers ? (
                     <button type="button" onClick={() => view(a)} className="text-right font-bold text-white hover:text-gold">
                       {a.row.name}
                     </button>
                   ) : (
                     <p className="font-bold text-white">{a.row.name}</p>
                   )}
-                  <p className="text-xs text-white/55" dir="ltr">
-                    {a.row.id}
-                  </p>
-                  {a.attempt.paper && (
+                  {seePii && (
+                    <p className="text-xs text-white/55" dir="ltr">
+                      {a.row.id}
+                    </p>
+                  )}
+                  {a.attempt.paper && seeAnswers && (
                     <RowActions>
                       <RowLink onClick={() => view(a)}>مراجعة الإجابات</RowLink>
                     </RowActions>

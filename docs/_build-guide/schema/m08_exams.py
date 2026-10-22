@@ -50,10 +50,10 @@ MODULE = M("exams", "الاختبارات: المؤتمت في القاعات و
         c("lng", "DECIMAL(9,6)", "خط الطول", null=True),
         c("capacity", "SMALLINT UNSIGNED", "السعة (120 لدمشق…)", null=True),
         c("display_no", "SMALLINT UNSIGNED", "رقم شاشة العرض /exam-display/<n> (1–9999)", uq=True),
-        staff("supervisor_staff_id", "مشرف القاعة (أي موظف، ويمكن أن يشرف على أكثر من قاعة)"),
         c("active", "TINYINT(1)", "فعّال (لا يُعطَّل وفيه جلسة جارية)", d="1"),
-    ], src="admin-exam.ts:739 ExamCenter؛ halls.ts:28 EXAM_CENTERS؛ examHalls.supervisors",
-       seed="9 مراكز؛ مشرفة مركز دمشق نسرين الحكيم."),
+    ], src="admin-exam.ts:739 ExamCenter؛ halls.ts:28 EXAM_CENTERS",
+       seed="9 مراكز.",
+       rules=["مشرف القاعة من يملك صلاحية «قاعة الامتحان» (hall.*) لهذا المركز في staff_user_permission_scopes، ولا يُسند من شاشة القاعات. مشرفة مركز دمشق نسرين الحكيم."]),
 
     T("exam_center_governorates", "المحافظات التي يخدمها كل مركز", "كل محافظة يخدمها مركز واحد فقط.", [
         ref("center_id", "exam_centers", "المركز", od="CASCADE"),

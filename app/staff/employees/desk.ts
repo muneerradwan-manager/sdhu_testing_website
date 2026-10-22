@@ -5,8 +5,8 @@ import { createElement, useMemo } from "react";
 import { useHalls, type ExamCenter } from "@/app/administrator/_lib/halls";
 import { itineraryOf, useAirportReps, useFlightsData, type Airport, type Flight, type TravelStatus } from "@/lib/flights";
 import { CURRENT_SEASON, MISSIONS, fullName, inSeason, postingLabel, postingsOf, shortName, useEmployees, useOpFiles, usePlaces, type Employee, type Posting } from "@/lib/ops";
-import { can, holdsAll, MANAGEMENT_PERMISSIONS, type Permission, type StaffUser } from "@/lib/staff";
-import { useStaffAccounts } from "@/lib/systems";
+import { can, type StaffUser } from "@/lib/staff";
+import { SYSTEM_KEYS, useStaffAccounts, type SystemKey } from "@/lib/systems";
 import { digitsOnly, formatNumber } from "@/lib/utils";
 import type { Alert, SystemStatus } from "../_components/system";
 
@@ -31,8 +31,8 @@ export function seasonLock(posts: Posting[]) {
 export type Trip = { out?: Flight; back?: Flight; status: TravelStatus };
 /** A participant in the current season, with his posts in its operational files and his flights */
 export type Participant = { e: Employee; posts: Posting[]; trip: Trip };
-/** A portal account: what it may open, the field posts other files gave it, and the record it belongs to */
-export type AccountRow = { account: StaffUser; employee?: Employee; managed: Permission[]; halls: ExamCenter[]; airports: Airport[] };
+/** A portal account: the management files whose summary it may view, the halls and airports its permissions are for, and the record it belongs to */
+export type AccountRow = { account: StaffUser; employee?: Employee; managed: SystemKey[]; halls: ExamCenter[]; airports: Airport[] };
 
 export function useEmployeesDesk() {
   const employees = useEmployees();
@@ -73,7 +73,7 @@ export function useEmployeesDesk() {
     const accountRows: AccountRow[] = accounts.map((account) => ({
       account,
       employee: recordOf.get(account.id),
-      managed: account.permissions.filter((p) => MANAGEMENT_PERMISSIONS.includes(p)),
+      managed: SYSTEM_KEYS.filter((k) => can(account, `${k}.summary.GET`)),
       halls: halls.centersOf(account.id),
       airports: airportsOf(account.id).flatMap((id) => flights.airports.filter((a) => a.id === id)),
     }));
@@ -91,8 +91,8 @@ export function useEmployeesDesk() {
     const noOutbound = participants.filter((p) => !p.e.suspended && !p.trip.out && p.trip.status !== "otherMeans");
     const suspendedIn = participants.filter((p) => p.e.suspended);
     const outside = employees.filter((e) => !inSeason(e)).sort(byName);
-    // Who posts them: the holders of the operational files, the director aside
-    const posters = accounts.filter((a) => can(a, "ops.files") && !holdsAll(a)).map((a) => a.name);
+    // Who posts them: whoever may assign staff in the operational files, the director aside
+    const posters = accounts.filter((a) => can(a, "opfiles.assignments.PUT") && !can(a, "access.permissions.PUT")).map((a) => a.name);
 
     const missions = MISSIONS.map((m) => {
       const ps = participants.filter((p) => p.e.mission === m);

@@ -15,7 +15,7 @@ import { ageOf, fullName } from "@/lib/registry";
 import { useSeason } from "@/lib/season-live";
 import { useStore } from "@/lib/store";
 import { cn, digitsOnly, nowMs } from "@/lib/utils";
-import { Drawer, fmtDateTime, smallInputClass, useStaffUser } from "../_components/kit";
+import { can, Drawer, fmtDateTime, smallInputClass, useStaffUser } from "../_components/kit";
 import { AddButton, Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 
@@ -42,6 +42,10 @@ export function ContractsScreen() {
   const [attaching, setAttaching] = useState<{ q: string } | null>(null);
   const [returning, setReturning] = useState<string | null>(null);
   const [reason, setReason] = useState(REASONS[0]);
+  // Attaching and moving add to a group; approving and returning a contract are decisions of their own
+  const mayAttach = can(user, "reviews.group-contracts.POST");
+  const mayApprove = can(user, "reviews.group-contracts.approve");
+  const mayReturn = can(user, "reviews.group-contracts.return");
 
   const rows = Object.entries(post)
     .filter(([sid, p]) => p.contract && applications[sid])
@@ -61,7 +65,7 @@ export function ContractsScreen() {
       <div className="flex flex-wrap items-center gap-3">
         {joining.open ? (
           <>
-            <AddButton onClick={() => setAttaching({ q: "" })}>+ إلحاق طلب بمجموعة</AddButton>
+            {mayAttach && <AddButton onClick={() => setAttaching({ q: "" })}>+ إلحاق طلب بمجموعة</AddButton>}
             <Tag tone="green">مفتوح حتى {rangeLabel(undefined, joining.end).replace("حتى ", "")}</Tag>
           </>
         ) : (
@@ -100,13 +104,13 @@ export function ContractsScreen() {
                 </p>
                 <p className="text-xs text-white/60">{a.members.length} أفراد</p>
                 <RowActions>
-                  {c.status === "pending" && <RowLink onClick={() => decide(sid, "approved")}>اعتماد</RowLink>}
-                  {c.status === "pending" && (
+                  {c.status === "pending" && mayApprove && <RowLink onClick={() => decide(sid, "approved")}>اعتماد</RowLink>}
+                  {c.status === "pending" && mayReturn && (
                     <RowLink danger onClick={() => setReturning(sid)}>
                       إعادة
                     </RowLink>
                   )}
-                  {joining.open && <RowLink onClick={() => setAttaching({ q: a.number })}>نقل إلى مجموعة أخرى</RowLink>}
+                  {joining.open && mayAttach && <RowLink onClick={() => setAttaching({ q: a.number })}>نقل إلى مجموعة أخرى</RowLink>}
                 </RowActions>
               </td>
               <td className="p-3 text-white/85">

@@ -10,10 +10,10 @@ import { OUTCOME_TEXT, classify, tierLabel, type Outcome, type Ranked, type Tier
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { formatNumber } from "@/lib/utils";
-import { Drawer, fmtDateTime, stamp, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, stamp, useCan, useStaffUser } from "../../_components/kit";
 import { SearchBox } from "../../_components/ops-ui";
 import { Box, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
-import { Filters, Help, Lead, TitleCell } from "./ui";
+import { Filters, Help, Lead, Locked, TitleCell } from "./ui";
 import { logAdmins, useAdminsDesk } from "../desk";
 
 type Scope = "groups" | "clusters";
@@ -53,6 +53,7 @@ export function GradingTab() {
   const season = useSeason();
   const desk = useAdminsDesk();
   const published = useStore((s) => s.grading);
+  const mayPublish = useCan()("admins.grading.publish");
   const [scope, setScope] = useState<Scope>("groups");
   const [tierKey, setTierKey] = useState("all");
   const [only, setOnly] = useState<Filter>("all");
@@ -176,9 +177,10 @@ export function GradingTab() {
               )}
               {desk.stale && <p className="rounded-xl bg-maroon/25 p-2 text-xs font-bold text-white ring-1 ring-maroon/50">حُفظت تقييمات بعد نشره: أعد اعتماده ليراها.</p>}
               <p className="text-xs text-white/60">محتسب من تقييم {desk.evaluated.length} إداريين. بعد النشر يرى كل رئيس مجموعة أو تكتل مرتبته ومآل فئته.</p>
-              <Button variant="gold" className="w-full" onClick={publish}>
+              <Button variant="gold" className="w-full" disabled={!mayPublish} onClick={publish}>
                 {published.publishedAt ? "إعادة اعتماد النتائج" : "اعتماد النتائج ونشرها"}
               </Button>
+              <Locked perm="admins.grading.publish" />
             </Box>
             <Help title="كيف يُحسب التصنيف؟">
               <p>

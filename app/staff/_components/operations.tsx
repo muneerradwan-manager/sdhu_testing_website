@@ -3,10 +3,9 @@
 import { CalendarRange, Lock } from "lucide-react";
 import { useToast } from "@/components/ui/widgets";
 import { controls, dayLabel, dayTimeLabel, statusLabel, useOperations, type OperationKey, type OperationMode, type OperationState } from "@/lib/operations";
-import { PERMISSION_LABELS } from "@/lib/staff";
 import { actions } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
-import { Panel, logAs, useStaffUser } from "./kit";
+import { can, Panel, logAs, useStaffUser } from "./kit";
 
 const MODES: { key: OperationMode; label: string }[] = [
   { key: "auto", label: "تلقائي بالتواريخ" },
@@ -26,14 +25,15 @@ const TONE: Record<OperationState["status"], string> = {
 
 /**
  * The settings of the season's operations, one row each: its state, its start and end, and who controls it.
- * `keys` limits it to a file's own operations; the season settings show them all. Only whoever controls an
- * operation (its permission, or the season director) changes it, and every change is in the events log.
+ * `keys` limits it to a file's own operations; the season settings show them all. Each operation shows to
+ * whoever may view its window (`season.windows.GET` for it) and is changed by whoever may change it
+ * (`season.windows.PUT` for it); every change is in the events log.
  */
 export function OperationsPanel({ keys, system, area, title = "مواعيد العمليات وتفعيلها" }: { keys?: OperationKey[]; system?: string; area?: string; title?: string }) {
   const user = useStaffUser();
   const toast = useToast();
-  const ops = useOperations().filter((o) => !keys || keys.includes(o.key));
-  if (!user) return null;
+  const ops = useOperations().filter((o) => (!keys || keys.includes(o.key)) && can(user, "season.windows.GET", o.key));
+  if (!user || !ops.length) return null;
 
   const change = (o: OperationState, patch: { mode?: OperationMode; start?: string; end?: string; startTime?: string; endTime?: string }, what: string, before: string, after: string) => {
     actions.setOperation(o.key, { ...patch, by: user.name, at: nowMs() });
@@ -104,8 +104,7 @@ export function OperationsPanel({ keys, system, area, title = "مواعيد ال
               </div>
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
                 {!mine && <Lock className="size-3" />}
-                يتحكم بها: صاحب صلاحية «{PERMISSION_LABELS[o.control]}»
-                {o.control !== "season.settings" && " ومديرة الموسم"}
+                يتحكم بها: من يملك صلاحية «تعديل — مواعيد العمليات» لهذه العملية
                 {o.by && ` — آخر تغيير: ${o.by}`}
               </p>
             </li>

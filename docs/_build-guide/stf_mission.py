@@ -234,13 +234,23 @@ if run("fl"):
     c.scroll_by(230)
     c.shot("fl-airports", "المطارات ومندوبوها: مندوب كل مطار، ورحلاته مغادرةً ووصولاً",
            hl=[(side("/staff/flights/manage"), "1"), ("main [role=radiogroup][aria-label='تصفية المطارات']", "2"), (f"{jed} td >> nth=0", "3")], section=S)
-    p.locator(f"{jed} button:has-text('إسناد مندوب')").first.click(); c.settle(1200)
-    p.locator(f"{D} select").first.select_option("omar"); c.settle(400)
-    c.shot("fl-airport-rep", "صفحة المطار: بياناته ومندوبه، تُحفظ معاً", hl=[(f"{D} select", "1"), (f"{D} button:has-text('حفظ')", "2")], section=S)
-    dbtn("حفظ", 1200)
-    c.scroll_to(jed, 380)
-    c.shot("fl-airport-saved", "أُسند المندوب: يظهر اسمه أمام المطار", hl=[(f"{jed} td >> nth=2", "")], section=S)
+    p.locator(f"{jed} button:text-is('تعديل')").first.click(); c.settle(1200)
+    c.shot("fl-airport-rep", "صفحة المطار: بياناته، ومندوبه للاطلاع", hl=[(f"{D} div:has(> p:text-is('مندوب المطار'))", "1"), (f"{D} button:has-text('حفظ')", "2")], section=S)
+    dbtn("إلغاء", 900)
+    # Jeddah's representative: the director grants عمر الشامي «رحلات المطار» for Jeddah too, at «صلاحيات الموظفين»
+    s.logout(); s.login("nour.a")
+    c.goto("/staff/access?id=omar", wait=2200)
+    ap = "main section:has(> button:has-text('رحلات المطار'))"
+    p.locator(f"{ap} button[aria-pressed]:has-text('الملك عبد العزيز')").first.click(); c.settle(400)
+    c.scroll_to(ap, 110)
+    c.shot("fl-rep-grant", "مندوب لجدة: نطاق «رحلات المطار» لعمر الشامي يصير دمشق وجدة", hl=[(f"{ap} button[aria-pressed]:has-text('الملك عبد العزيز')", "1")], section=S)
+    s.btn("مراجعة التغييرات وحفظها", 1000)
+    p.locator("[role=dialog] button:text-is('حفظ')").first.click(); c.settle(1500)
     quiet(c)
+    s.logout(); s.login("haitham")
+    s.nav("المطارات ومندوبوها", 2000)
+    c.scroll_to(jed, 380)
+    c.shot("fl-airport-saved", "عمر الشامي مندوب جدة في قائمة المطارات", hl=[(f"{jed} td >> nth=2", "")], section=S)
     dam = "main tbody tr:has-text('DAM')"
     p.locator(f"{dam} button:text-is('تعديل')").first.click(); c.settle(1200)
     ret = p.locator(D).last.locator("p:has-text('من يقلع منه يعود إلى')").first

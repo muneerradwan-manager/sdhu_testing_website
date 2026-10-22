@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { APPLIED_ROLES, paperOf, statusOf } from "@/app/administrator/_lib/admin";
 import { ATTEMPT_LABEL, STAGE_LABEL, barcodeOf, hallActions, roleLabelOf, stageOf, useHalls, type HallStage } from "@/app/administrator/_lib/halls";
 import type { AdminRow } from "../../_components/data";
-import { Drawer, logAs, useStaffUser } from "../../_components/kit";
+import { Drawer, logAs, useCan, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { STANDING, useExamDesk } from "./desk";
@@ -48,6 +48,10 @@ export function People() {
   const toast = useToast();
   const desk = useExamDesk();
   const halls = useHalls();
+  const may = useCan();
+  const canMove = may("exams.applicants.move");
+  // National ids and barcodes are personal: shown and exported only with their own permission
+  const seePii = may("exams.applicants-pii.GET");
   const [center, setCenter] = useState(params.get("c") ?? "");
   const [role, setRole] = useState("");
   const [assigned, setAssigned] = useState<Assigned>("all");
@@ -87,7 +91,7 @@ export function People() {
     .filter((a) => !center || (center === "none" ? !a.center : a.center?.id === center))
     .filter((a) => !role || a.role === role)
     .filter((a) => assigned === "all" || (assigned === "some") === a.assigned)
-    .filter((a) => matches(q, [a.row.name, a.row.id, getPerson(a.row.id)?.governorate]))
+    .filter((a) => matches(q, [a.row.name, seePii ? a.row.id : undefined, getPerson(a.row.id)?.governorate]))
     .sort((x, y) => Number(!!x.center) - Number(!!y.center) || (x.center?.name ?? "").localeCompare(y.center?.name ?? "", "ar") || x.row.name.localeCompare(y.row.name, "ar"));
   const movable = list.filter((a) => a.pending);
   const shownIds = [...new Set(movable.map((a) => a.row.id))];
@@ -123,13 +127,13 @@ export function People() {
   };
 
   /** Everyone who sits a test, past or to come: where, which test, his barcode for check-in, and whether he came */
-  const attendance = () =>
+  const attendance = () => {
+    logAs(user, { action: "تصدير المتقدمين والحضور", target: `${entries.length} متقدماً`, detail: seePii ? "بالأرقام الوطنية والباركود" : "بلا الأرقام الوطنية والباركود", system: "exams", area: "people" });
     downloadCsv("المتقدمون-والحضور-1448.csv", [
-      ["الاسم", "الرقم الوطني", "الباركود", "المحافظة", "الصفة", "القاعة", "الاختبار", "الموعد", "حال الجلسة", "الحال"],
+      ["الاسم", ...(seePii ? ["الرقم الوطني", "الباركود"] : []), "المحافظة", "الصفة", "القاعة", "الاختبار", "الموعد", "حال الجلسة", "الحال"],
       ...entries.map((a) => [
         a.row.name,
-        a.row.id,
-        barcodeOf(a.row.id),
+        ...(seePii ? [a.row.id, barcodeOf(a.row.id)] : []),
         getPerson(a.row.id)?.governorate,
         roleLabelOf(a.role),
         a.center?.name,
@@ -139,14 +143,17 @@ export function People() {
         STANDING[desk.standings.get(a.row.id) ?? "waiting"].label,
       ]),
     ]);
+  };
 
   return (
     <div className="space-y-5">
       <Title
         action={
-          <span className="text-sm font-bold">
-            <RowLink onClick={attendance}>تصدير Excel</RowLink>
-          </span>
+          may("exams.applicants.export") && (
+            <span className="text-sm font-bold">
+              <RowLink onClick={attendance}>تصدير Excel</RowLink>
+            </span>
+          )
         }
       />
       {noCenter > 0 && center !== "none" && (
@@ -171,6 +178,7 @@ export function People() {
       />
 
       {/* Bulk actions, as a site's list has them: tick the lines, then choose what to do with them */}
+      {canMove && (
       <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white/[.04] p-2 ring-1 ring-white/10">
         <span className="px-2 text-sm font-bold text-white/80">{picked.length ? `${picked.length} محددون:` : "مع المحددين:"}</span>
         <span className="w-56 max-w-full">
@@ -195,6 +203,7 @@ export function People() {
           </button>
         )}
       </div>
+      )}
 
       <ListTable
         head={[
@@ -215,17 +224,19 @@ export function People() {
           return (
             <tr key={a.key} className={cn("align-top", on && "bg-gold/10")}>
               <td className="w-10 p-3">
-                {a.pending && <input type="checkbox" checked={on} onChange={() => setPicked(on ? picked.filter((x) => x !== a.row.id) : [...picked, a.row.id])} className="size-4 accent-[#D9C89E]" aria-label={`تحديد ${a.row.name}`} />}
+                {a.pending && canMove && <input type="checkbox" checked={on} onChange={() => setPicked(on ? picked.filter((x) => x !== a.row.id) : [...picked, a.row.id])} className="size-4 accent-[#D9C89E]" aria-label={`تحديد ${a.row.name}`} />}
               </td>
               <td className="p-3">
                 <button type="button" onClick={() => setOpen(a.key)} className="text-right font-bold text-white hover:text-gold">
                   {a.row.name}
                 </button>
-                <p className="text-xs text-white/55" dir="ltr">
-                  {a.row.id}
-                </p>
+                {seePii && (
+                  <p className="text-xs text-white/55" dir="ltr">
+                    {a.row.id}
+                  </p>
+                )}
                 <RowActions>
-                  <RowLink onClick={() => setOpen(a.key)}>{a.pending ? "التفاصيل والنقل" : "التفاصيل"}</RowLink>
+                  <RowLink onClick={() => setOpen(a.key)}>{a.pending && canMove ? "التفاصيل والنقل" : "التفاصيل"}</RowLink>
                 </RowActions>
               </td>
               <td className="p-3 text-white/80">{roleLabelOf(a.role)}</td>
@@ -272,6 +283,8 @@ export function People() {
 /** One applicant's test, in a side sheet: where and when he sits it, his barcode and attempt, and moving him */
 function ApplicantSheet({ a, onMove }: { a: Entry; onMove: (center: string | undefined) => void }) {
   const halls = useHalls();
+  const may = useCan();
+  const seePii = may("exams.applicants-pii.GET");
   const desk = useExamDesk();
   const auto = halls.autoCenterOf(a.row.id);
   const s = a.sitting;
@@ -287,8 +300,8 @@ function ApplicantSheet({ a, onMove }: { a: Entry; onMove: (center: string | und
       </p>
       <dl className="grid grid-cols-2 gap-2 text-sm">
         {[
-          ["الرقم الوطني", <span key="id" dir="ltr">{a.row.id}</span>],
-          ["الباركود", <span key="b" dir="ltr" className="font-mono">{barcodeOf(a.row.id)}</span>],
+          ["الرقم الوطني", seePii ? <span key="id" dir="ltr">{a.row.id}</span> : "مخفي — صلاحية مستقلة"],
+          ["الباركود", seePii ? <span key="b" dir="ltr" className="font-mono">{barcodeOf(a.row.id)}</span> : "مخفي — صلاحية مستقلة"],
           ["محافظة القيد", getPerson(a.row.id)?.governorate ?? "غير معروفة"],
           ["قاعة محافظته", auto?.name ?? "لا قاعة تخدمها"],
           ["الجلسة", s?.exam ? `${s.exam.name}${s.center ? ` — ${s.center.name}` : ""}` : "—"],
@@ -303,7 +316,9 @@ function ApplicantSheet({ a, onMove }: { a: Entry; onMove: (center: string | und
       </dl>
       <section className="border-t border-white/10 pt-4">
         <p className="mb-2 text-sm font-bold text-white">قاعته</p>
-        {a.pending ? (
+        {a.pending && !may("exams.applicants.move") ? (
+          <p className="text-sm text-white/65">{a.center?.name ?? "بلا قاعة"}. نقل المتقدمين بين القاعات يحتاج صلاحيته.</p>
+        ) : a.pending ? (
           <>
             <select value={a.moved ? a.center!.id : ""} onChange={(e) => onMove(e.target.value || undefined)} className={selectClass} aria-label={`قاعة ${a.row.name}`}>
               <option value="">{auto ? `تلقائي — ${auto.name}` : "— بلا قاعة —"}</option>

@@ -7,11 +7,12 @@ import { groupName } from "@/lib/groups";
 import { ageOf, fullName } from "@/lib/registry";
 import { useStore } from "@/lib/store";
 import { useAllEvents, useTicketQueue } from "../_components/data";
-import { Gate, PageHeader } from "../_components/kit";
+import { can, Gate, PageHeader, useStaffUser } from "../_components/kit";
 import { EmptyRow, ListTable, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 import { Reports } from "../medical/view";
 import { ClusterBuses } from "./buses";
+import { viewKeys } from "@/lib/permissions";
 
 type View = "reports" | "needs" | "buses";
 
@@ -26,16 +27,22 @@ const MOBILITY = ["كرسي متحرك", "صعوبة في المشي", "أكسج
  */
 export function TransportView() {
   return (
-    <Gate perms={["transport"]}>
+    <Gate perms={viewKeys("transport")}>
       <Transport />
     </Gate>
   );
 }
 
+/** The resource each part shows: viewing it opens the part */
+const VIEW_RESOURCE: Record<View, string> = { reports: "tickets", needs: "needs", buses: "buses" };
+
 function Transport() {
   const params = useSearchParams();
   const router = useRouter();
-  const view = (params.get("view") as View) ?? "reports";
+  const user = useStaffUser()!;
+  const allowed = (["reports", "needs", "buses"] as const).filter((v) => can(user, `transport.${VIEW_RESOURCE[v]}.GET`) || (v === "buses" && can(user, "transport.bus-requests.GET")));
+  const asked = (params.get("view") as View) ?? "reports";
+  const view = allowed.includes(asked) ? asked : allowed[0];
   const applications = useStore((s) => s.applications);
   const post = useStore((s) => s.post);
   const tickets = useTicketQueue();
@@ -66,12 +73,12 @@ function Transport() {
         onChange={(v) => router.replace(v === "reports" ? "/staff/transport" : `/staff/transport?view=${v}`)}
         label="القسم"
         items={[
-          { value: "reports", label: "بلاغات النقل", count: reports.filter((t) => t.status !== "resolved").length, tone: "maroon" },
-          { value: "needs", label: "حجاج يحتاجون تجهيزاً", count: needs.length },
-          { value: "buses", label: "حافلات التكتلات" },
-        ]}
+          { value: "reports" as const, label: "بلاغات النقل", count: reports.filter((t) => t.status !== "resolved").length, tone: "maroon" as const },
+          { value: "needs" as const, label: "حجاج يحتاجون تجهيزاً", count: needs.length },
+          { value: "buses" as const, label: "حافلات التكتلات" },
+        ].filter((x) => allowed.includes(x.value))}
       />
-      {view === "reports" && <Reports tickets={reports} empty="لا بلاغات نقل." />}
+      {view === "reports" && <Reports tickets={reports} empty="لا بلاغات نقل." system="transport" />}
       {view === "needs" && (
         <ListTable head={["الحاج", "المجموعة", "ما تحتاجه الحافلة", "مرافقه"]}>
           {needs.length === 0 && <EmptyRow cols={4}>لا أحد بعد. يظهر هنا من سجّل له منسق مجموعته كرسياً متحركاً أو صعوبة في المشي أو أكسجيناً، ومن بلغ 75 عاماً.</EmptyRow>}

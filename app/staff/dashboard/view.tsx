@@ -17,7 +17,7 @@ import { drawTotals } from "@/lib/lottery";
 import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, useEmployees, useOpFiles } from "@/lib/ops";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
-import { can, taskPermissions, type StaffUser } from "@/lib/staff";
+import { can, type StaffUser } from "@/lib/staff";
 import { useStore } from "@/lib/store";
 import { SYSTEMS, useHolders } from "@/lib/systems";
 import { cn, countOf, formatNumber } from "@/lib/utils";
@@ -28,7 +28,7 @@ import { useExamDesk } from "../exam/_components/desk";
 import { useFlightsDesk } from "../flights/desk";
 import { useSystemsUnseen } from "../_components/system";
 import { useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
-import { ago, BarList, Columns, Donut, fmtDateTime, Legend, PageHeader, Panel, useNow, useStaffHome, useStaffUser } from "../_components/kit";
+import { ago, BarList, Columns, Donut, fmtDateTime, hasDeskWork, Legend, PageHeader, Panel, useNow, useStaffHome, useStaffUser } from "../_components/kit";
 
 type Todo = { id: string; text: string; href?: string; done?: boolean; tone?: "maroon" | "gold" | "green" };
 
@@ -50,8 +50,8 @@ export function DashboardView() {
   const user = useStaffUser()!;
   const router = useRouter();
   const home = useStaffHome(user);
-  // A management permission has its own summary: «لوحتي» is for the task permissions
-  const has = taskPermissions(user).length > 0;
+  // A management file has its own summary: «لوحتي» gathers the other systems' work
+  const has = hasDeskWork(user);
   useEffect(() => {
     if (!has) router.replace(home);
   }, [has, home, router]);
@@ -140,7 +140,7 @@ function Dashboard() {
   const missing = openTickets.filter((t) => t.kind === "missing").length;
   const groupReports = GROUP_REPORTS.map((r) => ({ ...r, open: openTickets.filter((t) => t.name.includes(groupName(r.group))).length }));
   const busAccepted = events.some((e) => e.action === "اعتماد حافلة إضافية");
-  // The exam is a system: its owner follows it in its summary; here the director sees what reaches her
+  // The exam is a system: its owner follows it in its summary; here the director sees what reaches him
   const staffDesk = useEmployeesDesk();
   const adminsDesk = useAdminsDesk();
   const examDesk = useExamDesk();
@@ -184,40 +184,40 @@ function Dashboard() {
   {
     const list = todos;
     if (myPosts > 0) list.push({ id: "my-files", text: `مواقعك في الملفات التشغيلية لموسم ${CURRENT_SEASON} (${myPosts}): البرج والمخيمات وفريقك`, href: "/staff/my-files", tone: "gold" });
-    if (can(user, "registration.review")) {
+    if (can(user, "reviews.applications.GET")) {
       list.push({ id: "rev", text: `مراجعة ${pendingReviews} طلبات تحتاج قراراً بشرياً`, href: "/staff/reviews", tone: "gold", done: pendingReviews === 0 });
       if (pendingContracts) list.push({ id: "contracts", text: `البتّ في ${pendingContracts} عقود رفعتها المجموعات`, href: "/staff/reviews?view=groups", tone: "gold" });
     }
     // The demo opens after the 1448 results were published, until «إعادة التجربة» on the lottery page
     const published = !!lottery.published || (!lottery.cleared && !lottery.entry);
     const entered = published || !!lottery.sent;
-    if (can(user, "lottery.import")) list.push({ id: "imp", text: entered ? "أُدخلت نتائج بث القرعة وأُرسلت للاعتماد" : "إدخال نتائج بث القرعة: سنوات الميلاد وأشهرها", href: "/staff/lottery?step=entry", done: entered });
-    if (can(user, "lottery.approve")) list.push({ id: "pub", text: published ? "نُشرت نتائج القرعة" : entered ? "اعتماد ونشر نتائج القرعة" : "بانتظار إدخال نتائج البث من إدارة التسجيل", href: "/staff/lottery?step=publish", done: published, tone: "maroon" });
-    if (can(user, "season.settings")) list.push({ id: "season", text: "مراجعة إعدادات الموسم قبل فتح حملة الاستدراك", href: "/staff/season" });
-    if (can(user, "systems.assign")) {
+    if (can(user, "lottery.draw.POST")) list.push({ id: "imp", text: entered ? "أُدخلت نتائج بث القرعة وأُرسلت للاعتماد" : "إدخال نتائج بث القرعة: سنوات الميلاد وأشهرها", href: "/staff/lottery?step=entry", done: entered });
+    if (can(user, "lottery.draw.publish")) list.push({ id: "pub", text: published ? "نُشرت نتائج القرعة" : entered ? "اعتماد ونشر نتائج القرعة" : "بانتظار إدخال نتائج البث من إدارة التسجيل", href: "/staff/lottery?step=publish", done: published, tone: "maroon" });
+    if (can(user, "season.values.GET")) list.push({ id: "season", text: "مراجعة إعدادات الموسم قبل فتح حملة الاستدراك", href: "/staff/season" });
+    if (can(user, "access.important-events.GET")) {
       for (const [k, high] of [["staff", staffDesk.high.length], ["registration", regDesk.high.length], ["admins", adminsDesk.high.length], ["exams", examDesk.high.length], ["flights", flightsDesk.high.length]] as const) {
         const who = holders[k].map((h) => h.staff.name).join(" و") || "صاحب صلاحيتها";
-        if (high) list.push({ id: `sys-high-${k}`, text: `${SYSTEMS[k].label} تحتاج متابعة (${high}) — يعالجها ${who}`, href: "/staff/systems", tone: "maroon" });
+        if (high) list.push({ id: `sys-high-${k}`, text: `${SYSTEMS[k].label} تحتاج متابعة (${high}) — يعالجها ${who}`, href: "/staff/access", tone: "maroon" });
       }
-      list.push({ id: "sys-new", text: unseen ? `أحداث مهمة جديدة في ملفات الإدارة (${unseen})` : "لا أحداث مهمة جديدة في ملفات الإدارة", href: "/staff/systems", done: !unseen, tone: "gold" });
+      list.push({ id: "sys-new", text: unseen ? `أحداث مهمة جديدة في ملفات الإدارة (${unseen})` : "لا أحداث مهمة جديدة في ملفات الإدارة", href: "/staff/access", done: !unseen, tone: "gold" });
     }
-    if (can(user, "operations.room")) {
+    if (can(user, "operations.tickets.GET")) {
       list.push({ id: "crit", text: critical ? `متابعة ${countOf(critical, { zero: "", one: "بلاغ حرج", two: "بلاغين حرجين", few: "بلاغات حرجة", many: "بلاغاً حرجاً" })} حتى الإغلاق` : "لا بلاغات حرجة مفتوحة", href: "/staff/operations", tone: "maroon", done: critical === 0 });
       list.push({ id: "bus", text: busAccepted ? "اعتُمدت الحافلة التاسعة لمزدلفة" : "مراجعة اقتراح الحافلة التاسعة لمزدلفة", href: "/staff/operations", done: busAccepted });
     }
-    if (can(user, "content.manage") && contentDrafts) list.push({ id: "drafts", text: `نشر المسودات أو تجاهلها في محتوى الموقع (${contentDrafts})`, href: "/staff/content", tone: "gold" });
-    if (can(user, "pilgrims.register")) list.push({ id: "register", text: "تسجيل مواطن يراجع المكتب على الحج", href: "/staff/registration", tone: "gold" });
-    if (can(user, "medical")) {
+    if (can(user, "content.pages.GET") && contentDrafts) list.push({ id: "drafts", text: `نشر المسودات أو تجاهلها في محتوى الموقع (${contentDrafts})`, href: "/staff/content", tone: "gold" });
+    if (can(user, "office.applications.POST")) list.push({ id: "register", text: "تسجيل مواطن يراجع المكتب على الحج", href: "/staff/registration", tone: "gold" });
+    if (can(user, "medical.documents.GET")) {
       list.push({ id: "docs", text: docsWaiting ? `مراجعة ${countOf(docsWaiting, { zero: "", one: "وثيقة طبية واحدة", two: "وثيقتين طبيتين", few: "وثائق طبية", many: "وثيقة طبية" })} رفعها الحجاج` : "لا وثائق طبية تنتظر المراجعة", href: "/staff/medical", tone: "gold", done: !docsWaiting });
       list.push({ id: "health", text: health ? `متابعة ${countOf(health, { zero: "", one: "بلاغ صحي مفتوح", two: "بلاغين صحيين مفتوحين", few: "بلاغات صحية مفتوحة", many: "بلاغاً صحياً مفتوحاً" })}` : "لا بلاغات صحية مفتوحة", href: "/staff/medical?view=reports", tone: "maroon", done: !health });
     }
-    if (can(user, "transport")) {
+    if (can(user, "transport.tickets.GET")) {
       list.push({ id: "transport", text: transportOpen ? `متابعة ${countOf(transportOpen, { zero: "", one: "بلاغ نقل مفتوح", two: "بلاغَي نقل مفتوحين", few: "بلاغات نقل مفتوحة", many: "بلاغاً مفتوحاً للنقل" })}` : "لا بلاغات نقل مفتوحة", href: "/staff/transport", tone: "maroon", done: !transportOpen });
       // «bus-ready», not «bus»: one account may hold the operations room and transport both
       list.push({ id: "bus-ready", text: busAccepted ? "اعتُمدت الحافلة التاسعة لمزدلفة: تجهيزها" : "حافلات مزدلفة المبكرة أقل من المسجّلين: بانتظار غرفة العمليات", href: "/staff/transport?view=buses", done: busAccepted });
     }
-    if (can(user, "audit.read")) list.push({ id: "obj", text: "الرد على اعتراض الطلب 51877 مع الدليل", href: "/staff/audit", tone: "gold" });
-    if (can(user, "ops.files")) {
+    if (can(user, "audit.events.GET")) list.push({ id: "obj", text: "الرد على اعتراض الطلب 51877 مع الدليل", href: "/staff/audit", tone: "gold" });
+    if (can(user, "opfiles.files.GET")) {
       if (opsMissing > 0) list.push({ id: "create", text: `إنشاء الملفات التشغيلية الناقصة لموسم ${CURRENT_SEASON} (${opsMissing})`, href: "/staff/operational-files", tone: "gold" });
       list.push({ id: "gaps", text: `إسناد المناصب الإلزامية الشاغرة في الملفات التشغيلية (${opsGaps})`, href: "/staff/operational-files", tone: "maroon", done: opsGaps === 0 });
       list.push({ id: "activate", text: `تفعيل الملفات التشغيلية بعد إدخال أرقام القرارات (${opsActive} من ${FILE_TYPES.length} مفعّلة)`, href: "/staff/operational-files", tone: "gold", done: opsActive === FILE_TYPES.length });
@@ -225,8 +225,8 @@ function Dashboard() {
   }
 
   const hour = new Date(now).getHours();
-  const review = can(user, "registration.review");
-  const lotteryPerm = can(user, "lottery.import") || can(user, "lottery.approve");
+  const review = can(user, "reviews.applications.GET");
+  const lotteryPerm = can(user, "lottery.draw.POST") || can(user, "lottery.draw.publish");
 
   return (
     <div>
@@ -245,7 +245,7 @@ function Dashboard() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="space-y-6">
-          {can(user, "pilgrims.register") && (
+          {can(user, "office.applications.POST") && (
             <Section title="ما سجّلته" icon={<UserRoundPlus />} href="/staff/registration" link="تسجيل حاج جديد">
               <Figures
                 items={[
@@ -291,7 +291,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "medical") && (
+          {can(user, "medical.documents.GET") && (
             <Section title="الفريق الطبي" icon={<HeartPulse />} href="/staff/medical" link="افتح عمل الفريق">
               <Figures
                 items={[
@@ -304,7 +304,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "transport") && (
+          {can(user, "transport.tickets.GET") && (
             <Section title="المواصلات" icon={<Bus />} href="/staff/transport" link="افتح عمل الفريق">
               <Figures
                 items={[
@@ -317,7 +317,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "ops.files") && (
+          {can(user, "opfiles.files.GET") && (
             <Section title="الملفات التشغيلية" icon={<FileStack />} href="/staff/operational-files" link="افتح الملفات">
               <Figures
                 items={[
@@ -399,7 +399,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "season.settings") && (
+          {can(user, "season.values.GET") && (
             <Section title="إعدادات الموسم" icon={<Settings2 />} href="/staff/season" link="تعديل الإعدادات">
               <div className="flex flex-col items-center gap-6 sm:flex-row">
                 <Donut
@@ -431,7 +431,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "operations.room") && (
+          {can(user, "operations.tickets.GET") && (
             <Section title="غرفة العمليات — يوم عرفة" icon={<RadioTower />} href="/staff/operations" link="افتح غرفة العمليات">
               <Figures
                 items={[
@@ -496,7 +496,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "content.manage") && (
+          {can(user, "content.pages.GET") && (
             <Section title="محتوى الموقع" icon={<PencilLine />} href="/staff/content" link="افتح المحتوى">
               <Figures
                 items={[
@@ -509,7 +509,7 @@ function Dashboard() {
             </Section>
           )}
 
-          {can(user, "audit.read") && (
+          {can(user, "audit.events.GET") && (
             <Section title="سجل الأحداث" icon={<ScrollText />} href="/staff/audit" link="افتح السجل">
               <Figures
                 items={[
@@ -519,7 +519,7 @@ function Dashboard() {
                   { k: "تعديلات بقيمة قبل/بعد", v: formatNumber(events.filter((e) => e.before !== undefined).length), hint: "اعتراضات مفتوحة: 1" },
                 ]}
               />
-              {!can(user, "season.settings") && (
+              {!can(user, "season.values.GET") && (
                 <Sub title="رضا الحجاج — مقارنة سريعة">
                   <BarList dark items={EXEC.stages.slice(0, 6).map((s) => ({ label: s.stage, value: s.y1448, key: s.stage }))} max={5} format={(v) => v.toFixed(1)} color="bg-green-light" />
                 </Sub>

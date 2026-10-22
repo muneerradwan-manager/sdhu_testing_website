@@ -8,12 +8,18 @@ import { fullName, rolesAt, staffIn, useEmployees, type Assignment, type FileTyp
 import { cn, formatNumber } from "@/lib/utils";
 import { Drawer, Meter } from "../_components/kit";
 import { Avatar, Chip, Field, InfoGrid, fieldClass } from "../_components/ops-ui";
+import type { Acts } from "./view";
 
-/** One role's holders with add / replace / remove — used on the file, on sectors / centres and in the tower / camp sheet */
+/**
+ * One role's holders with add / replace / remove — used on the file, on sectors / centres and in the tower / camp
+ * sheet. `editable`: may assign; `removable`: may take off (else as `editable`); `contact`: may see their phones.
+ */
 export function RoleBlock({
   role,
   holders,
   editable,
+  removable = editable,
+  contact = true,
   onAdd,
   onRemove,
   extra,
@@ -22,6 +28,8 @@ export function RoleBlock({
   role: Role;
   holders: Assignment[];
   editable: boolean;
+  removable?: boolean;
+  contact?: boolean;
   onAdd: () => void;
   onRemove: (employeeId: string) => void;
   extra?: (m: Assignment) => ReactNode;
@@ -71,7 +79,13 @@ export function RoleBlock({
                 <div className="min-w-0 flex-1">
                   <p className={cn("truncate text-sm font-bold", e.suspended ? "text-[#ffc9d8] line-through" : "text-white")}>{fullName(e)}</p>
                   <p className="truncate text-[11px] text-white/60">
-                    {e.jobTitle} · <span dir="ltr">{e.phoneSa ?? e.phoneSy}</span>
+                    {e.jobTitle}
+                    {contact && (
+                      <>
+                        {" "}
+                        · <span dir="ltr">{e.phoneSa ?? e.phoneSy}</span>
+                      </>
+                    )}
                     {e.suspended && <span className="font-bold text-[#ffc9d8]"> · موقوف — استبدله</span>}
                   </p>
                   {extra?.(m)}
@@ -81,7 +95,7 @@ export function RoleBlock({
                     تغيير
                   </button>
                 )}
-                {editable && (
+                {removable && (
                   <button onClick={() => onRemove(m.employeeId)} className="rounded-lg p-1 text-white/45 hover:bg-maroon/40 hover:text-white" aria-label={`إزالة ${fullName(e)}`}>
                     <X className="size-4" />
                   </button>
@@ -126,7 +140,7 @@ export function InnerDrawer({
   node,
   place,
   outerName,
-  editable,
+  acts,
   onPatch,
   onAdd,
   onRemove,
@@ -139,7 +153,7 @@ export function InnerDrawer({
   node: InnerNode | undefined;
   place: Place | undefined;
   outerName: string;
-  editable: boolean;
+  acts: Acts;
   onPatch: (patch: Partial<InnerNode>) => void;
   onAdd: (role: Role) => void;
   onRemove: (role: Role, employeeId: string) => void;
@@ -162,7 +176,7 @@ export function InnerDrawer({
 
           <div className="space-y-2.5">
             {rolesAt(type, "inner").map((r) => (
-              <RoleBlock key={r.code} role={r} holders={node.members.filter((m) => m.role === r.code)} editable={editable} onAdd={() => onAdd(r)} onRemove={(id) => onRemove(r, id)} />
+              <RoleBlock key={r.code} role={r} holders={node.members.filter((m) => m.role === r.code)} editable={acts.assign} removable={acts.unassign} contact={acts.contact} onAdd={() => onAdd(r)} onRemove={(id) => onRemove(r, id)} />
             ))}
           </div>
 
@@ -177,7 +191,7 @@ export function InnerDrawer({
                   return (
                     <button
                       key={c.slug}
-                      disabled={!editable || elsewhere}
+                      disabled={!acts.editNode || elsewhere}
                       onClick={() => {
                         const next = on ? node.clusters.filter((x) => x !== c.slug) : [...node.clusters, c.slug];
                         onPatch({
@@ -201,7 +215,7 @@ export function InnerDrawer({
               <input
                 type="number"
                 min={0}
-                disabled={!editable}
+                disabled={!acts.editNode}
                 value={node.pilgrims}
                 onChange={(e) => onPatch({ pilgrims: Math.max(0, Number(e.target.value)) })}
                 className={cn(fieldClass, "tabular-nums")}
@@ -211,16 +225,16 @@ export function InnerDrawer({
             {type.campFields && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="رقم الخيمة" hint="خيمة البعثة أو نقطة التجمّع">
-                  <input disabled={!editable} value={node.tent ?? ""} onChange={(e) => onPatch({ tent: e.target.value || undefined })} className={fieldClass} placeholder="مثل: الخيمة 12" />
+                  <input disabled={!acts.editNode} value={node.tent ?? ""} onChange={(e) => onPatch({ tent: e.target.value || undefined })} className={fieldClass} placeholder="مثل: الخيمة 12" />
                 </Field>
                 <Field label="جهات مخصّصة" hint="جهات لها مكان في المخيم">
-                  <input disabled={!editable} value={node.bodies ?? ""} onChange={(e) => onPatch({ bodies: e.target.value || undefined })} className={fieldClass} placeholder="مثل: الإدارة الصحية" />
+                  <input disabled={!acts.editNode} value={node.bodies ?? ""} onChange={(e) => onPatch({ bodies: e.target.value || undefined })} className={fieldClass} placeholder="مثل: الإدارة الصحية" />
                 </Field>
               </div>
             )}
             <Field label="ملاحظة">
               <input
-                disabled={!editable}
+                disabled={!acts.editNode}
                 value={node.note ?? ""}
                 onChange={(e) => onPatch({ note: e.target.value || undefined })}
                 className={fieldClass}
@@ -229,7 +243,7 @@ export function InnerDrawer({
             </Field>
           </div>
 
-          {editable && (
+          {acts.removeNode && (
             <div className="border-t border-white/10 pt-4">
               <Button size="sm" variant="glass" className="hover:bg-maroon/50" onClick={onDelete}>
                 <Trash2 className="size-4" /> إزالة {isCamp ? "المخيم" : "البرج"} من الملف
@@ -237,7 +251,7 @@ export function InnerDrawer({
               <p className="mt-2 text-[11px] text-white/50">يعود متاحاً في القائمة، ويصبح من فيه غير مُسندين.</p>
             </div>
           )}
-          {!editable && <Chip>للاطلاع فقط</Chip>}
+          {!acts.editNode && !acts.assign && !acts.removeNode && <Chip>للاطلاع فقط</Chip>}
         </div>
       )}
     </Drawer>

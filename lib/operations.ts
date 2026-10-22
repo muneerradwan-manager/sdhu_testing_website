@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import type { Permission, StaffUser } from "./staff";
+import { can } from "./permissions";
+import type { StaffUser } from "./staff";
 import { useStore } from "./store";
 import { gregorianDate, hijriDate } from "./utils";
 
@@ -14,8 +15,8 @@ import { gregorianDate, hijriDate } from "./utils";
  *   is permanent.
  * - «فعال» / «غير فعال»: the staff who control it opened or closed it by hand, whatever its dates say.
  *
- * The holder of the controlling permission changes them, and the season director (who holds «إعدادات
- * الموسم») controls them all. Dates are days, "YYYY-MM-DD", each end with an optional hour ("HH:MM", as the
+ * Whoever holds «تعديل — مواعيد العمليات» (`season.windows.PUT`) for an operation changes it; granted with no
+ * scope, for them all. Dates are days, "YYYY-MM-DD", each end with an optional hour ("HH:MM", as the
  * administration's platform sets its reception windows: it opens at its hour on its first day and closes at its
  * hour on its last); what "today" and "now" are comes from the demo clock below.
  */
@@ -45,7 +46,6 @@ export type OperationDef = {
   /** The hour it opens on its first day and closes on its last (else the whole day) */
   startTime?: string;
   endTime?: string;
-  control: Permission;
   /** Not announced yet by the administration: the date follows last season's pattern */
   estimate?: boolean;
 };
@@ -57,21 +57,21 @@ export type OperationDef = {
  * not announced yet (`estimate`) follows last season's pattern, and says so on the screens.
  */
 export const OPERATIONS: OperationDef[] = [
-  { key: "hajj-direct", label: "التسجيل على الحج — القبول المباشر", desc: "لمواليد 1958 فما قبل ومرافقيهم. يسجّل الحاج نفسه، أو يسجّله من يملك صلاحية التسجيل. لا يضعه في أي مجموعة.", start: "2026-08-12", end: "2026-08-25", control: "registration.manage" },
-  { key: "hajj-lottery", label: "التسجيل على الحج — التسجيل الأولي على القرعة", desc: "طلب مستقل بعد القبول المباشر، برسم التسجيل فقط. لا يضع أحداً في مجموعة.", start: "2026-08-26", end: "2026-09-10", control: "registration.manage" },
-  { key: "admin-registration", label: "التسجيل كإداري", desc: "طلب المشاركة في الموسم لصفة واحدة من الصفات المفتوحة للتقدم: رئيس مجموعة، أو موجّه ديني بدرجته (أ، ب، ج)، أو معاون، أو منسق تقني، أو موجّهة دينية بدرجتها…", start: "2026-09-20", end: "2026-09-24", control: "admins.manage" },
-  { key: "admin-exams", label: "الاختبارات", desc: "الاختبار المؤتمت لكل صفة في قاعات المراكز الامتحانية، بإشراف مشرفي القاعات، قبل تشكيل المجموعات.", start: "2026-09-27", end: "2026-10-25", control: "exams.manage", estimate: true },
-  { key: "admin-orals", label: "الامتحانات الشفهية", desc: "بعد الاختبار المؤتمت: يختار الناجح فيه موعده أمام لجنة صفته في مركزه، فتسجّل اللجنة نتيجته. لا يتأهل إلا بنجاحه فيهما معاً.", start: "2026-10-11", end: "2026-10-22", control: "exams.manage", estimate: true },
-  { key: "group-formation", label: "تشكيل المجموعات", desc: "يحضر الناجح في التأهيل وفريقه إلى المكتب: يشكّل موظف إدارة الإداريين المجموعة باسمها وفئتها، ويُجلس موجّهها ومعاونها، ويقبض رسمها، ويرفع عقدها الموقّع.", start: "2026-11-01", end: "2026-11-10", control: "admins.manage", estimate: true },
-  { key: "group-joining", label: "إلحاق الحجاج بالمجموعات", desc: "يتفق الحاج مع مجموعة ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب بها، والطلب العائلي كاملاً. يرى رئيس المجموعة ومنسقها حجاجها. يبدأ مع تشكيل التكتلات ويستمر بعده.", start: "2026-11-12", end: "2027-01-15", control: "season.settings", estimate: true },
-  { key: "cluster-formation", label: "تشكيل التكتلات", desc: "في المكتب بحضور رئيس التكتل وكل من فيه، بالتوازي مع إلحاق الحجاج: تدخل المجموعات بفرقها، ويختار رئيسه كادره ويوزّعه، ويُدفع رسمه، ويرفع الموظف عقده الموقّع، فيُنشأ معتمداً. الموعد الأول لشارة الالتزام بالمواعيد.", start: "2026-11-12", startTime: "09:00", end: "2026-11-30", endTime: "23:59", control: "admins.manage", estimate: true },
-  { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها والفريق في مقاعدها. دائمة ما دامت المجموعة قائمة.", control: "admins.manage" },
-  { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع منسقيه وموجّهاته على مجموعاته وبرنامجه. دائمة ما دام التكتل قائماً.", control: "admins.manage" },
+  { key: "hajj-direct", label: "التسجيل على الحج — القبول المباشر", desc: "لمواليد 1958 فما قبل ومرافقيهم. يسجّل الحاج نفسه، أو يسجّله من يملك صلاحية التسجيل. لا يضعه في أي مجموعة.", start: "2026-08-12", end: "2026-08-25" },
+  { key: "hajj-lottery", label: "التسجيل على الحج — التسجيل الأولي على القرعة", desc: "طلب مستقل بعد القبول المباشر، برسم التسجيل فقط. لا يضع أحداً في مجموعة.", start: "2026-08-26", end: "2026-09-10" },
+  { key: "admin-registration", label: "التسجيل كإداري", desc: "طلب المشاركة في الموسم لصفة واحدة من الصفات المفتوحة للتقدم: رئيس مجموعة، أو موجّه ديني بدرجته (أ، ب، ج)، أو معاون، أو منسق تقني، أو موجّهة دينية بدرجتها…", start: "2026-09-20", end: "2026-09-24" },
+  { key: "admin-exams", label: "الاختبارات", desc: "الاختبار المؤتمت لكل صفة في قاعات المراكز الامتحانية، بإشراف مشرفي القاعات، قبل تشكيل المجموعات.", start: "2026-09-27", end: "2026-10-25", estimate: true },
+  { key: "admin-orals", label: "الامتحانات الشفهية", desc: "بعد الاختبار المؤتمت: يختار الناجح فيه موعده أمام لجنة صفته في مركزه، فتسجّل اللجنة نتيجته. لا يتأهل إلا بنجاحه فيهما معاً.", start: "2026-10-11", end: "2026-10-22", estimate: true },
+  { key: "group-formation", label: "تشكيل المجموعات", desc: "يحضر الناجح في التأهيل وفريقه إلى المكتب: يشكّل موظف إدارة الإداريين المجموعة باسمها وفئتها، ويُجلس موجّهها ومعاونها، ويقبض رسمها، ويرفع عقدها الموقّع.", start: "2026-11-01", end: "2026-11-10", estimate: true },
+  { key: "group-joining", label: "إلحاق الحجاج بالمجموعات", desc: "يتفق الحاج مع مجموعة ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب بها، والطلب العائلي كاملاً. يرى رئيس المجموعة ومنسقها حجاجها. يبدأ مع تشكيل التكتلات ويستمر بعده.", start: "2026-11-12", end: "2027-01-15", estimate: true },
+  { key: "cluster-formation", label: "تشكيل التكتلات", desc: "في المكتب بحضور رئيس التكتل وكل من فيه، بالتوازي مع إلحاق الحجاج: تدخل المجموعات بفرقها، ويختار رئيسه كادره ويوزّعه، ويُدفع رسمه، ويرفع الموظف عقده الموقّع، فيُنشأ معتمداً. الموعد الأول لشارة الالتزام بالمواعيد.", start: "2026-11-12", startTime: "09:00", end: "2026-11-30", endTime: "23:59", estimate: true },
+  { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها والفريق في مقاعدها. دائمة ما دامت المجموعة قائمة." },
+  { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع منسقيه وموجّهاته على مجموعاته وبرنامجه. دائمة ما دام التكتل قائماً." },
   // After the season: the pilgrims rate as they come home; the administrators rate themselves once the last of them landed; then the staff and the clusters' heads rate them
-  { key: "pilgrim-evaluation", label: "تقييم الحجاج بعد العودة", desc: "اختياري: يقيّم الحاج بعد عودته رحلته كلها، ومجموعته وتكتله عموماً. لا يقيّم أشخاصاً بأسمائهم، ولا يدخل في تقييم الإداريين.", start: "2027-05-22", end: "2027-06-15", control: "admins.manage", estimate: true },
-  { key: "self-evaluation", label: "التقييم الذاتي للإداريين", desc: "بعد هبوط آخر رحلات العودة في دمشق: يقيّم كل إداري نفسه في كل مرحلة من مراحل الموسم، ويرسل تقييمه مرة واحدة.", start: "2027-06-04", end: "2027-06-10", control: "admins.manage", estimate: true },
-  { key: "peer-evaluation", label: "تقييم الموظفين للإداريين والمجموعات والتكتلات", desc: "بعد انتهاء التقييم الذاتي: يقيّم موظفو البعثة المفروزون على البرج أو المخيم التكتلات التي سكنت فيه — كل تكتل، وكل مجموعة منه، وكل إداري فيه — مرحلة مرحلة. الإداريون لا يقيّم بعضهم بعضاً.", start: "2027-06-11", end: "2027-06-20", control: "admins.manage", estimate: true },
-  { key: "evaluation-objection", label: "الاعتراض على التقييم", desc: "بعد تقييم الموظفين: يرى الإداري تقييمه لنفسه وتقييم الموظفين له، وله أن يعترض على تقييم الموظفين في مراحل يحددها وبسببه، فتقبل إدارة الإداريين اعتراضه وتعيد التقييم أو ترفضه بردّها.", start: "2027-06-21", end: "2027-06-27", control: "admins.manage", estimate: true },
+  { key: "pilgrim-evaluation", label: "تقييم الحجاج بعد العودة", desc: "اختياري: يقيّم الحاج بعد عودته رحلته كلها، ومجموعته وتكتله عموماً. لا يقيّم أشخاصاً بأسمائهم، ولا يدخل في تقييم الإداريين.", start: "2027-05-22", end: "2027-06-15", estimate: true },
+  { key: "self-evaluation", label: "التقييم الذاتي للإداريين", desc: "بعد هبوط آخر رحلات العودة في دمشق: يقيّم كل إداري نفسه في كل مرحلة من مراحل الموسم، ويرسل تقييمه مرة واحدة.", start: "2027-06-04", end: "2027-06-10", estimate: true },
+  { key: "peer-evaluation", label: "تقييم الموظفين للإداريين والمجموعات والتكتلات", desc: "بعد انتهاء التقييم الذاتي: يقيّم موظفو البعثة المفروزون على البرج أو المخيم التكتلات التي سكنت فيه — كل تكتل، وكل مجموعة منه، وكل إداري فيه — مرحلة مرحلة. الإداريون لا يقيّم بعضهم بعضاً.", start: "2027-06-11", end: "2027-06-20", estimate: true },
+  { key: "evaluation-objection", label: "الاعتراض على التقييم", desc: "بعد تقييم الموظفين: يرى الإداري تقييمه لنفسه وتقييم الموظفين له، وله أن يعترض على تقييم الموظفين في مراحل يحددها وبسببه، فتقبل إدارة الإداريين اعتراضه وتعيد التقييم أو ترفضه بردّها.", start: "2027-06-21", end: "2027-06-27", estimate: true },
 ];
 
 export const OPERATION_KEYS = OPERATIONS.map((o) => o.key);
@@ -234,7 +234,7 @@ export function useAnyOperation(keys: OperationKey[]): { open: boolean; states: 
   return { open: states.some((s) => s.open), states };
 }
 
-/** The holder of the controlling permission, or the season director who controls them all */
+/** May he open, close or re-date this operation: `season.windows.PUT` for it */
 export function controls(user: StaffUser | null, def: OperationDef) {
-  return !!user && (user.permissions.includes(def.control) || user.permissions.includes("season.settings"));
+  return can(user, "season.windows.PUT", def.key);
 }

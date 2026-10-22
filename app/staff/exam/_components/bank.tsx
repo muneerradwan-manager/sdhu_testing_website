@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
 import { useAllQuestions, useExamBank } from "@/app/administrator/_lib/admin-rules";
 import { roleLabelOf } from "@/app/administrator/_lib/halls";
-import { Drawer, logAs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, logAs, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { AddButton, Box, EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk } from "./desk";
@@ -159,6 +159,12 @@ export function Bank() {
   const questionRoles = storedRoles ?? {};
   const all = useAllQuestions();
   const live = useExamBank();
+  const may = useCan();
+  // The correct answers are confidential: seen, and exported with the bank, only with their own permission
+  const seeAnswers = may("exams.questions-answers.GET");
+  const canExport = may("exams.questions-answers.export");
+  const canDisable = may("exams.questions.disable");
+  const canReplace = may("exams.questions.replace");
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [role, setRole] = useState("");
@@ -252,29 +258,40 @@ export function Bank() {
     close();
   };
 
-  const download = () =>
+  const download = () => {
+    logAs(user, { action: "تصدير بنك الأسئلة بأجوبته", target: `${all.length} سؤالاً`, system: "exams", area: "bank", important: true });
     downloadCsv("بنك-الأسئلة-1448.csv", [
       ["الرقم", "النوع", "الفئة", "يدخل اختبار", "السؤال", "الخيارات", "الإجابة", "الحالة", "استُخدم في محاولات"],
       ...all.map((x) => [x.id, QUESTION_TYPES[typeOf(x)], x.category, x.roles.map(roleLabelOf).join(" / "), x.text, x.options.join(" | "), x.options[x.answer], off.includes(x.id) ? "معطّل" : "فعّال", used.get(x.id) ?? 0]),
     ]);
+  };
+  const print = () => {
+    logAs(user, { action: "طباعة بنك الأسئلة بأجوبته", target: `${shown.length} سؤالاً`, system: "exams", area: "bank", important: true });
+    window.print();
+  };
 
   // What the sheet shows: a form to fill (a new question, or one never on a paper), or the question to read
   const n = opened ? (used.get(opened.id) ?? 0) : 0;
   const disabledOpen = !!opened && off.includes(opened.id);
-  const editable = sheet?.kind === "new" || (!!opened && n === 0 && !disabledOpen);
+  // A new question is added (POST, or `replace` for a substitute); one never on a paper is changed (PUT), seeing its answer
+  const editable = sheet?.kind === "new" ? may(sheet.replacing !== null ? "exams.questions.replace" : "exams.questions.POST") : !!opened && n === 0 && !disabledOpen && may("exams.questions.PUT") && seeAnswers;
 
   return (
     <div className="space-y-5">
       <Title
         action={
           <>
-            <AddButton onClick={openNew}>
-              <Plus className="size-4" /> إضافة سؤال
-            </AddButton>
-            <span className="flex gap-3 text-sm font-bold">
-              <RowLink onClick={download}>تصدير Excel</RowLink>
-              <RowLink onClick={() => window.print()}>تصدير PDF</RowLink>
-            </span>
+            {may("exams.questions.POST") && (
+              <AddButton onClick={openNew}>
+                <Plus className="size-4" /> إضافة سؤال
+              </AddButton>
+            )}
+            {canExport && (
+              <span className="flex gap-3 text-sm font-bold">
+                <RowLink onClick={download}>تصدير Excel</RowLink>
+                <RowLink onClick={print}>تصدير PDF</RowLink>
+              </span>
+            )}
           </>
         }
       />
@@ -313,17 +330,18 @@ export function Bank() {
                 <button type="button" onClick={() => openOne(x)} className="text-right font-bold leading-6 text-white hover:text-gold">
                   {x.text}
                 </button>
-                <p className="text-xs text-white/55">الإجابة: {x.options[x.answer]}</p>
+                {seeAnswers && <p className="text-xs text-white/55">الإجابة: {x.options[x.answer]}</p>}
                 <RowActions>
-                  {!disabled && times === 0 ? <RowLink onClick={() => openOne(x)}>تعديل</RowLink> : <RowLink onClick={() => openOne(x)}>عرض</RowLink>}
-                  {!disabled && times > 0 && <RowLink onClick={() => replace(x)}>إنشاء بديل</RowLink>}
-                  {disabled ? (
-                    <RowLink onClick={() => toggle(x.id, x.text)}>تفعيل</RowLink>
-                  ) : (
-                    <RowLink danger onClick={() => toggle(x.id, x.text)}>
-                      تعطيل
-                    </RowLink>
-                  )}
+                  {!disabled && times === 0 && may("exams.questions.PUT") && seeAnswers ? <RowLink onClick={() => openOne(x)}>تعديل</RowLink> : <RowLink onClick={() => openOne(x)}>عرض</RowLink>}
+                  {!disabled && times > 0 && canReplace && <RowLink onClick={() => replace(x)}>إنشاء بديل</RowLink>}
+                  {canDisable &&
+                    (disabled ? (
+                      <RowLink onClick={() => toggle(x.id, x.text)}>تفعيل</RowLink>
+                    ) : (
+                      <RowLink danger onClick={() => toggle(x.id, x.text)}>
+                        تعطيل
+                      </RowLink>
+                    ))}
                 </RowActions>
               </td>
               <td className="p-3">
@@ -380,25 +398,26 @@ export function Bank() {
                 <div className="space-y-3">
                   <p className="rounded-2xl bg-white/[.06] p-3 text-sm text-white/80 ring-1 ring-white/10">
                     <Lock className="me-1 inline size-3.5 text-gold" />
-                    {disabledOpen ? "سؤال معطّل: لا يُسحب في أي ورقة. فعّله ليعود إلى اختبارات صفاته." : `ظهر في ${n} محاولات: لا يُعدَّل. أنشئ بديلاً منه، فيُعطَّل هو حين تحفظ البديل.`}
+                    {disabledOpen ? "سؤال معطّل: لا يُسحب في أي ورقة. فعّله ليعود إلى اختبارات صفاته." : n > 0 ? `ظهر في ${n} محاولات: لا يُعدَّل. أنشئ بديلاً منه، فيُعطَّل هو حين تحفظ البديل.` : "للاطلاع: تعديل الأسئلة يحتاج صلاحيته."}
                   </p>
                   <p className="font-bold leading-7 text-white">{opened.text}</p>
                   <ul className="space-y-1 text-sm">
                     {opened.options.map((o, i) => (
-                      <li key={i} className={cn("rounded-xl px-3 py-1.5 ring-1", i === opened.answer ? "bg-green-light/20 font-bold text-white ring-green-light/40" : "text-white/75 ring-white/10")}>
-                        {LETTERS[i]}) {o} {i === opened.answer && "✓"}
+                      <li key={i} className={cn("rounded-xl px-3 py-1.5 ring-1", seeAnswers && i === opened.answer ? "bg-green-light/20 font-bold text-white ring-green-light/40" : "text-white/75 ring-white/10")}>
+                        {LETTERS[i]}) {o} {seeAnswers && i === opened.answer && "✓"}
                       </li>
                     ))}
                   </ul>
-                  {opened.explanation && <p className="text-xs leading-6 text-white/65">{opened.explanation}</p>}
+                  {seeAnswers && opened.explanation && <p className="text-xs leading-6 text-white/65">{opened.explanation}</p>}
+                  {!seeAnswers && <p className="text-xs text-white/55">الإجابة الصحيحة لا تظهر: الاطلاع عليها صلاحية مستقلة.</p>}
                   <p className="flex flex-wrap gap-x-3 text-sm font-bold">
-                    {!disabledOpen && <RowLink onClick={() => replace(opened)}>إنشاء بديل</RowLink>}
-                    <RowLink onClick={() => toggle(opened.id, opened.text)}>{disabledOpen ? "تفعيل السؤال" : "تعطيل السؤال"}</RowLink>
+                    {!disabledOpen && canReplace && <RowLink onClick={() => replace(opened)}>إنشاء بديل</RowLink>}
+                    {canDisable && <RowLink onClick={() => toggle(opened.id, opened.text)}>{disabledOpen ? "تفعيل السؤال" : "تعطيل السؤال"}</RowLink>}
                   </p>
                 </div>
               )
             )}
-            {opened && !disabledOpen && (
+            {opened && !disabledOpen && may("exams.questions.assign-role") && (
               <section className="border-t border-white/10 pt-4">
                 <p className="mb-2 text-sm font-bold text-white">يدخل اختبار</p>
                 <p className="mb-2 text-xs text-white/55">اضغط صفة لتُدخله في اختبارها أو تُخرجه منه. يُحفظ فوراً.</p>
@@ -411,7 +430,7 @@ export function Bank() {
                 </div>
               </section>
             )}
-            {opened && editable && (
+            {opened && editable && canDisable && (
               <p className="text-xs font-bold">
                 <RowLink danger onClick={() => toggle(opened.id, opened.text)}>
                   تعطيل السؤال
@@ -445,9 +464,9 @@ export function Bank() {
               <>
                 <b>{x.text}</b>
                 {x.options.map((o, i) => (
-                  <span key={i} className={cn("block ps-3", i === x.answer && "font-bold")}>
+                  <span key={i} className={cn("block ps-3", seeAnswers && i === x.answer && "font-bold")}>
                     {LETTERS[i]}) {o}
-                    {i === x.answer ? " ✓" : ""}
+                    {seeAnswers && i === x.answer ? " ✓" : ""}
                   </span>
                 ))}
               </>,

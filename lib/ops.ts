@@ -143,8 +143,9 @@ export function matches(query: string, fields: (string | number | undefined | nu
   return words.every((w) => hay.includes(w) || (/^\d{3,}$/.test(w) && digits.includes(w)));
 }
 
-export function employeeHaystack(e: Employee) {
-  return [fullName(e), e.jobTitle, e.city, e.mission, e.organization, e.phoneSy, e.phoneSa, e.email, e.nationalId, e.id, e.languages.join(" ")];
+/** What a search matches an employee by; his national id, phones and email only for whoever may see them (`staff.employees-pii.GET`) */
+export function employeeHaystack(e: Employee, pii = true) {
+  return [fullName(e), e.jobTitle, e.city, e.mission, e.organization, ...(pii ? [e.phoneSy, e.phoneSa, e.email, e.nationalId] : []), e.id, e.languages.join(" ")];
 }
 
 // ───────────────────────── Reference data ─────────────────────────

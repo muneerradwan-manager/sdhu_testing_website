@@ -28,7 +28,7 @@ export function EmployeesSummary() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`صلاحيتك: ${SYSTEMS.staff.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+        eyebrow={`${SYSTEMS.staff.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.staff.summary.label}
         icon={<Gauge />}
         description="أرقام موظفي البعثة الآن. للعمل استعمل القائمة الجانبية."
@@ -120,8 +120,8 @@ export function EmployeesSummary() {
       </Panel>
 
       <Box title="ما رفعته إلى المدير" open={false}>
-        <Raised system="staff" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — جهة لم ترسل منتدبيها، أو موقع لا بديل لمن أُوقف فيه، أو حساب يحتاج صلاحية — ارفعه إلى مديرة الموسم، فيظهر عندها طلبَ تدخّل." />
-        <p className="text-xs leading-5 text-white/55">يصل إلى مديرة الموسم وحده: إيقاف موظف مُسند إلى موقع أو إعادته إلى العمل، وإلغاء مشاركة أحد في الموسم، وما ترفعه إليها.</p>
+        <Raised system="staff" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — جهة لم ترسل منتدبيها، أو موقع لا بديل لمن أُوقف فيه، أو حساب يحتاج صلاحية — ارفعه إلى مدير الموسم، فيظهر عنده طلبَ تدخّل." />
+        <p className="text-xs leading-5 text-white/55">يصل إلى مدير الموسم وحده: إيقاف موظف مُسند إلى موقع أو إعادته إلى العمل، وإلغاء مشاركة أحد في الموسم، وما ترفعه إليها.</p>
       </Box>
 
       <Escalate system="staff" open={escalating} onClose={() => setEscalating(false)} example={`مثال: لم ترسل وزارة الصحة بعد أسماء الأطباء المنتدبين لموسم ${CURRENT_SEASON}، ومخيمات منى تنتظرهم.`} />

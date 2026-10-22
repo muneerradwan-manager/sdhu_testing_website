@@ -26,7 +26,7 @@ import {
   type HallStage,
 } from "@/app/administrator/_lib/halls";
 import type { AdminRow } from "../../_components/data";
-import { Drawer, Empty, Tabs, fmtTime } from "../../_components/kit";
+import { Drawer, Empty, Tabs, fmtTime, useCan } from "../../_components/kit";
 import { Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../../_components/wp";
 import { useExamDesk, type AttemptRow, type ExamDesk } from "./desk";
 import { Records } from "./records";
@@ -216,6 +216,7 @@ export function Sittings() {
 function SittingSheet({ s, now }: { s: SittingRow; now: number }) {
   const [tab, setTab] = useState<"people" | "attempts">("people");
   const run = s.run;
+  const seePii = useCan()("exams.applicants-pii.GET");
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -262,7 +263,12 @@ function SittingSheet({ s, now }: { s: SittingRow; now: number }) {
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold text-white">{r.name}</span>
                     <span className="block text-xs text-white/60">
-                      <span dir="ltr">{r.id}</span> · {roleLabelOf(s.exam.role)}
+                      {seePii && (
+                        <>
+                          <span dir="ltr">{r.id}</span> ·{" "}
+                        </>
+                      )}
+                      {roleLabelOf(s.exam.role)}
                       {run?.present[r.id] ? ` · حضر ${fmtTime(run.present[r.id])}` : ""}
                     </span>
                   </span>

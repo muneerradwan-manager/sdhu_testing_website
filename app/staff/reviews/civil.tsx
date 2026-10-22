@@ -8,7 +8,7 @@ import { fullName } from "@/lib/registry";
 import { actions, type CivilClaim } from "@/lib/store";
 import { cn, maskNationalId } from "@/lib/utils";
 import { useCivilClaims, type CivilItem } from "../_components/data";
-import { fmtDateTime, logAs, textareaClass, useStaffUser } from "../_components/kit";
+import { can, fmtDateTime, logAs, textareaClass, useStaffUser } from "../_components/kit";
 import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 
@@ -167,6 +167,9 @@ function CivilDecision({ item }: { item: CivilItem }) {
   const [tried, setTried] = useState(false);
   const valid = note.trim().length >= 8;
   const name = fullName(item.person);
+  const mayApprove = can(user, "reviews.civil-claims.approve");
+  const mayReject = can(user, "reviews.civil-claims.reject");
+  if (!mayApprove && !mayReject) return <p className="text-xs leading-5 text-white/60">للاطلاع: القرار يحتاج صلاحية «اعتماد التصحيح» أو «رفض التصحيح».</p>;
 
   const decide = (status: "approved" | "rejected") => {
     setTried(true);
@@ -210,12 +213,16 @@ function CivilDecision({ item }: { item: CivilItem }) {
         )}
       </label>
       <div className="flex gap-2">
-        <Button variant="gold" className="flex-1" onClick={() => decide("approved")}>
-          <CheckCircle2 className="size-4" /> اعتماد
-        </Button>
-        <Button variant="maroon" className="flex-1" onClick={() => decide("rejected")}>
-          <Ban className="size-4" /> رفض
-        </Button>
+        {mayApprove && (
+          <Button variant="gold" className="flex-1" onClick={() => decide("approved")}>
+            <CheckCircle2 className="size-4" /> اعتماد
+          </Button>
+        )}
+        {mayReject && (
+          <Button variant="maroon" className="flex-1" onClick={() => decide("rejected")}>
+            <Ban className="size-4" /> رفض
+          </Button>
+        )}
       </div>
     </div>
   );

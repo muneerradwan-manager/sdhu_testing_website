@@ -8,10 +8,12 @@ import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
 import { ADMIN_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS, useRolePermissions, type AdminPermission } from "@/app/administrator/_lib/permissions";
-import { useStaffUser } from "../../_components/kit";
+import { useCan, useStaffUser } from "../../_components/kit";
 import { Box, ListTable, Title } from "../../_components/wp";
 import { logAdmins } from "../desk";
 import { Help, Lead, SaveLine } from "./ui";
+
+const EDIT = "admins.role-permissions.PUT";
 
 type Table = Record<AdminPermission, string[]>;
 
@@ -29,6 +31,7 @@ export function RolePermissionsPanel() {
 function PermissionsForm({ table }: { table: Table }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const may = useCan();
   const [draft, setDraft] = useState<Table>(table);
   const edited = ADMIN_PERMISSIONS.some((p) => table[p.key].join() !== DEFAULT_ROLE_PERMISSIONS[p.key].join());
   const changes = ADMIN_PERMISSIONS.flatMap((p) =>
@@ -81,8 +84,9 @@ function PermissionsForm({ table }: { table: Table }) {
                     role="switch"
                     aria-checked={on}
                     aria-label={`${p.label} — ${r.label}`}
+                    disabled={!may(EDIT)}
                     onClick={() => toggle(p.key, r.key)}
-                    className={cn("inline-flex h-7 w-12 items-center rounded-full p-1 transition", on ? "justify-end bg-gold" : "justify-start bg-white/15")}
+                    className={cn("inline-flex h-7 w-12 items-center rounded-full p-1 transition disabled:cursor-not-allowed disabled:opacity-60", on ? "justify-end bg-gold" : "justify-start bg-white/15")}
                   >
                     <span className={cn("size-5 rounded-full", on ? "bg-green-dark" : "bg-white/60")} />
                   </button>
@@ -92,14 +96,14 @@ function PermissionsForm({ table }: { table: Table }) {
           </tr>
         ))}
       </ListTable>
-      <SaveLine dirty={changes.length > 0} onSave={save} label="حفظ الصلاحيات" />
+      <SaveLine dirty={changes.length > 0} onSave={save} label="حفظ الصلاحيات" perm={EDIT} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Help>
           <p>الصلاحية مستقلة عن الصفة: لا تأتي مع رئاسة المجموعة ولا مع أي فئة، بل تُمنح للصفات هنا.</p>
           <p>ومن يسجّل حاجاً على الحج لا يصير الحاج تابعاً لمجموعته؛ إلحاق الحجاج بالمجموعات يجريه موظفو المكتب وحدهم، لا الإداريون.</p>
           <p>وللموظفين صلاحية «التسجيل على الحج» مستقلة تمنحها الموارد البشرية لموظفي إدخال البيانات، دون أي صلاحية في المجموعات.</p>
         </Help>
-        {edited && (
+        {edited && may("admins.role-permissions.reset") && (
           <Box title="خيارات متقدمة" open={false}>
             <Button size="sm" variant="glass" onClick={() => actions.setAdminRules({ rolePermissions: undefined })}>
               <RotateCcw className="size-4" /> الصلاحيات كما تطلقها المنصة

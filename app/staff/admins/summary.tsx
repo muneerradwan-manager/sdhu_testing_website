@@ -66,7 +66,7 @@ export function AdminsSummary() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`صلاحيتك: ${SYSTEMS.admins.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+        eyebrow={`${SYSTEMS.admins.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.admins.summary.label}
         icon={<Gauge />}
         description="أرقام الإداريين هذا الموسم وما ينتظرك. العمل نفسه في عمليات الملف من القائمة الجانبية."
@@ -265,7 +265,7 @@ function RaisedBox({ onRaise }: { onRaise: () => void }) {
   const raised = useSystemEvents("admins", true).filter((e) => e.action === "رفع أمر إلى المدير" && e.actor === user.name);
   const now = useNow(30_000);
   return (
-    <Box title={`ما رفعته إلى مديرة الموسم (${raised.length})`} open={false}>
+    <Box title={`ما رفعته إلى مدير الموسم (${raised.length})`} open={false}>
       {raised.length === 0 ? (
         <p className="text-white/65">ما لا تحسمه وحدك — طلب تكتل يحتاج استثناء، رسم يحتاج مراجعة، قرار خارج القواعد — ارفعه إليها، فيظهر عندها طلبَ تدخّل.</p>
       ) : (

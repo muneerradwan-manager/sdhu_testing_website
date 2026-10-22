@@ -34,7 +34,7 @@ export function FlightsSummary() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={`صلاحيتك: ${SYSTEMS.flights.label}${grant?.by ? ` — منحتك إياها ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+        eyebrow={`${SYSTEMS.flights.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
         title={SYSTEMS.flights.summary.label}
         icon={<Gauge />}
         description="أرقام رحلات الموسم الآن، وما ينتظرك. العمل نفسه من القائمة الجانبية."
@@ -68,7 +68,7 @@ export function FlightsSummary() {
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Todo alerts={desk.alerts} empty="كل مجموعة على رحلتيها، ولا أحد فقد مقعده، ولكل مطار مندوبه." />
-        <Raised system="flights" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — رحلة ألغاها الناقل ولا بديل، أو مقاعد لا تكفي — ارفعه إلى مديرة الموسم." />
+        <Raised system="flights" onRaise={() => setEscalating(true)} hint="ما لا تحسمه وحدك — رحلة ألغاها الناقل ولا بديل، أو مقاعد لا تكفي — ارفعه إلى مدير الموسم." />
       </div>
 
       {/* In the order the work is done: the airports and who stands at each, the flights, who goes on them */}
@@ -166,7 +166,7 @@ export function FlightsSummary() {
         </div>
       </Panel>
 
-      <Box title="ما يصل إلى مديرة الموسم" open={false}>
+      <Box title="ما يصل إلى مدير الموسم" open={false}>
         <p>لا يصلها من عملك إلا ما يعطّل سفر أحد، ونشر الرحلات وتغيير مواعيدها وإلغاؤها، والإقلاع والهبوط، وما ترفعه إليها بزر «رفع أمر إلى المدير». وسجلّ كل جزء مع عمليته في «إدارة الطيران».</p>
       </Box>
 

@@ -93,13 +93,13 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
     ], src="lib/season.ts:163 OFFICES", seed="9 مكاتب داخل سوريا و4 خارجها."),
 
     T("operations", "العمليات الموسمية ومواعيدها", "كل عملية في المنصة تُفتح وتُغلق بمواعيد: التسجيل بنوعيه، التسجيل كإداري، الاختبارات، "
-      "التشكيل، الإلحاق، التقييمات. التعريف ثابت (المفتاح والاسم وصاحب الصلاحية)، والمواعيد لكل موسم في operation_windows.", [
+      "التشكيل، الإلحاق، التقييمات. التعريف ثابت (المفتاح والاسم)، والمواعيد لكل موسم في operation_windows.", [
         c("code", "VARCHAR(40)", "مفتاح العملية: hajj-direct، hajj-lottery، admin-registration، admin-exams، admin-orals، group-formation، group-joining، cluster-formation، group-management، cluster-management، pilgrim-evaluation، self-evaluation، peer-evaluation، evaluation-objection", pk=True),
         c("label", "VARCHAR(120)", "الاسم، مثل «التسجيل على الحج — القبول المباشر»"),
         c("description", "TEXT", "الشرح المعروض للموظف"),
-        code_ref("control_permission", "permissions", "الصلاحية التي تتحكم بها (registration.manage، admins.manage، exams.manage، season.settings). وصاحب season.settings يتحكم بكل عملية"),
         c("permanent", "TINYINT(1)", "1 = عملية دائمة بلا مواعيد (group-management، cluster-management)", d="0"),
-    ], src="lib/operations.ts:38 OperationDef، :59 OPERATIONS", seed="14 عملية."),
+    ], src="lib/operations.ts:38 OperationDef، :59 OPERATIONS", seed="14 عملية.",
+       rules=["يتحكم بمواعيد العملية من يملك season.windows.PUT لها (نطاق operation في staff_user_permission_scopes)، أو بلا نطاق لكل العمليات."]),
 
     T("operation_windows", "مواعيد العمليات في الموسم", "موعد كل عملية في موسم بعينه ووضعها: تلقائي بالتواريخ، أو فتحتها الإدارة، أو أوقفتها.", [
         pk(), season(),
@@ -162,7 +162,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("actor_role", "VARCHAR(160)", "صفته وقت الحدث: المسمى الوظيفي للموظف، أو «حاج»، أو «إداري — رئيس مجموعة»…"),
         c("action", "VARCHAR(200)", "الفعل بالعربية كما يُعرض: «تقديم طلب حج — التسجيل على القبول المباشر»، «منح صلاحية»، «اعتماد وثيقة طبية»…"),
         c("action_code", "VARCHAR(60)", "رمز ثابت للفعل للبحث والتقارير (مقترح، الكود لا يملكه)", null=True),
-        code_ref("system_code", "management_systems", "ملف الإدارة الذي وقع فيه الحدث: staff، registration، admins، exams، flights (والقيم الأخرى مثل transport تُكتب في area)", null=True, length=20),
+        code_ref("system_code", "permission_systems", "النظام الذي وقع فيه الحدث: ملفات الإدارة (staff، registration، admins، exams، flights)، أو access لمنح الصلاحيات وسحبها، أو غيرها من الأنظمة", null=True, length=20),
         c("area", "VARCHAR(40)", "تبويب داخل الملف: rules، cadre، groups، clusters، stages، payments، dispatch…", null=True),
         c("target", "VARCHAR(300)", "على ماذا وقع، نصاً: «طلب 4512»، اسم شخص، «بلاغ OR-1207»…", null=True),
         c("ref_type", "VARCHAR(40)", "نوع السجل المعني (application، account، flight، cluster، group، exam، operation…)", null=True),
@@ -172,7 +172,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("detail", "TEXT", "تفاصيل", null=True),
         c("before_value", "TEXT", "القيمة قبل (نص مقروء)", null=True),
         c("after_value", "TEXT", "القيمة بعد", null=True),
-        c("important", "TINYINT(1)", "1 = يصل إلى مديرة الموسم في «صلاحيات الإدارة»", d="0"),
+        c("important", "TINYINT(1)", "1 = يصل إلى مدير الموسم في «صلاحيات الموظفين» ← «ملفات الإدارة»", d="0"),
         c("ip_address", "VARCHAR(45)", "عنوان IP (مقترح)", null=True),
     ], idx=[("occurred_at",), ("system_code", "area"), ("ref_type", "ref_id"), ("subject_account_id",), ("application_id",)],
        src="lib/store.ts:109 AuditEvent؛ actions.logEvent؛ app/staff/_components/kit.tsx:62 logAs",

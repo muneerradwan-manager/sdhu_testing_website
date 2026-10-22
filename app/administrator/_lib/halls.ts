@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { DEFAULT_BLUEPRINTS, DEFAULT_INSTRUCTIONS, asSection, drawPaper, markPaper, type ExamBlueprint, type ExamCenter, type ExamDef, type ExamQuestion } from "@/lib/data/admin-exam";
 import { dateOf, useClockTime, useToday } from "@/lib/operations";
 import { getPerson } from "@/lib/registry";
-import { getStaff } from "@/lib/staff";
+import { can } from "@/lib/permissions";
+import { STAFF, withPermissions } from "@/lib/staff";
 import { getState, setState, useStore, type AdminProfile, type Attempt, type AttemptStatus, type HallRun } from "@/lib/store";
 import { APPLIED_ROLES, examRolesFor, paperOf, paperPatch, positionKeyOf, statusOf } from "./admin";
 
@@ -37,11 +38,12 @@ export const EXAM_CENTERS: ExamCenter[] = [
   { id: "deir", name: "مركز دير الزور", governorates: ["دير الزور", "الرقة", "الحسكة"], hall: "قاعة الامتحانات — مديرية أوقاف دير الزور", at: { lat: 35.3359, lng: 40.1408 }, capacity: 50 },
 ];
 
-/** The supervisors the season opens with; the owner assigns the other centres */
-export const DEFAULT_SUPERVISORS: Record<string, string> = { damascus: "nisreen" };
-
-/** The demo supervisors' confirmation PIN until each sets his own on his panel (the demo's usual code) */
-export const DEFAULT_PINS: Record<string, string> = Object.fromEntries(Object.values(DEFAULT_SUPERVISORS).map((s) => [s, "1448"]));
+/**
+ * A centre's hall supervisor is whoever holds «قاعة الامتحان» (`hall.sittings.GET`) for it: nobody assigns him
+ * on the centres' screen any more, the permission is granted at «صلاحيات الموظفين» for that centre.
+ * The demo supervisor's confirmation PIN until she sets her own on her panel (the demo's usual code).
+ */
+export const DEFAULT_PINS: Record<string, string> = { nisreen: "1448" };
 
 /** Each role's main test: the same day and hour in every hall */
 export const DEFAULT_SESSIONS: Record<string, { day: string; date: string; time: string }> = {
@@ -208,15 +210,19 @@ export const isOpen = (e: ExamDef) => e.status === "published";
 export function useHalls() {
   const h = useStore((s) => s.examHalls);
   const oldBlueprints = useStore((s) => s.adminRules.blueprints);
+  const stored = useStore((s) => s.staffPermissions);
   return useMemo(() => {
-    const supervisors: Record<string, string> = { ...DEFAULT_SUPERVISORS, ...h?.supervisors };
+    const accounts = STAFF.map((u) => withPermissions(u, stored));
     const centers = h?.centers ?? EXAM_CENTERS;
     const live = centers.filter((c) => !c.off);
+    /** Each centre's supervisors: who holds the hall for it */
+    const holders = (center: string) => accounts.filter((u) => can(u, "hall.sittings.GET", center));
+    const supervisors: Record<string, string> = Object.fromEntries(centers.flatMap((c) => holders(c.id).slice(0, 1).map((u) => [c.id, u.id])));
     const moved = h?.moved ?? {};
     const runs = h?.runs ?? {};
-    const stored = h?.exams ?? {};
-    const mains = mainExams(h?.sessions ?? {}, oldBlueprints ?? {}).map((e) => asExam(stored[e.id] ?? e));
-    const exams = [...mains, ...Object.values(stored).filter((e) => !mains.some((m) => m.id === e.id)).map(asExam)];
+    const storedExams = h?.exams ?? {};
+    const mains = mainExams(h?.sessions ?? {}, oldBlueprints ?? {}).map((e) => asExam(storedExams[e.id] ?? e));
+    const exams = [...mains, ...Object.values(storedExams).filter((e) => !mains.some((m) => m.id === e.id)).map(asExam)];
     const byId = new Map(exams.map((e) => [e.id, e]));
     return {
       supervisors,
@@ -234,10 +240,14 @@ export function useHalls() {
       centerOf: (id: string) => centerFor(id, centers, moved),
       autoCenterOf: (id: string) => autoCenter(id, centers),
       sittingOf: (id: string, role: string) => sittingFor(id, role, centerFor(id, centers, moved)?.id, exams, runs),
-      supervisorOf: (center: string) => (supervisors[center] ? getStaff(supervisors[center]) : null),
-      centersOf: (staffId: string) => live.filter((c) => supervisors[c.id] === staffId),
+      supervisorOf: (center: string) => holders(center)[0] ?? null,
+      supervisorsOf: holders,
+      centersOf: (staffId: string) => {
+        const u = accounts.find((a) => a.id === staffId);
+        return live.filter((c) => can(u, "hall.sittings.GET", c.id));
+      },
     };
-  }, [h, oldBlueprints]);
+  }, [h, oldBlueprints, stored]);
 }
 
 export type Halls = ReturnType<typeof useHalls>;
@@ -525,9 +535,6 @@ export const hallActions = {
       const next: Attempt = { ...a, status: kind === "approve" ? "confirmed" : "voided", decision: { kind, by, at, note }, ...(kind === "approve" && { confirmedAt: at, confirmedBy: by, confirmVia: "decision" as const }) };
       return { ...s, admins: { ...s.admins, [id]: { ...p, ...paperPatch(p, role, next) } } };
     });
-  },
-  assignSupervisor(center: string, staffId: string) {
-    setState((s) => ({ ...s, examHalls: { ...s.examHalls, supervisors: { ...s.examHalls.supervisors, [center]: staffId } } }));
   },
   /** Applicants to another hall than their governorate's; no hall sends them back to it */
   move(ids: string[], center: string | undefined) {

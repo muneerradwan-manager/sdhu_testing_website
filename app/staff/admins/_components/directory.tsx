@@ -12,7 +12,7 @@ import { cn, nowMs } from "@/lib/utils";
 import { nameOf, placesOf } from "@/app/administrator/_lib/cadre";
 import { useFormingSeason, type ClusterRequest } from "@/app/administrator/_lib/formation";
 import { categoryOf, categoryOfId, useCadre, useStructure } from "@/app/administrator/_lib/structure";
-import { Drawer, fmtDate, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDate, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { Filters, Help, Lead, TitleCell, Tool, Views, useView } from "./ui";
@@ -58,6 +58,7 @@ function NoteSheet({ k, target, onClose }: { k: string; target: string; onClose:
   const user = useStaffUser()!;
   const note = useStore((s) => s.formation.notes[k]) ?? "";
   const [text, setText] = useState(note);
+  const may = useCan();
   const save = () => {
     actions.setFormation((f) => {
       const notes = { ...f.notes };
@@ -74,7 +75,7 @@ function NoteSheet({ k, target, onClose }: { k: string; target: string; onClose:
         <span className="mb-1 block text-xs text-white/60">ملاحظة الإدارة على {target}</span>
         <textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} className={textareaClass} />
       </label>
-      <Button variant="gold" disabled={text.trim() === note} onClick={save}>
+      <Button variant="gold" disabled={text.trim() === note || !may("admins.directory.PUT")} onClick={save}>
         حفظ الملاحظة
       </Button>
     </div>
@@ -95,6 +96,7 @@ function Clusters({ formed }: { formed: ClusterRequest[] }) {
   const [shelf, setShelf] = useState<"all" | "live" | "archived">("all");
   const [open, setOpen] = useState<string | null>(null);
   const [noting, setNoting] = useState<ClusterRequest | null>(null);
+  const may = useCan();
   const cat = (id: string) => categoryOfId(s, categoryOf(id, cadre))?.name ?? "—";
   const base = formed
     .filter((r) => !season || r.season === Number(season))
@@ -123,7 +125,7 @@ function Clusters({ formed }: { formed: ClusterRequest[] }) {
             { key: "archived", label: "المؤرشفة", count: base.filter((r) => r.archived).length },
           ]}
         />
-        <Tool onClick={exportAll}>
+        <Tool onClick={exportAll} perm="admins.directory.export">
           <Download /> Excel
         </Tool>
       </div>
@@ -147,7 +149,7 @@ function Clusters({ formed }: { formed: ClusterRequest[] }) {
               actions={
                 <RowActions>
                   <RowLink onClick={() => setOpen(r.cluster.id)}>الأعضاء ({r.cadre})</RowLink>
-                  <RowLink onClick={() => setNoting(r)}>ملاحظة</RowLink>
+                  {may("admins.directory.PUT") && <RowLink onClick={() => setNoting(r)}>ملاحظة</RowLink>}
                 </RowActions>
               }
             />
@@ -203,6 +205,7 @@ function Groups({ rows }: { rows: { r: ClusterRequest; g: ClusterRequest["groups
   const [branch, setBranch] = useState("");
   const [category, setCategory] = useState("");
   const [noting, setNoting] = useState<number | null>(null);
+  const may = useCan();
   const list = rows
     .filter((x) => !season || x.r.season === Number(season))
     .filter((x) => !branch || x.g.branch === branch)
@@ -215,7 +218,7 @@ function Groups({ rows }: { rows: { r: ClusterRequest; g: ClusterRequest["groups
     ]);
   return (
     <div className="space-y-4">
-      <Title action={<Tool onClick={exportAll}><Download /> Excel</Tool>}>المجموعات</Title>
+      <Title action={<Tool onClick={exportAll} perm="admins.directory.export"><Download /> Excel</Tool>}>المجموعات</Title>
       <Lead>كل مجموعة في تكتل معتمد، بموسمها وفئة رئيسها وحجاجها.</Lead>
       <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_1fr]">
         <SearchBox value={q} onChange={setQ} placeholder="المجموعة، رئيسها، تكتلها" label="بحث في المجموعات" />
@@ -232,7 +235,7 @@ function Groups({ rows }: { rows: { r: ClusterRequest; g: ClusterRequest["groups
               sub={`رئيسها ${g.head}`}
               actions={
                 <RowActions>
-                  <RowLink onClick={() => setNoting(g.number)}>ملاحظة</RowLink>
+                  {may("admins.directory.PUT") && <RowLink onClick={() => setNoting(g.number)}>ملاحظة</RowLink>}
                 </RowActions>
               }
             />
@@ -268,6 +271,7 @@ function Season({ formed }: { formed: ClusterRequest[] }) {
   const season = useFormingSeason();
   const started = useStore((s) => s.formation.seasonStarted);
   const [open, setOpen] = useState(false);
+  const may = useCan();
   const [typed, setTyped] = useState("");
   const [reason, setReason] = useState("");
   const toArchive = formed.filter((r) => !r.archived && r.season === season);
@@ -298,10 +302,12 @@ function Season({ formed }: { formed: ClusterRequest[] }) {
         يُختم كل تشكيل جديد بموسمه الهجري. في ختام الموسم، «بدء موسم جديد» يؤرشف تشكيلات الموسم المعتمدة ({toArchive.length} الآن) فتبقى هنا بموسمها، وتُختم الطلبات بعده بموسم {season + 1}. ما لم يُعتمد يبقى كما هو. لا يُغيّر شيئاً في ملف أي فرد.
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="glass" onClick={() => setOpen(true)}>
-          <CalendarPlus className="size-4" /> بدء موسم جديد
-        </Button>
-        {started && (
+        {may("admins.directory.season-start") && (
+          <Button size="sm" variant="glass" onClick={() => setOpen(true)}>
+            <CalendarPlus className="size-4" /> بدء موسم جديد
+          </Button>
+        )}
+        {started && may("admins.directory.season-undo") && (
           <Button size="sm" variant="glass" onClick={undo}>
             <RotateCcw className="size-4" /> التراجع عن بدء موسم {started.to} (تجربة)
           </Button>

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Staff guide — part «basics»: the landing page, login and logout, «لوحتي» (the season director's and a data
-entry account's), «صلاحيات الإدارة», «ملفاتي التشغيلية», a page outside one's permissions; «مراجعة الطلبات»
+entry account's), «صلاحيات الموظفين», «ملفاتي التشغيلية», a page outside one's permissions; «مراجعة الطلبات»
 with the attaching to groups; «إعدادات الموسم»; «القبول والقرعة» (entry, then
 approval and publishing).
 Usage (inside docs/_build-guide): CAP_DIR=<folder> python stf_basics.py [a|b|c|d]"""
@@ -54,7 +54,7 @@ def register_one(s):
     btn_role(s, "تأكيد الدفع وتسجيل الطلب", 3500)
 
 
-# ───────── A. for every employee: login, «لوحتي», «صلاحيات الإدارة», «ملفاتي التشغيلية» ─────────
+# ───────── A. for every employee: login, «لوحتي», «صلاحيات الموظفين», «ملفاتي التشغيلية» ─────────
 if ONLY in (None, "a"):
     S = "A"
     s = new(); c, p = s.c, s.p
@@ -62,40 +62,56 @@ if ONLY in (None, "a"):
     c.shot("landing", "بوابة الموظفين: الصفحة الأولى، وفيها «تسجيل الدخول» وحده", hl=[("main a:has-text('تسجيل الدخول')", "1")], section=S)
     c.goto("/staff/login", wait=1800)
     c.shot("login", "دخول الموظفين: اسم المستخدم وكلمة المرور", section=S)
-    p.locator("label:has-text('اسم المستخدم') input").first.fill("suha")
+    p.locator("label:has-text('اسم المستخدم') input").first.fill("nour.a")
     p.locator("label:has-text('كلمة المرور') input").first.fill("0000")
     p.locator("main button:text-is('دخول')").first.click(); c.settle(1500)
     c.shot("login-error", "اسم المستخدم أو كلمة المرور غير صحيحة", section=S)
     c.scroll_to("text=حسابات تجريبية", 110)
     c.shot("login-cards", "الحسابات التجريبية: بطاقة لكل موظف مع صلاحيته، والضغط عليها يدخل مباشرة", section=S)
-    s.login("suha", shots=True, S=S)
+    s.login("nour.a", shots=True, S=S)
     c.goto("/staff/dashboard", wait=2500)
-    c.shot("dash-suha", "لوحتي لمديرة الموسم: أرقام كل صلاحية تحت اسم صفحتها، ومهامي اليوم، وآخر إجراءاتي",
+    c.shot("dash-suha", "لوحتي لمدير الموسم: أرقام كل صلاحية تحت اسم صفحتها، ومهامي اليوم، وآخر إجراءاتي",
            hl=[("aside a[href$='/staff/dashboard']", "")], section=S)
     c.scroll_to("main a:has-text('افتح المراجعة')", 160)
     c.shot("dash-suha-2", "أرقام صلاحية في لوحتي، ورابط الصفحة التي تُدار منها", hl=[("main a:has-text('افتح المراجعة')", "1")], section=S)
     c.scroll_top()
-    p.locator("aside button:has-text('صلاحيات')").first.click(); c.settle(900)
-    c.shot("dash-perms", "بطاقتك في القائمة الجانبية: صلاحياتك، وتحتها أقسامك", hl=[("aside button:has-text('صلاحيات')", "1")], section=S)
-    p.locator("aside button:has-text('صلاحيات')").first.click(); c.settle(500)
-    # the management permissions: how each file stands, then who holds one, granting and withdrawing it
-    s.nav("صلاحيات الإدارة", 2200)
-    c.shot("sys-top", "صلاحيات الإدارة: حال كل ملف إدارة ومن يحمله وما يعطّله وأهم أحداثه", hl=[("aside a[href$='/staff/systems']", "")], section=S)
-    c.scroll_to("main :text-is('إدارة الامتحانات')", 110)
-    c.shot("sys-file", "ملف يحتاج متابعة: «ما يعطّل العمل» ومن يعالجه، و«أهم الأحداث»، و«من يحملها»",
-           hl=[("main a[href$='id=flights']", "1")], section=S)
-    c.goto("/staff/systems?id=flights", wait=2000)
-    p.locator("select[aria-label='منح إدارة الطيران']").first.select_option("fadi"); c.settle(500)
-    c.shot("sys-holders", "«إدارة الطيران»: من يحملها، والمنح من الصندوق الجانبي",
-           hl=[("select[aria-label='منح إدارة الطيران']", "1"), ("main button:not([aria-expanded]):has-text('منح')", "2")], section=S)
-    p.locator("main button:not([aria-expanded]):has-text('منح')").first.click(); c.settle(1500)
-    c.shot("sys-granted", "مُنحت الصلاحية: الموظف في القائمة، وتحت اسمه «سحب الصلاحية»",
-           hl=[("main tr:has-text('فادي سلوم') button:has-text('سحب الصلاحية')", "1")], section=S)
-    p.locator("main tr:has-text('فادي سلوم') button:has-text('سحب الصلاحية')").first.click(); c.settle(900)
-    c.shot("sys-revoke", "تأكيد سحب الصلاحية", hl=[("button:text-is('سحب')", "1")], section=S)
-    p.locator("button:text-is('سحب')").first.click(); c.settle(1200)
+    p.locator("aside button[aria-expanded]:has-text('صلاحية')").first.click(); c.settle(900)
+    c.shot("dash-perms", "بطاقتك في القائمة الجانبية: صلاحياتك نظاماً نظاماً، وتحتها أقسامك", hl=[("aside button[aria-expanded]:has-text('صلاحية')", "1")], section=S)
+    p.locator("aside button[aria-expanded]:has-text('صلاحية')").first.click(); c.settle(500)
+    # «صلاحيات الموظفين»: the employees, one employee's permissions system by system, who holds what, the files
+    s.nav("صلاحيات الموظفين", 2200)
+    c.shot("acc-list", "صلاحيات الموظفين: كل موظف وما يملكه في كل نظام", hl=[("aside a[href$='/staff/access']", "")], section=S)
+    p.locator("main a:text-is('فادي سلوم')").first.click(); c.settle(2000)
+    c.shot("acc-employee", "صلاحيات موظف: الأنظمة بطاقةً بطاقة، وما يملكه في كل منها",
+           hl=[("main section > button:has-text('غرفة العمليات')", "1")], section=S)
+    fl = "main section:has(> button:has-text('إدارة الطيران'))"
+    p.locator(f"{fl} > button").first.click(); c.settle(800)
+    p.locator(f"{fl} input[aria-label='عرض — الرحلات']").first.check(); c.settle(300)
+    p.locator(f"{fl} input[aria-label='عرض — الركاب والمقاعد']").first.check(); c.settle(300)
+    c.scroll_to(fl, 110)
+    c.shot("acc-card", "بطاقة نظام: الموارد صفوفاً، والعرض والإضافة والتعديل والحذف والأفعال الخاصة أعمدة",
+           hl=[(f"{fl} input[aria-label='عرض — الرحلات']", "1"), (f"{fl} button:text-is('كل العرض')", "2")], section=S)
+    ap = "main section:has(> button:has-text('رحلات المطار'))"
+    p.locator(f"{ap} > button").first.click(); c.settle(800)
+    p.locator(f"{ap} button[aria-pressed]:has-text('دمشق')").first.click(); c.settle(400)
+    c.scroll_to(ap, 110)
+    c.shot("acc-scope", "النطاق: صلاحيات تُمنح لمطار أو قاعة أو عملية بعينها", hl=[(f"{ap} button[aria-pressed]:has-text('دمشق')", "1")], section=S)
+    # the scope back to «الكل», and the card closed: fadi is given the flights' viewing only
+    p.locator(f"{ap} button[aria-pressed]:text-is('الكل')").first.click(); c.settle(300)
+    p.locator(f"{ap} > button").first.click(); c.settle(500)
+    c.scroll_top()
+    s.btn("مراجعة التغييرات وحفظها", 1000)
+    c.shot("acc-review", "قبل الحفظ: ما يُمنح وما يُسحب وما يتغير نطاقه", hl=[("[role=dialog] button:text-is('حفظ')", "1")], section=S)
+    p.locator("[role=dialog] button:text-is('حفظ')").first.click(); c.settle(1500)
+    p.locator("main select[aria-label='الموظف الذي تُنسخ صلاحياته']").first.select_option("tarek"); c.settle(400)
+    c.shot("acc-copy", "نسخ صلاحيات موظف آخر إلى هذه الشاشة، ثم الحفظ", hl=[("main select[aria-label='الموظف الذي تُنسخ صلاحياته']", "1")], section=S)
+    c.goto("/staff/access", wait=2000)
+    p.locator("main [role=radio]:has-text('من يملك ماذا')").first.click(); c.settle(1000)
+    c.shot("acc-systems", "من يملك ماذا: لكل نظام صلاحياته ومن يملك فيه شيئاً", hl=[("main a:text-is('إدارة الطيران')", "1")], section=S)
+    p.locator("main [role=radio]:has-text('ملفات الإدارة')").first.click(); c.settle(1500)
+    c.shot("acc-files", "ملفات الإدارة: حال كل ملف، وما يعطّله، وما رُفع إلى المدير، وأهم أحداثه", section=S)
     c.goto("/staff/exam", wait=2000)
-    c.shot("sys-locked", "ملف لا تحمل صلاحية إدارته: من يحملها، ومن أين تُمنح", section=S)
+    c.shot("acc-locked", "صفحة ملف لا تملك عرضها: الصلاحية التي تحتاجها، ومن أين تُمنح", section=S)
     s.logout()
     c.shot("logout", "بعد تسجيل الخروج تعود صفحة الدخول", section=S)
     s.close()
@@ -176,7 +192,7 @@ if ONLY in (None, "b"):
 if ONLY in (None, "c"):
     S = "C"
     s = new(); c, p = s.c, s.p
-    s.login("suha")
+    s.login("nour.a")
     s.nav("إعدادات الموسم", 2200)
     c.shot("season-top", "إعدادات الموسم: «الشروط والرسوم» في نموذج واحد، و«مواعيد العمليات»", hl=[("aside a[href$='/staff/season']", "")], section=S)
     c.scroll_to("main :text-is('الرسوم والتكاليف')", 110)

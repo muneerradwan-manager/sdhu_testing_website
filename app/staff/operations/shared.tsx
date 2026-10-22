@@ -33,6 +33,9 @@ export const ZONE_LABELS: Record<Zone, string> = { makkah: "مكة — الفن�
 
 export const ASSIGNEES = ["د. ليلى شمس — الفريق الطبي", "باسل النوري — المواصلات", "فادي سلوم — غرفة العمليات", "الفريق الميداني للتكتل", "مشرف الإعاشة", `أحمد الحمصي — رئيس ${groupName(27)}`];
 
+/** The systems that work tickets: the room all of them, the medical team its health ones, transport its own (`‹system›.tickets.…`) */
+export type TicketSystem = "operations" | "medical" | "transport";
+
 /** The room's decisions, as the shift log lists them */
 export const OPS_ACTIONS = ["إسناد بلاغ", "تحديث بلاغ", "إغلاق بلاغ", "تغيير حالة بلاغ", "اعتماد حافلة إضافية", "نقل مهمة داخلية", "إنشاء مهمة داخلية"];
 

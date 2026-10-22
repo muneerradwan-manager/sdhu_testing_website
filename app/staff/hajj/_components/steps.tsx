@@ -41,7 +41,7 @@ export function StepsList() {
     <div className="space-y-5">
       <Title
         action={
-          !ed.readOnly && (
+          ed.may("post-steps", "POST") && (
             <span className="relative">
               <button type="button" onClick={() => setAdding(!adding)} aria-expanded={adding} className="inline-flex items-center gap-1.5 rounded-xl border border-gold/60 px-3 py-1.5 text-sm font-bold text-gold hover:bg-gold hover:text-ink">
                 <Plus className="size-4" /> إضافة خطوة <ChevronDown className="size-4" />
@@ -74,13 +74,13 @@ export function StepsList() {
               </Link>
               <p className="text-xs text-white/55">{s.short}</p>
               <RowActions>
-                <RowLink href={`/staff/hajj/manage/steps/edit?id=${s.id}`}>{ed.readOnly ? "عرض" : "تعديل"}</RowLink>
-                {!ed.readOnly && s.kind !== "system" && (
+                <RowLink href={`/staff/hajj/manage/steps/edit?id=${s.id}`}>{ed.may("post-steps", "PUT") ? "تعديل" : "عرض"}</RowLink>
+                {ed.may("post-steps", "PUT") && s.kind !== "system" && (
                   <RowLink onClick={() => ed.edit((c) => ({ ...c, postSteps: c.postSteps.map((x) => (x.id === s.id ? { ...x, enabled: !x.enabled } : x)) }), { action: s.enabled ? "إخفاء خطوة" : "إظهار خطوة", area: "steps", detail: s.title, ref: s.id })}>
                     {s.enabled ? "إخفاء" : "إظهار"}
                   </RowLink>
                 )}
-                {!ed.readOnly && s.kind !== "system" && (
+                {ed.may("post-steps", "DELETE") && s.kind !== "system" && (
                   <RowLink danger onClick={() => ed.edit((c) => ({ ...c, postSteps: c.postSteps.filter((x) => x.id !== s.id) }), { action: "حذف خطوة", area: "steps", detail: s.title, ref: s.id })}>
                     حذف
                   </RowLink>
@@ -96,7 +96,7 @@ export function StepsList() {
             </td>
             <td className="p-3">{s.enabled ? <Kind tone="green">ظاهرة</Kind> : <Kind tone="maroon">مخفية</Kind>}</td>
             <td className="p-3">
-              {!ed.readOnly && (
+              {ed.may("post-steps", "PUT") && (
                 <span className="flex">
                   <button type="button" aria-label={`نقل ${s.title} إلى الأعلى`} disabled={i === 0} onClick={() => ed.edit((c) => ({ ...c, postSteps: move(c.postSteps, i, -1) }), { action: "ترتيب الخطوات", area: "steps", detail: `${s.title} ↑`, ref: s.id })} className="grid size-8 place-items-center rounded-lg text-white/60 hover:bg-white/10 disabled:opacity-25">
                     <ArrowUp className="size-4" />
@@ -143,6 +143,8 @@ function Editor({ initial }: { initial: PostStepDef }) {
   const stored = ed.config.postSteps[at];
   const dirty = !stored || JSON.stringify(s) !== JSON.stringify(stored) || after !== (at === 0 ? "__first" : ed.config.postSteps[at - 1]?.id);
   const system = s.kind === "system";
+  // A new step needs adding, a stored one changing
+  const ro = !ed.may("post-steps", isNew ? "POST" : "PUT");
 
   const save = () => {
     if (!s.title.trim()) return toast({ title: "اكتب عنوان الخطوة أولاً", icon: "✏️", tone: "gold" });
@@ -168,7 +170,7 @@ function Editor({ initial }: { initial: PostStepDef }) {
         <h1 className="mt-2 font-display text-3xl font-bold text-white">{isNew ? `إضافة خطوة: ${KIND[s.kind]}` : `تعديل «${s.title}»`}</h1>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-        <fieldset disabled={ed.readOnly} className="min-w-0 space-y-5">
+        <fieldset disabled={ro} className="min-w-0 space-y-5">
           {system && s.system && (
             <p className="flex items-start gap-2 rounded-2xl bg-gold/10 p-4 text-sm leading-7 text-white/85 ring-1 ring-gold/30">
               <ShieldCheck className="mt-1 size-4 shrink-0 text-gold" /> خطوة أساسية: {DONE_BY[s.system]} تُعدَّل هنا كلماتها فقط.
@@ -209,7 +211,7 @@ function Editor({ initial }: { initial: PostStepDef }) {
           <IssuesFor refs={[s.id]} />
         </fieldset>
         <aside className="space-y-4">
-          {!ed.readOnly && (
+          {!ro && (
             <Box title="الحفظ">
               {!system && (
                 <span className="flex items-center gap-2 font-bold text-white">
@@ -220,7 +222,7 @@ function Editor({ initial }: { initial: PostStepDef }) {
                 <Save className="size-4" /> {isNew ? "إضافة الخطوة" : "حفظ"}
               </Button>
               <p className="text-xs leading-5 text-white/55">{dirty ? "لديك تعديلات لم تُحفظ." : "محفوظة."} تظهر للحجاج بعد «نشر التغييرات».</p>
-              {!isNew && !system && (
+              {!isNew && !system && ed.may("post-steps", "DELETE") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -237,7 +239,7 @@ function Editor({ initial }: { initial: PostStepDef }) {
           <Box title="مكانها">
             <label className="block">
               تأتي بعد
-              <select value={after} onChange={(e) => setAfter(e.target.value)} className={cn(selectClass, "mt-1")} disabled={ed.readOnly}>
+              <select value={after} onChange={(e) => setAfter(e.target.value)} className={cn(selectClass, "mt-1")} disabled={ro}>
                 <option value="__first">— في البداية —</option>
                 {others.map((x) => (
                   <option key={x.id} value={x.id}>

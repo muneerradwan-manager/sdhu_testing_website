@@ -8,7 +8,8 @@ import { cms, useMediaList } from "@/lib/cms/store";
 import { deleteMedia, formatBytes, uploadMedia, useMediaUrl } from "@/lib/cms/media";
 import { MEDIA_PREFIX, type MediaMeta } from "@/lib/cms/types";
 import { cn } from "@/lib/utils";
-import { Empty, fmtDateTime, smallInputClass } from "../../_components/kit";
+import type { StaffUser } from "@/lib/staff";
+import { can, Empty, fmtDateTime, logAs, smallInputClass } from "../../_components/kit";
 
 /** صور الموقع الأصلية، ليختار منها الموظف دون رفع شيء */
 const BUILT_IN = [
@@ -225,9 +226,14 @@ function PickCard({ src, label, active, onPick }: { src: string; label: string; 
 
 // ───────────────────────── صفحة مكتبة الوسائط ─────────────────────────
 
-export function MediaLibrary({ by }: { by: string }) {
+/** The library: uploading needs `content.media.POST`, the alt text `.PUT`, deleting `.DELETE` */
+export function MediaLibrary({ user }: { user: StaffUser }) {
+  const by = user.name;
   const media = useMediaList();
   const toast = useToast();
+  const mayAdd = can(user, "content.media.POST");
+  const mayEdit = can(user, "content.media.PUT");
+  const mayDelete = can(user, "content.media.DELETE");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<MediaMeta | null>(null);
 
@@ -235,14 +241,16 @@ export function MediaLibrary({ by }: { by: string }) {
   const total = media.reduce((n, m) => n + m.size, 0);
 
   const remove = async (m: MediaMeta) => {
+    if (!mayDelete) return;
     await deleteMedia(m.id);
+    logAs(user, { action: "حذف ملف من مكتبة الوسائط", target: m.name });
     setSelected(null);
     toast({ title: "حُذف الملف", body: `${m.name} — تأكد أن لا قسم يستعمله`, tone: "warning", icon: "🗑️" });
   };
 
   return (
     <div className="space-y-5">
-      <DropZone by={by} />
+      {mayAdd && <DropZone by={by} onUploaded={(ref) => logAs(user, { action: "رفع ملف إلى مكتبة الوسائط", target: ref })} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="relative min-w-60 flex-1">
@@ -318,10 +326,14 @@ export function MediaLibrary({ by }: { by: string }) {
               <span className="mb-1.5 block text-sm font-bold">النص البديل للصورة (يقرؤه قارئ الشاشة)</span>
               <input
                 value={selected.alt ?? ""}
+                readOnly={!mayEdit}
                 onChange={(e) => {
+                  if (!mayEdit) return;
                   cms.updateMedia(selected.id, { alt: e.target.value });
                   setSelected({ ...selected, alt: e.target.value });
                 }}
+                // One event when he leaves the field, not one per letter
+                onBlur={(e) => mayEdit && logAs(user, { action: "تعديل النص البديل لصورة", target: selected.name, after: e.target.value })}
                 className={smallInputClass}
               />
             </label>
@@ -335,12 +347,14 @@ export function MediaLibrary({ by }: { by: string }) {
               >
                 نسخ مرجع الصورة
               </button>
-              <button
-                onClick={() => void remove(selected)}
-                className="mr-auto flex items-center gap-1.5 rounded-xl bg-maroon/40 px-4 py-2 text-sm font-bold transition hover:bg-maroon"
-              >
-                <Trash2 className="size-4" /> حذف نهائي
-              </button>
+              {mayDelete && (
+                <button
+                  onClick={() => void remove(selected)}
+                  className="mr-auto flex items-center gap-1.5 rounded-xl bg-maroon/40 px-4 py-2 text-sm font-bold transition hover:bg-maroon"
+                >
+                  <Trash2 className="size-4" /> حذف نهائي
+                </button>
+              )}
             </div>
           </div>
         )}

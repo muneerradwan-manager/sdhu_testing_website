@@ -155,7 +155,7 @@ export function useFlightsDesk() {
       ...(needsFlight.length
         ? [{ id: "lost", level: "high" as const, title: `${needsFlight.length} مسافرين فقدوا مقاعدهم`, hint: "أُلغي إسنادهم أو تخلّفوا أو أُلغيت رحلتهم، ولا رحلة لهم الآن.", href: "/staff/flights/manage/dispatch?view=needs", action: "أسندهم" }]
         : []),
-      ...noRep.map((x) => ({ id: `rep-${x.a.id}`, level: "work" as const, title: `${x.a.name} بلا مندوب`, hint: `${x.departures} رحلات تغادر منه و${x.arrivals} تصل إليه، ولا أحد هناك يسجل إقلاعها وهبوطها غيرك.`, href: "/staff/flights/manage?filter=norep", action: "أسند مندوباً" })),
+      ...noRep.map((x) => ({ id: `rep-${x.a.id}`, level: "work" as const, title: `${x.a.name} بلا مندوب`, hint: `${x.departures} رحلات تغادر منه و${x.arrivals} تصل إليه، ولا أحد هناك يسجل إقلاعها وهبوطها غيرك. المندوب من يملك «رحلات المطار» لهذا المطار، وتُمنح من «صلاحيات الموظفين».`, href: "/staff/flights/manage?filter=norep", action: "اعرضها" })),
       ...(drafts.length ? [{ id: "drafts", level: "work" as const, title: `${drafts.length} رحلات مسودة لم تُنشر`, hint: drafts.map((f) => f.flightNo).join("، "), href: "/staff/flights/manage/flights", action: "راجعها" }] : []),
       ...stale.map((f) => ({ id: `stale-${f.id}`, level: "work" as const, title: `كشف ركاب ${f.flightNo} تغيّر بعد إصداره`, hint: "أُسند أحد أو أُلغي إسناده بعد إقفال الرحلة.", href: `/staff/flights/manage/flights?f=${f.id}`, action: "أصدر كشفاً جديداً" })),
       ...(shortDays.length

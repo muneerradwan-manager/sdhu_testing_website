@@ -54,7 +54,7 @@ export function RulesList() {
     <div className="space-y-5">
       <Title
         action={
-          !ed.readOnly && (
+          ed.may("eligibility-rules", "POST") && (
             <Link href="/staff/hajj/manage/rules/edit" className="inline-flex items-center gap-1.5 rounded-xl border border-gold/60 px-3 py-1.5 text-sm font-bold text-gold hover:bg-gold hover:text-ink">
               <Plus className="size-4" /> إضافة شرط
             </Link>
@@ -74,13 +74,13 @@ export function RulesList() {
                 </Link>
                 <p className="text-xs text-white/55">يجب أن: {describe(x.require, fields)}</p>
                 <RowActions>
-                  <RowLink href={`/staff/hajj/manage/rules/edit?id=${x.id}`}>{ed.readOnly ? "عرض" : "تعديل"}</RowLink>
-                  {!ed.readOnly && (
+                  <RowLink href={`/staff/hajj/manage/rules/edit?id=${x.id}`}>{ed.may("eligibility-rules", "PUT") ? "تعديل" : "عرض"}</RowLink>
+                  {ed.may("eligibility-rules", "PUT") && (
                     <RowLink onClick={() => ed.edit((c) => ({ ...c, eligibility: c.eligibility.map((y) => (y.id === x.id ? { ...y, enabled: !y.enabled } : y)) }), { action: x.enabled ? "إيقاف شرط أهلية" : "تشغيل شرط أهلية", area: "rules", detail: x.label, ref: x.id })}>
                       {x.enabled ? "إيقاف" : "تشغيل"}
                     </RowLink>
                   )}
-                  {!ed.readOnly && (
+                  {ed.may("eligibility-rules", "DELETE") && (
                     <RowLink danger onClick={() => ed.edit((c) => ({ ...c, eligibility: c.eligibility.filter((y) => y.id !== x.id) }), { action: "حذف شرط أهلية", area: "rules", detail: x.label, ref: x.id })}>
                       حذف
                     </RowLink>
@@ -102,7 +102,7 @@ export function RulesList() {
       )}
       <IssuesFor where="القاعدتان" />
       <Box title="شروط المنصة الثابتة (للاطلاع)" open={false}>
-        <p className="text-xs leading-5 text-white/55">تُطبَّق دائماً. أرقامها من «إعدادات الموسم» عند مديرة الموسم.</p>
+        <p className="text-xs leading-5 text-white/55">تُطبَّق دائماً. أرقامها من «إعدادات الموسم» عند مدير الموسم.</p>
         <ul className="space-y-1.5">
           {fixed.map((t) => (
             <li key={t} className="flex items-start gap-2">
@@ -135,6 +135,8 @@ function Editor({ initial }: { initial: EligibilityRule }) {
   const fields = allFields(ed.config);
   const stored = ed.config.eligibility.find((r) => r.id === x.id);
   const isNew = !stored;
+  // A new rule needs adding, a stored one changing
+  const ro = !ed.may("eligibility-rules", isNew ? "POST" : "PUT");
   const dirty = !stored || JSON.stringify(x) !== JSON.stringify(stored);
   const fam = FAMILIES.find((f) => f.key === family)!;
   const tried = useMemo(() => {
@@ -160,7 +162,7 @@ function Editor({ initial }: { initial: EligibilityRule }) {
         <h1 className="mt-2 font-display text-3xl font-bold text-white">{isNew ? "إضافة شرط أهلية" : "تعديل الشرط"}</h1>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
-        <fieldset disabled={ed.readOnly} className="min-w-0 space-y-5">
+        <fieldset disabled={ro} className="min-w-0 space-y-5">
           <input value={x.label} onChange={(e) => set({ label: e.target.value })} placeholder="اسم الشرط، مثل: لا يتجاوز عمر المرافق 75 عاماً" aria-label="اسم الشرط" className="h-16 w-full rounded-2xl border-2 border-white/15 bg-white/10 px-5 font-display text-xl font-bold text-white outline-none placeholder:text-white/35 focus:border-gold" />
           <section className="space-y-3 rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
             <p className="font-bold text-white">١. يُفحص على</p>
@@ -181,7 +183,7 @@ function Editor({ initial }: { initial: EligibilityRule }) {
           <IssuesFor refs={[x.id]} />
         </fieldset>
         <aside className="space-y-4">
-          {!ed.readOnly && (
+          {!ro && (
             <Box title="الحفظ">
               <span className="flex items-center gap-2 font-bold text-white">
                 <Switch on={x.enabled} onChange={(v) => set({ enabled: v })} label="يعمل" /> {x.enabled ? "يعمل" : "موقوف"}
@@ -190,7 +192,7 @@ function Editor({ initial }: { initial: EligibilityRule }) {
                 <Save className="size-4" /> {isNew ? "إضافة الشرط" : "حفظ"}
               </Button>
               <p className="text-xs text-white/55">{dirty ? "لديك تعديلات لم تُحفظ." : "محفوظ."}</p>
-              {!isNew && (
+              {!isNew && ed.may("eligibility-rules", "DELETE") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -207,12 +209,12 @@ function Editor({ initial }: { initial: EligibilityRule }) {
           <Box title="إن لم يتحقق">
             {(["fail", "warn"] as const).map((v) => (
               <label key={v} className="flex items-center gap-2">
-                <input type="radio" checked={x.severity === v} onChange={() => set({ severity: v })} className="accent-[#D9C89E]" disabled={ed.readOnly} /> {v === "fail" ? "يمنع تقديم الطلب" : "تنبيه فقط"}
+                <input type="radio" checked={x.severity === v} onChange={() => set({ severity: v })} className="accent-[#D9C89E]" disabled={ro} /> {v === "fail" ? "يمنع تقديم الطلب" : "تنبيه فقط"}
               </label>
             ))}
             <label className="block pt-1">
               الحل الذي يُقترح على الحاج
-              <select value={x.fix} onChange={(e) => set({ fix: e.target.value as EligibilityRule["fix"] })} className={cn(selectClass, "mt-1")} disabled={ed.readOnly}>
+              <select value={x.fix} onChange={(e) => set({ fix: e.target.value as EligibilityRule["fix"] })} className={cn(selectClass, "mt-1")} disabled={ro}>
                 {(Object.keys(FIX_LABEL) as EligibilityRule["fix"][]).map((k) => (
                   <option key={k} value={k}>
                     {FIX_LABEL[k]}

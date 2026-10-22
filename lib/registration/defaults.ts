@@ -99,7 +99,7 @@ export function defaultConfig(): RegConfig {
 export const ACTIVE_SEASON = SEASON.hijriYear;
 
 export const SEED_SEASONS: RegSeason[] = [
-  { year: 1447, label: "موسم 1447هـ", status: "archived", createdAt: new Date(2025, 5, 2).getTime(), createdBy: "سهى مراد", archivedApplications: 18_940 },
+  { year: 1447, label: "موسم 1447هـ", status: "archived", createdAt: new Date(2025, 5, 2).getTime(), createdBy: "نور الأعرج", archivedApplications: 18_940 },
   { year: 1448, label: "موسم 1448هـ", status: "active", createdAt: new Date(2026, 6, 1).getTime(), createdBy: "هبة القدسي", copiedFrom: "1447-v2" },
 ];
 
@@ -114,14 +114,14 @@ function season1447(intro: string): RegConfig {
 }
 
 export const SEED_VERSIONS: RegVersion[] = [
-  { id: "1447-v1", season: 1447, number: 1, config: season1447("أهلاً {firstName}، لنقدّم طلبك"), publishedAt: new Date(2025, 6, 20, 10).getTime(), publishedBy: "سهى مراد", effectiveFrom: "2025-07-25T00:00", note: "إعدادات موسم 1447 عند فتح التسجيل" },
+  { id: "1447-v1", season: 1447, number: 1, config: season1447("أهلاً {firstName}، لنقدّم طلبك"), publishedAt: new Date(2025, 6, 20, 10).getTime(), publishedBy: "نور الأعرج", effectiveFrom: "2025-07-25T00:00", note: "إعدادات موسم 1447 عند فتح التسجيل" },
   {
     id: "1447-v2",
     season: 1447,
     number: 2,
     config: season1447("أهلاً {firstName}، لنقدّم طلبك معاً خطوة بخطوة"),
     publishedAt: new Date(2025, 7, 3, 9).getTime(),
-    publishedBy: "سهى مراد",
+    publishedBy: "نور الأعرج",
     effectiveFrom: "2025-08-03T09:00",
     note: "تصحيح نص صفحة البداية",
     basedOn: "1447-v1",

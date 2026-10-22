@@ -7,41 +7,84 @@ import { createPortal } from "react-dom";
 import { Counter } from "@/components/ui/motion";
 import { actions, useHydrated, useStore, type AuditEvent } from "@/lib/store";
 import { useScrollLock } from "@/lib/scroll-lock";
-import { can, getStaff, PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
-import { SYSTEMS, useOwnedSystems, withGrants, type SystemKey } from "@/lib/systems";
-import { cn, formatNumber } from "@/lib/utils";
+import { getStaff, withPermissions, type StaffUser } from "@/lib/staff";
+import { can, canAny as canAnyKey, CATALOG, grantSummary, permLabel, seesSystem, type ScopeKind } from "@/lib/permissions";
 import { useHalls } from "@/app/administrator/_lib/halls";
-import { useAirportReps } from "@/lib/flights";
+import { useAirports } from "@/lib/flights";
+import { OPERATIONS } from "@/lib/operations";
+import { CMS_COLLECTIONS } from "@/lib/cms/collections";
+import { FILE_TYPES } from "@/lib/ops";
+import { OFFICES } from "@/lib/season";
+import { SYSTEM_KEYS, SYSTEMS, canOperation, type SystemKey } from "@/lib/systems";
+import { cn, formatNumber } from "@/lib/utils";
 
 // ───────────────────────── Hooks & helpers ─────────────────────────
 
-/** The signed-in employee, with the management permissions the director granted or took back since */
+/** The signed-in employee, with his permissions as the holder of «صلاحيات الموظفين» left them */
 export function useStaffUser(): StaffUser | null {
   const id = useStore((s) => s.staffSessionId);
-  const grants = useStore((s) => s.systems?.grants);
+  const stored = useStore((s) => s.staffPermissions);
   return useMemo(() => {
     const u = getStaff(id);
-    return u ? withGrants(u, grants) : null;
-  }, [id, grants]);
+    return u ? withPermissions(u, stored) : null;
+  }, [id, stored]);
 }
+
+/** A scope id in words: «مركز دمشق», «مطار دمشق الدولي», «الاختبارات» */
+export function useScopeNames() {
+  const options = useScopeOptions();
+  return useMemo(() => (kind: ScopeKind, id: string) => options[kind].find((o) => o.id === id)?.label ?? id, [options]);
+}
+
+/**
+ * What a scoped permission may be limited to, kind by kind: the halls, the airports, the operations… A posting
+ * has no list: the employee rates where the operational files posted him.
+ */
+export function useScopeOptions(): Record<ScopeKind, { id: string; label: string }[]> {
+  const halls = useHalls();
+  const airports = useAirports();
+  return useMemo(
+    () => ({
+      center: halls.centers.map((c) => ({ id: c.id, label: c.name })),
+      airport: airports.filter((a) => !a.archived).map((a) => ({ id: a.id, label: a.name })),
+      operation: OPERATIONS.map((o) => ({ id: o.key, label: o.label })),
+      collection: CMS_COLLECTIONS.map((c) => ({ id: c.id, label: c.label })),
+      office: OFFICES.map((o) => ({ id: o.office, label: o.office })),
+      opfileType: FILE_TYPES.map((t) => ({ id: t.code, label: t.short })),
+      posting: [],
+    }),
+    [halls.centers, airports],
+  );
+}
+
+/** His permissions in a few words, system by system, scopes by name */
+export function useGrantSummary(user: StaffUser | null) {
+  const nameOf = useScopeNames();
+  return useMemo(() => grantSummary(user, nameOf), [user, nameOf]);
+}
+
+/** The systems «لوحتي» gathers: every one that is neither a management file nor a field post */
+const DESK_SYSTEMS = CATALOG.map((c) => c.key).filter((k) => !SYSTEM_KEYS.includes(k as SystemKey) && !["hall", "airport", "evaluate"].includes(k));
+export const hasDeskWork = (user: StaffUser | null) => DESK_SYSTEMS.some((k) => seesSystem(user, k));
 
 /**
  * Where an employee lands: the summary of the system he runs; else «لوحتي», which gathers the work of his
  * permissions until each part becomes a system; else the field post a system's owner gave him (a hall, an
  * airport); else his operational files.
  */
-export function staffHome(user: StaffUser, owned: SystemKey[], field: { hall: boolean; airport: boolean }) {
-  if (owned.length) return SYSTEMS[owned[0]].summary.href;
-  if (taskPermissions(user).length) return "/staff/dashboard";
-  if (field.hall) return "/staff/hall";
-  return field.airport ? "/staff/airport" : "/staff/my-files";
+export function staffHome(user: StaffUser) {
+  for (const k of SYSTEM_KEYS) {
+    if (can(user, `${k}.summary.GET`)) return SYSTEMS[k].summary.href;
+    const op = SYSTEMS[k].operations.find((o) => canOperation(user, o));
+    if (op) return op.href;
+  }
+  if (hasDeskWork(user)) return "/staff/dashboard";
+  if (can(user, "hall.sittings.GET")) return "/staff/hall";
+  return can(user, "airport.flights.GET") ? "/staff/airport" : "/staff/my-files";
 }
 
 export function useStaffHome(user: StaffUser | null) {
-  const owned = useOwnedSystems(user);
-  const halls = useHalls();
-  const reps = useAirportReps();
-  return user ? staffHome(user, owned, { hall: halls.centersOf(user.id).length > 0, airport: reps.airportsOf(user.id).length > 0 }) : "/staff/login";
+  return user ? staffHome(user) : "/staff/login";
 }
 
 /** Ticking clock; only used below the hydration guard */
@@ -54,8 +97,23 @@ export function useNow(intervalMs = 1000) {
   return now;
 }
 
-export function canAny(user: StaffUser | null, perms: Permission[]) {
-  return perms.length === 0 || perms.some((p) => can(user, p));
+export { can };
+
+/** Holds at least one of the keys (an empty list is open to everyone) */
+export function canAny(user: StaffUser | null, perms: string[], scopeId?: string) {
+  return canAnyKey(user, perms, scopeId);
+}
+
+/** May the signed-in employee do it — for a button or a block (lib/permissions.ts) */
+export function useCan() {
+  const user = useStaffUser();
+  return (key: string, scopeId?: string) => can(user, key, scopeId);
+}
+
+/** Shows its children only to whoever holds one of the keys (for a scope id when given) */
+export function Can({ perm, scope, children, fallback = null }: { perm: string | string[]; scope?: string; children: ReactNode; fallback?: ReactNode }) {
+  const user = useStaffUser();
+  return canAnyKey(user, Array.isArray(perm) ? perm : [perm], scope) ? children : fallback;
 }
 
 /** Every mutating staff action goes through here so the audit trail always names the person */
@@ -243,7 +301,7 @@ export function Kpi({
 }
 
 /** Blocks a page for staff who lack every listed permission */
-export function Gate({ perms, children }: { perms: Permission[]; children: ReactNode }) {
+export function Gate({ perms, children }: { perms: string[]; children: ReactNode }) {
   const user = useStaffUser();
   if (canAny(user, perms)) return children;
   return (
@@ -254,7 +312,7 @@ export function Gate({ perms, children }: { perms: Permission[]; children: React
         </span>
         <h1 className="mt-4 font-display text-2xl font-bold text-white">خارج صلاحياتك</h1>
         <p className="mt-2 leading-7 text-white/75">
-          هذه الصفحة تحتاج صلاحية: {perms.map((p) => PERMISSION_LABELS[p]).join(" أو ")}. تُمنح الصلاحيات من الموارد البشرية واحدة واحدة، ويُسجَّل منحها في سجل الأحداث.
+          هذه الصفحة تحتاج صلاحية: {perms.map((p) => permLabel(p)).join(" أو ")}. تُمنح الصلاحيات للموظف واحدة واحدة من «صلاحيات الموظفين»، ويُسجَّل منحها في سجل الأحداث.
         </p>
       </motion.div>
     </div>

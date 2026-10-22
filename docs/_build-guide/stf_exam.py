@@ -43,14 +43,14 @@ c.shot("ex-dash-tables", "جدولا القاعات والاختبارات: لك
 c.scroll_top()
 s.btn("رفع أمر إلى المدير", 900)
 p.locator(f"{D} textarea[aria-label='الأمر المرفوع']").first.fill("مديرية أوقاف حمص لا تتيح القاعة يوم الاختبار، ونحتاج قاعة بديلة لـ 40 متقدماً."); c.settle(300)
-c.shot("ex-escalate", "رفع أمر إلى المدير: ما لا تحسمه وحدك يصل إلى مديرة الموسم", hl=[(f"{D} button:has-text('إرسال')", "")], section=EX)
+c.shot("ex-escalate", "رفع أمر إلى المدير: ما لا تحسمه وحدك يصل إلى مدير الموسم", hl=[(f"{D} button:has-text('إرسال')", "")], section=EX)
 esc(c, p)
 
 # the halls
 s.nav("القاعات والمحافظات", 1800)
 c.shot("ex-halls", "القاعات والمحافظات: قائمة القاعات، وتحت اسم كل قاعة أفعالها", hl=[("main a:has-text('إضافة قاعة') >> nth=-1", "1"), ("main tr:has-text('مركز دمشق') a:text-is('مركز دمشق')", "2")], section=EX)
 p.locator("main tr:has-text('مركز دمشق') a:text-is('تعديل')").first.click(); c.settle(2200)
-c.shot("ex-hall-edit", "تعديل قاعة: اسمها ومكانها ومحافظاتها في الوسط، والحفظ والمشرف والشاشة في الجانب", hl=[("select[aria-label='مشرف القاعة']", "1"), ("button:has-text('حفظ القاعة')", "2")], section=EX)
+c.shot("ex-hall-edit", "تعديل قاعة: اسمها ومكانها ومحافظاتها في الوسط، والحفظ والمشرف (للاطلاع) والشاشة في الجانب", hl=[("main section:has(> button:has-text('مشرف القاعة'))", "1"), ("button:has-text('حفظ القاعة')", "2")], section=EX)
 c.scroll_to("main h2:has-text('موقع القاعة على الخريطة')", 110); c.settle(2000)
 c.shot("ex-hall-map", "موقع القاعة على الخريطة، وتحتها إحداثياته؛ وفي الجانب رقم الشاشة والمقاعد وسجلّ القاعة", hl=[("main [role=application]", "")], section=EX)
 s.nav("إضافة قاعة", 1800)

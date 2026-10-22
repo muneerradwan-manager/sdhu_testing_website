@@ -9,7 +9,7 @@ import { allVersions } from "@/lib/registration/engine";
 import { run } from "@/lib/registration/run";
 import { createSeason, restoreVersion } from "@/lib/registration/service";
 import { diffConfigs } from "@/lib/registration/validate";
-import { fmtDateTime, smallInputClass } from "../../_components/kit";
+import { can, fmtDateTime, smallInputClass, useStaffUser } from "../../_components/kit";
 import { useSystemEvents } from "../../_components/system";
 import { selectClass } from "../../exam/_components/ui";
 import { Box, Kind, ListTable, RowActions, RowLink, SeasonPicker, Title, useRegEditor } from "./editor";
@@ -20,6 +20,7 @@ import { Box, Kind, ListTable, RowActions, RowLink, SeasonPicker, Title, useRegE
  */
 export function HistoryPage() {
   const ed = useRegEditor();
+  const user = useStaffUser();
   const toast = useToast();
   const reg = useReg();
   const events = useSystemEvents("registration");
@@ -47,7 +48,7 @@ export function HistoryPage() {
                     </p>
                     <RowActions>
                       {prev && <RowLink onClick={() => setOpen(open === v.id ? null : v.id)}>{open === v.id ? "إخفاء التغييرات" : `ما الذي تغيّر (${changes.length})`}</RowLink>}
-                      {!ed.readOnly && !live && (
+                      {ed.may("versions", "restore") && !live && (
                         <RowLink
                           onClick={() => {
                             const r = run((s) => restoreVersion(s, v.id, Date.now()));
@@ -84,6 +85,7 @@ export function HistoryPage() {
         </ListTable>
       )}
 
+      {can(user, "registration.activity.GET") && (
       <Box title="سجل النشاط">
         {events.length === 0 ? (
           <p className="text-white/60">لا نشاط بعد.</p>
@@ -103,8 +105,9 @@ export function HistoryPage() {
           </ul>
         )}
       </Box>
+      )}
 
-      <NewSeason versions={allVersions(reg)} />
+      {can(user, "registration.seasons.POST") && <NewSeason versions={allVersions(reg)} />}
     </div>
   );
 }

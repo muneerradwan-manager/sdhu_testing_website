@@ -94,7 +94,7 @@
 <text xml:space="preserve" text-anchor="start" x="489.16" y="-230.5" font-family="Helvetica,sans-Serif" font-size="11.00"> &#160;</text>
 <text xml:space="preserve" text-anchor="start" x="495.28" y="-230.5" font-family="Helvetica,sans-Serif" font-size="11.00" fill="#021526">handling_permission</text>
 <text xml:space="preserve" text-anchor="start" x="596.17" y="-230.5" font-family="Helvetica,sans-Serif" font-size="11.00"> &#160;</text>
-<text xml:space="preserve" text-anchor="start" x="602.28" y="-230.5" font-family="Helvetica,sans-Serif" font-size="9.00" fill="#555f6b">VARCHAR(40)?</text>
+<text xml:space="preserve" text-anchor="start" x="602.28" y="-230.5" font-family="Helvetica,sans-Serif" font-size="9.00" fill="#555f6b">VARCHAR(80)?</text>
 <polygon fill="none" stroke="#d9c89e" points="470.11,-200.4 470.11,-221.2 672.3,-221.2 672.3,-200.4 470.11,-200.4"/>
 <text xml:space="preserve" text-anchor="start" x="475.11" y="-207.2" font-family="Helvetica,sans-Serif" font-size="9.00" fill="#555f6b">+ 4 columns</text>
 </g>

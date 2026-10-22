@@ -27,14 +27,6 @@ MODULE = M("flights", "الطيران: المطارات والرحلات وأي�
     ], uq=[("airport_id", "return_airport_id")], src="Airport.returnsTo؛ returnAirportsFor",
        seed="دمشق ← دمشق واللاذقية؛ حلب ← حلب واللاذقية."),
 
-    T("airport_representatives", "مندوبو المطارات", "موظف يسجّل إقلاع رحلات مطاره وهبوطها من «رحلات مطاري». مندوب واحد لكل مطار، وقد يمثل الموظف أكثر من مطار.", [
-        c("airport_id", "BIGINT UNSIGNED", "المطار", pk=True, fk="airports", od="CASCADE"),
-        staff("staff_user_id", "المندوب", null=False),
-        staff("assigned_by_staff_id", "من أسنده"),
-        c("assigned_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
-    ], src="FlightsState.reps؛ DEFAULT_REPS؛ app/staff/airport/view.tsx",
-       rules=["يجب أن يُتحقق في الخادم أن المسجّل مندوب المطار نفسه (الكود يرشّح العرض فقط)."], seed="دمشق ← عمر الشامي."),
-
     T("carriers", "الناقلون", "شركات الطيران.", [
         pk(),
         c("code", "VARCHAR(4)", "الرمز: RB، SV، XY", uq=True),

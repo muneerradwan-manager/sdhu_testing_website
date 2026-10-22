@@ -9,6 +9,8 @@ import { actions, getState, setState, useStore, type AdminProfile, type Applicat
 import { fullName, ageOf } from "./registry";
 import { seeded } from "./utils";
 import { EMPLOYEES_SEED } from "./data/employees-seed";
+import { can } from "./permissions";
+import { STAFF, withPermissions } from "./staff";
 
 /**
  * ملف الطيران — flights for the employees and for the pilgrims.
@@ -157,7 +159,7 @@ export type FlightsState = {
   manifests?: Manifest[];
   /** Travellers who go by other means, so they leave the "no flight" lists (and may take a return without an outbound) */
   otherMeans?: Record<string, { reason: string; at: number; by: string }>;
-  /** Airport id -> the staff account the owner made its representative (an empty string takes the default away) */
+  /** Legacy: airport id -> its representative, before representing an airport became the `airport.*` permission for it (read nowhere) */
   reps?: Record<string, string>;
 };
 
@@ -539,17 +541,27 @@ export const useManifests = () => useStore((s) => s.flights.manifests) ?? EMPTY_
 export const useOtherMeans = () => useStore((s) => s.flights.otherMeans) ?? EMPTY_OTHER;
 
 /**
- * Each airport's representative: an employee the flights system's owner assigns, who records the take-offs
- * from his airport (who boarded, who did not) and the landings at it. Like a hall supervisor, the
- * assignment gives him that page and nothing else.
+ * Each airport's representative: whoever holds «رحلات المطار» (`airport.flights.GET`) for it. He records the
+ * take-offs from his airport (who boarded, who did not) and the landings at it. Nobody assigns him on the
+ * airports' screen any more: the permission is granted at «صلاحيات الموظفين» for that airport.
  */
-export const DEFAULT_REPS: Record<string, string> = { "ap-dam": "omar" };
 export function useAirportReps() {
-  const stored = useStore((s) => s.flights.reps);
+  const stored = useStore((s) => s.staffPermissions);
+  const airports = useAirports();
   return useMemo(() => {
-    const reps: Record<string, string> = { ...DEFAULT_REPS, ...stored };
-    return { reps, airportsOf: (staffId: string) => Object.keys(reps).filter((a) => reps[a] === staffId) };
-  }, [stored]);
+    const accounts = STAFF.map((u) => withPermissions(u, stored));
+    const repsOf = (airportId: string) => accounts.filter((u) => can(u, "airport.flights.GET", airportId));
+    /** airport id -> its first representative, for the screens that name one */
+    const reps: Record<string, string> = Object.fromEntries(airports.flatMap((a) => repsOf(a.id).slice(0, 1).map((u) => [a.id, u.id])));
+    return {
+      reps,
+      repsOf,
+      airportsOf: (staffId: string) => {
+        const u = accounts.find((a) => a.id === staffId);
+        return u?.grants.some((g) => g.key === "airport.flights.GET") ? airports.filter((a) => can(u, "airport.flights.GET", a.id)).map((a) => a.id) : [];
+      },
+    };
+  }, [stored, airports]);
 }
 
 /** Everything a flights page needs, memoised as one object */
@@ -576,7 +588,6 @@ function current(s: { flights: FlightsState }) {
     allotments: s.flights.allotments ?? ALLOTMENTS_SEED,
     manifests: s.flights.manifests ?? [],
     otherMeans: s.flights.otherMeans ?? {},
-    reps: s.flights.reps ?? {},
   };
 }
 
@@ -1130,10 +1141,7 @@ export const flightsActions = {
     return r;
   },
 
-  /** An airport's representative, or none ("") */
-  setRep(airportId: string, staffId: string) {
-    patch((d) => ({ reps: { ...d.reps, [airportId]: staffId } }));
-  },
+
 
   setOtherMeans(travelerId: string, name: string, reason: string, actor: Actor) {
     patch((d) => {

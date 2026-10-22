@@ -58,10 +58,11 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
-import { PERMISSION_LABELS, taskPermissions, type Permission, type StaffUser } from "@/lib/staff";
+import type { StaffUser } from "@/lib/staff";
+import { viewKeys } from "@/lib/permissions";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { useEvaluatees } from "../evaluate/view";
-import { SYSTEMS, SYSTEM_KEYS, useOwnedSystems, type SystemKey } from "@/lib/systems";
+import { SYSTEMS, SYSTEM_KEYS, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
 import { useAirportReps, useFlightsData } from "@/lib/flights";
@@ -72,26 +73,25 @@ import { useFlightsDesk } from "../flights/desk";
 import { useRegistrationDesk } from "../hajj/desk";
 import { useSystemsUnseen } from "./system";
 import { useCivilClaims, useReviewQueue, useTicketQueue } from "./data";
-import { canAny, fmtTime, logAs, useNow, useStaffUser } from "./kit";
+import { canAny, fmtTime, hasDeskWork, logAs, useGrantSummary, useNow, useStaffUser } from "./kit";
 
 /**
- * `work`: «لوحتي», for whoever holds a task permission — it gathers that work; a management permission
- * («إدارة الامتحانات»، «إدارة الطيران») has its own summary instead.
- * `hall`, `airport`: shown to whoever a system's owner assigned in the field — a centre's hall, an airport —
- * whatever his permissions.
- * `system`: shown to the holders of that file's management permission: its summary (their dashboard for it)
- * and then every one of its operations as an entry of its own (`area`: the part of the file's desk that
- * counts what waits there), under the file's name (`group`). `exact`: lit on its own path only.
+ * Every entry shows to whoever holds one of its `perms` — viewing something it holds (lib/permissions.ts);
+ * an empty list is everyone's.
+ * `work`: «لوحتي», for whoever may view something in a system that is not a management file — it gathers that
+ * work; a management file has its own summary instead.
+ * `system`: a management file: its summary (the dashboard for it) and then every one of its operations as an
+ * entry of its own (`area`: the part of the file's desk that counts what waits there), under the file's name
+ * (`group`), each shown to whoever may view what it holds. `exact`: lit on its own path only.
+ * `evaluate`: also needs a posting with clusters to rate.
  */
 type NavItem = {
   href: string;
   label: string;
   icon: ReactNode;
-  perms: Permission[];
+  perms: string[];
   badge?: "reviews" | "tickets" | "hall" | "airport" | "systems" | SystemKey;
   work?: true;
-  hall?: true;
-  airport?: true;
   /** Shown to whoever was posted in a tower or a camp that clusters lived in: he rates their administrators after the season */
   evaluate?: true;
   system?: SystemKey;
@@ -144,36 +144,36 @@ const OPERATION_ICONS: Record<string, ReactNode> = {
 function systemEntries(key: SystemKey): NavItem[] {
   const s = SYSTEMS[key];
   return [
-    { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [], system: key, badge: key, exact: true, group: s.label },
+    { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [`${key}.summary.GET`], system: key, badge: key, exact: true, group: s.label },
     // The first operation is the file's own path, which the others continue: lit on its own path only
-    ...s.operations.map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: [], system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
+    ...s.operations.map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: o.perms, system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
   ];
 }
 
 export const STAFF_NAV: NavItem[] = [
   { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [], work: true },
-  { href: "/staff/systems", label: "صلاحيات الإدارة", icon: <Layers />, perms: ["systems.assign"], badge: "systems" },
-  // The management of whole files, in the season's order: each file's summary and its operations
+  { href: "/staff/access", label: "صلاحيات الموظفين", icon: <KeyRound />, perms: viewKeys("access"), badge: "systems" },
+  // The management files, in the season's order: each file's summary and its operations
   ...SYSTEM_KEYS.flatMap(systemEntries),
-  // The employee's own place, and the field posts a file's holder gives
   // Every employee: where he is housed, his flight, his place in Mina and Arafat
   { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
-  { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: [], hall: true, badge: "hall" },
-  { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: [], airport: true, badge: "airport" },
-  { href: "/staff/evaluate", label: "تقييم الإداريين", icon: <Star />, perms: [], evaluate: true },
-  // Task permissions in the order the season is worked: set up first, then run, then looked back on
-  { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: ["season.settings"] },
-  { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: ["ops.files"] },
-  { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: ["ops.files", "operations.room"] },
-  { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: ["content.manage"] },
-  { href: "/staff/registration", label: "التسجيل على الحج", icon: <UserRoundPlus />, perms: ["pilgrims.register"] },
-  { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: ["registration.review"], badge: "reviews" },
-  { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: ["lottery.import", "lottery.approve"] },
-  { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: ["operations.room"], badge: "tickets" },
-  { href: "/staff/medical", label: "الفريق الطبي", icon: <HeartPulse />, perms: ["medical"] },
-  { href: "/staff/transport", label: "المواصلات", icon: <Bus />, perms: ["transport"] },
-  { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: ["audit.read"] },
-  { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: ["season.settings", "audit.read"] },
+  // The field posts: granted for a hall, an airport
+  { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: ["hall.sittings.GET"], badge: "hall" },
+  { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: ["airport.flights.GET"], badge: "airport" },
+  { href: "/staff/evaluate", label: "تقييم الإداريين", icon: <Star />, perms: ["evaluate.evaluations.GET"], evaluate: true },
+  // The other systems in the order the season is worked: set up first, then run, then looked back on
+  { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: viewKeys("season") },
+  { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: viewKeys("reference") },
+  { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: viewKeys("opfiles") },
+  { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: viewKeys("content") },
+  { href: "/staff/registration", label: "التسجيل على الحج", icon: <UserRoundPlus />, perms: viewKeys("office") },
+  { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: viewKeys("reviews"), badge: "reviews" },
+  { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: viewKeys("lottery") },
+  { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: viewKeys("operations"), badge: "tickets" },
+  { href: "/staff/medical", label: "الفريق الطبي", icon: <HeartPulse />, perms: viewKeys("medical") },
+  { href: "/staff/transport", label: "المواصلات", icon: <Bus />, perms: viewKeys("transport") },
+  { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: viewKeys("audit") },
+  { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: viewKeys("executive") },
 ];
 
 export function StaffFrame({ children }: { children: ReactNode }) {
@@ -260,7 +260,6 @@ function Sidebar({ user }: { user: StaffUser }) {
   const halls = useHalls();
   const myCenters = halls.centersOf(user.id);
   const admins = useStore((s) => s.admins);
-  const owned = useOwnedSystems(user);
   const unseen = useSystemsUnseen();
   const flights = useFlightsData();
   const myAirports = useAirportReps().airportsOf(user.id);
@@ -292,9 +291,8 @@ function Sidebar({ user }: { user: StaffUser }) {
     }),
     [reviews, civil, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
   );
-  const items = STAFF_NAV.filter((n) =>
-    n.hall ? myCenters.length > 0 : n.airport ? myAirports.length > 0 : n.evaluate ? evaluatees > 0 : n.system ? owned.includes(n.system) : n.work ? taskPermissions(user).length > 0 : canAny(user, n.perms),
-  );
+  const grants = useGrantSummary(user);
+  const items = STAFF_NAV.filter((n) => (n.work ? hasDeskWork(user) : canAny(user, n.perms) && (!n.evaluate || evaluatees > 0)));
 
   const logout = () => {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });
@@ -343,13 +341,13 @@ function Sidebar({ user }: { user: StaffUser }) {
                   <Plane className="size-3" /> مسافر مع البعثة
                 </span>
               )}
-              {user.permissions.length > 0 && (
+              {user.grants.length > 0 && (
                 <button
                   onClick={() => setShowPerms((v) => !v)}
                   className="mr-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-white/70 hover:bg-white/10 hover:text-white"
                   aria-expanded={showPerms}
                 >
-                  <ShieldCheck className="size-3" /> {user.permissions.length} صلاحيات
+                  <ShieldCheck className="size-3" /> {user.grants.length} صلاحية
                   <ChevronDown className={cn("size-3 transition", showPerms && "rotate-180")} />
                 </button>
               )}
@@ -357,7 +355,7 @@ function Sidebar({ user }: { user: StaffUser }) {
             <AnimatePresence initial={false}>
               {showPerms && (
                 <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-wrap gap-1.5 overflow-hidden">
-                  {user.permissions.map((p, i) => (
+                  {grants.map((p, i) => (
                     <motion.li
                       key={p}
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -365,7 +363,7 @@ function Sidebar({ user }: { user: StaffUser }) {
                       transition={{ delay: 0.04 * i }}
                       className="mt-2 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] text-gold"
                     >
-                      {PERMISSION_LABELS[p]}
+                      {p}
                     </motion.li>
                   ))}
                 </motion.ul>

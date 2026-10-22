@@ -10,7 +10,7 @@ import { cn, formatNumber, maskNationalId } from "@/lib/utils";
 import { docState, resultOf } from "@/app/administrator/_lib/admin";
 import { useDocTypes, useSkills } from "@/app/administrator/_lib/admin-rules";
 import { roleLabel } from "../../_components/data";
-import { fmtDateTime } from "../../_components/kit";
+import { fmtDateTime, useCan } from "../../_components/kit";
 import { Chip, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory } from "../../_components/system";
 import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, SettingsSection, Tag, Title } from "../../_components/wp";
@@ -101,6 +101,8 @@ function Files({ desk }: { desk: AdminsDesk }) {
   const [only, setOnly] = useState<"all" | "docs">(params.get("f") === "docs" ? "docs" : "all");
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(60);
+  // The fee, the receipt and the exam result are «رسوم المتقدمين وإيصالاتهم ونتائج اختبارهم»
+  const mayFiles = useCan()("admins.applicants-files.GET");
   const list = (only === "docs" ? desk.flaggedFiles : desk.files).filter((f) => matches(q, [f.row.name, f.row.id, roleLabel(f.row)]));
 
   return (
@@ -137,7 +139,7 @@ function Files({ desk }: { desk: AdminsDesk }) {
               />
               <td className="p-3 align-top text-white/80">{roleLabel(f.row)}</td>
               <td className="p-3 align-top tabular-nums text-white/80">{f.record.documents.length}</td>
-              <td className="p-3 align-top">{f.row.profile.feePaidAt ? <Tag tone="green">مسدَّد</Tag> : <Tag>لم يُسدَّد</Tag>}</td>
+              <td className="p-3 align-top">{!mayFiles ? <span className="text-white/30">—</span> : f.row.profile.feePaidAt ? <Tag tone="green">مسدَّد</Tag> : <Tag>لم يُسدَّد</Tag>}</td>
               <td className="p-3 align-top">
                 <span className="flex flex-wrap gap-1">
                   {f.expired.length > 0 && <Tag tone="maroon">{f.expired.length} منتهية</Tag>}
@@ -206,6 +208,8 @@ function FileSheet({ f }: { f: FileState }) {
   const { all: skills } = useSkills();
   const p = f.row.profile;
   const res = resultOf(p);
+  const mayFiles = useCan()("admins.applicants-files.GET");
+  const hidden = "مخفي — يحتاج صلاحية «رسوم المتقدمين وإيصالاتهم ونتائج اختبارهم»";
   const oral = !res.written ? "" : res.oral?.status === "passed" ? ` — ناجح في الشفهي${res.oral.score !== undefined ? ` (${res.oral.score}%)` : ""}` : res.oral?.status === "failed" ? " — راسب في الشفهي" : res.oral?.status === "absent" ? " — غائب عن الشفهي" : res.oral ? " — الشفهي محجوز" : " — بقي الشفهي"
   const result = res.exempt ? "معفى بالتجديد في صفته" : res.confirmed ? `${res.score ?? "—"}% — ${res.written ? "ناجح في كل الأقسام" : "لم يجتز كل الأقسام"}${res.published ? "" : " (لم تُعرض عليه)"}${oral}` : res.parts.some((x) => x.status === "submitted") ? "سلّم — بانتظار تأكيد المشرف" : res.parts.some((x) => x.status === "unconfirmed") ? "غير مؤكَّد — بانتظار قرار الإدارة" : p.feePaidAt ? "لم يختبر بعد" : "";
 
@@ -216,8 +220,8 @@ function FileSheet({ f }: { f: FileState }) {
           ["الصفة", roleLabel(f.row)],
           ["الرقم الوطني", <span key="id" dir="ltr">{maskNationalId(f.row.id)}</span>],
           ["الأهلية", p.eligibleAt ? fmtDateTime(p.eligibleAt) : p.feePaidAt ? "ثبتت قبل الدفع" : "لم تثبت بعد"],
-          ["رسم التسجيل", p.feePaidAt ? `${fmtDateTime(p.feePaidAt)}${p.receipt ? ` — ${p.receipt}` : ""}` : "لم يُسدَّد"],
-          ["نتيجة التأهيل (من «إدارة الامتحانات»)", result],
+          ["رسم التسجيل", !mayFiles ? hidden : p.feePaidAt ? `${fmtDateTime(p.feePaidAt)}${p.receipt ? ` — ${p.receipt}` : ""}` : "لم يُسدَّد"],
+          ["نتيجة التأهيل (من «إدارة الامتحانات»)", mayFiles ? result : hidden],
           ["المجموعة", p.group ? groupName(p.group.number) : ""],
         ]}
       />

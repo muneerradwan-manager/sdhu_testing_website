@@ -15,7 +15,7 @@ import type { Member } from "@/lib/rules";
 import { useSeason } from "@/lib/season-live";
 import { useStore, type Application, type ApplyDraft } from "@/lib/store";
 import { cn, formatUSD } from "@/lib/utils";
-import { Drawer, Empty, Panel, fmtDateTime, smallInputClass, useNow } from "../../_components/kit";
+import { can, Drawer, Empty, Panel, fmtDateTime, smallInputClass, useNow, useStaffUser } from "../../_components/kit";
 import { RecordHistory } from "../../_components/system";
 import { Segments } from "../../exam/_components/ui";
 import { Kind } from "./editor";
@@ -68,6 +68,9 @@ export function ApplicationsPage() {
   const draw = usePublishedDraw();
   const { fees, acceptedDirectAge } = useSeason();
   const now = useNow(5000);
+  const user = useStaffUser();
+  // The amounts paid are confidential: shown only with «الدفعات المؤكدة للطلبات»
+  const seesPaid = can(user, "registration.applications-payments.GET");
   const [filter, setFilter] = useState<"all" | "draft" | "waiting" | "submitted" | "accepted">((params.get("f") as "waiting") ?? "all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -195,7 +198,7 @@ export function ApplicationsPage() {
                     <td className="p-2.5">
                       {r.version.number} {r.version.id !== live.id && <Kind tone="gold">سابق</Kind>}
                     </td>
-                    <td className="p-2.5 tabular-nums">{r.app ? formatUSD(r.app.paid) : r.consents.of ? `${r.consents.done} من ${r.consents.of}` : "—"}</td>
+                    <td className="p-2.5 tabular-nums">{r.app ? (seesPaid ? formatUSD(r.app.paid) : "—") : r.consents.of ? `${r.consents.done} من ${r.consents.of}` : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -210,6 +213,10 @@ export function ApplicationsPage() {
 
 function ApplicationDrawer({ row, onClose }: { row: Row; onClose: () => void }) {
   const reg = useReg();
+  const user = useStaffUser();
+  // Answers and consents, and confirmed payments, are sensitive: each needs its own permission
+  const seesAnswers = can(user, "registration.applications-answers.GET");
+  const seesPaid = can(user, "registration.applications-payments.GET");
   const fields = [...row.version.config.stages.flatMap((s) => s.fields), ...row.version.config.postSteps.flatMap((p) => p.fields)];
   const answers: Answers = row.app?.answers ?? row.draft?.answers ?? {};
   const memberAnswers = row.app?.memberAnswers ?? row.draft?.memberAnswers ?? {};
@@ -233,14 +240,15 @@ function ApplicationDrawer({ row, onClose }: { row: Row; onClose: () => void }) 
             {row.members.map((m) => (
               <li key={m.person.id} className="flex flex-wrap items-center gap-2 text-white/85">
                 {fullName(m.person)}
-                {row.draft && consentPeople(row.members, row.owner).some((x) => x.person.id === m.person.id) && (
+                {seesAnswers && row.draft && consentPeople(row.members, row.owner).some((x) => x.person.id === m.person.id) && (
                   <Kind tone={row.draft.consents[m.person.id]?.status === "approved" ? "green" : "gold"}>{row.draft.consents[m.person.id]?.status === "approved" ? `وافق ${fmtDateTime(row.draft.consents[m.person.id].respondedAt!)}` : "لم يوافق بعد"}</Kind>
                 )}
               </li>
             ))}
           </ul>
-          {row.draft?.applicantConsent && <p className="mt-2 text-xs text-white/60">موافقة صاحب الطلب برمز على هاتفه — {fmtDateTime(row.draft.applicantConsent.at)}</p>}
+          {seesAnswers && row.draft?.applicantConsent && <p className="mt-2 text-xs text-white/60">موافقة صاحب الطلب برمز على هاتفه — {fmtDateTime(row.draft.applicantConsent.at)}</p>}
         </section>
+        {seesAnswers ? (
         <section>
           <p className="mb-2 font-bold text-gold">الإجابات</p>
           {Object.keys(answers).length === 0 && Object.keys(memberAnswers).length === 0 && <p className="text-white/60">لا إجابات على أسئلة الإدارة.</p>}
@@ -264,6 +272,9 @@ function ApplicationDrawer({ row, onClose }: { row: Row; onClose: () => void }) 
           </ul>
           <p className="mt-1 text-xs text-white/45">تُقرأ التسميات من إصدار الطلب، فتبقى صحيحة وإن عُدّل السؤال أو حُذف لاحقاً.</p>
         </section>
+        ) : (
+          <Hidden what="الإجابات والموافقات" perm="إجابات الطلبات وموافقات الأفراد" />
+        )}
         {Object.keys(custom).length > 0 && (
           <section>
             <p className="mb-2 font-bold text-gold">خطوات الإدارة بعد القبول</p>
@@ -276,6 +287,7 @@ function ApplicationDrawer({ row, onClose }: { row: Row; onClose: () => void }) 
             </ul>
           </section>
         )}
+        {seesPaid ? (
         <section>
           <p className="mb-2 font-bold text-gold">الدفعات المؤكَّدة</p>
           {ledger.length === 0 ? (
@@ -295,11 +307,24 @@ function ApplicationDrawer({ row, onClose }: { row: Row; onClose: () => void }) 
             </p>
           )}
         </section>
+        ) : (
+          <Hidden what="الدفعات المؤكَّدة" perm="الدفعات المؤكدة للطلبات" />
+        )}
         <section>
           <p className="mb-2 font-bold text-gold">سجلّه</p>
           <RecordHistory system="registration" refId={row.owner} bare />
         </section>
       </div>
     </Drawer>
+  );
+}
+
+/** A sensitive section left out, and the permission that shows it */
+function Hidden({ what, perm }: { what: string; perm: string }) {
+  return (
+    <section>
+      <p className="mb-1 font-bold text-gold">{what}</p>
+      <p className="text-xs text-white/55">بيانات حساسة: تظهر لمن يملك صلاحية «عرض — {perm}».</p>
+    </section>
   );
 }

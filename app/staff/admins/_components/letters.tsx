@@ -9,10 +9,10 @@ import { useToast } from "@/components/ui/widgets";
 import type { Letter } from "@/lib/store";
 import { cn, nowMs } from "@/lib/utils";
 import { LETTER_KINDS, LETTER_STATE, lastAt, letterState, putLetter, useLetters, type LetterState } from "@/app/administrator/_lib/letters";
-import { Drawer, fmtDateTime, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { Chip, FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
-import { Filters, Lead, TitleCell } from "./ui";
+import { Filters, Lead, Locked, TitleCell } from "./ui";
 import { logAdmins } from "../desk";
 
 /**
@@ -26,6 +26,7 @@ export function LettersTab() {
   const [state, setState] = useState<"all" | LetterState>("all");
   const [kind, setKind] = useState("");
   const [q, setQ] = useState("");
+  const may = useCan();
   const [open, setOpen] = useState<string | null>(null);
   const count = (k: LetterState) => letters.filter((l) => letterState(l) === k).length;
   const list = letters
@@ -80,7 +81,7 @@ export function LettersTab() {
                 actions={
                   <RowActions>
                     <RowLink onClick={() => setOpen(l.id)}>{l.closed ? "فتح" : "قراءة والرد"}</RowLink>
-                    <RowLink onClick={() => close(l, !l.closed)}>{l.closed ? "إعادة فتحها" : "إغلاق"}</RowLink>
+                    {may("admins.letters.close") && <RowLink onClick={() => close(l, !l.closed)}>{l.closed ? "إعادة فتحها" : "إغلاق"}</RowLink>}
                   </RowActions>
                 }
               />
@@ -106,6 +107,7 @@ function Thread({ l }: { l: Letter }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const [text, setText] = useState("");
+  const may = useCan();
   const [file, setFile] = useState("");
   const st = letterState(l);
 
@@ -156,6 +158,8 @@ function Thread({ l }: { l: Letter }) {
         <p className="rounded-2xl bg-white/5 p-3 text-xs text-white/70 ring-1 ring-white/10">
           أغلقها {l.closed.by} — {fmtDateTime(l.closed.at)}. لا رد عليها حتى تُفتح.
         </p>
+      ) : !may("admins.letters.PUT") ? (
+        <Locked perm="admins.letters.PUT">الرد لغيرك.</Locked>
       ) : (
         <div className="space-y-2 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
           <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} className={textareaClass} placeholder="ردّك" aria-label="الرد" />
@@ -171,10 +175,10 @@ function Thread({ l }: { l: Letter }) {
         </div>
       )}
       <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-        <Button size="sm" variant="glass" onClick={() => close(!l.closed)}>
+        <Button size="sm" variant="glass" disabled={!may("admins.letters.close")} onClick={() => close(!l.closed)}>
           {l.closed ? <LockOpen className="size-4" /> : <Lock className="size-4" />} {l.closed ? "إعادة فتحها" : "إغلاق المراسلة"}
         </Button>
-        <Button size="sm" variant="glass" onClick={() => window.print()}>
+        <Button size="sm" variant="glass" disabled={!may("admins.letters.print")} onClick={() => window.print()}>
           <Printer className="size-4" /> طباعة
         </Button>
       </div>

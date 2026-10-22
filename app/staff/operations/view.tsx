@@ -11,19 +11,20 @@ import { actions, useStore, type DailyReport, type Ticket } from "@/lib/store";
 import { useAdministrationReports } from "@/lib/daily-reports";
 import { cn } from "@/lib/utils";
 import { useAllEvents, useTicketQueue, type QueueTicket } from "../_components/data";
-import { ago, Drawer, fmtTime, Gate, logAs, PageHeader, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
+import { ago, can, Drawer, fmtTime, Gate, logAs, PageHeader, smallInputClass, textareaClass, useNow, useStaffUser } from "../_components/kit";
 import { FilterSelect } from "../_components/ops-ui";
 import { Box, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 import { MashaerMap } from "./map";
-import { ASSIGNEES, escalated, KIND_ICON, materialize, OPS_ACTIONS, SEVERITY, setTicketStatus, sla, STATUS_LABEL, statusToast, ZONE_LABELS } from "./shared";
+import { ASSIGNEES, escalated, KIND_ICON, materialize, OPS_ACTIONS, SEVERITY, setTicketStatus, sla, STATUS_LABEL, statusToast, ZONE_LABELS, type TicketSystem } from "./shared";
 import { TasksList, useTasks } from "./tasks";
+import { viewKeys } from "@/lib/permissions";
 
 const BASE = "/staff/operations";
 
 export function OperationsView() {
   return (
-    <Gate perms={["operations.room"]}>
+    <Gate perms={viewKeys("operations")}>
       <Operations />
     </Gate>
   );
@@ -34,12 +35,16 @@ type Filter = "active" | "open" | "in_progress" | "resolved";
 /**
  * The room as two lists: the incidents, each opened in a side sheet, and the internal tasks
  * (`?view=tasks`). The day's numbers — pilgrims in Arafat, buses, heat, the groups — are on «لوحتي».
+ * Each list shows to whoever may view it (`operations.tickets.GET`, `.tasks.GET`, `.daily-reports.GET`).
  */
 function Operations() {
   const now = useNow(1000);
   const params = useSearchParams();
   const router = useRouter();
-  const view = params.get("view") === "tasks" ? "tasks" : params.get("view") === "reports" ? "reports" : "tickets";
+  const user = useStaffUser()!;
+  const allowed = (["tickets", "tasks", "reports"] as const).filter((v) => can(user, `operations.${v === "reports" ? "daily-reports" : v}.GET`));
+  const asked = params.get("view") === "tasks" ? "tasks" : params.get("view") === "reports" ? "reports" : "tickets";
+  const view = allowed.includes(asked) ? asked : (allowed[0] ?? "none");
   const reports = useAdministrationReports();
   const tickets = useTicketQueue();
   const tasks = useTasks();
@@ -75,15 +80,15 @@ function Operations() {
         onChange={(v) => router.replace(v === "tickets" ? BASE : `${BASE}?view=${v}`, { scroll: false })}
         label="الأقسام"
         items={[
-          { value: "tickets", label: "البلاغات", count: active, tone: "maroon" },
-          { value: "tasks", label: "المهام الداخلية", count: tasks.filter((t) => t.column !== "verified").length },
-          { value: "reports", label: "التقارير اليومية", count: reports.filter((r) => !r.readAt).length },
-        ]}
+          { value: "tickets" as const, label: "البلاغات", count: active, tone: "maroon" as const },
+          { value: "tasks" as const, label: "المهام الداخلية", count: tasks.filter((t) => t.column !== "verified").length },
+          { value: "reports" as const, label: "التقارير اليومية", count: reports.filter((r) => !r.readAt).length },
+        ].filter((x) => allowed.includes(x.value))}
       />
 
-      {view === "tasks" ? <TasksList /> : view === "reports" ? <DailyReports reports={reports} /> : <Tickets tickets={tickets} now={now} />}
+      {view === "tasks" ? <TasksList /> : view === "reports" ? <DailyReports reports={reports} /> : view === "tickets" ? <Tickets tickets={tickets} now={now} /> : null}
 
-      <ShiftLog now={now} />
+      {can(user, "operations.shift-log.GET") && <ShiftLog now={now} />}
     </div>
   );
 }
@@ -100,7 +105,8 @@ function DailyReports({ reports }: { reports: DailyReport[] }) {
   const open = reports.find((r) => r.id === openId) ?? null;
   const show = (r: DailyReport) => {
     setOpenId(r.id);
-    if (!r.readAt) actions.readDailyReport(r.id, user.name);
+    // Marking it read tells its sender: only for whoever may change the reports
+    if (!r.readAt && can(user, "operations.daily-reports.PUT")) actions.readDailyReport(r.id, user.name);
   };
   return (
     <div className="space-y-4">
@@ -159,7 +165,7 @@ function Tickets({ tickets, now }: { tickets: QueueTicket[]; now: number }) {
 
   return (
     <div className="space-y-4">
-      <BusNotice />
+      {can(user, "operations.decisions.GET") && <BusNotice />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segments
@@ -206,7 +212,7 @@ function Tickets({ tickets, now }: { tickets: QueueTicket[]; now: number }) {
                 </div>
                 <RowActions>
                   <RowLink onClick={() => setOpenId(t.id)}>فتح</RowLink>
-                  {t.status !== "resolved" && <RowLink onClick={() => closeTicket(t)}>إغلاق</RowLink>}
+                  {t.status !== "resolved" && can(user, "operations.tickets.close") && <RowLink onClick={() => closeTicket(t)}>إغلاق</RowLink>}
                 </RowActions>
               </td>
               <td className="p-3">
@@ -239,7 +245,7 @@ function Tickets({ tickets, now }: { tickets: QueueTicket[]; now: number }) {
       </Box>
 
       <Drawer open={!!open} onClose={close} title={open ? `بلاغ ${open.id} — ${KIND_LABELS[open.kind]}` : ""}>
-        {open && <TicketDetail key={open.id} t={open} now={now} />}
+        {open && <TicketDetail key={open.id} t={open} now={now} system="operations" />}
       </Drawer>
     </div>
   );
@@ -261,6 +267,8 @@ function BusNotice() {
       <Button
         size="sm"
         variant="gold"
+        disabled={!can(user, "operations.decisions.approve")}
+        title={can(user, "operations.decisions.approve") ? undefined : "يحتاج صلاحية «اعتماد قرار» في غرفة العمليات"}
         onClick={() => {
           logAs(user, { action: "اعتماد حافلة إضافية", target: "حافلات مزدلفة المبكرة", before: "8 حافلات — 400 مقعد", after: "9 حافلات — 450 مقعداً", detail: "اقتراح المنصة: 430 مسجلاً" });
           toast({ title: "اعتُمدت الحافلة التاسعة", body: "أُبلغ فريق المواصلات ورؤساء المجموعات برقم الحافلة.", tone: "success", icon: "🚌" });
@@ -272,9 +280,16 @@ function BusNotice() {
   );
 }
 
-/** One report in full: its state, who it is assigned to, and its timeline — also used by the medical and transport teams */
-export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
+/**
+ * One report in full: its state, who it is assigned to, and its timeline — also used by the medical and transport
+ * teams. Each act needs its permission in the system the sheet is opened from (`system`): an update or a status
+ * `‹system›.tickets.PUT`, closing `.close`, assigning `.assign`.
+ */
+export function TicketDetail({ t, now, system = "operations" }: { t: QueueTicket; now: number; system?: TicketSystem }) {
   const user = useStaffUser()!;
+  const mayUpdate = can(user, `${system}.tickets.PUT`);
+  const mayClose = can(user, `${system}.tickets.close`);
+  const mayAssign = can(user, `${system}.tickets.assign`);
   const toast = useToast();
   const [text, setText] = useState("");
   const [assignee, setAssignee] = useState(t.assignee || "");
@@ -282,7 +297,7 @@ export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
   const target = SLA_MINUTES[t.kind];
 
   const assign = () => {
-    if (!assignee || assignee === t.assignee) return;
+    if (!mayAssign || !assignee || assignee === t.assignee) return;
     materialize(t);
     actions.updateTicket(t.id, { assignee, status: t.status === "open" ? "in_progress" : t.status }, { by: user.name, text: `أُسند إلى ${assignee}` });
     logAs(user, { action: "إسناد بلاغ", target: `بلاغ ${t.id} — ${KIND_LABELS[t.kind]}`, before: t.assignee || "غير مُسند", after: assignee });
@@ -290,14 +305,16 @@ export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
   };
 
   const addUpdate = () => {
-    if (text.trim().length < 3) return;
+    if (!mayUpdate || text.trim().length < 3) return;
     materialize(t);
     actions.updateTicket(t.id, {}, { by: user.name, text: text.trim() });
     logAs(user, { action: "تحديث بلاغ", target: `بلاغ ${t.id}`, detail: text.trim() });
     setText("");
   };
 
+  const mayStatus = (status: Ticket["status"]) => (status === "resolved" ? mayClose : mayUpdate);
   const setStatus = (status: Ticket["status"]) => {
+    if (!mayStatus(status)) return;
     if (setTicketStatus(user, t, status)) toast(statusToast(t, status));
   };
 
@@ -332,7 +349,7 @@ export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
         <p className="mb-2 font-bold text-gold">الحالة</p>
         <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white/10 p-1 ring-1 ring-white/10">
           {flow.map((s) => (
-            <button key={s} onClick={() => setStatus(s)} className={cn("relative rounded-xl py-2.5 text-sm font-bold transition", t.status === s ? (s === "in_progress" ? "on-light text-ink" : "text-white") : "text-white/85 hover:bg-white/5 hover:text-white")}>
+            <button key={s} onClick={() => setStatus(s)} disabled={t.status !== s && !mayStatus(s)} className={cn("disabled:cursor-not-allowed disabled:opacity-40", "relative rounded-xl py-2.5 text-sm font-bold transition", t.status === s ? (s === "in_progress" ? "on-light text-ink" : "text-white") : "text-white/85 hover:bg-white/5 hover:text-white")}>
               {t.status === s && <motion.span layoutId={`status-${t.id}`} className={cn("absolute inset-0 rounded-xl", s === "resolved" ? "bg-green-light" : s === "in_progress" ? "bg-gold" : "bg-maroon ring-1 ring-white/20")} />}
               <span className="relative">{STATUS_LABEL[s]}</span>
             </button>
@@ -343,7 +360,7 @@ export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
       <div>
         <p className="mb-2 font-bold text-gold">الإسناد</p>
         <div className="flex gap-2">
-          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={cn(smallInputClass, "min-w-0 [&>option]:text-ink")} aria-label="الجهة المسند إليها">
+          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} disabled={!mayAssign} className={cn(smallInputClass, "min-w-0 [&>option]:text-ink")} aria-label="الجهة المسند إليها">
             <option value="">اختر الجهة...</option>
             {[...new Set([t.assignee, ...ASSIGNEES].filter(Boolean))].map((a) => (
               <option key={a} value={a}>
@@ -351,10 +368,11 @@ export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
               </option>
             ))}
           </select>
-          <Button variant="gold" className="shrink-0" onClick={assign} disabled={!assignee || assignee === t.assignee}>
+          <Button variant="gold" className="shrink-0" onClick={assign} disabled={!mayAssign || !assignee || assignee === t.assignee}>
             إسناد
           </Button>
         </div>
+        {!mayAssign && <p className="mt-1 text-xs text-white/55">الإسناد يحتاج صلاحية «إسناد» على البلاغات.</p>}
       </div>
 
       <div>
@@ -370,12 +388,14 @@ export function TicketDetail({ t, now }: { t: QueueTicket; now: number }) {
             </li>
           ))}
         </ol>
-        <div className="mt-4 flex gap-2">
-          <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="أضف تحديثاً: وصل الفريق، الحالة مستقرة..." className={cn(textareaClass, "text-sm")} />
-          <Button variant="gold" onClick={addUpdate} disabled={text.trim().length < 3} className="self-end" aria-label="إضافة تحديث">
-            <MessageSquarePlus className="size-4" />
-          </Button>
-        </div>
+        {mayUpdate && (
+          <div className="mt-4 flex gap-2">
+            <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="أضف تحديثاً: وصل الفريق، الحالة مستقرة..." className={cn(textareaClass, "text-sm")} />
+            <Button variant="gold" onClick={addUpdate} disabled={text.trim().length < 3} className="self-end" aria-label="إضافة تحديث">
+              <MessageSquarePlus className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

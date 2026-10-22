@@ -16,6 +16,7 @@ import { cn, formatNumber, nowMs, sleep } from "@/lib/utils";
 import { lastEvent } from "../_components/data";
 import { fmtDateTime, Gate, logAs, PageHeader, useStaffUser } from "../_components/kit";
 import { Box, EditHeader, EditLayout, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
+import { viewKeys } from "@/lib/permissions";
 
 const A = {
   issue: "إصدار الأعمار المقبولة",
@@ -55,7 +56,7 @@ const STEPS: Step[] = ["ages", "pool", "entry", "publish"];
 
 export function LotteryView() {
   return (
-    <Gate perms={["lottery.import", "lottery.approve"]}>
+    <Gate perms={viewKeys("lottery")}>
       <Lottery />
     </Gate>
   );
@@ -91,8 +92,11 @@ function StepsList() {
   const season = useSeason();
   const st = useLotteryState();
   const { lottery, published, seeded, issued, agesApproved, exported } = st;
-  const canImport = can(user, "lottery.import");
-  const canApprove = can(user, "lottery.approve");
+  const canIssue = can(user, "lottery.ages.issue");
+  const canApproveAges = can(user, "lottery.ages.approve");
+  const canExport = can(user, "lottery.pool.export");
+  const canEnter = can(user, "lottery.draw.POST");
+  const canPublish = can(user, "lottery.draw.publish") && lottery.entry?.by !== user.name;
 
   const resetDemo = () => {
     actions.setLottery({ entry: undefined, sent: undefined, published: undefined, cleared: true });
@@ -109,7 +113,7 @@ function StepsList() {
       status: seeded || agesApproved ? <Tag tone="green">أُعلنت</Tag> : issued ? <Tag tone="gold">بانتظار الاعتماد</Tag> : <Tag>لم تبدأ</Tag>,
       last: agesApproved ?? issued,
       who: "ترسلها إدارة التسجيل، وتعتمدها لجنة الاعتماد",
-      action: canApprove && issued && !agesApproved ? "اعتماد وإعلان" : canImport && !issued && !seeded ? "إرسال للاعتماد" : "فتح",
+      action: canApproveAges && issued && !agesApproved ? "اعتماد وإعلان" : canIssue && !issued && !seeded ? "إرسال للاعتماد" : "فتح",
     },
     {
       step: "pool",
@@ -118,7 +122,7 @@ function StepsList() {
       status: seeded || exported ? <Tag tone="green">صُدِّر</Tag> : <Tag>لم يُصدَّر</Tag>,
       last: exported,
       who: "إدارة التسجيل",
-      action: canImport && !exported && !seeded ? "تصدير" : "فتح",
+      action: canExport && !exported && !seeded ? "تصدير" : "فتح",
     },
     {
       step: "entry",
@@ -126,8 +130,8 @@ function StepsList() {
       text: "ما سُحب في البث المباشر: سنوات الميلاد، ولبعضها أشهر.",
       status: published && !lottery.sent ? <Tag tone="green">أُدخلت ونُشرت</Tag> : lottery.sent ? <Tag tone="gold">أُرسلت للاعتماد</Tag> : <Tag>لم تُدخل</Tag>,
       last: sentEvent,
-      who: "صاحب صلاحية «إدخال نتائج القرعة»",
-      action: canImport && !lottery.sent && !published ? "إدخال النتائج" : "فتح",
+      who: "صاحب صلاحية «إضافة — نتائج البث»",
+      action: canEnter && !lottery.sent && !published ? "إدخال النتائج" : "فتح",
     },
     {
       step: "publish",
@@ -135,8 +139,8 @@ function StepsList() {
       text: "بعد النشر يعرف كل مسجّل نتيجته، ويبدأ المقبولون تثبيت تسجيلهم.",
       status: published ? <Tag tone="green">نُشرت</Tag> : lottery.sent ? <Tag tone="maroon">بانتظار الاعتماد</Tag> : <Tag>بانتظار الإدخال</Tag>,
       last: published?.at ? { actor: published.by, at: published.at } : undefined,
-      who: "صاحب صلاحية «اعتماد ونشر النتائج»",
-      action: canApprove && lottery.sent && !published ? "اعتماد ونشر" : "فتح",
+      who: "صاحب صلاحية «اعتماد النتائج ونشرها»",
+      action: canPublish && lottery.sent && !published ? "اعتماد ونشر" : "فتح",
     },
   ];
 
@@ -182,7 +186,7 @@ function StepsList() {
         <p>
           <b className="text-gold">القرعة:</b> يُفتح بعد الإعلان التسجيل الأولي عليها ({W.lottery.hijri}) بطلب جديد. تُجرى القرعة خارج المنصة ({W.lottery.draw}) ببث مباشر على التلفاز بإشراف لجنة تنظيم قرعة الحج، تُسحب فيه سنوات ميلاد، ولبعضها أشهر، حتى تكتمل المقاعد. لا تُسحب أسماء، ولا يستطيع أحد تغيير أي طلب في المنصة أثناء البث.
         </p>
-        <p>بعد البث يُدخل صاحب صلاحية «إدخال نتائج القرعة» ما سُحب سنةً سنة، ثم يعتمده صاحب صلاحية «اعتماد ونشر النتائج»، فيُقبل كل طلب وُلد صاحبه في سنة وشهر مسحوبين. فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.</p>
+        <p>بعد البث يُدخل صاحب صلاحية «إضافة — نتائج البث» ما سُحب سنةً سنة، ثم يعتمده صاحب صلاحية «اعتماد النتائج ونشرها»، فيُقبل كل طلب وُلد صاحبه في سنة وشهر مسحوبين. فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.</p>
       </Box>
     </div>
   );
@@ -230,8 +234,8 @@ function AgesStep() {
   const toast = useToast();
   const season = useSeason();
   const { issued, agesApproved } = useLotteryState();
-  const canImport = can(user, "lottery.import");
-  const canApprove = can(user, "lottery.approve");
+  const canImport = can(user, "lottery.ages.issue");
+  const canApprove = can(user, "lottery.ages.approve");
   const cut = useMemo(() => cutAge(season.directSeats), [season.directSeats]);
   const rows = AGE_BUCKETS.reduce<{ b: (typeof AGE_BUCKETS)[number]; cum: number }[]>((acc, b) => [...acc, { b, cum: (acc.at(-1)?.cum ?? 0) + b.seats }], []);
 
@@ -297,8 +301,8 @@ function AgesStep() {
               <Megaphone className="size-4" /> اعتماد وإعلان الأعمار
             </Button>
           )}
-          {canApprove && !issued && <p className="text-xs text-white/60">بانتظار إرسال القائمة من صاحب صلاحية «إدخال نتائج القرعة».</p>}
-          {!canApprove && issued && !agesApproved && <p className="text-xs text-white/60">أُرسلت — الاعتماد من صلاحية «اعتماد ونشر النتائج».</p>}
+          {canApprove && !issued && <p className="text-xs text-white/60">بانتظار إرسال القائمة من صاحب صلاحية «إرسال الأعمار للاعتماد».</p>}
+          {!canApprove && issued && !agesApproved && <p className="text-xs text-white/60">أُرسلت — الاعتماد من صلاحية «اعتماد الأعمار وإعلانها».</p>}
         </Box>
       }
     />
@@ -311,7 +315,7 @@ function PoolStep() {
   const user = useStaffUser()!;
   const toast = useToast();
   const { exported } = useLotteryState();
-  const canImport = can(user, "lottery.import");
+  const canImport = can(user, "lottery.pool.export");
   const [exporting, setExporting] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
 
@@ -374,7 +378,7 @@ function PoolStep() {
                 {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
                 {exporting ? "جارٍ تجهيز الملف..." : "تصدير الإحصاء للجنة تنظيم القرعة"}
               </Button>
-              {!canImport && <p className="text-xs text-white/60">التصدير من صلاحية «إدخال نتائج القرعة».</p>}
+              {!canImport && <p className="text-xs text-white/60">التصدير من صلاحية «تصدير الإحصاء».</p>}
             </>
           )}
         </Box>
@@ -440,7 +444,10 @@ function EntryStep() {
   const user = useStaffUser()!;
   const toast = useToast();
   const { lottery, published, seeded } = useLotteryState();
-  const canImport = can(user, "lottery.import");
+  const canImport = can(user, "lottery.draw.POST");
+  // Saving sends for approval; taking back what was sent is a change of its own
+  const canSubmit = can(user, "lottery.draw.submit");
+  const canWithdraw = can(user, "lottery.draw.PUT");
   const [picks, setPicks] = useState<DrawPick[]>(() => lottery.entry?.picks ?? []);
   const [year, setYear] = useState<number | "">("");
   const [mode, setMode] = useState<"all" | "months">("all");
@@ -469,6 +476,7 @@ function EntryStep() {
 
   const unsend = () => {
     actions.setLottery({ sent: undefined });
+    logAs(user, { action: "سحب نتائج القرعة للتعديل قبل الاعتماد", target: `${lottery.entry?.picks.length ?? 0} سنوات ميلاد` });
     toast({ title: "أُعيدت النتائج للتعديل", tone: "info", icon: "✏️" });
   };
 
@@ -492,7 +500,7 @@ function EntryStep() {
                 <p className="flex items-start gap-2 text-white">
                   <Send className="mt-0.5 size-4 shrink-0 text-gold" /> أُرسلت للاعتماد: {lottery.sent.by} — {fmtDateTime(lottery.sent.at)}
                 </p>
-                {canImport && !published && (
+                {canWithdraw && !published && (
                   <Button variant="glass" size="sm" className="w-full" onClick={unsend}>
                     <Pencil className="size-4" /> تعديل قبل الاعتماد
                   </Button>
@@ -500,7 +508,7 @@ function EntryStep() {
               </>
             ) : (
               <p className="flex items-start gap-2">
-                <Lock className="mt-0.5 size-4 shrink-0" /> بانتظار إدخال نتائج البث من صاحب صلاحية «إدخال نتائج القرعة».
+                <Lock className="mt-0.5 size-4 shrink-0" /> بانتظار إدخال نتائج البث من صاحب صلاحية «إضافة — نتائج البث».
               </p>
             )}
           </Box>
@@ -566,7 +574,7 @@ function EntryStep() {
           </Box>
           <Box title="الإرسال">
             <p className="text-xs text-white/60">لا يرى الحجاج شيئاً قبل الاعتماد والنشر.</p>
-            <Button variant="gold" className="w-full" onClick={send} disabled={!picks.length}>
+            <Button variant="gold" className="w-full" onClick={send} disabled={!picks.length || !canSubmit} title={canSubmit ? undefined : "الإرسال للاعتماد يحتاج صلاحية «إرسال النتائج للاعتماد»"}>
               <Send className="size-4" /> حفظ وإرسال للاعتماد
             </Button>
           </Box>
@@ -582,7 +590,8 @@ function PublishStep() {
   const user = useStaffUser()!;
   const toast = useToast();
   const { lottery, published } = useLotteryState();
-  const canApprove = can(user, "lottery.approve");
+  // Whoever entered the results does not approve them, even holding both permissions
+  const canApprove = can(user, "lottery.draw.publish") && lottery.entry?.by !== user.name;
   const [confirm, setConfirm] = useState(false);
   const entry = lottery.entry;
   const t = entry ? drawTotals(entry.picks) : null;
@@ -642,7 +651,7 @@ function PublishStep() {
                 </Button>
                 {!canApprove && (
                   <p className="flex items-start gap-2 text-xs text-white/70">
-                    <Lock className="mt-0.5 size-3.5 shrink-0" /> يتطلب صلاحية «اعتماد ونشر النتائج». فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.
+                    <Lock className="mt-0.5 size-3.5 shrink-0" /> يتطلب صلاحية «اعتماد النتائج ونشرها»، ولا يعتمدها من أدخلها. فصل الإدخال عن الاعتماد يمنع أن ينفرد شخص واحد بالنتيجة.
                   </p>
                 )}
               </>

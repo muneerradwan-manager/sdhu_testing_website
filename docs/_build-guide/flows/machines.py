@@ -3,12 +3,12 @@
 (أو يحسبها حين لا يخزّن شيئاً) وبالعناوين التي يعرضها الموقع، وانتقالاتها بمن يفعلها وأين، ومكانها في نموذج البيانات."""
 from .dsl import *
 
-REVIEWER = "موظف بصلاحية «مراجعة الطلبات والوثائق»"
-ADMINS = "موظف بصلاحية «إدارة الإداريين»"
-EXAMS = "موظف بصلاحية «إدارة الامتحانات»"
-FLIGHTS = "موظف بصلاحية «إدارة الطيران»"
-REGMAN = "موظف بصلاحية «إدارة التسجيل على الحج»"
-SUPERVISOR = "مشرف القاعة"
+REVIEWER = "موظف يملك القرار في «مراجعة الطلبات والوثائق»"
+ADMINS = "موظف يملك صلاحيتها في «إدارة الإداريين»"
+EXAMS = "موظف يملك صلاحيتها في «إدارة الامتحانات»"
+FLIGHTS = "موظف يملك صلاحيتها في «إدارة الطيران»"
+REGMAN = "موظف يملك صلاحيتها في «إدارة التسجيل على الحج»"
+SUPERVISOR = "مشرف القاعة (من يملك «قاعة الامتحان» لمركزها)"
 SYSTEM = "النظام"
 
 MACHINES = [
@@ -156,10 +156,10 @@ MACHINES = [
         S("approved", "معتمدة", "«✓ معتمد — الفريق الطبي»"),
         S("rejected", "مرفوضة", "«أعادها الفريق الطبي: <السبب>»")],
        [T("missing", "uploaded", "«رفع»", "الحاج", src=["app/portal/application/_components/post/step-medical.tsx:45"]),
-        T("uploaded", "approved", "«اعتماد» في قائمة الوثائق", "موظف بصلاحية «الفريق الطبي»", src=["app/staff/medical/view.tsx:127"]),
+        T("uploaded", "approved", "«اعتماد» في قائمة الوثائق", "موظف يملك صلاحيتها في «الفريق الطبي»", src=["app/staff/medical/view.tsx:127"]),
         T("uploaded", "approved", "بعد 3.5 ثانية في النسخة التجريبية يعتمد المؤقت كل ما رُفع", SYSTEM,
           src=["app/portal/application/_components/post/step-medical.tsx:36"], auto=True),
-        T("uploaded", "rejected", "«إعادة» مع سبب يقرؤه الحاج", "موظف بصلاحية «الفريق الطبي»", src=["app/staff/medical/view.tsx:127"]),
+        T("uploaded", "rejected", "«إعادة» مع سبب يقرؤه الحاج", "موظف يملك صلاحيتها في «الفريق الطبي»", src=["app/staff/medical/view.tsx:127"]),
         T("rejected", "uploaded", "«رفع من جديد»", "الحاج", src=["app/portal/application/_components/post/step-medical.tsx:51"])],
        src=["lib/store.ts:316", "lib/registration/post.ts:42"], initial="missing",
        gap="مؤقت صفحة الحاج يعتمد الوثائق المرفوعة بعد 3.5 ثانية فيسبق قرار الفريق الطبي. ولا قيد يمنع اعتماد وثيقة معادة دون رفع جديد."),
@@ -211,10 +211,10 @@ MACHINES = [
        [S("notStarted", "لم تبدأ"),
         S("issued", "بانتظار الاعتماد", "«أُرسلت الأعمار المقبولة للاعتماد»"),
         S("announced", "أُعلنت", "«كل من بلغ <العمر> عاماً فأكثر مقبول مباشرة»")],
-       [T("notStarted", "issued", "«إرسال للاعتماد»", "موظف بصلاحية «إدخال نتائج القرعة»", src=["app/staff/lottery/view.tsx:238"]),
-        T("issued", "announced", "«اعتماد وإعلان»: يُكتب العمر في acceptedDirectAge للموسم", "موظف بصلاحية «اعتماد ونشر النتائج»",
+       [T("notStarted", "issued", "«إرسال للاعتماد»", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة»", src=["app/staff/lottery/view.tsx:238"]),
+        T("issued", "announced", "«اعتماد وإعلان»: يُكتب العمر في acceptedDirectAge للموسم", "موظف بصلاحية الاعتماد في «القبول المباشر والقرعة» (غير من أدخل)",
           src=["app/staff/lottery/view.tsx:243", "app/staff/lottery/view.tsx:245"]),
-        T("*", "notStarted", "«إعادة التجربة» في صفحة الخطوات (للتجربة فقط)", "موظف بصلاحية «إدخال نتائج القرعة» أو «اعتماد ونشر النتائج»",
+        T("*", "notStarted", "«إعادة التجربة» في صفحة الخطوات (للتجربة فقط)", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة» أو «اعتماد ونشر النتائج»",
           src=["app/staff/lottery/view.tsx:98"])],
        src=["app/staff/lottery/view.tsx:65", "app/staff/lottery/view.tsx:109"], initial="notStarted",
        gap="لا سجل لهذه الخطوة في الكود: الحالة تُستنتج من سجل الأحداث (حدثا الإرسال والاعتماد بعد آخر إعادة). "
@@ -229,12 +229,12 @@ MACHINES = [
         S("entered", "أُعيدت للتعديل", "سحبها مدخلها قبل الاعتماد ليعدّلها"),
         S("published", "نُشرت", "«أُدخلت ونُشرت»: يُقبل كل طلب وُلد صاحبه في سنة وشهر مسحوبين"),
         S("withdrawn", "سُحبت النتائج", "«سُحبت النتائج المنشورة من العرض: لا يرى الحجاج نتيجة حتى تُنشر من جديد»")],
-       [T("empty", "sent", "يدخل السطور ثم «إرسال للاعتماد»", "موظف بصلاحية «إدخال نتائج القرعة»", src=["app/staff/lottery/view.tsx:463"]),
-        T("withdrawn", "sent", "إدخال جديد ثم «إرسال للاعتماد»", "موظف بصلاحية «إدخال نتائج القرعة»", src=["app/staff/lottery/view.tsx:463"]),
-        T("sent", "entered", "«تعديل قبل الاعتماد»", "موظف بصلاحية «إدخال نتائج القرعة»", src=["app/staff/lottery/view.tsx:471"]),
-        T("entered", "sent", "«إرسال للاعتماد» بعد التعديل", "موظف بصلاحية «إدخال نتائج القرعة»", src=["app/staff/lottery/view.tsx:463"]),
-        T("sent", "published", "«اعتماد ونشر» بعد التأكيد", "موظف بصلاحية «اعتماد ونشر النتائج»", src=["app/staff/lottery/view.tsx:592"]),
-        T("published", "withdrawn", "«إعادة التجربة» (للتجربة فقط)", "موظف بصلاحية «إدخال نتائج القرعة» أو «اعتماد ونشر النتائج»",
+       [T("empty", "sent", "يدخل السطور ثم «إرسال للاعتماد»", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة»", src=["app/staff/lottery/view.tsx:463"]),
+        T("withdrawn", "sent", "إدخال جديد ثم «إرسال للاعتماد»", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة»", src=["app/staff/lottery/view.tsx:463"]),
+        T("sent", "entered", "«تعديل قبل الاعتماد»", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة»", src=["app/staff/lottery/view.tsx:471"]),
+        T("entered", "sent", "«إرسال للاعتماد» بعد التعديل", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة»", src=["app/staff/lottery/view.tsx:463"]),
+        T("sent", "published", "«اعتماد ونشر» بعد التأكيد", "موظف بصلاحية الاعتماد في «القبول المباشر والقرعة» (غير من أدخل)", src=["app/staff/lottery/view.tsx:592"]),
+        T("published", "withdrawn", "«إعادة التجربة» (للتجربة فقط)", "موظف بصلاحية الإدخال في «القبول المباشر والقرعة» أو «اعتماد ونشر النتائج»",
           src=["app/staff/lottery/view.tsx:98"])],
        src=["lib/store.ts:779", "lib/lottery.ts:38"], initial="empty",
        gap="الكود لا يخزّن حالة بل حقولاً: entry وsent وpublished وcleared، والحالة تُستنتج منها. نشر جديد يحل محل المنشور دون نسخة سابقة، "
@@ -311,7 +311,7 @@ MACHINES = [
            "result_published_at في النموذج لا يكتبه الكود (يُستعمل confirmedAt والإظهار showResult)."),
 
     SM("exam", "الاختبار المؤتمت (تعريفه)",
-       "اختبار صفة يبنيه صاحب «إدارة الامتحانات»: موعده وأقسامه وطريقة الاقتران. لا تُفتح له جلسة في القاعات قبل نشره، ولا يُنشر بلا موعد "
+       "اختبار صفة يبنيه من يملك صلاحيته في «إدارة الامتحانات»: موعده وأقسامه وطريقة الاقتران. لا تُفتح له جلسة في القاعات قبل نشره، ولا يُنشر بلا موعد "
        "أو ببنك أسئلة لا يكفي، ولا يُسحب من النشر ما دام جارياً في قاعة.",
        "exams.status",
        [S("draft", "مسودة", "لا تُفتح له جلسة حتى يُنشر"),
@@ -388,7 +388,7 @@ MACHINES = [
        "بسعة فئة رئيسها. الحالات الأخرى من مسار قديم كان يُقدَّم فيه الطلب على المنصة ثم يُعتمد أو يُعاد.",
        "admin_groups.approved_at",
        [S("unpaid", "بانتظار رسم التشكيل"),
-        S("waiting", "تنتظر قرارك", "دُفع الرسم والطلب عند صاحب «إدارة الإداريين»"),
+        S("waiting", "تنتظر قرارك", "دُفع الرسم والطلب عند «إدارة الإداريين»"),
         S("returned", "أُعيدت إلى رئيسها", "مع ما ينقصها"),
         S("approved", "معتمدة", "تُلحق بها العائلات بعقودها، وتدخل تكتلاً حين يُشكَّل")],
        [T("unpaid", "approved", "«تشكيل مجموعة في المكتب»: الرسم والعقد والفريق والاعتماد معاً", ADMINS,
@@ -494,9 +494,9 @@ MACHINES = [
         T("full", "published", "فرغ مقعد بإلغاء إسناد أو نقل", SYSTEM, src=["lib/flights.ts:850"], auto=True),
         T("published", "locked", "«إقفال الرحلة»: يصدر كشف الركاب", FLIGHTS, src=["app/staff/flights/flight-screen.tsx:206", "lib/flights.ts:898"]),
         T("full", "locked", "«إقفال الرحلة»", FLIGHTS, src=["lib/flights.ts:898"]),
-        T("locked", "departed", "«تسجيل الإقلاع» ومن صعد", "مندوب المطار أو " + FLIGHTS,
+        T("locked", "departed", "«تسجيل الإقلاع» ومن صعد", "مندوب المطار (من يملك «رحلات المطار» له) أو " + FLIGHTS,
           src=["app/staff/airport/view.tsx:207", "app/staff/flights/flight-screen.tsx:150", "lib/flights.ts:939"]),
-        T("departed", "arrived", "«تسجيل الهبوط»", "مندوب المطار أو " + FLIGHTS,
+        T("departed", "arrived", "«تسجيل الهبوط»", "مندوب المطار (من يملك «رحلات المطار» له) أو " + FLIGHTS,
           src=["app/staff/airport/view.tsx:170", "app/staff/flights/flight-screen.tsx:221", "lib/flights.ts:952"]),
         T("published", "postponed", "«تأجيل» مع السبب", FLIGHTS, src=["app/staff/flights/flight-screen.tsx:133", "lib/flights.ts:977"]),
         T("full", "postponed", "«تأجيل»", FLIGHTS, src=["lib/flights.ts:977"]),
@@ -516,9 +516,9 @@ MACHINES = [
        [S("assigned", "مسند"), S("locked", "مثبت", "أُقفلت الرحلة وصدر الكشف"), S("boarded", "صعد"), S("arrived", "وصل", final=True),
         S("noShow", "تخلّف", final=True), S("cancelled", "ملغى", final=True), S("moved", "منقول", "نُقل إلى رحلة أخرى", final=True)],
        [T("assigned", "locked", "إقفال الرحلة (والإسناد إلى رحلة مقفلة يبدأ مثبتاً مع سبب)", FLIGHTS, src=["lib/flights.ts:899", "lib/flights.ts:835"]),
-        T("locked", "boarded", "تسجيل الإقلاع وهو بين من صعد، أو تعليمه صاعداً قبله", "مندوب المطار أو " + FLIGHTS, src=["lib/flights.ts:940", "lib/flights.ts:966"]),
-        T("locked", "noShow", "تسجيل الإقلاع وهو ليس بين من صعد", "مندوب المطار أو " + FLIGHTS, src=["lib/flights.ts:940"]),
-        T("boarded", "arrived", "تسجيل هبوط الرحلة", "مندوب المطار أو " + FLIGHTS, src=["lib/flights.ts:952"]),
+        T("locked", "boarded", "تسجيل الإقلاع وهو بين من صعد، أو تعليمه صاعداً قبله", "مندوب المطار (من يملك «رحلات المطار» له) أو " + FLIGHTS, src=["lib/flights.ts:940", "lib/flights.ts:966"]),
+        T("locked", "noShow", "تسجيل الإقلاع وهو ليس بين من صعد", "مندوب المطار (من يملك «رحلات المطار» له) أو " + FLIGHTS, src=["lib/flights.ts:940"]),
+        T("boarded", "arrived", "تسجيل هبوط الرحلة", "مندوب المطار (من يملك «رحلات المطار» له) أو " + FLIGHTS, src=["lib/flights.ts:952"]),
         T("assigned", "cancelled", "«إلغاء الإسناد» أو إزالة المجموعة عن الرحلة أو إلغاء الرحلة أو انتقال العائلة إلى مجموعة أخرى", "رئيس التكتل أو " + FLIGHTS,
           src=["lib/flights.ts:1101", "lib/flights.ts:1067", "lib/flights.ts:1020", "lib/flights.ts:1211"]),
         T("locked", "cancelled", "كالسابق على رحلة مقفلة", FLIGHTS, src=["lib/flights.ts:1101", "lib/flights.ts:1020"]),
@@ -554,8 +554,8 @@ MACHINES = [
        [S("pending", "عند فريق المواصلات"),
         S("approved", "أُسندت حافلة", "حافلة من 49 مقعداً للتكتل في تلك القائمة", final=True),
         S("rejected", "رُفض", "مع السبب", final=True)],
-       [T("pending", "approved", "«إسناد حافلة»", "موظف بصلاحية «المواصلات»", src=["app/staff/transport/buses.tsx:122", "lib/rite-lists.ts:166"]),
-        T("pending", "rejected", "«رفض» مع السبب", "موظف بصلاحية «المواصلات»", src=["app/staff/transport/buses.tsx:156", "lib/rite-lists.ts:169"])],
+       [T("pending", "approved", "«إسناد حافلة»", "موظف يملك صلاحيتها في «المواصلات»", src=["app/staff/transport/buses.tsx:122", "lib/rite-lists.ts:166"]),
+        T("pending", "rejected", "«رفض» مع السبب", "موظف يملك صلاحيتها في «المواصلات»", src=["app/staff/transport/buses.tsx:156", "lib/rite-lists.ts:169"])],
        src=["lib/rite-lists.ts:44", "lib/rite-lists.ts:160", "app/portal/(admin)/lists/lists.tsx:250"], initial="pending"),
 
     SM("lesson", "درس المجموعة",
@@ -584,9 +584,9 @@ MACHINES = [
        [S("open", "مفتوح", "«مفتوحة» في صفحة الحاج"),
         S("in_progress", "قيد المعالجة"),
         S("resolved", "مغلق", "«تم الحل» في صفحة الحاج")],
-       [T("open", "in_progress", "«إسناد» إلى أحد الفريق", "موظف بصلاحية «غرفة العمليات»", src=["app/staff/operations/view.tsx:287"]),
-        T("in_progress", "resolved", "تغيير الحالة إلى «مغلق»", "موظف بصلاحية «غرفة العمليات»", src=["app/staff/operations/shared.tsx:63"]),
-        T("open", "resolved", "تغيير الحالة إلى «مغلق»", "موظف بصلاحية «غرفة العمليات»", src=["app/staff/operations/shared.tsx:63"]),
+       [T("open", "in_progress", "«إسناد» إلى أحد الفريق", "موظف يملك صلاحيتها في «غرفة العمليات»", src=["app/staff/operations/view.tsx:287"]),
+        T("in_progress", "resolved", "تغيير الحالة إلى «مغلق»", "موظف يملك صلاحيتها في «غرفة العمليات»", src=["app/staff/operations/shared.tsx:63"]),
+        T("open", "resolved", "تغيير الحالة إلى «مغلق»", "موظف يملك صلاحيتها في «غرفة العمليات»", src=["app/staff/operations/shared.tsx:63"]),
         T("resolved", "open", "«لا، لم تُحل» من صفحة الحاج، أو إعادة فتحه من الغرفة", "الحاج أو غرفة العمليات",
           src=["app/portal/season/_components/tickets.tsx:203", "app/staff/operations/shared.tsx:63"]),
         T("open", "in_progress", "خطوات محاكاة بأوقات ثابتة ما لم يلمسه موظف", SYSTEM, src=["app/portal/season/_components/tickets.tsx:94"], auto=True),
@@ -602,9 +602,9 @@ MACHINES = [
        [S("draft", "مسودة", "«إسناد مبدئي» في ملفاتي"),
         S("active", "مفعّل", "«نافذ»"),
         S("ended", "منتهٍ", "بعد نهاية مدته أو بانقضاء موسمه", final=True)],
-       [T("draft", "active", "«تفعيل»: رقم القرار مُدخل وكل منصب إلزامي مشغول", "موظف بصلاحية «الملفات التشغيلية والبيانات المرجعية»",
+       [T("draft", "active", "«تفعيل»: رقم القرار مُدخل وكل منصب إلزامي مشغول", "موظف يملك صلاحيتها في «الملفات التشغيلية»",
           src=["app/staff/operational-files/view.tsx:459"]),
-        T("active", "draft", "«إعادة إلى مسودة»", "موظف بصلاحية «الملفات التشغيلية والبيانات المرجعية»", src=["app/staff/operational-files/view.tsx:479"]),
+        T("active", "draft", "«إعادة إلى مسودة»", "موظف يملك صلاحيتها في «الملفات التشغيلية»", src=["app/staff/operational-files/view.tsx:479"]),
         T("draft", "ended", "مضى يوم نهايته أو انقضى موسمه", SYSTEM, src=["lib/ops.ts:583"], auto=True),
         T("active", "ended", "مضى يوم نهايته أو انقضى موسمه", SYSTEM, src=["lib/ops.ts:583"], auto=True)],
        src=["lib/ops.ts:571", "lib/ops.ts:581", "app/staff/operational-files/view.tsx:275", "lib/ops.ts:911"], initial="draft",
@@ -612,7 +612,7 @@ MACHINES = [
 
     SM("operation-window", "نافذة العملية في الموسم",
        "كل عملية في الموسم (التسجيل على الحج، تسجيل الإداريين، الاختبارات، تشكيل المجموعات والتكتلات، الإلحاق بالمجموعات…) لها بداية ونهاية؛ "
-       "تُحسب حالتها من التاريخ، ولمن يملك صلاحيتها (أو مديرة الموسم) أن يفتحها أو يوقفها يدوياً أو يغيّر مواعيدها. العمليات بلا مواعيد «دائمة».",
+       "تُحسب حالتها من التاريخ، ولمن يملك season.windows.PUT لها (أو بلا نطاق لكل العمليات) أن يفتحها أو يوقفها يدوياً أو يغيّر مواعيدها. العمليات بلا مواعيد «دائمة».",
        "operation_windows.mode",
        [S("upcoming", "تفتح …"),
         S("open", "مفتوحة", "«مفتوحة حتى …»"),
@@ -622,11 +622,11 @@ MACHINES = [
         S("all", "مفتوحة — تجربة الكل معاً", "زر تجربة يفتح كل العمليات المؤرخة")],
        [T("upcoming", "open", "حلّ وقت البداية", SYSTEM, src=["lib/operations.ts:151"], auto=True),
         T("open", "closed", "مضى وقت النهاية", SYSTEM, src=["lib/operations.ts:151"], auto=True),
-        T("*", "on", "«فتح يدوي»", "صاحب صلاحية العملية أو موظف بصلاحية «إعدادات الموسم»", src=["app/staff/_components/operations.tsx:39", "lib/operations.ts:152"]),
-        T("*", "off", "«إيقاف»", "صاحب صلاحية العملية أو موظف بصلاحية «إعدادات الموسم»", src=["app/staff/_components/operations.tsx:39"]),
-        T("on", "open", "العودة إلى المواعيد (تصير «تفتح» أو «مفتوحة» أو «أُغلقت» حسب التاريخ)", "صاحب صلاحية العملية أو موظف بصلاحية «إعدادات الموسم»",
-          src=["app/staff/_components/operations.tsx:39"]),
-        T("off", "open", "العودة إلى المواعيد", "صاحب صلاحية العملية أو موظف بصلاحية «إعدادات الموسم»", src=["app/staff/_components/operations.tsx:39"]),
+        T("*", "on", "«فتح يدوي»", "من يملك season.windows.PUT لهذه العملية", src=["app/staff/_components/operations.tsx:40", "lib/operations.ts:152"]),
+        T("*", "off", "«إيقاف»", "من يملك season.windows.PUT لهذه العملية", src=["app/staff/_components/operations.tsx:40"]),
+        T("on", "open", "العودة إلى المواعيد (تصير «تفتح» أو «مفتوحة» أو «أُغلقت» حسب التاريخ)", "من يملك season.windows.PUT لهذه العملية",
+          src=["app/staff/_components/operations.tsx:40"]),
+        T("off", "open", "العودة إلى المواعيد", "من يملك season.windows.PUT لهذه العملية", src=["app/staff/_components/operations.tsx:40"]),
         T("upcoming", "all", "«كل شيء مفتوح» في ساعة التجربة", "المختبِر", src=["components/app/demo-clock.tsx:143", "lib/operations.ts:152"]),
         T("closed", "all", "«كل شيء مفتوح»", "المختبِر", src=["components/app/demo-clock.tsx:143"])],
        src=["lib/operations.ts:85", "lib/operations.ts:143", "lib/operations.ts:237"], initial="upcoming",
@@ -635,20 +635,20 @@ MACHINES = [
     # ───────────────────────── المحتوى ─────────────────────────
 
     SM("cms-page", "صفحة من صفحات الموقع",
-       "صفحة يحرّر صاحب «إدارة محتوى الموقع» أقسامها: تعديلاته تُحفظ مسودة لا يراها الزوار حتى «نشر»، وللصفحة نفسها حالة: منشورة أو مسودة "
+       "صفحة يحرّر من يملك تحرير «محتوى الموقع» أقسامها: تعديلاته تُحفظ مسودة لا يراها الزوار حتى «نشر»، وللصفحة نفسها حالة: منشورة أو مسودة "
        "(مخفية عن الزوار) أو مؤرشفة. الصفحات الإلزامية لا تُؤرشف. كل تغيير يُحفظ نسخةً في سجل المراجعات.",
        "cms_pages.status",
        [S("published", "منشورة"),
         S("draft", "مسودة"),
         S("archived", "مؤرشفة", "لا يظهر أي من أقسامها للزائر")],
-       [T("published", "draft", "«تحويلها إلى مسودة»", "موظف بصلاحية «إدارة محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:74", "lib/cms/store.ts:484"]),
-        T("draft", "published", "«نشر الصفحة للزوار»، أو «نشر» تعديلاتها", "موظف بصلاحية «إدارة محتوى الموقع»",
+       [T("published", "draft", "«تحويلها إلى مسودة»", "موظف يملك صلاحيتها في «محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:74", "lib/cms/store.ts:484"]),
+        T("draft", "published", "«نشر الصفحة للزوار»، أو «نشر» تعديلاتها", "موظف يملك صلاحيتها في «محتوى الموقع»",
           src=["app/staff/content/_components/editor.tsx:74", "app/staff/content/_components/editor.tsx:57", "lib/cms/store.ts:461"]),
-        T("published", "archived", "«أرشفة الصفحة» (لغير الصفحات الإلزامية)", "موظف بصلاحية «إدارة محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:422"]),
-        T("draft", "archived", "«أرشفة الصفحة»", "موظف بصلاحية «إدارة محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:422"]),
-        T("archived", "published", "«نشر الصفحة للزوار»، أو «نشر» تعديلات عليها", "موظف بصلاحية «إدارة محتوى الموقع»",
+        T("published", "archived", "«أرشفة الصفحة» (لغير الصفحات الإلزامية)", "موظف يملك صلاحيتها في «محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:422"]),
+        T("draft", "archived", "«أرشفة الصفحة»", "موظف يملك صلاحيتها في «محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:422"]),
+        T("archived", "published", "«نشر الصفحة للزوار»، أو «نشر» تعديلات عليها", "موظف يملك صلاحيتها في «محتوى الموقع»",
           src=["app/staff/content/_components/editor.tsx:74", "lib/cms/store.ts:461"]),
-        T("archived", "draft", "«تحويلها إلى مسودة»", "موظف بصلاحية «إدارة محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:74"])],
+        T("archived", "draft", "«تحويلها إلى مسودة»", "موظف يملك صلاحيتها في «محتوى الموقع»", src=["app/staff/content/_components/editor.tsx:74"])],
        src=["lib/cms/types.ts:121", "lib/cms/store.ts:479", "lib/cms/store.ts:689"], initial="published",
        gap="«نشر» تعديلات صفحة مؤرشفة أو مسودة يجعلها منشورة ضمناً (store.ts:461) دون قرار صريح بإعادتها. "
            "وحالة «مسودة» للصفحة تُخزَّن ولا تُطبَّق كلها: readSectionVisible يخفي أقسام المؤرشفة وحدها (store.ts:195)."),

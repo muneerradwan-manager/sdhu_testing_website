@@ -30,31 +30,32 @@ import {
 import { ButtonLink } from "@/components/ui/button";
 import { Counter, Reveal, SectionHeading, Stagger, StaggerItem } from "@/components/ui/motion";
 import { EMPLOYEES_SEED } from "@/lib/data/employees-seed";
-import { ALL_PERMISSIONS, getStaff, PERMISSION_LABELS, STAFF, type Permission } from "@/lib/staff";
+import { STAFF } from "@/lib/staff";
+import { ALL_KEYS, CATALOG, PERM_SYSTEM, systemKeys } from "@/lib/permissions";
 import { SYSTEMS } from "@/lib/systems";
-import { useHydrated, useStore } from "@/lib/store";
+import { useHydrated } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { useStaffHome } from "./kit";
+import { useStaffHome, useStaffUser } from "./kit";
 
-/** The portal's areas, each with the permission that opens it, in the order the season is worked: set up first */
-const AREAS: { title: string; text: string; icon: LucideIcon; perms: Permission[] }[] = [
-  { title: "إعدادات الموسم", text: "الحصة والأعمار والرسوم والأقساط، تُطبَّق فوراً على طلبات الحجاج وفحص أهليتهم.", icon: Settings2, perms: ["season.settings"] },
-  { title: "إدارة الموظفين", text: "صلاحية واحدة تفتح الملف كله لصاحبها: سجل الموظفين الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم وأين أُسندوا وعلى أي رحلة.", icon: Contact, perms: ["staff.manage"] },
-  { title: "الملفات التشغيلية", text: "التسكين في مكة ومخيمات منى وعرفات، والفنادق والقطاعات والمراكز.", icon: FileStack, perms: ["ops.files"] },
-  { title: "محتوى الموقع", text: "كل عنوان وفقرة وصورة في الموقع العام: مسودة ثم نشر.", icon: PencilLine, perms: ["content.manage"] },
-  { title: "مراجعة الطلبات", text: "ما لا تحسمه المنصة آلياً من طلبات الحجاج: اسم أم غير مطابق، أو صلة قرابة غير مؤكدة.", icon: ClipboardCheck, perms: ["registration.review"] },
-  { title: "القبول والقرعة", text: "الأعمار المقبولة مباشرة، وإحصاء التسجيل الأولي على القرعة، وإدخال ما سُحب في البث، ثم الاعتماد والنشر.", icon: Dices, perms: ["lottery.import", "lottery.approve"] },
-  { title: "إدارة الإداريين", text: "صلاحية واحدة تفتح الملف كله لصاحبها: قواعد الصفات وشروطها، والمتقدمون وملفاتهم، وتشكيل المجموعات واعتمادها، وطلبات تشكيل التكتلات واعتمادها ومعاونيهم وبرامجهم، والتقييم والتصنيف.", icon: UsersRound, perms: ["admins.manage"] },
-  { title: "إدارة الامتحانات", text: "صلاحية واحدة تفتح الملف كله لصاحبها: المراكز ومشرفو قاعاتها، والمتقدمون ومراكزهم، والامتحانات ومواعيدها، وبنك الأسئلة، والتصحيح والنتائج والتقارير.", icon: GraduationCap, perms: ["exams.manage"] },
-  { title: "إدارة الطيران", text: "صلاحية واحدة تفتح الملف كله لصاحبها: الرحلات ومقاعدها، ووضع المجموعات والموظفين عليها، وكشوف الركاب، ومندوبو المطارات الذين يسجلون الإقلاع والهبوط.", icon: Plane, perms: ["flights.manage"] },
-  { title: "غرفة العمليات", text: "خريطة المشاعر والبلاغات الحية، وزمن الاستجابة لكل بلاغ حتى إغلاقه.", icon: RadioTower, perms: ["operations.room"] },
-  { title: "الطبي والمواصلات", text: "الفريق الطبي: وثائق الحجاج الطبية والحالات الصحية وبلاغاتها. المواصلات: بلاغات النقل ومن تحتاج حافلاتهم تجهيزاً.", icon: Bus, perms: ["medical", "transport"] },
-  { title: "سجل الأحداث", text: "كل إجراء باسم صاحبه ووقته، لا يُعدَّل ولا يُحذف.", icon: ScrollText, perms: ["audit.read"] },
+/** The portal's areas, each with the systems whose permissions open it, in the order the season is worked: set up first */
+const AREAS: { title: string; text: string; icon: LucideIcon; systems: string[] }[] = [
+  { title: "إعدادات الموسم", text: "الحصة والأعمار والرسوم والأقساط، تُطبَّق فوراً على طلبات الحجاج وفحص أهليتهم، ومواعيد كل عملية.", icon: Settings2, systems: ["season"] },
+  { title: "إدارة الموظفين", text: "سجل الموظفين الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم وأين أُسندوا وعلى أي رحلة.", icon: Contact, systems: ["staff", "access"] },
+  { title: "الملفات التشغيلية", text: "التسكين في مكة ومخيمات منى وعرفات، والفنادق والقطاعات والمراكز.", icon: FileStack, systems: ["opfiles", "reference"] },
+  { title: "محتوى الموقع", text: "كل عنوان وفقرة وصورة في الموقع العام: مسودة ثم نشر.", icon: PencilLine, systems: ["content"] },
+  { title: "مراجعة الطلبات", text: "ما لا تحسمه المنصة آلياً من طلبات الحجاج: اسم أم غير مطابق، أو صلة قرابة غير مؤكدة.", icon: ClipboardCheck, systems: ["reviews", "office"] },
+  { title: "القبول والقرعة", text: "الأعمار المقبولة مباشرة، وإحصاء التسجيل الأولي على القرعة، وإدخال ما سُحب في البث، ثم الاعتماد والنشر.", icon: Dices, systems: ["lottery"] },
+  { title: "إدارة الإداريين", text: "قواعد الصفات وشروطها، والمتقدمون وملفاتهم، وتشكيل المجموعات واعتمادها، وطلبات تشكيل التكتلات واعتمادها ومعاونيهم وبرامجهم، والتقييم والتصنيف.", icon: UsersRound, systems: ["admins"] },
+  { title: "إدارة الامتحانات", text: "المراكز وقاعاتها، والمتقدمون ومراكزهم، والامتحانات ومواعيدها، وبنك الأسئلة، والتصحيح والنتائج والتقارير، وإدارة الجلسة في القاعة.", icon: GraduationCap, systems: ["exams", "hall"] },
+  { title: "إدارة الطيران", text: "الرحلات ومقاعدها، ووضع المجموعات والموظفين عليها، وكشوف الركاب، وتسجيل الإقلاع والهبوط في كل مطار.", icon: Plane, systems: ["flights", "airport"] },
+  { title: "غرفة العمليات", text: "خريطة المشاعر والبلاغات الحية، وزمن الاستجابة لكل بلاغ حتى إغلاقه.", icon: RadioTower, systems: ["operations"] },
+  { title: "الطبي والمواصلات", text: "الفريق الطبي: وثائق الحجاج الطبية والحالات الصحية وبلاغاتها. المواصلات: بلاغات النقل ومن تحتاج حافلاتهم تجهيزاً.", icon: Bus, systems: ["medical", "transport"] },
+  { title: "سجل الأحداث", text: "كل إجراء باسم صاحبه ووقته، لا يُعدَّل ولا يُحذف.", icon: ScrollText, systems: ["audit", "executive"] },
 ];
 
 const PRINCIPLES: { title: string; text: string; icon: LucideIcon }[] = [
   { title: "حساب لا يُنشأ ذاتياً", text: "تنشئ الموارد البشرية حساب كل موظف، وتصله كلمة مرور مؤقتة يغيّرها عند أول دخول.", icon: UserCog },
-  { title: "صلاحية لكل ملف", text: "صلاحية إدارة الملف، كالامتحانات أو الطيران، تفتحه كله لصاحبها فيديره بتفاصيله، ويتابع المدير حاله وأحداثه المهمة. وما سواها صلاحية لكل مهمة.", icon: KeyRound },
+  { title: "صلاحية لكل فعل", text: "لا يُسند موظف إلى نظام: يُمنح على كل مورد ما يلزمه وحده — عرض، إضافة، تعديل، حذف، وأفعال بأسمائها كالاعتماد والنشر — وبعضها لقاعة أو مطار بعينه. والعرض نفسه صلاحية.", icon: KeyRound },
   { title: "كل إجراء باسمك", text: "اعتماد، تعديل، إسناد، نشر: يُسجَّل كله في سجل الأحداث باسمك ووقته، ولا يُمحى.", icon: Fingerprint },
   { title: "أين أكون ومتى", text: "«ملفاتي التشغيلية» تعرض موقعك في الموسم ورحلتي ذهابك وعودتك ومديرك المباشر.", icon: LayoutDashboard },
 ];
@@ -68,7 +69,7 @@ const SEASON_FLOW: { title: string; text: string }[] = [
   { title: "التقييم", text: "تقييم الإداريين وتصنيف المجموعات والتكتلات لنهاية الموسم." },
 ];
 
-/** What the holder of «إدارة الامتحانات» sees: the file's summary and management, the rest locked */
+/** What the holder of the exams' permissions sees: the file's summary and management, the rest locked */
 const PREVIEW: { label: string; icon: LucideIcon; open: boolean }[] = [
   { label: SYSTEMS.exams.summary.label, icon: LayoutDashboard, open: true },
   { label: SYSTEMS.exams.manage.label, icon: GraduationCap, open: true },
@@ -83,8 +84,8 @@ const PREVIEW: { label: string; icon: LucideIcon; open: boolean }[] = [
  */
 export function StaffLanding() {
   const hydrated = useHydrated();
-  const sessionId = useStore((s) => s.staffSessionId);
-  const user = hydrated ? getStaff(sessionId) : null;
+  const signedIn = useStaffUser();
+  const user = hydrated ? signedIn : null;
   const home = useStaffHome(user);
 
   return (
@@ -129,8 +130,8 @@ export function StaffLanding() {
             </div>
             <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4">
               {[
-                { k: "صلاحية تُمنح واحدة واحدة", v: ALL_PERMISSIONS.length },
-                { k: "قسماً في البوابة", v: AREAS.length },
+                { k: "صلاحية تُمنح واحدة واحدة", v: ALL_KEYS.length },
+                { k: "نظاماً في البوابة", v: CATALOG.length },
                 { k: "موظفاً في سجل البعثة", v: EMPLOYEES_SEED.length },
               ].map((s) => (
                 <div key={s.k} className="flex flex-col border-r-2 border-gold/40 pr-3">
@@ -160,7 +161,7 @@ export function StaffLanding() {
                 <span className="grid size-14 place-items-center rounded-2xl bg-gold font-display text-2xl font-bold text-ink">م</span>
               </div>
               <p className="relative mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-white/85 ring-1 ring-white/15">
-                <KeyRound className="size-3.5 text-gold" /> صلاحية: {PERMISSION_LABELS["exams.manage"]}
+                <KeyRound className="size-3.5 text-gold" /> {systemKeys("exams").length} صلاحية في {PERM_SYSTEM.exams.label}
               </p>
               <ul className="relative mt-4 space-y-1.5">
                 {PREVIEW.map((it, i) => (
@@ -188,7 +189,7 @@ export function StaffLanding() {
 
       {/* ───────── Areas ───────── */}
       <section className="mx-auto max-w-7xl px-4 py-20 md:px-8">
-        <SectionHeading eyebrow="أقسام البوابة" title="ماذا يُدار من هنا؟" description="كل قسم تفتحه صلاحية: لمهمة واحدة، أو لإدارة ملف كامل كالامتحانات والطيران. تظهر لك في القائمة الجانبية أقسامك وحدها، ويبقى الباقي مغلقاً." />
+        <SectionHeading eyebrow="أقسام البوابة" title="ماذا يُدار من هنا؟" description="كل نظام تفتحه صلاحيات العرض فيه، وكل فعل داخله صلاحية مستقلة. تظهر لك في القائمة الجانبية الأنظمة التي تملك فيها شيئاً، ويبقى الباقي مغلقاً." />
         <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {AREAS.map((a) => (
             <StaggerItem key={a.title}>
@@ -200,9 +201,9 @@ export function StaffLanding() {
                   <p className="font-display text-lg font-bold text-ink">{a.title}</p>
                   <p className="mt-1 text-sm leading-6 text-ink-soft">{a.text}</p>
                   <p className="mt-2 flex flex-wrap gap-1.5">
-                    {a.perms.map((p) => (
-                      <span key={p} className="inline-flex items-center gap-1 rounded-full bg-green-dark/8 px-2.5 py-0.5 text-[11px] font-semibold text-green-dark">
-                        <KeyRound className="size-3" /> {PERMISSION_LABELS[p]}
+                    {a.systems.map((k) => (
+                      <span key={k} className="inline-flex items-center gap-1 rounded-full bg-green-dark/8 px-2.5 py-0.5 text-[11px] font-semibold text-green-dark">
+                        <KeyRound className="size-3" /> {PERM_SYSTEM[k].label} — {systemKeys(k).length} صلاحية
                       </span>
                     ))}
                   </p>

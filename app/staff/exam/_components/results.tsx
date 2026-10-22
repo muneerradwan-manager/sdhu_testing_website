@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAllQuestions } from "@/app/administrator/_lib/admin-rules";
 import { ATTEMPT_LABEL, roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
 import type { AdminRow } from "../../_components/data";
-import { Drawer, Empty, fmtDateTime, logAs, useStaffUser } from "../../_components/kit";
+import { Drawer, Empty, fmtDateTime, logAs, useCan, useStaffUser } from "../../_components/kit";
 import { FilterSelect, SearchBox } from "../../_components/ops-ui";
 import { EmptyRow, ListTable, RowActions, RowLink, Title } from "../../_components/wp";
 import { useExamDesk, type AttemptRow } from "./desk";
@@ -33,6 +33,11 @@ export function AnswersDrawer({ a, onClose }: { a: AttemptRow | null; onClose: (
 
 function Answers({ a }: { a: AttemptRow }) {
   const halls = useHalls();
+  const may = useCan();
+  // An applicant's answers, the correct options and his national id are each confidential: each its own permission
+  const seeAnswers = may("exams.attempt-answers.GET");
+  const seeCorrect = may("exams.questions-answers.GET");
+  const seePii = may("exams.applicants-pii.GET");
   const all = useAllQuestions();
   const byId = new Map(all.map((q) => [q.id, q]));
   const exam = halls.examById(examOfAttempt(a));
@@ -50,7 +55,7 @@ function Answers({ a }: { a: AttemptRow }) {
         {[
           ["الاختبار", exam?.name ?? roleLabelOf(a.role)],
           ["القاعة", halls.centerById(a.centerId)?.name ?? "—"],
-          ["الرقم الوطني", <span key="id" dir="ltr">{a.row.id}</span>],
+          ["الرقم الوطني", seePii ? <span key="id" dir="ltr">{a.row.id}</span> : "مخفي — صلاحية مستقلة"],
           ["بدأ", at.startedAt ? fmtDateTime(at.startedAt) : "—"],
           ["سلّم", at.submittedAt ? `${fmtDateTime(at.submittedAt)}${at.autoSubmitted ? " (تلقائياً)" : ""}` : "—"],
           ["أُكّد", at.confirmedAt ? `${fmtDateTime(at.confirmedAt)}${at.confirmedBy ? ` — ${at.confirmedBy}` : ""}` : "—"],
@@ -78,7 +83,9 @@ function Answers({ a }: { a: AttemptRow }) {
         </p>
       )}
 
-      {!at.paper?.length ? (
+      {!seeAnswers ? (
+        <Empty icon={<FileText />} title="الإجابات لا تظهر لك" text="الاطلاع على إجابات المتقدمين صلاحية مستقلة: «عرض — إجابات المتقدمين»." />
+      ) : !at.paper?.length ? (
         <Empty icon={<FileText />} title="لا ورقة محفوظة لهذه المحاولة" text="سُلّمت قبل أن تُحفظ الأوراق قسماً قسماً، فتبقى نسبتها وحدها." />
       ) : (
         at.paper.map((sec) => {
@@ -112,7 +119,7 @@ function Answers({ a }: { a: AttemptRow }) {
                           <span className={cn("font-bold", ok ? "text-white" : "text-gold")}>
                             {ok ? <Check className="-mt-0.5 inline size-3.5" /> : <X className="-mt-0.5 inline size-3.5" />} إجابته: {chosen ?? "لم يُجب"}
                           </span>
-                          {!ok && <span className="text-white/75">الصحيحة: {q.options[q.answer]}</span>}
+                          {!ok && seeCorrect && <span className="text-white/75">الصحيحة: {q.options[q.answer]}</span>}
                         </p>
                       )}
                     </li>
@@ -150,6 +157,9 @@ export function Results() {
   const [outcome, setOutcome] = useState<"all" | "passed" | "failed">("all");
   const [q, setQ] = useState("");
   const [viewing, setViewing] = useState<AttemptRow | null>(null);
+  const may = useCan();
+  const seeAnswers = may("exams.attempt-answers.GET");
+  const seePii = may("exams.applicants-pii.GET");
 
   const attempts = desk.attempts.filter((a) => (scope === "confirmed" ? a.status === "confirmed" : !!a.attempt.submittedAt) && (!exam || examOfAttempt(a) === exam) && (!center || a.centerId === center));
   const absent: Line[] = absentFail
@@ -162,7 +172,7 @@ export function Results() {
   const resultOfLine = (l: Line) => (!l.a ? "راسب (غائب)" : l.a.status === "voided" ? "—" : l.a.passed ? "ناجح" : "راسب");
   const isPassed = (l: Line) => resultOfLine(l) === "ناجح";
   const isFailed = (l: Line) => resultOfLine(l).startsWith("راسب");
-  const shown = lines.filter((l) => (outcome === "all" || (outcome === "passed" ? isPassed(l) : isFailed(l))) && matches(q, [l.row.name, l.row.id]));
+  const shown = lines.filter((l) => (outcome === "all" || (outcome === "passed" ? isPassed(l) : isFailed(l))) && matches(q, [l.row.name, seePii ? l.row.id : undefined]));
 
   const review = (a: AttemptRow) => {
     setViewing(a);
@@ -171,10 +181,10 @@ export function Results() {
 
   const download = () => {
     downloadCsv(`نتائج-${exam ? examName(exam) : "الاختبارات"}-1448.csv`, [
-      ["الاسم", "الرقم الوطني", "الصفة", "الاختبار", "القاعة", "النسبة", "الأقسام", "النتيجة", "الحالة", "أُكّد"],
+      ["الاسم", ...(seePii ? ["الرقم الوطني"] : []), "الصفة", "الاختبار", "القاعة", "النسبة", "الأقسام", "النتيجة", "الحالة", "أُكّد"],
       ...lines.map((l) => [
         l.row.name,
-        l.row.id,
+        ...(seePii ? [l.row.id] : []),
         roleLabelOf(l.role),
         examName(l.examId),
         halls.centerById(l.centerId)?.name ?? "",
@@ -192,13 +202,15 @@ export function Results() {
     <div className="space-y-5">
       <Title
         action={
-          <span className="text-sm font-bold">
-            <RowLink onClick={download}>تصدير Excel</RowLink>
-          </span>
+          may("exams.results.export") && (
+            <span className="text-sm font-bold">
+              <RowLink onClick={download}>تصدير Excel</RowLink>
+            </span>
+          )
         }
       />
       <div className="grid gap-2 md:grid-cols-[1.4fr_1fr_1fr]">
-        <SearchBox value={q} onChange={setQ} label="بحث في النتائج" placeholder="اسم أو رقم وطني..." />
+        <SearchBox value={q} onChange={setQ} label="بحث في النتائج" placeholder={seePii ? "اسم أو رقم وطني..." : "اسم..."} />
         <FilterSelect label="الاختبار" all="كل الاختبارات" value={exam} onChange={setExam} options={halls.exams.map((e) => ({ value: e.id, label: e.name }))} />
         <FilterSelect label="الجلسة (القاعة)" all="كل القاعات" value={center} onChange={setCenter} options={halls.centers.map((c) => ({ value: c.id, label: c.name }))} />
       </div>
@@ -238,17 +250,19 @@ export function Results() {
           return (
             <tr key={l.id} className="align-top">
               <td className="p-3">
-                {a ? (
+                {a && seeAnswers ? (
                   <button type="button" onClick={() => review(a)} className="text-right font-bold text-white hover:text-gold">
                     {l.row.name}
                   </button>
                 ) : (
                   <p className="font-bold text-white">{l.row.name}</p>
                 )}
-                <p className="text-xs text-white/55" dir="ltr">
-                  {l.row.id}
-                </p>
-                {a && (
+                {seePii && (
+                  <p className="text-xs text-white/55" dir="ltr">
+                    {l.row.id}
+                  </p>
+                )}
+                {a && seeAnswers && (
                   <RowActions>
                     <RowLink onClick={() => review(a)}>مراجعة الإجابات</RowLink>
                   </RowActions>

@@ -26,7 +26,7 @@ import { cms, hasDraft, pageState, readDraftValues, readOrder, STATUS_LABEL, use
 import type { PageDef, PageStatus, SectionDef } from "@/lib/cms/types";
 import { cn, countOf } from "@/lib/utils";
 import type { StaffUser } from "@/lib/staff";
-import { Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
+import { can, Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
 import { FieldInput, FieldRow, ListField } from "./fields";
 
 /** من ينفّذ التعديل — يُحفظ مع كل نسخة في سجل المراجعات */
@@ -34,9 +34,18 @@ type StaffAuthor = { name: string; title?: string };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
+/**
+ * One page: its sections and their fields. Editing them needs `content.pages.PUT`; publishing, discarding, its
+ * status and resetting it each their own permission (`content.pages.publish`, `.discard`, `.set-status`, `.reset`).
+ */
 export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: PageDef; user: StaffUser; onBack: () => void; onOpenRevisions: () => void }) {
   const toast = useToast();
   const author: StaffAuthor = useMemo(() => ({ name: user.name, title: user.title }), [user]);
+  const editable = can(user, "content.pages.PUT");
+  const mayPublish = can(user, "content.pages.publish");
+  const mayDiscard = can(user, "content.pages.discard");
+  const mayStatus = can(user, "content.pages.set-status");
+  const mayReset = can(user, "content.pages.reset");
 
   const state = useCms((s) => pageState(s, page.id));
   const dirty = useCms((s) => hasDraft(s, page.id));
@@ -54,29 +63,35 @@ export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: Page
   const active = live.find((s) => s.id === activeId) ?? live[0] ?? sections[0];
 
   const publish = () => {
+    if (!mayPublish) return;
     cms.publish(page.id, author);
     logAs(user, { action: "نشر محتوى صفحة", target: page.label, detail: "أصبحت التعديلات ظاهرة للزوار" });
     toast({ title: "نُشرت التعديلات", body: `${page.label} — يراها الزوار الآن`, tone: "success", icon: "✅" });
   };
 
   const save = () => {
+    if (!editable) return;
     cms.saveDraft(page.id, author);
+    logAs(user, { action: "حفظ مسودة صفحة", target: page.label });
     toast({ title: "حُفظت المسودة", body: "لم تُنشر بعد — فعّل المعاينة لتراها", tone: "info", icon: "💾" });
   };
 
   const discard = () => {
+    if (!mayDiscard) return;
     cms.discardDraft(page.id, author);
     logAs(user, { action: "تجاهل مسودة", target: page.label });
     toast({ title: "أُلغيت التعديلات غير المنشورة", tone: "warning", icon: "↩️" });
   };
 
   const setStatus = (status: PageStatus) => {
+    if (!mayStatus) return;
     cms.setPageStatus(page.id, status, author);
     logAs(user, { action: "تغيير حالة صفحة", target: page.label, after: STATUS_LABEL[status] });
     toast({ title: `الصفحة الآن ${STATUS_LABEL[status]}`, tone: status === "published" ? "success" : "warning", icon: status === "published" ? "🌍" : "📦" });
   };
 
   const resetPage = () => {
+    if (!mayReset) return;
     cms.resetPage(page.id, author);
     logAs(user, { action: "إرجاع صفحة إلى المحتوى الأصلي", target: page.label });
     toast({ title: "أُعيدت الصفحة إلى محتواها الأصلي", tone: "warning", icon: "♻️" });
@@ -111,25 +126,31 @@ export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: Page
           >
             <ExternalLink className="size-4" /> معاينة
           </Link>
-          <button onClick={onOpenRevisions} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white/85 transition hover:bg-white/20 hover:text-white">
-            <FileClock className="size-4" /> النسخ السابقة
-          </button>
-          {dirty && (
+          {can(user, "content.revisions.GET") && (
+            <button onClick={onOpenRevisions} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white/85 transition hover:bg-white/20 hover:text-white">
+              <FileClock className="size-4" /> النسخ السابقة
+            </button>
+          )}
+          {dirty && mayDiscard && (
             <button onClick={discard} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white/85 transition hover:bg-maroon/40 hover:text-white">
               <Undo2 className="size-4" /> تجاهل
             </button>
           )}
-          <button onClick={save} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
-            <Save className="size-4" /> حفظ كمسودة
-          </button>
-          <button
-            onClick={publish}
-            disabled={!dirty && state.status === "published"}
-            className="flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-sm font-bold text-ink shadow-lg transition hover:bg-gold-light disabled:opacity-40"
-          >
-            <Send className="size-4" /> نشر
-          </button>
-          <PageMenu page={page} status={state.status} onStatus={setStatus} onReset={resetPage} />
+          {editable && (
+            <button onClick={save} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20">
+              <Save className="size-4" /> حفظ كمسودة
+            </button>
+          )}
+          {mayPublish && (
+            <button
+              onClick={publish}
+              disabled={!dirty && state.status === "published"}
+              className="flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-sm font-bold text-ink shadow-lg transition hover:bg-gold-light disabled:opacity-40"
+            >
+              <Send className="size-4" /> نشر
+            </button>
+          )}
+          {(mayStatus || mayReset) && <PageMenu page={page} status={state.status} onStatus={mayStatus ? setStatus : undefined} onReset={mayReset ? resetPage : undefined} />}
         </div>
       </motion.div>
 
@@ -143,6 +164,7 @@ export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: Page
           في هذه الصفحة تعديلات لم تُنشر بعد. الزوار ما زالوا يرون النسخة المنشورة حتى تضغط «نشر».
         </motion.p>
       )}
+      {!editable && <p className="rounded-2xl bg-white/10 px-4 py-2.5 text-sm text-white/75 ring-1 ring-white/15">للاطلاع فقط: تحرير الصفحة يحتاج صلاحية «تعديل — الصفحات وأقسامها».</p>}
 
       {/* ── الأقسام + النموذج ── */}
       <div className="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
@@ -154,9 +176,10 @@ export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: Page
           onSelect={setActiveId}
           user={user}
           author={author}
+          editable={editable}
         />
         {active ? (
-          <SectionForm key={active.id} pageId={page.id} pageLabel={page.label} section={active} user={user} author={author} />
+          <SectionForm key={active.id} pageId={page.id} pageLabel={page.label} section={active} user={user} author={author} editable={editable} />
         ) : (
           <Panel>
             <Empty icon={<Archive />} title="كل أقسام هذه الصفحة مؤرشفة" text="استعد قسماً من القائمة لتعديله." />
@@ -177,6 +200,7 @@ function SectionList({
   onSelect,
   user,
   author,
+  editable,
 }: {
   page: PageDef;
   sections: SectionDef[];
@@ -185,8 +209,14 @@ function SectionList({
   onSelect: (id: string) => void;
   user: StaffUser;
   author: StaffAuthor;
+  editable: boolean;
 }) {
   const toast = useToast();
+
+  const move = (s: SectionDef, dir: -1 | 1) => {
+    cms.moveSection(page.id, s.id, dir, author);
+    logAs(user, { action: "ترتيب أقسام صفحة", target: `${page.label} — ${s.label}`, after: dir < 0 ? "لأعلى" : "لأسفل" });
+  };
 
   const toggleHidden = (s: SectionDef) => {
     const next = !draft[s.id]?.hidden;
@@ -203,6 +233,7 @@ function SectionList({
 
   const restore = (s: SectionDef) => {
     cms.setSectionArchived(page.id, s.id, false, author);
+    logAs(user, { action: "استعادة قسم من الأرشيف", target: `${page.label} — ${s.label}` });
     toast({ title: "استُعيد القسم", tone: "success", icon: "↩️" });
   };
 
@@ -229,42 +260,44 @@ function SectionList({
                   {edits > 0 && <span className={cn("text-[10px]", active ? "text-green-dark/70" : "text-gold")}>{countOf(edits, { zero: "", one: "حقل واحد معدَّل", two: "حقلان معدَّلان", few: "حقول معدَّلة", many: "حقلاً معدَّلاً" })}</span>}
                 </span>
               </button>
-              <div className="flex shrink-0 items-center opacity-70 transition group-hover:opacity-100">
-                <button
-                  onClick={() => cms.moveSection(page.id, s.id, -1, author)}
-                  disabled={i === 0}
-                  title="تحريك لأعلى"
-                  className={cn("grid size-7 place-items-center rounded-lg transition disabled:opacity-25", active ? "hover:bg-green-dark/15" : "hover:bg-white/15")}
-                >
-                  <ChevronDown className="size-3.5 rotate-180" />
-                </button>
-                <button
-                  onClick={() => cms.moveSection(page.id, s.id, 1, author)}
-                  disabled={i === live.length - 1}
-                  title="تحريك لأسفل"
-                  className={cn("grid size-7 place-items-center rounded-lg transition disabled:opacity-25", active ? "hover:bg-green-dark/15" : "hover:bg-white/15")}
-                >
-                  <ChevronDown className="size-3.5" />
-                </button>
-                {!s.required && (
-                  <>
-                    <button
-                      onClick={() => toggleHidden(s)}
-                      title={hidden ? "إظهار للزوار" : "إخفاء عن الزوار"}
-                      className={cn("grid size-7 place-items-center rounded-lg transition", active ? "hover:bg-green-dark/15" : "hover:bg-white/15")}
-                    >
-                      {hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                    </button>
-                    <button
-                      onClick={() => archive(s)}
-                      title="أرشفة القسم"
-                      className={cn("grid size-7 place-items-center rounded-lg transition", active ? "hover:bg-green-dark/15" : "hover:bg-maroon/40")}
-                    >
-                      <Archive className="size-3.5" />
-                    </button>
-                  </>
-                )}
-              </div>
+              {editable && (
+                <div className="flex shrink-0 items-center opacity-70 transition group-hover:opacity-100">
+                  <button
+                    onClick={() => move(s, -1)}
+                    disabled={i === 0}
+                    title="تحريك لأعلى"
+                    className={cn("grid size-7 place-items-center rounded-lg transition disabled:opacity-25", active ? "hover:bg-green-dark/15" : "hover:bg-white/15")}
+                  >
+                    <ChevronDown className="size-3.5 rotate-180" />
+                  </button>
+                  <button
+                    onClick={() => move(s, 1)}
+                    disabled={i === live.length - 1}
+                    title="تحريك لأسفل"
+                    className={cn("grid size-7 place-items-center rounded-lg transition disabled:opacity-25", active ? "hover:bg-green-dark/15" : "hover:bg-white/15")}
+                  >
+                    <ChevronDown className="size-3.5" />
+                  </button>
+                  {!s.required && (
+                    <>
+                      <button
+                        onClick={() => toggleHidden(s)}
+                        title={hidden ? "إظهار للزوار" : "إخفاء عن الزوار"}
+                        className={cn("grid size-7 place-items-center rounded-lg transition", active ? "hover:bg-green-dark/15" : "hover:bg-white/15")}
+                      >
+                        {hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => archive(s)}
+                        title="أرشفة القسم"
+                        className={cn("grid size-7 place-items-center rounded-lg transition", active ? "hover:bg-green-dark/15" : "hover:bg-maroon/40")}
+                      >
+                        <Archive className="size-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -277,9 +310,11 @@ function SectionList({
             <div key={s.id} className="mb-1.5 flex items-center gap-2 rounded-2xl bg-white/[.03] px-3 py-2">
               <Archive className="size-4 shrink-0 text-white/40" />
               <span className="min-w-0 flex-1 truncate text-sm text-white/60">{s.label}</span>
-              <button onClick={() => restore(s)} title="استعادة" className="grid size-7 place-items-center rounded-lg text-gold transition hover:bg-white/15">
-                <ArchiveRestore className="size-4" />
-              </button>
+              {editable && (
+                <button onClick={() => restore(s)} title="استعادة" className="grid size-7 place-items-center rounded-lg text-gold transition hover:bg-white/15">
+                  <ArchiveRestore className="size-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -302,12 +337,14 @@ function SectionForm({
   section,
   user,
   author,
+  editable,
 }: {
   pageId: string;
   pageLabel: string;
   section: SectionDef;
   user: StaffUser;
   author: StaffAuthor;
+  editable: boolean;
 }) {
   const toast = useToast();
   const saved = useCms((s) => readDraftValues(s, pageId, section.id));
@@ -341,7 +378,8 @@ function SectionForm({
       title={section.label}
       icon={<CmsIcon name={section.icon} />}
       action={
-        edited > 0 && (
+        edited > 0 &&
+        editable && (
           <button onClick={resetSection} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white/80 transition hover:bg-white/20 hover:text-white">
             <RotateCcw className="size-3.5" /> إرجاع القسم للأصل
           </button>
@@ -350,7 +388,8 @@ function SectionForm({
     >
       {section.note && <p className="mb-4 rounded-2xl bg-white/5 px-4 py-2.5 text-sm leading-6 text-white/65">{section.note}</p>}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Without `content.pages.PUT` every field reads only: a disabled fieldset disables all it holds */}
+      <fieldset disabled={!editable} className="grid min-w-0 gap-4 md:grid-cols-2">
         {section.fields.map((f) => {
           const v = valueOf(f.key);
           const isEdited = !same(v, f.def);
@@ -362,6 +401,7 @@ function SectionForm({
               return n;
             });
             cms.resetField(pageId, section.id, f.key, author);
+            logAs(user, { action: "إرجاع حقل إلى نصه الأصلي", target: `${pageLabel} — ${section.label}`, detail: f.label });
           };
           return (
             <FieldRow key={f.key} field={f} edited={isEdited} onReset={reset}>
@@ -369,7 +409,7 @@ function SectionForm({
             </FieldRow>
           );
         })}
-      </div>
+      </fieldset>
 
       <p className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-white/50">
         <CheckCircle2 className="size-4 text-green-light" />
@@ -390,7 +430,8 @@ export function StatusChip({ status }: { status: PageStatus }) {
   return <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", map[status])}>{STATUS_LABEL[status]}</span>;
 }
 
-function PageMenu({ page, status, onStatus, onReset }: { page: PageDef; status: PageStatus; onStatus: (s: PageStatus) => void; onReset: () => void }) {
+/** The page's other acts: its status (`onStatus`) and resetting it (`onReset`), each offered only when given */
+function PageMenu({ page, status, onStatus, onReset }: { page: PageDef; status: PageStatus; onStatus?: (s: PageStatus) => void; onReset?: () => void }) {
   const [open, setOpen] = useState(false);
   const canArchive = !page.required;
 
@@ -409,24 +450,26 @@ function PageMenu({ page, status, onStatus, onReset }: { page: PageDef; status: 
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               className="absolute left-0 top-12 z-20 w-60 overflow-hidden rounded-2xl border border-gold/30 bg-[#00352f] p-1.5 shadow-2xl"
             >
-              {status !== "published" && (
+              {onStatus && status !== "published" && (
                 <MenuItem icon={<Eye className="size-4" />} onClick={() => (onStatus("published"), setOpen(false))}>
                   نشر الصفحة للزوار
                 </MenuItem>
               )}
-              {status !== "draft" && (
+              {onStatus && status !== "draft" && (
                 <MenuItem icon={<EyeOff className="size-4" />} onClick={() => (onStatus("draft"), setOpen(false))}>
                   تحويلها إلى مسودة
                 </MenuItem>
               )}
-              {canArchive && status !== "archived" && (
+              {onStatus && canArchive && status !== "archived" && (
                 <MenuItem icon={<Archive className="size-4" />} tone="maroon" onClick={() => (onStatus("archived"), setOpen(false))}>
                   أرشفة الصفحة
                 </MenuItem>
               )}
-              <MenuItem icon={<RotateCcw className="size-4" />} tone="maroon" onClick={() => (onReset(), setOpen(false))}>
-                إرجاع كل محتواها للأصل
-              </MenuItem>
+              {onReset && (
+                <MenuItem icon={<RotateCcw className="size-4" />} tone="maroon" onClick={() => (onReset(), setOpen(false))}>
+                  إرجاع كل محتواها للأصل
+                </MenuItem>
+              )}
             </motion.div>
           </>
         )}

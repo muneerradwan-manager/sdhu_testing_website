@@ -14,11 +14,11 @@ import { REFLECTION, avgOf, round1 as r1, useEvaluationOf } from "@/app/administ
 /** The scored sections of a self-evaluation beside its stages */
 const SELF_LABELS: Record<string, string> = { stages: "مراحل الموسم", axes: "محاور الأداء", role: "مهام صفته", support: "ما قدّمته له الإدارة والبعثة" };
 import { roleLabel, type AdminRow } from "../../_components/data";
-import { fmtDateTime, Meter, stamp, textareaClass, useStaffUser } from "../../_components/kit";
+import { fmtDateTime, Meter, stamp, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { Chip, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory } from "../../_components/system";
 import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
-import { Filters, Help, Lead, NotFound, TitleCell, useHrefWith, useOpenId } from "./ui";
+import { Filters, Help, Lead, Locked, NotFound, TitleCell, needs, useHrefWith, useOpenId } from "./ui";
 import { logAdmins, useAdminsDesk, type AdminsDesk } from "../desk";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -156,6 +156,7 @@ function EvaluationForm({ row }: { row: AdminRow }) {
   const user = useStaffUser()!;
   const toast = useToast();
   const stages = useEvaluationStages();
+  const mayRate = useCan()("admins.evaluation.PUT");
   const saved = useStore((s) => s.evaluations[row.id]);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -294,9 +295,10 @@ function EvaluationForm({ row }: { row: AdminRow }) {
               </p>
             )}
             {tried && (!scored.length || missingNotes.length > 0) && <p className="text-xs font-bold text-gold">{!scored.length ? "قيّم مرحلة واحدة على الأقل." : "اكتب ملاحظة لكل درجة أقل من 3."}</p>}
-            <Button variant="gold" className="w-full" onClick={submit}>
+            <Button variant="gold" className="w-full" disabled={!mayRate} title={mayRate ? undefined : needs("admins.evaluation.PUT")} onClick={submit}>
               <CheckCircle2 className="size-4" /> حفظ التقييم
             </Button>
+            <Locked perm="admins.evaluation.PUT" />
             <p className="text-xs text-white/55">{saved ? `آخر حفظ: ${saved.by} — ${fmtDateTime(saved.at)}` : "لم يُقيَّم بعد."} يرى الإداري المتوسط فقط، لا اسم المقيّم.</p>
           </Box>
           <OthersBox id={row.id} name={row.name} />
@@ -320,6 +322,7 @@ function OthersBox({ id, name }: { id: string; name: string }) {
   const toast = useToast();
   const r = useEvaluationOf(id);
   const [reply, setReply] = useState("");
+  const mayDecide = useCan()("admins.evaluation.decide-objection");
   if (!r) return null;
   const gaps = r.stages.filter((x) => x.gap);
   const o = r.objection;
@@ -381,7 +384,9 @@ function OthersBox({ id, name }: { id: string; name: string }) {
           </p>
           <p>المراحل: {o.stages.map(label).join("، ")}</p>
           <p className="leading-6 text-white/85">{o.reason}</p>
-          {o.status === "pending" ? (
+          {o.status === "pending" && !mayDecide ? (
+            <Locked perm="admins.evaluation.decide-objection">القرار في الاعتراض لغيرك.</Locked>
+          ) : o.status === "pending" ? (
             <>
               <textarea rows={2} value={reply} onChange={(e) => setReply(e.target.value)} aria-label="ردّك على الاعتراض" placeholder="ردّك، يصله مع القرار" className={cn(textareaClass, "text-xs")} />
               <div className="flex gap-2">

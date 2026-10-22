@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DIRECTION_LABEL, fmtGregShort, fmtClock, isActive, seatStats, type Flight, type FlightsData, type Traveler } from "@/lib/flights";
 import { CURRENT_SEASON, MISSIONS, employeeHaystack, fullName, inSeason, matches, postingsOf, useEmployees, useOpFiles, usePlaces, type Employee } from "@/lib/ops";
 import { cn } from "@/lib/utils";
-import { Drawer } from "../_components/kit";
+import { Drawer, useCan } from "../_components/kit";
 import { Avatar, Chip, FilterSelect, SearchBox, selectClass } from "../_components/ops-ui";
 
 /** Pick employees for a flight: by name, mission or the operational file they are posted in; whole files at once */
@@ -36,15 +36,18 @@ export function StaffPicker({ open, onClose, flight, data, onAssign }: { open: b
     return set;
   }, [data, flight.direction]);
 
+  const may = useCan();
+  // A national id or a phone finds someone only for whoever may see them
+  const pii = may("staff.employees-pii.GET");
   const rows = useMemo(
     () =>
       employees
         .filter((e) => inSeason(e) && !e.suspended)
         .filter((e) => !mission || e.mission === mission)
         .filter((e) => !fileId || postings.get(e.id)?.includes(fileId))
-        .filter((e) => matches(q, employeeHaystack(e)))
+        .filter((e) => matches(q, employeeHaystack(e, pii)))
         .sort((a, b) => fullName(a).localeCompare(fullName(b), "ar")),
-    [employees, mission, fileId, q, postings],
+    [employees, mission, fileId, q, postings, pii],
   );
   const s = seatStats(flight, data.assignments);
   const room = s.remainingStaff;

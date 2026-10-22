@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { AUDIENCE_LABEL, DIRECTION_LABEL, FLIGHT_SEASON, airportOf, at, flightsActions, isActive, isHoly, isoDate, isoTime, newFlightId, placeOf, returnAirportsFor, seatStats, useFlightsData, type Actor, type Audience, type Direction, type Flight, type FlightsData } from "@/lib/flights";
 import { cn } from "@/lib/utils";
-import { Drawer, useStaffUser } from "../_components/kit";
+import { Drawer, useCan, useStaffUser } from "../_components/kit";
 import { Field, fieldClass, selectClass } from "../_components/ops-ui";
 
 /** One way (outbound or return) or both at once: a round trip creates two flights that point at each other */
@@ -150,6 +150,11 @@ export function FlightForm({ open, onClose, initial, data, onSave, assigned, not
     setD(initial);
   }
   const set = <K extends keyof FlightDraft>(k: K, v: FlightDraft[K]) => setD((x) => ({ ...x, [k]: v }));
+  const may = useCan();
+  // The notes are seen and changed by their own permissions; locked, they are saved as they were
+  const notesSeen = may("flights.flight-notes.GET");
+  const notesLocked = !may("flights.flight-notes.PUT");
+  const notesValue = notesSeen ? d.notes : "";
   const error = validate(d, assigned, data);
   const pilgrimSeats = d.audience === "staff" ? 0 : d.capacity - d.staffReserve;
   const num = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
@@ -196,13 +201,13 @@ export function FlightForm({ open, onClose, initial, data, onSave, assigned, not
               <input type="number" min={0} className={fieldClass} value={d.staffReserve} onChange={(e) => set("staffReserve", num(e.target.value))} />
             </Field>
           ) : (
-            <Field label="ملاحظات"><input className={fieldClass} value={d.notes} onChange={(e) => set("notes", e.target.value)} placeholder="طليعة البعثة، فريق متأخر…" /></Field>
+            <Field label="ملاحظات"><input className={fieldClass} value={notesValue} disabled={notesLocked} onChange={(e) => set("notes", e.target.value)} placeholder={notesLocked ? "تحتاج صلاحية «تعديل — ملاحظات الرحلة»" : "طليعة البعثة، فريق متأخر…"} /></Field>
           )}
         </div>
         <LegFields title={d.trip === "return" ? "رحلة العودة" : d.trip === "round" && !editing ? "رحلة الذهاب" : editing ? "الرحلة" : "رحلة الذهاب"} leg={d.a} onChange={(l) => set("a", l)} data={data} direction={d.trip === "return" ? "return" : "outbound"} />
         {d.trip === "round" && !editing && <LegFields title="رحلة العودة" leg={d.b} onChange={(l) => set("b", l)} data={data} direction="return" />}
         {d.trip === "round" && !editing && !returnAirportsFor(data, d.a.fromId).includes(d.b.toId) && <p className="text-xs text-gold">من يقلع من {airportOf(data, d.a.fromId)?.city} يعود إلى {returnAirportsFor(data, d.a.fromId).map((id) => airportOf(data, id)?.city).join(" أو ")}: لن يُسند ركاب هذا الذهاب إلى هذه العودة.</p>}
-        {d.audience === "pilgrims" && <Field label="ملاحظات"><input className={fieldClass} value={d.notes} onChange={(e) => set("notes", e.target.value)} placeholder="يراها مسؤول الطيران وغرفة العمليات فقط" /></Field>}
+        {d.audience === "pilgrims" && <Field label="ملاحظات"><input className={fieldClass} value={notesValue} disabled={notesLocked} onChange={(e) => set("notes", e.target.value)} placeholder={notesLocked ? "تحتاج صلاحية «تعديل — ملاحظات الرحلة»" : "يراها مسؤول الطيران وغرفة العمليات فقط"} /></Field>}
         {d.trip === "round" && !editing && <p className="text-xs text-white/60">السعة وحجز الموظفين نفسهما للرحلتين، ويمكن تعديل كل رحلة بعد حفظها.</p>}
       </div>
     </Drawer>

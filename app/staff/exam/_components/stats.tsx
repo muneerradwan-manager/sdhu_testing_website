@@ -9,7 +9,7 @@ import { getPerson } from "@/lib/registry";
 import { cn } from "@/lib/utils";
 import { useAllQuestions } from "@/app/administrator/_lib/admin-rules";
 import { roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
-import { Empty, Panel, logAs, useStaffUser } from "../../_components/kit";
+import { Empty, Panel, logAs, useCan, useStaffUser } from "../../_components/kit";
 import { FilterSelect } from "../../_components/ops-ui";
 import { useExamDesk, type AttemptRow } from "./desk";
 import { Records } from "./records";
@@ -196,6 +196,7 @@ export function Stats() {
     ["نسبة النجاح", pct(share(passed, confirmed.length + counted))],
   ];
 
+  const may = useCan();
   const print = () => {
     logAs(user, { action: "تصدير الإحصائيات PDF", target: exam?.name ?? "", detail: absentFail ? "الغائبون راسبون" : undefined, system: "exams", area: "stats" });
     window.print();
@@ -207,9 +208,11 @@ export function Stats() {
         icon={<ChartColumn />}
         title="الإحصائيات"
         action={
-          <Button size="sm" variant="glass" onClick={print} disabled={!exam}>
-            <Printer className="size-4" /> تصدير PDF
-          </Button>
+          may("exams.stats.export") && (
+            <Button size="sm" variant="glass" onClick={print} disabled={!exam}>
+              <Printer className="size-4" /> تصدير PDF
+            </Button>
+          )
         }
         bodyClass="space-y-3"
       >

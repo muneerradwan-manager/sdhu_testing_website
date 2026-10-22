@@ -22,15 +22,15 @@ import {
 } from "@/lib/flights";
 import { groupName } from "@/lib/groups";
 import { cn, formatNumber } from "@/lib/utils";
-import { Empty, fmtDateTime, PageHeader, useStaffUser } from "../_components/kit";
+import { can, Empty, fmtDateTime, PageHeader, useStaffUser } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
 import { Box, EmptyRow, ListTable, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 import { StatusChip } from "../flights/shared";
 
 /**
- * «رحلات مطاري»: the page of an airport's representative. The flights system's owner assigns him an
- * airport, and the page appears in his menu whatever his permissions. One list of the flights leaving it and
+ * «رحلات مطاري»: the page of an airport's representative — whoever holds «رحلات المطار» (`airport.*`) for
+ * that airport; the page appears in his menu with it. One list of the flights leaving it and
  * arriving at it — filtered by what waits for him, beside its counts — where he records each take-off (who
  * boarded, who did not: each no-show opens a transport ticket) and each landing. Nothing else opens to him.
  */
@@ -49,8 +49,8 @@ export function AirportView() {
   if (!airport) {
     return (
       <div>
-        <PageHeader eyebrow="الطيران" title="رحلات مطاري" icon={<TowerControl />} description="تظهر هذه الصفحة لمن يسنده صاحب صلاحية «إدارة الطيران» مندوباً لمطار." />
-        <Empty icon={<Lock />} title="لست مندوب مطار" text="يسند صاحب صلاحية «إدارة الطيران» مندوبي المطارات من «إدارة الطيران»، في قائمة المطارات." />
+        <PageHeader eyebrow="الطيران" title="رحلات مطاري" icon={<TowerControl />} description="تظهر هذه الصفحة لمن يملك صلاحية «رحلات المطار» لمطار بعينه." />
+        <Empty icon={<Lock />} title="لست مندوب مطار" text="تُمنح صلاحية «رحلات المطار» لمطار بعينه من «صلاحيات الموظفين»." />
       </div>
     );
   }
@@ -108,6 +108,9 @@ function FlightRow({ f, kind }: { f: Flight; kind: "departure" | "arrival" }) {
   const toast = useToast();
   const data = useFlightsData();
   const actor: Actor = { name: user.name, role: user.title };
+  // Each act for this flight's own airport: the take-off from where it leaves, the landing where it lands
+  const mayDepart = can(user, "airport.flights.depart", f.fromId);
+  const mayArrive = can(user, "airport.flights.arrive", f.divertedToId ?? f.toId);
   const [departing, setDeparting] = useState(false);
   const [landing, setLanding] = useState(false);
   const seated = data.assignments.filter((a) => a.flightId === f.id && (isActive(a) || a.status === "noShow"));
@@ -147,7 +150,7 @@ function FlightRow({ f, kind }: { f: Flight; kind: "departure" | "arrival" }) {
       <td className="p-3">
         {kind === "departure" ? (
           f.status === "locked" ? (
-            <Button size="sm" variant="gold" onClick={() => setDeparting(true)}>
+            <Button size="sm" variant="gold" disabled={!mayDepart} title={mayDepart ? undefined : "يحتاج صلاحية «تسجيل الإقلاع» لهذا المطار"} onClick={() => setDeparting(true)}>
               <PlaneTakeoff className="size-4" /> تسجيل الإقلاع
             </Button>
           ) : f.status === "departed" || f.status === "arrived" ? (
@@ -179,7 +182,7 @@ function FlightRow({ f, kind }: { f: Flight; kind: "departure" | "arrival" }) {
               </Button>
             </span>
           ) : (
-            <Button size="sm" variant="gold" onClick={() => setLanding(true)}>
+            <Button size="sm" variant="gold" disabled={!mayArrive} title={mayArrive ? undefined : "يحتاج صلاحية «تسجيل الهبوط» لهذا المطار"} onClick={() => setLanding(true)}>
               <PlaneLanding className="size-4" /> تسجيل الهبوط
             </Button>
           )

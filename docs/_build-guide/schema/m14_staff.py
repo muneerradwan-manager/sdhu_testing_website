@@ -2,29 +2,48 @@
 from .dsl import *
 
 MODULE = M("staff", "الموظفون والصلاحيات والملفات التشغيلية", [
-    "بوابة الموظفين لموظفي الإدارة والبعثة. لكل حساب صلاحيات مهام ثابتة (غرفة العمليات، الفريق الطبي، المواصلات، المراجعة، المحتوى…)، "
-    "وتمنح مديرة الموسم صلاحيات إدارة الملفات الخمسة (الموظفون، التسجيل على الحج، الإداريون، الامتحانات، الطيران) لمن تشاء وتسحبها. "
-    "وبعض المواقع تأتي من البيانات لا من الصلاحيات: مشرف القاعة، مندوب المطار، والموظف المرابط في برج أو مخيم يقيّم من سكنه.",
+    "بوابة الموظفين لموظفي الإدارة والبعثة، وفيها 21 نظاماً. لا يُسند موظف إلى نظام: تُمنح له الصلاحيات واحدة واحدة، لكل مورد في كل نظام "
+    "عرضه (GET) وإضافته (POST) وتعديله (PUT) وحذفه (DELETE) وأفعال بأسمائها (اعتماد، نشر، تصدير…)، ومفتاحها ‹النظام›.‹المورد›.‹الفعل› مثل flights.flights.lock. "
+    "والعرض نفسه صلاحية: لا يظهر نظام في قائمة موظف لا يملك فيه عرض شيء. وبعض الصلاحيات تُمنح لنطاق بعينه: مشرف القاعة من يملك hall.* لمركزها، "
+    "ومندوب المطار من يملك airport.* لمطاره، ومواعيد العمليات season.windows لعمليات بعينها. يمنحها ويسحبها من يملك access.permissions.PUT، وكل منح وسحب حدث مهم.",
     "«سجل الموظفين» يحفظ موظفي البعثة (دائمين ومنتدبين) ومواسم مشاركتهم. و«البيانات المرجعية» أماكن كل موسم: فنادق مكة والمدينة، قطاعات مكة، مراكز منى وعرفات، مخيماتها. "
     "و«الملفات التشغيلية» ملف لكل نوع في كل موسم (التسكين في مكة، مخيمات منى، مخيمات عرفات): شجرة أماكن يُسند فيها الموظفون إلى أدوار، وتُوزَّع عليها التكتلات.",
     "في النسخة التجريبية حسابات الموظفين ثابتة في الكود بكلمة مرور مشتركة (1448). هنا جدول حسابات بكلمات مرور فردية وتغيير إلزامي عند أول دخول.",
 ], [
-    T("permissions", "الصلاحيات", "صلاحيات الموظفين: مهام ثابتة لكل حساب، وإدارة ملفات تُمنح وتُسحب.", [
-        c("code", "VARCHAR(40)", "المفتاح", pk=True),
-        c("label", "VARCHAR(120)", "الاسم: systems.assign «منح صلاحيات الإدارة ومتابعتها»، staff.manage «إدارة الموظفين»، registration.manage «إدارة التسجيل على الحج»، admins.manage «إدارة الإداريين»، "
-          "exams.manage «إدارة الامتحانات»، flights.manage «إدارة الطيران»، pilgrims.register «التسجيل على الحج»، registration.review «مراجعة الطلبات والوثائق»، season.settings «إعدادات الموسم»، "
-          "lottery.import «إدخال نتائج القرعة»، lottery.approve «اعتماد ونشر النتائج»، operations.room «غرفة العمليات»، audit.read «سجل الأحداث»، content.manage «إدارة محتوى الموقع»، "
-          "medical «الفريق الطبي»، transport «المواصلات»، ops.files «الملفات التشغيلية والبيانات المرجعية»"),
-        c("kind", enum("task", "management"), "task صلاحية مهمة ثابتة؛ management إدارة ملف تُمنح عبر system_grants"),
+    T("permission_systems", "أنظمة بوابة الموظفين", "الأنظمة الواحد والعشرون التي تُمنح عليها الصلاحيات، بترتيب القائمة.", [
+        c("code", "VARCHAR(20)", "المفتاح: access، staff، registration، reviews، office، lottery، admins، exams، hall، flights، airport، season، operations، medical، transport، opfiles، reference، audit، executive، content، evaluate", pk=True),
+        c("label", "VARCHAR(80)", "الاسم: «صلاحيات الموظفين»، «إدارة الموظفين»، «إدارة التسجيل على الحج»، «مراجعة الطلبات والوثائق»، «التسجيل في المكتب»، «القبول المباشر والقرعة»، «إدارة الإداريين»، «إدارة الامتحانات»، «قاعة الامتحان»، «إدارة الطيران»، «رحلات المطار»، «إعدادات الموسم»، «غرفة العمليات»، «الفريق الطبي»، «المواصلات»، «الملفات التشغيلية»، «البيانات المرجعية»، «سجل الأحداث»، «لوحة الإدارة العليا»، «محتوى الموقع»، «تقييم الإداريين بعد الموسم»"),
+        c("description", "VARCHAR(300)", "الشرح"),
+        c("href", "VARCHAR(120)", "رابط النظام في البوابة"),
+        c("scope_kind", enum("center", "airport", "operation", "collection", "office", "opfileType", "posting"), "نطاق صلاحيات النظام كله إن وُجد: center للقاعة، airport للمطار، office للمكتب، opfileType لنوع الملف التشغيلي، posting لمواقع الموظف في الملفات التشغيلية", null=True),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
-    ], src="lib/staff.ts:14 Permission، PERMISSION_LABELS، MANAGEMENT_PERMISSIONS", seed="17 صلاحية."),
+    ], src="lib/permissions.ts:48 CATALOG", seed="21 نظاماً."),
+
+    T("permission_resources", "موارد كل نظام", "ما يُمنح عليه في كل نظام: الرحلات، الكشوف، بنك الأسئلة، الكادر… مع علامة الحساس والنطاق.", [
+        pk(), code_ref("system_code", "permission_systems", "النظام", length=20, od="CASCADE"),
+        c("resource_key", "VARCHAR(40)", "مفتاح المورد في النظام (flights، manifests، questions-answers…)"),
+        c("label", "VARCHAR(120)", "الاسم المعروض"),
+        c("sensitive", "TINYINT(1)", "بيانات شخصية أو سرية تُمنح وحدها (الرقم الوطني، الهواتف، الأجوبة الصحيحة، الكشوف…)", d="0"),
+        c("scope_kind", enum("center", "airport", "operation", "collection", "office", "opfileType", "posting"), "نطاق المورد إن كان له نطاق غير نطاق نظامه: operation لمواعيد العمليات، collection لعناصر مجموعات المحتوى", null=True),
+        c("note", "VARCHAR(200)", "قاعدة تُفرض في الكود («من أدخل النتائج لا يعتمدها»)", null=True),
+        c("sort_order", "TINYINT", "الترتيب", d="0"),
+    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef", seed="132 مورداً، منها 18 حساساً."),
+
+    T("permissions", "الصلاحيات", "كل صلاحية تُمنح على حدة: فعل على مورد في نظام.", [
+        c("code", "VARCHAR(80)", "المفتاح ‹النظام›.‹المورد›.‹الفعل›: flights.flights.GET، flights.flights.lock، lottery.draw.publish…", pk=True),
+        ref("resource_id", "permission_resources", "المورد", od="CASCADE"),
+        c("verb", "VARCHAR(30)", "الفعل: GET، POST، PUT، DELETE، أو اسم فعل خاص (approve، publish، export، lock…)"),
+        c("kind", enum("verb", "special"), "verb أحد الأفعال الأربعة؛ special فعل خاص بالاسم"),
+        c("label", "VARCHAR(120)", "الاسم: «عرض»، «إضافة»، «تعديل»، «حذف»، أو اسم الفعل الخاص («إقفال وإصدار الكشف»)"),
+    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:370 keysOf، ALL_KEYS", seed="399 صلاحية.",
+       rules=["كل فعل على مورد يحتاج عرضه: من يُمنح POST أو PUT أو DELETE أو فعلاً خاصاً يُمنح GET المورد نفسه معه، ومن يُسحب منه GET يُسحب منه كل ما على المورد."]),
 
     T("staff_users", "حسابات الموظفين", "حساب الدخول إلى بوابة الموظفين. ينشئه قسم الموارد البشرية من الرقم الوطني والهاتف، وتُرسل كلمة مرور مؤقتة تُغيَّر عند أول دخول.", [
         pk(),
         c("username", "VARCHAR(40)", "اسم الدخول (أحرف صغيرة)", uq=True),
         person("national_id", "الرقم الوطني للموظف", null=True, uq=True),
         c("name", "VARCHAR(120)", "الاسم المعروض (يظهر فاعلاً في سجل الأحداث)"),
-        c("title", "VARCHAR(160)", "المسمى في البوابة («مديرة الموسم»، «مسؤول الطيران»، «مشرفة قاعة امتحانية — مركز دمشق»)"),
+        c("title", "VARCHAR(160)", "المسمى في البوابة («مدير الموسم»، «مسؤول الطيران»، «مشرفة قاعة امتحانية — مركز دمشق»)"),
         c("initials", "VARCHAR(4)", "حرف الصورة الرمزية"),
         c("travels", "TINYINT(1)", "مسافر مع البعثة («مسافر مع البعثة»)", d="0"),
         c("password_hash", "VARCHAR(255)", "بصمة كلمة المرور"),
@@ -32,17 +51,28 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("status", enum("active", "disabled"), "الحالة", d="'active'"),
         c("last_login_at", "DATETIME(3)", "آخر دخول", null=True),
         *stamps(),
-    ], src="lib/staff.ts:33 StaffUser، STAFF، STAFF_PASSWORD", seed="20 حساباً (سهى مراد مديرة الموسم، هبة القدسي، رنا حداد، مازن الحلبي، هيثم زيدان…)."),
+    ], src="lib/staff.ts:33 StaffUser، STAFF، STAFF_PASSWORD", seed="20 حساباً (نور الأعرج مدير الموسم، هبة القدسي، رنا حداد، مازن الحلبي، هيثم زيدان…)."),
 
-    T("staff_user_permissions", "صلاحيات المهام للحساب", "صلاحيات المهام الثابتة لكل حساب. مديرة الموسم تحمل كل صلاحيات المهام.", [
-        ref("staff_user_id", "staff_users", "الحساب", od="CASCADE"),
-        code_ref("permission_code", "permissions", "الصلاحية"),
-    ], uq=[("staff_user_id", "permission_code")], src="StaffUser.permissions"),
+    T("staff_user_permissions", "صلاحيات كل موظف", "الصلاحيات الممنوحة لكل حساب مباشرة، بلا أدوار وبلا إسناد لنظام. يمنحها ويسحبها من يملك access.permissions.PUT من «صلاحيات الموظفين».", [
+        pk(), ref("staff_user_id", "staff_users", "الحساب", od="CASCADE"),
+        code_ref("permission_code", "permissions", "الصلاحية", length=80),
+        staff("granted_by_staff_id", "من منحها (فارغ لما فُتح به الموسم)"),
+        c("granted_at", "DATETIME(3)", "وقت المنح", d="CURRENT_TIMESTAMP(3)"),
+    ], uq=[("staff_user_id", "permission_code")], src="lib/permissions.ts:393 PermGrant؛ StaffUser.grants؛ State.staffPermissions؛ actions.setStaffPermissions",
+       seed="صلاحيات الحسابات العشرين كما فُتح بها الموسم (lib/staff.ts STAFF): مدير الموسم access.* وغيرها، مسؤول الطيران flights.*، مندوب مطار دمشق airport.* لمطار دمشق، مشرفة قاعة دمشق hall.* لمركز دمشق…",
+       rules=["السحب حذف للسطر، والمنح إضافة له؛ ويُكتب كل منهما في audit_events حدثاً مهماً (system_code = access) بما مُنح وما سُحب وما تغيّر نطاقه.",
+              "لا يسحب أحد من نفسه access.permissions.PUT: يسحبها منه غيره ممن يملكها."]),
+
+    T("staff_user_permission_scopes", "نطاق كل صلاحية ممنوحة", "حين تُمنح صلاحية لنطاق بعينه: المراكز أو المطارات أو العمليات أو المجموعات التي تقتصر عليها. بلا أسطر هنا تسري الصلاحية في كل مكان.", [
+        ref("staff_user_permission_id", "staff_user_permissions", "الصلاحية الممنوحة", od="CASCADE"),
+        c("scope_id", "VARCHAR(40)", "معرّف ما تقتصر عليه، بحسب scope_kind لمورده أو نظامه: معرّف المركز (exam_centers)، أو المطار (airports)، أو مفتاح العملية (operations)، أو المجموعة (cms_collections)، أو المكتب، أو نوع الملف التشغيلي"),
+    ], uq=[("staff_user_permission_id", "scope_id")], src="PermGrant.scope؛ lib/permissions.ts:399 can(user, key, scopeId)",
+       rules=["مشرف القاعة من يملك hall.sittings.GET لمركزها، ومندوب المطار من يملك airport.flights.GET لمطاره: لا جدول إسناد لهما.",
+              "مواعيد عملية تتغير بيد من يملك season.windows.PUT لها."]),
 
     T("management_systems", "ملفات الإدارة", "الملفات الخمسة، لكل ملف لوحة تحكم وعمليات في القائمة الجانبية.", [
         c("code", "VARCHAR(20)", "المفتاح: staff، registration، admins، exams، flights (الترتيب يحدد القائمة وصفحة الدخول)", pk=True),
         c("label", "VARCHAR(80)", "الاسم: «إدارة الموظفين»، «إدارة التسجيل على الحج»، «إدارة الإداريين»، «إدارة الامتحانات»، «إدارة الطيران»"),
-        code_ref("permission_code", "permissions", "صلاحية الإدارة المقابلة"),
         c("description", "TEXT", "الشرح"),
         c("summary_href", "VARCHAR(120)", "رابط «لوحة التحكم»"),
         c("manage_href", "VARCHAR(120)", "رابط الإدارة"),
@@ -59,28 +89,25 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("sort_order", "TINYINT", "الترتيب", d="0"),
     ], uq=[("system_code", "area")], src="systems.ts SystemOperation"),
 
-    T("system_grants", "منح صلاحيات إدارة الملفات", "من يدير كل ملف. تمنحها وتسحبها مديرة الموسم (صلاحية systems.assign)، وكل منح وسحب حدث مهم.", [
-        pk(), code_ref("system_code", "management_systems", "الملف", length=20),
-        ref("staff_user_id", "staff_users", "الموظف الممنوح", od="CASCADE"),
-        staff("granted_by_staff_id", "من منح", null=False),
-        c("granted_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
-        c("revoked_at", "DATETIME(3)", "سُحبت", null=True),
-        staff("revoked_by_staff_id", "من سحب"),
-    ], idx=[("system_code", "staff_user_id")], src="lib/systems.ts:114 Grant؛ DEFAULT_GRANTS؛ systemActions.grant، revoke",
-       rules=["الصلاحيات الفعلية = صلاحيات المهام + إدارة الملفات الممنوحة غير المسحوبة. تُنبَّه المديرة حين يبقى ملف بلا من يديره."]),
+    T("management_operation_permissions", "ما يفتح كل عملية", "صلاحيات العرض التي يكفي أحدها لتظهر العملية في قائمة الموظف وتُفتح صفحتها.", [
+        code_ref("system_code", "management_systems", "الملف", length=20),
+        c("area", "VARCHAR(30)", "العملية"),
+        code_ref("permission_code", "permissions", "صلاحية عرض تفتحها", length=80),
+    ], uq=[("system_code", "area", "permission_code")], src="SystemOperation.perms؛ canOperation",
+       rules=["(system_code، area) يشير إلى عملية في management_system_operations."]),
 
-    T("system_seen", "آخر اطلاع على أحداث الملفات", "متى اطلعت المديرة آخر مرة على الأحداث المهمة لكل ملف (لعدّ الجديد منها).", [
+    T("system_seen", "آخر اطلاع على أحداث الملفات", "متى اطلع المدير آخر مرة على الأحداث المهمة لكل ملف (لعدّ الجديد منها).", [
         ref("staff_user_id", "staff_users", "الموظف", od="CASCADE"),
         code_ref("system_code", "management_systems", "الملف", length=20),
         c("seen_at", "DATETIME(3)", "الوقت"),
     ], uq=[("staff_user_id", "system_code")], src="State.systems.seen"),
 
-    T("escalations", "رفع أمر إلى المدير", "طلب يرفعه صاحب ملف إدارة إلى مديرة الموسم. الكود يحفظه حدثاً في السجل فقط بلا رد.", [
+    T("escalations", "رفع أمر إلى المدير", "طلب يرفعه من يعمل في ملف إدارة إلى مدير الموسم، ويراه من يملك access.escalations.GET. الكود يحفظه حدثاً في السجل فقط بلا رد.", [
         pk(), code_ref("system_code", "management_systems", "الملف", length=20),
         staff("raised_by_staff_id", "من رفعه", null=False),
         c("text", "TEXT", "النص (5 أحرف على الأقل)"),
         c("raised_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
-        c("reply", "TEXT", "رد المديرة", null=True),
+        c("reply", "TEXT", "رد المدير", null=True),
         staff("resolved_by_staff_id", "من أغلقه"),
         c("resolved_at", "DATETIME(3)", "الإغلاق", null=True),
     ], new=True, src="app/staff/_components/system.tsx:99"),
@@ -304,7 +331,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
     ], uq=[("season_year", "city", "meal")], src="SeasonOverrides.meal*، menu*؛ lib/season-live.ts:47 DEFAULT_MEALS",
        seed="مكة 06:00–09:00 و13:00–15:00؛ المدينة 05:30–08:30 و13:00–15:00."),
 ], flow=[
-    "تنشئ الموارد البشرية staff_users وتربطها بـemployees، وتمنح المديرة system_grants لإدارة الملفات.",
+    "تنشئ الموارد البشرية staff_users وتربطها بـemployees، ويمنح صاحب «صلاحيات الموظفين» كل حساب staff_user_permissions واحدة واحدة، بنطاقها في staff_user_permission_scopes إن كان لها نطاق.",
     "يجهز مدير شؤون البعثة hotels وsectors وmashaer_centers وcamps للموسم، ثم operational_files بعقدها وتكتلاتها وإسناداتها، ويفعّلها بقرار.",
     "تدير غرفة العمليات البلاغات (tickets) وinternal_tasks وops_decisions، وتقرأ التقارير اليومية للتكتلات.",
 ])

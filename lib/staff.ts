@@ -1,34 +1,13 @@
 /**
- * Permanent staff (الموظفون) from the operating document. Staff accounts are never self-created;
- * permissions are granted one by one, and field scope comes from operational files.
- * Some permissions are the management of a whole file — «إدارة الموظفين», «إدارة التسجيل على الحج»,
- * «إدارة الإداريين», «إدارة الامتحانات», «إدارة الطيران» — rather than
- * one task: whoever holds one runs that file entirely, from its summary and its management page, and the
- * director grants it and follows it (lib/systems.ts). The other permissions open one task each.
- * In the demo every account holds exactly one permission, and no two accounts the same one, so a permission
- * is seen by signing in as its holder; the season director holds all of them but the management of the
- * files, which she grants. The two accounts with none differ by their assignment: a hall, an airport.
- * Demo login: username + password "1448".
+ * Permanent staff (الموظفون) from the operating document. Staff accounts are never self-created, and nobody is
+ * assigned a whole system: each permission — viewing a resource, adding to it, changing it, deleting from it, or a
+ * named act on it (lib/permissions.ts) — is granted to an employee directly, some for a scope only (a hall, an
+ * airport, an operation…). The holder of «صلاحيات الموظفين» grants and takes them back at /staff/access, and
+ * every grant is in the audit log.
+ * The accounts below open with the permissions that let each one do the work its title says, so a permission is
+ * seen by signing in as its holder. Demo login: username + password "1448".
  */
-
-export type Permission =
-  | "systems.assign" // منح صلاحيات إدارة الملفات وسحبها، ومتابعة حال كل ملف وأحداثه المهمة
-  | "staff.manage" // إدارة الموظفين: الملف كله، من سجل الموظفين وحساباتهم إلى مشاركتهم في الموسم
-  | "admins.manage" // إدارة الإداريين: الملف كله، من قواعد الصفات إلى تشكيل المجموعات والتكتلات في المكتب وتقييمها وتصنيفها
-  | "exams.manage" // إدارة الامتحانات: الملف كله، من المراكز إلى إعلان النتائج
-  | "flights.manage" // إدارة الطيران: الملف كله، من الرحلات إلى الإقلاع والهبوط
-  | "registration.manage" // إدارة التسجيل على الحج: الملف كله، من مراحل التسجيل وأسئلته وقواعده ودفعاته إلى نشر إصداراته ومتابعة الطلبات
-  | "pilgrims.register" // التسجيل على الحج: تسجيل أي حاج في مدة التسجيل — لا يضعه في مجموعة ولا يمنح أي صلاحية في المجموعات
-  | "registration.review" // مراجعة الطلبات والوثائق
-  | "season.settings" // إعدادات الموسم والاعتماد
-  | "lottery.import" // إدخال نتائج القرعة (سنوات الميلاد وأشهرها كما سُحبت في البث)
-  | "lottery.approve" // اعتماد ونشر النتائج
-  | "operations.room" // غرفة العمليات
-  | "audit.read" // الاطلاع على سجل الأحداث
-  | "content.manage" // إدارة محتوى الموقع
-  | "medical" // الفريق الطبي
-  | "transport" // المواصلات
-  | "ops.files"; // الملفات التشغيلية والبيانات المرجعية
+import { can as canKey, expand, mergeGrants, WINDOWS_OF, type PermGrant } from "./permissions";
 
 export type StaffUser = {
   id: string;
@@ -36,99 +15,72 @@ export type StaffUser = {
   name: string;
   title: string;
   travels: boolean;
-  permissions: Permission[];
   initials: string;
+  /** His permissions as they stand now (the store's when the director changed them, else these) */
+  grants: PermGrant[];
 };
 
-/** The permissions that are the management of a whole file: each opens its summary and its management page */
-export const MANAGEMENT_PERMISSIONS: Permission[] = ["staff.manage", "registration.manage", "admins.manage", "exams.manage", "flights.manage"];
+const OPENED = new Date(2026, 8, 1, 9, 0).getTime();
 
-/** Every permission, in the order the portal lists them */
-export const ALL_PERMISSIONS: Permission[] = [
-  "systems.assign",
-  "staff.manage",
-  "registration.manage",
-  "admins.manage",
-  "exams.manage",
-  "flights.manage",
-  "pilgrims.register",
-  "registration.review",
-  "season.settings",
-  "lottery.import",
-  "lottery.approve",
-  "operations.room",
-  "audit.read",
-  "content.manage",
-  "medical",
-  "transport",
-  "ops.files",
-];
+/** Grants as the season opened, from patterns like `flights.*` or `season.windows.PUT@hajj-direct,hajj-lottery` */
+function seed(...patterns: string[]): PermGrant[] {
+  return mergeGrants(
+    ...patterns.map((p) => {
+      const [pattern, scope] = p.split("@");
+      return expand(pattern, scope ? scope.split(",") : undefined, { by: "نور الأعرج", at: OPENED });
+    }),
+  );
+}
+const windows = (ops: string[]) => [`season.windows.GET@${ops.join(",")}`, `season.windows.PUT@${ops.join(",")}`];
 
-/** Every permission for one task: all the director holds, the management of the files being hers to grant */
-export const TASK_PERMISSIONS = ALL_PERMISSIONS.filter((p) => !MANAGEMENT_PERMISSIONS.includes(p));
+const LOTTERY_IMPORT = ["lottery.ages.GET", "lottery.ages.issue", "lottery.pool.GET", "lottery.pool.export", "lottery.draw.GET", "lottery.draw.POST", "lottery.draw.PUT", "lottery.draw.submit"];
+const LOTTERY_APPROVE = ["lottery.ages.GET", "lottery.ages.approve", "lottery.pool.GET", "lottery.draw.GET", "lottery.draw.publish"];
+const OPFILES_READ = ["opfiles.files.GET", "opfiles.nodes.GET", "opfiles.assignments.GET", "opfiles.staff-contact.GET"];
 
 export const STAFF: StaffUser[] = [
-  { id: "suha", username: "suha", name: "سهى مراد", title: "مديرة الموسم", travels: false, initials: "س", permissions: TASK_PERMISSIONS },
-  { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", permissions: ["registration.review"] },
-  // Data entry: this one permission and nothing else — no group, no cluster, no administrator
-  { id: "razan", username: "razan", name: "رزان الحسن", title: "إدخال بيانات — التسجيل على الحج", travels: false, initials: "ر", permissions: ["pilgrims.register"] },
-  // The registration as configuration: its stages, questions, rules, installments and steps, published per season — nothing else
-  { id: "hiba", username: "hiba", name: "هبة القدسي", title: "مسؤولة إدارة التسجيل على الحج", travels: false, initials: "ه", permissions: ["registration.manage"] },
-  { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", permissions: ["lottery.import"] },
-  { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", permissions: ["lottery.approve"] },
-  { id: "munir", username: "munir", name: "منير السيد", title: "مسؤول الامتحانات", travels: false, initials: "م", permissions: ["exams.manage"] },
-  { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", permissions: ["admins.manage"] },
-  { id: "fadi", username: "fadi", name: "فادي سلوم", title: "غرفة العمليات — مكة", travels: true, initials: "ف", permissions: ["operations.room"] },
-  // No permission: the holder of «إدارة الطيران» made him the representative of Damascus airport (lib/flights.ts)
-  { id: "omar", username: "omar", name: "عمر الشامي", title: "مندوب مطار دمشق — الإقلاع والهبوط", travels: false, initials: "ع", permissions: [] },
-  { id: "layla", username: "layla", name: "د. ليلى شمس", title: "الفريق الطبي", travels: true, initials: "ل", permissions: ["medical"] },
-  { id: "haitham", username: "haitham", name: "هيثم زيدان", title: "مسؤول الطيران", travels: true, initials: "ه", permissions: ["flights.manage"] },
-  { id: "bassel", username: "bassel", name: "باسل النوري", title: "فريق المواصلات", travels: true, initials: "ب", permissions: ["transport"] },
-  { id: "tarek", username: "tarek", name: "طارق مصطفى", title: "التدقيق", travels: false, initials: "ط", permissions: ["audit.read"] },
-  { id: "abusami", username: "abusami", name: "سامي حلاق (أبو سامي)", title: "الموارد البشرية", travels: false, initials: "س", permissions: ["staff.manage"] },
-  { id: "nour", username: "nour", name: "نور العابد", title: "محرّرة محتوى المنصة", travels: false, initials: "ن", permissions: ["content.manage"] },
-  { id: "ghassan", username: "ghassan", name: "غسان العمر", title: "مدير شؤون البعثة — الملفات التشغيلية", travels: true, initials: "غ", permissions: ["ops.files"] },
-  { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مديرة موسم مساعدة — لا تملك صلاحية النشر", travels: false, initials: "ل", permissions: ["season.settings"] },
-  // No permission: her hall comes from the holder of «إدارة الامتحانات» assigning her to a centre (app/administrator/_lib/halls.ts)
-  // No permission: posted by the holder of «الملفات التشغيلية» as the supervisor of فندق أبراج النور, where تكتل النور lived; after the season he rates its administrators
-  { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف برج — فندق أبراج النور", travels: true, initials: "و", permissions: [] },
-  { id: "nisreen", username: "nisreen", name: "نسرين الحكيم", title: "مشرفة قاعة امتحانية — مركز دمشق", travels: false, initials: "ن", permissions: [] },
+  // The season director: grants every permission, and holds the work that is no single team's
+  { id: "nour.a", username: "nour.a", name: "نور الأعرج", title: "مدير الموسم", travels: false, initials: "ن", grants: seed("access.*", "office.*", "reviews.*", "season.*", "lottery.*", "operations.*", "audit.*", "executive.*", "content.*", "medical.*", "transport.*", "opfiles.*", "reference.*") },
+  { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", grants: seed("reviews.*") },
+  // Data entry: registering citizens at the office and nothing else — no group, no cluster, no administrator
+  { id: "razan", username: "razan", name: "رزان الحسن", title: "إدخال بيانات — التسجيل على الحج", travels: false, initials: "ر", grants: seed("office.*") },
+  // The registration as configuration: its pages, questions, rules, installments and steps, published per season, and its two windows
+  { id: "hiba", username: "hiba", name: "هبة القدسي", title: "مسؤولة إدارة التسجيل على الحج", travels: false, initials: "ه", grants: seed("registration.*", ...windows(WINDOWS_OF.registration)) },
+  { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", grants: seed(...LOTTERY_IMPORT) },
+  { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", grants: seed(...LOTTERY_APPROVE) },
+  { id: "munir", username: "munir", name: "منير السيد", title: "مسؤول الامتحانات", travels: false, initials: "م", grants: seed("exams.*", ...windows(WINDOWS_OF.exams)) },
+  { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", grants: seed("admins.*", ...windows(WINDOWS_OF.admins)) },
+  // The operations room reads the operational files without changing them
+  { id: "fadi", username: "fadi", name: "فادي سلوم", title: "غرفة العمليات — مكة", travels: true, initials: "ف", grants: seed("operations.*", ...OPFILES_READ) },
+  // Damascus airport's representative: take-offs and landings there, nothing else
+  { id: "omar", username: "omar", name: "عمر الشامي", title: "مندوب مطار دمشق — الإقلاع والهبوط", travels: false, initials: "ع", grants: seed("airport.*@ap-dam") },
+  { id: "layla", username: "layla", name: "د. ليلى شمس", title: "الفريق الطبي", travels: true, initials: "ل", grants: seed("medical.*", "evaluate.*") },
+  { id: "haitham", username: "haitham", name: "هيثم زيدان", title: "مسؤول الطيران", travels: true, initials: "ه", grants: seed("flights.*") },
+  { id: "bassel", username: "bassel", name: "باسل النوري", title: "فريق المواصلات", travels: true, initials: "ب", grants: seed("transport.*", "evaluate.*") },
+  { id: "tarek", username: "tarek", name: "طارق مصطفى", title: "التدقيق", travels: false, initials: "ط", grants: seed("audit.*", "executive.*") },
+  { id: "abusami", username: "abusami", name: "سامي حلاق (أبو سامي)", title: "الموارد البشرية", travels: false, initials: "س", grants: seed("staff.*") },
+  { id: "nour", username: "nour", name: "نور العابد", title: "محرّرة محتوى المنصة", travels: false, initials: "ن", grants: seed("content.*") },
+  { id: "ghassan", username: "ghassan", name: "غسان العمر", title: "مدير شؤون البعثة — الملفات التشغيلية", travels: true, initials: "غ", grants: seed("opfiles.*", "reference.*") },
+  { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مديرة موسم مساعدة — لا تملك صلاحية النشر", travels: false, initials: "ل", grants: seed("season.*", "executive.*") },
+  // Posted as the supervisor of فندق أبراج النور, where تكتل النور lived: after the season he rates its administrators
+  { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف برج — فندق أبراج النور", travels: true, initials: "و", grants: seed("evaluate.*") },
+  // Damascus centre's hall supervisor: its sittings, attendance, devices and submissions, nothing else
+  { id: "nisreen", username: "nisreen", name: "نسرين الحكيم", title: "مشرفة قاعة امتحانية — مركز دمشق", travels: false, initials: "ن", grants: seed("hall.*@damascus") },
 ];
 
 export const STAFF_PASSWORD = "1448";
-
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  "systems.assign": "منح صلاحيات الإدارة ومتابعتها",
-  "staff.manage": "إدارة الموظفين",
-  "admins.manage": "إدارة الإداريين",
-  "exams.manage": "إدارة الامتحانات",
-  "flights.manage": "إدارة الطيران",
-  "registration.manage": "إدارة التسجيل على الحج",
-  "pilgrims.register": "التسجيل على الحج",
-  "registration.review": "مراجعة الطلبات والوثائق",
-  "season.settings": "إعدادات الموسم",
-  "lottery.import": "إدخال نتائج القرعة",
-  "lottery.approve": "اعتماد ونشر النتائج",
-  "operations.room": "غرفة العمليات",
-  "audit.read": "سجل الأحداث",
-  "content.manage": "إدارة محتوى الموقع",
-  medical: "الفريق الطبي",
-  transport: "المواصلات",
-  "ops.files": "الملفات التشغيلية والبيانات المرجعية",
-};
-
-/** Does this account hold every task permission (the season director)? */
-export function holdsAll(user: StaffUser | null) {
-  return !!user && TASK_PERMISSIONS.every((p) => user.permissions.includes(p));
-}
-
-/** The task permissions an account holds — what «لوحتي» gathers; the management of a file has its own pages */
-export const taskPermissions = (user: StaffUser | null) => user?.permissions.filter((p) => !MANAGEMENT_PERMISSIONS.includes(p)) ?? [];
 
 export function getStaff(id: string | null | undefined) {
   return STAFF.find((s) => s.id === id) ?? null;
 }
 
-export function can(user: StaffUser | null, p: Permission) {
-  return !!user?.permissions.includes(p);
+/** An account with the permissions the director left it (the store's), else those it opened with */
+export function withPermissions(user: StaffUser, stored: Record<string, PermGrant[]> | undefined): StaffUser {
+  const g = stored?.[user.id];
+  return g ? { ...user, grants: g } : user;
 }
+
+/** May this employee do it (lib/permissions.ts) */
+export const can = (user: StaffUser | null | undefined, key: string, scopeId?: string) => canKey(user, key, scopeId);
+
+/** The one who grants permissions: the season director, or whoever was given that */
+export const isGrantor = (user: StaffUser | null | undefined) => can(user, "access.permissions.PUT");

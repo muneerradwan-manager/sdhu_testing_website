@@ -27,7 +27,7 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
            "app/staff/flights/flight-form.tsx:98", "app/staff/flights/flight-form.tsx:99", "app/staff/flights/flight-form.tsx:68",
            "app/staff/flights/flight-form.tsx:111"],
       data=["flights.capacity", "flights.staff_reserve", "airports.arrivals_only", "airports.archived", "carriers.archived"],
-      cfg="ينشئ الرحلات حامل «إدارة الطيران» من «الرحلات».",
+      cfg="ينشئ الرحلات صاحب الصلاحية في «إدارة الطيران» من «الرحلات».",
       gap="هذه الشروط في نموذج الشاشة وحده؛ flightsActions.saveFlight لا يتحقق منها. على المنصة الحقيقية فرضها في الخادم."),
     R("OPS-03", "لا تُنقص السعة تحت من عليها",
       "عند تعديل رحلة لا تقل مقاعد الحجاج (السعة ناقص حجز الموظفين) عن الحجاج المسندين إليها، ولا عن مجموع المقاعد المعطاة للتكتلات عليها، "
@@ -66,7 +66,7 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       "يُطبَّق الشرط في كل طريق إسناد: الفردي والمجموعة والنقل.",
       src=["lib/flights.ts:627", "lib/flights.ts:634", "lib/flights.ts:637", "lib/flights.ts:619", "lib/flights.ts:218", "lib/flights.ts:220", "lib/flights.ts:811"],
       data=["airport_return_targets", "airports.arrivals_only", "flights.depart_at", "flights.arrive_at"],
-      cfg="قائمة مطارات العودة لكل مطار يضبطها حامل «إدارة الطيران» في «المطارات ومندوبوها»."),
+      cfg="قائمة مطارات العودة لكل مطار يضبطها صاحب الصلاحية في «إدارة الطيران» في «المطارات ومندوبوها»."),
     R("OPS-10", "متى تقبل الرحلة إسناداً",
       "يُسند إلى الرحلة المنشورة أو المكتملة. ويُسند إلى المقفلة بسبب مكتوب فقط، ويأخذ المقعد الجديد حالة «مثبت» ويلزمه كشف بإصدار جديد. "
       "لا يُسند إلى مسودة أو رحلة أقلعت أو وصلت أو أُجّلت أو أُلغيت. رحلة الموظفين لا تقبل إلا موظفين.",
@@ -151,10 +151,11 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       src=["lib/flights.ts:950", "lib/flights.ts:952"],
       data=["flights.arrived_at", "flight_assignments.status"]),
     R("OPS-26", "مندوب المطار",
-      "لكل مطار مندوب واحد يعيّنه حامل «إدارة الطيران» من الموظفين، دون أي صلاحية أخرى. يرى المندوب رحلات المغادرة من مطاره والوصول إليه، "
-      "ويسجّل الإقلاع للمقفلة والهبوط للتي أقلعت. إسناد المندوب وحده يفتح له صفحة «رحلات مطاري».",
-      src=["lib/flights.ts:546", "lib/flights.ts:1134", "app/staff/airport/view.tsx:43", "app/staff/airport/view.tsx:61"],
-      data=["airport_representatives.staff_user_id"],
+      "مندوب المطار من يملك «رحلات المطار» (airport.flights.GET) لذلك المطار، ولا يُسند من شاشة المطارات التي تعرضه للقراءة؛ وقد يكون للمطار أكثر من مندوب. "
+      "يرى المندوب رحلات المغادرة من مطاره والوصول إليه، ويسجّل الإقلاع للمقفلة (airport.flights.depart لمطار المغادرة) والهبوط للتي أقلعت (airport.flights.arrive لمطار الوصول). "
+      "وهذه الصلاحية وحدها تفتح له صفحة «رحلات مطاري».",
+      src=["lib/flights.ts:548", "app/staff/airport/view.tsx:43", "app/staff/airport/view.tsx:112", "app/staff/airport/view.tsx:113", "lib/flights.ts:939"],
+      data=["staff_user_permissions.permission_code", "staff_user_permission_scopes.scope_id"],
       ex="عمر الشامي مندوب مطار دمشق في البيانات التجريبية."),
     R("OPS-27", "بطاقة الصعود للحاج",
       "تعرض بطاقة الحاج: موعد الصعود قبل الإقلاع بـ45 دقيقة، والحضور إلى المطار قبله بـ3.5 ساعات، والأمتعة حقيبة 23 كغ وحقيبة يد 7 كغ "
@@ -237,7 +238,7 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
     # ───────────── الملفات التشغيلية ─────────────
     R("OPS-40", "ملف واحد لكل نوع في كل موسم",
       "أنواع الملفات ثلاثة: التسكين في مكة (قطاع ← برج)، ومخيمات منى (مركز ← مخيم، وفريق الكوسترات على مستوى الملف)، ومخيمات عرفات (مركز ← مخيم). "
-      "لكل نوع ملف واحد في الموسم. لا يُنشأ ملف إلا للموسم الجاري، ولا ينشئه إلا حامل «الملفات التشغيلية والبيانات المرجعية».",
+      "لكل نوع ملف واحد في الموسم. لا يُنشأ ملف إلا للموسم الجاري، ولا ينشئه إلا صاحب الصلاحية في «الملفات التشغيلية».",
       src=["lib/ops.ts:498", "lib/ops.ts:650", "lib/ops.ts:651", "app/staff/operational-files/view.tsx:125"],
       data=["operational_files.file_type_code", "operational_files.season_year", "op_file_types"]),
     R("OPS-41", "أماكن الملف من البيانات المرجعية",
@@ -303,7 +304,7 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       gap="التصعيد يُحسب عند العرض فقط؛ على المنصة الحقيقية تثبيت وقته في escalated_at وإشعار الغرفة."),
     R("OPS-52", "حالات البلاغ وإسناده",
       "البلاغ مفتوح ثم قيد المعالجة ثم مغلق. إسناد بلاغ مفتوح إلى جهة ينقله إلى «قيد المعالجة». كل تغيير حالة وإسناد وتحديث يُكتب في خط البلاغ الزمني باسم فاعله، "
-      "ويُسجَّل في سجل الأحداث بالحالة قبل وبعد. الغرفة لحامل «غرفة العمليات».",
+      "ويُسجَّل في سجل الأحداث بالحالة قبل وبعد. الغرفة لصاحب الصلاحية في «غرفة العمليات».",
       src=["app/staff/operations/shared.tsx:60", "app/staff/operations/shared.tsx:63", "app/staff/operations/shared.tsx:64", "app/staff/operations/view.tsx:287", "app/staff/operations/view.tsx:26"],
       data=["tickets.status", "ticket_updates.status_from", "ticket_updates.status_to"]),
 
@@ -315,10 +316,11 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       src=["lib/operations.ts:151", "lib/operations.ts:152", "lib/operations.ts:153"],
       data=["operation_windows.mode", "operation_windows.starts_on", "operation_windows.end_time", "operations.permanent"]),
     R("OPS-54", "من يضبط مواعيد العملية",
-      "يغيّر وضع العملية وتواريخها حامل صلاحيتها المسيطرة (مثل «إدارة التسجيل على الحج» للتسجيل، و«إدارة الإداريين» للتشكيل، و«إدارة الامتحانات» للاختبارات)، "
-      "أو حامل «إعدادات الموسم» الذي يضبطها كلها. وكل تغيير حدث مهم يحمل القيمة قبل وبعد ومن غيّرها ومتى.",
-      src=["lib/operations.ts:238", "lib/operations.ts:239", "app/staff/_components/operations.tsx:39", "app/staff/_components/operations.tsx:40", "app/staff/_components/operations.tsx:71"],
-      data=["operations.control_permission", "operation_windows.updated_by_staff_id"],
+      "يرى العملية من يملك season.windows.GET لها، ويغيّر وضعها وتواريخها من يملك season.windows.PUT لها (النطاق مفتاح العملية)؛ "
+      "ومن يملكها بلا نطاق يضبط العمليات كلها. يفتتح الموسم صاحب كل ملف بمواعيد عملياته (التسجيل لإدارة التسجيل، والتشكيل والتقييم لإدارة الإداريين، والاختبارات لإدارة الامتحانات)، "
+      "ومدير الموسم بها كلها. وكل تغيير حدث مهم يحمل القيمة قبل وبعد ومن غيّرها ومتى.",
+      src=["lib/operations.ts:238", "lib/operations.ts:239", "app/staff/_components/operations.tsx:35", "app/staff/_components/operations.tsx:40", "app/staff/_components/operations.tsx:71", "lib/permissions.ts:461"],
+      data=["staff_user_permission_scopes.scope_id", "operation_windows.updated_by_staff_id"],
       gap="لا يتحقق الكود أن تاريخ البداية قبل تاريخ النهاية."),
     R("OPS-55", "مواعيد موسم 1448",
       "التسجيل المباشر 12–25 آب 2026، والقرعة 26 آب – 10 أيلول، وتسجيل الإداريين 20–24 أيلول، والقرعة العلنية 26 أيلول، وتثبيت المقبولين 11–27 تشرين الأول. "

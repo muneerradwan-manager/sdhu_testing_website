@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { SEED_TASKS, type TaskColumn } from "@/lib/data/staff-seed";
 import { useStore } from "@/lib/store";
-import { Drawer, logAs, smallInputClass, useStaffUser } from "../_components/kit";
+import { can, Drawer, logAs, smallInputClass, useStaffUser } from "../_components/kit";
 import { AddButton, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Field, Segments } from "../exam/_components/ui";
 
@@ -46,8 +46,11 @@ export function TasksList() {
   const [title, setTitle] = useState("");
   const [to, setTo] = useState("");
   const shown = tasks.filter((t) => filter === "all" || t.column === filter);
+  const mayAdd = can(user, "operations.tasks.POST");
+  const mayMove = can(user, "operations.tasks.PUT");
 
   const move = (id: string, column: TaskColumn) => {
+    if (!mayMove) return;
     const t = tasks.find((x) => x.id === id);
     if (!t || t.column === column) return;
     const from = COLUMNS.find((c) => c.key === t.column)!.label;
@@ -57,7 +60,7 @@ export function TasksList() {
   };
 
   const create = () => {
-    if (title.trim().length < 5) return;
+    if (!mayAdd || title.trim().length < 5) return;
     logAs(user, { action: "إنشاء مهمة داخلية", target: title.trim(), detail: `T-${Date.now().toString(36).slice(-4).toUpperCase()}`, after: to.trim() || "غرفة العمليات" });
     setTitle("");
     setTo("");
@@ -67,7 +70,7 @@ export function TasksList() {
 
   return (
     <div className="space-y-4">
-      <AddButton onClick={() => setAdding(true)}>+ مهمة جديدة</AddButton>
+      {mayAdd && <AddButton onClick={() => setAdding(true)}>+ مهمة جديدة</AddButton>}
       <Segments
         value={filter}
         onChange={setFilter}
@@ -85,8 +88,8 @@ export function TasksList() {
               <td className="p-3">
                 <p className="font-bold leading-6 text-white">{t.title}</p>
                 <RowActions>
-                  {next && <RowLink onClick={() => move(t.id, next.key)}>نقل إلى «{next.label}»</RowLink>}
-                  {prev && <RowLink onClick={() => move(t.id, prev.key)}>إرجاع إلى «{prev.label}»</RowLink>}
+                  {mayMove && next && <RowLink onClick={() => move(t.id, next.key)}>نقل إلى «{next.label}»</RowLink>}
+                  {mayMove && prev && <RowLink onClick={() => move(t.id, prev.key)}>إرجاع إلى «{prev.label}»</RowLink>}
                 </RowActions>
               </td>
               <td className="p-3 text-xs text-white/75">

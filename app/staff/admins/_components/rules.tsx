@@ -11,11 +11,11 @@ import { cn, formatUSD } from "@/lib/utils";
 import { APPLIED_ROLES, COMMITMENTS, FIXED_CRITERIA, criteriaCatalog, criterionLabel, type RoleRequirements } from "@/app/administrator/_lib/admin";
 import { useStructure } from "@/app/administrator/_lib/structure";
 import { SEASON_VALIDITY, useAdminCalendar, useDocTypes, useEvaluationStages, useLanguages, useRoleRequirements, useSkills } from "@/app/administrator/_lib/admin-rules";
-import { Drawer, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { OperationsPanel } from "../../_components/operations";
 import { AddButton, Box, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { RolePermissionsPanel } from "./role-permissions";
-import { Help, Lead, SaveLine, TitleCell, Views, useView } from "./ui";
+import { Help, Lead, Locked, SaveLine, TitleCell, Views, needs, useView } from "./ui";
 import { EXAM_KEYS, logAdmins, useAdminsDesk } from "../desk";
 
 /**
@@ -38,11 +38,27 @@ const SECTIONS = [
 ] as const;
 type Section = (typeof SECTIONS)[number]["key"];
 
+/** What viewing each section needs (the operations' windows are read by everyone who opens the page) */
+const SECTION_GET: Record<Section, string | null> = {
+  operations: null,
+  permissions: "admins.role-permissions.GET",
+  commitments: "admins.commitments.GET",
+  documents: "admins.doc-types.GET",
+  skills: "admins.skills.GET",
+  languages: "admins.languages.GET",
+  requirements: "admins.role-requirements.GET",
+  stages: "admins.evaluation-stages.GET",
+  calendar: "admins.calendar.GET",
+};
+
 export function RulesTab() {
   const section = useView<Section>("s", SECTIONS.map((x) => x.key));
+  const may = useCan();
+  const sees = (k: Section) => !SECTION_GET[k] || may(SECTION_GET[k]!);
+  if (!sees(section)) return <Locked perm={SECTION_GET[section]!} />;
   return (
     <div className="space-y-6">
-      <Views param="s" value={section} items={[...SECTIONS]} tabs label="أقسام القواعد" />
+      <Views param="s" value={section} items={SECTIONS.filter((x) => sees(x.key))} tabs label="أقسام القواعد" />
       {section === "operations" && <OperationsPanel keys={["admin-registration", "admin-exams", "admin-orals", "group-formation", "cluster-formation", "group-management", "cluster-management", "pilgrim-evaluation", "self-evaluation", "peer-evaluation", "evaluation-objection"]} system="admins" area="rules" title="عمليات الإداريين: حالتها ومواعيدها" />}
       {section === "permissions" && <RolePermissionsPanel />}
       {section === "commitments" && <Commitments />}
@@ -85,7 +101,7 @@ export function SeasonNumbers() {
           </li>
         ))}
       </ul>
-      <p className="text-xs leading-6 text-white/55">تضبطها مديرة الموسم في «إعدادات الموسم». ما سواها من قواعد الإداريين تعدّله هنا.</p>
+      <p className="text-xs leading-6 text-white/55">يضبطها مدير الموسم في «إعدادات الموسم». ما سواها من قواعد الإداريين تعدّله هنا.</p>
     </Box>
   );
 }
@@ -95,6 +111,8 @@ function ResetAll() {
   const user = useStaffUser()!;
   const toast = useToast();
   const desk = useAdminsDesk();
+  const may = useCan();
+  if (!may("admins.rules.reset-all")) return null;
   return (
     <Box title="خيارات متقدمة" open={false}>
       <p className="text-xs leading-6 text-white/60">{desk.rulesEdited ? `عُدّل ${desk.rulesEdited} من قواعد الموسم.` : "القواعد كما تطلقها المنصة."} الإعادة تشمل الصفات والالتزامات وقوائم الملف وشروط الصفات ومراحل التقييم والرزنامة، لا الامتحان وبنك أسئلته.</p>
@@ -124,6 +142,7 @@ function Commitments() {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState({ label: "", detail: "" });
   const open = COMMITMENTS.find((c) => c.key === editing);
+  const mayEdit = useCan()("admins.commitments.PUT");
   const textOf = (c: (typeof COMMITMENTS)[number]) => ({ label: cEdits[c.key]?.label ?? c.label, detail: cEdits[c.key]?.detail ?? c.detail });
   const edit = (c: (typeof COMMITMENTS)[number]) => {
     setEditing(c.key);
@@ -147,6 +166,7 @@ function Commitments() {
     <div className="space-y-4">
       <Title>التزامات الإداري</Title>
       <Lead>يوقّع عليها كل متقدم إلكترونياً مع تاريخها، وتُحفظ في استمارة تسجيله.</Lead>
+      <Locked perm="admins.commitments.PUT" />
       <ListTable head={["الالتزام", "الحالة"]}>
         {COMMITMENTS.map((c) => {
           const off = cOff.includes(c.key);
@@ -158,12 +178,14 @@ function Commitments() {
                 onOpen={() => edit(c)}
                 sub={t.detail}
                 actions={
-                  <RowActions>
-                    <RowLink onClick={() => edit(c)}>تعديل</RowLink>
-                    <RowLink danger={!off} onClick={() => toggle(c)}>
-                      {off ? "إعادة إلى الطلب" : "إسقاط من الطلب"}
-                    </RowLink>
-                  </RowActions>
+                  mayEdit && (
+                    <RowActions>
+                      <RowLink onClick={() => edit(c)}>تعديل</RowLink>
+                      <RowLink danger={!off} onClick={() => toggle(c)}>
+                        {off ? "إعادة إلى الطلب" : "إسقاط من الطلب"}
+                      </RowLink>
+                    </RowActions>
+                  )
                 }
               />
               <td className="p-3 align-top">{off ? <Tag tone="maroon">مُسقط</Tag> : <Tag tone="green">في الطلب</Tag>}</td>
@@ -177,7 +199,7 @@ function Commitments() {
         title="تعديل الالتزام"
         width="max-w-lg"
         footer={
-          <Button variant="gold" onClick={save}>
+          <Button variant="gold" onClick={save} disabled={!mayEdit} title={mayEdit ? undefined : needs("admins.commitments.PUT")}>
             حفظ
           </Button>
         }
@@ -208,6 +230,7 @@ function Calendar() {
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState<CalRow>({ hijri: "", title: "", detail: "" });
   const [adding, setAdding] = useState<CalRow>({ hijri: "", title: "", detail: "" });
+  const may = useCan();
 
   const write = (next: CalRow[], action: string, target?: string) => {
     actions.setAdminRules({ calendar: next });
@@ -244,14 +267,17 @@ function Calendar() {
                   sub={r.detail}
                   actions={
                     <RowActions>
-                      <RowLink
-                        onClick={() => {
-                          setEditing(i);
-                          setDraft({ ...r });
-                        }}
-                      >
-                        تعديل
-                      </RowLink>
+                      {may("admins.calendar.PUT") && (
+                        <RowLink
+                          onClick={() => {
+                            setEditing(i);
+                            setDraft({ ...r });
+                          }}
+                        >
+                          تعديل
+                        </RowLink>
+                      )}
+                      {may("admins.calendar.DELETE") && (
                       <RowLink
                         danger
                         onClick={() => {
@@ -261,6 +287,7 @@ function Calendar() {
                       >
                         حذف
                       </RowLink>
+                      )}
                     </RowActions>
                   }
                 />
@@ -268,16 +295,20 @@ function Calendar() {
               </tr>
             ))}
           </ListTable>
-          <CalendarDrawer open={editing !== null} onClose={() => setEditing(null)} draft={draft} setDraft={setDraft} onSave={save} />
+          <CalendarDrawer open={editing !== null} onClose={() => setEditing(null)} draft={draft} setDraft={setDraft} onSave={save} locked={!may("admins.calendar.PUT")} />
         </div>
       }
       side={
-        <Box title="إضافة مرحلة">
-          <CalFields draft={adding} setDraft={setAdding} />
-          <Button size="sm" variant="gold" disabled={!adding.title.trim()} onClick={add}>
-            <Plus className="size-4" /> إضافة إلى الرزنامة
-          </Button>
-        </Box>
+        may("admins.calendar.POST") ? (
+          <Box title="إضافة مرحلة">
+            <CalFields draft={adding} setDraft={setAdding} />
+            <Button size="sm" variant="gold" disabled={!adding.title.trim()} onClick={add}>
+              <Plus className="size-4" /> إضافة إلى الرزنامة
+            </Button>
+          </Box>
+        ) : (
+          <Locked perm="admins.calendar.POST" />
+        )
       }
     />
   );
@@ -302,7 +333,7 @@ function CalFields({ draft, setDraft }: { draft: CalRow; setDraft: (d: CalRow) =
   );
 }
 
-function CalendarDrawer({ open, onClose, draft, setDraft, onSave }: { open: boolean; onClose: () => void; draft: CalRow; setDraft: (d: CalRow) => void; onSave: () => void }) {
+function CalendarDrawer({ open, onClose, draft, setDraft, onSave, locked }: { open: boolean; onClose: () => void; draft: CalRow; setDraft: (d: CalRow) => void; onSave: () => void; locked?: boolean }) {
   return (
     <Drawer
       open={open}
@@ -310,7 +341,7 @@ function CalendarDrawer({ open, onClose, draft, setDraft, onSave }: { open: bool
       title="تعديل مرحلة في الرزنامة"
       width="max-w-lg"
       footer={
-        <Button variant="gold" disabled={!draft.title.trim()} onClick={onSave}>
+        <Button variant="gold" disabled={!draft.title.trim() || locked} title={locked ? needs("admins.calendar.PUT") : undefined} onClick={onSave}>
           حفظ
         </Button>
       }
@@ -332,6 +363,7 @@ function Stages() {
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState({ label: "", hint: "" });
   const [adding, setAdding] = useState({ label: "", hint: "" });
+  const may = useCan();
 
   const write = (next: { key: string; label: string; hint: string }[], action: string, target?: string) => {
     actions.setAdminRules({ stages: next });
@@ -359,16 +391,18 @@ function Stages() {
                   sub={st.hint}
                   actions={
                     <RowActions>
-                      <RowLink onClick={() => open(i)}>تعديل</RowLink>
-                      <RowLink
-                        danger
-                        onClick={() => {
-                          write(stages.filter((_, j) => j !== i), "حذف مرحلة من تقييم الإداريين", st.label);
-                          toast({ title: "حُذفت المرحلة", tone: "info", icon: "🗑️" });
-                        }}
-                      >
-                        حذف
-                      </RowLink>
+                      {may("admins.evaluation-stages.PUT") && <RowLink onClick={() => open(i)}>تعديل</RowLink>}
+                      {may("admins.evaluation-stages.DELETE") && (
+                        <RowLink
+                          danger
+                          onClick={() => {
+                            write(stages.filter((_, j) => j !== i), "حذف مرحلة من تقييم الإداريين", st.label);
+                            toast({ title: "حُذفت المرحلة", tone: "info", icon: "🗑️" });
+                          }}
+                        >
+                          حذف
+                        </RowLink>
+                      )}
                     </RowActions>
                   }
                 />
@@ -383,6 +417,7 @@ function Stages() {
             footer={
               <Button
                 variant="gold"
+                disabled={!may("admins.evaluation-stages.PUT")}
                 onClick={() => {
                   if (editing === null) return;
                   write(stages.map((x, j) => (j === editing ? { ...x, label: draft.label.trim() || x.label, hint: draft.hint.trim() } : x)), "تعديل مرحلة في تقييم الإداريين", draft.label);
@@ -401,6 +436,9 @@ function Stages() {
         </div>
       }
       side={
+        !may("admins.evaluation-stages.POST") ? (
+          <Locked perm="admins.evaluation-stages.POST" />
+        ) : (
         <Box title="إضافة مرحلة">
           <StageFields draft={adding} setDraft={setAdding} />
           <Button
@@ -416,6 +454,7 @@ function Stages() {
             <Plus className="size-4" /> إضافة المرحلة
           </Button>
         </Box>
+        )
       }
     />
   );
@@ -476,6 +515,8 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
   const [adding, setAdding] = useState("");
   const [cert, setCert] = useState<CertDraft | null>(null);
   const saveCertificate = useSaveCertificate();
+  const may = useCan();
+  const mayEdit = may("admins.role-requirements.PUT");
   const label = (id: string) => criterionLabel(id, types);
   const free = criteriaCatalog(types, skills, languages)
     .map((g) => ({ ...g, ids: g.ids.filter((id) => !draft.rows.includes(id)) }))
@@ -549,7 +590,8 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
                 title={label(id)}
                 sub={kind ?? "شرط ثابت"}
                 actions={
-                  !fixed && (
+                  !fixed &&
+                  mayEdit && (
                     <RowActions>
                       <RowLink danger onClick={() => removeRow(id)}>
                         حذف من الجدول
@@ -563,20 +605,21 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
                 return (
                   <td key={r.key} className={cn("p-2 text-center align-top", off.includes(r.key) && "opacity-50")}>
                     {id === "gender" ? (
-                      <select value={typeof v === "string" ? v : ""} onChange={(e) => setCell(r.key, id, e.target.value || undefined)} className={cn(smallInputClass, "h-9 px-2 text-sm [&>option]:text-ink")} aria-label={`${label(id)} — ${r.label}`}>
+                      <select value={typeof v === "string" ? v : ""} disabled={!mayEdit} onChange={(e) => setCell(r.key, id, e.target.value || undefined)} className={cn(smallInputClass, "h-9 px-2 text-sm [&>option]:text-ink")} aria-label={`${label(id)} — ${r.label}`}>
                         <option value="">الكل</option>
                         <option value="M">ذكور</option>
                         <option value="F">إناث</option>
                       </select>
                     ) : fixed ? (
-                      <NumCell key={`${id}-${String(v)}`} value={typeof v === "number" ? v : undefined} label={`${label(id)} — ${r.label}`} onCommit={(n) => setCell(r.key, id, n)} />
+                      <NumCell key={`${id}-${String(v)}`} value={typeof v === "number" ? v : undefined} label={`${label(id)} — ${r.label}`} onCommit={(n) => setCell(r.key, id, n)} disabled={!mayEdit} />
                     ) : (
                       <button
                         type="button"
                         aria-label={`${label(id)} — ${r.label}: ${cellText(id, v)}`}
+                        disabled={!mayEdit}
                         onClick={() => setCell(r.key, id, NEXT_LEVEL[v === "required" || v === "preferred" ? v : "none"])}
                         className={cn(
-                          "inline-flex h-9 min-w-24 items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold transition",
+                          "inline-flex h-9 min-w-24 items-center justify-center gap-1 rounded-xl px-2 text-xs font-bold transition disabled:cursor-not-allowed",
                           v === "required" ? "bg-green-light text-white" : v === "preferred" ? "bg-gold/25 text-gold ring-1 ring-gold/50" : "bg-white/[.06] text-white/40 ring-1 ring-white/15 hover:bg-white/10",
                         )}
                       >
@@ -592,6 +635,7 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
         })}
       </ListTable>
 
+      {mayEdit && (
       <div className="flex flex-wrap items-center gap-2">
         {free.length > 0 && (
           <>
@@ -612,10 +656,13 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
             </Button>
           </>
         )}
-        <RowLink onClick={() => (dirty ? toast({ title: "احفظ تعديلاتك أولاً", body: "ثم أضف الشهادة الجديدة.", tone: "gold", icon: "💾" }) : setCert(blankCert()))}>+ شهادة جديدة لا توجد في القائمة</RowLink>
+        {may("admins.doc-types.POST") && (
+          <RowLink onClick={() => (dirty ? toast({ title: "احفظ تعديلاتك أولاً", body: "ثم أضف الشهادة الجديدة.", tone: "gold", icon: "💾" }) : setCert(blankCert()))}>+ شهادة جديدة لا توجد في القائمة</RowLink>
+        )}
       </div>
+      )}
 
-      <SaveLine dirty={dirty} onSave={save} label="حفظ شروط الصفات" />
+      <SaveLine dirty={dirty} onSave={save} label="حفظ شروط الصفات" perm="admins.role-requirements.PUT" />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Help>
@@ -623,7 +670,7 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
           <p>تطبّق بوابة الإداريين الجدول على كل متقدم: تُقفل الصفة التي لا يناسبها عمره أو جنسه أو خبرته، ولا يدفع الرسم قبل أن يستوفي كل ما هو «مطلوب» لصفته. يُضبط الجدول لكل موسم من جديد.</p>
           <p>صفة رئيس التكتل خارج الجدول: تمنحها الإدارة، ويُشكَّل التكتل بها في المكتب. أدنى تقييم للاستمرار في الصفة نفسها من إعدادات الموسم.</p>
         </Help>
-        {stored && (
+        {stored && may("admins.role-requirements.reset") && (
           <Box title="خيارات متقدمة" open={false}>
             <Button
               size="sm"
@@ -641,14 +688,14 @@ function RequirementsForm({ table }: { table: RoleRequirements }) {
       </div>
 
       <Drawer open={!!cert} onClose={() => setCert(null)} title="شهادة جديدة في الجدول">
-        {cert && <CertificateForm draft={cert} onChange={setCert} onSave={() => saveCertificate(cert, true) && setCert(null)} onCancel={() => setCert(null)} saveLabel="إضافة إلى الجدول" />}
+        {cert && <CertificateForm draft={cert} onChange={setCert} onSave={() => saveCertificate(cert, true) && setCert(null)} onCancel={() => setCert(null)} saveLabel="إضافة إلى الجدول" lacks={may("admins.doc-types.POST") ? undefined : "admins.doc-types.POST"} />}
       </Drawer>
     </div>
   );
 }
 
 /** A number in the table, taken when the field is left (not on every keystroke); empty = no condition */
-function NumCell({ value, label, onCommit }: { value: number | undefined; label: string; onCommit: (n: number | undefined) => void }) {
+function NumCell({ value, label, onCommit, disabled }: { value: number | undefined; label: string; onCommit: (n: number | undefined) => void; disabled?: boolean }) {
   const [draft, setDraft] = useState(value === undefined ? "" : String(value));
   const commit = () => {
     const t = draft.trim();
@@ -662,6 +709,7 @@ function NumCell({ value, label, onCommit }: { value: number | undefined; label:
       inputMode="numeric"
       value={draft}
       placeholder="—"
+      disabled={disabled}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
@@ -717,6 +765,7 @@ function Documents() {
   const { all: docs } = useDocTypes();
   const [docDraft, setDocDraft] = useState<CertDraft | null>(null);
   const saveCertificate = useSaveCertificate();
+  const may = useCan();
   /** What each role asks of a document now, for its form */
   const rolesOf = (key: string) =>
     Object.fromEntries(
@@ -738,7 +787,7 @@ function Documents() {
 
   return (
     <div className="space-y-4">
-      <Title action={<AddButton onClick={() => setDocDraft(blankCert())}>إضافة شهادة</AddButton>}>الشهادات والوثائق</Title>
+      <Title action={may("admins.doc-types.POST") && <AddButton onClick={() => setDocDraft(blankCert())}>إضافة شهادة</AddButton>}>الشهادات والوثائق</Title>
       <Lead>كل ما يمكن أن يُطلب من الإداري في ملفه، ومدة صلاحيته. ما يُضاف هنا يصير سطراً في «شروط الصفات».</Lead>
       <ListTable head={["الشهادة أو الوثيقة", "الصلاحية", "تطلبها", "المصدر"]}>
         {docs.map((d) => (
@@ -750,15 +799,19 @@ function Documents() {
               muted={d.off}
               actions={
                 <RowActions>
-                  <RowLink onClick={() => edit(d)}>تعديل</RowLink>
+                  {may("admins.doc-types.PUT") && <RowLink onClick={() => edit(d)}>تعديل</RowLink>}
                   {d.custom ? (
-                    <RowLink danger onClick={() => removeDoc(d.key, d.label)}>
-                      حذف
-                    </RowLink>
+                    may("admins.doc-types.DELETE") && (
+                      <RowLink danger onClick={() => removeDoc(d.key, d.label)}>
+                        حذف
+                      </RowLink>
+                    )
                   ) : (
+                    may("admins.doc-types.PUT") && (
                     <RowLink danger={!d.off} onClick={() => toggle("docsOff", d.key, d.label, "doc")}>
                       {d.off ? "إعادة" : "إيقاف هذا الموسم"}
                     </RowLink>
+                    )
                   )}
                 </RowActions>
               }
@@ -778,7 +831,7 @@ function Documents() {
         <p>ما تطلبه صفة لا يُوقف ولا يُحذف حتى يُحذف من «شروط الصفات».</p>
       </Help>
       <Drawer open={!!docDraft} onClose={() => setDocDraft(null)} title={docDraft?.key ? "تعديل الشهادة" : "إضافة شهادة"}>
-        {docDraft && <CertificateForm draft={docDraft} fixedValidity={!!docDraft.key && docDraft.key in SEASON_VALIDITY} onChange={setDocDraft} onSave={() => saveCertificate(docDraft) && setDocDraft(null)} onCancel={() => setDocDraft(null)} />}
+        {docDraft && <CertificateForm draft={docDraft} fixedValidity={!!docDraft.key && docDraft.key in SEASON_VALIDITY} onChange={setDocDraft} onSave={() => saveCertificate(docDraft) && setDocDraft(null)} onCancel={() => setDocDraft(null)} lacks={docDraft.key ? (may("admins.doc-types.PUT") ? undefined : "admins.doc-types.PUT") : may("admins.doc-types.POST") ? undefined : "admins.doc-types.POST"} />}
       </Drawer>
     </div>
   );
@@ -789,6 +842,7 @@ function Skills() {
   const { user, toast, rules, free, toggle, usedByText } = useCatalog();
   const { all: skills } = useSkills();
   const [skill, setSkill] = useState({ label: "", emoji: "" });
+  const may = useCan();
   const addSkill = () => {
     const label = skill.label.trim();
     if (!label) return;
@@ -822,15 +876,17 @@ function Skills() {
                   muted={k.off}
                   actions={
                     <RowActions>
-                      {k.custom ? (
-                        <RowLink danger onClick={() => removeSkill(k.key, k.label)}>
-                          حذف
-                        </RowLink>
-                      ) : (
-                        <RowLink danger={!k.off} onClick={() => toggle("skillsOff", k.key, k.label, "skill")}>
-                          {k.off ? "إعادة" : "إيقاف هذا الموسم"}
-                        </RowLink>
-                      )}
+                      {k.custom
+                        ? may("admins.skills.DELETE") && (
+                            <RowLink danger onClick={() => removeSkill(k.key, k.label)}>
+                              حذف
+                            </RowLink>
+                          )
+                        : may("admins.skills.PUT") && (
+                            <RowLink danger={!k.off} onClick={() => toggle("skillsOff", k.key, k.label, "skill")}>
+                              {k.off ? "إعادة" : "إيقاف هذا الموسم"}
+                            </RowLink>
+                          )}
                     </RowActions>
                   }
                 />
@@ -842,6 +898,9 @@ function Skills() {
         </div>
       }
       side={
+        !may("admins.skills.POST") ? (
+          <Locked perm="admins.skills.POST" />
+        ) : (
         <Box title="إضافة مهارة">
           <div className="flex gap-2">
             <span className="w-16 shrink-0">
@@ -853,6 +912,7 @@ function Skills() {
             <Plus className="size-4" /> إضافة المهارة
           </Button>
         </Box>
+        )
       }
     />
   );
@@ -863,6 +923,7 @@ function Languages() {
   const { user, toast, rules, free, toggle, usedByText } = useCatalog();
   const { all: langs } = useLanguages();
   const [lang, setLang] = useState("");
+  const may = useCan();
   const addLang = () => {
     const name = lang.trim();
     if (!name) return;
@@ -895,15 +956,17 @@ function Languages() {
                     actions={
                       !fixed && (
                         <RowActions>
-                          {l.custom ? (
-                            <RowLink danger onClick={() => removeLang(l.name)}>
-                              حذف
-                            </RowLink>
-                          ) : (
-                            <RowLink danger={!l.off} onClick={() => toggle("languagesOff", l.name, l.name, "lang")}>
-                              {l.off ? "إعادة" : "إيقاف هذا الموسم"}
-                            </RowLink>
-                          )}
+                          {l.custom
+                            ? may("admins.languages.DELETE") && (
+                                <RowLink danger onClick={() => removeLang(l.name)}>
+                                  حذف
+                                </RowLink>
+                              )
+                            : may("admins.languages.PUT") && (
+                                <RowLink danger={!l.off} onClick={() => toggle("languagesOff", l.name, l.name, "lang")}>
+                                  {l.off ? "إعادة" : "إيقاف هذا الموسم"}
+                                </RowLink>
+                              )}
                         </RowActions>
                       )
                     }
@@ -917,12 +980,16 @@ function Languages() {
         </div>
       }
       side={
-        <Box title="إضافة لغة">
-          <input value={lang} onChange={(e) => setLang(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addLang()} placeholder="مثل: الإندونيسية" className={smallInputClass} aria-label="لغة جديدة" />
-          <Button size="sm" variant="gold" disabled={!lang.trim()} onClick={addLang}>
-            <Plus className="size-4" /> إضافة اللغة
-          </Button>
-        </Box>
+        may("admins.languages.POST") ? (
+          <Box title="إضافة لغة">
+            <input value={lang} onChange={(e) => setLang(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addLang()} placeholder="مثل: الإندونيسية" className={smallInputClass} aria-label="لغة جديدة" />
+            <Button size="sm" variant="gold" disabled={!lang.trim()} onClick={addLang}>
+              <Plus className="size-4" /> إضافة اللغة
+            </Button>
+          </Box>
+        ) : (
+          <Locked perm="admins.languages.POST" />
+        )
       }
     />
   );
@@ -1026,6 +1093,7 @@ function CertificateForm({
   onSave,
   onCancel,
   saveLabel = "حفظ",
+  lacks,
 }: {
   draft: CertDraft;
   fixedValidity?: boolean;
@@ -1033,6 +1101,8 @@ function CertificateForm({
   onSave: () => void;
   onCancel: () => void;
   saveLabel?: string;
+  /** The permission saving needs, when he lacks it */
+  lacks?: string;
 }) {
   const roles = useCertRoles();
   const n = Math.round(Number(draft.valid) || 0);
@@ -1108,7 +1178,7 @@ function CertificateForm({
       </fieldset>
 
       <div className="flex gap-2 border-t border-white/10 pt-4">
-        <Button variant="gold" disabled={!draft.label.trim()} onClick={onSave}>
+        <Button variant="gold" disabled={!draft.label.trim() || !!lacks} title={lacks ? needs(lacks) : undefined} onClick={onSave}>
           <Check className="size-4" /> {saveLabel}
         </Button>
         <Button variant="glass" onClick={onCancel}>

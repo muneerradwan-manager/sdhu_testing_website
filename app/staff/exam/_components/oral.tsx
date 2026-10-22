@@ -12,7 +12,7 @@ import { resultOf } from "@/app/administrator/_lib/admin";
 import { EXAM_CENTERS, roleLabelOf, useHalls } from "@/app/administrator/_lib/halls";
 import { ORAL_STATUS, ORAL_TOPICS, oralActions, oralRoleOf, oralSlots, slotLabel, slotOf } from "@/app/administrator/_lib/oral";
 import { useAdminRows, type AdminRow } from "../../_components/data";
-import { Drawer, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { Field, FilterSelect, SearchBox, fieldClass } from "../../_components/ops-ui";
 import { Box, EmptyRow, ListTable, RowActions, RowLink, Title } from "../../_components/wp";
 import { Chip, Segments, type ChipTone } from "./ui";
@@ -35,6 +35,9 @@ export function OralExams() {
   const [center, setCenter] = useState("");
   const [q, setQ] = useState("");
   const [recording, setRecording] = useState<AdminRow | null>(null);
+  const may = useCan();
+  const canRecord = may("exams.oral.PUT");
+  const seePii = may("exams.applicants-pii.GET");
 
   const due = rows.filter((r) => {
     const res = resultOf(r.profile);
@@ -42,7 +45,7 @@ export function OralExams() {
   });
   const stateOf = (r: AdminRow): Filter => r.profile.oral?.status ?? "none";
   const centerOf = (r: AdminRow) => slotOf(r.profile.oral?.slotId)?.centerId ?? halls.centerOf(r.id)?.id;
-  const shown = due.filter((r) => (filter === "all" || stateOf(r) === filter) && (!role || oralRoleOf(r.profile) === role) && (!center || centerOf(r) === center) && matches(q, [r.name, r.id]));
+  const shown = due.filter((r) => (filter === "all" || stateOf(r) === filter) && (!role || oralRoleOf(r.profile) === role) && (!center || centerOf(r) === center) && matches(q, [r.name, seePii ? r.id : undefined]));
   const count = (f: Filter) => due.filter((r) => stateOf(r) === f).length;
   const roles = [...new Set(oralSlots().map((s) => s.role))];
 
@@ -78,8 +81,8 @@ export function OralExams() {
             <tr key={r.id} className="align-top">
               <td className="p-3">
                 <p className="font-bold text-white">{r.name}</p>
-                <p className="text-xs text-white/55" dir="ltr">{r.id}</p>
-                {o?.status === "booked" && (
+                {seePii && <p className="text-xs text-white/55" dir="ltr">{r.id}</p>}
+                {o?.status === "booked" && canRecord && (
                   <RowActions>
                     <RowLink onClick={() => setRecording(r)}>تسجيل النتيجة</RowLink>
                   </RowActions>
@@ -114,11 +117,13 @@ export function OralExams() {
 /** The committee's result for one applicant: passed or failed with a mark and a word, or absent */
 function RecordSheet({ r, by, onClose }: { r: AdminRow; by: string; onClose: () => void }) {
   const toast = useToast();
+  const may = useCan();
   const s = slotOf(r.profile.oral?.slotId);
   const [status, setStatus] = useState<"passed" | "failed" | "absent">("passed");
   const [score, setScore] = useState("85");
   const [note, setNote] = useState("");
   const save = () => {
+    if (!may("exams.oral.PUT")) return;
     oralActions.record(r.id, status, `${by} — ${s?.committee[0] ?? "اللجنة"}`, status === "absent" ? undefined : Math.max(0, Math.min(100, Number(score) || 0)), note.trim() || undefined);
     toast({ title: "سُجّلت نتيجة الامتحان الشفهي", body: `${r.name}: ${ORAL_STATUS[status]}`, tone: "success", icon: "🎙️" });
     onClose();

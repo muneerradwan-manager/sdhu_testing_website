@@ -35,9 +35,9 @@ import {
   type Tier,
 } from "@/app/administrator/_lib/structure";
 import { useAdminRows } from "../../_components/data";
-import { Drawer, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { Drawer, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { AddButton, Box, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, SettingsRow, SettingsSection, Tag, Title } from "../../_components/wp";
-import { Filters, Help, Lead, Order, SaveLine, TitleCell, Views, useView } from "./ui";
+import { Filters, Help, Lead, Locked, Order, SaveLine, TitleCell, Views, needs, useView } from "./ui";
 import { logAdmins } from "../desk";
 
 const SECTIONS = [
@@ -54,13 +54,18 @@ type Section = (typeof SECTIONS)[number]["key"];
  * numbers and their composition, the branches, the ready seasonal labels. Each list is a table with its actions
  * under each name; adding is beside the list or in a side sheet. A list in use cannot lose what is in use.
  */
+/** What viewing each list needs */
+const SECTION_GET: Record<Section, string> = { roles: "admins.roles.GET", categories: "admins.categories-tiers.GET", branches: "admins.branches.GET", labels: "admins.role-labels.GET" };
+
 export function ReferenceTab() {
   const s = useStructure();
   const section = useView<Section>("s", SECTIONS.map((x) => x.key));
+  const may = useCan();
   const counts: Record<Section, number> = { roles: s.roles.length, categories: s.tiers.length, branches: s.branches.length, labels: s.labels.length };
+  if (!may(SECTION_GET[section])) return <Locked perm={SECTION_GET[section]} />;
   return (
     <div className="space-y-6">
-      <Views param="s" value={section} items={SECTIONS.map((x) => ({ ...x, count: counts[x.key] }))} tabs label="القوائم المرجعية" />
+      <Views param="s" value={section} items={SECTIONS.filter((x) => may(SECTION_GET[x.key])).map((x) => ({ ...x, count: counts[x.key] }))} tabs label="القوائم المرجعية" />
       {section === "roles" && <Roles />}
       {section === "categories" && <Categories />}
       {section === "branches" && <Branches />}
@@ -96,6 +101,7 @@ function Roles() {
   const use = useRoleUse();
   const [editing, setEditing] = useState<RoleDef | "new" | null>(null);
   const [filter, setFilter] = useState<"all" | "on" | "off">("all");
+  const may = useCan();
   const save = (roles: RoleDef[], action: string, target: string, detail?: string) => {
     actions.setAdminRules({ roles });
     logAdmins(user, "reference", { action, target, detail, important: true, ref: "roles" });
@@ -127,7 +133,7 @@ function Roles() {
 
   return (
     <div className="space-y-4">
-      <Title action={<AddButton onClick={() => setEditing("new")}>إضافة صفة</AddButton>}>الصفات</Title>
+      <Title action={may("admins.roles.POST") && <AddButton onClick={() => setEditing("new")}>إضافة صفة</AddButton>}>الصفات</Title>
       <Lead>كل صفة بمستواها وسلوكها في التكتل. افتح الصفة لتعديلها. لا تُحذف صفة يحملها أحد: تُعطَّل.</Lead>
       <Filters
         label="تصفية الصفات"
@@ -158,13 +164,17 @@ function Roles() {
               }
               actions={
                 <RowActions>
-                  <RowLink onClick={() => setEditing(r)}>تعديل</RowLink>
-                  <RowLink danger={r.active} onClick={() => save(s.roles.map((x) => (x.key === r.key ? { ...x, active: !x.active } : x)), r.active ? "تعطيل صفة" : "تفعيل صفة", r.name)}>
-                    {r.active ? "تعطيل" : "تفعيل"}
-                  </RowLink>
-                  <RowLink danger onClick={() => remove(r)}>
-                    حذف
-                  </RowLink>
+                  {may("admins.roles.PUT") && <RowLink onClick={() => setEditing(r)}>تعديل</RowLink>}
+                  {may("admins.roles.PUT") && (
+                    <RowLink danger={r.active} onClick={() => save(s.roles.map((x) => (x.key === r.key ? { ...x, active: !x.active } : x)), r.active ? "تعطيل صفة" : "تفعيل صفة", r.name)}>
+                      {r.active ? "تعطيل" : "تفعيل"}
+                    </RowLink>
+                  )}
+                  {may("admins.roles.DELETE") && (
+                    <RowLink danger onClick={() => remove(r)}>
+                      حذف
+                    </RowLink>
+                  )}
                 </RowActions>
               }
             />
@@ -177,7 +187,7 @@ function Roles() {
                 {r.core && <Tag>أصلية</Tag>}
               </span>
             </td>
-            <td className="p-3 align-top">{filter === "all" && <Order name={r.name} first={i === 0} last={i === s.roles.length - 1} onUp={() => move(i, -1)} onDown={() => move(i, 1)} />}</td>
+            <td className="p-3 align-top">{filter === "all" && <Order name={r.name} first={i === 0} last={i === s.roles.length - 1} onUp={() => move(i, -1)} onDown={() => move(i, 1)} disabled={!may("admins.roles.PUT")} />}</td>
           </tr>
         ))}
       </ListTable>
@@ -187,7 +197,7 @@ function Roles() {
           <p>كل صفة بمستواها (تكتل، مجموعة، مشترك) وسلوكها في التكتل: أي مقعد تشغل، ومن أي قائمة مرشّحين تُختار، وهل تقود تكتلاً أو مجموعة، وهل تمنح شارة التميّز في التوجيه الديني، وهل لصاحبها فئة أو عمر مثبَّت يُحتسب به في متوسط أعمار التكتل. السلوكيات مستقلة، فتُضبط بحرية.</p>
           <p>«رئيس تكتل» لا يُتقدَّم إليها: تمنحها الإدارة صفةً موسمية. والمعطّلة لا تُعرض لتعيين جديد، وتبقى صالحة لمن يحملها.</p>
         </Help>
-        {edited && (
+        {edited && may("admins.roles.reset") && (
           <Box title="خيارات متقدمة" open={false}>
             <Button
               size="sm"
@@ -208,6 +218,7 @@ function Roles() {
           <RoleForm
             role={editing === "new" ? undefined : editing}
             s={s}
+            lacks={editing === "new" ? (may("admins.roles.POST") ? undefined : "admins.roles.POST") : may("admins.roles.PUT") ? undefined : "admins.roles.PUT"}
             onSave={(r) => {
               const exists = s.roles.some((x) => x.key === r.key);
               save(exists ? s.roles.map((x) => (x.key === r.key ? r : x)) : [...s.roles, r], exists ? "تعديل صفة" : "إضافة صفة", r.name, BEHAVIORS.filter((b) => r[b.key]).map((b) => b.label).join("، "));
@@ -222,7 +233,7 @@ function Roles() {
   );
 }
 
-function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; onSave: (r: RoleDef) => void; onClose: () => void }) {
+function RoleForm({ role, s, onSave, onClose, lacks }: { role?: RoleDef; s: Structure; onSave: (r: RoleDef) => void; onClose: () => void; lacks?: string }) {
   const [r, setR] = useState<RoleDef>(role ?? { key: "", name: "", level: "shared", desc: "", active: true, applied: true });
   const set = (patch: Partial<RoleDef>) => setR({ ...r, ...patch });
   const taken = s.roles.some((x) => x.key !== r.key && x.name.trim() === r.name.trim());
@@ -331,7 +342,7 @@ function RoleForm({ role, s, onSave, onClose }: { role?: RoleDef; s: Structure; 
         </div>
       </Box>
       <div className="flex gap-2 border-t border-white/10 pt-4">
-        <Button variant="gold" disabled={!r.name.trim() || taken} onClick={() => onSave({ ...r, key: r.key || `role-${nowMs().toString(36)}`, name: r.name.trim(), desc: r.desc.trim() })}>
+        <Button variant="gold" disabled={!r.name.trim() || taken || !!lacks} title={lacks ? needs(lacks) : undefined} onClick={() => onSave({ ...r, key: r.key || `role-${nowMs().toString(36)}`, name: r.name.trim(), desc: r.desc.trim() })}>
           حفظ الصفة
         </Button>
         <Button variant="glass" onClick={onClose}>
@@ -359,6 +370,7 @@ function Categories() {
   const [newTier, setNewTier] = useState("");
   const [newCat, setNewCat] = useState({ name: "", weight: 1 });
   const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const may = useCan();
   const edited = useStore((x) => x.adminRules.categoryRules !== undefined || x.adminRules.composition !== undefined || x.adminRules.tiers !== undefined || x.adminRules.categories !== undefined);
   const log = (action: string, target: string, detail?: string) => logAdmins(user, "reference", { action, target, detail, important: true, ref: "categories" });
   const tierUsed = (id: string) => requests.some((r) => r.cluster.tier === id);
@@ -392,7 +404,8 @@ function Categories() {
                     onOpen={() => setEditingCat(c)}
                     actions={
                       <RowActions>
-                        <RowLink onClick={() => setEditingCat(c)}>تعديل</RowLink>
+                        {may("admins.categories-tiers.PUT") && <RowLink onClick={() => setEditingCat(c)}>تعديل</RowLink>}
+                        {may("admins.categories-tiers.DELETE") && (
                         <RowLink
                           danger
                           onClick={() => {
@@ -403,6 +416,7 @@ function Categories() {
                         >
                           حذف
                         </RowLink>
+                        )}
                       </RowActions>
                     }
                   />
@@ -414,6 +428,9 @@ function Categories() {
           </div>
         }
         side={
+          !may("admins.categories-tiers.POST") ? (
+            <Locked perm="admins.categories-tiers.POST" />
+          ) : (
           <>
             <Box title="إضافة فئة">
               <label className="block">
@@ -457,7 +474,7 @@ function Categories() {
               </Button>
             </Box>
             <Box title="خيارات متقدمة" open={false}>
-              {s.tiers.length > 1 && (
+              {s.tiers.length > 1 && may("admins.categories-tiers.DELETE") && (
                 <Button
                   size="sm"
                   variant="glass"
@@ -473,7 +490,7 @@ function Categories() {
                   <Trash2 className="size-4" /> حذف مستوى «{tier.name}»
                 </Button>
               )}
-              {edited && (
+              {edited && may("admins.categories-tiers.reset") && (
                 <Button
                   size="sm"
                   variant="glass"
@@ -489,6 +506,7 @@ function Categories() {
               {s.tiers.length <= 1 && !edited && <p className="text-xs text-white/55">لا خيارات أخرى الآن.</p>}
             </Box>
           </>
+          )
         }
       />
 
@@ -501,6 +519,7 @@ function Categories() {
         {editingCat && (
           <CategoryForm
             c={editingCat}
+            locked={!may("admins.categories-tiers.PUT")}
             onSave={(next) => {
               actions.setAdminRules({ categories: s.categories.map((x) => (x.id === editingCat.id ? next : x)) });
               log("تعديل فئة", next.name, `وزنها ${next.weight}`);
@@ -591,12 +610,12 @@ function TierForm({ s, tier, comp, log }: { s: Structure; tier: Tier; comp: Comp
         </ListTable>
       </section>
 
-      <SaveLine dirty={dirty} disabled={compDraft.min > compDraft.max} onSave={save} label={`حفظ أرقام ${tier.name}`} />
+      <SaveLine dirty={dirty} disabled={compDraft.min > compDraft.max} onSave={save} label={`حفظ أرقام ${tier.name}`} perm="admins.categories-tiers.PUT" />
     </div>
   );
 }
 
-function CategoryForm({ c, onSave }: { c: Category; onSave: (c: Category) => void }) {
+function CategoryForm({ c, onSave, locked }: { c: Category; onSave: (c: Category) => void; locked?: boolean }) {
   const [d, setD] = useState(c);
   return (
     <div className="space-y-3 text-sm">
@@ -608,7 +627,7 @@ function CategoryForm({ c, onSave }: { c: Category; onSave: (c: Category) => voi
         <span className="mb-1 block text-xs text-white/60">وزنها في مجموع فئات التكتل</span>
         <input type="number" min={1} value={d.weight} onChange={(e) => setD({ ...d, weight: Math.max(1, Number(e.target.value) || 1) })} className={cn(smallInputClass, "text-center")} dir="ltr" />
       </label>
-      <Button variant="gold" disabled={!d.name.trim() || (d.name === c.name && d.weight === c.weight)} onClick={() => onSave({ ...d, name: d.name.trim() })}>
+      <Button variant="gold" disabled={!d.name.trim() || (d.name === c.name && d.weight === c.weight) || locked} onClick={() => onSave({ ...d, name: d.name.trim() })}>
         حفظ
       </Button>
     </div>
@@ -625,6 +644,7 @@ function Branches() {
   const rows = useAdminRows();
   const [name, setName] = useState("");
   const branchesEdited = useStore((x) => x.adminRules.branches !== undefined);
+  const may = useCan();
   const people = useMemo(() => [...new Set([...rows.map((r) => r.id), ...ROSTER.map((x) => x.id), ...HEADS_POOL.map((h) => h.id)])], [rows]);
   const linked = (b: Branch) => people.filter((id) => branchesOf(id, cadre).includes(b.name)).length;
   const save = (branches: Branch[], action: string, target: string) => {
@@ -644,9 +664,12 @@ function Branches() {
                   title={b.name}
                   actions={
                     <RowActions>
-                      <RowLink danger={b.active} onClick={() => save(s.branches.map((x) => (x.id === b.id ? { ...x, active: !x.active } : x)), b.active ? "تعطيل فرع" : "تفعيل فرع", b.name)}>
-                        {b.active ? "تعطيل" : "تفعيل"}
-                      </RowLink>
+                      {may("admins.branches.PUT") && (
+                        <RowLink danger={b.active} onClick={() => save(s.branches.map((x) => (x.id === b.id ? { ...x, active: !x.active } : x)), b.active ? "تعطيل فرع" : "تفعيل فرع", b.name)}>
+                          {b.active ? "تعطيل" : "تفعيل"}
+                        </RowLink>
+                      )}
+                      {may("admins.branches.DELETE") && (
                       <RowLink
                         danger
                         onClick={() => {
@@ -661,6 +684,7 @@ function Branches() {
                       >
                         حذف
                       </RowLink>
+                      )}
                     </RowActions>
                   }
                 />
@@ -674,6 +698,8 @@ function Branches() {
       }
       side={
         <>
+          <Locked perm="admins.branches.POST" />
+          {may("admins.branches.POST") && (
           <Box title="إضافة فرع">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الفرع" className={smallInputClass} aria-label="اسم فرع جديد" />
             <Button
@@ -688,7 +714,8 @@ function Branches() {
               <Plus className="size-4" /> إضافة الفرع
             </Button>
           </Box>
-          {branchesEdited && (
+          )}
+          {branchesEdited && may("admins.branches.reset") && (
             <Box title="خيارات متقدمة" open={false}>
               <Button size="sm" variant="glass" onClick={() => save(DEFAULT_BRANCHES, "إعادة الفروع إلى الأصل", `${DEFAULT_BRANCHES.length} فروع`)}>
                 <RotateCcw className="size-4" /> إعادة الفروع إلى الأصل
@@ -708,6 +735,7 @@ function Labels() {
   const s = useStructure();
   const [draft, setDraft] = useState<RoleLabel>({ id: "", label: "", base: s.roles[0]?.key ?? "", active: true });
   const labelsEdited = useStore((x) => x.adminRules.roleLabels !== undefined);
+  const may = useCan();
   const save = (labels: RoleLabel[], action: string, target: string) => {
     actions.setAdminRules({ roleLabels: labels });
     logAdmins(user, "reference", { action, target, ref: "labels" });
@@ -726,12 +754,16 @@ function Labels() {
                   title={l.label}
                   actions={
                     <RowActions>
-                      <RowLink danger={l.active} onClick={() => save(s.labels.map((x) => (x.id === l.id ? { ...x, active: !x.active } : x)), l.active ? "تعطيل تسمية" : "تفعيل تسمية", l.label)}>
-                        {l.active ? "تعطيل" : "تفعيل"}
-                      </RowLink>
-                      <RowLink danger onClick={() => save(s.labels.filter((x) => x.id !== l.id), "حذف تسمية موسمية", l.label)}>
-                        حذف
-                      </RowLink>
+                      {may("admins.role-labels.PUT") && (
+                        <RowLink danger={l.active} onClick={() => save(s.labels.map((x) => (x.id === l.id ? { ...x, active: !x.active } : x)), l.active ? "تعطيل تسمية" : "تفعيل تسمية", l.label)}>
+                          {l.active ? "تعطيل" : "تفعيل"}
+                        </RowLink>
+                      )}
+                      {may("admins.role-labels.DELETE") && (
+                        <RowLink danger onClick={() => save(s.labels.filter((x) => x.id !== l.id), "حذف تسمية موسمية", l.label)}>
+                          حذف
+                        </RowLink>
+                      )}
                     </RowActions>
                   }
                 />
@@ -744,6 +776,8 @@ function Labels() {
       }
       side={
         <>
+          <Locked perm="admins.role-labels.POST" />
+          {may("admins.role-labels.POST") && (
           <Box title="إضافة تسمية">
             <label className="block">
               <span className="mb-1 block text-xs text-white/60">التسمية</span>
@@ -771,7 +805,8 @@ function Labels() {
               <Plus className="size-4" /> إضافة التسمية
             </Button>
           </Box>
-          {labelsEdited && (
+          )}
+          {labelsEdited && may("admins.role-labels.reset") && (
             <Box title="خيارات متقدمة" open={false}>
               <Button size="sm" variant="glass" onClick={() => save(DEFAULT_LABELS, "إعادة التسميات إلى الأصل", `${DEFAULT_LABELS.length} تسميات`)}>
                 <RotateCcw className="size-4" /> إعادة التسميات إلى الأصل

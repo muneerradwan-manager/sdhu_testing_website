@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { actions, useStore } from "@/lib/store";
 import { hallActions } from "@/app/administrator/_lib/halls";
-import { logAs, useStaffUser } from "../../_components/kit";
+import { can, logAs, useStaffUser } from "../../_components/kit";
 import { OperationHeader, SystemGate } from "../../_components/system";
 import { Box } from "../../_components/wp";
 
-/** The exam file opens to the holders of «إدارة الامتحانات» alone — the director follows it from «صلاحيات الإدارة» */
+/** Each page of the exam file opens to whoever may view what it holds — the director follows it from «صلاحيات الموظفين» */
 export function ExamGate({ children }: { children: ReactNode }) {
   return <SystemGate system="exams">{children}</SystemGate>;
 }
@@ -34,7 +34,7 @@ export function ManageShell({ children }: { children: ReactNode }) {
 
 /**
  * Putting the tests and the question bank back as the platform ships them: rarely wanted, so it waits closed at the
- * end of the tests' and the bank's pages, and only once something was changed.
+ * end of the tests' and the bank's pages, only once something was changed, and only to whoever holds `exams.exams.reset`.
  */
 export function ResetToOriginal() {
   const user = useStaffUser()!;
@@ -42,10 +42,10 @@ export function ResetToOriginal() {
   const rules = useStore((s) => s.adminRules);
   const exams = useStore((s) => s.examHalls.exams);
   const edited = [rules.questionsOff, rules.questionEdits, rules.questionRoles, rules.blueprints, rules.questionsAdded, exams].some((v) => v !== undefined);
-  if (!edited) return null;
+  if (!edited || !can(user, "exams.exams.reset")) return null;
   return (
     <Box title="خيارات متقدمة" open={false}>
-      <p className="text-xs leading-5 text-white/60">يعيد الاختبارات وأقسامها ومواعيدها، وأسئلة البنك، كما تطلقها المنصة. يُسجَّل ويصل إلى مديرة الموسم.</p>
+      <p className="text-xs leading-5 text-white/60">يعيد الاختبارات وأقسامها ومواعيدها، وأسئلة البنك، كما تطلقها المنصة. يُسجَّل ويصل إلى مدير الموسم.</p>
       <Button
         size="sm"
         variant="outline"

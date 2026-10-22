@@ -21,7 +21,7 @@ DOMAIN = D("post", "POST", "ما بعد القبول", [
       "الإعداد الافتراضي سبع خطوات: تأكيد القبول، الصورة الشخصية، الإلحاق بمجموعة، الدفعة الثانية، جواز السفر، الملف الطبي، التأشيرة والرحلة.",
       src=["lib/registration/defaults.ts:63", "lib/registration/service.ts:280", "lib/registration/service.ts:281"],
       data=["applications.config_version_id", "reg_config_versions.config"],
-      cfg="حامل «إدارة التسجيل على الحج» يعدّل الخطوات في المسودة وينشرها إصداراً؛ الطلبات المقدَّمة تبقى على إصدارها."),
+      cfg="صاحب الصلاحية في «إدارة التسجيل على الحج» يعدّل الخطوات في المسودة وينشرها إصداراً؛ الطلبات المقدَّمة تبقى على إصدارها."),
 
     R("POST-03", "قيود ترتيب الخطوات الأساسية",
       "لا يُنشر إصدار يحذف خطوة أساسية من السبع أو يعطّلها أو يكررها، أو فيه معرّفان متكرران. وترتيبها ملزم: الصورة بعد التأكيد، والإلحاق بعد الصورة، "
@@ -52,7 +52,7 @@ DOMAIN = D("post", "POST", "ما بعد القبول", [
       src=["lib/registration/service.ts:295", "lib/registration/service.ts:297", "lib/registration/service.ts:301", "lib/registration/service.ts:304",
            "lib/registration/validate.ts:251", "lib/registration/validate.ts:252"],
       data=["post_custom_step_completions", "post_custom_step_completions.answers"],
-      cfg="حامل «إدارة التسجيل على الحج» من محرر الخطوات بعد القبول."),
+      cfg="صاحب الصلاحية في «إدارة التسجيل على الحج» من محرر الخطوات بعد القبول."),
 
     R("POST-07", "لا وثائق عند التسجيل",
       "لا يُطلب عند التسجيل أي وثيقة: لا صورة ولا جواز ولا وثيقة طبية. عند تأكيد القبول تُنشأ لكل فرد حالة الصورة والجواز «لم تُرفع».",
@@ -95,7 +95,7 @@ DOMAIN = D("post", "POST", "ما بعد القبول", [
       "يُسجَّل العقد معتمداً باسم الموظف ووقته. رئيس المجموعة ومنسقها يرون حجاجهم بعد الإلحاق ولا يُلحقون أحداً.",
       src=["lib/assignment.ts:171", "lib/assignment.ts:174", "lib/assignment.ts:175", "app/staff/reviews/contracts.tsx:220"],
       data=["group_enrollment_contracts", "group_enrollment_contracts.status", "group_enrollment_contracts.file_id", "post_acceptance.enrolled_by_staff_id"],
-      cfg="يُلحق الموظف الحامل لصلاحية «مراجعة الطلبات والوثائق» (registration.review) من «المراجعات» ← العقود في بوابة الموظفين.",
+      cfg="يُلحق الموظف الحامل لصلاحية «مراجعة الطلبات والوثائق» (reviews.*) من «المراجعات» ← العقود في بوابة الموظفين.",
       gap="README (السطر 40) يصف أن الحاج «يختار المجموعة 27 من الدليل فيسجّله منسقها ويوقّعان العقد»؛ الكود يُلحقه موظف المكتب، والمجموعة لا تُعرف برقمها. الكود هو المعتمد."),
 
     R("POST-13", "نافذة الإلحاق بالمجموعات",
@@ -103,7 +103,7 @@ DOMAIN = D("post", "POST", "ما بعد القبول", [
       "خارجها لا يظهر للموظف إلحاق ولا نقل، ويرى الحاج «يبدأ الإلحاق بالمجموعات …» أو «انتهت مدة الإلحاق».",
       src=["lib/operations.ts:66", "app/staff/reviews/contracts.tsx:109", "app/portal/application/_components/post/step-group.tsx:96"],
       data=["operation_windows", "operations"],
-      cfg="مديرة الموسم (season.settings) تضبط مواعيد العملية من «إعدادات الموسم» ← المواعيد."),
+      cfg="مدير الموسم (season.values.PUT) يضبط مواعيد العملية من «إعدادات الموسم» ← المواعيد."),
 
     R("POST-14", "الطلب كله في المجموعة نفسها وضمن سعتها",
       "يُلحق الطلب بكل أفراده معاً بالمجموعة نفسها، أو لا يُلحق. لا يُلحق إلا طلب مقبول. ويُرفض الإلحاق إن تجاوز عدد حجاج المجموعة بعده سعتها "
@@ -169,7 +169,7 @@ DOMAIN = D("post", "POST", "ما بعد القبول", [
       "ولكل فرد سجل صحي، واعتُمدت كل وثيقة مطلوبة لكل فرد.",
       src=["app/staff/medical/view.tsx:126", "lib/registration/post.ts:53", "lib/registration/post.ts:54", "app/portal/application/_components/post/step-medical.tsx:51"],
       data=["member_medical_documents.status", "member_medical_documents.reject_note", "member_medical_documents.reviewed_by_staff_id"],
-      cfg="المراجعة لحامل صلاحية «الفريق الطبي» (medical) من «الفريق الطبي» في بوابة الموظفين.",
+      cfg="المراجعة لحامل صلاحيات «الفريق الطبي» (medical) من «الفريق الطبي» في بوابة الموظفين.",
       gap="في بوابة الحاج تعتمد محاكاةٌ كل وثيقة مرفوعة بعد 3.5 ثانية (step-medical.tsx:36)، ولا يُحفظ الملف."),
 
     R("POST-24", "الوثائق الصحية من وزارة الصحة",

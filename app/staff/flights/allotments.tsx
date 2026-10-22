@@ -20,9 +20,8 @@ import {
   type Flight,
   type FlightsData,
 } from "@/lib/flights";
-import { useOwns } from "@/lib/systems";
 import { cn } from "@/lib/utils";
-import { Drawer, useStaffUser } from "../_components/kit";
+import { Drawer, useCan, useStaffUser } from "../_components/kit";
 import { OperationHeader } from "../_components/system";
 import { Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag } from "../_components/wp";
 import { useFlightsDesk } from "./desk";
@@ -36,8 +35,9 @@ import { flightHref } from "./flight-screen";
  */
 export function AllotmentsPage() {
   const desk = useFlightsDesk();
-  const user = useStaffUser()!;
-  const officer = useOwns(user, "flights");
+  const may = useCan();
+  // Giving a day, changing its seats and taking it back are three permissions; the sheet opens with any
+  const officer = may("flights.allotments.POST") || may("flights.allotments.PUT") || may("flights.allotments.DELETE");
   const [open, setOpen] = useState<string | null>(null);
   const rows = desk.clusterTotals;
 
@@ -101,6 +101,8 @@ type Row = { on: boolean; whole: boolean; seats: string };
 function DaysSheet({ clusterId, data, total, onClose }: { clusterId: string; data: FlightsData; total: number; onClose: () => void }) {
   const user = useStaffUser()!;
   const toast = useToast();
+  const may = useCan();
+  const p = { add: may("flights.allotments.POST"), change: may("flights.allotments.PUT"), remove: may("flights.allotments.DELETE") };
   const actor = { name: user.name, role: user.title };
   const flights = data.flights.filter((f) => f.audience === "pilgrims" && !["departed", "arrived", "cancelled"].includes(f.status)).sort((a, b) => a.departAt - b.departAt);
   const initial = Object.fromEntries(
@@ -159,7 +161,7 @@ function DaysSheet({ clusterId, data, total, onClose }: { clusterId: string; dat
               <li key={f.id} className={cn("px-3 py-2.5", r.on && "bg-gold/10")}>
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
-                    <input type="checkbox" className="accent-gold" checked={r.on} disabled={r.on && c.used > 0} onChange={(e) => set(f.id, { on: e.target.checked, whole: e.target.checked && !shared.length })} aria-label={`${f.flightNo} لـ${name}`} />
+                    <input type="checkbox" className="accent-gold" checked={r.on} disabled={(r.on && c.used > 0) || (initial[f.id].on ? !p.remove : !p.add)} onChange={(e) => set(f.id, { on: e.target.checked, whole: e.target.checked && !shared.length })} aria-label={`${f.flightNo} لـ${name}`} />
                     <span className="min-w-0">
                       <span className="block font-bold text-white">
                         {fmtHijriShort(f.departAt)} — {fmtGregShort(f.departAt)} {fmtClock(f.departAt)} <span dir="ltr" className="font-mono text-gold">{f.flightNo}</span>
@@ -175,10 +177,10 @@ function DaysSheet({ clusterId, data, total, onClose }: { clusterId: string; dat
                   {r.on && (
                     <span className="flex items-center gap-2 text-sm text-white">
                       <label className="flex items-center gap-1.5">
-                        <input type="checkbox" className="accent-gold" checked={r.whole} onChange={(e) => set(f.id, { whole: e.target.checked })} />
+                        <input type="checkbox" className="accent-gold" checked={r.whole} disabled={initial[f.id].on && !p.change} onChange={(e) => set(f.id, { whole: e.target.checked })} />
                         الرحلة كلها
                       </label>
-                      {!r.whole && <input type="number" min={Math.max(1, c.used)} aria-label={`مقاعد ${name} على ${f.flightNo}`} className="h-9 w-20 rounded-xl bg-white/10 px-2 text-center tabular-nums text-white ring-1 ring-white/20" value={r.seats} onChange={(e) => set(f.id, { seats: e.target.value })} placeholder="مقاعد" />}
+                      {!r.whole && <input type="number" disabled={initial[f.id].on && !p.change} min={Math.max(1, c.used)} aria-label={`مقاعد ${name} على ${f.flightNo}`} className="h-9 w-20 rounded-xl bg-white/10 px-2 text-center tabular-nums text-white ring-1 ring-white/20" value={r.seats} onChange={(e) => set(f.id, { seats: e.target.value })} placeholder="مقاعد" />}
                     </span>
                   )}
                 </div>
@@ -208,6 +210,11 @@ function DaysSheet({ clusterId, data, total, onClose }: { clusterId: string; dat
     >
       <div className="space-y-5">
         <p className="text-sm text-white/70">اختر رحلات {name} ذهاباً وعودة. الرحلة كلها له، أو عدد من مقاعدها إن تشاركها مع تكتل آخر. لا تُسحب رحلة عليها أحد منه.</p>
+        {!(p.add && p.change && p.remove) && (
+          <p className="text-xs text-white/55">
+            ما لا تملك صلاحيته معطّل: {[!p.add && "إعطاء يوم", !p.change && "تغيير المقاعد", !p.remove && "سحب يوم"].filter(Boolean).join("، ")}.
+          </p>
+        )}
         {section("outbound")}
         {section("return")}
         {flights.length === 0 && <p className="text-sm text-white/60">لا رحلات حجاج قادمة. أنشئها من «الرحلات».</p>}

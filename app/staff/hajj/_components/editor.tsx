@@ -13,7 +13,7 @@ import type { RegConfig } from "@/lib/registration/types";
 import { diffConfigs, validateConfig, type Issue } from "@/lib/registration/validate";
 import { useSeason } from "@/lib/season-live";
 import { cn } from "@/lib/utils";
-import { smallInputClass, textareaClass } from "../../_components/kit";
+import { can, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
 import { selectClass } from "../../exam/_components/ui";
 
 /**
@@ -30,7 +30,8 @@ export function RegSeasonProvider({ children }: { children: ReactNode }) {
 /**
  * What every page edits: the season's draft — every change is kept there until «نشر التغييرات» — with its
  * checks and what it changes from what pilgrims see now. `edit` makes one change through the service
- * (which checks the permission and writes the audit trail).
+ * (which checks the permission and writes the audit trail). `may(resource, verb)`: whether this employee holds
+ * `registration.‹resource›.‹verb›` and the season is not archived — the screens show only what he may do.
  */
 export function useRegEditor() {
   const { season, setSeason } = useContext(SeasonCtx);
@@ -45,6 +46,8 @@ export function useRegEditor() {
   const live = versions.list.length ? versions.live : null;
   const changes = useMemo(() => (live ? diffConfigs(live.config, config) : []), [live, config]);
   const readOnly = info?.status === "archived";
+  const user = useStaffUser();
+  const may = (resource: string, verb: string) => !readOnly && can(user, `registration.${resource}.${verb}`);
 
   const edit = (change: (c: RegConfig) => RegConfig, meta: DraftMeta) => {
     const r = run((s) => editDraft(s, season, change, meta, Date.now()));
@@ -52,7 +55,7 @@ export function useRegEditor() {
     return r.ok;
   };
 
-  return { season, setSeason, seasons, info, draft, config, versions, live, issues, errors: issues.filter((i) => i.level === "error"), changes, readOnly, edit, hajjCost: fees.hajjCost };
+  return { season, setSeason, seasons, info, draft, config, versions, live, issues, errors: issues.filter((i) => i.level === "error"), changes, readOnly, may, edit, hajjCost: fees.hajjCost };
 }
 
 export type RegEditor = ReturnType<typeof useRegEditor>;
@@ -124,9 +127,11 @@ export function PublishBar() {
             ما الذي يجب إصلاحه؟
           </Button>
           <PreviewLink />
-          <Button size="sm" variant="glass" onClick={() => setDiscarding(true)}>
-            <Undo2 className="size-4" /> تجاهل التعديلات
-          </Button>
+          {ed.may("draft", "discard") && (
+            <Button size="sm" variant="glass" onClick={() => setDiscarding(true)}>
+              <Undo2 className="size-4" /> تجاهل التعديلات
+            </Button>
+          )}
         </Bar>
       ) : (
         <Bar tone="gold">
@@ -138,10 +143,12 @@ export function PublishBar() {
             {ed.live ? `لديك ${n} ${n === 1 ? "تعديل لم يُنشر" : "تعديلات لم تُنشر"} بعد — لا يراها الحجاج حتى تنشرها.` : "إعدادات هذا الموسم لم تُنشر بعد."}
           </span>
           <PreviewLink />
-          <Button size="sm" variant="gold" onClick={() => setPublishing(true)}>
-            <Rocket className="size-4" /> نشر التغييرات
-          </Button>
-          {ed.live && (
+          {ed.may("draft", "publish") && (
+            <Button size="sm" variant="gold" onClick={() => setPublishing(true)}>
+              <Rocket className="size-4" /> نشر التغييرات
+            </Button>
+          )}
+          {ed.live && ed.may("draft", "discard") && (
             <Button size="sm" variant="glass" onClick={() => setDiscarding(true)}>
               <Undo2 className="size-4" /> تجاهلها
             </Button>
@@ -231,6 +238,8 @@ export function PublishBar() {
 }
 
 function PreviewLink() {
+  const user = useStaffUser();
+  if (!can(user, "registration.preview.GET")) return null;
   return (
     <Link href="/staff/hajj/manage/preview" className="inline-flex h-9 items-center gap-1.5 rounded-2xl border border-white/25 bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/20">
       <Eye className="size-4" /> معاينة

@@ -2,17 +2,35 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowRight, ArrowUp, Save } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Lock, Save } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { permLabel } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { useCan } from "../../_components/kit";
 import { Box } from "../../_components/wp";
 
 /**
  * The pieces the administrators' file adds to the staff portal's site-admin kit (`../../_components/wp`): the
  * views of a page as links in its address, the closed «كيف تعمل؟» box, the order arrows of a list, the save line
- * of a form, and the secondary buttons beside a list (Excel, columns…).
+ * of a form, and the secondary buttons beside a list (Excel, columns…). Every act in the file needs its own
+ * permission (`admins.<resource>.<verb>`, lib/permissions.ts): a button whose permission the employee lacks is
+ * hidden or disabled, and `Locked` says which permission it needs.
  */
+
+/** «يحتاج صلاحية «تعديل — الرزنامة (إدارة الإداريين)»» — the hint on a button its holder lacks */
+export const needs = (key: string) => `يحتاج صلاحية «${permLabel(key)}»`;
+
+/** A section seen without the permission to change it */
+export function Locked({ perm, children }: { perm: string; children?: ReactNode }) {
+  const may = useCan();
+  if (may(perm)) return null;
+  return (
+    <p className="flex items-start gap-1.5 text-xs leading-5 text-white/60">
+      <Lock className="mt-0.5 size-3.5 shrink-0" /> {children ?? "للاطلاع."} {needs(perm)}.
+    </p>
+  );
+}
 
 /** The value of a view kept in the address (`?s=…`), the first of `keys` when absent or unknown */
 export function useView<T extends string>(param: string, keys: readonly T[]): T {
@@ -121,38 +139,42 @@ export function Lead({ children }: { children: ReactNode }) {
   return <p className="-mt-2 mb-4 text-sm leading-7 text-white/65">{children}</p>;
 }
 
-/** A small secondary button beside a list (Excel, الأعمدة, إرسال…) */
-export function Tool({ onClick, children, disabled }: { onClick: () => void; children: ReactNode; disabled?: boolean }) {
+/** A small secondary button beside a list (Excel, الأعمدة, إرسال…); `perm`: disabled without it */
+export function Tool({ onClick, children, disabled, perm }: { onClick: () => void; children: ReactNode; disabled?: boolean; perm?: string }) {
+  const may = useCan();
+  const lacks = !!perm && !may(perm);
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-bold text-white/75 ring-1 ring-white/15 transition hover:bg-white/10 hover:text-white disabled:opacity-40 [&_svg]:size-4">
+    <button type="button" onClick={onClick} disabled={disabled || lacks} title={lacks ? needs(perm!) : undefined} className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-bold text-white/75 ring-1 ring-white/15 transition hover:bg-white/10 hover:text-white disabled:opacity-40 [&_svg]:size-4">
       {children}
     </button>
   );
 }
 
 /** Up and down in a list's order */
-export function Order({ onUp, onDown, first, last, name }: { onUp: () => void; onDown: () => void; first: boolean; last: boolean; name: string }) {
+export function Order({ onUp, onDown, first, last, name, disabled }: { onUp: () => void; onDown: () => void; first: boolean; last: boolean; name: string; disabled?: boolean }) {
   const cls = "grid size-8 place-items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-25";
   return (
     <span className="flex">
-      <button type="button" aria-label={`نقل ${name} إلى الأعلى`} disabled={first} onClick={onUp} className={cls}>
+      <button type="button" aria-label={`نقل ${name} إلى الأعلى`} disabled={first || disabled} onClick={onUp} className={cls}>
         <ArrowUp className="size-4" />
       </button>
-      <button type="button" aria-label={`نقل ${name} إلى الأسفل`} disabled={last} onClick={onDown} className={cls}>
+      <button type="button" aria-label={`نقل ${name} إلى الأسفل`} disabled={last || disabled} onClick={onDown} className={cls}>
         <ArrowDown className="size-4" />
       </button>
     </span>
   );
 }
 
-/** A form's one save, and whether anything waits to be saved */
-export function SaveLine({ dirty, onSave, label = "حفظ التغييرات", disabled, note }: { dirty: boolean; onSave: () => void; label?: string; disabled?: boolean; note?: ReactNode }) {
+/** A form's one save, and whether anything waits to be saved; `perm`: the permission saving needs */
+export function SaveLine({ dirty, onSave, label = "حفظ التغييرات", disabled, note, perm }: { dirty: boolean; onSave: () => void; label?: string; disabled?: boolean; note?: ReactNode; perm?: string }) {
+  const may = useCan();
+  const lacks = !!perm && !may(perm);
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button variant="gold" onClick={onSave} disabled={!dirty || disabled}>
+      <Button variant="gold" onClick={onSave} disabled={!dirty || disabled || lacks}>
         <Save className="size-4" /> {label}
       </Button>
-      <span className="text-xs text-white/60">{note ?? (dirty ? "لديك تعديلات لم تُحفظ." : "لا تعديلات.")}</span>
+      <span className="text-xs text-white/60">{lacks ? `للاطلاع: ${needs(perm!)}.` : (note ?? (dirty ? "لديك تعديلات لم تُحفظ." : "لا تعديلات."))}</span>
     </div>
   );
 }

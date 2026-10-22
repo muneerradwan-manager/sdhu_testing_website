@@ -35,7 +35,7 @@ import {
 import type { CollectionDef, Field } from "@/lib/cms/types";
 import type { StaffUser } from "@/lib/staff";
 import { cn } from "@/lib/utils";
-import { Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
+import { can, Empty, fmtDateTime, logAs, Panel } from "../../_components/kit";
 import { FieldInput, FieldRow, ListField } from "./fields";
 
 type Author = { name: string; title?: string };
@@ -46,6 +46,9 @@ const str = (v: Record<string, unknown>, k?: string) => {
   const raw = k ? v[k] : undefined;
   return typeof raw === "string" ? raw : typeof raw === "number" ? String(raw) : "";
 };
+
+/** What he may do to one collection's items: each act `content.items.…`, granted for that collection (its id) or all */
+type ItemActs = { add: boolean; edit: boolean; remove: boolean; publish: boolean; archive: boolean };
 
 export function CollectionEditor({
   collection,
@@ -60,6 +63,8 @@ export function CollectionEditor({
 }) {
   const toast = useToast();
   const author: Author = useMemo(() => ({ name: user.name, title: user.title }), [user]);
+  const may = (verb: string) => can(user, `content.items.${verb}`, collection.id);
+  const acts: ItemActs = { add: may("POST"), edit: may("PUT"), remove: may("DELETE"), publish: may("publish"), archive: may("archive") };
 
   const items = useCms((s) => readCollection(s, collection.id));
   const dirty = useCms((s) => hasCollectionDraft(s, collection.id));
@@ -71,12 +76,14 @@ export function CollectionEditor({
   const open = openId ? (items.find((i) => i.id === openId) ?? null) : null;
 
   const publish = () => {
+    if (!acts.publish) return;
     cms.publishCollection(collection.id, author);
     logAs(user, { action: "نشر مجموعة محتوى", target: collection.label, detail: "أصبحت التعديلات ظاهرة للزوار" });
     toast({ title: "نُشرت التعديلات", body: `${collection.label} — يراها الزوار الآن`, tone: "success", icon: "✅" });
   };
 
   const create = () => {
+    if (!acts.add) return;
     const seed = Object.fromEntries(collection.fields.map((f) => [f.key, f.def]));
     const id = cms.createItem(collection.id, { ...seed, ...seedExtras(collection) }, author);
     if (!id) {
@@ -112,13 +119,16 @@ export function CollectionEditor({
           <Link href={collection.path} target="_blank" className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white/85 transition hover:bg-white/20 hover:text-white">
             <ExternalLink className="size-4" /> معاينة
           </Link>
-          <button onClick={onOpenRevisions} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white/85 transition hover:bg-white/20 hover:text-white">
-            <FileClock className="size-4" /> النسخ السابقة
-          </button>
-          {dirty && (
+          {can(user, "content.revisions.GET") && (
+            <button onClick={onOpenRevisions} className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white/85 transition hover:bg-white/20 hover:text-white">
+              <FileClock className="size-4" /> النسخ السابقة
+            </button>
+          )}
+          {dirty && acts.edit && (
             <button
               onClick={() => {
                 cms.discardCollectionDraft(collection.id, author);
+                logAs(user, { action: "تجاهل مسودة مجموعة محتوى", target: collection.label });
                 setOpenId(null);
                 toast({ title: "أُلغيت التعديلات غير المنشورة", tone: "warning", icon: "↩️" });
               }}
@@ -127,22 +137,27 @@ export function CollectionEditor({
               <Undo2 className="size-4" /> تجاهل
             </button>
           )}
-          <button
-            onClick={() => {
-              cms.saveCollectionDraft(collection.id, author);
-              toast({ title: "حُفظت المسودة", body: "لم تُنشر بعد — فعّل المعاينة لتراها", tone: "info", icon: "💾" });
-            }}
-            className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20"
-          >
-            <Save className="size-4" /> حفظ كمسودة
-          </button>
-          <button
-            onClick={publish}
-            disabled={!dirty}
-            className="flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-sm font-bold text-ink shadow-lg transition hover:bg-gold-light disabled:opacity-40"
-          >
-            <Send className="size-4" /> نشر
-          </button>
+          {acts.edit && (
+            <button
+              onClick={() => {
+                cms.saveCollectionDraft(collection.id, author);
+                logAs(user, { action: "حفظ مسودة مجموعة محتوى", target: collection.label });
+                toast({ title: "حُفظت المسودة", body: "لم تُنشر بعد — فعّل المعاينة لتراها", tone: "info", icon: "💾" });
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20"
+            >
+              <Save className="size-4" /> حفظ كمسودة
+            </button>
+          )}
+          {acts.publish && (
+            <button
+              onClick={publish}
+              disabled={!dirty}
+              className="flex items-center gap-1.5 rounded-xl bg-gold px-4 py-2 text-sm font-bold text-ink shadow-lg transition hover:bg-gold-light disabled:opacity-40"
+            >
+              <Send className="size-4" /> نشر
+            </button>
+          )}
         </div>
       </motion.div>
 
@@ -154,9 +169,9 @@ export function CollectionEditor({
       )}
 
       {open ? (
-        <ItemForm key={open.id} collection={collection} item={open} user={user} author={author} onClose={() => setOpenId(null)} />
+        <ItemForm key={open.id} collection={collection} item={open} user={user} author={author} editable={acts.edit} onClose={() => setOpenId(null)} />
       ) : (
-        <ItemList collection={collection} items={items} user={user} author={author} free={free.length} onOpen={setOpenId} onCreate={create} />
+        <ItemList collection={collection} items={items} user={user} author={author} acts={acts} free={free.length} onOpen={setOpenId} onCreate={create} />
       )}
     </div>
   );
@@ -181,6 +196,7 @@ function ItemList({
   items,
   user,
   author,
+  acts,
   free,
   onOpen,
   onCreate,
@@ -189,6 +205,7 @@ function ItemList({
   items: CollectionItem[];
   user: StaffUser;
   author: Author;
+  acts: ItemActs;
   free: number;
   onOpen: (id: string) => void;
   onCreate: () => void;
@@ -245,7 +262,7 @@ function ItemList({
             <Archive className="size-4" /> المؤرشف ({archivedCount})
           </button>
         )}
-        {collection.slots && (
+        {collection.slots && acts.add && (
           <button
             onClick={onCreate}
             disabled={free === 0}
@@ -273,12 +290,24 @@ function ItemList({
                 total={items.length}
                 delay={Math.min(i, 8) * 0.03}
                 onOpen={() => onOpen(item.id)}
-                onArchive={(next) => archive(item, next)}
-                onMove={(dir) => cms.moveItem(collection.id, item.id, dir, author)}
-                onDelete={() => {
-                  cms.deleteCreatedItem(collection.id, item.id, author);
-                  toast({ title: `حُذف ال${collection.itemName}`, body: "عاد رابطه متاحاً لعنصر جديد", tone: "warning", icon: "🗑️" });
-                }}
+                onArchive={acts.archive ? (next) => archive(item, next) : undefined}
+                onMove={
+                  acts.edit
+                    ? (dir) => {
+                        cms.moveItem(collection.id, item.id, dir, author);
+                        logAs(user, { action: `ترتيب ${collection.itemsName}`, target: `${collection.label} — ${str(item.values, collection.titleKey)}`, after: dir < 0 ? "لأعلى" : "لأسفل" });
+                      }
+                    : undefined
+                }
+                onDelete={
+                  acts.remove
+                    ? () => {
+                        cms.deleteCreatedItem(collection.id, item.id, author);
+                        logAs(user, { action: `حذف ${collection.itemName}`, target: `${collection.label} — ${str(item.values, collection.titleKey) || item.id}` });
+                        toast({ title: `حُذف ال${collection.itemName}`, body: "عاد رابطه متاحاً لعنصر جديد", tone: "warning", icon: "🗑️" });
+                      }
+                    : undefined
+                }
               />
             ))}
           </AnimatePresence>
@@ -305,9 +334,10 @@ function ItemCard({
   total: number;
   delay: number;
   onOpen: () => void;
-  onArchive: (next: boolean) => void;
-  onMove: (dir: -1 | 1) => void;
-  onDelete: () => void;
+  /** Each act offered only when given (its permission held) */
+  onArchive?: (next: boolean) => void;
+  onMove?: (dir: -1 | 1) => void;
+  onDelete?: () => void;
 }) {
   const thumb = useMediaUrl(collection.imageKey ? item.values[collection.imageKey] : "");
   const title = str(item.values, collection.titleKey) || `${collection.itemName} بلا عنوان`;
@@ -355,20 +385,28 @@ function ItemCard({
       </button>
 
       <div className="flex shrink-0 flex-col items-center justify-center opacity-70 transition group-hover:opacity-100">
-        <button onClick={() => onMove(-1)} disabled={index === 0} title="أعلى" className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-white/15 hover:text-white disabled:opacity-25">
-          <GripVertical className="size-3.5 rotate-90" />
-        </button>
-        <button onClick={() => onArchive(!item.archived)} title={item.archived ? "استعادة" : "أرشفة"} className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-white/15 hover:text-white">
-          {item.archived ? <ArchiveRestore className="size-3.5 text-gold" /> : <Archive className="size-3.5" />}
-        </button>
+        {onMove && (
+          <button onClick={() => onMove(-1)} disabled={index === 0} title="أعلى" className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-white/15 hover:text-white disabled:opacity-25">
+            <GripVertical className="size-3.5 rotate-90" />
+          </button>
+        )}
+        {onArchive && (
+          <button onClick={() => onArchive(!item.archived)} title={item.archived ? "استعادة" : "أرشفة"} className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-white/15 hover:text-white">
+            {item.archived ? <ArchiveRestore className="size-3.5 text-gold" /> : <Archive className="size-3.5" />}
+          </button>
+        )}
         {item.isNew ? (
-          <button onClick={onDelete} title="حذف نهائي" className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-maroon/40 hover:text-white">
-            <Trash2 className="size-3.5" />
-          </button>
+          onDelete && (
+            <button onClick={onDelete} title="حذف نهائي" className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-maroon/40 hover:text-white">
+              <Trash2 className="size-3.5" />
+            </button>
+          )
         ) : (
-          <button onClick={() => onMove(1)} disabled={index === total - 1} title="أسفل" className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-white/15 hover:text-white disabled:opacity-25">
-            <GripVertical className="size-3.5 -rotate-90" />
-          </button>
+          onMove && (
+            <button onClick={() => onMove(1)} disabled={index === total - 1} title="أسفل" className="grid size-7 place-items-center rounded-lg text-white/60 transition hover:bg-white/15 hover:text-white disabled:opacity-25">
+              <GripVertical className="size-3.5 -rotate-90" />
+            </button>
+          )
         )}
       </div>
     </motion.div>
@@ -382,12 +420,15 @@ function ItemForm({
   item,
   user,
   author,
+  editable: mayEdit,
   onClose,
 }: {
   collection: CollectionDef;
   item: CollectionItem;
   user: StaffUser;
   author: Author;
+  /** `content.items.PUT` for this collection: without it the fields read only */
+  editable: boolean;
   onClose: () => void;
 }) {
   const toast = useToast();
@@ -422,17 +463,19 @@ function ItemForm({
               <ExternalLink className="size-3.5" /> فتح في الموقع
             </Link>
           )}
-          <button
-            onClick={() => {
-              setPending({});
-              cms.resetItem(collection.id, item.id, author);
-              logAs(user, { action: `إرجاع ${collection.itemName} إلى نصه الأصلي`, target: `${collection.label} — ${item.id}` });
-              toast({ title: "أُعيد إلى محتواه الأصلي", tone: "warning", icon: "♻️" });
-            }}
-            className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white/80 transition hover:bg-white/20 hover:text-white"
-          >
-            <RotateCcw className="size-3.5" /> إرجاع للأصل
-          </button>
+          {mayEdit && (
+            <button
+              onClick={() => {
+                setPending({});
+                cms.resetItem(collection.id, item.id, author);
+                logAs(user, { action: `إرجاع ${collection.itemName} إلى نصه الأصلي`, target: `${collection.label} — ${item.id}` });
+                toast({ title: "أُعيد إلى محتواه الأصلي", tone: "warning", icon: "♻️" });
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white/80 transition hover:bg-white/20 hover:text-white"
+            >
+              <RotateCcw className="size-3.5" /> إرجاع للأصل
+            </button>
+          )}
           <button onClick={onClose} className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white/80 transition hover:bg-white/20 hover:text-white">
             إغلاق
           </button>
@@ -449,7 +492,8 @@ function ItemForm({
         </p>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* A disabled fieldset disables every field it holds */}
+      <fieldset disabled={!mayEdit} className="grid min-w-0 gap-4 md:grid-cols-2">
         {editable.map((f: Field) => {
           const v = valueOf(f.key);
           const isEdited = !same(v, original(f.key));
@@ -461,6 +505,7 @@ function ItemForm({
               return n;
             });
             cms.resetItemField(collection.id, item.id, f.key, author);
+            logAs(user, { action: `إرجاع حقل ${collection.itemName} إلى أصله`, target: `${collection.label} — ${item.id}`, detail: f.label });
           };
           return (
             <FieldRow key={f.key} field={f} edited={isEdited} onReset={reset}>
@@ -468,7 +513,7 @@ function ItemForm({
             </FieldRow>
           );
         })}
-      </div>
+      </fieldset>
 
       <p className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-white/50">
         <CheckCircle2 className="size-4 text-green-light" />

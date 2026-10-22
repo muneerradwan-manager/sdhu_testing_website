@@ -12,11 +12,12 @@ import { actions, useStore, type Application, type PostAcceptance } from "@/lib/
 import { cn } from "@/lib/utils";
 import { KIND_LABELS } from "@/lib/data/staff-seed";
 import { useTicketQueue, type QueueTicket } from "../_components/data";
-import { Drawer, Gate, PageHeader, logAs, textareaClass, useNow, useStaffUser } from "../_components/kit";
+import { can, Drawer, Gate, PageHeader, logAs, textareaClass, useNow, useStaffUser } from "../_components/kit";
 import { EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
-import { SEVERITY, STATUS_LABEL } from "../operations/shared";
+import { SEVERITY, STATUS_LABEL, type TicketSystem } from "../operations/shared";
 import { TicketDetail } from "../operations/view";
+import { viewKeys } from "@/lib/permissions";
 
 type View = "docs" | "files" | "reports";
 
@@ -26,20 +27,26 @@ type DocRow = { owner: string; app: Application; post: PostAcceptance; memberId:
 /**
  * «الفريق الطبي»: the medical team's work. The medical documents pilgrims upload after joining a group, to
  * approve or send back with a reason; the health files the groups' coordinators record (who has a condition,
- * a need, a permanent medication); and the health reports from the field.
+ * a need, a permanent medication); and the health reports from the field. Each part shows to whoever may view it
+ * (`medical.documents.GET`, `.health-files.GET`, `.tickets.GET`), and each decision needs its own permission.
  */
 export function MedicalView() {
   return (
-    <Gate perms={["medical"]}>
+    <Gate perms={viewKeys("medical")}>
       <Medical />
     </Gate>
   );
 }
 
+const VIEW_RESOURCE: Record<View, string> = { docs: "documents", files: "health-files", reports: "tickets" };
+
 function Medical() {
   const params = useSearchParams();
   const router = useRouter();
-  const view = (params.get("view") as View) ?? "docs";
+  const user = useStaffUser()!;
+  const allowed = (["docs", "files", "reports"] as const).filter((v) => can(user, `medical.${VIEW_RESOURCE[v]}.GET`));
+  const asked = (params.get("view") as View) ?? "docs";
+  const view = allowed.includes(asked) ? asked : allowed[0];
   const applications = useStore((s) => s.applications);
   const post = useStore((s) => s.post);
   const tickets = useTicketQueue();
@@ -84,10 +91,10 @@ function Medical() {
         onChange={(v) => router.replace(v === "docs" ? "/staff/medical" : `/staff/medical?view=${v}`)}
         label="القسم"
         items={[
-          { value: "docs", label: "وثائق تنتظر المراجعة", count: docs.length, tone: "maroon" },
-          { value: "files", label: "الحالات الصحية", count: files.length },
-          { value: "reports", label: "البلاغات الصحية", count: open, tone: "maroon" },
-        ]}
+          { value: "docs" as const, label: "وثائق تنتظر المراجعة", count: docs.length, tone: "maroon" as const },
+          { value: "files" as const, label: "الحالات الصحية", count: files.length },
+          { value: "reports" as const, label: "البلاغات الصحية", count: open, tone: "maroon" as const },
+        ].filter((x) => allowed.includes(x.value))}
       />
       {view === "docs" && <Docs rows={docs} />}
       {view === "files" && (
@@ -111,7 +118,7 @@ function Medical() {
           ))}
         </ListTable>
       )}
-      {view === "reports" && <Reports tickets={reports} empty="لا بلاغات صحية." />}
+      {view === "reports" && <Reports tickets={reports} empty="لا بلاغات صحية." system="medical" />}
     </div>
   );
 }
@@ -122,8 +129,11 @@ function Docs({ rows }: { rows: DocRow[] }) {
   const toast = useToast();
   const [returning, setReturning] = useState<DocRow | null>(null);
   const [reason, setReason] = useState("");
+  const mayApprove = can(user, "medical.documents.approve");
+  const mayReturn = can(user, "medical.documents.return");
 
   const decide = (r: DocRow, status: "approved" | "rejected", why?: string) => {
+    if (!(status === "approved" ? mayApprove : mayReturn)) return;
     actions.setPost(r.owner, {
       medical: { ...r.post.medical, [r.key]: status },
       ...(status === "rejected" ? { medicalNotes: { ...r.post.medicalNotes, [r.key]: why ?? "" } } : {}),
@@ -141,16 +151,18 @@ function Docs({ rows }: { rows: DocRow[] }) {
             <td className="p-3">
               <p className="font-bold">{r.label}</p>
               <RowActions>
-                <RowLink onClick={() => decide(r, "approved")}>اعتماد</RowLink>
-                <RowLink
-                  danger
-                  onClick={() => {
-                    setReason("");
-                    setReturning(r);
-                  }}
-                >
-                  إعادة بسبب
-                </RowLink>
+                {mayApprove && <RowLink onClick={() => decide(r, "approved")}>اعتماد</RowLink>}
+                {mayReturn && (
+                  <RowLink
+                    danger
+                    onClick={() => {
+                      setReason("");
+                      setReturning(r);
+                    }}
+                  >
+                    إعادة بسبب
+                  </RowLink>
+                )}
               </RowActions>
             </td>
             <td className="p-3">{r.name}</td>
@@ -187,8 +199,8 @@ function Docs({ rows }: { rows: DocRow[] }) {
   );
 }
 
-/** Field reports of one kind, each opening in the operations room's own sheet */
-export function Reports({ tickets, empty }: { tickets: QueueTicket[]; empty: string }) {
+/** Field reports of one kind, each opening in the operations room's own sheet, with the acts of `system` */
+export function Reports({ tickets, empty, system }: { tickets: QueueTicket[]; empty: string; system: TicketSystem }) {
   const now = useNow(30_000);
   const [id, setId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"open" | "all">("open");
@@ -229,7 +241,7 @@ export function Reports({ tickets, empty }: { tickets: QueueTicket[]; empty: str
         ))}
       </ListTable>
       <Drawer open={!!t} onClose={() => setId(null)} title={t ? `بلاغ ${t.id} — ${KIND_LABELS[t.kind]}` : ""}>
-        {t && <TicketDetail t={t} now={now} />}
+        {t && <TicketDetail t={t} now={now} system={system} />}
       </Drawer>
     </>
   );

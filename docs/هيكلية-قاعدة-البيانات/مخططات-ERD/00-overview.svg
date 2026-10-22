@@ -24,7 +24,7 @@
 <text xml:space="preserve" text-anchor="start" x="574.85" y="-349.65" font-family="Helvetica,sans-Serif" font-size="10.00" fill="white">8 tables</text>
 </g>
 <!-- core&#45;&#45;identity -->
-<g id="edge3" class="edge">
+<g id="edge2" class="edge">
 <title>core&#45;&#45;identity</title>
 <path fill="none" stroke="#8c8c8c" stroke-width="4" d="M416.31,-240.54C455.36,-266.85 522.66,-312.19 561.77,-338.53"/>
 <text xml:space="preserve" text-anchor="middle" x="486.24" y="-292.52" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#555f6b">9</text>
@@ -58,13 +58,13 @@
 <title>staff</title>
 <path fill="#f7f4ef" stroke="#d9c89e" d="M351.23,-625.99C351.23,-625.99 290.09,-625.99 290.09,-625.99 284.09,-625.99 278.09,-619.99 278.09,-613.99 278.09,-613.99 278.09,-597.71 278.09,-597.71 278.09,-591.71 284.09,-585.71 290.09,-585.71 290.09,-585.71 351.23,-585.71 351.23,-585.71 357.23,-585.71 363.23,-591.71 363.23,-597.71 363.23,-597.71 363.23,-613.99 363.23,-613.99 363.23,-619.99 357.23,-625.99 351.23,-625.99"/>
 <text xml:space="preserve" text-anchor="start" x="296.09" y="-606.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00">14. staff</text>
-<text xml:space="preserve" text-anchor="start" x="300.37" y="-596.35" font-family="Helvetica,sans-Serif" font-size="10.00">28 tables</text>
+<text xml:space="preserve" text-anchor="start" x="300.37" y="-596.35" font-family="Helvetica,sans-Serif" font-size="10.00">31 tables</text>
 </g>
 <!-- core&#45;&#45;staff -->
-<g id="edge2" class="edge">
+<g id="edge3" class="edge">
 <title>core&#45;&#45;staff</title>
-<path fill="none" stroke="#8c8c8c" stroke-width="2" d="M382.38,-240.48C371.09,-307.32 335.39,-518.66 324.11,-585.43"/>
-<text xml:space="preserve" text-anchor="middle" x="350.46" y="-415.98" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#555f6b">3</text>
+<path fill="none" stroke="#8c8c8c" stroke-width="1.7" d="M382.38,-240.48C371.09,-307.32 335.39,-518.66 324.11,-585.43"/>
+<text xml:space="preserve" text-anchor="middle" x="350.46" y="-415.98" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#555f6b">2</text>
 </g>
 <!-- post -->
 <g id="node5" class="node">
@@ -153,7 +153,7 @@
 <title>flights</title>
 <path fill="#f7f4ef" stroke="#d9c89e" d="M991.67,-634.35C991.67,-634.35 918.99,-634.35 918.99,-634.35 912.99,-634.35 906.99,-628.35 906.99,-622.35 906.99,-622.35 906.99,-606.07 906.99,-606.07 906.99,-600.07 912.99,-594.07 918.99,-594.07 918.99,-594.07 991.67,-594.07 991.67,-594.07 997.67,-594.07 1003.67,-600.07 1003.67,-606.07 1003.67,-606.07 1003.67,-622.35 1003.67,-622.35 1003.67,-628.35 997.67,-634.35 991.67,-634.35"/>
 <text xml:space="preserve" text-anchor="start" x="924.99" y="-615.01" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="13.00">13. flights</text>
-<text xml:space="preserve" text-anchor="start" x="935.04" y="-604.71" font-family="Helvetica,sans-Serif" font-size="10.00">13 tables</text>
+<text xml:space="preserve" text-anchor="start" x="935.04" y="-604.71" font-family="Helvetica,sans-Serif" font-size="10.00">12 tables</text>
 </g>
 <!-- applications&#45;&#45;flights -->
 <g id="edge34" class="edge">

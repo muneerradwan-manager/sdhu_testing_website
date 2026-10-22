@@ -7,10 +7,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { airportOf, flightsActions, isHoly, newFlightId, returnAirportsFor, useAirportReps, useFlightsData, type Airport, type Carrier, type FlightsData } from "@/lib/flights";
-import { getStaff, STAFF } from "@/lib/staff";
 import { cn } from "@/lib/utils";
-import { Drawer, logAs, useStaffUser } from "../_components/kit";
-import { Field, fieldClass, selectClass } from "../_components/ops-ui";
+import { Drawer, logAs, useCan, useStaffUser } from "../_components/kit";
+import { Field, fieldClass } from "../_components/ops-ui";
 import { OperationHeader } from "../_components/system";
 import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
@@ -50,14 +49,15 @@ type AirportFilter = "all" | "norep" | "archived";
 
 /**
  * «المطارات ومندوبوها»: every airport in a list — its representative beside it — opening in one side sheet
- * where its details and its representative are saved together. The representative records, from «رحلات مطاري»,
- * the take-offs from his airport and the landings at it; the assignment gives him that page and nothing else.
+ * with its details. The representative is whoever holds «رحلات المطار» for it (granted at «صلاحيات الموظفين»):
+ * he records, from «رحلات مطاري», the take-offs from his airport and the landings at it.
  */
 export function AirportsPage() {
   const data = useFlightsData();
   const user = useStaffUser()!;
+  const may = useCan();
   const toast = useToast();
-  const { reps } = useAirportReps();
+  const { reps, repsOf } = useAirportReps();
   const params = useSearchParams();
   const [filter, setFilter] = useState<AirportFilter>(() => (params.get("filter") === "norep" ? "norep" : "all"));
   const [editing, setEditing] = useState<Partial<Airport> | null>(null);
@@ -80,9 +80,11 @@ export function AirportsPage() {
       <RefsSwitch />
       <Title
         action={
-          <AddButton onClick={() => setEditing({ country: "سوريا" })}>
-            <Plus className="size-4" /> إضافة مطار
-          </AddButton>
+          may("flights.airports.POST") && (
+            <AddButton onClick={() => setEditing({ country: "سوريا" })}>
+              <Plus className="size-4" /> إضافة مطار
+            </AddButton>
+          )
         }
       />
       <Segments<AirportFilter>
@@ -97,7 +99,7 @@ export function AirportsPage() {
       />
       <ListTable head={["المطار", "الدولة", "المندوب", "رحلات الموسم", "الحالة"]}>
         {rows.map((a) => {
-          const rep = reps[a.id] ? getStaff(reps[a.id]) : null;
+          const rep = repsOf(a.id)[0] ?? null;
           return (
             <tr key={a.id} className={cn("align-top", a.archived && "opacity-60")}>
               <td className="p-3">
@@ -110,11 +112,12 @@ export function AirportsPage() {
                 <span className="block text-xs text-white/55">{a.name}</span>
                 <span className="block text-xs text-gold/80">{roleOf(a, data)}</span>
                 <RowActions>
-                  <RowLink onClick={() => setEditing(a)}>تعديل</RowLink>
-                  {!a.archived && <RowLink onClick={() => setEditing(a)}>{rep ? "تغيير المندوب" : "إسناد مندوب"}</RowLink>}
-                  <RowLink danger={!a.archived} onClick={() => toggle(a)}>
-                    {a.archived ? "استعادة" : "أرشفة"}
-                  </RowLink>
+                  <RowLink onClick={() => setEditing(a)}>{may("flights.airports.PUT") ? "تعديل" : "عرض"}</RowLink>
+                  {may("flights.airports.archive") && (
+                    <RowLink danger={!a.archived} onClick={() => toggle(a)}>
+                      {a.archived ? "استعادة" : "أرشفة"}
+                    </RowLink>
+                  )}
                 </RowActions>
               </td>
               <td className="p-3 text-white/80">{a.country}</td>
@@ -130,30 +133,32 @@ export function AirportsPage() {
       </ListTable>
 
       <Box title="كيف تعمل؟" open={false}>
-        <p>مندوب المطار يسجل إقلاع الرحلات من مطاره ومن صعد ومن تخلّف، وهبوط الرحلات فيه. تظهر له «رحلات مطاري» في قائمته، ولا يمنحه الإسناد شيئاً آخر.</p>
+        <p>مندوب المطار يسجل إقلاع الرحلات من مطاره ومن صعد ومن تخلّف، وهبوط الرحلات فيه. تظهر له «رحلات مطاري» في قائمته. وهو من يملك صلاحية «رحلات المطار» لهذا المطار، تُمنح من «صلاحيات الموظفين» لا من هنا.</p>
         <p>مطار بلا مندوب: تسجّل أنت إقلاع رحلاته وهبوطها من صفحة الرحلة. ولا يُؤرشف مطار عليه رحلات هذا الموسم.</p>
       </Box>
 
       <RecordsBox system="flights" area="refs" title="سجل المطارات والناقلين" />
 
-      {editing && <AirportSheet key={editing.id ?? "new"} initial={editing} rep={editing.id ? (reps[editing.id] ?? "") : ""} onClose={() => setEditing(null)} />}
+      {editing && <AirportSheet key={editing.id ?? "new"} initial={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }
 
-/** One airport in a side sheet: its details and its representative, saved once */
-function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<Airport>; rep: string; onClose: () => void }) {
+/** One airport in a side sheet: its details, and who represents it */
+function AirportSheet({ initial, onClose }: { initial: Partial<Airport>; onClose: () => void }) {
   const user = useStaffUser()!;
+  // Adding an airport and changing one are separate permissions; without them the sheet only shows it
+  const allowed = useCan()(initial.id ? "flights.airports.PUT" : "flights.airports.POST");
   const data = useFlightsData();
   // the airports a return may land at: outside Saudi Arabia
   const homes = data.airports.filter((x) => !x.archived && x.country !== "السعودية");
   const toast = useToast();
   const [a, setA] = useState(initial);
-  const [rep, setRep] = useState(initialRep);
+  const reps = useAirportReps().repsOf(initial.id ?? "");
   const valid = !!(a.code && a.name && a.city);
 
   const save = () => {
-    if (!valid) return;
+    if (!valid || !allowed) return;
     const holy = (a.country ?? "").trim() === "السعودية";
     const id = a.id ?? newFlightId("ap");
     const saved: Airport = {
@@ -173,13 +178,6 @@ function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<
       logAs(user, { action: initial.id ? "تعديل مطار" : "إضافة مطار", target: `${saved.city} (${saved.code})`, system: "flights", area: "refs", ref: saved.id });
       toast({ title: initial.id ? "حُفظ المطار" : "أُضيف المطار", body: saved.name, tone: "success", icon: "✈️" });
     }
-    if (rep !== initialRep) {
-      const before = getStaff(initialRep);
-      flightsActions.setRep(saved.id, rep);
-      const who = getStaff(rep);
-      logAs(user, { action: rep ? "إسناد مندوب مطار" : "إلغاء إسناد مندوب مطار", target: saved.name, before: before?.name, after: who?.name ?? "—", system: "flights", area: "refs", ref: saved.id });
-      toast({ title: who ? `${who.name} مندوب ${saved.city}` : `${saved.city} بلا مندوب`, body: who ? "تظهر له «رحلات مطاري» في قائمته." : undefined, tone: "success", icon: "🛫" });
-    }
     onClose();
   };
 
@@ -193,7 +191,7 @@ function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<
           <Button variant="glass" onClick={onClose}>
             إلغاء
           </Button>
-          <Button variant="gold" onClick={save} disabled={!valid}>
+          <Button variant="gold" onClick={save} disabled={!valid || !allowed} title={allowed ? undefined : "يحتاج صلاحية «تعديل — المطارات»"}>
             <Save className="size-4" /> {initial.id ? "حفظ" : "إضافة المطار"}
           </Button>
         </div>
@@ -249,16 +247,9 @@ function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<
         )}
         {!a.archived && (
           <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-            <Field label="مندوب المطار" hint="يسجّل إقلاع الرحلات من هذا المطار ومن تخلّف عنها، وهبوط الرحلات فيه، من صفحة «رحلات مطاري».">
-              <select value={rep} onChange={(e) => setRep(e.target.value)} aria-label={`مندوب ${a.name ?? "المطار"}`} className={selectClass}>
-                <option value="">— بلا مندوب —</option>
-                {STAFF.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — {s.title}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <p className="mb-1.5 text-xs font-bold text-gold">مندوب المطار</p>
+            <p className="text-sm text-white">{initial.id && reps.length ? reps.map((u) => u.name).join("، ") : "لا مندوب له بعد."}</p>
+            <p className="mt-1.5 text-xs leading-5 text-white/55">مندوب المطار من يملك صلاحية «رحلات المطار» لهذا المطار، وتُمنح من «صلاحيات الموظفين» لا من هنا. يسجّل إقلاع الرحلات من هذا المطار ومن تخلّف عنها، وهبوط الرحلات فيه، من صفحة «رحلات مطاري».</p>
           </div>
         )}
       </div>
@@ -272,6 +263,7 @@ function AirportSheet({ initial, rep: initialRep, onClose }: { initial: Partial<
 export function CarriersPage() {
   const data = useFlightsData();
   const user = useStaffUser()!;
+  const may = useCan();
   const toast = useToast();
   const [archived, setArchived] = useState<"all" | "archived">("all");
   const [editing, setEditing] = useState<Partial<Carrier> | null>(null);
@@ -290,9 +282,11 @@ export function CarriersPage() {
       <RefsSwitch />
       <Title
         action={
-          <AddButton onClick={() => setEditing({})}>
-            <Plus className="size-4" /> إضافة ناقل
-          </AddButton>
+          may("flights.carriers.POST") && (
+            <AddButton onClick={() => setEditing({})}>
+              <Plus className="size-4" /> إضافة ناقل
+            </AddButton>
+          )
         }
       />
       <Segments<"all" | "archived">
@@ -315,10 +309,12 @@ export function CarriersPage() {
                 {c.name}
               </button>
               <RowActions>
-                <RowLink onClick={() => setEditing(c)}>تعديل</RowLink>
-                <RowLink danger={!c.archived} onClick={() => toggle(c)}>
-                  {c.archived ? "استعادة" : "أرشفة"}
-                </RowLink>
+                <RowLink onClick={() => setEditing(c)}>{may("flights.carriers.PUT") ? "تعديل" : "عرض"}</RowLink>
+                {may("flights.carriers.archive") && (
+                  <RowLink danger={!c.archived} onClick={() => toggle(c)}>
+                    {c.archived ? "استعادة" : "أرشفة"}
+                  </RowLink>
+                )}
               </RowActions>
             </td>
             <td className="p-3 text-white/80" dir="ltr">
@@ -340,11 +336,12 @@ export function CarriersPage() {
 
 function CarrierSheet({ initial, onClose }: { initial: Partial<Carrier>; onClose: () => void }) {
   const user = useStaffUser()!;
+  const allowed = useCan()(initial.id ? "flights.carriers.PUT" : "flights.carriers.POST");
   const toast = useToast();
   const [c, setC] = useState(initial);
   const valid = !!(c.code && c.name);
   const save = () => {
-    if (!valid) return;
+    if (!valid || !allowed) return;
     const saved: Carrier = { id: c.id ?? newFlightId("ca"), code: c.code!.toUpperCase().trim(), name: c.name!.trim(), phone: c.phone?.trim() || undefined, archived: c.archived };
     flightsActions.saveCarrier(saved);
     logAs(user, { action: c.id ? "تعديل ناقل جوي" : "إضافة ناقل جوي", target: `${saved.name} (${saved.code})`, system: "flights", area: "refs", ref: saved.id });
@@ -361,7 +358,7 @@ function CarrierSheet({ initial, onClose }: { initial: Partial<Carrier>; onClose
           <Button variant="glass" onClick={onClose}>
             إلغاء
           </Button>
-          <Button variant="gold" onClick={save} disabled={!valid}>
+          <Button variant="gold" onClick={save} disabled={!valid || !allowed} title={allowed ? undefined : "يحتاج صلاحية «تعديل — الناقلون الجويون»"}>
             <Save className="size-4" /> {initial.id ? "حفظ" : "إضافة الناقل"}
           </Button>
         </div>

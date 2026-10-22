@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { APPLIED_ROLES } from "@/app/administrator/_lib/admin";
 import { useExamBank } from "@/app/administrator/_lib/admin-rules";
 import { hallActions, roleLabelOf, runKey, stageOf, useHalls, type Halls } from "@/app/administrator/_lib/halls";
-import { logAs, smallInputClass, textareaClass, useStaffUser } from "../../_components/kit";
+import { logAs, smallInputClass, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { OperationsPanel } from "../../_components/operations";
 import { AddButton, Box, EditHeader, EditLayout, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { useExamDesk, useExamProgress } from "./desk";
@@ -169,6 +169,7 @@ export function Exams() {
   const progress = useExamProgress();
   const { setStatus } = useExamActions();
   const { deletable } = useExamRules();
+  const may = useCan();
   const [filter, setFilter] = useState<"all" | ExamStatus>("all");
   const [removing, setRemoving] = useState<ExamDef | null>(null);
   const shown = halls.exams.filter((e) => filter === "all" || e.status === filter);
@@ -184,12 +185,14 @@ export function Exams() {
     <div className="space-y-5">
       <Title
         action={
-          <AddButton href={newHref()}>
-            <Plus className="size-4" /> إضافة اختبار
-          </AddButton>
+          may("exams.exams.POST") && (
+            <AddButton href={newHref()}>
+              <Plus className="size-4" /> إضافة اختبار
+            </AddButton>
+          )
         }
       />
-      {missed.length > 0 && (
+      {missed.length > 0 && may("exams.exams.POST") && (
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-gold/10 p-3 text-sm ring-1 ring-gold/40">
           <span className="font-bold text-gold">غائبون لا اختبار باقٍ لهم:</span>
           {missed.map((m) => (
@@ -224,12 +227,12 @@ export function Exams() {
                   {EXAM_KINDS[e.kind]} لصفة {roleLabelOf(e.role)}
                 </p>
                 <RowActions>
-                  <RowLink href={`${EDIT}?id=${e.id}`}>تعديل</RowLink>
-                  {e.status === "draft" && <RowLink onClick={() => setStatus(e, "published")}>نشر</RowLink>}
-                  {e.status === "published" && <RowLink onClick={() => setStatus(e, "archived")}>أرشفة</RowLink>}
-                  {e.status === "archived" && <RowLink onClick={() => setStatus(e, "published")}>إعادة نشره</RowLink>}
+                  <RowLink href={`${EDIT}?id=${e.id}`}>{may("exams.exams.PUT") ? "تعديل" : "عرض"}</RowLink>
+                  {e.status === "draft" && may("exams.exams.publish") && <RowLink onClick={() => setStatus(e, "published")}>نشر</RowLink>}
+                  {e.status === "published" && may("exams.exams.archive") && <RowLink onClick={() => setStatus(e, "archived")}>أرشفة</RowLink>}
+                  {e.status === "archived" && may("exams.exams.publish") && <RowLink onClick={() => setStatus(e, "published")}>إعادة نشره</RowLink>}
                   {e.status !== "draft" && <RowLink href={`/staff/exam/manage/results?s=${e.id}`}>النتائج</RowLink>}
-                  {deletable(e) && (
+                  {deletable(e) && may("exams.exams.DELETE") && (
                     <RowLink danger onClick={() => setRemoving(e)}>
                       حذف
                     </RowLink>
@@ -390,8 +393,12 @@ function ExamForm({ stored: opened, fresh }: { stored?: ExamDef; fresh: { role: 
   const [start] = useState<ExamDef>(() => opened ?? blankExam(halls, fresh.role, fresh.kind, fresh.centers));
   const bank = useExamBank();
   const { deletable } = useExamRules();
+  const may = useCan();
   const stored = halls.examById(start.id);
   const isNew = !stored;
+  // Creating (POST) or changing (PUT) it; publishing and archiving are acts of their own
+  const allowed = may(isNew ? "exams.exams.POST" : "exams.exams.PUT");
+  const statusAllowed = (s: ExamStatus) => s === (stored?.status ?? "draft") || (s === "published" ? may("exams.exams.publish") : s === "archived" ? may("exams.exams.archive") : may("exams.exams.PUT"));
   const [d, setD] = useState<Draft>(() => toDraft(start));
   const [saved, setSaved] = useState<Draft>(() => toDraft(start));
   const [removing, setRemoving] = useState(false);
@@ -410,6 +417,7 @@ function ExamForm({ stored: opened, fresh }: { stored?: ExamDef; fresh: { role: 
   };
 
   const save = () => {
+    if (!allowed || !statusAllowed(d.status)) return;
     const problem = problemOf(d, ready);
     if (problem) {
       toast({ title: "لم يُحفظ الاختبار", body: problem, tone: "warning", icon: "✍️" });
@@ -573,21 +581,21 @@ function ExamForm({ stored: opened, fresh }: { stored?: ExamDef; fresh: { role: 
               <Field label="الحالة" hint={d.status === "published" ? "يُجلس له في موعده." : d.status === "draft" ? "لا تُفتح له جلسة." : "يحفظ محاولاته ونتائجه، ولا تُفتح له جلسة."}>
                 <select value={d.status} onChange={(e) => setD({ ...d, status: e.target.value as ExamStatus })} className={selectClass}>
                   {(Object.keys(EXAM_STATUS) as ExamStatus[]).map((k) => (
-                    <option key={k} value={k}>
+                    <option key={k} value={k} disabled={!statusAllowed(k)}>
                       {EXAM_STATUS[k]}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Button variant="gold" className="w-full" onClick={save} disabled={!dirty}>
+              <Button variant="gold" className="w-full" onClick={save} disabled={!dirty || !allowed}>
                 <Save className="size-4" /> {isNew ? "إنشاء الاختبار" : "حفظ الاختبار"}
               </Button>
-              <p className="text-xs text-white/55">{dirty ? "لديك تعديلات لم تُحفظ." : "محفوظ."}</p>
+              <p className="text-xs text-white/55">{!allowed ? `للاطلاع: ${isNew ? "إنشاء الاختبارات" : "تعديل الاختبارات"} يحتاج صلاحيته.` : dirty ? "لديك تعديلات لم تُحفظ." : "محفوظ."}</p>
               {stored && (
                 <p className="flex flex-wrap gap-x-3 text-xs font-bold">
                   <Tag tone={STATUS_TONE[stored.status]}>{EXAM_STATUS[stored.status]} الآن</Tag>
                   {stored.status !== "draft" && <RowLink href={`/staff/exam/manage/results?s=${stored.id}`}>نتائجه</RowLink>}
-                  {deletable(stored) && (
+                  {deletable(stored) && may("exams.exams.DELETE") && (
                     <RowLink danger onClick={() => setRemoving(true)}>
                       حذف الاختبار
                     </RowLink>

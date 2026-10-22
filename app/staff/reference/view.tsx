@@ -34,10 +34,11 @@ import { Drawer, Gate, PageHeader, Tabs, logAs, useStaffUser } from "../_compone
 import { Field, SearchBox, fieldClass, selectClass } from "../_components/ops-ui";
 import { AddButton, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
 import { FilterLinks, HowTo, ListToolbar, type FilterItem } from "../employees/list-ui";
+import { viewKeys } from "@/lib/permissions";
 
 export function ReferenceView() {
   return (
-    <Gate perms={["ops.files"]}>
+    <Gate perms={viewKeys("reference")}>
       <Reference />
     </Gate>
   );
@@ -85,7 +86,7 @@ function Reference() {
   const employees = useEmployees();
 
   const [season, setSeason] = useState(CURRENT_SEASON);
-  const [tab, setTab] = useState<Tab>("hotels");
+  const [picked, setTab] = useState<Tab>("hotels");
   const [view, setView] = useState<View>("all");
   const [q, setQ] = useState("");
   const [editHotel, setEditHotel] = useState<Hotel | null>(null);
@@ -94,7 +95,15 @@ function Reference() {
   const [editCamp, setEditCamp] = useState<Camp | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const editable = season === CURRENT_SEASON && can(user, "ops.files");
+  // Each list shows to whoever may view it (`reference.‹list›.GET`), and each act on it needs its own permission
+  const tabs = (["hotels", "sectors", "centers", "camps"] as const).filter((t) => can(user, `reference.${t}.GET`));
+  const tab: Tab = tabs.includes(picked) ? picked : (tabs[0] ?? "hotels");
+  const may = (verb: string) => season === CURRENT_SEASON && can(user, `reference.${tab}.${verb}`);
+  const mayAdd = may("POST");
+  const mayEdit = may("PUT");
+  const mayArchive = may("archive");
+  const mayImport = may("import");
+  const editable = mayAdd || mayEdit || mayArchive || mayImport;
   const places = placeIndex(refs);
 
   /** Where each entry is used in the season's operational files */
@@ -171,6 +180,7 @@ function Reference() {
   ];
 
   const archive = (tab: Tab, item: Item) => {
+    if (!mayArchive) return;
     const label = places.get(item.id)?.name ?? "";
     if (!item.archived && use.get(item.id)) {
       toast({
@@ -260,7 +270,7 @@ function Reference() {
   /** The entry's name — a link to its sheet when it can be edited — and «تعديل | أرشفة» under it */
   const title = (item: Item, name: string, sub: ReactNode, onEdit: () => void) => (
     <>
-      {editable ? (
+      {mayEdit ? (
         <button type="button" onClick={onEdit} className="text-right font-bold text-white hover:text-gold">
           {name}
         </button>
@@ -268,12 +278,14 @@ function Reference() {
         <p className="font-bold text-white">{name}</p>
       )}
       <p className="text-xs text-white/55">{sub}</p>
-      {editable && (
+      {(mayEdit || mayArchive) && (
         <RowActions>
-          <RowLink onClick={onEdit}>تعديل</RowLink>
-          <RowLink danger={!item.archived} onClick={() => archive(tab, item)}>
-            {item.archived ? "إعادة من الأرشيف" : "أرشفة"}
-          </RowLink>
+          {mayEdit && <RowLink onClick={onEdit}>تعديل</RowLink>}
+          {mayArchive && (
+            <RowLink danger={!item.archived} onClick={() => archive(tab, item)}>
+              {item.archived ? "إعادة من الأرشيف" : "أرشفة"}
+            </RowLink>
+          )}
         </RowActions>
       )}
     </>
@@ -346,7 +358,7 @@ function Reference() {
         <p className="flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/80 ring-1 ring-white/15">
           <Lock className="size-4 shrink-0 text-gold" />
           {season === CURRENT_SEASON
-            ? "للاطلاع فقط: التعديل يحتاج صلاحية الملفات التشغيلية."
+            ? "للاطلاع فقط: الإضافة والتعديل والأرشفة والنقل صلاحيات مستقلة لكل قائمة في البيانات المرجعية."
             : `قوائم موسم ${season} محفوظة للرجوع إليها ولا تُعدّل. يمكنك نقل ما تحتاجه منها إلى موسم ${CURRENT_SEASON}.`}
         </p>
       )}
@@ -361,21 +373,21 @@ function Reference() {
             setView("all");
           }}
           tabs={[
-            { value: "hotels", label: "الفنادق", count: live(refs.hotels).length },
-            { value: "sectors", label: "القطاعات", count: live(refs.sectors).length },
-            { value: "centers", label: "المراكز", count: live(refs.centers).length },
-            { value: "camps", label: "المخيمات", count: live(refs.camps).length },
-          ]}
+            { value: "hotels" as const, label: "الفنادق", count: live(refs.hotels).length },
+            { value: "sectors" as const, label: "القطاعات", count: live(refs.sectors).length },
+            { value: "centers" as const, label: "المراكز", count: live(refs.centers).length },
+            { value: "camps" as const, label: "المخيمات", count: live(refs.camps).length },
+          ].filter((t) => tabs.includes(t.value))}
         />
-        {editable && (
-          <>
-            <AddButton onClick={addNew}>
-              <Plus className="size-4" /> إضافة {NOUN[tab].one}
-            </AddButton>
-            <button type="button" onClick={() => setImporting(true)} className="inline-flex items-center gap-1.5 text-sm font-bold text-white/70 hover:text-white hover:underline">
-              <CopyPlus className="size-4" /> نقل من موسم {CURRENT_SEASON - 1}
-            </button>
-          </>
+        {mayAdd && (
+          <AddButton onClick={addNew}>
+            <Plus className="size-4" /> إضافة {NOUN[tab].one}
+          </AddButton>
+        )}
+        {mayImport && (
+          <button type="button" onClick={() => setImporting(true)} className="inline-flex items-center gap-1.5 text-sm font-bold text-white/70 hover:text-white hover:underline">
+            <CopyPlus className="size-4" /> نقل من موسم {CURRENT_SEASON - 1}
+          </button>
         )}
       </div>
 

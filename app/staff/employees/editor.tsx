@@ -7,10 +7,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { itineraryOf, TRAVEL_LABEL, useFlightsData } from "@/lib/flights";
 import { CURRENT_SEASON, fullName, inSeason, postingsOf, useEmployees, useOpFiles, usePlaces, type Employee } from "@/lib/ops";
-import { MANAGEMENT_PERMISSIONS, PERMISSION_LABELS } from "@/lib/staff";
 import { useStaffAccounts } from "@/lib/systems";
 import { cn } from "@/lib/utils";
-import { Drawer, Empty } from "../_components/kit";
+import { Drawer, Empty, useCan, useGrantSummary } from "../_components/kit";
 import { Chip } from "../_components/ops-ui";
 import { RecordHistory } from "../_components/system";
 import { Box, EditHeader, EditLayout, Tag } from "../_components/wp";
@@ -47,11 +46,15 @@ function Editor({ e }: { e?: Employee }) {
   const suspend = useSuspend();
   const employees = useEmployees();
   const missing = e ? missingOf(e) : [];
+  const may = useCan();
+  const writable = may(e ? "staff.employees.PUT" : "staff.employees.POST");
+  // A new record is entered whole; an existing one shows and changes his personal data by their own permissions
+  const pii = !e || may("staff.employees-pii.PUT") ? "edit" : may("staff.employees-pii.GET") ? "view" : "hidden";
 
   const save = (d: Parameters<typeof act.save>[0]) => {
     // What changes from elsewhere while the form is open (a suspension, an account linked) stays as it is now
     const saved = act.save(e ? { ...d, suspended: e.suspended, staffId: e.staffId } : d);
-    if (!e) router.replace(`/staff/employees/manage/edit?id=${saved.id}`);
+    if (!e && saved) router.replace(`/staff/employees/manage/edit?id=${saved.id}`);
   };
 
   return (
@@ -69,7 +72,7 @@ function Editor({ e }: { e?: Employee }) {
               </p>
             )}
             <section className="rounded-2xl bg-white/[.04] p-5 ring-1 ring-white/10">
-              <EmployeeForm id={FORM} initial={e ? { ...e } : emptyDraft()} all={employees} lock={e ? seasonLock(act.postsOf(e.id)) : null} onSave={save} />
+              <EmployeeForm id={FORM} initial={e ? { ...e } : emptyDraft()} all={employees} lock={e ? seasonLock(act.postsOf(e.id)) : null} onSave={save} readOnly={!writable} pii={pii} season={{ add: may("staff.season-participation.POST"), remove: may("staff.season-participation.DELETE") }} />
             </section>
           </>
         }
@@ -83,11 +86,11 @@ function Editor({ e }: { e?: Employee }) {
                   {e.suspended ? <Tag tone="maroon">موقوف</Tag> : <Tag tone="green">على رأس العمل</Tag>}
                 </div>
               )}
-              <Button type="submit" form={FORM} variant="gold" className="w-full">
+              <Button type="submit" form={FORM} variant="gold" className="w-full" disabled={!writable}>
                 <Save className="size-4" /> {e ? "حفظ التعديلات" : "إضافة الموظف"}
               </Button>
-              <p className="text-xs leading-5 text-white/55">يُسجَّل كل تغيير باسمك ووقته.</p>
-              {e && (
+              <p className="text-xs leading-5 text-white/55">{writable ? "يُسجَّل كل تغيير باسمك ووقته." : `للاطلاع: ${e ? "تعديل السجل" : "إضافة موظف"} يحتاج صلاحية «${e ? "تعديل" : "إضافة"} — سجل الموظفين».`}</p>
+              {e && may("staff.employees.suspend") && (
                 <button type="button" onClick={() => suspend.toggle(e)} className={cn("text-xs font-bold hover:underline", e.suspended ? "text-gold" : "text-[#ffb4c8]")}>
                   {e.suspended ? "إعادته إلى العمل" : "إيقافه عن العمل"}
                 </button>
@@ -130,7 +133,7 @@ function Posts({ e }: { e: Employee }) {
   return (
     <Box title="المواقع في الملفات التشغيلية" open={all.length > 0}>
       {all.length === 0 ? (
-        <p className="text-white/60">لم يُسند إلى أي ملف تشغيلي بعد. يسنده صاحب «الملفات التشغيلية» إن كان مشاركاً في الموسم.</p>
+        <p className="text-white/60">لم يُسند إلى أي ملف تشغيلي بعد. يُسند من «الملفات التشغيلية» إن كان مشاركاً في الموسم.</p>
       ) : (
         <>
           <ul className="space-y-2">
@@ -183,7 +186,7 @@ function Flights({ e }: { e: Employee }) {
           </div>
         ))}
       </dl>
-      <p className="text-xs text-white/55">يضعه على رحلتيه صاحب «إدارة الطيران».</p>
+      <p className="text-xs text-white/55">يضعه على رحلتيه مسؤول الطيران.</p>
     </Box>
   );
 }
@@ -191,6 +194,7 @@ function Flights({ e }: { e: Employee }) {
 /** His login to the portal, when he has one */
 function Account({ e }: { e: Employee }) {
   const account = useStaffAccounts().find((a) => a.id === e.staffId);
+  const summary = useGrantSummary(account ?? null);
   if (!account)
     return (
       <Box title="حساب البوابة" open={false}>
@@ -209,10 +213,8 @@ function Account({ e }: { e: Employee }) {
         — {account.title}
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {account.permissions.map((p) => (
-          <Chip key={p} tone={MANAGEMENT_PERMISSIONS.includes(p) ? "gold" : "muted"}>
-            {PERMISSION_LABELS[p]}
-          </Chip>
+        {summary.map((x) => (
+          <Chip key={x}>{x}</Chip>
         ))}
       </div>
       <Link href={`/staff/employees/manage/accounts?a=${account.id}`} className="text-xs font-bold text-gold hover:underline">
