@@ -4,7 +4,7 @@ from .dsl import *
 MODULE = M("staff", "الموظفون والصلاحيات والملفات التشغيلية", [
     "بوابة الموظفين لموظفي الإدارة والبعثة، وفيها 21 نظاماً. لا يُسند موظف إلى نظام: تُمنح له الصلاحيات واحدة واحدة، لكل مورد في كل نظام "
     "عرضه (GET) وإضافته (POST) وتعديله (PUT) وحذفه (DELETE) وأفعال بأسمائها (اعتماد، نشر، تصدير…)، ومفتاحها ‹النظام›.‹المورد›.‹الفعل› مثل flights.flights.lock. "
-    "والعرض نفسه صلاحية: لا يظهر نظام في قائمة موظف لا يملك فيه عرض شيء. وبعض الصلاحيات تُمنح لنطاق بعينه: مشرف القاعة من يملك hall.* لمركزها، "
+    "والعرض نفسه صلاحية: لا يظهر نظام في قائمة موظف لا يملك فيه عرض شيء. وأرقام كل نظام من عشرة أنظمة ليست ملفات إدارة صلاحية مستقلة ‹النظام›.stats.GET «الإحصائيات» لا تفتح صفحاته. وبعض الصلاحيات تُمنح لنطاق بعينه: مشرف القاعة من يملك hall.* لمركزها، "
     "ومندوب المطار من يملك airport.* لمطاره، ومواعيد العمليات season.windows لعمليات بعينها. يمنحها ويسحبها من يملك access.permissions.PUT، وكل منح وسحب حدث مهم.",
     "«سجل الموظفين» يحفظ موظفي البعثة (دائمين ومنتدبين) ومواسم مشاركتهم. و«البيانات المرجعية» أماكن كل موسم: فنادق مكة والمدينة، قطاعات مكة، مراكز منى وعرفات، مخيماتها. "
     "و«الملفات التشغيلية» ملف لكل نوع في كل موسم (التسكين في مكة، مخيمات منى، مخيمات عرفات): شجرة أماكن يُسند فيها الموظفون إلى أدوار، وتُوزَّع عليها التكتلات.",
@@ -21,13 +21,15 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
 
     T("permission_resources", "موارد كل نظام", "ما يُمنح عليه في كل نظام: الرحلات، الكشوف، بنك الأسئلة، الكادر… مع علامة الحساس والنطاق.", [
         pk(), code_ref("system_code", "permission_systems", "النظام", length=20, od="CASCADE"),
-        c("resource_key", "VARCHAR(40)", "مفتاح المورد في النظام (flights، manifests، questions-answers…)"),
+        c("resource_key", "VARCHAR(40)", "مفتاح المورد في النظام (flights، manifests، questions-answers، stats…)"),
         c("label", "VARCHAR(120)", "الاسم المعروض"),
         c("sensitive", "TINYINT(1)", "بيانات شخصية أو سرية تُمنح وحدها (الرقم الوطني، الهواتف، الأجوبة الصحيحة، الكشوف…)", d="0"),
         c("scope_kind", enum("center", "airport", "operation", "collection", "office", "opfileType", "posting"), "نطاق المورد إن كان له نطاق غير نطاق نظامه: operation لمواعيد العمليات، collection لعناصر مجموعات المحتوى", null=True),
         c("note", "VARCHAR(200)", "قاعدة تُفرض في الكود («من أدخل النتائج لا يعتمدها»)", null=True),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
-    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef", seed="132 مورداً، منها 18 حساساً."),
+    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef؛ lib/permissions.ts:396 STATS_SYSTEMS", seed="142 مورداً، منها 18 حساساً، و10 موارد «الإحصائيات» (stats).",
+       rules=["المورد stats «الإحصائيات» في عشرة أنظمة (reviews، office، lottery، season، operations، medical، transport، opfiles، audit، content): عرضه يفتح صفحة أرقام النظام (/staff/stats/‹النظام›) وحدها، "
+              "ولا يُعد من صلاحيات عرض النظام، فلا يفتح صفحاته. وفي exams مورد stats آخر هو عملية «الإحصائيات» في الملف، يُعد من صلاحيات عرضه."]),
 
     T("permissions", "الصلاحيات", "كل صلاحية تُمنح على حدة: فعل على مورد في نظام.", [
         c("code", "VARCHAR(80)", "المفتاح ‹النظام›.‹المورد›.‹الفعل›: flights.flights.GET، flights.flights.lock، lottery.draw.publish…", pk=True),
@@ -35,7 +37,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("verb", "VARCHAR(30)", "الفعل: GET، POST، PUT، DELETE، أو اسم فعل خاص (approve، publish، export، lock…)"),
         c("kind", enum("verb", "special"), "verb أحد الأفعال الأربعة؛ special فعل خاص بالاسم"),
         c("label", "VARCHAR(120)", "الاسم: «عرض»، «إضافة»، «تعديل»، «حذف»، أو اسم الفعل الخاص («إقفال وإصدار الكشف»)"),
-    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:370 keysOf، ALL_KEYS", seed="399 صلاحية.",
+    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:382 keysOf، ALL_KEYS", seed="409 صلاحيات.",
        rules=["كل فعل على مورد يحتاج عرضه: من يُمنح POST أو PUT أو DELETE أو فعلاً خاصاً يُمنح GET المورد نفسه معه، ومن يُسحب منه GET يُسحب منه كل ما على المورد."]),
 
     T("staff_users", "حسابات الموظفين", "حساب الدخول إلى بوابة الموظفين. ينشئه قسم الموارد البشرية من الرقم الوطني والهاتف، وتُرسل كلمة مرور مؤقتة تُغيَّر عند أول دخول.", [
@@ -58,7 +60,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         code_ref("permission_code", "permissions", "الصلاحية", length=80),
         staff("granted_by_staff_id", "من منحها (فارغ لما فُتح به الموسم)"),
         c("granted_at", "DATETIME(3)", "وقت المنح", d="CURRENT_TIMESTAMP(3)"),
-    ], uq=[("staff_user_id", "permission_code")], src="lib/permissions.ts:393 PermGrant؛ StaffUser.grants؛ State.staffPermissions؛ actions.setStaffPermissions",
+    ], uq=[("staff_user_id", "permission_code")], src="lib/permissions.ts:421 PermGrant؛ StaffUser.grants؛ State.staffPermissions؛ actions.setStaffPermissions",
        seed="صلاحيات الحسابات العشرين كما فُتح بها الموسم (lib/staff.ts STAFF): مدير الموسم access.* وغيرها، مسؤول الطيران flights.*، مندوب مطار دمشق airport.* لمطار دمشق، مشرفة قاعة دمشق hall.* لمركز دمشق…",
        rules=["السحب حذف للسطر، والمنح إضافة له؛ ويُكتب كل منهما في audit_events حدثاً مهماً (system_code = access) بما مُنح وما سُحب وما تغيّر نطاقه.",
               "لا يسحب أحد من نفسه access.permissions.PUT: يسحبها منه غيره ممن يملكها."]),
@@ -66,7 +68,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
     T("staff_user_permission_scopes", "نطاق كل صلاحية ممنوحة", "حين تُمنح صلاحية لنطاق بعينه: المراكز أو المطارات أو العمليات أو المجموعات التي تقتصر عليها. بلا أسطر هنا تسري الصلاحية في كل مكان.", [
         ref("staff_user_permission_id", "staff_user_permissions", "الصلاحية الممنوحة", od="CASCADE"),
         c("scope_id", "VARCHAR(40)", "معرّف ما تقتصر عليه، بحسب scope_kind لمورده أو نظامه: معرّف المركز (exam_centers)، أو المطار (airports)، أو مفتاح العملية (operations)، أو المجموعة (cms_collections)، أو المكتب، أو نوع الملف التشغيلي"),
-    ], uq=[("staff_user_permission_id", "scope_id")], src="PermGrant.scope؛ lib/permissions.ts:399 can(user, key, scopeId)",
+    ], uq=[("staff_user_permission_id", "scope_id")], src="PermGrant.scope؛ lib/permissions.ts:427 can(user, key, scopeId)",
        rules=["مشرف القاعة من يملك hall.sittings.GET لمركزها، ومندوب المطار من يملك airport.flights.GET لمطاره: لا جدول إسناد لهما.",
               "مواعيد عملية تتغير بيد من يملك season.windows.PUT لها."]),
 
@@ -141,12 +143,14 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
     ], uq=[("staff_user_id",)], src="lib/ops.ts:86 Employee؛ lib/data/employees-seed.ts؛ app/staff/employees",
        rules=["لا يُحذف موظف. ولا تُلغى مشاركته في الموسم وهو مُسند في ملف تشغيلي للموسم.",
               "السجل الناقص: هاتف سوريا أقل من 10 أرقام، أو رقم وطني غير صالح، أو منتدب بلا جهة."],
-       checks=["kind = 'permanent' OR organization IS NOT NULL"], seed="152 موظفاً."),
+       checks=["kind = 'permanent' OR organization IS NOT NULL"], seed="153 موظفاً، منهم 113 يسافرون في 1448، ولكل حساب من حسابات البوابة العشرين سجل."),
 
     T("employee_seasons", "مواسم مشاركة الموظف", "المواسم التي شارك فيها الموظف.", [
         ref("employee_id", "employees", "الموظف", od="CASCADE"),
         season(),
-    ], uq=[("employee_id", "season_year")], src="Employee.seasons"),
+    ], uq=[("employee_id", "season_year")], src="Employee.seasons؛ app/staff/my-files/view.tsx:24",
+       rules=["سطر هنا للموسم يعني أن الموظف يسافر مع البعثة فيه: له في «ملفاتي التشغيلية» رحلتا ذهاب وعودة (flight_assignments) ومواقعه في الملفات التشغيلية. "
+              "ومن لا سطر له للموسم يعمل من مكتبه في سوريا: لا رحلة له ولا موقع، ويرى «لا تسافر مع البعثة»."]),
 
     T("employee_languages", "لغات الموظف", "اللغات (العربية افتراضياً).", [
         ref("employee_id", "employees", "الموظف", od="CASCADE"),

@@ -20,7 +20,8 @@ import { SeatBar, StatusChip } from "./shared";
  * at each, the flights coming next, how far each cluster is seated — with how the work goes and what waits,
  * each one click from where it is done. Nothing is edited here; the records stay with each operation.
  */
-export function FlightsSummary() {
+/** `embedded`: inside «لوحة الإدارة العليا», which has its own heading: the figures only, without this page's heading and «كيف تعمل» */
+export function FlightsSummary({ embedded = false }: { embedded?: boolean } = {}) {
   const user = useStaffUser()!;
   // His grant of the permission: by whom and since when
   const grant = useHolders().flights.find((h) => h.staffId === user.id);
@@ -33,31 +34,35 @@ export function FlightsSummary() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={`${SYSTEMS.flights.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
-        title={SYSTEMS.flights.summary.label}
-        icon={<Gauge />}
-        description="أرقام رحلات الموسم الآن، وما ينتظرك. العمل نفسه من القائمة الجانبية."
-        actions={
-          <>
-            <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
-              <Megaphone className="size-4" /> رفع أمر إلى المدير
-            </Button>
-            <ButtonLink href={SYSTEMS.flights.manage.href} size="sm" variant="gold">
-              {SYSTEMS.flights.manage.label} <ArrowLeft className="size-4" />
-            </ButtonLink>
-          </>
-        }
-      />
+      {!embedded && (
+        <>
+        <PageHeader
+          eyebrow={`${SYSTEMS.flights.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          title={SYSTEMS.flights.summary.label}
+          icon={<Gauge />}
+          description="أرقام رحلات الموسم الآن، وما ينتظرك. العمل نفسه من القائمة الجانبية."
+          actions={
+            <>
+              <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
+                <Megaphone className="size-4" /> رفع أمر إلى المدير
+              </Button>
+              <ButtonLink href={SYSTEMS.flights.manage.href} size="sm" variant="gold">
+                {SYSTEMS.flights.manage.label} <ArrowLeft className="size-4" />
+              </ButtonLink>
+            </>
+          }
+        />
 
-      <HowItWorks
-        steps={[
-          { title: "جهّز", text: "المطارات والناقلون، ومندوب لكل مطار يسجّل الإقلاع منه والهبوط فيه.", href: "/staff/flights/manage", link: "المطارات" },
-          { title: "أنشئ وانشر", text: "رحلة ذهاب وعودة معاً تُحفظ مسودة، ثم تُنشر من صفحتها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
-          { title: "أعطِ التكتلات أيامها", text: "لكل تكتل رحلاته ذهاباً وعودة ومقاعده عليها، فيضع منسقوه مجموعاتهم عليها. والموظفون ومن فقد مقعده من التفويج.", href: "/staff/flights/manage/allotments", link: "أيام التكتلات" },
-          { title: "أقفل وسافر", text: "إقفال الرحلة يصدر كشف ركابها، ثم يسجّل مندوب المطار إقلاعها وهبوطها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
-        ]}
-      />
+        <HowItWorks
+          steps={[
+            { title: "جهّز", text: "المطارات والناقلون، ومندوب لكل مطار يسجّل الإقلاع منه والهبوط فيه.", href: "/staff/flights/manage", link: "المطارات" },
+            { title: "أنشئ وانشر", text: "رحلة ذهاب وعودة معاً تُحفظ مسودة، ثم تُنشر من صفحتها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
+            { title: "أعطِ التكتلات أيامها", text: "لكل تكتل رحلاته ذهاباً وعودة ومقاعده عليها، فيضع منسقوه مجموعاتهم عليها. والموظفون ومن فقد مقعده من التفويج.", href: "/staff/flights/manage/allotments", link: "أيام التكتلات" },
+            { title: "أقفل وسافر", text: "إقفال الرحلة يصدر كشف ركابها، ثم يسجّل مندوب المطار إقلاعها وهبوطها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
+          ]}
+        />
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="رحلات الموسم" value={desk.live.length} icon={<CalendarRange />} hint={`${desk.live.filter((f) => f.direction === "outbound").length} ذهاب · ${desk.live.filter((f) => f.direction === "return").length} عودة · ${desk.drafts.length} مسودة`} />

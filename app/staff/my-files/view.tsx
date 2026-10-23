@@ -1,7 +1,7 @@
 "use client";
 
 import { BriefcaseBusiness, UserX } from "lucide-react";
-import { useEmployees } from "@/lib/ops";
+import { CURRENT_SEASON, useEmployees } from "@/lib/ops";
 import { Empty, PageHeader, useStaffUser } from "../_components/kit";
 import { MyFiles } from "./my-files";
 import { MyFlights } from "./my-flights";
@@ -19,9 +19,10 @@ export function MyFilesView() {
         description="أين تعمل هذا الموسم ومتى، ومع من، ورحلتاك."
       />
       {employee ? (
+        // Whoever travels with the mission has his two flights; whoever works from Syria this season has none
         <div className="space-y-6">
-          <MyFlights employeeId={employee.id} />
-          <MyFiles employee={employee} />
+          {employee.seasons.includes(CURRENT_SEASON) && <MyFlights employeeId={employee.id} />}
+          <MyFiles employee={employee} travels={employee.seasons.includes(CURRENT_SEASON)} />
         </div>
       ) : (
         <Empty icon={<UserX />} title="حسابك غير مربوط بسجل موظف" text="يربطه قسم الموارد البشرية من صفحة الموظفين، ثم تظهر مواقعك هنا." />

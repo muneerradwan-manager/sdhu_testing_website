@@ -34,7 +34,7 @@ type Filter = "active" | "open" | "in_progress" | "resolved";
 
 /**
  * The room as two lists: the incidents, each opened in a side sheet, and the internal tasks
- * (`?view=tasks`). The day's numbers — pilgrims in Arafat, buses, heat, the groups — are on «لوحتي».
+ * (`?view=tasks`). The day's numbers — pilgrims in Arafat, buses, heat, the groups — are on its statistics page (/staff/stats/operations).
  * Each list shows to whoever may view it (`operations.tickets.GET`, `.tasks.GET`, `.daily-reports.GET`).
  */
 function Operations() {

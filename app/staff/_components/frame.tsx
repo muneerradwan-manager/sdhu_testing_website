@@ -33,7 +33,6 @@ import {
   KeyRound,
   Landmark,
   Layers,
-  LayoutDashboard,
   ListTree,
   LogOut,
   Mails,
@@ -59,7 +58,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
 import type { StaffUser } from "@/lib/staff";
-import { viewKeys } from "@/lib/permissions";
+import { hasStats, statsKey, viewKeys, PERM_SYSTEM } from "@/lib/permissions";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { useEvaluatees } from "../evaluate/view";
 import { SYSTEMS, SYSTEM_KEYS, type SystemKey } from "@/lib/systems";
@@ -73,16 +72,18 @@ import { useFlightsDesk } from "../flights/desk";
 import { useRegistrationDesk } from "../hajj/desk";
 import { useSystemsUnseen } from "./system";
 import { useCivilClaims, useReviewQueue, useTicketQueue } from "./data";
-import { canAny, fmtTime, hasDeskWork, logAs, useGrantSummary, useNow, useStaffUser } from "./kit";
+import { canAny, fmtTime, logAs, useGrantSummary, useNow, useStaffUser } from "./kit";
+import { statsHref } from "../stats/sections";
 
 /**
  * Every entry shows to whoever holds one of its `perms` — viewing something it holds (lib/permissions.ts);
- * an empty list is everyone's.
- * `work`: «لوحتي», for whoever may view something in a system that is not a management file — it gathers that
- * work; a management file has its own summary instead.
+ * an empty list is everyone's. There is no page gathering an employee's work: every system's numbers are a
+ * permission of their own, and «لوحة الإدارة العليا» gathers them all, first in the menu for whoever holds it.
  * `system`: a management file: its summary (the dashboard for it) and then every one of its operations as an
- * entry of its own (`area`: the part of the file's desk that counts what waits there), under the file's name
- * (`group`), each shown to whoever may view what it holds. `exact`: lit on its own path only.
+ * entry of its own (`area`: the part of the file's desk that counts what waits there), under the file's name,
+ * each shown to whoever may view what it holds. `exact`: lit on its own path only.
+ * `desk`: another system, whose statistics (`<system>.stats.GET`) are an entry of their own beside it: the two
+ * sit under the system's name when he holds both.
  * `evaluate`: also needs a posting with clusters to rate.
  */
 type NavItem = {
@@ -91,12 +92,11 @@ type NavItem = {
   icon: ReactNode;
   perms: string[];
   badge?: "reviews" | "tickets" | "hall" | "airport" | "systems" | SystemKey;
-  work?: true;
+  desk?: string;
   /** Shown to whoever was posted in a tower or a camp that clusters lived in: he rates their administrators after the season */
   evaluate?: true;
   system?: SystemKey;
   area?: string;
-  group?: string;
   exact?: true;
 };
 
@@ -144,37 +144,43 @@ const OPERATION_ICONS: Record<string, ReactNode> = {
 function systemEntries(key: SystemKey): NavItem[] {
   const s = SYSTEMS[key];
   return [
-    { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [`${key}.summary.GET`], system: key, badge: key, exact: true, group: s.label },
+    { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [`${key}.summary.GET`], system: key, badge: key, exact: true },
     // The first operation is the file's own path, which the others continue: lit on its own path only
     ...s.operations.map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: o.perms, system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
   ];
 }
 
+/** A system that is not a management file: its statistics, when it has them, then its own page */
+function deskEntries(item: NavItem & { system?: undefined }, sys: string): NavItem[] {
+  return [...(hasStats(sys) ? [{ href: statsHref(sys), label: "الإحصائيات", icon: <ChartColumn />, perms: [statsKey(sys)], desk: sys, exact: true as const }] : []), { ...item, desk: sys }];
+}
+
 export const STAFF_NAV: NavItem[] = [
-  { href: "/staff/dashboard", label: "لوحتي", icon: <LayoutDashboard />, perms: [], work: true },
+  // Every system's numbers in one place: at the top for whoever holds it
+  { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: viewKeys("executive") },
   { href: "/staff/access", label: "صلاحيات الموظفين", icon: <KeyRound />, perms: viewKeys("access"), badge: "systems" },
   // The management files, in the season's order: each file's summary and its operations
   ...SYSTEM_KEYS.flatMap(systemEntries),
-  // Every employee: where he is housed, his flight, his place in Mina and Arafat
-  { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] },
   // The field posts: granted for a hall, an airport
   { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: ["hall.sittings.GET"], badge: "hall" },
   { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: ["airport.flights.GET"], badge: "airport" },
   { href: "/staff/evaluate", label: "تقييم الإداريين", icon: <Star />, perms: ["evaluate.evaluations.GET"], evaluate: true },
   // The other systems in the order the season is worked: set up first, then run, then looked back on
-  { href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: viewKeys("season") },
-  { href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: viewKeys("reference") },
-  { href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: viewKeys("opfiles") },
-  { href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: viewKeys("content") },
-  { href: "/staff/registration", label: "التسجيل على الحج", icon: <UserRoundPlus />, perms: viewKeys("office") },
-  { href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: viewKeys("reviews"), badge: "reviews" },
-  { href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: viewKeys("lottery") },
-  { href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: viewKeys("operations"), badge: "tickets" },
-  { href: "/staff/medical", label: "الفريق الطبي", icon: <HeartPulse />, perms: viewKeys("medical") },
-  { href: "/staff/transport", label: "المواصلات", icon: <Bus />, perms: viewKeys("transport") },
-  { href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: viewKeys("audit") },
-  { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: viewKeys("executive") },
+  ...deskEntries({ href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: viewKeys("season") }, "season"),
+  ...deskEntries({ href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: viewKeys("reference") }, "reference"),
+  ...deskEntries({ href: "/staff/operational-files", label: "الملفات التشغيلية", icon: <FileStack />, perms: viewKeys("opfiles") }, "opfiles"),
+  ...deskEntries({ href: "/staff/content", label: "محتوى الموقع", icon: <PencilLine />, perms: viewKeys("content") }, "content"),
+  ...deskEntries({ href: "/staff/registration", label: "التسجيل على الحج", icon: <UserRoundPlus />, perms: viewKeys("office") }, "office"),
+  ...deskEntries({ href: "/staff/reviews", label: "مراجعة الطلبات", icon: <ClipboardCheck />, perms: viewKeys("reviews"), badge: "reviews" }, "reviews"),
+  ...deskEntries({ href: "/staff/lottery", label: "القبول والقرعة", icon: <Dices />, perms: viewKeys("lottery") }, "lottery"),
+  ...deskEntries({ href: "/staff/operations", label: "غرفة العمليات", icon: <RadioTower />, perms: viewKeys("operations"), badge: "tickets" }, "operations"),
+  ...deskEntries({ href: "/staff/medical", label: "الفريق الطبي", icon: <HeartPulse />, perms: viewKeys("medical") }, "medical"),
+  ...deskEntries({ href: "/staff/transport", label: "المواصلات", icon: <Bus />, perms: viewKeys("transport") }, "transport"),
+  ...deskEntries({ href: "/staff/audit", label: "سجل الأحداث", icon: <ScrollText />, perms: viewKeys("audit") }, "audit"),
 ];
+
+/** Every employee's own page, at the foot of the menu above «تسجيل الخروج»: where he is housed, his flights, his place in Mina and Arafat */
+const MY_FILES: NavItem = { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] };
 
 export function StaffFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -292,7 +298,9 @@ function Sidebar({ user }: { user: StaffUser }) {
     [reviews, civil, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
   );
   const grants = useGrantSummary(user);
-  const items = STAFF_NAV.filter((n) => (n.work ? hasDeskWork(user) : canAny(user, n.perms) && (!n.evaluate || evaluatees > 0)));
+  const items = STAFF_NAV.filter((n) => canAny(user, n.perms) && (!n.evaluate || evaluatees > 0));
+  // A system's statistics and its page sit under its name when both show; one alone needs no heading
+  const deskShown = (sys: string) => items.filter((n) => n.desk === sys).length;
 
   const logout = () => {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });
@@ -378,18 +386,24 @@ function Sidebar({ user }: { user: StaffUser }) {
 
         {/* Navigation — vertical on desktop, a swipeable strip on phones */}
         <nav aria-label="أقسام بوابة الموظفين" className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:block lg:space-y-1 lg:overflow-visible">
-          {items.map((n, i) => {
+          {[...items, MY_FILES].map((n, i, all) => {
             // «/reference» opens its own pages, not «/references»: a segment of the path, not any prefix
             const active = n.exact ? samePath(pathname, n.href) : samePath(pathname, n.href) || pathname.startsWith(`${n.href.replace(/\/$/, "")}/`);
             const count = n.badge ? counts[n.badge] : 0;
-            // A file's entries sit under its name; what follows the last file is set apart from it
-            const heading = n.group ? (
-              <p key={`g-${n.group}`} className={cn("hidden px-3.5 pb-1 text-[11px] font-bold tracking-wide text-gold/70 lg:block", i > 0 && "mt-3 border-t border-white/10 pt-3")}>
-                {n.group}
-              </p>
-            ) : !n.system && items[i - 1]?.system ? (
-              <hr key={`after-${items[i - 1].system}`} className="my-3 hidden border-white/10 lg:block" />
-            ) : null;
+            // A management file's entries sit under its name, and a system's statistics and page under its name
+            // when both show; what follows a group is set apart from it
+            const groupOf = (x?: NavItem) => (x?.system ? x.system : x?.desk && deskShown(x.desk) > 1 ? x.desk : undefined);
+            const g = groupOf(n);
+            const prev = groupOf(all[i - 1]);
+            const label = n.system ? SYSTEMS[n.system].label : g ? PERM_SYSTEM[g]?.label : undefined;
+            const heading =
+              g && g !== prev && label ? (
+                <p key={`g-${g}`} className={cn("hidden px-3.5 pb-1 text-[11px] font-bold tracking-wide text-gold/70 lg:block", i > 0 && "mt-3 border-t border-white/10 pt-3")}>
+                  {label}
+                </p>
+              ) : !g && prev && n !== MY_FILES ? (
+                <hr key={`after-${prev}`} className="my-3 hidden border-white/10 lg:block" />
+              ) : null;
             return [
               heading,
               <Link
@@ -399,6 +413,7 @@ function Sidebar({ user }: { user: StaffUser }) {
                 className={cn(
                   "relative flex shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]",
                   active ? "on-light text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white",
+                  n === MY_FILES && "lg:hidden",
                 )}
               >
                 {active && (
@@ -430,7 +445,9 @@ function Sidebar({ user }: { user: StaffUser }) {
           })}
         </nav>
 
-        <div className="hidden border-t border-white/10 p-3 lg:block">
+        {/* Always last: his own operational files, set apart from the systems above, then «تسجيل الخروج» */}
+        <div className="hidden space-y-1 border-t border-white/10 p-3 lg:block">
+          <MyFilesLink active={samePath(pathname, MY_FILES.href) || pathname.startsWith(`${MY_FILES.href}/`)} />
           <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-white/70 transition hover:bg-maroon/40 hover:text-white">
             <LogOut className="size-4" /> تسجيل الخروج
           </button>
@@ -440,6 +457,20 @@ function Sidebar({ user }: { user: StaffUser }) {
         كل إجراء تقوم به يُسجَّل باسمك في سجل الأحداث، ولا يمكن حذفه أو تعديله.
       </p>
     </aside>
+  );
+}
+
+function MyFilesLink({ active }: { active: boolean }) {
+  return (
+    <Link
+      href={MY_FILES.href}
+      aria-current={active ? "page" : undefined}
+      className={cn("relative flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]", active ? "on-light text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white")}
+    >
+      {active && <span className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light shadow-[0_10px_30px_-12px_rgba(217,200,158,.8)]" />}
+      <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{MY_FILES.icon}</span>
+      <span className="relative whitespace-nowrap">{MY_FILES.label}</span>
+    </Link>
   );
 }
 

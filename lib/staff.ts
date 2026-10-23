@@ -33,8 +33,8 @@ function seed(...patterns: string[]): PermGrant[] {
 }
 const windows = (ops: string[]) => [`season.windows.GET@${ops.join(",")}`, `season.windows.PUT@${ops.join(",")}`];
 
-const LOTTERY_IMPORT = ["lottery.ages.GET", "lottery.ages.issue", "lottery.pool.GET", "lottery.pool.export", "lottery.draw.GET", "lottery.draw.POST", "lottery.draw.PUT", "lottery.draw.submit"];
-const LOTTERY_APPROVE = ["lottery.ages.GET", "lottery.ages.approve", "lottery.pool.GET", "lottery.draw.GET", "lottery.draw.publish"];
+const LOTTERY_IMPORT = ["lottery.stats.GET", "lottery.ages.GET", "lottery.ages.issue", "lottery.pool.GET", "lottery.pool.export", "lottery.draw.GET", "lottery.draw.POST", "lottery.draw.PUT", "lottery.draw.submit"];
+const LOTTERY_APPROVE = ["lottery.stats.GET", "lottery.ages.GET", "lottery.ages.approve", "lottery.pool.GET", "lottery.draw.GET", "lottery.draw.publish"];
 const OPFILES_READ = ["opfiles.files.GET", "opfiles.nodes.GET", "opfiles.assignments.GET", "opfiles.staff-contact.GET"];
 
 export const STAFF: StaffUser[] = [

@@ -17,7 +17,8 @@ import { useEmployeesDesk } from "./desk";
  * waits for him, each one click from where it is done. Nothing is edited here: the work and each part's
  * records are in the operations of the menu.
  */
-export function EmployeesSummary() {
+/** `embedded`: inside «لوحة الإدارة العليا», which has its own heading: the figures only, without this page's heading and «كيف تعمل» */
+export function EmployeesSummary({ embedded = false }: { embedded?: boolean } = {}) {
   const user = useStaffUser()!;
   // His grant of the permission: by whom and since when
   const grant = useHolders().staff.find((h) => h.staffId === user.id);
@@ -27,26 +28,30 @@ export function EmployeesSummary() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={`${SYSTEMS.staff.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
-        title={SYSTEMS.staff.summary.label}
-        icon={<Gauge />}
-        description="أرقام موظفي البعثة الآن. للعمل استعمل القائمة الجانبية."
-        actions={
-          <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
-            <Megaphone className="size-4" /> رفع أمر إلى المدير
-          </Button>
-        }
-      />
+      {!embedded && (
+        <>
+        <PageHeader
+          eyebrow={`${SYSTEMS.staff.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          title={SYSTEMS.staff.summary.label}
+          icon={<Gauge />}
+          description="أرقام موظفي البعثة الآن. للعمل استعمل القائمة الجانبية."
+          actions={
+            <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
+              <Megaphone className="size-4" /> رفع أمر إلى المدير
+            </Button>
+          }
+        />
 
-      <HowItWorks
-        steps={[
-          { title: "السجل", text: "أضف الموظفين الدائمين والمنتدبين، وأكمل ما ينقص سجلاتهم.", href: "/staff/employees/manage", link: "سجل الموظفين" },
-          { title: "الحسابات", text: "اربط كل حساب في البوابة بسجل صاحبه، فإليه تصل كلمة المرور.", href: "/staff/employees/manage/accounts", link: "حسابات البوابة" },
-          { title: "الموسم", text: `سجّل في موسم ${CURRENT_SEASON} من سيسافر مع البعثة.`, href: "/staff/employees/manage/season", link: "المشاركون في الموسم" },
-          { title: "الإسناد", text: "يسند صاحب «الملفات التشغيلية» المشاركين إلى مواقعهم. تابع من بقي بلا موقع.", href: "/staff/employees/manage/season?f=free", link: "المتاحون للإسناد" },
-        ]}
-      />
+        <HowItWorks
+          steps={[
+            { title: "السجل", text: "أضف الموظفين الدائمين والمنتدبين، وأكمل ما ينقص سجلاتهم.", href: "/staff/employees/manage", link: "سجل الموظفين" },
+            { title: "الحسابات", text: "اربط كل حساب في البوابة بسجل صاحبه، فإليه تصل كلمة المرور.", href: "/staff/employees/manage/accounts", link: "حسابات البوابة" },
+            { title: "الموسم", text: `سجّل في موسم ${CURRENT_SEASON} من سيسافر مع البعثة.`, href: "/staff/employees/manage/season", link: "المشاركون في الموسم" },
+            { title: "الإسناد", text: "يسند صاحب «الملفات التشغيلية» المشاركين إلى مواقعهم. تابع من بقي بلا موقع.", href: "/staff/employees/manage/season?f=free", link: "المتاحون للإسناد" },
+          ]}
+        />
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="سجل الموظفين" value={desk.employees.length} icon={<UsersRound />} hint={`${desk.permanent} دائمون · ${desk.external} منتدبون`} />

@@ -4,7 +4,8 @@ from .dsl import *
 DOMAIN = D("staff", "STF", "الموظفون والصلاحيات والمواسم", [
     "يغطي هذا الفصل بوابة الموظفين وحوكمتها: الدخول، والصلاحيات (فعل على مورد في نظام، بلا أدوار ولا إسناد لنظام، وبعضها لنطاق بعينه)، ومن يمنحها، "
     "ومشرف القاعة ومندوب المطار صلاحيتين بنطاق، وسجل الأحداث، وإعدادات الموسم وتدقيق تعديلها، ودورة حياة الموسم في إعدادات التسجيل "
-    "(موسم قيد الإعداد ونشط ومؤرشف، ومسودة تُنشر إصدارات لا تتغير)، وبدء موسم تشكيل جديد، ونشر محتوى الموقع.",
+    "(موسم قيد الإعداد ونشط ومؤرشف، ومسودة تُنشر إصدارات لا تتغير)، وبدء موسم تشكيل جديد، ونشر محتوى الموقع، "
+    "وصفحات «الإحصائيات» و«لوحة الإدارة العليا» وترتيب القائمة.",
     "القيم مأخوذة من lib/permissions.ts (كتالوج الصلاحيات) وlib/staff.ts وlib/systems.ts وapp/staff (الحراسة والشاشات)، وlib/store.ts (سجل الأحداث وإعدادات الموسم)، "
     "وlib/season.ts وlib/season-live.ts، وlib/registration (المواسم والإصدارات)، وlib/cms (المحتوى). "
     "الحسابات في النسخة التجريبية ثابتة وكلمة مرورها واحدة؛ ما يجب أن يختلف في المنصة الحقيقية مذكور في «الفجوة».",
@@ -19,24 +20,29 @@ DOMAIN = D("staff", "STF", "الموظفون والصلاحيات والمواس
           "وكلمة مرور مؤقتة تُرسل إلى الهاتف ويُلزم تغييرها عند أول دخول (must_change_password)، وتخزين مشفّر لكلمة المرور."),
     R("STF-02", "تسجيل الدخول والخروج",
       "كل دخول إلى بوابة الموظفين وكل خروج منها حدث في سجل الأحداث باسم الموظف وصفته.",
-      src=["app/staff/_components/login.tsx:37", "app/staff/_components/frame.tsx:298"],
+      src=["app/staff/_components/login.tsx:37", "app/staff/_components/frame.tsx:306"],
       data=["audit_events.actor_staff_id", "auth_sessions.staff_user_id"]),
     R("STF-03", "الصفحة الأولى بعد الدخول",
-      "يصل الموظف إلى: لوحة أول ملف إدارة يملك عرض لوحته؛ وإلا أول عملية فيه يملك عرض ما فيها؛ وإلا «لوحتي» إن ملك عرض شيء في نظام آخر؛ "
+      "يصل الموظف إلى: «لوحة الإدارة العليا» إن ملك عرضها؛ وإلا «صلاحيات الموظفين» إن ملك عرض شيء فيها؛ وإلا لوحة أول ملف إدارة يملك عرض لوحته، أو أول عملية فيه يملك عرض ما فيها؛ "
+      "وإلا أول «الإحصائيات» يملكها بترتيب القائمة (الأرقام قبل العمل)، وإلا أول صفحة نظام آخر يملك فيها شيئاً بترتيب القائمة؛ "
       "وإلا «قاعتي الامتحانية» إن ملك «قاعة الامتحان» لمركز؛ وإلا «رحلات مطاري» إن ملك «رحلات المطار» لمطار؛ وإلا «ملفاتي التشغيلية».",
-      src=["app/staff/_components/kit.tsx:75", "app/staff/_components/kit.tsx:68"],
-      data=["staff_user_permissions", "staff_user_permission_scopes"]),
+      src=["app/staff/_components/kit.tsx:75", "app/staff/_components/kit.tsx:76", "app/staff/_components/kit.tsx:77", "app/staff/_components/kit.tsx:78",
+           "app/staff/_components/kit.tsx:84", "app/staff/_components/kit.tsx:85", "app/staff/_components/kit.tsx:88", "app/staff/_components/kit.tsx:67"],
+      data=["staff_user_permissions", "staff_user_permission_scopes"],
+      ex="نور الأعرج وطارق مصطفى ولبنى الشهابي يصلون إلى «لوحة الإدارة العليا»؛ ورنا حداد إلى إحصائيات «مراجعة الطلبات والوثائق»؛ وكنان الأحمد إلى إحصائيات القرعة؛ "
+         "ووسام خوري، ولا يملك إلا «تقييم الإداريين بعد الموسم»، إلى «ملفاتي التشغيلية»."),
     R("STF-04", "«ملفاتي التشغيلية» ظاهرة دائماً",
-      "يظهر بند «ملفاتي التشغيلية» في قائمة كل موظف دون أي صلاحية، ويعرض مواقعه في الملفات التشغيلية. وكل بند آخر يظهر لمن يملك صلاحية عرض واحدة على الأقل مما يفتحه.",
-      src=["app/staff/_components/frame.tsx:153", "app/staff/_components/frame.tsx:295"],
-      data=["op_file_assignments.employee_id"]),
+      "يظهر بند «ملفاتي التشغيلية» في قائمة كل موظف دون أي صلاحية، ويعرض رحلتيه إن سافر مع البعثة ومواقعه في الملفات التشغيلية. "
+      "وكل بند آخر يظهر لمن يملك صلاحية عرض واحدة على الأقل مما يفتحه، وبند «الإحصائيات» لمن يملك صلاحيتها.",
+      src=["app/staff/_components/frame.tsx:158", "app/staff/_components/frame.tsx:183", "app/staff/_components/frame.tsx:301"],
+      data=["op_file_assignments.employee_id", "flight_assignments.employee_id"]),
 
     # ───────────── الصلاحيات ─────────────
     R("STF-05", "الصلاحية فعل على مورد في نظام",
-      "في بوابة الموظفين 21 نظاماً، لكل نظام موارده (132 مورداً)، ولكل مورد أفعاله: العرض (GET) والإضافة (POST) والتعديل (PUT) والحذف (DELETE)، "
-      "وأفعال بأسمائها حيث لا تكفي (اعتماد، نشر، إقفال، تصدير، إرجاع إلى الأصل…). كل صلاحية مفتاح ‹النظام›.‹المورد›.‹الفعل›، والمجموع 399. "
+      "في بوابة الموظفين 21 نظاماً، لكل نظام موارده (142 مورداً)، ولكل مورد أفعاله: العرض (GET) والإضافة (POST) والتعديل (PUT) والحذف (DELETE)، "
+      "وأفعال بأسمائها حيث لا تكفي (اعتماد، نشر، إقفال، تصدير، إرجاع إلى الأصل…). كل صلاحية مفتاح ‹النظام›.‹المورد›.‹الفعل›، والمجموع 409. "
       "والعرض نفسه صلاحية، و18 مورداً حساساً (الرقم الوطني، الهواتف، الأجوبة الصحيحة، الكشوف…) تُمنح وحدها.",
-      src=["lib/permissions.ts:48", "lib/permissions.ts:29", "lib/permissions.ts:371"],
+      src=["lib/permissions.ts:48", "lib/permissions.ts:29", "lib/permissions.ts:383"],
       cfg="lib/permissions.ts CATALOG",
       data=["permission_systems.code", "permission_resources.sensitive", "permissions.code", "permissions.kind"],
       ex="flights.flights.GET عرض الرحلات؛ flights.flights.lock إقفالها وإصدار كشفها؛ lottery.draw.publish اعتماد نتائج القرعة ونشرها."),
@@ -54,9 +60,9 @@ DOMAIN = D("staff", "STF", "الموظفون والصلاحيات والمواس
     R("STF-08", "حراسة الصفحات والأزرار",
       "تظهر الصفحة لمن يملك عرض واحد على الأقل مما فيها، وإلا ظهرت «خارج صلاحياتك» مع اسم الصلاحية المطلوبة. وفي الصفحة يُخفى كل زر أو يُعطَّل بلا صلاحية فعله، "
       "وتُقنَّع البيانات الحساسة بلا عرضها، وكل تبويب يظهر بعرض مورده.",
-      src=["app/staff/_components/kit.tsx:304", "app/staff/season/view.tsx:163", "app/staff/audit/view.tsx:20", "app/staff/access/view.tsx:33",
+      src=["app/staff/_components/kit.tsx:309", "app/staff/season/view.tsx:163", "app/staff/audit/view.tsx:20", "app/staff/access/view.tsx:33",
            "app/staff/content/view.tsx:32", "app/staff/operations/view.tsx:27", "app/staff/operational-files/view.tsx:52", "app/staff/reference/view.tsx:41",
-           "app/staff/executive/view.tsx:36", "app/staff/flights/flight-screen.tsx:90", "app/staff/exam/_components/bank.tsx:164"],
+           "app/staff/executive/view.tsx:42", "app/staff/flights/flight-screen.tsx:90", "app/staff/exam/_components/bank.tsx:164"],
       data=["permissions.code", "staff_user_permissions"],
       gap="الحراسة في الواجهة فقط (إلا خدمة التسجيل على الحج)؛ على المنصة الحقيقية فحص الصلاحية ونطاقها في الخادم مع كل طلب."),
     R("STF-09", "صفحات ملف الإدارة",
@@ -77,13 +83,13 @@ DOMAIN = D("staff", "STF", "الموظفون والصلاحيات والمواس
     R("STF-12", "الصلاحية لنطاق بعينه",
       "بعض الصلاحيات تُمنح لمعرّفات بعينها: قاعة الامتحان لمركز، ورحلات المطار لمطار، ومواعيد العمليات لعملية، وعناصر مجموعات المحتوى لمجموعة، والتسجيل في المكتب لمكتب، "
       "والملفات التشغيلية لنوع ملف. بلا نطاق تسري في كل مكان. يفتح الصفحةَ امتلاكها في أي مكان، ويُفحص كل فعل لمعرّف ما يقع عليه.",
-      src=["lib/permissions.ts:401", "lib/permissions.ts:395", "lib/operations.ts:238", "app/staff/airport/view.tsx:112"],
+      src=["lib/permissions.ts:427", "lib/permissions.ts:421", "lib/operations.ts:238", "app/staff/airport/view.tsx:112"],
       data=["staff_user_permission_scopes.scope_id", "permission_resources.scope_kind"],
       gap="نطاق المكتب معرّف ولا يُفحص في التجربة: حسابات الموظفين لا تحمل مكتباً."),
     R("STF-13", "مشرف القاعة ومندوب المطار صلاحيتان بنطاق",
       "مشرف القاعة الامتحانية من يملك «قاعة الامتحان» (hall.*) لمركزها، ومندوب المطار من يملك «رحلات المطار» (airport.*) لمطاره؛ لا يُسندان من شاشة القاعات ولا المطارات، "
       "وتعرضهما تلك الشاشات للقراءة. وموظف البرج أو المخيم يقيّم بعد الموسم بصلاحية في «تقييم الإداريين بعد الموسم» ونطاقها مواقعه في الملفات التشغيلية.",
-      src=["app/administrator/_lib/halls.ts:219", "app/administrator/_lib/halls.ts:244", "lib/flights.ts:548", "app/staff/hall/view.tsx:93"],
+      src=["app/administrator/_lib/halls.ts:219", "app/administrator/_lib/halls.ts:244", "lib/flights.ts:552", "app/staff/hall/view.tsx:93"],
       data=["staff_user_permission_scopes", "exam_centers", "airports", "op_file_assignments"]),
     R("STF-14", "رفع أمر إلى المدير",
       "يرفع من يعمل في ملف إدارة إلى مدير الموسم ما لا يحسمه وحده، بنص لا يقل عن 5 أحرف. يصل حدثاً مهماً يراه في «صلاحيات الموظفين» ← «ملفات الإدارة» من يملك access.escalations.GET.",
@@ -98,7 +104,7 @@ DOMAIN = D("staff", "STF", "الموظفون والصلاحيات والمواس
     # ───────────── سجل الأحداث ─────────────
     R("STF-16", "كل إجراء باسم فاعله",
       "كل إجراء يغيّر شيئاً في بوابة الموظفين يمر بتسجيل حدث يحمل اسم الموظف وصفته، والإجراء، وما وقع عليه، والقيمة قبل وبعد إن وُجدتا، والملف والجزء والسجل المعني.",
-      src=["app/staff/_components/kit.tsx:120", "app/staff/_components/kit.tsx:121", "lib/store.ts:109"],
+      src=["app/staff/_components/kit.tsx:125", "app/staff/_components/kit.tsx:126", "lib/store.ts:109"],
       data=["audit_events.actor_name", "audit_events.before_value", "audit_events.after_value", "audit_events.system_code", "audit_events.area", "audit_events.ref_id"]),
     R("STF-17", "سجل الأحداث لا يُعدَّل ولا يُحذف",
       "سجل الأحداث للإضافة فقط: يُضاف الحدث بمعرّف ووقت، ولا توجد عملية تعدّل حدثاً أو تحذفه.",
@@ -226,4 +232,32 @@ DOMAIN = D("staff", "STF", "الموظفون والصلاحيات والمواس
       src=["lib/cms/collections.ts:59", "lib/cms/collections.ts:111", "lib/cms/collections.ts:194", "lib/cms/store.ts:300", "lib/cms/store.ts:593"],
       data=["news_articles.slug", "cms_collection_settings.can_create"],
       gap="حدّ الخانات قيد النسخة التجريبية (روابط ثابتة)؛ المنصة الحقيقية تولّد المعرّف ولا تحتاج حداً."),
+
+    # ───────────── الإحصائيات والقائمة ─────────────
+    R("STF-39", "الإحصائيات صلاحية مستقلة لا تفتح صفحات النظام",
+      "لعشرة أنظمة صفحة «الإحصائيات» خاصة بها (/staff/stats/‹النظام›): مراجعة الطلبات والوثائق، والتسجيل في المكتب، والقبول المباشر والقرعة، وإعدادات الموسم، "
+      "وغرفة العمليات، والفريق الطبي، والمواصلات، والملفات التشغيلية، وسجل الأحداث، ومحتوى الموقع. تعرض أرقام النظام و«ما ينتظر هنا»، ولا يُعدَّل منها شيء: "
+      "كل رقم يُدار من صفحة النظام نفسها. تفتحها صلاحية واحدة ‹النظام›.stats.GET «الإحصائيات»، وليست من صلاحيات عرض النظام: من يملكها وحدها يرى الأرقام "
+      "ولا تُفتح له صفحات النظام، ومن يملك عرض صفحاته دونها لا يرى إحصائياته. ولملفات الإدارة «لوحة التحكم» مكانها (‹الملف›.summary.GET)، "
+      "و«الإحصائيات» في «إدارة الامتحانات» إحدى عمليات الملف لا صفحة من هذه الصفحات. وحلّت هذه الصفحات محل «لوحتي» التي كانت تجمع ما ينتظر الموظف في كل نظام يملك فيه شيئاً.",
+      src=["lib/permissions.ts:390", "lib/permissions.ts:396", "lib/permissions.ts:400", "lib/permissions.ts:102",
+           "app/staff/stats/[system]/page.tsx:9", "app/staff/stats/view.tsx:12", "app/staff/stats/sections.tsx:550"],
+      data=["permission_resources.resource_key", "permissions.code", "staff_user_permissions.permission_code"],
+      ex="lottery.stats.GET وحدها تفتح «/staff/stats/lottery» ولا تفتح «/staff/lottery»؛ وكنان الأحمد يملكها مع خطوات القرعة فيرى الاثنين."),
+    R("STF-40", "«لوحة الإدارة العليا» تجمع أرقام الأنظمة كلها",
+      "تفتح «لوحة الإدارة العليا» لمن يملك executive.dashboard.GET، بصف واحد من الأزرار: «الموسم الآن» (أرقام الأنظمة العشرة جنباً إلى جنب، كل رقم مرة واحدة، دون رسومها البيانية)، "
+      "ثم «لوحة التحكم» لكل ملف من ملفات الإدارة الخمسة بأرقامها كما يراها صاحبه دون عنوان صفحته ولا «كيف تعمل»، ثم «تقرير نهاية الموسم»؛ يراها كلها صاحب اللوحة أياً كانت صلاحياته الأخرى. "
+      "وطباعة التقرير لمن يملك executive.dashboard.print، وهي حدث في سجل الأحداث. واللوحة أول بند في قائمة من يملكها، وصفحته الأولى بعد الدخول.",
+      src=["app/staff/executive/view.tsx:54", "app/staff/executive/view.tsx:92", "app/staff/executive/view.tsx:93", "app/staff/stats/sections.tsx:230",
+           "app/staff/executive/view.tsx:75", "app/staff/_components/frame.tsx:160", "app/staff/_components/kit.tsx:76"],
+      data=["permissions.code", "audit_events"],
+      ex="لبنى الشهابي تملك «إعدادات الموسم» و«لوحة الإدارة العليا»: ترى لوحات ملفات الإدارة الخمسة وإحصائيات الأنظمة العشرة، ولا تفتح من صفحاتها إلا «إعدادات الموسم»."),
+    R("STF-41", "ترتيب القائمة و«ملفاتي التشغيلية» آخرها",
+      "ترتيب القائمة الجانبية: «لوحة الإدارة العليا»، ثم «صلاحيات الموظفين»، ثم ملفات الإدارة الخمسة (لكل ملف «لوحة التحكم» ثم عملياته تحت اسمه)، "
+      "ثم المواقع الميدانية («قاعتي الامتحانية»، «رحلات مطاري»، «تقييم الإداريين»)، ثم الأنظمة الأخرى بترتيب العمل في الموسم، لكل منها «الإحصائيات» ثم صفحته، "
+      "تحت اسم النظام إن ظهر البندان معاً. ولا يظهر بند إلا لمن يملك ما يفتحه. وفي آخر القائمة دائماً، بعد فاصل، «ملفاتي التشغيلية» ثم «تسجيل الخروج» تحتها.",
+      src=["app/staff/_components/frame.tsx:158", "app/staff/_components/frame.tsx:161", "app/staff/_components/frame.tsx:163", "app/staff/_components/frame.tsx:165",
+           "app/staff/_components/frame.tsx:154", "app/staff/_components/frame.tsx:168", "app/staff/_components/frame.tsx:183", "app/staff/_components/frame.tsx:450",
+           "app/staff/_components/frame.tsx:452"],
+      data=["permission_systems.sort_order", "management_systems.sort_order"]),
 ])

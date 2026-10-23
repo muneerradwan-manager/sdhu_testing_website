@@ -49,6 +49,8 @@ const LATE_STAFF_PEOPLE: Named[] = [
   // The holder of «إدارة الامتحانات» and the Damascus hall supervisor: their work is in Syria, before the season travels
   { handle: "munir", firstName: "منير", fatherName: "عادل", surname: "السيد", gender: "male", birthYear: 1982, city: "دمشق", jobTitle: "رئيس قسم", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
   { handle: "nisreen", firstName: "نسرين", fatherName: "توفيق", surname: "الحكيم", gender: "female", birthYear: 1986, city: "دمشق", jobTitle: "مساعد إداري", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
+  // Data entry at the Damascus office: the account had no employee record, so «ملفاتي التشغيلية» had nothing to read
+  { handle: "razan", firstName: "رزان", fatherName: "عماد", surname: "الحسن", gender: "female", birthYear: 1994, city: "دمشق", jobTitle: "مدخل بيانات", mission: "البعثة الإدارية", kind: "permanent", seasons: [] },
 ];
 
 const MALE = ["أحمد", "محمد", "محمود", "خالد", "عمر", "علي", "حسن", "يوسف", "إبراهيم", "عبد الله", "عبد الرحمن", "سامر", "باسل", "مهند", "وائل", "زياد", "رامي", "معاذ", "أنس", "بشار", "فراس", "هشام", "نزار", "ياسر", "مصطفى", "حمزة", "طلال", "عماد", "قصي", "أيمن", "لؤي", "صهيب", "مؤيد", "ماجد", "جهاد", "نضال", "عبد الحكيم", "مالك", "ثائر", "حسام"];

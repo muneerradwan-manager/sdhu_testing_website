@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Staff guide — part «basics»: the landing page, login and logout, «لوحتي» (the season director's and a data
-entry account's), «صلاحيات الموظفين», «ملفاتي التشغيلية», a page outside one's permissions; «مراجعة الطلبات»
-with the attaching to groups; «إعدادات الموسم»; «القبول والقرعة» (entry, then
-approval and publishing).
+"""Staff guide — part «basics»: the landing page, login and logout, the sidebar and where each one lands (the
+season director on «لوحة الإدارة العليا»), a system's «الإحصائيات», «صلاحيات الموظفين», «ملفاتي التشغيلية» (a
+traveller with posts, a traveller without one, an employee who does not travel), a page outside one's permissions;
+«مراجعة الطلبات» with the attaching to groups; «إعدادات الموسم»; «القبول والقرعة» (entry, then approval and
+publishing).
 Usage (inside docs/_build-guide): CAP_DIR=<folder> python stf_basics.py [a|b|c|d]"""
 import sys
 from stf_common import Staff
@@ -21,11 +22,6 @@ def new(storage=None):
     return s
 
 
-def btn_role(s, name, wait=1200):
-    b = s.p.get_by_role("button", name=name).first
-    b.scroll_into_view_if_needed(); b.click(); s.c.settle(wait)
-
-
 def jump(s):
     """«جرّبها الآن»: the demo's date moves to the operation's first day"""
     j = s.p.locator("main button:has-text('جرّبها الآن')")
@@ -33,28 +29,7 @@ def jump(s):
         j.first.click(); s.c.settle(1500)
 
 
-def register_one(s):
-    """رزان registers one citizen at the office (the steps themselves are in the registration chapter), so that
-    her «لوحتي» has something under «ما سجّلته»"""
-    c, p = s.c, s.p
-    c.goto("/staff/registration", wait=1800)
-    jump(s)
-    btn_role(s, "بدء طلب جديد")
-    p.locator("label:has-text('الرقم الوطني') input").first.fill("01066600620")
-    p.locator("label:has-text('الاسم الأول') input").first.fill("غسان"); c.settle(200)
-    btn_role(s, "بحث", 2500)
-    p.locator("label:has-text('رقم هاتف المواطن') input[type=tel]").fill("0933123456"); c.settle(200)
-    btn_role(s, "إرسال رمز التحقق")
-    c.otp("1448")
-    btn_role(s, "تأكيد الموافقة ومتابعة", 1500)
-    btn_role(s, "افحص الأهلية", 1500); p.wait_for_timeout(6000)
-    btn_role(s, "متابعة", 2000)
-    p.locator("main button:has-text('شام كاش')").first.click(); c.settle(1500)
-    btn_role(s, "رقم عملية تجريبي", 600)
-    btn_role(s, "تأكيد الدفع وتسجيل الطلب", 3500)
-
-
-# ───────── A. for every employee: login, «لوحتي», «صلاحيات الموظفين», «ملفاتي التشغيلية» ─────────
+# ───────── A. for every employee: login, the sidebar, «الإحصائيات», «صلاحيات الموظفين», «ملفاتي التشغيلية» ─────────
 if ONLY in (None, "a"):
     S = "A"
     s = new(); c, p = s.c, s.p
@@ -69,14 +44,18 @@ if ONLY in (None, "a"):
     c.scroll_to("text=حسابات تجريبية", 110)
     c.shot("login-cards", "الحسابات التجريبية: بطاقة لكل موظف مع صلاحيته، والضغط عليها يدخل مباشرة", section=S)
     s.login("nour.a", shots=True, S=S)
-    c.goto("/staff/dashboard", wait=2500)
-    c.shot("dash-suha", "لوحتي لمدير الموسم: أرقام كل صلاحية تحت اسم صفحتها، ومهامي اليوم، وآخر إجراءاتي",
-           hl=[("aside a[href$='/staff/dashboard']", "")], section=S)
-    c.scroll_to("main a:has-text('افتح المراجعة')", 160)
-    c.shot("dash-suha-2", "أرقام صلاحية في لوحتي، ورابط الصفحة التي تُدار منها", hl=[("main a:has-text('افتح المراجعة')", "1")], section=S)
+    # the season director lands on «لوحة الإدارة العليا», first in her menu; then «صلاحيات الموظفين», then each
+    # system under its name: its «الإحصائيات», then its page
+    c.settle(4000)  # the welcome toast goes
+    c.shot("home-director", "بعد الدخول: «لوحة الإدارة العليا» أول القائمة لمن يملكها، ثم «صلاحيات الموظفين»، ثم كل نظام تحت اسمه",
+           hl=[("aside a[href$='/staff/executive']", "1"), ("aside a[href$='/staff/access']", "2"), ("aside nav p:text-is('إعدادات الموسم')", "3")], section=S)
+    # one system's statistics: its figures, the link to its page, and what waits in it
+    s.stats("reviews", 2500)
+    c.shot("stats-reviews", "«الإحصائيات» لنظام: أرقامه، ورابط صفحته، و«ما ينتظر هنا»",
+           hl=[("aside a[href$='/staff/stats/reviews']", "1"), ("main a:has-text('افتح المراجعة')", "2"), ("main :text-is('ما ينتظر هنا')", "3")], section=S)
     c.scroll_top()
     p.locator("aside button[aria-expanded]:has-text('صلاحية')").first.click(); c.settle(900)
-    c.shot("dash-perms", "بطاقتك في القائمة الجانبية: صلاحياتك نظاماً نظاماً، وتحتها أقسامك", hl=[("aside button[aria-expanded]:has-text('صلاحية')", "1")], section=S)
+    c.shot("my-perms", "بطاقتك في القائمة الجانبية: صلاحياتك نظاماً نظاماً، وتحتها أقسامك", hl=[("aside button[aria-expanded]:has-text('صلاحية')", "1")], section=S)
     p.locator("aside button[aria-expanded]:has-text('صلاحية')").first.click(); c.settle(500)
     # «صلاحيات الموظفين»: the employees, one employee's permissions system by system, who holds what, the files
     s.nav("صلاحيات الموظفين", 2200)
@@ -115,20 +94,27 @@ if ONLY in (None, "a"):
     s.logout()
     c.shot("logout", "بعد تسجيل الخروج تعود صفحة الدخول", section=S)
     s.close()
-    # a data-entry account: its «لوحتي» is what it registered
-    s = new(); c, p = s.c, s.p
-    s.login("razan")
-    register_one(s)
-    s.nav("لوحتي", 2500)
-    c.shot("dash-razan", "لوحتي لموظفة إدخال البيانات: «ما سجّلته» وأين وصل كل طلب", hl=[("main :text-is('ما سجّلته')", "1")], section=S)
-    s.close()
-    # «ملفاتي التشغيلية», in everyone's menu
+    # «ملفاتي التشغيلية», at the foot of everyone's menu with «تسجيل الخروج» under it. A traveller with posts first:
+    # the doctor's two flights, her tower in Makkah and her camps in Mina and Arafat (her menu is short, so its foot shows)
     s = new(); c, p = s.c, s.p
     s.login("layla")
     s.nav("ملفاتي التشغيلية", 2200)
-    c.shot("myfiles", "ملفاتي التشغيلية: رحلاتي، ثم أين أكون ومتى في الموسم", hl=[("aside a[href$='/staff/my-files']", "")], section=S)
+    c.shot("myfiles", "ملفاتي التشغيلية في أسفل القائمة، وتحتها «تسجيل الخروج»: رحلاتي، ثم أين أكون ومتى في الموسم",
+           hl=[("aside a[href$='/staff/my-files']:visible", "1"), ("aside button:has-text('تسجيل الخروج'):visible", "2")], section=S)
     c.scroll_by(650)
     c.shot("myfiles-2", "تفاصيل موقعي: الدور والفترة والمكان والمسؤول المباشر والفريق", section=S)
+    s.close()
+    # a traveller without a post: the flights officer has his two flights only
+    s = new(); c, p = s.c, s.p
+    s.login("haitham")
+    s.nav("ملفاتي التشغيلية", 2200)
+    c.shot("myfiles-nopost", "مسافر مع البعثة دون موقع في برج أو مخيم: رحلتاه وحدهما", hl=[("main :text('دون موقع في برج أو مخيم')", "1")], section=S)
+    s.close()
+    # an employee who does not travel this season: no flights, no posts
+    s = new(); c, p = s.c, s.p
+    s.login("razan")
+    s.nav("ملفاتي التشغيلية", 2200)
+    c.shot("myfiles-notravel", "لا تسافر مع البعثة هذا الموسم: لا رحلة ولا موقع", hl=[("main :text('لا تسافر مع البعثة')", "1")], section=S)
     s.close()
     s = new(); c, p = s.c, s.p
     s.login("tarek")

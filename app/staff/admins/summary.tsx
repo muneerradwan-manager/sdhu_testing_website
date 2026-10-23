@@ -33,7 +33,8 @@ const M = SYSTEMS.admins.manage.href;
  * the page it is done in; then, in the order the work is done, where each part stands. Nothing is edited here:
  * the work and each part's records are in the file's operations, in the menu.
  */
-export function AdminsSummary() {
+/** `embedded`: inside «لوحة الإدارة العليا», which has its own heading: the figures only, without this page's heading and «كيف تعمل» */
+export function AdminsSummary({ embedded = false }: { embedded?: boolean } = {}) {
   const user = useStaffUser()!;
   // His grant of the permission: by whom and since when
   const grant = useHolders().admins.find((h) => h.staffId === user.id);
@@ -65,26 +66,30 @@ export function AdminsSummary() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={`${SYSTEMS.admins.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
-        title={SYSTEMS.admins.summary.label}
-        icon={<Gauge />}
-        description="أرقام الإداريين هذا الموسم وما ينتظرك. العمل نفسه في عمليات الملف من القائمة الجانبية."
-        actions={
-          <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
-            <Megaphone className="size-4" /> رفع أمر إلى المدير
-          </Button>
-        }
-      />
+      {!embedded && (
+        <>
+        <PageHeader
+          eyebrow={`${SYSTEMS.admins.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          title={SYSTEMS.admins.summary.label}
+          icon={<Gauge />}
+          description="أرقام الإداريين هذا الموسم وما ينتظرك. العمل نفسه في عمليات الملف من القائمة الجانبية."
+          actions={
+            <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
+              <Megaphone className="size-4" /> رفع أمر إلى المدير
+            </Button>
+          }
+        />
 
-      <HowItWorks
-        steps={[
-          { title: "جهّز القواعد", text: "المواعيد والصلاحيات وشروط الصفات، والقوائم المرجعية، قبل أن يتقدم أحد.", href: M, link: "قواعد الإداريين" },
-          { title: "تابع المتقدمين", text: "ملفاتهم ووثائقهم، ثم شكّل مجموعة كل رئيس مجموعة مؤهل في المكتب.", href: `${M}/groups`, link: "تشكيل المجموعات" },
-          { title: "شكّل التكتلات", text: "شكّل كل تكتل في المكتب بحضور رئيسه وكادره، ثم راجع برامج التكتلات وصفحات المجموعات.", href: `${M}/clusters`, link: "التكتلات" },
-          { title: "قيّم وصنّف", text: "قيّم من عمل مرحلةً مرحلة، ثم اعتمد التصنيف وانشره في ختام الموسم.", href: `${M}/evaluation`, link: "التقييم" },
-        ]}
-      />
+        <HowItWorks
+          steps={[
+            { title: "جهّز القواعد", text: "المواعيد والصلاحيات وشروط الصفات، والقوائم المرجعية، قبل أن يتقدم أحد.", href: M, link: "قواعد الإداريين" },
+            { title: "تابع المتقدمين", text: "ملفاتهم ووثائقهم، ثم شكّل مجموعة كل رئيس مجموعة مؤهل في المكتب.", href: `${M}/groups`, link: "تشكيل المجموعات" },
+            { title: "شكّل التكتلات", text: "شكّل كل تكتل في المكتب بحضور رئيسه وكادره، ثم راجع برامج التكتلات وصفحات المجموعات.", href: `${M}/clusters`, link: "التكتلات" },
+            { title: "قيّم وصنّف", text: "قيّم من عمل مرحلةً مرحلة، ثم اعتمد التصنيف وانشره في ختام الموسم.", href: `${M}/evaluation`, link: "التقييم" },
+          ]}
+        />
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="المتقدمون" value={desk.totals.applied} icon={<UsersRound />} hint={`${formatNumber(desk.totals.paid)} سددوا الرسم${desk.noRole ? ` · ${desk.noRole} لم يختاروا صفة` : ""}`} />

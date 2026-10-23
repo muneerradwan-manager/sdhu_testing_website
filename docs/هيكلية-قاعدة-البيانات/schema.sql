@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- هيكلية قاعدة البيانات — الجداول والعلاقات للمنصة الوطنية للحج
 -- المنصة الوطنية للحج — إدارة الحج والعمرة السورية
--- MySQL 8.0.16+ / MariaDB 10.6+   |   248 جدولاً   |   مولَّد من docs/_build-guide/schema في 2026-10-22
+-- MySQL 8.0.16+ / MariaDB 10.6+   |   248 جدولاً   |   مولَّد من docs/_build-guide/schema في 2026-10-23
 -- لا تعدّل هذا الملف يدوياً: عدّل النموذج ثم شغّل build_schema.py
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -2439,7 +2439,7 @@ CREATE TABLE `permission_systems` (
 CREATE TABLE `permission_resources` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'المعرّف الداخلي، يتولّد تلقائياً',
   `system_code` VARCHAR(20) NOT NULL COMMENT 'النظام',
-  `resource_key` VARCHAR(40) NOT NULL COMMENT 'مفتاح المورد في النظام (flights، manifests، questions-answers…)',
+  `resource_key` VARCHAR(40) NOT NULL COMMENT 'مفتاح المورد في النظام (flights، manifests، questions-answers، stats…)',
   `label` VARCHAR(120) NOT NULL COMMENT 'الاسم المعروض',
   `sensitive` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'بيانات شخصية أو سرية تُمنح وحدها (الرقم الوطني، الهواتف، الأجوبة الصحيحة، الكشوف…)',
   `scope_kind` ENUM('center','airport','operation','collection','office','opfileType','posting') NULL COMMENT 'نطاق المورد إن كان له نطاق غير نطاق نظامه: operation لمواعيد العمليات، collection لعناصر مجموعات المحتوى',

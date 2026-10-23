@@ -178,7 +178,8 @@ def close_drawer(s):
 if "ops" in PARTS:
     s = Staff(); c, p = s.c, s.p; S = "OPS"
     s.login("fadi"); c.settle(4500)  # the welcome toast goes
-    c.shot("ops-home", "لوحتي لغرفة العمليات: أرقام اليوم ومهامه", hl=[(side("/staff/operations"), "1"), ("main a:has-text('افتح غرفة العمليات')", "2")], section=S)
+    s.stats("operations", 2200)  # where he lands: «غرفة العمليات» ← «الإحصائيات»
+    c.shot("ops-stats", "الإحصائيات لغرفة العمليات: أرقام اليوم، وما ينتظر هنا", hl=[(side("/staff/operations"), "1"), ("main a:has-text('افتح غرفة العمليات')", "2")], section=S)
     s.nav("غرفة العمليات", 2200)
     c.shot("ops-list", "غرفة العمليات: البلاغات في قائمة، والوقت المتبقي لكل بلاغ", hl=[(seg("تصفية البلاغات", "النشطة"), "1"), ("main select[aria-label='المنطقة']", "2"), ("main tbody tr:has-text('سليم حسن') td:first-child > button", "3")], section=S)
     # the map, folded under the list
@@ -240,7 +241,13 @@ if "ops" in PARTS:
 if "audit" in PARTS:
     s = Staff(); c, p = s.c, s.p; S = "AUD"
     s.login("tarek"); c.settle(4500)  # the welcome toast goes
-    c.shot("audit-home", "لوحتي للتدقيق، والصفحتان في القائمة الجانبية", hl=[(side("/staff/audit"), "1"), (side("/staff/executive"), "2")], section=S)
+    # he lands on «لوحة الإدارة العليا», first in his menu, on «الموسم الآن»
+    c.shot("exec-now", "لوحة الإدارة العليا: صف واحد من الأزرار، و«الموسم الآن» بأرقام الأنظمة العشرة جنباً إلى جنب",
+           hl=[(side("/staff/executive"), "1"), ("main [role=tablist]", "2")], section=S)
+    p.locator("main [role=tab]:text-is('الطيران')").first.click(); c.settle(2200)
+    c.shot("exec-file", "لوحة التحكم في ملف إدارة كما يراها صاحبها: «الطيران»", hl=[("main [role=tab]:text-is('الطيران')", "1")], section=S)
+    s.stats("audit", 2200)
+    c.shot("audit-stats", "الإحصائيات لسجل الأحداث، والصفحتان تحت «سجل الأحداث» في القائمة", hl=[(side("/staff/stats/audit"), "1"), (side("/staff/audit"), "2")], section=S)
     s.nav("سجل الأحداث", 2000)
     c.shot("audit-top", "سجل الأحداث: من فعل، ومتى، والقيمة قبل وبعد", hl=[("main button:has-text('تصدير ما يظهر')", "1"), ("main input[aria-label='بحث في السجل']", "2")], section=S)
     s.btn("مثال: اعتراض على نتيجة القرعة", 800)
@@ -252,8 +259,9 @@ if "audit" in PARTS:
     p.locator("main select[aria-label='الموظف']").select_option(label="كنان الأحمد"); c.settle(600)
     c.scroll_to("main [role=radiogroup][aria-label='النطاق']", 130)
     c.shot("audit-filters", "التصفية: أحداث موظف واحد", hl=[("main select[aria-label='الموظف']", "1"), ("main label:has-text('تعديلات فقط')", "2"), ("main button:has-text('مسح')", "3")], section=S)
-    s.nav("لوحة الإدارة العليا", 3500)
-    c.shot("exec-top", "لوحة الإدارة العليا: من التقديم إلى أداء الفريضة", hl=[("main button:has-text('طباعة التقرير')", "")], section=S)
+    s.nav("لوحة الإدارة العليا", 2500)
+    p.locator("main [role=tab]:has-text('تقرير نهاية الموسم')").first.click(); c.settle(3500)
+    c.shot("exec-top", "تقرير نهاية الموسم: من التقديم إلى أداء الفريضة، وطباعته", hl=[("main button:has-text('طباعة التقرير')", "1"), ("main [role=tab]:has-text('تقرير نهاية الموسم')", "2")], section=S)
     c.scroll_to("text=نتائج القبول المباشر والقرعة", 120); c.settle(1500)
     c.shot("exec-2", "نتائج القبول والقرعة، ورضا الحجاج حسب المرحلة", section=S)
     c.scroll_to("text=أكثر الشكاوى تكراراً", 120); c.settle(1500)
@@ -269,7 +277,8 @@ if "cms" in PARTS:
     im.save(img)
     s = Staff(); c, p = s.c, s.p; S = "CMS"
     s.login("nour"); c.settle(4500)  # the welcome toast goes
-    c.shot("cms-home", "لوحتي لمحرّرة المحتوى: أرقام المحتوى", hl=[(side("/staff/content"), "1")], section=S)
+    s.stats("content", 2000)  # where she lands: «محتوى الموقع» ← «الإحصائيات»
+    c.shot("cms-stats", "الإحصائيات لمحرّرة المحتوى: أرقام المحتوى", hl=[(side("/staff/content"), "1")], section=S)
     s.nav("محتوى الموقع", 2000)
     c.shot("cms-pages", "محتوى الموقع: الصفحات في قائمة", hl=[(seg("أقسام المحتوى", "الصفحات والمجموعات"), "1"), ("main input[aria-label='بحث في الصفحات']", "2"), ("main tbody tr:has(button:text-is('الصفحة الرئيسية')) td:first-child > button", "3")], section=S)
     c.scroll_to("main h2:has-text('مجموعات المحتوى')", 120)
@@ -324,7 +333,8 @@ if "cms" in PARTS:
 if "med" in PARTS:
     s = Staff(storage=PILGRIM_STATE); c, p = s.c, s.p; S = "MED"
     s.login("layla"); c.settle(4500)  # the welcome toast goes
-    c.shot("med-home", "لوحتي للفريق الطبي: وثائق تنتظر، وحالات، وبلاغات", hl=[(side("/staff/medical"), "1")], section=S)
+    s.stats("medical", 2000)  # where she lands: «الفريق الطبي» ← «الإحصائيات»
+    c.shot("med-stats", "الإحصائيات للفريق الطبي: وثائق تنتظر، وحالات، وبلاغات", hl=[(side("/staff/medical"), "1")], section=S)
     s.nav("الفريق الطبي", 2000)
     c.shot("med-docs", "وثائق تنتظر المراجعة: وثيقة في كل صف", hl=[("main tbody tr:nth-child(1) button:text-is('اعتماد')", "1"), ("main tbody tr:nth-child(2) button:text-is('إعادة بسبب')", "2")], section=S)
     p.locator("main tbody tr button:text-is('اعتماد')").first.click(); c.settle(1500)
@@ -344,7 +354,8 @@ if "med" in PARTS:
 if "trn" in PARTS:
     s = Staff(storage=PILGRIM_STATE); c, p = s.c, s.p; S = "TRN"
     s.login("bassel"); c.settle(4500)  # the welcome toast goes
-    c.shot("trn-home", "لوحتي لفريق المواصلات", hl=[(side("/staff/transport"), "1")], section=S)
+    s.stats("transport", 2000)  # where he lands: «المواصلات» ← «الإحصائيات»
+    c.shot("trn-stats", "الإحصائيات لفريق المواصلات", hl=[(side("/staff/transport"), "1")], section=S)
     s.nav("المواصلات", 2000)
     c.shot("trn-reports", "بلاغات النقل من الميدان", hl=[("main tbody tr button:text-is('فتح')", "")], section=S)
     p.locator(seg("القسم", "حجاج يحتاجون تجهيزاً")).first.click(); c.settle(1500)

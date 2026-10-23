@@ -291,7 +291,8 @@ describe("10. only the holder of the permission edits", () => {
     });
   }
   it("follows the director's grants: taken back, refused", () => {
-    const s = base({ systems: { grants: { registration: [] } } });
+    // The director took every permission back from hiba (lib/permissions.ts: grants live in staffPermissions)
+    const s = base({ staffPermissions: { hiba: [] } });
     assert.equal(editDraft(s, 1448, (c) => c, { action: "تعديل", area: "stages" }, AT).ok, false);
   });
 });

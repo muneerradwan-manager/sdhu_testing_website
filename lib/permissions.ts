@@ -99,6 +99,7 @@ export const CATALOG: PermSystem[] = [
     desc: "قرارات الطلبات التي تحتاج مراجعة، وتصحيح البيانات المدنية، وإلحاق الحجاج بالمجموعات بعقودهم.",
     href: "/staff/reviews",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("applications", "الطلبات التي تحتاج قراراً", G, { special: [["approve", "اعتماد الطلب"], ["reject", "رفض الطلب"]] }),
       R("civil-claims", "تصحيح البيانات المدنية", G, { special: [["approve", "اعتماد التصحيح"], ["reject", "رفض التصحيح"]] }),
       R("group-contracts", "الإلحاق بالمجموعات", ["GET", "POST"], { special: [["approve", "اعتماد العقد"], ["return", "إعادة العقد"]] }),
@@ -110,6 +111,7 @@ export const CATALOG: PermSystem[] = [
     desc: "تسجيل مواطن على الحج من مكتب التسجيل: البحث في السجل المدني، وموافقته، وأفراده، والدفع.",
     href: "/staff/registration",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("citizens", "البحث في السجل المدني", G, { sensitive: true, scope: "office" }),
       R("applications", "الطلبات التي سجّلها", ["GET", "POST"], { special: [["print", "طباعة الطلب"]], scope: "office" }),
       R("others-applications", "ما سجّله غيره", G, { scope: "office" }),
@@ -121,6 +123,7 @@ export const CATALOG: PermSystem[] = [
     desc: "اعتماد الأعمار المقبولة مباشرة، وإحصاء التسجيل على القرعة، وإدخال نتائج البث واعتمادها ونشرها.",
     href: "/staff/lottery",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("ages", "الأعمار المقبولة مباشرة", G, { special: [["issue", "إرسال الأعمار للاعتماد"], ["approve", "اعتماد الأعمار وإعلانها"]] }),
       R("pool", "إحصاء التسجيل على القرعة", G, { special: [["export", "تصدير الإحصاء"]] }),
       R("draw", "نتائج البث", ["GET", "POST", "PUT"], { special: [["submit", "إرسال النتائج للاعتماد"], ["publish", "اعتماد النتائج ونشرها"]], note: "من أدخل النتائج لا يعتمدها" }),
@@ -261,6 +264,7 @@ export const CATALOG: PermSystem[] = [
     desc: "شروط الموسم ورسومه، ومواعيد العمليات، ومواعيد الوجبات.",
     href: "/staff/season",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("values", "الشروط والرسوم", ["GET", "PUT"], { special: [["reset", "القيم الافتراضية"]] }),
       R("windows", "مواعيد العمليات", ["GET", "PUT"], { scope: "operation" }),
       R("meals", "مواعيد الوجبات", ["GET", "PUT"]),
@@ -272,6 +276,7 @@ export const CATALOG: PermSystem[] = [
     desc: "البلاغات كلها، والمهام الداخلية، والتقارير اليومية للتكتلات، وقرارات الغرفة.",
     href: "/staff/operations",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("tickets", "البلاغات", ["GET", "PUT"], { special: [["assign", "إسناد بلاغ"], ["close", "إغلاق بلاغ"]] }),
       R("tasks", "المهام الداخلية", ["GET", "POST", "PUT"]),
       R("daily-reports", "التقارير اليومية", ["GET", "PUT"], { sensitive: true }),
@@ -285,6 +290,7 @@ export const CATALOG: PermSystem[] = [
     desc: "مراجعة الوثائق الطبية للحجاج، والحالات الصحية، والبلاغات الصحية.",
     href: "/staff/medical",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("documents", "الوثائق الطبية", G, { sensitive: true, special: [["approve", "اعتماد وثيقة"], ["return", "إعادة وثيقة"]] }),
       R("health-files", "الحالات الصحية", G, { sensitive: true }),
       R("tickets", "البلاغات الصحية", ["GET", "PUT"], { special: [["assign", "إسناد"], ["close", "إغلاق"]] }),
@@ -296,6 +302,7 @@ export const CATALOG: PermSystem[] = [
     desc: "بلاغات النقل، والحجاج الذين يحتاجون تجهيزاً، وحافلات التكتلات وطلباتها.",
     href: "/staff/transport",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("tickets", "بلاغات النقل", ["GET", "PUT"], { special: [["assign", "إسناد"], ["close", "إغلاق"]] }),
       R("needs", "حجاج يحتاجون تجهيزاً", G, { sensitive: true }),
       R("buses", "حافلات التكتلات", ["GET", "POST", "DELETE"]),
@@ -309,6 +316,7 @@ export const CATALOG: PermSystem[] = [
     href: "/staff/operational-files",
     scope: "opfileType",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("files", "الملفات", CRUD, { special: [["activate", "تفعيل الملف وإعادته مسودة"], ["export", "تصدير"]] }),
       R("nodes", "القطاعات والأبراج والمراكز والمخيمات", CRUD),
       R("assignments", "إسناد الموظفين وسكنهم", CRUD),
@@ -332,7 +340,10 @@ export const CATALOG: PermSystem[] = [
     label: "سجل الأحداث",
     desc: "كل ما جرى في المنصة: من فعل ماذا ومتى.",
     href: "/staff/audit",
-    resources: [R("events", "الأحداث", G, { special: [["export", "تصدير"], ["trace", "تتبّع طلب"]] })],
+    resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
+      R("events", "الأحداث", G, { special: [["export", "تصدير"], ["trace", "تتبّع طلب"]] }),
+    ],
   },
   {
     key: "executive",
@@ -347,6 +358,7 @@ export const CATALOG: PermSystem[] = [
     desc: "صفحات الموقع وأقسامها، ومجموعات المحتوى، ومكتبة الوسائط، والنسخ السابقة.",
     href: "/staff/content",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("pages", "الصفحات وأقسامها", ["GET", "PUT"], { special: [["publish", "نشر"], ["discard", "تجاهل المسودة"], ["set-status", "تغيير حالة الصفحة"], ["reset", "إرجاعها إلى الأصل"]] }),
       R("items", "عناصر مجموعات المحتوى", CRUD, { scope: "collection", special: [["publish", "نشر المجموعة"], ["archive", "أرشفة واستعادة"]] }),
       R("media", "مكتبة الوسائط", CRUD),
@@ -370,8 +382,22 @@ export const PERM_SYSTEM = Object.fromEntries(CATALOG.map((s) => [s.key, s])) as
 export const keysOf = (sys: string, r: ResourceDef) => [...r.verbs.map((v) => `${sys}.${r.key}.${v}`), ...(r.special ?? []).map(([k]) => `${sys}.${r.key}.${k}`)];
 export const ALL_KEYS: string[] = CATALOG.flatMap((s) => s.resources.flatMap((r) => keysOf(s.key, r)));
 export const systemKeys = (sys: string) => ALL_KEYS.filter((k) => k.startsWith(`${sys}.`));
-/** A system's viewing permissions: holding any of them shows it */
-export const viewKeys = (sys: string) => systemKeys(sys).filter((k) => k.endsWith(".GET"));
+/**
+ * A system's viewing permissions: holding any of them opens its pages. Its statistics are not among them: they
+ * are a permission of their own, with a page of their own (/staff/stats/<system>), and opening one does not open
+ * the other
+ */
+export const viewKeys = (sys: string) => systemKeys(sys).filter((k) => k.endsWith(".GET") && !(hasStats(sys) && k === statsKey(sys)));
+/**
+ * The systems with a statistics page of their own: every one that is neither a management file (whose summary is
+ * its statistics) nor a field post. «إدارة الامتحانات» has a «الإحصائيات» of its own too, but as one of its
+ * operations, so it is not among them
+ */
+export const STATS_SYSTEMS = ["reviews", "office", "lottery", "season", "operations", "medical", "transport", "opfiles", "audit", "content"] as const;
+export type StatsSystem = (typeof STATS_SYSTEMS)[number];
+export const hasStats = (sys: string): sys is StatsSystem => (STATS_SYSTEMS as readonly string[]).includes(sys);
+/** The permission to see a system's statistics */
+export const statsKey = (sys: string) => `${sys}.stats.GET`;
 
 export function scopeKindOf(key: string): ScopeKind | undefined {
   const [sys, res] = key.split(".");

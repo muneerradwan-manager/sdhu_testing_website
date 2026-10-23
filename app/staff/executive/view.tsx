@@ -24,7 +24,13 @@ import { Counter } from "@/components/ui/motion";
 import { EXEC } from "@/lib/data/staff-seed";
 import { cn, formatNumber } from "@/lib/utils";
 import { can, Donut, Gate, Legend, logAs, PageHeader, Panel, Tabs, useStaffUser } from "../_components/kit";
-import { viewKeys } from "@/lib/permissions";
+import { STATS_SYSTEMS, viewKeys } from "@/lib/permissions";
+import { AllStats } from "../stats/sections";
+import { EmployeesSummary } from "../employees/summary";
+import { RegistrationSummary } from "../hajj/summary";
+import { AdminsSummary } from "../admins/summary";
+import { ExamSummary } from "../exam/_components/summary";
+import { FlightsSummary } from "../flights/summary";
 
 // Seed colours were picked for white cards; these keep every segment distinct on the dark ones.
 const SPLIT_ON_DARK: Record<string, string> = { "#AD9E6E": "#D9C89E", "#00594F": "#289E92", "#289E92": "#FFFFFF", "#E4DDD3": "rgba(228,221,211,.35)" };
@@ -39,20 +45,33 @@ export function ExecutiveView() {
   );
 }
 
+/**
+ * Every system's numbers in one place, one tab row: «الموسم الآن» (the other systems' figures side by side, each
+ * once), each management file's dashboard as its owner sees it but without its own heading, and the end-of-season
+ * report. Whoever holds this page sees them all, whatever else he holds.
+ */
+type View = "now" | "registration" | "admins" | "exams" | "flights" | "staff" | "report";
+const VIEWS: { value: View; label: string }[] = [
+  { value: "now", label: "الموسم الآن" },
+  { value: "registration", label: "التسجيل على الحج" },
+  { value: "admins", label: "الإداريون" },
+  { value: "exams", label: "الامتحانات" },
+  { value: "flights", label: "الطيران" },
+  { value: "staff", label: "الموظفون" },
+  { value: "report", label: "تقرير نهاية الموسم" },
+];
+
 function Executive() {
   const user = useStaffUser()!;
-  const [stageView, setStageView] = useState<"compare" | "1448">("compare");
-  const funnelMax = EXEC.headline[0].value;
-  const splitTotal = EXEC.split.reduce((a, s) => a + s.value, 0);
-
+  const [view, setView] = useState<View>("now");
   return (
     <div>
       <PageHeader
-        eyebrow="تقرير نهاية الموسم"
         title="لوحة الإدارة العليا — موسم 1448"
         icon={<BarChart3 />}
-        description="أرقام الموسم للقراءة: من تقدّم ومن حجّ، ورضا الحجاج، وأين يلزم التحسين في الموسم القادم."
+        description="أرقام كل الأنظمة في مكان واحد، وتقرير نهاية الموسم."
         actions={
+          view === "report" &&
           can(user, "executive.dashboard.print") && (
             <Button
               variant="glass"
@@ -67,7 +86,27 @@ function Executive() {
           )
         }
       />
+      <div className="mb-6">
+        <Tabs id="exec-view" value={view} onChange={setView} tabs={VIEWS} />
+      </div>
+      {view === "now" && <AllStats systems={STATS_SYSTEMS} user={user} />}
+      {view === "registration" && <RegistrationSummary embedded />}
+      {view === "admins" && <AdminsSummary embedded />}
+      {view === "exams" && <ExamSummary embedded />}
+      {view === "flights" && <FlightsSummary embedded />}
+      {view === "staff" && <EmployeesSummary embedded />}
+      {view === "report" && <SeasonReport />}
+    </div>
+  );
+}
 
+function SeasonReport() {
+  const [stageView, setStageView] = useState<"compare" | "1448">("compare");
+  const funnelMax = EXEC.headline[0].value;
+  const splitTotal = EXEC.split.reduce((a, s) => a + s.value, 0);
+
+  return (
+    <div>
       {/* Hero numbers */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl border border-gold/30 bg-gradient-to-br from-green-dark via-green-dark to-[#00352f] p-6 md:p-8">
         <div className="bg-pattern absolute inset-0 opacity-10" />

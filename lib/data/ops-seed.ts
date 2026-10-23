@@ -793,4 +793,16 @@ for (const f of CAMP_FILES) {
   }
 }
 
+/**
+ * The other travelling accounts in 1448's Makkah housing, so each sees his own posts: not every one of them in a
+ * tower. The doctor and the transport lead live in أبراج النور with تكتل النور's mission members, the operations
+ * room's officer in سنابل حوران, and the head of the mission's affairs leads the first sector; the flights officer
+ * works between the airports and has no post in a file, only his two flights.
+ */
+const HOUSING_48 = HOUSING_FILES.find((f) => f.id === "f48-housing")!;
+place(HOUSING_48, { camp: 1 }, "mission-member", "layla");
+place(HOUSING_48, { camp: 1 }, "mission-member", "bassel");
+place(HOUSING_48, { camp: 2 }, "mission-member", "fadi");
+place(HOUSING_48, { center: 1 }, "sector-head", "ghassan", true);
+
 export const FILES_SEED: OpFile[] = [...HOUSING_FILES, ...CAMP_FILES];

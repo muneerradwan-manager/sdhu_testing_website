@@ -155,7 +155,7 @@ function Posts({ e }: { e: Employee }) {
             صفحته كما يراها ←
           </button>
           <Drawer open={preview} onClose={() => setPreview(false)} title={`ملفات ${fullName(e)} التشغيلية — كما تظهر له`} width="max-w-5xl">
-            <MyFiles employee={e} />
+            <MyFiles employee={e} travels={e.seasons.includes(CURRENT_SEASON)} />
           </Drawer>
         </>
       )}

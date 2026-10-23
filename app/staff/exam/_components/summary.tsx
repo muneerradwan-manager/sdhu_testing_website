@@ -24,7 +24,8 @@ import { Chip, Figure, pct, share } from "./ui";
  * sittings by status, the confirmed results, each hall and each test — with how the work goes for whoever opens
  * the file the first time, and what waits for him. Nothing is edited here: the work is in the menu's operations.
  */
-export function ExamSummary() {
+/** `embedded`: inside «لوحة الإدارة العليا», which has its own heading: the figures only, without this page's heading and «كيف تعمل» */
+export function ExamSummary({ embedded = false }: { embedded?: boolean } = {}) {
   const user = useStaffUser()!;
   // His grant of the permission: by whom and since when
   const grant = useHolders().exams.find((h) => h.staffId === user.id);
@@ -69,31 +70,35 @@ export function ExamSummary() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow={`${SYSTEMS.exams.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
-        title={SYSTEMS.exams.summary.label}
-        icon={<Gauge />}
-        description="أرقام الاختبار الآن. للعمل استعمل القائمة الجانبية."
-        actions={
-          <>
-            <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
-              <Megaphone className="size-4" /> رفع أمر إلى المدير
-            </Button>
-            <ButtonLink href={SYSTEMS.exams.manage.href} size="sm" variant="gold">
-              {SYSTEMS.exams.manage.label} <ArrowLeft className="size-4" />
-            </ButtonLink>
-          </>
-        }
-      />
+      {!embedded && (
+        <>
+        <PageHeader
+          eyebrow={`${SYSTEMS.exams.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          title={SYSTEMS.exams.summary.label}
+          icon={<Gauge />}
+          description="أرقام الاختبار الآن. للعمل استعمل القائمة الجانبية."
+          actions={
+            <>
+              <Button size="sm" variant="glass" onClick={() => setEscalating(true)}>
+                <Megaphone className="size-4" /> رفع أمر إلى المدير
+              </Button>
+              <ButtonLink href={SYSTEMS.exams.manage.href} size="sm" variant="gold">
+                {SYSTEMS.exams.manage.label} <ArrowLeft className="size-4" />
+              </ButtonLink>
+            </>
+          }
+        />
 
-      <HowItWorks
-        steps={[
-          { title: "جهّز القاعات", text: "لكل قاعة محافظاتها ومشرفها ورقم شاشتها.", href: "/staff/exam/manage", link: "القاعات والمحافظات" },
-          { title: "ابنِ الاختبار", text: "أقسام كل اختبار وموعده، وأسئلة البنك التي تملؤه، ثم انشره.", href: "/staff/exam/manage/exams", link: "الاختبارات" },
-          { title: "تابع الجلسات", text: "يفتح المشرف قاعته ويدير الجلسة من لوحته، وتتابعها أنت.", href: "/staff/exam/manage/sittings", link: "جلسات الاختبار" },
-          { title: "راجع واعتمد", text: "قرّر في المحاولات غير المؤكَّدة، ثم النتائج والإحصائيات.", href: "/staff/exam/manage/review", link: "المراجعة والتقارير" },
-        ]}
-      />
+        <HowItWorks
+          steps={[
+            { title: "جهّز القاعات", text: "لكل قاعة محافظاتها ومشرفها ورقم شاشتها.", href: "/staff/exam/manage", link: "القاعات والمحافظات" },
+            { title: "ابنِ الاختبار", text: "أقسام كل اختبار وموعده، وأسئلة البنك التي تملؤه، ثم انشره.", href: "/staff/exam/manage/exams", link: "الاختبارات" },
+            { title: "تابع الجلسات", text: "يفتح المشرف قاعته ويدير الجلسة من لوحته، وتتابعها أنت.", href: "/staff/exam/manage/sittings", link: "جلسات الاختبار" },
+            { title: "راجع واعتمد", text: "قرّر في المحاولات غير المؤكَّدة، ثم النتائج والإحصائيات.", href: "/staff/exam/manage/review", link: "المراجعة والتقارير" },
+          ]}
+        />
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="المتقدمون" value={sitters.length} icon={<UsersRound />} hint={`ينتظر اختبارَه ${desk.expected.length}`} />

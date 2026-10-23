@@ -431,17 +431,8 @@ if run("fl"):
     p.locator("main [role=radiogroup][aria-label='التفويج'] [role=radio]:has-text('موظفون بلا رحلة ذهاب')").click(); c.settle(1000)
     c.shot("fl-staff-noflight", "موظفون بلا رحلة ذهاب: لهم منصب في ملف تشغيلي ولم يُسندوا بعد", section=S)
 
-    # ── «رحلاتي» in his own files: he seats himself on the staff outbound RB 401 (his return, RB 402, he already has)
-    open_flight("RB 401")
-    p.locator("main button:has-text('إسناد موظفين')").first.click(); c.settle(1300)
-    pk = p.locator(D).last
-    pk.locator("input[aria-label='بحث في الموظفين']").first.fill("هيثم فايز"); c.settle(500)
-    pk.locator("ul li button:not([disabled])").first.click(); c.settle(200)
-    also = pk.locator("label:has-text('أيضاً') select")
-    if also.count():
-        also.first.select_option(""); c.settle(200)
-    pk.locator("button:has-text('إسناد 1')").first.click(); c.settle(1200)
-    quiet(c)
+    # ── «رحلاتي» in his own files: he travels with the mission, out with the first pilgrims (RB 501) and back on the
+    # staff return (RB 402), as the demo seeds it (lib/flights.ts REAR_PARTY); he has no post in a tower or a camp
     s.nav("ملفاتي التشغيلية", 2000)
     c.scroll_to("main h2:has-text('رحلاتي'), main :text-is('رحلاتي')", 120)
     c.shot("fl-my", "رحلاتي في «ملفاتي التشغيلية»: رحلة الذهاب ورحلة العودة", hl=[("main section:has(:text-is('رحلاتي'))", "")], section=S)

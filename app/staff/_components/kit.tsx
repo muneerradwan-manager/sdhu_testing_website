@@ -8,14 +8,14 @@ import { Counter } from "@/components/ui/motion";
 import { actions, useHydrated, useStore, type AuditEvent } from "@/lib/store";
 import { useScrollLock } from "@/lib/scroll-lock";
 import { getStaff, withPermissions, type StaffUser } from "@/lib/staff";
-import { can, canAny as canAnyKey, CATALOG, grantSummary, permLabel, seesSystem, type ScopeKind } from "@/lib/permissions";
+import { can, canAny as canAnyKey, grantSummary, hasStats, permLabel, PERM_SYSTEM, statsKey, viewKeys, type ScopeKind } from "@/lib/permissions";
 import { useHalls } from "@/app/administrator/_lib/halls";
 import { useAirports } from "@/lib/flights";
 import { OPERATIONS } from "@/lib/operations";
 import { CMS_COLLECTIONS } from "@/lib/cms/collections";
 import { FILE_TYPES } from "@/lib/ops";
 import { OFFICES } from "@/lib/season";
-import { SYSTEM_KEYS, SYSTEMS, canOperation, type SystemKey } from "@/lib/systems";
+import { SYSTEM_KEYS, SYSTEMS, canOperation } from "@/lib/systems";
 import { cn, formatNumber } from "@/lib/utils";
 
 // ───────────────────────── Hooks & helpers ─────────────────────────
@@ -63,22 +63,28 @@ export function useGrantSummary(user: StaffUser | null) {
   return useMemo(() => grantSummary(user, nameOf), [user, nameOf]);
 }
 
-/** The systems «لوحتي» gathers: every one that is neither a management file nor a field post */
-const DESK_SYSTEMS = CATALOG.map((c) => c.key).filter((k) => !SYSTEM_KEYS.includes(k as SystemKey) && !["hall", "airport", "evaluate"].includes(k));
-export const hasDeskWork = (user: StaffUser | null) => DESK_SYSTEMS.some((k) => seesSystem(user, k));
+/** The systems that are neither a management file nor a field post, in the menu's order (frame.tsx STAFF_NAV): each its statistics, then its page */
+const DESK_SYSTEMS = ["season", "reference", "opfiles", "content", "office", "reviews", "lottery", "operations", "medical", "transport", "audit"];
 
 /**
- * Where an employee lands: the summary of the system he runs; else «لوحتي», which gathers the work of his
- * permissions until each part becomes a system; else the field post a system's owner gave him (a hall, an
- * airport); else his operational files.
+ * Where an employee lands: «لوحة الإدارة العليا», which gathers every system's numbers, for whoever holds it;
+ * else the summary of the management file he runs (or the first of its operations he may open); else the first other
+ * system's statistics he holds in the menu's order, else the first such page; else the field post a system's owner gave him (a hall, an airport); else his
+ * operational files.
  */
 export function staffHome(user: StaffUser) {
+  if (canAnyKey(user, viewKeys("executive"))) return "/staff/executive";
+  if (canAnyKey(user, viewKeys("access"))) return "/staff/access";
   for (const k of SYSTEM_KEYS) {
     if (can(user, `${k}.summary.GET`)) return SYSTEMS[k].summary.href;
     const op = SYSTEMS[k].operations.find((o) => canOperation(user, o));
     if (op) return op.href;
   }
-  if (hasDeskWork(user)) return "/staff/dashboard";
+  // Numbers before work: the first statistics he holds in the menu, else the first page
+  const stats = DESK_SYSTEMS.find((k) => hasStats(k) && can(user, statsKey(k)));
+  if (stats) return `/staff/stats/${stats}`;
+  const page = DESK_SYSTEMS.find((k) => canAnyKey(user, viewKeys(k)));
+  if (page) return PERM_SYSTEM[page].href;
   if (can(user, "hall.sittings.GET")) return "/staff/hall";
   return can(user, "airport.flights.GET") ? "/staff/airport" : "/staff/my-files";
 }

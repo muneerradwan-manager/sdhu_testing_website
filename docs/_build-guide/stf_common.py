@@ -20,7 +20,8 @@ class Staff:
         if shots:
             c.shot("login-filled", "إدخال اسم المستخدم وكلمة المرور", hl=[("main button:text-is('دخول')", "")], section=S)
         p.locator("main button:text-is('دخول')").first.click(); c.settle(2500)
-        # each lands on his own home: a file's dashboard, «لوحتي», his hall, his airport or his files
+        # each lands on his own home (staffHome in app/staff/_components/kit.tsx): «لوحة الإدارة العليا», «صلاحيات
+        # الموظفين», a file's dashboard, another system's «الإحصائيات» or page, his hall, his airport or his files
         p.wait_for_url(lambda u: "/staff/" in u and "/staff/login" not in u, timeout=20000); c.settle(1500)
 
     def clock(self, today, time=None):
@@ -46,6 +47,12 @@ class Staff:
         # The sidebar first: the site's top bar may carry a link of the same name («التكتلات والمجموعات»)
         side = self.p.locator(f"aside a:has-text('{label}')").filter(visible=True)
         a = side.first if side.count() else self.p.locator(f"nav a:has-text('{label}')").filter(visible=True).first
+        a.click(); self.c.settle(wait)
+
+    def stats(self, system, wait=1800):
+        """A system's «الإحصائيات» in the sidebar (/staff/stats/<system>): several systems may each show an entry of
+        that name, so it is found by its page"""
+        a = self.p.locator(f"aside a[href$='/staff/stats/{system}']").filter(visible=True).first
         a.click(); self.c.settle(wait)
 
     def close(self):

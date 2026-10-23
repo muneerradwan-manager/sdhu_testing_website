@@ -19,7 +19,8 @@ const BLOCK_OF: Record<string, string> = { track: "track", forWhom: "applicant",
  * The file's dashboard: numbers only — how many applied, where they are, where those still filling in
  * stopped — and, for whoever opens the file for the first time, how the work goes. Nothing is edited here.
  */
-export function RegistrationSummary() {
+/** `embedded`: inside «لوحة الإدارة العليا», which has its own heading: the figures only, without this page's heading and «كيف تعمل» */
+export function RegistrationSummary({ embedded = false }: { embedded?: boolean } = {}) {
   const desk = useRegistrationDesk();
   const reg = useReg();
   const draw = usePublishedDraw();
@@ -55,30 +56,34 @@ export function RegistrationSummary() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="إدارة التسجيل على الحج" title="لوحة التحكم" icon={<BarChart3 />} description="أرقام التسجيل على الحج في هذا الموسم. للتعديل استعمل القائمة الجانبية." />
+      {!embedded && (
+        <>
+        <PageHeader eyebrow="إدارة التسجيل على الحج" title="لوحة التحكم" icon={<BarChart3 />} description="أرقام التسجيل على الحج في هذا الموسم. للتعديل استعمل القائمة الجانبية." />
 
-      <Panel icon={<FileCheck2 />} title="كيف تعمل">
-        <ol className="grid gap-3 md:grid-cols-3">
-          {[
-            { n: "١", icon: <PencilLine />, t: "عدّل", d: "الصفحات والأسئلة والخطوات والدفعات. كل تعديل يُحفظ ولا يراه الحجاج بعد.", href: "/staff/hajj/manage", a: "صفحات التسجيل" },
-            { n: "٢", icon: <Eye />, t: "عاين", d: "شاهد التسجيل كما سيراه الحاج، صفحة بعد صفحة، دون أن يُحفظ شيء.", href: "/staff/hajj/manage/preview", a: "معاينة" },
-            { n: "٣", icon: <Rocket />, t: "انشر", d: "زر «نشر التغييرات» في أعلى كل صفحة. من بدأ طلبه قبل النشر يكمله كما بدأه.", href: "/staff/hajj/manage", a: "إلى الصفحات" },
-          ].map((s) => (
-            <li key={s.n} className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-              <p className="flex items-center gap-2 font-display text-lg font-bold text-white">
-                <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">{s.n}</span> {s.t}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-white/70">{s.d}</p>
-              <Link href={s.href} className="mt-2 inline-block text-sm font-bold text-gold hover:underline">
-                {s.a} ←
-              </Link>
-            </li>
-          ))}
-        </ol>
-        <button type="button" onClick={() => setRaise(true)} className="mt-3 text-xs font-bold text-white/60 hover:text-white hover:underline">
-          تحتاج شيئاً لا تستطيعه من هنا؟ ارفعه إلى مدير الموسم
-        </button>
-      </Panel>
+        <Panel icon={<FileCheck2 />} title="كيف تعمل">
+          <ol className="grid gap-3 md:grid-cols-3">
+            {[
+              { n: "١", icon: <PencilLine />, t: "عدّل", d: "الصفحات والأسئلة والخطوات والدفعات. كل تعديل يُحفظ ولا يراه الحجاج بعد.", href: "/staff/hajj/manage", a: "صفحات التسجيل" },
+              { n: "٢", icon: <Eye />, t: "عاين", d: "شاهد التسجيل كما سيراه الحاج، صفحة بعد صفحة، دون أن يُحفظ شيء.", href: "/staff/hajj/manage/preview", a: "معاينة" },
+              { n: "٣", icon: <Rocket />, t: "انشر", d: "زر «نشر التغييرات» في أعلى كل صفحة. من بدأ طلبه قبل النشر يكمله كما بدأه.", href: "/staff/hajj/manage", a: "إلى الصفحات" },
+            ].map((s) => (
+              <li key={s.n} className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
+                <p className="flex items-center gap-2 font-display text-lg font-bold text-white">
+                  <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">{s.n}</span> {s.t}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-white/70">{s.d}</p>
+                <Link href={s.href} className="mt-2 inline-block text-sm font-bold text-gold hover:underline">
+                  {s.a} ←
+                </Link>
+              </li>
+            ))}
+          </ol>
+          <button type="button" onClick={() => setRaise(true)} className="mt-3 text-xs font-bold text-white/60 hover:text-white hover:underline">
+            تحتاج شيئاً لا تستطيعه من هنا؟ ارفعه إلى مدير الموسم
+          </button>
+        </Panel>
+        </>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="طلبات مقدَّمة" value={desk.apps.length} icon={<ClipboardList />} />

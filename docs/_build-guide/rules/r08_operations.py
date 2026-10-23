@@ -15,7 +15,7 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
     R("OPS-01", "حالات الرحلة",
       "للرحلة اتجاه واحد (ذهاب أو عودة) وجمهور واحد (رحلة حجاج أو رحلة موظفين)، وتمر بحالات ثمانية: مسودة، منشورة، مكتملة، مقفلة، أقلعت، وصلت، مؤجلة، ملغاة. "
       "تُنشأ مسودة، ولا يُسند إليها أحد قبل نشرها.",
-      src=["lib/flights.ts:48", "lib/flights.ts:50", "lib/flights.ts:51", "lib/flights.ts:685"],
+      src=["lib/flights.ts:48", "lib/flights.ts:50", "lib/flights.ts:51", "lib/flights.ts:689"],
       data=["flights.status", "flights.direction", "flights.audience"]),
     R("OPS-02", "شروط إنشاء الرحلة",
       "لا تُحفظ الرحلة إلا إذا: كُتب رقمها؛ واختلف مطار المغادرة عن مطار الوصول؛ وكان الذهاب من مطار في البلد ليس للوصول فقط إلى مطار سعودي (جدة أو المدينة)، "
@@ -37,48 +37,48 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
     R("OPS-04", "الذهاب والعودة معاً",
       "يمكن إنشاء رحلة ذهاب ورحلة عودتها معاً، فتشير كل منهما إلى الأخرى. الاقتران قيمة افتراضية لا قيد: المسافر يُقرن ذهابه بعودته في سجله هو. "
       "نشر إحداهما ينشر الأخرى معها إن كانت ما تزال مسودة. حذف مسودة يفك إشارة قرينتها إليها.",
-      src=["lib/flights.ts:858", "lib/flights.ts:859", "lib/flights.ts:878", "lib/flights.ts:868"],
+      src=["lib/flights.ts:862", "lib/flights.ts:863", "lib/flights.ts:882", "lib/flights.ts:872"],
       data=["flights.paired_flight_id"]),
     R("OPS-05", "المسودة والنشر والتعديل",
       "لا تُنشر إلا رحلة في حالة «مسودة»، ولا تُحذف إلا مسودة. تعديل رحلة سبق نشرها حدث مهم يصل إلى مدير الموسم، وتعديل المسودة عمل مسؤول الطيران وحده. "
       "يُسجَّل في سجل الأحداث كل إنشاء ونشر وتعديل (التاريخ والساعة والسعة قبل وبعد).",
-      src=["lib/flights.ts:876", "lib/flights.ts:868", "lib/flights.ts:863"],
+      src=["lib/flights.ts:880", "lib/flights.ts:872", "lib/flights.ts:867"],
       data=["flights.published_at", "audit_events.important"]),
     R("OPS-06", "مقاعد الحجاج ومقاعد الموظفين",
       "في رحلة الحجاج: مقاعد الحجاج = السعة − حجز الموظفين، ومقاعد الموظفين = حجز الموظفين. في رحلة الموظفين: مقاعد الحجاج 0 ومقاعد الموظفين = السعة. "
       "الموظف (travelerKind = employee) يُحسب من حجز الموظفين، وكل من عداه — الحاج والإداري من فريق المجموعة — يُحسب من مقاعد الحجاج.",
-      src=["lib/flights.ts:676", "lib/flights.ts:677", "lib/flights.ts:680", "lib/flights.ts:681"],
+      src=["lib/flights.ts:680", "lib/flights.ts:681", "lib/flights.ts:684", "lib/flights.ts:685"],
       data=["flights.capacity", "flights.staff_reserve", "flight_assignments.traveler_kind"],
       ex="RB 501 سعتها 340 وحجز موظفيها 10: للحجاج والإداريين 330 مقعداً.",
       gap="تعليق teamOfGroup (lib/flights.ts:379) يقول إن فريق المجموعة يُحسب «مرافقين»، لكن seatStats يحسبه من مقاعد الحجاج لا من حجز الموظفين. يجب حسم ذلك."),
     R("OPS-07", "المقعد النشط",
       "المقعد نشط في الحالات: مسند، مثبت، صعد، وصل. ولا يُحسب في المقاعد ولا يمنع إسناداً جديداً في الحالات: تخلّف، ملغى، منقول. "
       "لا يُحذف مقعد أبداً: الإلغاء والنقل يغيّران حالته ويبقى أثره.",
-      src=["lib/flights.ts:168", "lib/flights.ts:1101", "lib/flights.ts:1121"],
+      src=["lib/flights.ts:168", "lib/flights.ts:1105", "lib/flights.ts:1125"],
       data=["flight_assignments.status", "flight_assignments.active_marker"]),
     R("OPS-08", "رحلة واحدة لكل اتجاه",
       "لا يكون للمسافر أكثر من مقعد نشط واحد في كل اتجاه. إسناده إلى ذهاب ثانٍ يُرفض حتى يُلغى إسناده القديم أو يُنقل.",
-      src=["lib/flights.ts:809", "lib/flights.ts:810"],
+      src=["lib/flights.ts:813", "lib/flights.ts:814"],
       data=["flight_assignments.direction", "flight_assignments.national_id"]),
     R("OPS-09", "قاعدة الذهاب والعودة",
       "للحاج والإداري (لا للموظف): تقلع العودة بعد وصول الذهاب، وتهبط في مطار يسمح به مطار إقلاعه في الذهاب. "
       "دمشق تعود إلى دمشق أو اللاذقية، وحلب إلى حلب أو اللاذقية، واللاذقية للوصول فقط ولا يقلع منها ذهاب. أي مطار بلا قائمة عودة يعود إليه نفسه. "
       "يُطبَّق الشرط في كل طريق إسناد: الفردي والمجموعة والنقل.",
-      src=["lib/flights.ts:627", "lib/flights.ts:634", "lib/flights.ts:637", "lib/flights.ts:619", "lib/flights.ts:218", "lib/flights.ts:220", "lib/flights.ts:811"],
+      src=["lib/flights.ts:631", "lib/flights.ts:638", "lib/flights.ts:641", "lib/flights.ts:623", "lib/flights.ts:218", "lib/flights.ts:220", "lib/flights.ts:815"],
       data=["airport_return_targets", "airports.arrivals_only", "flights.depart_at", "flights.arrive_at"],
       cfg="قائمة مطارات العودة لكل مطار يضبطها صاحب الصلاحية في «إدارة الطيران» في «المطارات ومندوبوها»."),
     R("OPS-10", "متى تقبل الرحلة إسناداً",
       "يُسند إلى الرحلة المنشورة أو المكتملة. ويُسند إلى المقفلة بسبب مكتوب فقط، ويأخذ المقعد الجديد حالة «مثبت» ويلزمه كشف بإصدار جديد. "
       "لا يُسند إلى مسودة أو رحلة أقلعت أو وصلت أو أُجّلت أو أُلغيت. رحلة الموظفين لا تقبل إلا موظفين.",
-      src=["lib/flights.ts:685", "lib/flights.ts:687", "lib/flights.ts:801", "lib/flights.ts:807", "lib/flights.ts:808", "lib/flights.ts:835"],
+      src=["lib/flights.ts:689", "lib/flights.ts:691", "lib/flights.ts:805", "lib/flights.ts:811", "lib/flights.ts:812", "lib/flights.ts:839"],
       data=["flights.status", "flight_assignments.reason"]),
     R("OPS-11", "حد المقاعد عند الإسناد",
       "يُرفض الإسناد إذا زاد الموظفون المختارون على مقاعد الموظفين الباقية، أو زاد الباقون على مقاعد الحجاج الباقية. الإسناد كله أو لا شيء.",
-      src=["lib/flights.ts:816", "lib/flights.ts:817"],
+      src=["lib/flights.ts:820", "lib/flights.ts:821"],
       data=["flight_assignments", "flights.capacity"]),
     R("OPS-12", "الاكتمال التلقائي",
       "رحلة الحجاج المنشورة تصير «مكتملة» حين لا يبقى فيها مقعد حجاج. وتعود «منشورة» حين يتحرر مقعد بإلغاء أو إزالة أو نقل. رحلة الموظفين لا تصير مكتملة.",
-      src=["lib/flights.ts:843", "lib/flights.ts:850"],
+      src=["lib/flights.ts:847", "lib/flights.ts:854"],
       data=["flights.status"]),
 
     # ───────────── أيام التكتلات ─────────────
@@ -86,108 +86,108 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       "يعطي مسؤول الطيران التكتلَ رحلةً من رحلات الحجاج فقط، لم تُقلع ولم تصل ولم تُلغَ، بعدد مقاعد أو بالرحلة كلها. "
       "الرحلة كلها لا تُعطى إذا كان عليها تكتل آخر، ولا يُعطى تكتل آخر رحلةً كلها لتكتل. المقاعد عدد صحيح 1 فأكثر، ولا تقل عن أفراد التكتل المسندين إليها. "
       "مجموع مقاعد هذا التكتل ومقاعد التكتلات الأخرى ومن جلس عليها من تكتلات بلا يوم فيها لا يتجاوز مقاعد الحجاج.",
-      src=["lib/flights.ts:1154", "lib/flights.ts:1155", "lib/flights.ts:1159", "lib/flights.ts:1160", "lib/flights.ts:1161", "lib/flights.ts:1163", "lib/flights.ts:1166"],
+      src=["lib/flights.ts:1158", "lib/flights.ts:1159", "lib/flights.ts:1163", "lib/flights.ts:1164", "lib/flights.ts:1165", "lib/flights.ts:1167", "lib/flights.ts:1170"],
       data=["cluster_flight_allotments.seats", "cluster_flight_allotments.cluster_id", "cluster_flight_allotments.flight_id"],
       cfg="من «أيام التكتلات» في «إدارة الطيران».",
       ex="SV 3427 مشتركة: 150 مقعداً للياسمين و142 للبيان، من 292 مقعد حجاج."),
     R("OPS-14", "سحب يوم من تكتل",
       "لا يُسحب يوم رحلة من تكتل ما دام عليها أحد من أفراده؛ يُزالون أولاً.",
-      src=["lib/flights.ts:1184"],
+      src=["lib/flights.ts:1188"],
       data=["cluster_flight_allotments"]),
     R("OPS-15", "حدود التكتل في الإسناد",
       "من يسند باسم التكتل لا يضع إلا أفراد تكتله، وعلى أيامه فقط، وعلى رحلة منشورة أو مكتملة؛ الرحلة المقفلة وما بعدها عند مسؤول الطيران وحده. "
       "وما يبقى للتكتل على الرحلة = الأقل من (مقاعده − أفراده عليها) ومن مقاعد الحجاج الباقية في الرحلة كلها. التكتل الذي ليس طلبه معتمداً لا مجموعات له على الرحلات.",
-      src=["lib/flights.ts:790", "lib/flights.ts:791", "lib/flights.ts:805", "lib/flights.ts:658", "lib/flights.ts:820", "lib/flights.ts:307"],
+      src=["lib/flights.ts:794", "lib/flights.ts:795", "lib/flights.ts:809", "lib/flights.ts:662", "lib/flights.ts:824", "lib/flights.ts:307"],
       data=["cluster_flight_allotments.seats", "clusters.status"],
       gap="تعليق lib/flights.ts يقول إن رئيس التكتل يضع مجموعاته، لكن بوابة الإداريين تجعل الإسناد للمنسق التقني وحده (head = scope.kind === \"tech\"، app/portal/(admin)/flights/flights.tsx:155)، ورئيس التكتل ومعاونه ومحاسبه للاطلاع فقط."),
     R("OPS-16", "إسناد المجموعة كاملة",
       "تُوضع المجموعة على رحلة في اتجاه كاملةً: عائلاتها وفريقها. تُرفض إن كانت على رحلة أخرى في الاتجاه نفسه. من له مقعد فردي في هذا الاتجاه يبقى عليه. "
       "يُكتب كل شيء أو لا شيء إن لم تتسع المقاعد. ويُسجَّل للمجموعة «وضع على رحلة» نشط يُنهى بسبب عند إزالتها أو إلغاء الرحلة.",
-      src=["lib/flights.ts:1038", "lib/flights.ts:1039", "lib/flights.ts:1041", "lib/flights.ts:1043", "lib/flights.ts:1045"],
+      src=["lib/flights.ts:1042", "lib/flights.ts:1043", "lib/flights.ts:1045", "lib/flights.ts:1047", "lib/flights.ts:1049"],
       data=["group_flight_legs.active_marker", "group_flight_legs.end_reason"]),
     R("OPS-17", "العائلة الملتحقة بعد الإسناد",
       "العائلة التي تلتحق بمجموعة سبق وضعها على رحلاتها تأخذ مقاعد على رحلتي المجموعة تلقائياً، إن كانت الرحلة منشورة أو مكتملة وفيها مقاعد. "
       "وإلا بقيت بلا مقعد وظهرت لمسؤول الطيران في «بحاجة إلى رحلة». والعائلة المنتقلة من مجموعة أخرى تُلغى مقاعدها «مسند» و«مثبت» على رحلات مجموعتها القديمة أولاً.",
-      src=["lib/flights.ts:1210", "lib/flights.ts:1217", "lib/flights.ts:1219"],
+      src=["lib/flights.ts:1214", "lib/flights.ts:1221", "lib/flights.ts:1223"],
       data=["flight_assignments.status", "group_flight_legs"]),
     R("OPS-18", "الإلغاء والإزالة",
       "قبل الإقفال يلغي مسؤول الطيران أو من يسند باسم التكتل مقعداً أو يزيل مجموعة بحرية. بعد الإقفال لا يكون ذلك إلا بسبب مكتوب. "
       "إزالة المجموعة تلغي مقاعد أفرادها النشطة على تلك الرحلة وتُنهي وضعها عليها.",
-      src=["lib/flights.ts:1063", "lib/flights.ts:1067", "lib/flights.ts:1099", "lib/flights.ts:1101"],
+      src=["lib/flights.ts:1067", "lib/flights.ts:1071", "lib/flights.ts:1103", "lib/flights.ts:1105"],
       data=["flight_assignments.cancelled_at", "flight_assignments.reason", "group_flight_legs.ended_at"]),
     R("OPS-19", "النقل إلى رحلة أخرى",
       "يُنقل المسافر إلى رحلة في الاتجاه نفسه فقط. يبقى مقعده القديم بحالة «منقول» ويشير إلى المقعد الجديد. "
       "النقل من رحلة مقفلة يحتاج سبباً، ومن يسند باسم التكتل لا ينقل من رحلة غير مفتوحة. والرحلة الجديدة تُفحص كأي إسناد جديد.",
-      src=["lib/flights.ts:1116", "lib/flights.ts:1119", "lib/flights.ts:1120", "lib/flights.ts:1121", "lib/flights.ts:1126"],
+      src=["lib/flights.ts:1120", "lib/flights.ts:1123", "lib/flights.ts:1124", "lib/flights.ts:1125", "lib/flights.ts:1130"],
       data=["flight_assignments.moved_to_assignment_id", "flight_assignments.status"]),
     R("OPS-20", "السفر بوسيلة أخرى",
       "يقرر مسؤول الطيران أن مسافراً يسافر بغير رحلات البعثة، بسبب مكتوب، فيخرج من قوائم «بلا رحلة»، ويمكن أن تكون له عودة بلا ذهاب دون تنبيه.",
-      src=["lib/flights.ts:1138", "lib/flights.ts:726", "lib/flights.ts:760"],
+      src=["lib/flights.ts:1142", "lib/flights.ts:730", "lib/flights.ts:764"],
       data=["other_means_travelers.reason"]),
 
     # ───────────── الإقفال والكشف ─────────────
     R("OPS-21", "الإقفال وكشف الركاب",
       "تُقفل الرحلة المنشورة أو المكتملة فقط. الإقفال يصدر كشفاً جديداً برقم إصدار يزيد 1، فيه لقطة من كل المقاعد النشطة مرتبة بالتكتل ثم المجموعة ثم العائلة، "
       "ويحوّل المقاعد «مسند» إلى «مثبت».",
-      src=["lib/flights.ts:892", "lib/flights.ts:893", "lib/flights.ts:899", "lib/flights.ts:1231"],
+      src=["lib/flights.ts:896", "lib/flights.ts:897", "lib/flights.ts:903", "lib/flights.ts:1235"],
       data=["flight_manifests.version_no", "flight_manifest_rows", "flights.locked_at"]),
     R("OPS-22", "إعادة إصدار الكشف وتصديره",
       "بعد أي تغيير على رحلة مقفلة يصدر كشف بإصدار جديد (للرحلة المقفلة وحدها). ويُسجَّل كل تصدير لإصدار الكشف إلى «نسك مسار» أو إلى الناقل، بمن صدّره ومتى.",
-      src=["lib/flights.ts:909", "lib/flights.ts:910", "lib/flights.ts:923"],
+      src=["lib/flights.ts:913", "lib/flights.ts:914", "lib/flights.ts:927"],
       data=["flight_manifests", "flight_manifest_exports.target"]),
 
     # ───────────── يوم السفر ─────────────
     R("OPS-23", "تسجيل الإقلاع",
       "يُسجَّل الإقلاع للرحلة المقفلة فقط. من صعد يصير «صعد»، ومن لم يصعد يصير «تخلّف». لكل متخلّف يُفتح بلاغ نقل بأهمية «عالية» يطلب إعادة إسناده. "
       "الإقلاع حدث مهم.",
-      src=["lib/flights.ts:932", "lib/flights.ts:935", "lib/flights.ts:937", "lib/flights.ts:940"],
+      src=["lib/flights.ts:936", "lib/flights.ts:939", "lib/flights.ts:941", "lib/flights.ts:944"],
       data=["flight_assignments.boarded_at", "flights.departed_at", "tickets.kind", "tickets.severity"]),
     R("OPS-24", "الصعود من التجمع",
       "يمكن أن يُسجَّل الصعود قبل الإقلاع من تجمع المجموعة: البطاقات الممسوحة تحوّل المقاعد «مسند» و«مثبت» إلى «صعد».",
-      src=["lib/flights.ts:963", "lib/flights.ts:966"],
+      src=["lib/flights.ts:967", "lib/flights.ts:970"],
       data=["flight_assignments.boarded_at"]),
     R("OPS-25", "تسجيل الهبوط",
       "يُسجَّل الهبوط للرحلة التي أقلعت فقط، في مطار الوصول أو المطار المحوَّل إليه. كل «صعد» يصير «وصل»، ويبقى المتخلّف متخلّفاً.",
-      src=["lib/flights.ts:950", "lib/flights.ts:952"],
+      src=["lib/flights.ts:954", "lib/flights.ts:956"],
       data=["flights.arrived_at", "flight_assignments.status"]),
     R("OPS-26", "مندوب المطار",
       "مندوب المطار من يملك «رحلات المطار» (airport.flights.GET) لذلك المطار، ولا يُسند من شاشة المطارات التي تعرضه للقراءة؛ وقد يكون للمطار أكثر من مندوب. "
       "يرى المندوب رحلات المغادرة من مطاره والوصول إليه، ويسجّل الإقلاع للمقفلة (airport.flights.depart لمطار المغادرة) والهبوط للتي أقلعت (airport.flights.arrive لمطار الوصول). "
       "وهذه الصلاحية وحدها تفتح له صفحة «رحلات مطاري».",
-      src=["lib/flights.ts:548", "app/staff/airport/view.tsx:43", "app/staff/airport/view.tsx:112", "app/staff/airport/view.tsx:113", "lib/flights.ts:939"],
+      src=["lib/flights.ts:552", "app/staff/airport/view.tsx:43", "app/staff/airport/view.tsx:112", "app/staff/airport/view.tsx:113", "lib/flights.ts:943"],
       data=["staff_user_permissions.permission_code", "staff_user_permission_scopes.scope_id"],
       ex="عمر الشامي مندوب مطار دمشق في البيانات التجريبية."),
     R("OPS-27", "بطاقة الصعود للحاج",
       "تعرض بطاقة الحاج: موعد الصعود قبل الإقلاع بـ45 دقيقة، والحضور إلى المطار قبله بـ3.5 ساعات، والأمتعة حقيبة 23 كغ وحقيبة يد 7 كغ "
       "(حقيبة الإحرام في اليد ذهاباً، وماء زمزم 5 لترات مغلّفاً عودةً)، ومكان التجمع والبوابة كما كتبهما مسؤول الطيران.",
-      src=["lib/flights.ts:1281", "lib/flights.ts:1282", "lib/flights.ts:1284"],
+      src=["lib/flights.ts:1285", "lib/flights.ts:1286", "lib/flights.ts:1288"],
       data=["flights.gate", "flights.gathering"]),
 
     # ───────────── التغيير والطوارئ ─────────────
     R("OPS-28", "التأجيل وإعادة الجدولة",
       "تُؤجَّل الرحلة المنشورة أو المكتملة أو المقفلة بسبب مكتوب، وتُحفظ حالتها قبل التأجيل. إعادة الجدولة ممكنة لأي رحلة لم تُقلع ولم تصل ولم تُلغَ، "
       "وتعيد المؤجلة إلى حالتها السابقة (منشورة إن لم تُعرف). كلاهما حدث مهم يذكر عدد المسافرين الذين يُبلَّغون.",
-      src=["lib/flights.ts:974", "lib/flights.ts:977", "lib/flights.ts:986", "lib/flights.ts:989"],
+      src=["lib/flights.ts:978", "lib/flights.ts:981", "lib/flights.ts:990", "lib/flights.ts:993"],
       data=["flights.postpone_reason", "flights.status_before_postpone"],
       gap="الكود يسجّل أن المسافرين «يُبلَّغون» ولا يرسل إليهم إشعاراً."),
     R("OPS-29", "تحويل الوجهة",
       "تُحوَّل الرحلة إلى مطار آخر ما لم تكن مسودة أو وصلت أو أُلغيت. يُضاف نقل بري بالحافلات من المطار البديل إلى الوجهة الأصلية، يبدأ بعد الوصول المجدول بساعتين، "
       "ويُفتح بلاغ نقل «حرج» يطلب عدد الحافلات (35–40 راكباً للحافلة).",
-      src=["lib/flights.ts:999", "lib/flights.ts:1003", "lib/flights.ts:1005", "lib/flights.ts:1006"],
+      src=["lib/flights.ts:1003", "lib/flights.ts:1007", "lib/flights.ts:1009", "lib/flights.ts:1010"],
       data=["flights.diverted_to_airport_id", "flight_ground_legs.buses", "tickets.severity"]),
     R("OPS-30", "إلغاء الرحلة",
       "لا تُلغى رحلة أقلعت أو وصلت أو أُلغيت. الإلغاء بسبب مكتوب، ويلغي كل المقاعد النشطة عليها بالسبب نفسه، ويُنهي وضع كل مجموعة عليها، فيصير أفرادها بحاجة إلى رحلة.",
-      src=["lib/flights.ts:1015", "lib/flights.ts:1020", "lib/flights.ts:1021"],
+      src=["lib/flights.ts:1019", "lib/flights.ts:1024", "lib/flights.ts:1025"],
       data=["flights.cancel_reason", "flight_assignments.cancelled_at", "group_flight_legs.ended_at"]),
     R("OPS-31", "تنبيهات مسؤول الطيران",
       "تُنبّه الرحلة إذا: جلس عليها أفراد تكتل ليست من أيامه؛ أو زاد تكتل على مقاعده؛ أو كان على الرحلة حجاج مجموعة بلا إداري من فريقها ولا أي موظف؛ "
       "أو كان على رحلة عودة من لا ذهاب له ولا وسيلة أخرى. ويظهر في «بحاجة إلى رحلة» كل من أُلغي مقعده أو تخلّف ولا مقعد نشط له في ذلك الاتجاه، "
       "إلا المجموعة المزالة عمداً.",
-      src=["lib/flights.ts:749", "lib/flights.ts:750", "lib/flights.ts:756", "lib/flights.ts:761", "app/staff/flights/desk.ts:84"],
+      src=["lib/flights.ts:753", "lib/flights.ts:754", "lib/flights.ts:760", "lib/flights.ts:765", "app/staff/flights/desk.ts:84"],
       data=["flight_assignments", "cluster_flight_allotments"]),
     R("OPS-32", "حالة سفر المسافر",
       "تُحسب حالته بهذا الترتيب: عاد (العودة «وصل»)، في السعودية (الذهاب «وصل»)، سافر (الذهاب «صعد»)، ذهاب وعودة، ذهاب فقط، وسيلة أخرى، عودة فقط، لم يُسند.",
-      src=["lib/flights.ts:721", "lib/flights.ts:727"],
+      src=["lib/flights.ts:725", "lib/flights.ts:731"],
       data=["flight_assignments.status", "other_means_travelers"]),
 
     # ───────────── السكن ─────────────
@@ -319,7 +319,7 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       "يرى العملية من يملك season.windows.GET لها، ويغيّر وضعها وتواريخها من يملك season.windows.PUT لها (النطاق مفتاح العملية)؛ "
       "ومن يملكها بلا نطاق يضبط العمليات كلها. يفتتح الموسم صاحب كل ملف بمواعيد عملياته (التسجيل لإدارة التسجيل، والتشكيل والتقييم لإدارة الإداريين، والاختبارات لإدارة الامتحانات)، "
       "ومدير الموسم بها كلها. وكل تغيير حدث مهم يحمل القيمة قبل وبعد ومن غيّرها ومتى.",
-      src=["lib/operations.ts:238", "lib/operations.ts:239", "app/staff/_components/operations.tsx:35", "app/staff/_components/operations.tsx:40", "app/staff/_components/operations.tsx:71", "lib/permissions.ts:461"],
+      src=["lib/operations.ts:238", "lib/operations.ts:239", "app/staff/_components/operations.tsx:35", "app/staff/_components/operations.tsx:40", "app/staff/_components/operations.tsx:71", "lib/permissions.ts:487"],
       data=["staff_user_permission_scopes.scope_id", "operation_windows.updated_by_staff_id"],
       gap="لا يتحقق الكود أن تاريخ البداية قبل تاريخ النهاية."),
     R("OPS-55", "مواعيد موسم 1448",
@@ -329,4 +329,20 @@ DOMAIN = D("operations", "OPS", "العمليات الميدانية: الطير
       src=["lib/operations.ts:60", "lib/operations.ts:62", "lib/operations.ts:50", "lib/season.ts:146", "lib/season.ts:147", "lib/ops.ts:408", "lib/ops.ts:472", "lib/ops.ts:494"],
       data=["season_calendar", "operation_windows.is_estimate", "op_file_type_dates"],
       cfg="مواعيد العمليات من «إعدادات الموسم ← مواعيد العمليات»؛ تقويم الجمهور ومدد الملفات ثابتة في الكود."),
+
+    # ───────────── سفر الموظف مع البعثة ─────────────
+    R("OPS-56", "للمسافر مع البعثة رحلتان، ولغيره لا رحلة",
+      "يسافر الموظف مع البعثة في موسم إذا كان الموسم في قائمة مواسمه. للمسافر في «ملفاتي التشغيلية» «رحلاتي» برحلة ذهاب ورحلة عودة، ومواقعه في ملفات الموسم، "
+      "وإن لم يُسند بعد إلى برج أو مخيم ظهر «تسافر مع البعثة … دون موقع في برج أو مخيم». ومن لا يسافر في الموسم لا تظهر له رحلة ولا موقع، بل «لا تسافر مع البعثة في موسم 1448»: "
+      "عمله من مكتبه في سوريا. وفي البيانات التجريبية كل حساب يسافر في 1448 على رحلتين: الطليعة (وسام وليلى وغسان وباسل وفرق الإسكان والمخيمات) تذهب على رحلة الموظفين RB 401، "
+      "وفادي وهيثم مع أول رحلة حجاج RB 501، ويعودون جميعاً على RB 402.",
+      src=["app/staff/my-files/view.tsx:24", "app/staff/my-files/view.tsx:25", "app/staff/my-files/my-files.tsx:77", "app/staff/my-files/my-files.tsx:86",
+           "app/staff/my-files/my-flights.tsx:15", "lib/flights.ts:489", "lib/flights.ts:490", "lib/flights.ts:527",
+           "lib/flights.ts:258", "lib/flights.ts:260", "lib/flights.ts:290",
+           "lib/data/ops-seed.ts:803", "lib/data/ops-seed.ts:805", "lib/data/ops-seed.ts:806", "lib/data/employees-seed.ts:53"],
+      data=["employee_seasons.season_year", "flight_assignments.employee_id", "flight_assignments.direction", "op_file_assignments.employee_id"],
+      ex="في تسكين مكة 1448: ليلى شمس وباسل النوري عضوا بعثة في أبراج النور، وفادي سلوم في سنابل حوران، وغسان العمر رئيس القطاع الأول، وهيثم زيدان بلا موقع لأن عمله بين المطارات؛ "
+         "ورزان الحسن لا تسافر، فترى «لا تسافر مع البعثة».",
+      gap="لا يفرض الكود أن لكل مسافر رحلتين: في البيانات التجريبية 113 موظفاً يسافرون في 1448، منهم 17 على رحلتين (الحسابات المسافرة وأعضاء الطليعة) و96 بلا رحلة تعرض لهم «لم تُحدد بعد». "
+          "على المنصة الحقيقية تنبيه «مسافر بلا رحلة» في «إدارة الطيران» قبل إقفال الرحلات."),
 ])

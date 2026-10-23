@@ -8,7 +8,7 @@ import { SEASON } from "./season";
 import { actions, getState, setState, useStore, type AdminProfile, type Application, type PostAcceptance } from "./store";
 import { fullName, ageOf } from "./registry";
 import { seeded } from "./utils";
-import { EMPLOYEES_SEED } from "./data/employees-seed";
+import { EMPLOYEES_SEED, NAMED_EMPLOYEES } from "./data/employees-seed";
 import { can } from "./permissions";
 import { STAFF, withPermissions } from "./staff";
 
@@ -481,8 +481,12 @@ const SEED_PLAN: { clusterId: string; groups: number[] | "first2"; out: string; 
   { clusterId: "bawabat-al-haramain", groups: "first2", out: "f48-03", back: "f48-r03" },
 ];
 
-/** wissam, nader, ghassan, layla, samira and a dozen housing/camp members go ahead; fadi and haitham fly back last */
-const ADVANCE_PARTY = ["E-018", "E-019", "E-021", "E-006", "E-017", "E-030", "E-031", "E-032", "E-033", "E-034", "E-035", "E-036", "E-037", "E-038"];
+/**
+ * Whoever travels with the mission has a seat both ways. wissam, nader, ghassan, layla, samira, bassel (the coaster
+ * team) and a dozen housing/camp members go ahead on the staff flight and come back on the last one; fadi (the
+ * operations room) and haitham (the flights) go with the first pilgrims and fly back last with them.
+ */
+const ADVANCE_PARTY = ["E-018", "E-019", "E-021", "E-006", "E-017", NAMED_EMPLOYEES.bassel, "E-030", "E-031", "E-032", "E-033", "E-034", "E-035", "E-036", "E-037", "E-038"];
 const REAR_PARTY = ["E-005", "E-007"];
 
 let seedCache: { assignments: FlightAssignment[]; groups: GroupLeg[] } | null = null;
@@ -520,7 +524,7 @@ function seeds() {
   };
   const emp = (ids: string[], fid: string): FlightAssignment[] =>
     ids.map((id, i) => ({ id: `sa-${fid}-${id}`, flightId: fid, travelerKind: "employee", travelerId: id, name: empName(id), status: "assigned", assignedBy: SEEDER, assignedByRole: SEED_ROLE, assignedAt: t0 - DAY + i }));
-  assignments.push(...emp(ADVANCE_PARTY, "f48-s01"), ...emp(REAR_PARTY, "f48-s02"));
+  assignments.push(...emp(ADVANCE_PARTY, "f48-s01"), ...emp(REAR_PARTY, "f48-01"), ...emp([...ADVANCE_PARTY, ...REAR_PARTY], "f48-s02"));
   seedCache = { assignments, groups };
   return seedCache;
 }

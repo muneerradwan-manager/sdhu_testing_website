@@ -33,7 +33,7 @@ export function ReviewsView() {
 /**
  * Three lists, as a site's admin: the applications the platform could not decide alone, each reviewed on its
  * own screen (`?id=`), the civil details pilgrims corrected at account creation (`?view=civil`, one by `&id=`),
- * and the pilgrims attached to the groups (`?view=groups`). Their numbers are on «لوحتي».
+ * and the pilgrims attached to the groups (`?view=groups`). Their numbers are on its statistics page (/staff/stats/reviews).
  */
 function Reviews() {
   const params = useSearchParams();

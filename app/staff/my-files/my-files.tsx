@@ -65,7 +65,7 @@ const STATE: Record<FileState, { label: string; tone: "gold" | "green" | "muted"
  * him (with their numbers), where he sleeps and whose pilgrims he serves — plus a timeline of where
  * he will be and when. Past seasons wait closed at the end.
  */
-export function MyFiles({ employee }: { employee: Employee }) {
+export function MyFiles({ employee, travels }: { employee: Employee; travels: boolean }) {
   const files = useOpFiles();
   const seats = useMemo(() => seatsOf(employee.id, files), [employee.id, files]);
   const current = seats.filter((s) => s.file.season === CURRENT_SEASON);
@@ -74,11 +74,19 @@ export function MyFiles({ employee }: { employee: Employee }) {
   return (
     <div className="space-y-6">
       {current.length === 0 ? (
-        <Empty
-          icon={<BriefcaseBusiness />}
-          title={`لا مواقع لك في ملفات موسم ${CURRENT_SEASON} بعد`}
-          text="حين تُسندك إدارة شؤون البعثة إلى برج أو مخيم أو فريق يظهر موقعك هنا مع مهامه وفريقه وأرقام التواصل."
-        />
+        travels ? (
+          <Empty
+            icon={<BriefcaseBusiness />}
+            title={`تسافر مع البعثة في موسم ${CURRENT_SEASON} دون موقع في برج أو مخيم`}
+            text="لا يسكن كل مسافر في برج: بعض العمل بين المطارات أو مع الفرق المتنقلة، ورحلتاك أعلاه. حين تُسندك إدارة شؤون البعثة إلى برج أو مخيم أو فريق يظهر موقعك هنا مع مهامه وفريقه وأرقام التواصل."
+          />
+        ) : (
+          <Empty
+            icon={<BriefcaseBusiness />}
+            title={`لا تسافر مع البعثة في موسم ${CURRENT_SEASON}`}
+            text="عملك هذا الموسم من مكتبك في سوريا، فلا رحلة لك ولا موقع في الملفات التشغيلية. إن أُدرجت في البعثة تظهر هنا رحلتا الذهاب والعودة، وسكنك في مكة، ومخيماك في منى وعرفات."
+          />
+        )
       ) : (
         <>
           <Timeline seats={current} />

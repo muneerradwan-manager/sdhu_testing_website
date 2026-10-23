@@ -25,7 +25,7 @@ export function AuditView() {
 
 /**
  * The events log, read only: one table of who did what, when, and the value before and after — filtered
- * from the line above it. Its numbers are on «لوحتي».
+ * from the line above it. Its numbers are on its statistics page (/staff/stats/audit).
  */
 function Audit() {
   const user = useStaffUser()!;

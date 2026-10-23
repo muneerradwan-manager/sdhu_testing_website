@@ -77,7 +77,7 @@ function useLotteryState() {
 /**
  * The lottery as four steps, done in order and each on its own screen (`?step=`): the list says where each
  * stands and opens it; the screen shows what the step is about in the middle and its decision on the side.
- * Its numbers are on «لوحتي».
+ * Its numbers are on its statistics page (/staff/stats/lottery).
  */
 function Lottery() {
   const params = useSearchParams();

@@ -28,7 +28,10 @@ def wait_toasts(p, ms=6500):
 s = Staff(); c, p = s.c, s.p; S = "OFFICE"
 s.login("razan")
 wait_toasts(p)
-c.shot("office-dash-empty", "لوحتي لموظفة إدخال البيانات: «ما سجّلته» فارغ قبل أول طلب", hl=[("main a:has-text('تسجيل حاج جديد')", "1")], section=S)
+# she lands on her system's statistics: «التسجيل في المكتب» ← «الإحصائيات»
+s.stats("office", wait=2000)
+c.shot("office-stats-empty", "الإحصائيات لموظفة إدخال البيانات: لا طلبات قبل أول تسجيل، و«ما ينتظر هنا»",
+       hl=[("aside a[href$='/staff/stats/office']", "1"), ("main a:has-text('تسجيل حاج جديد')", "2")], section=S)
 s.nav("التسجيل على الحج", wait=2000)
 c.shot("office-closed", "خارج مدة التسجيل: الصفحة مغلقة، و«جرّبها الآن» في النسخة التجريبية", hl=[("main button:has-text('جرّبها الآن')", "1")], section=S)
 s.btn("جرّبها الآن", wait=2500)
@@ -74,8 +77,8 @@ c.scroll_to("main :text('الإيصالات والتسديد')", 130)
 c.shot("office-detail-2", "الإيصالات والدفعات التي تنتظره، وأفراد الطلب", section=S)
 c.scroll_to("aside :text('سجّلتُ')", 200)
 c.shot("office-mine", "في جانب الصفحة: ما سجّلتُه، يُفتح كل طلب منه", hl=[("aside button:has-text('عرض التفاصيل')", "1")], section=S)
-s.nav("لوحتي", wait=2200)
-c.shot("office-dash", "لوحتي: «ما سجّلته» وأين وصل كل طلب", section=S)
+s.stats("office", wait=2200)
+c.shot("office-stats", "الإحصائيات بعد التسجيل: ما سجّلته وما سجّله المكتب كله، وأين وصل كل طلب", hl=[("main table", "1")], section=S)
 c.save_state(str(STATE_FILE))
 s.close()
 

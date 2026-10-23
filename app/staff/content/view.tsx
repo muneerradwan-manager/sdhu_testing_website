@@ -38,7 +38,7 @@ export function ContentView() {
 /**
  * The site's content, as a site's admin: the pages and collections in a list, each edited on its own screen
  * (`?id=` for a page, `?collection=` for a collection); the media, the earlier versions and the archive beside it
- * (`?tab=`). Its numbers are on «لوحتي». Each part shows to whoever may view it: the pages `content.pages.GET`, each
+ * (`?tab=`). Its numbers are on its statistics page (/staff/stats/content). Each part shows to whoever may view it: the pages `content.pages.GET`, each
  * collection `content.items.GET` for it, the media `content.media.GET`, the versions `content.revisions.GET`.
  */
 function Inner() {
