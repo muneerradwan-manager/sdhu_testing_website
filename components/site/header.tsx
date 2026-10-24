@@ -226,7 +226,7 @@ export function Header() {
       identities.admin = { ...base, href: sessionId && admins[sessionId] ? "/portal" : "/portal", area: path === "pilgrim" ? "pilgrim" : "admin" };
     }
     const staff = getStaff(staffId);
-    if (staff) identities.staff = { initial: staff.initials, name: staff.name.split(" ")[0], role: t(staff.title, "Staff"), href: "/staff/dashboard", area: "staff" };
+    if (staff) identities.staff = { initial: staff.initials, name: staff.name.split(" ")[0], role: t(staff.title, "Staff"), href: "/staff/home", area: "staff" };
   }
   const area = areaOf(pathname);
   const who = area ? identities[area] : (identities.pilgrim ?? identities.admin ?? identities.staff);
