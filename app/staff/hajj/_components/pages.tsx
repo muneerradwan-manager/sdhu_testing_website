@@ -13,6 +13,7 @@ import { BLOCK_LABEL, REQUIRED_BLOCKS } from "@/lib/registration/validate";
 import { getPerson } from "@/lib/registry";
 import { cn } from "@/lib/utils";
 import { smallInputClass, textareaClass } from "../../_components/kit";
+import { useNavBranch } from "../../_components/branch";
 import { Segments, Switch, selectClass } from "../../exam/_components/ui";
 import { ConditionEditor, ContentEditor } from "./builders";
 import { Box, IssuesFor, Kind, ListTable, RowActions, RowLink, Title, move, newId, useRegEditor } from "./editor";
@@ -210,6 +211,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
   const others = ed.config.stages.filter((x) => x.id !== s.id);
   const at = ed.config.stages.findIndex((x) => x.id === s.id);
   const isNew = opened && at < 0;
+  useNavBranch({ anchor: "/staff/hajj/manage", title: isNew ? "إضافة صفحة" : s.name || "الصفحة" });
   // A new page needs adding, a stored one changing
   const ro = !ed.may("pages", isNew ? "POST" : "PUT");
   const [after, setAfter] = useState<string>(defaultAfter ?? (at > 0 ? ed.config.stages[at - 1].id : "__first"));

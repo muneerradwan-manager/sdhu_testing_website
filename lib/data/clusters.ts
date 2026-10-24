@@ -58,9 +58,9 @@ export type Cluster = {
   /** Its groups and their pilgrims, from its approved request */
   groupsCount: number;
   pilgrims: number;
-  /** `at`: the hotel on the map, picked by its team (the distance is measured from it) */
-  makkah: { hotel: string; area: string; distance: string; rooms: string; features: string[]; at?: LatLng };
-  madinah: { hotel: string; area: string; distance: string; at?: LatLng };
+  /** The hotels as the staff's reference list gives them (lib/ops Hotel): `at` the hotel on the map, `stars` its rating */
+  makkah: { hotel: string; area: string; distance: string; rooms: string; features: string[]; at?: LatLng; stars?: number };
+  madinah: { hotel: string; area: string; distance: string; at?: LatLng; stars?: number };
   transport: string[];
   meals: string[];
   programs: string[];

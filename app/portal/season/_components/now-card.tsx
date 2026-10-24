@@ -1,6 +1,6 @@
 "use client";
 
-import { useSeason } from "@/lib/season-live";
+import { useClusterMeals } from "@/lib/season-live";
 import { AnimatePresence, motion } from "motion/react";
 import { BedDouble, Bus, CalendarHeart, MapPin, Tent, UsersRound, UtensilsCrossed } from "lucide-react";
 import type { ReactNode } from "react";
@@ -55,7 +55,7 @@ export function NowCard({ ctx }: { ctx: SeasonCtx }) {
   const { day, moment, where } = ctx;
   const w = WHERE[where];
   const stay = stayText(ctx);
-  const meals = mealsFor(where, day.i, useSeason().meals);
+  const meals = mealsFor(where, day.i, useClusterMeals(ctx.group.clusterId));
   const meal = nextMeal(meals, moment.time);
   const bus = nextBus(where, day.i);
   const daysLeft = 28 - day.i;

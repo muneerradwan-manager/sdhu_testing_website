@@ -103,6 +103,8 @@ export type PageDef = {
   description?: string;
   /** صفحات لا يمكن أرشفتها (الرئيسية والإعدادات العامة) */
   required?: boolean;
+  /** مجموعات المحتوى التي تقرؤها هذه الصفحة: ترويستها هنا، وعناصرها (دروس، أسئلة، أخبار…) في المجموعة */
+  related?: { collection: string }[];
   sections: SectionDef[];
 };
 

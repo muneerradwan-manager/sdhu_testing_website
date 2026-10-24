@@ -1,5 +1,6 @@
 import type { Assignment, Camp, Center, Employee, Hotel, InnerNode, Mashaer, OpFile, OuterNode, Sector } from "../ops";
 import { seeded } from "../utils";
+import { CLUSTERS, CLUSTER_HOTELS } from "./clusters";
 import { EMPLOYEES_SEED, NAMED_EMPLOYEES } from "./employees-seed";
 
 /**
@@ -62,9 +63,33 @@ const MADINAH_1448: H[] = [
 
 const MADINAH_1447: H[] = MADINAH_1448.slice(0, 5);
 
+/** The seven cluster hotels' stars, as their clusters' tiers say */
+const STARS: Record<string, number> = { "al-nour": 4, "al-safa": 5, "al-yaqeen": 3, "al-shahba": 4, "al-asi": 3, "bawabat-al-haramain": 5, hawran: 3 };
+const GENERIC_FEATURES = ["مصاعد", "مصلى", "مطعم الفندق"];
+
+/**
+ * What the pilgrims read of a hotel — stars, room types, amenities, its place on the map — is the staff's to enter. The
+ * seven cluster hotels carry what their clusters' pages said before, so the pages read the same; every other hotel
+ * gets plain defaults, which the staff replace.
+ */
+function details(season: number, city: Hotel["city"], name: string, i: number): Pick<Hotel, "stars" | "rooms" | "features" | "at"> {
+  const cluster = CLUSTERS.find((c) => c[city].hotel === name);
+  if (cluster) {
+    const mk = city === "makkah" ? cluster.makkah : undefined;
+    return {
+      stars: STARS[cluster.slug] ?? 3,
+      rooms: mk?.rooms,
+      features: mk?.features,
+      at: CLUSTER_HOTELS[cluster.slug]?.[city],
+    };
+  }
+  return { stars: 3 + ((season + i) % 3), rooms: city === "makkah" ? "غرف ثنائية وثلاثية ورباعية" : undefined, features: GENERIC_FEATURES };
+}
+
 function hotels(season: number, city: Hotel["city"], list: H[]): Hotel[] {
   const prefix = `${city === "makkah" ? "mk" : "md"}${season % 100}`;
   return list.map(([name, area, distance, capacity, floors], i) => ({
+    ...details(season, city, name, i),
     id: `${prefix}-${String(i + 1).padStart(2, "0")}`,
     season,
     name,
@@ -805,4 +830,83 @@ place(HOUSING_48, { camp: 1 }, "mission-member", "bassel");
 place(HOUSING_48, { camp: 2 }, "mission-member", "fadi");
 place(HOUSING_48, { center: 1 }, "sector-head", "ghassan", true);
 
-export const FILES_SEED: OpFile[] = [...HOUSING_FILES, ...CAMP_FILES];
+// ───────────────────────── Madinah: the staff sorted on the hotels ─────────────────────────
+
+/**
+ * The stay in Madinah is a few days after the Hajj, so its file has no sectors and no towers: the Madinah hotels
+ * of the season's reference list, and the staff sorted on them. `perHotel`: how many each of the first hotels takes
+ * (the rest are left empty, to be filled).
+ */
+function buildMadinah(season: number, perHotel: number[]): OuterNode[] {
+  const rnd = seeded(`madinah-${season}`);
+  const pool = EMPLOYEES_SEED.filter((e) => e.seasons.includes(season) && !e.suspended && !NAMED_IDS.has(e.id))
+    .map((e) => ({ e, r: rnd() }))
+    .sort((a, b) => a.r - b.r)
+    .map((x) => x.e);
+  let next = 0;
+  return HOTELS_SEED.filter((h) => h.season === season && h.city === "madinah")
+    .slice(0, perHotel.length)
+    .map((h, i) => ({
+      id: `m${season % 100}-${i + 1}`,
+      refId: h.id,
+      children: [],
+      members: pool.slice(next, (next += perHotel[i])).map((e) => ({ role: "madinah-member", employeeId: e.id })),
+    }));
+}
+
+const MADINAH_FILES: OpFile[] = [
+  {
+    id: "f47-madinah",
+    type: "madinah-housing",
+    season: 1447,
+    decisionNumber: "3188",
+    startsOn: "2026-06-06",
+    endsOn: "2026-06-09",
+    startNote: "تصل البعثة إلى المدينة المنورة بعد ترحيل آخر فوج، وتقيم ثلاثة أيام قبل العودة.",
+    reportCadence: "none",
+    status: "active",
+    activatedAt: Date.UTC(2026, 4, 28, 9, 0),
+    activatedBy: "غسان العمر",
+    createdAt: Date.UTC(2026, 4, 20, 10, 0),
+    createdBy: "غسان العمر",
+    members: [],
+    nodes: buildMadinah(1447, [5, 5, 4, 4, 3]),
+  },
+  {
+    id: "f48-madinah",
+    type: "madinah-housing",
+    season: 1448,
+    decisionNumber: "",
+    startsOn: "2027-05-25",
+    endsOn: "2027-05-28",
+    reportCadence: "none",
+    status: "draft",
+    createdAt: Date.UTC(2026, 8, 22, 11, 0),
+    createdBy: "غسان العمر",
+    members: [],
+    nodes: buildMadinah(1448, [6, 5, 5, 4]),
+  },
+];
+
+// ───────────────────────── The flights' supervisors and the evaluation committee: teams, no places ─────────────────────────
+
+const teamFile = (id: string, type: OpFile["type"], season: number, role: string, handles: string[], rest: Pick<OpFile, "decisionNumber" | "startsOn" | "endsOn" | "status"> & Partial<OpFile>): OpFile => ({
+  id,
+  type,
+  season,
+  reportCadence: "none",
+  createdAt: Date.UTC(season === 1447 ? 2026 : 2026, season === 1447 ? 3 : 8, 5, 10, 0),
+  createdBy: "غسان العمر",
+  members: handles.map((h) => ({ role, employeeId: byHandle(h) })),
+  nodes: [],
+  ...rest,
+});
+
+const TEAM_FILES: OpFile[] = [
+  teamFile("f47-flights", "flights", 1447, "flights-supervisor", ["haitham", "omar"], { decisionNumber: "3120", startsOn: "2026-04-15", endsOn: "2026-06-04", status: "active", activatedAt: Date.UTC(2026, 3, 10, 9, 0), activatedBy: "غسان العمر" }),
+  teamFile("f48-flights", "flights", 1448, "flights-supervisor", ["haitham", "omar"], { decisionNumber: "", startsOn: "2027-04-08", endsOn: "2027-06-04", status: "draft" }),
+  teamFile("f47-committee", "evaluation-committee", 1447, "committee-member", ["tarek", "yousef", "rana"], { decisionNumber: "3201", startsOn: "2026-06-18", endsOn: "2026-06-27", status: "active", activatedAt: Date.UTC(2026, 5, 10, 9, 0), activatedBy: "غسان العمر" }),
+  teamFile("f48-committee", "evaluation-committee", 1448, "committee-member", ["tarek", "yousef", "rana"], { decisionNumber: "", startsOn: "2027-06-18", endsOn: "2027-06-27", status: "draft" }),
+];
+
+export const FILES_SEED: OpFile[] = [...HOUSING_FILES, ...MADINAH_FILES, ...CAMP_FILES, ...TEAM_FILES];

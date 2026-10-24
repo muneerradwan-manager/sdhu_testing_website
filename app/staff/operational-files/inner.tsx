@@ -161,7 +161,7 @@ export function InnerDrawer({
 }) {
   // The approved clusters with their pilgrims, as the administrators' platform holds them
   const clusters = useClusterDirectory();
-  const isCamp = type.inner.ref === "camps";
+  const isCamp = type.inner?.ref === "camps";
   return (
     <Drawer open={open && !!node && !!place} onClose={onClose} title={place ? `${place.name} — ${outerName}` : ""} width="max-w-xl">
       {node && place && (
@@ -199,7 +199,7 @@ export function InnerDrawer({
                           pilgrims: clusters.filter((x) => next.includes(x.slug)).reduce((a, x) => a + x.pilgrims, 0) || node.pilgrims,
                         });
                       }}
-                      title={elsewhere ? `في ${type.inner.name} آخر من هذا الملف` : undefined}
+                      title={elsewhere ? `في ${type.inner?.name} آخر من هذا الملف` : undefined}
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-bold ring-1 transition disabled:cursor-not-allowed",
                         on ? "bg-gold text-ink ring-gold" : elsewhere ? "text-white/30 ring-white/10" : "text-white/80 ring-white/20 hover:ring-gold/50",

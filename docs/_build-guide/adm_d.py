@@ -108,6 +108,15 @@ c.shot("visas-add", "إضافة تأشيرة حاج: رقمها من بريد ا
 fam.locator("button:has-text('محاكاة: وصل بريد الخارجية')").first.click(); c.settle(1500)
 c.shot("visas-done", "اكتملت تأشيرات العائلة: صدرت خطوتها في بوابتها", hl=[("main [data-family] >> nth=0", "")], section=S)
 
+# ───────── the coordinator's meals: the times of his cluster's two hotels, which its pilgrims read ─────────
+S = "V"
+admin("سامر نبيل نجار", "/portal/meals")
+c.shot("meals-top", "الوجبات: الفطور والغداء في فندق مكة وفندق المدينة", hl=[("nav a[href*='/portal/meals']", "1")], section=S)
+p.locator("main input[aria-label='الفطور — فندق مكة']").first.fill("06:30 – 09:30"); c.settle(300)
+p.locator("main textarea[aria-label='قائمة الفطور — فندق مكة']").first.fill("فول، بيض، جبن، زيتون، خبز، فواكه، شاي وقهوة"); c.settle(300)
+c.shot("meals-edit", "موعد الفطور وقائمته في فندق مكة، ثم «حفظ مواعيد الوجبات»", hl=[("main input[aria-label='الفطور — فندق مكة']", "1"), ("main button:has-text('حفظ مواعيد الوجبات')", "2")], section=S)
+p.locator("main button:has-text('حفظ مواعيد الوجبات')").first.click(); c.settle(1200)
+
 # ───────── religious lessons ─────────
 S = "R"
 admin("الشيخ خالد الرفاعي", "/portal/guide-lessons")

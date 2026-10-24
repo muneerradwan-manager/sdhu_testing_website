@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useNavBranch } from "../_components/branch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, ExternalLink, Eye, EyeOff, PencilLine, Search, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
@@ -62,6 +63,9 @@ function Inner() {
   // A page or a collection he may not view opens the list instead
   const page = pageDef && user && can(user, "content.pages.GET") ? pageDef : null;
   const collection = collectionDef && user && can(user, "content.items.GET", collectionDef.id) ? collectionDef : null;
+
+  // The page or the collection being edited hangs from «محتوى الموقع» in the sidebar's tree
+  useNavBranch(page ? { anchor: BASE, title: page.label } : collection ? { anchor: BASE, title: collection.label } : null);
 
   if (!user) return null;
 

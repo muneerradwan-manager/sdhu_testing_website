@@ -53,9 +53,9 @@ p.locator("main tr:has-text('مركز دمشق') a:text-is('تعديل')").first
 c.shot("ex-hall-edit", "تعديل قاعة: اسمها ومكانها ومحافظاتها في الوسط، والحفظ والمشرف (للاطلاع) والشاشة في الجانب", hl=[("main section:has(> button:has-text('مشرف القاعة'))", "1"), ("button:has-text('حفظ القاعة')", "2")], section=EX)
 c.scroll_to("main h2:has-text('موقع القاعة على الخريطة')", 110); c.settle(2000)
 c.shot("ex-hall-map", "موقع القاعة على الخريطة، وتحتها إحداثياته؛ وفي الجانب رقم الشاشة والمقاعد وسجلّ القاعة", hl=[("main [role=application]", "")], section=EX)
-s.nav("إضافة قاعة", 1800)
+s.link("إضافة قاعة", 1800)  # the button of the halls' list: the new hall is a sub-page
 p.locator("input[aria-label='اسم القاعة']").first.fill("مركز طرطوس"); c.settle(300)
-c.shot("ex-hall-new", "إضافة قاعة: الشاشة نفسها فارغة، ويُقترح لها أول رقم شاشة غير مستعمل", hl=[("input[aria-label='اسم القاعة']", "1"), ("button:has-text('إضافة القاعة')", "2")], section=EX)
+c.shot("ex-hall-new", "إضافة قاعة: الشاشة نفسها فارغة، ويُقترح لها أول رقم شاشة غير مستعمل", hl=[("input[aria-label='اسم القاعة']", "1"), ("button:has-text('إضافة القاعة')", "2"), ("aside nav div.border-r-2", "3")], section=EX)
 s.nav("القاعات والمحافظات", 1800)
 box(p, c, "شاشات القاعات ورابط المتقدمين")
 box(p, c, "المحافظات والقاعة التي تخدم كلاً منها")

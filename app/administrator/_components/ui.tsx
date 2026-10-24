@@ -33,6 +33,7 @@ import {
   Star,
   UserRoundPlus,
   UsersRound,
+  UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
@@ -162,6 +163,8 @@ const NAV: NavItem[] = [
   { href: "/portal/requests", label: (c) => (c.head ? "حجاج المجموعة" : "حجاج مجموعاتي"), icon: HeartHandshake, ops: ["group-joining"], show: ownGroups },
   // The visas the Saudi foreign ministry emails to the group's head, added by him to each of his pilgrims
   { href: "/portal/visas", label: "التأشيرات", icon: Stamp, show: operating },
+  // The meals of the cluster's two hotels: the technical coordinator times them, the pilgrims of its groups read them
+  { href: "/portal/meals", label: "الوجبات", icon: UtensilsCrossed, show: operating },
   // The flights out and back, then before each rite who goes and on which of the buses the Hajj and Umrah staff
   // gave — the coordinator's; a group's head and assistant see their group's, the cluster's head follows
   { href: "/portal/lists", label: "القوائم", icon: Bus, show: operating },

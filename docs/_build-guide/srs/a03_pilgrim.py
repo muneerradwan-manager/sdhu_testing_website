@@ -302,18 +302,18 @@ AREA_ = AREA("pilgrim", "PIL", "الحاج بعد القبول وفي الموس
        ],
        rules=["POST-26"],
        routes=["app/portal/season"],
-       data=["post_acceptance.visa_completed_at", "season_meals", "flight_assignments"],
+       data=["post_acceptance.visa_completed_at", "cluster_meals", "flight_assignments"],
        pri="S", state="partial"),
 
     FR("FR-PIL-21", "الوجبات",
-       "يجب أن تقوم المنصة بعرض وجبات الفندق الذي فيه الحاج بمواعيدها وقوائمها كما ضبطتها الإدارة لكل موسم، والوجبة التالية.",
+       "يجب أن تقوم المنصة بعرض وجبات الفندق الذي فيه الحاج بمواعيدها وقوائمها كما ضبطها المنسق التقني لتكتله، والوجبة التالية.",
        "الحاج",
        accept=[
            "الحاج في مكة يرى فطور فندق مكة وغداءه، وفي المدينة وجبات فندق المدينة.",
-           "تعديل موعد وجبة في الإعدادات يظهر للحاج دون تعديل في الكود.",
+           "موعد وجبة يضبطه المنسق التقني في «الوجبات» يظهر لحجاج مجموعات تكتله دون تعديل في الكود، وقبل ضبطه يرون المواعيد الافتراضية.",
        ],
        routes=["app/portal/season/meals"],
-       data=["season_meals.time_from", "season_meals.time_to", "season_meals.menu"],
+       data=["cluster_meals.time_from", "cluster_meals.time_to", "cluster_meals.menu"],
        pri="S", state="demo"),
 
     FR("FR-PIL-22", "أداء المناسك",

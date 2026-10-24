@@ -85,7 +85,7 @@ function CivilScreen({ item }: { item?: CivilItem }) {
   if (!item) {
     return (
       <div>
-        <EditHeader back={BASE} backLabel="كل التصحيحات" title="التصحيح غير موجود" />
+        <EditHeader back={BASE} backLabel="كل التصحيحات" nav={false} title="التصحيح غير موجود" />
         <p className="text-white/70">لم يعد هذا التصحيح في القائمة.</p>
       </div>
     );

@@ -259,7 +259,7 @@ export function CenterEditor() {
   if (id && !center)
     return (
       <div>
-        <EditHeader back={LIST} backLabel="كل القاعات" title="لم يُعثر على هذه القاعة" />
+        <EditHeader back={LIST} backLabel="كل القاعات" nav={false} title="لم يُعثر على هذه القاعة" />
         <p className="text-white/70">ربما حُذفت. ارجع إلى القاعات وافتحها من القائمة.</p>
       </div>
     );

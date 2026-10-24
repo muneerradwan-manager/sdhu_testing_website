@@ -551,8 +551,8 @@ export const SEED_TASKS: { id: string; title: string; by: string; to: string; co
 export const SEED_EVENTS: AuditEvent[] = [
   { id: "h-01", at: at(2026, 8, 1, 9, 12), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "إنشاء حساب موظف", target: "فادي سلوم", detail: "بالرقم الوطني ورقم الهاتف — كلمة مرور مؤقتة" },
   { id: "h-02", at: at(2026, 8, 1, 9, 15), actor: "سامي حلاق (أبو سامي)", role: "الموارد البشرية", action: "منح صلاحية", target: "فادي سلوم", after: "غرفة العمليات" },
-  { id: "h-04", at: at(2026, 8, 3, 11, 0), actor: "نور الأعرج", role: "مدير الموسم", action: "تعديل إعدادات الموسم", target: "الحصة الإجمالية", before: "21,000", after: "22,500", detail: "قرار لجنة الخطة التشغيلية 14/1448" },
-  { id: "h-05", at: at(2026, 8, 3, 11, 4), actor: "نور الأعرج", role: "مدير الموسم", action: "تعديل إعدادات الموسم", target: "نسبة القبول المباشر", before: "60%", after: "65%" },
+  { id: "h-04", at: at(2026, 8, 3, 11, 0), actor: "لبنى الشهابي", role: "مسؤولة إعدادات الموسم", action: "تعديل إعدادات الموسم", target: "الحصة الإجمالية", before: "21,000", after: "22,500", detail: "قرار لجنة الخطة التشغيلية 14/1448" },
+  { id: "h-05", at: at(2026, 8, 3, 11, 4), actor: "لبنى الشهابي", role: "مسؤولة إعدادات الموسم", action: "تعديل إعدادات الموسم", target: "نسبة القبول المباشر", before: "60%", after: "65%" },
   // The season opened with each file's permissions granted to whoever runs it
   { id: "h-04a", at: at(2026, 8, 1, 9, 0), actor: "نور الأعرج", role: "مدير الموسم", action: "منح صلاحيات", target: "سامي حلاق (أبو سامي) — إدارة الموظفين", detail: "مُنحت صلاحيات إدارة الموظفين كلها", system: "access", area: "staff", important: true },
   { id: "h-04b", at: at(2026, 8, 1, 9, 5), actor: "نور الأعرج", role: "مدير الموسم", action: "منح صلاحيات", target: "مازن الحلبي — إدارة الإداريين", detail: "مُنحت صلاحيات إدارة الإداريين كلها", system: "access", area: "admins", important: true },

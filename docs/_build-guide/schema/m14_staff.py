@@ -4,10 +4,10 @@ from .dsl import *
 MODULE = M("staff", "الموظفون والصلاحيات والملفات التشغيلية", [
     "بوابة الموظفين لموظفي الإدارة والبعثة، وفيها 21 نظاماً. لا يُسند موظف إلى نظام: تُمنح له الصلاحيات واحدة واحدة، لكل مورد في كل نظام "
     "عرضه (GET) وإضافته (POST) وتعديله (PUT) وحذفه (DELETE) وأفعال بأسمائها (اعتماد، نشر، تصدير…)، ومفتاحها ‹النظام›.‹المورد›.‹الفعل› مثل flights.flights.lock. "
-    "والعرض نفسه صلاحية: لا يظهر نظام في قائمة موظف لا يملك فيه عرض شيء. وأرقام كل نظام من عشرة أنظمة ليست ملفات إدارة صلاحية مستقلة ‹النظام›.stats.GET «الإحصائيات» لا تفتح صفحاته. وبعض الصلاحيات تُمنح لنطاق بعينه: مشرف القاعة من يملك hall.* لمركزها، "
+    "والعرض نفسه صلاحية: لا يظهر نظام في قائمة موظف لا يملك فيه عرض شيء. وأرقام كل نظام من أحد عشر نظاماً ليست ملفات إدارة صلاحية مستقلة ‹النظام›.stats.GET «الإحصائيات» لا تفتح صفحاته. وبعض الصلاحيات تُمنح لنطاق بعينه: مشرف القاعة من يملك hall.* لمركزها، "
     "ومندوب المطار من يملك airport.* لمطاره، ومواعيد العمليات season.windows لعمليات بعينها. يمنحها ويسحبها من يملك access.permissions.PUT، وكل منح وسحب حدث مهم.",
     "«سجل الموظفين» يحفظ موظفي البعثة (دائمين ومنتدبين) ومواسم مشاركتهم. و«البيانات المرجعية» أماكن كل موسم: فنادق مكة والمدينة، قطاعات مكة، مراكز منى وعرفات، مخيماتها. "
-    "و«الملفات التشغيلية» ملف لكل نوع في كل موسم (التسكين في مكة، مخيمات منى، مخيمات عرفات): شجرة أماكن يُسند فيها الموظفون إلى أدوار، وتُوزَّع عليها التكتلات.",
+    "و«الملفات التشغيلية» ملف لكل نوع في كل موسم (التسكين في مكة، التسكين في المدينة، مخيمات منى، مخيمات عرفات): شجرة أماكن يُسند فيها الموظفون إلى أدوار، وتُوزَّع عليها التكتلات.",
     "في النسخة التجريبية حسابات الموظفين ثابتة في الكود بكلمة مرور مشتركة (1448). هنا جدول حسابات بكلمات مرور فردية وتغيير إلزامي عند أول دخول.",
 ], [
     T("permission_systems", "أنظمة بوابة الموظفين", "الأنظمة الواحد والعشرون التي تُمنح عليها الصلاحيات، بترتيب القائمة.", [
@@ -27,8 +27,8 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("scope_kind", enum("center", "airport", "operation", "collection", "office", "opfileType", "posting"), "نطاق المورد إن كان له نطاق غير نطاق نظامه: operation لمواعيد العمليات، collection لعناصر مجموعات المحتوى", null=True),
         c("note", "VARCHAR(200)", "قاعدة تُفرض في الكود («من أدخل النتائج لا يعتمدها»)", null=True),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
-    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef؛ lib/permissions.ts:396 STATS_SYSTEMS", seed="142 مورداً، منها 18 حساساً، و10 موارد «الإحصائيات» (stats).",
-       rules=["المورد stats «الإحصائيات» في عشرة أنظمة (reviews، office، lottery، season، operations، medical، transport، opfiles، audit، content): عرضه يفتح صفحة أرقام النظام (/staff/stats/‹النظام›) وحدها، "
+    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef؛ lib/permissions.ts:396 STATS_SYSTEMS", seed="143 مورداً، منها 18 حساساً، و10 موارد «الإحصائيات» (stats).",
+       rules=["المورد stats «الإحصائيات» في أحد عشر نظاماً (reviews، office، lottery، season، operations، medical، transport، opfiles، reference، audit، content): عرضه يفتح صفحة أرقام النظام (/staff/stats/‹النظام›) وحدها، "
               "ولا يُعد من صلاحيات عرض النظام، فلا يفتح صفحاته. وفي exams مورد stats آخر هو عملية «الإحصائيات» في الملف، يُعد من صلاحيات عرضه."]),
 
     T("permissions", "الصلاحيات", "كل صلاحية تُمنح على حدة: فعل على مورد في نظام.", [
@@ -37,7 +37,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("verb", "VARCHAR(30)", "الفعل: GET، POST، PUT، DELETE، أو اسم فعل خاص (approve، publish، export، lock…)"),
         c("kind", enum("verb", "special"), "verb أحد الأفعال الأربعة؛ special فعل خاص بالاسم"),
         c("label", "VARCHAR(120)", "الاسم: «عرض»، «إضافة»، «تعديل»، «حذف»، أو اسم الفعل الخاص («إقفال وإصدار الكشف»)"),
-    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:382 keysOf، ALL_KEYS", seed="409 صلاحيات.",
+    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:382 keysOf، ALL_KEYS", seed="408 صلاحيات.",
        rules=["كل فعل على مورد يحتاج عرضه: من يُمنح POST أو PUT أو DELETE أو فعلاً خاصاً يُمنح GET المورد نفسه معه، ومن يُسحب منه GET يُسحب منه كل ما على المورد."]),
 
     T("staff_users", "حسابات الموظفين", "حساب الدخول إلى بوابة الموظفين. ينشئه قسم الموارد البشرية من الرقم الوطني والهاتف، وتُرسل كلمة مرور مؤقتة تُغيَّر عند أول دخول.", [
@@ -53,7 +53,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("status", enum("active", "disabled"), "الحالة", d="'active'"),
         c("last_login_at", "DATETIME(3)", "آخر دخول", null=True),
         *stamps(),
-    ], src="lib/staff.ts:33 StaffUser، STAFF، STAFF_PASSWORD", seed="20 حساباً (نور الأعرج مدير الموسم، هبة القدسي، رنا حداد، مازن الحلبي، هيثم زيدان…)."),
+    ], src="lib/staff.ts:33 StaffUser، STAFF، STAFF_PASSWORD", seed="21 حساباً (نور الأعرج مدير الموسم، هبة القدسي، رنا حداد، مازن الحلبي، هيثم زيدان…)."),
 
     T("staff_user_permissions", "صلاحيات كل موظف", "الصلاحيات الممنوحة لكل حساب مباشرة، بلا أدوار وبلا إسناد لنظام. يمنحها ويسحبها من يملك access.permissions.PUT من «صلاحيات الموظفين».", [
         pk(), ref("staff_user_id", "staff_users", "الحساب", od="CASCADE"),
@@ -61,7 +61,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         staff("granted_by_staff_id", "من منحها (فارغ لما فُتح به الموسم)"),
         c("granted_at", "DATETIME(3)", "وقت المنح", d="CURRENT_TIMESTAMP(3)"),
     ], uq=[("staff_user_id", "permission_code")], src="lib/permissions.ts:421 PermGrant؛ StaffUser.grants؛ State.staffPermissions؛ actions.setStaffPermissions",
-       seed="صلاحيات الحسابات العشرين كما فُتح بها الموسم (lib/staff.ts STAFF): مدير الموسم access.* وغيرها، مسؤول الطيران flights.*، مندوب مطار دمشق airport.* لمطار دمشق، مشرفة قاعة دمشق hall.* لمركز دمشق…",
+       seed="صلاحيات الحسابات الواحد والعشرين كما فُتح بها الموسم (lib/staff.ts STAFF): مدير الموسم access.* وexecutive.* وحدهما، مسؤولة إعدادات الموسم season.*، مسؤولة البيانات المرجعية reference.*، مسؤول الطيران flights.*، مندوب مطار دمشق airport.* لمطار دمشق، مشرفة قاعة دمشق hall.* لمركز دمشق…",
        rules=["السحب حذف للسطر، والمنح إضافة له؛ ويُكتب كل منهما في audit_events حدثاً مهماً (system_code = access) بما مُنح وما سُحب وما تغيّر نطاقه.",
               "لا يسحب أحد من نفسه access.permissions.PUT: يسحبها منه غيره ممن يملكها."]),
 
@@ -143,7 +143,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
     ], uq=[("staff_user_id",)], src="lib/ops.ts:86 Employee؛ lib/data/employees-seed.ts؛ app/staff/employees",
        rules=["لا يُحذف موظف. ولا تُلغى مشاركته في الموسم وهو مُسند في ملف تشغيلي للموسم.",
               "السجل الناقص: هاتف سوريا أقل من 10 أرقام، أو رقم وطني غير صالح، أو منتدب بلا جهة."],
-       checks=["kind = 'permanent' OR organization IS NOT NULL"], seed="153 موظفاً، منهم 113 يسافرون في 1448، ولكل حساب من حسابات البوابة العشرين سجل."),
+       checks=["kind = 'permanent' OR organization IS NOT NULL"], seed="153 موظفاً، منهم 113 يسافرون في 1448، ولكل حساب من حسابات البوابة الواحد والعشرين سجل."),
 
     T("employee_seasons", "مواسم مشاركة الموظف", "المواسم التي شارك فيها الموظف.", [
         ref("employee_id", "employees", "الموظف", od="CASCADE"),
@@ -157,7 +157,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         ref("language_id", "languages", "اللغة"),
     ], uq=[("employee_id", "language_id")], src="Employee.languages"),
 
-    T("hotels", "الفنادق", "فنادق مكة والمدينة المتعاقد معها في الموسم.", [
+    T("hotels", "الفنادق", "فنادق مكة والمدينة المتعاقد معها في الموسم، وكل ما يقرؤه الحاج عن الفندق (النجوم والغرف والمزايا والموقع) يدخله الموظفون هنا، ويختارها رؤساء التكتلات من قائمة منسدلة.", [
         pk(), season(),
         c("place_key", "VARCHAR(160)", "مفتاح ثابت عبر المواسم hotel:<المدينة>:<الاسم> لنقل البيانات من موسم إلى آخر"),
         c("name", "VARCHAR(120)", "الاسم («فندق أبراج النور»)"),
@@ -168,6 +168,11 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("licence_no", "VARCHAR(20)", "رقم الترخيص"),
         c("floors", "TINYINT UNSIGNED", "الطوابق", null=True),
         c("map_url", "VARCHAR(300)", "رابط الخريطة", null=True),
+        c("stars", "TINYINT UNSIGNED", "عدد النجوم (1–5) في صفحة التكتل", null=True, ck="stars BETWEEN 1 AND 5"),
+        c("rooms", "VARCHAR(120)", "نوع الغرف («غرف ثلاثية ورباعية») في صفحة التكتل", null=True),
+        c("features", "JSON", "مزايا الفندق، سطر لكل ميزة، في صفحة التكتل", null=True),
+        c("lat", "DECIMAL(9,6)", "خط عرض الفندق على الخريطة؛ تُحسب منه المسافة", null=True),
+        c("lng", "DECIMAL(9,6)", "خط طول الفندق على الخريطة", null=True),
         c("archived", "TINYINT(1)", "مؤرشف (لا يُؤرشف ما يستعمله ملف تشغيلي)", d="0"),
     ], uq=[("season_year", "name")], src="lib/ops.ts:164 Hotel؛ ops-seed.ts", seed="1448: 18 فندقاً في مكة و7 في المدينة."),
 
@@ -200,17 +205,20 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("archived", "TINYINT(1)", "مؤرشف", d="0"),
     ], uq=[("season_year", "mashaer", "number")], src="lib/ops.ts:203 Camp"),
 
-    T("op_file_types", "أنواع الملفات التشغيلية", "التسكين في مكة (قطاعات ← أبراج)، مخيمات منى (مراكز ← مخيمات)، مخيمات عرفات.", [
-        c("code", "VARCHAR(30)", "المفتاح: makkah-housing، mina-camps، arafat-camps", pk=True),
+    T("op_file_types", "أنواع الملفات التشغيلية", "التسكين في مكة (قطاعات ← أبراج)، التسكين في المدينة (فنادق المدينة وحدها)، مخيمات منى (مراكز ← مخيمات)، مخيمات عرفات، الطيران ولجنة التقييم (فريقان على الملف نفسه، بلا أماكن).", [
+        c("code", "VARCHAR(30)", "المفتاح: makkah-housing، madinah-housing، mina-camps، arafat-camps، flights، evaluation-committee", pk=True),
         c("name", "VARCHAR(200)", "الاسم («التسكين في مكة المكرمة — قطاعات وأبراج حجاج سوريا»…)"),
         c("short_name", "VARCHAR(80)", "الاسم المختصر"),
         c("description", "TEXT", "الشرح وشروط البدء والانتهاء"),
-        c("outer_label", "VARCHAR(40)", "اسم المستوى الخارجي (القطاع / المركز)"),
-        c("outer_ref", enum("sectors", "centers"), "مرجع المستوى الخارجي"),
-        c("inner_label", "VARCHAR(40)", "اسم المستوى الداخلي (البرج / الفندق، المخيم)"),
-        c("inner_ref", enum("hotels", "camps"), "مرجع المستوى الداخلي"),
+        c("outer_label", "VARCHAR(40)", "اسم المستوى الخارجي (القطاع / المركز / الفندق في ملف المدينة)؛ فارغ في ملفي الطيران ولجنة التقييم", null=True),
+        c("outer_ref", enum("sectors", "centers", "hotels"), "مرجع المستوى الخارجي", null=True),
+        c("inner_label", "VARCHAR(40)", "اسم المستوى الداخلي (البرج / الفندق، المخيم)", null=True),
+        c("inner_ref", enum("hotels", "camps"), "مرجع المستوى الداخلي (فارغ في ملف المدينة: لا مستوى داخلي)", null=True),
         c("mashaer", enum("mina", "arafat"), "المشعر لملفات المخيمات", null=True),
         c("has_housing", "TINYINT(1)", "ملف تسكين (للأدوار الخارجية فندق يسكنه صاحبها)", d="0"),
+        c("evaluates_stages", "JSON", "مراحل التقييم التي يراها موظفو الملف فيقيّمون فيها (مكة: makkah، المدينة: madinah، منى وعرفات: mashaer، الطيران: airport وtravel)", null=True),
+        c("evaluates_all", "TINYINT(1)", "فريق يقيّم كل التكتلات لا ما سكن عنده (مشرفو الطيران)", d="0"),
+        c("decides", "TINYINT(1)", "أعضاء الملف يبتّون في الاعتراضات على التقييم (لجنة التقييم)", d="0"),
         c("has_camp_fields", "TINYINT(1)", "حقول الخيمة والجهات المخصصة", d="0"),
         c("team_label", "VARCHAR(60)", "فريق على مستوى الملف («فريق الكوسترات» في منى)", null=True),
     ], src="lib/ops.ts:300 FileType"),
@@ -323,17 +331,6 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("decided_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
     ], new=True, src="app/staff/operations/view.tsx BusNotice"),
 
-    T("season_meals", "مواعيد الوجبات وقوائمها", "الفطور والغداء في فنادق مكة والمدينة لكل موسم.", [
-        season(),
-        c("city", enum("makkah", "madinah"), "المدينة"),
-        c("meal", enum("breakfast", "lunch"), "الوجبة"),
-        c("time_from", "TIME", "من"),
-        c("time_to", "TIME", "إلى"),
-        c("menu", "TEXT", "القائمة (فارغة = «قائمة الفندق اليومية»)", null=True),
-        staff("updated_by_staff_id", "آخر من عدّل"),
-        updated(),
-    ], uq=[("season_year", "city", "meal")], src="SeasonOverrides.meal*، menu*؛ lib/season-live.ts:47 DEFAULT_MEALS",
-       seed="مكة 06:00–09:00 و13:00–15:00؛ المدينة 05:30–08:30 و13:00–15:00."),
 ], flow=[
     "تنشئ الموارد البشرية staff_users وتربطها بـemployees، ويمنح صاحب «صلاحيات الموظفين» كل حساب staff_user_permissions واحدة واحدة، بنطاقها في staff_user_permission_scopes إن كان لها نطاق.",
     "يجهز مدير شؤون البعثة hotels وsectors وmashaer_centers وcamps للموسم، ثم operational_files بعقدها وتكتلاتها وإسناداتها، ويفعّلها بقرار.",

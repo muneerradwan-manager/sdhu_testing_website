@@ -34,7 +34,7 @@ export function RegistrationView() {
       {!desk ? (
         <Empty icon={<Lock />} title="التسجيل يحتاج صلاحيتين" text="«عرض — البحث في السجل المدني» و«إضافة — الطلبات التي سجّلها» معاً: يُبحث عن المواطن في السجل المدني ثم يُسجَّل طلبه. تُمنحان من «صلاحيات الموظفين»." />
       ) : (
-      <div className="rounded-[2rem] bg-sand p-4 text-ink md:p-6">
+      <div className="staff-desk rounded-[2rem] border border-white/10 bg-black/15 p-4 md:p-6">
         <RegistrationDesk
           registrar={registrar}
           aside={

@@ -7,10 +7,9 @@ import { useState } from "react";
 import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
-import { diffFields, fieldsOf, useClusterProgrammes, type ClusterProfileFields } from "@/lib/cluster-profile";
+import { diffFields, fieldsOf, hotelsIn, useClusterProgrammes, type ClusterProfileFields } from "@/lib/cluster-profile";
+import { useHotels, type Hotel as HotelEntry } from "@/lib/ops";
 import { ROOM_BEDS, ROOM_LABEL, type RoomPrices } from "@/lib/rooms";
-import { HARAM, NABAWI } from "@/lib/data/clusters";
-import { MapPicker, distanceLabel, distanceM, mapsLink } from "@/components/ui/map-picker";
 import { actions, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { logAdmin, nowMs, useAdmin } from "@/app/administrator/_lib/admin";
@@ -24,20 +23,42 @@ const TEXT_FIELDS: { key: keyof ClusterProfileFields; label: string; hint?: stri
 ];
 
 /**
- * The two hotels, each with its map: the team types the hotel's name and area and taps its place, and the distance
- * to the mosque is measured from the pin (they may still write it themselves).
+ * The two hotels are picked, not written: every fact about a hotel (area, stars, rooms, amenities, the map and the
+ * distance) is entered by the staff in the reference list, and the page reads it from there. The team chooses its
+ * hotel in each city from that season's list.
  */
 const HOTELS = [
-  { city: "مكة المكرمة", name: "makkahHotel", area: "makkahArea", distance: "makkahDistance", at: "makkahAt", mosque: { at: HARAM, label: "المسجد الحرام" }, from: "عن الحرم" },
-  { city: "المدينة المنورة", name: "madinahHotel", area: "madinahArea", distance: "madinahDistance", at: "madinahAt", mosque: { at: NABAWI, label: "المسجد النبوي" }, from: "عن المسجد النبوي" },
+  { city: "مكة المكرمة", key: "makkahHotelId", town: "makkah" },
+  { city: "المدينة المنورة", key: "madinahHotelId", town: "madinah" },
 ] as const;
 
 const LISTS: { key: keyof ClusterProfileFields; label: string; icon: typeof Bus; item: string }[] = [
-  { key: "makkahFeatures", label: "مزايا سكن مكة", icon: Hotel, item: "ميزة" },
   { key: "transport", label: "النقل", icon: Bus, item: "خدمة نقل" },
   { key: "meals", label: "الإعاشة", icon: Utensils, item: "خدمة إعاشة" },
   { key: "programs", label: "البرامج", icon: Sparkles, item: "برنامج" },
 ];
+
+/** What the staff entered of a hotel, as the page will show it: read-only here */
+function HotelFacts({ hotel }: { hotel: HotelEntry }) {
+  const rows: [string, string][] = [
+    ["المنطقة", hotel.area],
+    ["المسافة", hotel.distance],
+    ["التصنيف", hotel.stars ? `${"★".repeat(hotel.stars)} (${hotel.stars} نجوم)` : "غير مصنّف"],
+    ...(hotel.rooms ? ([["الغرف", hotel.rooms]] as [string, string][]) : []),
+    ...(hotel.features?.length ? ([["المزايا", hotel.features.join("، ")]] as [string, string][]) : []),
+    ["الموقع", hotel.at ? "محدد على الخريطة" : "لم يُحدَّد بعد"],
+  ];
+  return (
+    <dl className="grid gap-x-4 gap-y-1.5 rounded-2xl bg-sand p-3 text-sm sm:grid-cols-[auto_1fr]">
+      {rows.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="text-hint">{k}</dt>
+          <dd className="font-semibold text-ink">{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 /**
  * The public page of the cluster, written by its team once the cluster is approved (../../_lib/directory
@@ -54,8 +75,9 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
   const request = useClusterRequest(clusterId);
   const programme = useClusterProgrammes().find((x) => x.cluster.slug === clusterId);
   const state = useStore((s) => s.clusterProfiles[view.id]);
+  const hotels = useHotels();
   const listed = programme?.cluster;
-  const live = listed ? (state?.approved ? { ...fieldsOf(listed), ...state.approved.fields } : fieldsOf(listed)) : null;
+  const live = listed ? (state?.approved ? { ...fieldsOf(listed, hotels), ...state.approved.fields } : fieldsOf(listed, hotels)) : null;
   const [draft, setDraft] = useState<ClusterProfileFields | null>(null);
   const [note, setNote] = useState("");
 
@@ -64,14 +86,14 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
       <Card className="md:p-7">
         <h3 className="font-display text-xl font-bold text-green-dark">صفحة {clusterName} العامة</h3>
         <p className="mt-2 leading-8 text-ink-soft">
-          تُفتح صفحة التكتل بعد أن يُشكَّل في المكتب. حينها يكتب فريقه هنا لمحته وسكنه في مكة والمدينة وأسعار السكن الخاص ونقله وإعاشته وبرامجه، ويرسلها للاعتماد. أما مجموعاته ورؤساؤها وفريقه وتقييمه فتظهر في الصفحة وحدها من طلبه المعتمد.
+          تُفتح صفحة التكتل بعد أن يُشكَّل في المكتب. حينها يكتب فريقه هنا لمحته ويختار فندقيه في مكة والمدينة ويحدد أسعار السكن الخاص ونقله وإعاشته وبرامجه، ويرسلها للاعتماد. أما مجموعاته ورؤساؤها وفريقه وتقييمه فتظهر في الصفحة وحدها من طلبه المعتمد.
         </p>
       </Card>
     );
   }
 
   const values = draft ?? (state?.pending?.fields ?? state?.rejected?.fields ?? live);
-  const changes = diffFields(live, values);
+  const changes = diffFields(live, values, hotels);
   const editing = draft !== null;
   const set = (k: keyof ClusterProfileFields, v: string | string[] | number | RoomPrices) => setDraft({ ...values, [k]: v } as ClusterProfileFields);
 
@@ -102,7 +124,7 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
 
         {state?.pending && (
           <p className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-gold/20 p-4 text-sm font-semibold text-maroon">
-            <CircleDashed className="size-4 animate-spin" /> تعديل أرسله {state.pending.by} عند الإدارة للاعتماد — {diffFields(live, state.pending.fields).length} حقلاً. ما يراه الحاج الآن هو النسخة المعتمدة السابقة.
+            <CircleDashed className="size-4 animate-spin" /> تعديل أرسله {state.pending.by} عند الإدارة للاعتماد — {diffFields(live, state.pending.fields, hotels).length} حقلاً. ما يراه الحاج الآن هو النسخة المعتمدة السابقة.
           </p>
         )}
         {state?.rejected && (
@@ -148,52 +170,33 @@ export function ClusterPublicProfile({ clusterId, clusterName }: { clusterId: st
         <h3 className="flex items-center gap-2 font-display text-lg font-bold text-green-dark">
           <Hotel className="size-5 text-gold-dark" /> السكن
         </h3>
+        <p className="mt-1 text-sm leading-7 text-ink-soft">تختار هنا فندق التكتل في كل مدينة من قائمة الموسم. بيانات الفندق كلها (منطقته ونجومه وغرفه ومزاياه وموقعه على الخريطة والمسافة) يدخلها موظفو الإدارة في «البيانات المرجعية»، فلا تُكتب هنا.</p>
         <div className="mt-4 grid gap-6 lg:grid-cols-2">
           {HOTELS.map((h) => {
-            const at = values[h.at];
-            // It opens on the hotel and the mosque together (or on the mosque, before a pin)
-            const far = at ? Math.max(Math.abs(at.lat - h.mosque.at.lat), Math.abs(at.lng - h.mosque.at.lng)) : 0;
+            const options = hotelsIn(hotels, h.town);
+            const id = String(values[h.key]);
+            const picked = hotels.find((x) => x.id === id);
             return (
               <fieldset key={h.city} className="space-y-3 rounded-2xl border-2 border-gold/30 p-4">
                 <legend className="px-1 font-display font-bold text-green-dark">{h.city}</legend>
                 <label className="block">
-                  <span className="mb-1 block text-sm font-bold">اسم الفندق</span>
-                  <input value={String(values[h.name])} onChange={(e) => set(h.name, e.target.value)} aria-label={`فندق ${h.city}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
+                  <span className="mb-1 block text-sm font-bold">الفندق</span>
+                  <select value={id} onChange={(e) => set(h.key, e.target.value)} aria-label={`فندق ${h.city}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 bg-white px-4 outline-none focus:border-green-light">
+                    <option value="">— اختر الفندق —</option>
+                    {options.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                        {o.stars ? ` — ${"★".repeat(o.stars)}` : ""}
+                      </option>
+                    ))}
+                    {/* a hotel archived after it was picked still shows, so the page does not lose it silently */}
+                    {picked && !options.some((o) => o.id === picked.id) && <option value={picked.id}>{picked.name} (مؤرشف)</option>}
+                  </select>
                 </label>
-                <label className="block">
-                  <span className="mb-1 block text-sm font-bold">المنطقة</span>
-                  <input value={String(values[h.area])} onChange={(e) => set(h.area, e.target.value)} aria-label={`منطقة السكن في ${h.city}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-                </label>
-                <div>
-                  <span className="mb-1 block text-sm font-bold">موقع الفندق على الخريطة</span>
-                  <MapPicker
-                    label={`موقع فندق ${h.city}`}
-                    value={at}
-                    center={at ? { lat: (at.lat + h.mosque.at.lat) / 2, lng: (at.lng + h.mosque.at.lng) / 2 } : h.mosque.at}
-                    zoom={!at ? 15 : far > 0.04 ? 12 : far > 0.015 ? 13 : far > 0.006 ? 14 : 15}
-                    landmark={h.mosque}
-                    prompt="قرّب الخريطة واضغط على موقع الفندق"
-                    onChange={(v) => setDraft({ ...values, [h.at]: v, [h.distance]: `${distanceLabel(distanceM(v, h.mosque.at))} ${h.from}` } as ClusterProfileFields)}
-                    className="h-72"
-                  />
-                  {at && (
-                    <a href={mapsLink(at)} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-green-dark underline">
-                      افتح الموقع في الخرائط
-                    </a>
-                  )}
-                </div>
-                <label className="block">
-                  <span className="mb-1 block text-sm font-bold">المسافة {h.from}</span>
-                  <input value={String(values[h.distance])} onChange={(e) => set(h.distance, e.target.value)} aria-label={`المسافة ${h.from}`} className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-                  <span className="mt-1 block text-xs text-hint">تُحسب من موقع الفندق على الخريطة كلما غيّرته، ويمكنك تعديلها.</span>
-                </label>
+                {picked ? <HotelFacts hotel={picked} /> : <p className="rounded-2xl bg-sand p-3 text-sm text-ink-soft">لم تختر فندقاً بعد: لا يظهر سكن {h.city} في صفحة التكتل حتى تختاره.</p>}
               </fieldset>
             );
           })}
-          <label className="block lg:col-span-2">
-            <span className="mb-1 block text-sm font-bold">نوع الغرف في مكة</span>
-            <input value={String(values.makkahRooms)} onChange={(e) => set("makkahRooms", e.target.value)} aria-label="نوع الغرف" className="h-12 w-full rounded-2xl border-2 border-gold/50 px-4 outline-none focus:border-green-light" />
-          </label>
           {/* The shared accommodation adds nothing; each private room type adds its price per person */}
           <fieldset className="lg:col-span-2">
             <legend className="mb-1 text-sm font-bold">السكن الخاص — ما تضيفه كل غرفة للفرد ($)</legend>

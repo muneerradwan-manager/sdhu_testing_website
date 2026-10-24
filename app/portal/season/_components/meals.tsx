@@ -1,6 +1,6 @@
 "use client";
 
-import { useSeason } from "@/lib/season-live";
+import { useClusterMeals } from "@/lib/season-live";
 import { AnimatePresence, motion } from "motion/react";
 import { Camera, CheckCircle2, Clock, HeartPulse, MapPin, MessageSquareWarning, Send, UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
@@ -51,7 +51,7 @@ function specialRoom(ctx: SeasonCtx, id: string) {
 
 export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
   const toast = useToast();
-  const times = useSeason().meals;
+  const times = useClusterMeals(ctx.group.clusterId);
   const meals = mealsFor(ctx.where, ctx.day.i, times);
   const [complain, setComplain] = useState<Meal | null>(null);
   const mine = useMyTickets(ctx.sessionId);

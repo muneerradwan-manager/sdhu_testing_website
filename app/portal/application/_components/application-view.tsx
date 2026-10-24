@@ -36,7 +36,7 @@ import { usePublishedDraw } from "@/lib/lottery";
 import { itineraryOf, passCardOf, useFlightsData } from "@/lib/flights";
 import { ageOf, relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
-import { useSeason } from "@/lib/season-live";
+import { useClusterMeals, useSeason } from "@/lib/season-live";
 import { actions, useStore, type Application, type PostAcceptance } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { BoardingPass } from "./cards";
@@ -138,7 +138,9 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   const post = useStore((s) => s.post[s.sessionId ?? ""]) ?? EMPTY_POST;
   const review = useStore((s) => s.reviews[s.sessionId ?? ""]);
   const admins = useStore((s) => s.admins);
-  const { fees, acceptedDirectAge, meals } = useSeason();
+  const { fees, acceptedDirectAge } = useSeason();
+  // The meals of the cluster's two hotels, as its technical coordinator timed them
+  const meals = useClusterMeals(groupInfo(post.clusterId, post.groupNumber).clusterId);
   const draw = usePublishedDraw();
   const [now, setNow] = useState(() => Date.now());
   const [mashaer, setMashaer] = useState<"mina" | "arafat" | "muzdalifah" | "jamarat">("mina");

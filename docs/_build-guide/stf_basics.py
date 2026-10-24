@@ -178,7 +178,7 @@ if ONLY in (None, "b"):
 if ONLY in (None, "c"):
     S = "C"
     s = new(); c, p = s.c, s.p
-    s.login("nour.a")
+    s.login("lubna")  # the season settings are her work, not the season director's
     s.nav("إعدادات الموسم", 2200)
     c.shot("season-top", "إعدادات الموسم: «الشروط والرسوم» في نموذج واحد، و«مواعيد العمليات»", hl=[("aside a[href$='/staff/season']", "")], section=S)
     c.scroll_to("main :text-is('الرسوم والتكاليف')", 110)
@@ -205,8 +205,6 @@ if ONLY in (None, "c"):
     p.locator("main button:has-text('مواعيد العمليات')").first.click(); c.settle(1500)
     c.shot("season-ops", "مواعيد العمليات: حالة كل عملية وبدايتها ونهايتها ومن يتحكم بها",
            hl=[("main button:has-text('مواعيد العمليات')", "1")], section=S)
-    p.locator("main button:has-text('مواعيد الوجبات')").first.click(); c.settle(1200)
-    c.shot("season-meals-times", "مواعيد الوجبات: الفطور والغداء في فندق مكة وفندق المدينة", hl=[("main button:has-text('مواعيد الوجبات')", "1")], section=S)
     s.close()
 
 # ───────── D. «القبول والقرعة»: entry (كنان), then approval and publishing (يوسف) ─────────

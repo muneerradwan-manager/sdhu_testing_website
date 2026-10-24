@@ -15,6 +15,9 @@ import { DEFAULT_TIER, branchOf, categoryOf, categoryOfId, seatsLabel, seatsOf, 
 import { roleKeyOf } from "@/app/administrator/_lib/halls";
 import { useClusterProgrammes } from "@/lib/cluster-profile";
 import { letterState, useLetters } from "@/app/administrator/_lib/letters";
+import { selfRoleOf } from "@/app/administrator/_lib/evaluation";
+import { examRoleOf } from "@/app/administrator/_lib/structure";
+import { positionKeyOf } from "@/app/administrator/_lib/admin";
 import { useAdminRows, type AdminRow } from "../_components/data";
 import { logAs } from "../_components/kit";
 import type { Alert, SystemStatus } from "../_components/system";
@@ -87,7 +90,9 @@ export function useAdminsDesk() {
   const formationWindow = useFormationWindow();
   const s = useStructure();
   const cadre = useCadre();
-  const evaluations = useStore((s) => s.evaluations);
+  const peers = useStore((s) => s.peerEvaluations);
+  const objections = useStore((s) => s.evaluationObjections);
+  const decisions = useStore((s) => s.evaluationDecisions);
   const grading = useStore((s) => s.grading);
   const profiles = useStore((s) => s.clusterProfiles);
   const groupProfiles = useStore((s) => s.groupProfiles);
@@ -196,11 +201,16 @@ export function useAdminsDesk() {
     const pendingGroupPages = groupPages.filter((x) => x.state.pending);
 
     // ── Evaluation ── of everyone who works this season, stage by stage
-    const toEvaluate = rows.filter(isQualified);
-    const coverage = stages.map((st) => ({ stage: st, done: toEvaluate.filter((r) => evaluations[r.id]?.stages[st.key]).length, total: toEvaluate.length }));
+    // Those the staff rate: the groups' heads, the clusters' heads and the guides — the ones with a self-evaluation. A stage is covered once
+    // someone from the staff scored the administrator in it (nobody sees who)
+    const toEvaluate = rows.filter(isQualified).filter((r) => selfRoleOf(examRoleOf(positionKeyOf(r.profile.positions[0]) || "group-head"), !!r.profile.cluster) !== null);
+    const scored = (id: string, key: string) => Object.values(peers[id] ?? {}).some((p) => p.stages[key]);
+    const coverage = stages.map((st) => ({ stage: st, done: toEvaluate.filter((r) => scored(r.id, st.key)).length, total: toEvaluate.length }));
     // A stage counts as reached once anyone was scored in it; the ones nobody has reached yet wait for the season
     const behind = coverage.filter((c) => c.done > 0 && c.done < c.total);
-    const evaluated = toEvaluate.filter((r) => evaluations[r.id]);
+    const evaluated = toEvaluate.filter((r) => peers[r.id]);
+    // Objections the committee has not finished: some stage objected to and not yet decided
+    const undecided = Object.entries(objections).filter(([id, o]) => o.stages.some((k) => !decisions[id]?.stages[k])).length;
 
     // ── Classification ──
     const shares = { promoteShare: season.grading.promoteShare, demoteShare: season.grading.demoteShare, honorTop: season.grading.honorTop };
@@ -209,7 +219,7 @@ export function useAdminsDesk() {
       return { total: entries.length, tiers: tiers.length, up: tiers.reduce((n, t) => n + t.rows.filter((r) => r.outcome === "promote").length, 0), down: tiers.reduce((n, t) => n + t.rows.filter((r) => r.outcome === "demote").length, 0) };
     };
     const classified = { groups: tally(gradedGroups), clusters: tally(gradedClusters) };
-    const lastEvaluation = Math.max(0, ...Object.values(evaluations).map((e) => e.at));
+    const lastEvaluation = Math.max(0, ...Object.values(peers).flatMap((m) => Object.values(m).map((e) => e.at)), ...Object.values(decisions).map((d) => d.at));
     const stale = !!grading.publishedAt && lastEvaluation > grading.publishedAt;
 
     // ── Letters and plans ── what the cadre wrote to the administration, and the clusters' operational plans
@@ -253,9 +263,10 @@ export function useAdminsDesk() {
           ? [{ id: "group-pages", level: "work" as const, title: `${pendingGroupPages.length} صفحات مجموعات تنتظر اعتمادك`, hint: "صورة المجموعة ونبذتها ومعرض صورها لا تصل إلى الحجاج قبل أن تُعتمد.", href: `${M}/clusters?v=group-pages`, action: "راجعها" }]
           : []),
       ],
-      evaluation: behind.length
-        ? [{ id: "behind", level: "work", title: `${behind.length} مراحل تقييم لم تكتمل`, hint: behind.map((c) => `${c.stage.label}: بقي ${c.total - c.done}`).join(" · "), href: `${M}/evaluation`, action: "أكمل التقييم" }]
-        : [],
+      evaluation: [
+        ...(behind.length ? [{ id: "behind", level: "work" as const, title: `${behind.length} مراحل لم يكتمل تقييمها`, hint: behind.map((c) => `${c.stage.label}: بقي ${c.total - c.done}`).join(" · ") + ". يقيّم الموظفون، لا الإدارة.", href: `${M}/evaluation`, action: "تابع النتائج" }] : []),
+        ...(undecided ? [{ id: "committee", level: "work" as const, title: `${undecided} اعتراضات عند لجنة التقييم`, hint: "تقرؤها اللجنة وتقرّر درجة كل مرحلة معترض عليها. لا تبتّ فيها الإدارة.", href: `${M}/evaluation`, action: "اطّلع" }] : []),
+      ],
       grading: stale
         ? [{ id: "stale", level: "work", title: "تقييمات حُفظت بعد نشر التصنيف", hint: "تغيّرت درجات بعض المجموعات أو التكتلات، والتصنيف المنشور لا يراها.", href: `${M}/grading`, action: "أعد اعتماده" }]
         : !grading.publishedAt && evaluated.length
@@ -305,7 +316,7 @@ export function useAdminsDesk() {
       high: alerts.filter((a) => a.level === "high"),
       badges: Object.fromEntries(AREAS.map((a) => [a, byArea[a].length])) as Record<Area, number>,
     };
-  }, [rows, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, evaluations, grading, profiles, groupProfiles, directory, gradedGroups, gradedClusters, letters, plans]);
+  }, [rows, season, roles, stages, table, types, validity, adminRules, requests, formationWindow, s, cadre, peers, objections, decisions, grading, profiles, groupProfiles, directory, gradedGroups, gradedClusters, letters, plans]);
 }
 
 export type AdminsDesk = ReturnType<typeof useAdminsDesk>;

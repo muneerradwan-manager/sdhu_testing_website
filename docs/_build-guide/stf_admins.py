@@ -375,13 +375,10 @@ if ONLY in (None, "e"):
     esc(c, p)
 
     # ── the evaluation ──
-    s.nav("التقييم", 1800)
-    c.shot("adm-eval-list", "تقييم الإداريين: كم مرحلة قُيّم فيها كل منهم، ومتوسطه", section=S_EVAL)
-    p.locator("main tr:has-text('ياسر') a:has-text('تقييم')").first.click(); c.settle(1600)
-    for i, sc in enumerate(["4", "5", "4"]):
-        p.locator("main [role=radiogroup]").nth(i).locator(f"button:text-is('{sc}'), [role=radio]:text-is('{sc}')").first.click(); c.settle(250)
-    c.shot("adm-eval", "تقييم إداري: درجة من 1 إلى 5 لكل مرحلة، وملاحظة ودليل", hl=[("main aside button:has-text('حفظ التقييم')", "")], section=S_EVAL)
-    p.locator("main aside button:has-text('حفظ التقييم')").first.click(); c.settle(5500)
+    s.nav("نتائج التقييم", 1800)
+    c.shot("adm-eval-list", "نتائج التقييم: تقييمه لنفسه وتقييم الموظفين والاعتراض والدرجة المعتمدة، للاطلاع فقط", section=S_EVAL)
+    p.locator("main tbody tr").first.locator("a:has-text('النتيجة')").first.click(); c.settle(1600)
+    c.shot("adm-eval", "نتيجة إداري مرحلةً مرحلة: درجته ودرجة الموظفين والمعتمدة، دون أسماء المقيّمين", section=S_EVAL)
 
     # ── the classification ──
     s.nav("التصنيف", 1800)

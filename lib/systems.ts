@@ -14,8 +14,12 @@ import { setState, useStore } from "./store";
  */
 export type SystemKey = "staff" | "registration" | "admins" | "exams" | "flights";
 
-/** One operation of a file: its own entry in the menu, its own page; `area` is the desk's part that counts what waits in it */
-export type SystemOperation = { href: string; label: string; area: string; desc: string; perms: string[] };
+/**
+ * One operation of a file: its own entry in the menu, its own page; `area` is the desk's part that counts what waits in it.
+ * `sub`: a page of another operation, not a main one — adding an item: it opens from its list's button and hangs from
+ * that list in the menu's tree, not as an entry of its own
+ */
+export type SystemOperation = { href: string; label: string; area: string; desc: string; perms: string[]; sub?: true };
 
 /** `manage`: where the file's work starts (its first operation) */
 export type SystemDef = { label: string; desc: string; summary: { href: string; label: string }; manage: { href: string; label: string }; operations: SystemOperation[] };
@@ -29,7 +33,7 @@ export const SYSTEMS: Record<SystemKey, SystemDef> = {
     manage: { href: "/staff/employees/manage", label: "إدارة الموظفين" },
     operations: [
       { href: "/staff/employees/manage", label: "سجل الموظفين", area: "register", desc: "سجل موظفي البعثة الدائم والمنتدبين: تحفظه وتستكمل بيانات كل موظف، وفي ملف كل موظف سجلّه.", perms: ["staff.employees.GET"] },
-      { href: "/staff/employees/manage/edit", label: "إضافة موظف", area: "add", desc: "موظف جديد في السجل: بياناته، ونوعه، ومشاركته في الموسم.", perms: ["staff.employees.POST"] },
+      { href: "/staff/employees/manage/edit", label: "إضافة موظف", area: "add", desc: "موظف جديد في السجل: بياناته، ونوعه، ومشاركته في الموسم.", perms: ["staff.employees.POST"], sub: true },
       { href: "/staff/employees/manage/accounts", label: "حسابات البوابة", area: "accounts", desc: "حسابات بوابة الموظفين وصلاحياتها، كل حساب مربوط بسجل صاحبه.", perms: ["staff.accounts.GET"] },
       { href: "/staff/employees/manage/season", label: "المشاركون في الموسم", area: "season", desc: "من يشارك في الموسم، وأين أُسند في الملفات التشغيلية، وعلى أي رحلة.", perms: ["staff.season-participation.GET"] },
     ],
@@ -42,7 +46,7 @@ export const SYSTEMS: Record<SystemKey, SystemDef> = {
     // As a site's admin menu: the pages first and adding one, then the rest; the numbers live on the dashboard alone
     operations: [
       { href: "/staff/hajj/manage", label: "صفحات التسجيل", area: "stages", desc: "الصفحات التي يمر بها الحاج حين يقدّم طلبه، بترتيبها. افتح أي صفحة لتعديلها، أو أضف صفحة جديدة.", perms: ["registration.pages.GET"] },
-      { href: "/staff/hajj/manage/edit", label: "إضافة صفحة", area: "add", desc: "صفحة جديدة في التسجيل: عنوانها ونصها وأسئلتها، ولمن تظهر.", perms: ["registration.pages.POST"] },
+      { href: "/staff/hajj/manage/edit", label: "إضافة صفحة", area: "add", desc: "صفحة جديدة في التسجيل: عنوانها ونصها وأسئلتها، ولمن تظهر.", perms: ["registration.pages.POST"], sub: true },
       { href: "/staff/hajj/manage/steps", label: "الخطوات بعد القبول", area: "steps", desc: "ما يفعله الحاج بعد قبوله، خطوة بعد خطوة حتى التأشيرة والرحلة.", perms: ["registration.post-steps.GET"] },
       { href: "/staff/hajj/manage/rules", label: "شروط الأهلية", area: "rules", desc: "شروط تضيفها الإدارة لهذا الموسم فوق شروط المنصة الثابتة.", perms: ["registration.eligibility-rules.GET"] },
       { href: "/staff/hajj/manage/payments", label: "الدفعات والمسارات", area: "payments", desc: "كم دفعة تُدفع تكلفة الحج، وكم كل دفعة ومتى، وطرق الدفع، ومسارا التسجيل ومواعيدهما.", perms: ["registration.payments-tracks.GET"] },
@@ -65,7 +69,7 @@ export const SYSTEMS: Record<SystemKey, SystemDef> = {
       { href: "/staff/admins/manage/clusters", label: "التكتلات", area: "clusters", desc: "تشكّل كل تكتل في المكتب بحضور رئيسه وكادره، وترفع عقده الموقّع.", perms: ["admins.clusters.GET", "admins.programmes.GET", "admins.group-pages.GET"] },
       { href: "/staff/admins/manage/directory", label: "التكتلات والمجموعات", area: "directory", desc: "ما نتج عن التشكيلات المعتمدة، وملاحظات الإدارة عليها.", perms: ["admins.directory.GET"] },
       { href: "/staff/admins/manage/letters", label: "المراسلات", area: "letters", desc: "رسائل الإداريين إلى الإدارة: تقرؤها وتردّ عليها.", perms: ["admins.letters.GET"] },
-      { href: "/staff/admins/manage/evaluation", label: "التقييم", area: "evaluation", desc: "تقييم من عمل هذا الموسم مرحلةً مرحلة.", perms: ["admins.evaluation.GET"] },
+      { href: "/staff/admins/manage/evaluation", label: "نتائج التقييم", area: "evaluation", desc: "نتائج تقييم رؤساء المجموعات والتكتلات والموجّهين: تقييمه لنفسه وتقييم الموظفين وقرار لجنة التقييم والدرجة المعتمدة. للاطلاع فقط.", perms: ["admins.evaluation.GET"] },
       { href: "/staff/admins/manage/grading", label: "التصنيف", area: "grading", desc: "تصنيف المجموعات والتكتلات في نهاية الموسم ونشره.", perms: ["admins.grading.GET"] },
     ],
   },
@@ -76,7 +80,7 @@ export const SYSTEMS: Record<SystemKey, SystemDef> = {
     manage: { href: "/staff/exam/manage", label: "إدارة الامتحانات" },
     operations: [
       { href: "/staff/exam/manage", label: "القاعات والمحافظات", area: "centers", desc: "القاعات التي يُجلس فيها للاختبار. افتح أي قاعة لتعديلها، أو أضف قاعة جديدة.", perms: ["exams.centers.GET"] },
-      { href: "/staff/exam/manage/edit", label: "إضافة قاعة", area: "add-center", desc: "قاعة جديدة: مكانها ومحافظاتها ومشرفها وشاشتها.", perms: ["exams.centers.POST"] },
+      { href: "/staff/exam/manage/edit", label: "إضافة قاعة", area: "add-center", desc: "قاعة جديدة: مكانها ومحافظاتها ومشرفها وشاشتها.", perms: ["exams.centers.POST"], sub: true },
       { href: "/staff/exam/manage/exams", label: "الاختبارات", area: "exams", desc: "اختبار كل صفة واختبارات الاستدراك. افتح أي اختبار لتعديل أقسامه وموعده، أو انشره.", perms: ["exams.exams.GET"] },
       { href: "/staff/exam/manage/bank", label: "بنك الأسئلة", area: "bank", desc: "الأسئلة التي تُسحب منها الأوراق. افتح أي سؤال لتعديله، أو أضف سؤالاً.", perms: ["exams.questions.GET"] },
       { href: "/staff/exam/manage/people", label: "المتقدمون", area: "people", desc: "من يختبر وفي أي قاعة. حدّد متقدمين لنقلهم إلى قاعة أخرى.", perms: ["exams.applicants.GET"] },

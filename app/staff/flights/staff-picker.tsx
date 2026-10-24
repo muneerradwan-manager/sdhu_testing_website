@@ -4,7 +4,7 @@ import { Check, UserRoundPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DIRECTION_LABEL, fmtGregShort, fmtClock, isActive, seatStats, type Flight, type FlightsData, type Traveler } from "@/lib/flights";
-import { CURRENT_SEASON, MISSIONS, employeeHaystack, fullName, inSeason, matches, postingsOf, useEmployees, useOpFiles, usePlaces, type Employee } from "@/lib/ops";
+import { CURRENT_SEASON, MISSIONS, employeeHaystack, fileTypeOf, fullName, inSeason, matches, postingsOf, useEmployees, useOpFiles, usePlaces, type Employee } from "@/lib/ops";
 import { cn } from "@/lib/utils";
 import { Drawer, useCan } from "../_components/kit";
 import { Avatar, Chip, FilterSelect, SearchBox, selectClass } from "../_components/ops-ui";
@@ -79,7 +79,7 @@ export function StaffPicker({ open, onClose, flight, data, onAssign }: { open: b
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <SearchBox value={q} onChange={setQ} label="بحث في الموظفين" placeholder="اسم، مسمى، محافظة..." />
         <FilterSelect value={mission} onChange={setMission} label="البعثة" all="كل البعثات" options={MISSIONS} />
-        <FilterSelect value={fileId} onChange={setFileId} label="الملف التشغيلي" all="كل الملفات" options={seasonFiles.map((f) => ({ value: f.id, label: `${f.type === "makkah-housing" ? "التسكين في مكة" : f.type === "mina-camps" ? "مخيمات منى" : "مخيمات عرفات"} ${f.season}` }))} />
+        <FilterSelect value={fileId} onChange={setFileId} label="الملف التشغيلي" all="كل الملفات" options={seasonFiles.map((f) => ({ value: f.id, label: `${fileTypeOf(f.type).short} ${f.season}` }))} />
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-white/70">
         <span>{rows.length} موظفاً مشاركاً في الموسم{fileId ? " في هذا الملف" : ""}</span>

@@ -196,7 +196,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                   <p className="flex items-center gap-2 text-xs font-bold text-maroon">
                     <Hotel className="size-4" /> {t("مكة المكرمة", "Makkah")}
                   </p>
-                  <p className="mt-2 font-display text-xl font-bold text-ink">{c.makkah.hotel}</p>
+                  <p className="mt-2 font-display text-xl font-bold text-ink">{c.makkah.hotel}{c.makkah.stars ? <span className="ms-2 text-base text-gold-dark" role="img" aria-label={t(`${c.makkah.stars} نجوم`, `${c.makkah.stars} stars`)}>{"★".repeat(c.makkah.stars)}</span> : null}</p>
                   <p className="text-sm text-ink-soft">
                     {c.makkah.area} · {c.makkah.distance}
                   </p>
@@ -214,7 +214,7 @@ export function ClusterPage({ slug }: { slug: string }) {
                   <p className="flex items-center gap-2 text-xs font-bold text-maroon">
                     <MapPin className="size-4" /> {t("المدينة المنورة", "Madinah")}
                   </p>
-                  <p className="mt-2 font-display text-xl font-bold text-ink">{c.madinah.hotel}</p>
+                  <p className="mt-2 font-display text-xl font-bold text-ink">{c.madinah.hotel}{c.madinah.stars ? <span className="ms-2 text-base text-gold-dark" role="img" aria-label={t(`${c.madinah.stars} نجوم`, `${c.madinah.stars} stars`)}>{"★".repeat(c.madinah.stars)}</span> : null}</p>
                   <p className="text-sm text-ink-soft">
                     {c.madinah.area} · {c.madinah.distance}
                   </p>

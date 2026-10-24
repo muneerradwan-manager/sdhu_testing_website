@@ -408,6 +408,19 @@ const LESSON_COLLECTION: CollectionDef = {
     { key: "minutes", label: "المدة بالدقائق", kind: "number", def: 10, min: 1, max: 180 },
     { key: "lecturer", label: "الملقي", kind: "select", options: LECTURER_OPTIONS, def: "abdulrahman" },
     { key: "poster", label: "صورة الدرس", kind: "image", def: "", wide: true },
+    { key: "media", label: "نوع الدرس", kind: "select", def: "video", options: [{ value: "video", label: "فيديو" }, { value: "audio", label: "صوت" }] },
+    { key: "hasAudio", label: "مع ملف صوتي للتنزيل", kind: "boolean", def: false },
+    { key: "videoSrc", label: "ملف الفيديو", kind: "video", def: "", wide: true, hint: "إن تُرك فارغاً عُرض الدرس بصوره وصوته التجريبي." },
+    {
+      key: "gallery",
+      label: "صور العرض المرافق",
+      kind: "list",
+      itemName: "صورة",
+      itemTitleKey: "src",
+      wide: true,
+      item: [{ key: "src", label: "الصورة", kind: "image", def: "", wide: true }],
+      def: [],
+    },
     textList("summary", "الملخص المكتوب", "فقرة", [], 4),
     textList("points", "النقاط الرئيسية", "نقطة"),
     textList("tags", "الوسوم", "وسم"),
@@ -446,6 +459,10 @@ const LESSON_COLLECTION: CollectionDef = {
       minutes: lesson.minutes,
       lecturer: lesson.lecturer,
       poster: lesson.poster,
+      media: lesson.media,
+      hasAudio: !!lesson.hasAudio,
+      videoSrc: lesson.videoSrc ?? "",
+      gallery: (lesson.gallery ?? []).map((src) => ({ src })),
       summary: lesson.summary.map((text) => ({ text })),
       points: lesson.points.map((text) => ({ text })),
       tags: lesson.tags.map((text) => ({ text })),
@@ -458,6 +475,52 @@ const LESSON_COLLECTION: CollectionDef = {
   })),
 };
 
+/** معرّف اختبار المستوى في المجموعة = مسار/رقم المستوى (يبدأ من 1) */
+export const quizItemId = (trackSlug: string, levelIndex: number) => `${trackSlug}/${levelIndex + 1}`;
+
+const QUIZ_COLLECTION: CollectionDef = {
+  id: "academyQuizzes",
+  label: "اختبارات الأكاديمية",
+  itemName: "اختبار",
+  itemsName: "الاختبارات",
+  icon: "ClipboardList",
+  group: "مجموعات المحتوى",
+  description: "أسئلة الاختبار الذي يختم كل مستوى من مستويات المسار: السؤال وخياراته والخيار الصحيح وشرح الجواب.",
+  path: "/academy",
+  itemHref: (id) => `/academy/${id.split("/")[0]}`,
+  titleKey: "levelTitle",
+  subtitleKey: "trackTitle",
+  fields: [
+    {
+      key: "questions",
+      label: "الأسئلة",
+      kind: "list",
+      itemName: "سؤال",
+      itemTitleKey: "q",
+      wide: true,
+      hint: "اختبار المستوى يظهر للحاج بعد دروسه. لكل سؤال خياراته (خيار في كل سطر) ورقم الخيار الصحيح.",
+      item: [
+        { key: "q", label: "السؤال", kind: "textarea", rows: 2, def: "", wide: true },
+        { key: "options", label: "الخيارات", kind: "textarea", rows: 4, def: "", wide: true, hint: "خيار في كل سطر، اثنان على الأقل." },
+        { key: "answer", label: "رقم الخيار الصحيح", kind: "number", def: 1, min: 1, max: 6 },
+        { key: "explain", label: "شرح الجواب", kind: "textarea", rows: 3, def: "", wide: true },
+      ],
+      def: [],
+    },
+  ],
+  builtIn: TRACKS.flatMap((track) =>
+    track.levels.map((level, li) => ({
+      id: quizItemId(track.slug, li),
+      values: {
+        questions: level.quiz.map((q) => ({ q: q.q, options: q.options.join("\n"), answer: q.answer + 1, explain: q.explain })),
+        // للعرض في لوحة التحكم فقط
+        trackTitle: track.title,
+        levelTitle: level.title,
+      },
+    })),
+  ),
+};
+
 export const CMS_COLLECTIONS: CollectionDef[] = [
   NEWS,
   FAQ,
@@ -466,6 +529,7 @@ export const CMS_COLLECTIONS: CollectionDef[] = [
   CLUSTER_COLLECTION,
   TRACK_COLLECTION,
   LESSON_COLLECTION,
+  QUIZ_COLLECTION,
 ];
 
 export function getCollectionDef(id: string) {

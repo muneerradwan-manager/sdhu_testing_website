@@ -8,7 +8,7 @@ import type { PaymentsConfig } from "./registration/types";
 import type { RoomPrices } from "./rooms";
 import type { SeasonRules } from "./rules";
 import { SEASON } from "./season";
-import { useStore, type SeasonOverrides } from "./store";
+import { useStore, type ClusterMeals, type SeasonOverrides } from "./store";
 
 export type LiveSeason = {
   rules: SeasonRules;
@@ -36,15 +36,35 @@ export type LiveSeason = {
   documents: Record<string, number>;
   /** End-of-season classification: the shares that move between tiers, and how many are honoured */
   grading: { tiers: typeof SEASON.grading.tiers; promoteShare: number; demoteShare: number; honorTop: number; entryTier: number };
-  /** The four meals of the season, as the administration timed them: breakfast and lunch in each hotel */
-  meals: MealTimes;
   overridden: (keyof SeasonOverrides)[];
 };
 
 export type MealTimes = { makkah: { breakfast: string; lunch: string }; madinah: { breakfast: string; lunch: string }; menus?: { makkah: { breakfast?: string; lunch?: string }; madinah: { breakfast?: string; lunch?: string } } };
 
-/** The meal times before the administration sets its own */
+/** The meal times before a cluster's technical coordinator sets its own */
 export const DEFAULT_MEALS: MealTimes = { makkah: { breakfast: "06:00 – 09:00", lunch: "13:00 – 15:00" }, madinah: { breakfast: "05:30 – 08:30", lunch: "13:00 – 15:00" } };
+
+/**
+ * The meals of a cluster's two hotels, breakfast and lunch in each, as its technical coordinator timed them
+ * («الوجبات» in the administrators' portal): what the pilgrims of its groups read. A meal he did not time keeps
+ * the default; a menu he left empty is the hotel's menu of the day.
+ */
+export function mealsOfCluster(stored?: ClusterMeals): MealTimes {
+  return {
+    makkah: { breakfast: stored?.makkah.breakfast || DEFAULT_MEALS.makkah.breakfast, lunch: stored?.makkah.lunch || DEFAULT_MEALS.makkah.lunch },
+    madinah: { breakfast: stored?.madinah.breakfast || DEFAULT_MEALS.madinah.breakfast, lunch: stored?.madinah.lunch || DEFAULT_MEALS.madinah.lunch },
+    menus: {
+      makkah: { breakfast: stored?.menus?.makkah.breakfast || undefined, lunch: stored?.menus?.makkah.lunch || undefined },
+      madinah: { breakfast: stored?.menus?.madinah.breakfast || undefined, lunch: stored?.menus?.madinah.lunch || undefined },
+    },
+  };
+}
+
+/** The meals of a cluster's hotels, live; without a cluster (or before its coordinator times them) the defaults */
+export function useClusterMeals(clusterId?: string): MealTimes {
+  const stored = useStore((s) => (clusterId ? s.clusterMeals[clusterId] : undefined));
+  return useMemo(() => mealsOfCluster(stored), [stored]);
+}
 
 /**
  * Pure merge — usable outside React (e.g. to evaluate seeded applications). `payments`: the published
@@ -102,14 +122,6 @@ export function mergeSeason(o: SeasonOverrides, payments?: PaymentsConfig): Live
       promoteShare: (o.promoteShare ?? SEASON.grading.promoteShare * 100) / 100,
       demoteShare: (o.demoteShare ?? SEASON.grading.demoteShare * 100) / 100,
       honorTop: o.honorTop ?? SEASON.grading.honorTop,
-    },
-    meals: {
-      makkah: { breakfast: o.mealMakkahBreakfast ?? DEFAULT_MEALS.makkah.breakfast, lunch: o.mealMakkahLunch ?? DEFAULT_MEALS.makkah.lunch },
-      madinah: { breakfast: o.mealMadinahBreakfast ?? DEFAULT_MEALS.madinah.breakfast, lunch: o.mealMadinahLunch ?? DEFAULT_MEALS.madinah.lunch },
-      menus: {
-        makkah: { breakfast: o.menuMakkahBreakfast || undefined, lunch: o.menuMakkahLunch || undefined },
-        madinah: { breakfast: o.menuMadinahBreakfast || undefined, lunch: o.menuMadinahLunch || undefined },
-      },
     },
     overridden: Object.keys(o) as (keyof SeasonOverrides)[],
   };

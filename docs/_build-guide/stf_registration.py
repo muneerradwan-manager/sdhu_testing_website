@@ -100,7 +100,7 @@ c.shot("reg-pages-2", "الصفحات الأساسية بقفلها، وما ت�
 p.locator("main tr:has-text('فحص الأهلية') a:text-is('تعديل')").first.click(); c.settle(2000)
 c.shot("reg-page-essential", "صفحة أساسية: تُعدَّل كلماتها ومكانها فقط", hl=[("main p:has-text('صفحة أساسية')", "1")], section=S)
 # a new page for those living abroad, with one question
-s.nav("إضافة صفحة", wait=2000)
+s.link("إضافة صفحة جديدة", wait=2000)  # the button of the list: the new page is a sub-page
 p.locator("input[aria-label='العنوان']").fill("المقيمون خارج سوريا")
 p.locator("textarea[aria-label='النص تحت العنوان']").fill("سؤال واحد لمن يقيم خارج سوريا، يساعد مكتبه على التواصل معه.")
 c.settle(300)

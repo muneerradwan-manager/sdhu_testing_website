@@ -1,26 +1,27 @@
 "use client";
 
 import { useMemo } from "react";
-import type { OpFile, Place } from "@/lib/ops";
-import { useStore, type ClusterRecord, type PeerEvaluation, type StageScores, type State } from "@/lib/store";
+import { groupName } from "@/lib/groups";
+import { CURRENT_SEASON, fileTypeOf, type FileTypeCode, type OpFile, type Place } from "@/lib/ops";
+import { useStore, type ClusterRecord, type StageScores, type State } from "@/lib/store";
 import { useEvaluationStages } from "./admin-rules";
 import { acceptedGroups } from "./cluster";
-import { ACCOUNTANT_TITLE, POOLS } from "./formation";
 
 /**
- * The season's evaluation, after the pilgrims are home. Its windows, one after the other (lib/operations):
- * - «التقييم الذاتي للإداريين»: once the last return flight has landed in Damascus, a group's head, a cluster's
- *   head and the religious guides rate themselves (the coordinators and the assistants do not), stage by stage,
- *   with the questions of their role, and send it once;
- * - «تقييم الموظفين للإداريين والمجموعات والتكتلات»: after it, the mission's staff posted in a tower or a camp
- *   rate the clusters that lived there — each cluster as a whole, each of its groups, and each administrator in
- *   it — stage by stage, beside the administration's own evaluation in «إدارة الإداريين» (`evaluations`);
- * - «الاعتراض على التقييم»: then each administrator may object to the staff's evaluation of him, and the
- *   administration decides.
- * The adopted evaluation is these two only: his own and the staff's, shown side by side, never mixed into one
- * number. Administrators do not rate one another. The pilgrims' evaluation after their return is optional and
- * general, and rates no one by name. A group's or a cluster's staff evaluation is kept under «g-<group>» /
- * «c-<cluster>».
+ * The season's evaluation, after the pilgrims are home. It has three phases (their windows are lib/operations):
+ * 1. «التقييم الذاتي» and «تقييم الموظفين» together. A group's head, a cluster's head and the religious guides rate
+ *    themselves, stage by stage, with the questions of their role. At the same time the staff who were with them rate
+ *    them, with the same questions: the Makkah hotel's staff rate the Makkah stage, the Madinah hotel's the Madinah
+ *    stage, the camps' the mashaer stage, and the flights' supervisors — a file of their own — the airport and the
+ *    travel stages, for every cluster. To rate a group's head is to rate the group; a cluster's head, the cluster; a guide,
+ *    the guide. Nobody else is rated.
+ * 2. «الاعتراض على التقييم»: an administrator may object to the staff's evaluation, with evidence — photos, sound, video,
+ *    documents — and the staff who rated him answer with their own.
+ * 3. «قرار لجنة التقييم»: the committee (a file of its own) reads both sides and, for each stage objected to, decides his
+ *    score, the staff's, or a third of its own.
+ * With no objection the staff's score stands. Whoever rated is hidden from the administrator and from the administration —
+ * they see how many rated, never who — and known to the committee alone, which can summon him. The pilgrims' evaluation
+ * is general, rates no one by name and counts in none of this.
  */
 
 export type Stage = { key: string; label: string; hint: string };
@@ -225,106 +226,167 @@ export function avgOf(stages: StageScores | undefined) {
 
 // ───────────────────────── Who is evaluated, by whom ─────────────────────────
 
-/** Someone a cluster holds, with his place in it */
-export type CadreMember = { id: string; name: string; posts: string[]; groups: number[] };
-
-/** Everyone a cluster's request holds, each once with all his places: its head and accountant, its groups' heads and seats, its assistants, coordinators and female guides */
-export function cadreMembers(headId: string, headName: string, c: ClusterRecord): CadreMember[] {
-  const map = new Map<string, CadreMember>();
-  const yes = (s?: string) => s === "accepted";
-  const put = (id: string, name: string, post: string, group?: number) => {
-    const cur = map.get(id) ?? { id, name, posts: [], groups: [] };
-    if (!cur.posts.includes(post)) cur.posts.push(post);
-    if (group !== undefined && !cur.groups.includes(group)) cur.groups.push(group);
-    map.set(id, cur);
-  };
-  put(headId, headName, "رئيس التكتل");
-  for (const g of acceptedGroups(c)) {
-    put(g.id, g.name, "رئيس المجموعة", g.number);
-    for (const seat of c.seats[g.number] ?? []) if (seat.who && yes(seat.who.status)) put(seat.who.id, seat.who.name, POOLS[seat.kind].title, g.number);
-  }
-  for (const x of c.assistants) if (yes(x.status)) put(x.id, x.name, POOLS["cluster-assistant"].title);
-  for (const x of c.coordinators) if (yes(x.status)) put(x.id, x.name, POOLS.tech.title);
-  for (const x of c.femaleGuides) if (yes(x.status)) put(x.id, x.name, POOLS["guide-f"].title);
-  if (c.accountant && yes(c.accountant.status)) put(c.accountant.id, c.accountant.name, ACCOUNTANT_TITLE);
-  return [...map.values()];
+/**
+ * The key a rating is kept under (the rater's own record, `by`, travels with it for the committee): the one who rated can
+ * compute it again to find his own.
+ */
+export function raterKey(userId: string) {
+  let h = 5381;
+  for (const ch of `${CURRENT_SEASON}|${userId}`) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0;
+  return `r${h.toString(36)}`;
 }
 
-/** Where a staff member was posted this season with the clusters that lived there: a tower or a camp holds its own; a sector or a centre all of its towers' or camps' */
-export type StaffPlace = { file: string; role: string; place: string; clusters: string[] };
+/** The stage keys of the staff's files: where each saw the cluster (a file type's `evaluates`) */
+export const stagesOfFile = (type: FileTypeCode) => fileTypeOf(type).evaluates?.stages ?? [];
 
-export function staffPlacesOf(employeeId: string, files: OpFile[], places: Map<string, Place>, season: number): StaffPlace[] {
+/** Where a staff member was posted this season: the clusters that lived there, and the stages he saw of them */
+export type StaffPlace = { file: FileTypeCode; place: string; clusters: string[]; stages: string[] };
+
+/**
+ * The places a staff member rates from: a tower or a camp holds its own clusters, a sector or a centre all of its towers'
+ * or camps'; the staff of a file that serves every cluster (the flights') rate all of them — `all`, the approved clusters' ids.
+ */
+export function staffPlacesOf(employeeId: string, files: OpFile[], places: Map<string, Place>, season: number, all: string[] = []): StaffPlace[] {
   const out: StaffPlace[] = [];
   for (const file of files.filter((f) => f.season === season)) {
+    const type = fileTypeOf(file.type);
+    if (!type.evaluates) continue;
+    if (type.evaluates.all) {
+      if (file.members.some((m) => m.employeeId === employeeId) && all.length) out.push({ file: file.type, place: type.short, clusters: all, stages: type.evaluates.stages });
+      continue;
+    }
     for (const o of file.nodes) {
       if (o.members.some((m) => m.employeeId === employeeId)) {
         const clusters = [...new Set(o.children.flatMap((c) => c.clusters))];
-        if (clusters.length) out.push({ file: file.type, role: o.members.find((m) => m.employeeId === employeeId)!.role, place: places.get(o.refId)?.name ?? o.refId, clusters });
+        if (clusters.length) out.push({ file: file.type, place: places.get(o.refId)?.name ?? o.refId, clusters, stages: type.evaluates.stages });
       }
       for (const c of o.children) {
-        const m = c.members.find((x) => x.employeeId === employeeId);
-        if (m && c.clusters.length) out.push({ file: file.type, role: m.role, place: places.get(c.refId)?.name ?? c.refId, clusters: c.clusters });
+        if (c.members.some((x) => x.employeeId === employeeId) && c.clusters.length) out.push({ file: file.type, place: places.get(c.refId)?.name ?? c.refId, clusters: c.clusters, stages: type.evaluates.stages });
       }
     }
   }
   return out;
 }
 
+/** Someone a staff member rates: an administrator with a self-evaluation, the role he is rated as, and the stages this rater saw */
+export type Evaluatee = { id: string; name: string; role: SelfRole; title: string; clusterId: string; clusterName: string; place: string; stages: string[] };
+
+/**
+ * Whom a cluster's staff rate: its head (rated as the cluster), each group's head (rated as the group) and the religious
+ * guides — the only ones with a self-evaluation to put the rating beside. The coordinators, the assistants and the
+ * accountant are not rated.
+ */
+export function evaluateesOfCluster(clusterId: string, clusterName: string, headId: string, headName: string, c: ClusterRecord): Omit<Evaluatee, "place" | "stages">[] {
+  const base = { clusterId, clusterName };
+  const out: Omit<Evaluatee, "place" | "stages">[] = [{ ...base, id: headId, name: headName, role: "cluster-head", title: `رئيس ${clusterName}` }];
+  for (const g of acceptedGroups(c)) {
+    if (g.id !== headId) out.push({ ...base, id: g.id, name: g.name, role: "group-head", title: `رئيس ${groupName(g.number)}` });
+    for (const seat of c.seats[g.number] ?? []) if (seat.kind === "guide" && seat.who?.status === "accepted") out.push({ ...base, id: seat.who.id, name: seat.who.name, role: "guide-m", title: `موجّه ${groupName(g.number)}` });
+  }
+  for (const x of c.femaleGuides) if (x.status === "accepted") out.push({ ...base, id: x.id, name: x.name, role: "guide-f", title: `موجّهة ${clusterName}` });
+  return out;
+}
+
 // ───────────────────────── The result ─────────────────────────
+
+/** The score a stage ends with, and where it comes from */
+export type StageResult = {
+  key: string;
+  label: string;
+  self: number | null;
+  staff: number | null;
+  /** A point or more between them */
+  gap: boolean;
+  /** He objected to the staff's score of this stage */
+  objected: boolean;
+  /** The committee's decision on it, once taken */
+  decision?: State["evaluationDecisions"][string]["stages"][string];
+  /** The adopted score: the staff's when nobody objected, the committee's when he did; his own where nobody rated the stage */
+  final: number | null;
+  source: "staff" | "self" | "committee" | null;
+  /** Objected to, and the committee has not decided it yet */
+  pending: boolean;
+};
 
 export type EvaluationResult = {
   self?: State["selfEvaluations"][string];
-  /** His self-evaluation averaged over every item he scored, and over the season's stages alone */
+  /** His self-evaluation averaged over every item he scored */
   selfAvg: number | null;
-  /** The staff's evaluation: each rater's average, averaged — the adopted evaluation */
+  /** The staff's evaluation: each rater's average, averaged */
   staffAvg: number | null;
+  /** How many rated him: a number, never a name */
   staffCount: number;
-  /** Each stage: his own score beside the staff's (the administration and the posted staff averaged) */
-  stages: { key: string; label: string; self: number | null; staff: number | null; gap: boolean }[];
-  /** Everyone who scored him, by name (the administration sees them; he sees only the averages) */
-  raters: { kind: "staff" | "administration"; by: string; role: string; place?: string; avg: number | null; at: number; note?: string }[];
+  stages: StageResult[];
   objection?: State["evaluationObjections"][string];
+  decision?: State["evaluationDecisions"][string];
+  /** The adopted evaluation: the average of the stages' adopted scores (those still pending are left out until decided) */
+  finalAvg: number | null;
+  pending: number;
 };
 
 /**
- * One administrator's season evaluation as it stands: the two parts that are adopted — his self-evaluation and
- * the staff's — side by side, never mixed into one number, stage by stage with the gaps pointed out, and his
- * objection to the staff's if he made one. The pilgrims' evaluation after the return is optional and general:
- * it rates no one by name and counts in neither.
+ * One administrator's season evaluation as it stands: his own and the staff's side by side, stage by stage, his objection
+ * and the committee's decision, and the adopted score — the staff's where he did not object, the committee's where he did.
+ * No rater is ever named: only how many.
  */
-export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "evaluations" | "peerEvaluations" | "selfEvaluations" | "evaluationObjections">): EvaluationResult {
+export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "peerEvaluations" | "selfEvaluations" | "evaluationObjections" | "evaluationDecisions">): EvaluationResult {
   const self = s.selfEvaluations[id];
-  const official = s.evaluations[id];
-  const peers = Object.values(s.peerEvaluations[id] ?? {}) as PeerEvaluation[];
-  const staffSets: StageScores[] = [...(official ? [official.stages] : []), ...peers.map((p) => p.stages)];
-  const at = (sets: StageScores[], key: string) => round1(mean(sets.map((x) => x[key]?.score ?? 0).filter((x) => x > 0)));
+  const peers = Object.values(s.peerEvaluations[id] ?? {});
+  const objection = s.evaluationObjections[id];
+  const decision = s.evaluationDecisions[id];
   const sent = !!self?.submittedAt;
-  const rows = stages.map((st) => {
+  const rows: StageResult[] = stages.map((st) => {
     const mine = sent ? (self!.stages[st.key]?.score ?? null) : null;
-    const staff = at(staffSets, st.key);
-    return { key: st.key, label: st.label, self: mine, staff, gap: mine !== null && staff !== null && Math.abs(mine - staff) >= 1 };
+    const staff = round1(mean(peers.map((p) => p.stages[st.key]?.score ?? 0).filter((x) => x > 0)));
+    const objected = !!objection?.stages.includes(st.key);
+    const decided = objected ? decision?.stages[st.key] : undefined;
+    const final = objected ? (decided?.score ?? null) : (staff ?? mine);
+    const source: StageResult["source"] = objected ? (decided ? "committee" : null) : staff !== null ? "staff" : mine !== null ? "self" : null;
+    return { key: st.key, label: st.label, self: mine, staff, gap: mine !== null && staff !== null && Math.abs(mine - staff) >= 1, objected, decision: decided, final, source, pending: objected && !decided };
   });
-  const staffAvgs = staffSets.map(avgOf).filter((x): x is number => x !== null);
+  const staffAvgs = peers.map((p) => avgOf(p.stages)).filter((x): x is number => x !== null);
   const everything = sent ? Object.assign({}, ...Object.values(self!.sections ?? {})) : undefined;
-  const raters: EvaluationResult["raters"] = [
-    ...(official ? [{ kind: "administration" as const, by: official.by, role: "إدارة الإداريين", avg: round1(official.avg), at: official.at }] : []),
-    ...peers.map((p) => ({ kind: p.kind, by: p.by, role: p.role, place: p.place, avg: round1(avgOf(p.stages)), at: p.at, note: p.note })),
-  ];
-  return { self, selfAvg: round1(avgOf(everything)), staffAvg: round1(mean(staffAvgs)), staffCount: staffAvgs.length, stages: rows, raters, objection: s.evaluationObjections[id] };
+  return {
+    self,
+    selfAvg: round1(avgOf(everything)),
+    staffAvg: round1(mean(staffAvgs)),
+    staffCount: staffAvgs.length,
+    stages: rows,
+    objection,
+    decision,
+    finalAvg: round1(mean(rows.map((r) => r.final).filter((x): x is number => x !== null))),
+    pending: rows.filter((r) => r.pending).length,
+  };
 }
 
 /** The same, live */
 export function useEvaluationOf(id: string | undefined) {
   const stages = useEvaluationStages();
-  const evaluations = useStore((x) => x.evaluations);
   const peerEvaluations = useStore((x) => x.peerEvaluations);
   const selfEvaluations = useStore((x) => x.selfEvaluations);
   const evaluationObjections = useStore((x) => x.evaluationObjections);
-  return useMemo(() => (id ? evaluationOf(id, stages, { evaluations, peerEvaluations, selfEvaluations, evaluationObjections }) : null), [id, stages, evaluations, peerEvaluations, selfEvaluations, evaluationObjections]);
+  const evaluationDecisions = useStore((x) => x.evaluationDecisions);
+  return useMemo(() => (id ? evaluationOf(id, stages, { peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions }) : null), [id, stages, peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions]);
 }
 
-/** What the staff gave a group («g-<group>») or a cluster («c-<cluster>») as a whole: the average of their evaluations, and how many */
-export function entityEvaluationOf(target: string, peers: State["peerEvaluations"]) {
-  const avgs = Object.values(peers[target] ?? {}).map((p) => avgOf(p.stages)).filter((x): x is number => x !== null);
-  return { avg: round1(mean(avgs)), count: avgs.length };
+/** Every rated administrator's adopted score, by id: what the classification of the groups and the clusters is made of */
+export function useFinalScores(): Record<string, number> {
+  const stages = useEvaluationStages();
+  const peerEvaluations = useStore((x) => x.peerEvaluations);
+  const selfEvaluations = useStore((x) => x.selfEvaluations);
+  const evaluationObjections = useStore((x) => x.evaluationObjections);
+  const evaluationDecisions = useStore((x) => x.evaluationDecisions);
+  return useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const id of Object.keys(peerEvaluations)) {
+      const f = evaluationOf(id, stages, { peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions }).finalAvg;
+      if (f !== null) out[id] = f;
+    }
+    return out;
+  }, [stages, peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions]);
+}
+
+/** Whether an employee sits on the evaluation committee this season: he is assigned to the committee's file */
+export function inCommittee(employeeId: string | undefined, files: OpFile[], season: number) {
+  return !!employeeId && files.some((f) => f.season === season && fileTypeOf(f.type).decides && f.members.some((m) => m.employeeId === employeeId));
 }

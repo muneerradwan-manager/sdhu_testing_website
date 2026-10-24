@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   BadgeCheck,
@@ -53,14 +53,17 @@ import {
   Bus,
   HeartPulse,
   UsersRound,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
-import type { StaffUser } from "@/lib/staff";
+import { useEmployees } from "@/lib/ops";
+import { can, type StaffUser } from "@/lib/staff";
 import { hasStats, statsKey, viewKeys, PERM_SYSTEM } from "@/lib/permissions";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { useEvaluatees } from "../evaluate/view";
+import { useIsCommittee } from "../committee/view";
 import { SYSTEMS, SYSTEM_KEYS, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
@@ -70,6 +73,7 @@ import { useEmployeesDesk } from "../employees/desk";
 import { useExamDesk } from "../exam/_components/desk";
 import { useFlightsDesk } from "../flights/desk";
 import { useRegistrationDesk } from "../hajj/desk";
+import { NavBranchProvider, useOpenBranch } from "./branch";
 import { useSystemsUnseen } from "./system";
 import { useCivilClaims, useReviewQueue, useTicketQueue } from "./data";
 import { canAny, fmtTime, logAs, useGrantSummary, useNow, useStaffUser } from "./kit";
@@ -95,6 +99,8 @@ type NavItem = {
   desk?: string;
   /** Shown to whoever was posted in a tower or a camp that clusters lived in: he rates their administrators after the season */
   evaluate?: true;
+  /** Shown to whoever sits on the evaluation committee: assigned to its file */
+  committee?: true;
   system?: SystemKey;
   area?: string;
   exact?: true;
@@ -146,7 +152,7 @@ function systemEntries(key: SystemKey): NavItem[] {
   return [
     { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [`${key}.summary.GET`], system: key, badge: key, exact: true },
     // The first operation is the file's own path, which the others continue: lit on its own path only
-    ...s.operations.map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: o.perms, system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
+    ...s.operations.filter((o) => !o.sub).map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: o.perms, system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
   ];
 }
 
@@ -165,6 +171,7 @@ export const STAFF_NAV: NavItem[] = [
   { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: ["hall.sittings.GET"], badge: "hall" },
   { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: ["airport.flights.GET"], badge: "airport" },
   { href: "/staff/evaluate", label: "تقييم الإداريين", icon: <Star />, perms: ["evaluate.evaluations.GET"], evaluate: true },
+  { href: "/staff/committee", label: "لجنة التقييم", icon: <Scale />, perms: ["evaluate.committee.GET"], committee: true },
   // The other systems in the order the season is worked: set up first, then run, then looked back on
   ...deskEntries({ href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: viewKeys("season") }, "season"),
   ...deskEntries({ href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: viewKeys("reference") }, "reference"),
@@ -222,10 +229,14 @@ function Shell({ user, children }: { user: StaffUser; children: ReactNode }) {
   return (
     <div data-dark-page className="relative isolate min-h-[calc(100dvh/var(--zoom))] pt-28 text-white">
       <Backdrop />
-      <div className="mx-auto grid max-w-[96rem] grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-20 md:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-        <Sidebar user={user} />
-        <div className="min-w-0">{children}</div>
-      </div>
+      <NavBranchProvider>
+        <div className="mx-auto grid max-w-[96rem] grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-20 md:px-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
+          <Suspense fallback={<aside className="min-w-0" />}>
+            <Sidebar user={user} />
+          </Suspense>
+          <div className="min-w-0">{children}</div>
+        </div>
+      </NavBranchProvider>
     </div>
   );
 }
@@ -259,6 +270,9 @@ function Sidebar({ user }: { user: StaffUser }) {
   const router = useRouter();
   const toast = useToast();
   const [showPerms, setShowPerms] = useState(false);
+  const params = useSearchParams();
+  // A management file opens on its own when the page is one of its pages; the employee can open or close any of them
+  const [openSys, setOpenSys] = useState<Record<string, boolean>>({});
   const reviews = useReviewQueue();
   const civil = useCivilClaims().filter((c) => c.claim.status === "pending").length;
   const contracts = useStore((s) => Object.values(s.post).filter((p) => p.contract?.status === "pending").length);
@@ -270,6 +284,7 @@ function Sidebar({ user }: { user: StaffUser }) {
   const flights = useFlightsData();
   const myAirports = useAirportReps().airportsOf(user.id);
   const evaluatees = useEvaluatees(user).items.length;
+  const onCommittee = useIsCommittee(user);
   const counts = useMemo(
     () => ({
       // Applications that need a decision, civil corrections waiting, and pilgrims' contracts with groups waiting for the office
@@ -298,9 +313,28 @@ function Sidebar({ user }: { user: StaffUser }) {
     [reviews, civil, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
   );
   const grants = useGrantSummary(user);
-  const items = STAFF_NAV.filter((n) => canAny(user, n.perms) && (!n.evaluate || evaluatees > 0));
+  const items = STAFF_NAV.filter((n) => canAny(user, n.perms) && (!n.evaluate || evaluatees > 0) && (!n.committee || onCommittee));
   // A system's statistics and its page sit under its name when both show; one alone needs no heading
   const deskShown = (sys: string) => items.filter((n) => n.desk === sys).length;
+  // The employee whose page is open: his record (?id=), his season or register line (?e=), or his account (?a=)
+  const people = useEmployees();
+  const picked = employeeOf(pathname, params, people);
+  // «/reference» opens its own pages, not «/references»: a segment of the path, not any prefix
+  const isOn = (n: NavItem) => {
+    return n.exact ? samePath(pathname, n.href) : samePath(pathname, n.href) || pathname.startsWith(`${n.href.replace(/\/$/, "")}/`);
+  };
+  // The file whose page is open: any page under its own path, an employee's included
+  const inSystem = (k: SystemKey) => samePath(pathname, SYSTEMS[k].summary.href) || pathname.startsWith(`${SYSTEMS[k].summary.href}/`);
+  const activeSystem = items.find((n) => n.system && inSystem(n.system))?.system;
+  const open0 = (n: NavItem) => !n.system || (openSys[n.system] ?? n.system === activeSystem);
+  // The sub-page that is open hangs from its main page: the item whose path is the sub-page's list, else the nearest one above it.
+  // An employee has a branch of his own (his pages), so his sub-page does not hang twice
+  const branch = useOpenBranch();
+  const anchorHref = branch
+    ? items
+        .filter((n) => n.href === branch.anchor || branch.anchor.startsWith(`${n.href.replace(/\/$/, "")}/`))
+        .sort((a, b) => Number(b.href === branch.anchor) - Number(a.href === branch.anchor) || b.href.length - a.href.length)[0]?.href
+    : undefined;
 
   const logout = () => {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });
@@ -387,8 +421,9 @@ function Sidebar({ user }: { user: StaffUser }) {
         {/* Navigation — vertical on desktop, a swipeable strip on phones */}
         <nav aria-label="أقسام بوابة الموظفين" className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:block lg:space-y-1 lg:overflow-visible">
           {[...items, MY_FILES].map((n, i, all) => {
-            // «/reference» opens its own pages, not «/references»: a segment of the path, not any prefix
-            const active = n.exact ? samePath(pathname, n.href) : samePath(pathname, n.href) || pathname.startsWith(`${n.href.replace(/\/$/, "")}/`);
+            // A page with its sub-page open is not the one he is on: the leaf under it is
+            const hasLeaf = !!branch && n.href === anchorHref && open0(n) && !(picked && n.system === "staff" && n.area === "register");
+            const active = isOn(n) && !hasLeaf;
             const count = n.badge ? counts[n.badge] : 0;
             // A management file's entries sit under its name, and a system's statistics and page under its name
             // when both show; what follows a group is set apart from it
@@ -396,8 +431,24 @@ function Sidebar({ user }: { user: StaffUser }) {
             const g = groupOf(n);
             const prev = groupOf(all[i - 1]);
             const label = n.system ? SYSTEMS[n.system].label : g ? PERM_SYSTEM[g]?.label : undefined;
+            // On a phone the menu is a strip, every entry in it; on a desktop a management file folds under its name
+            const open = !n.system || (openSys[n.system] ?? n.system === activeSystem);
             const heading =
-              g && g !== prev && label ? (
+              n.system && g && g !== prev && label ? (
+                <button
+                  key={`g-${g}`}
+                  type="button"
+                  aria-expanded={openSys[n.system] ?? n.system === activeSystem}
+                  onClick={() => {
+                    const sys = n.system!;
+                    setOpenSys((o) => ({ ...o, [sys]: !(o[sys] ?? sys === activeSystem) }));
+                  }}
+                  className={cn("hidden w-full items-center justify-between rounded-xl px-3.5 py-1.5 text-[11px] font-bold tracking-wide text-gold/80 transition hover:bg-white/[.06] hover:text-gold lg:flex", i > 0 && "mt-3 border-t border-white/10 pt-3")}
+                >
+                  {label}
+                  <ChevronDown className={cn("size-3.5 transition", !(openSys[n.system] ?? n.system === activeSystem) && "-rotate-90")} />
+                </button>
+              ) : g && g !== prev && label ? (
                 <p key={`g-${g}`} className={cn("hidden px-3.5 pb-1 text-[11px] font-bold tracking-wide text-gold/70 lg:block", i > 0 && "mt-3 border-t border-white/10 pt-3")}>
                   {label}
                 </p>
@@ -411,8 +462,9 @@ function Sidebar({ user }: { user: StaffUser }) {
                 href={n.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]",
-                  active ? "on-light text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white",
+                  "relative shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]",
+                  open ? "flex" : "max-lg:flex lg:hidden",
+                  active ? "on-light text-ink" : hasLeaf ? "text-white hover:bg-white/[.06]" : "text-white/75 hover:bg-white/[.06] hover:text-white",
                   n === MY_FILES && "lg:hidden",
                 )}
               >
@@ -441,6 +493,9 @@ function Sidebar({ user }: { user: StaffUser }) {
                   <Count n={count} active={active} urgent={n.badge === "tickets" || n.badge === "systems"} />
                 )}
               </Link>,
+              // The register's own branch: the employee chosen there, and his pages
+              n.system === "staff" && n.area === "register" && picked && open ? <EmployeeBranch key="employee-branch" user={user} employee={picked} pathname={pathname} /> : null,
+              hasLeaf ? <PageBranch key="page-branch" title={branch.title} closeHref={branch.closeHref ?? branch.anchor} /> : null,
             ];
           })}
         </nav>
@@ -457,6 +512,74 @@ function Sidebar({ user }: { user: StaffUser }) {
         كل إجراء تقوم به يُسجَّل باسمك في سجل الأحداث، ولا يمكن حذفه أو تعديله.
       </p>
     </aside>
+  );
+}
+
+/** The open sub-page under its main page, as a leaf of the tree: it is where he is, so it is lit; «×» closes it */
+function PageBranch({ title, closeHref }: { title: string; closeHref: string }) {
+  return (
+    <div className="mr-5 hidden border-r-2 border-gold/30 pr-2 lg:block">
+      <div className="on-light relative flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-bold text-ink">
+        <span className="absolute inset-0 rounded-xl bg-gradient-to-l from-gold to-gold-light" />
+        <span className="relative min-w-0 flex-1 truncate" title={title}>
+          {title}
+        </span>
+        <Link href={closeHref} aria-label="إغلاق" title="إغلاق" className="relative grid size-6 shrink-0 place-items-center rounded-lg text-green-dark/70 hover:bg-black/10 hover:text-green-dark">
+          <X className="size-3.5" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+type Person = ReturnType<typeof useEmployees>[number];
+
+/** The employee whose page is open, read from the address: his record (?id=), his lines (?e=) or his account (?a=) */
+function employeeOf(pathname: string, params: URLSearchParams, people: Person[]): Person | undefined {
+  if (!pathname.startsWith("/staff/employees/manage")) return undefined;
+  const id = params.get("id") ?? params.get("e");
+  const account = params.get("a");
+  return (id ? people.find((e) => e.id === id) : undefined) ?? (account ? people.find((e) => e.staffId === account) : undefined);
+}
+
+/**
+ * Under «سجل الموظفين», the employee chosen there: his name, and the pages that are his — his record, his account,
+ * his place in the season. The register picks him; the pages read him from the address, so a link opens them too.
+ * «✕» closes the branch, back to the register.
+ */
+function EmployeeBranch({ user, employee, pathname }: { user: StaffUser; employee: Person; pathname: string }) {
+  const base = "/staff/employees/manage";
+  const links = [
+    { href: `${base}/edit?id=${employee.id}`, at: `${base}/edit`, label: "بياناته", icon: <IdCard />, show: can(user, "staff.employees.GET") },
+    { href: `${base}/accounts?a=${employee.staffId}`, at: `${base}/accounts`, label: "حسابه", icon: <KeyRound />, show: !!employee.staffId && can(user, "staff.accounts.GET") },
+    { href: `${base}/season?e=${employee.id}`, at: `${base}/season`, label: "مشاركته في الموسم", icon: <CalendarCheck />, show: can(user, "staff.season-participation.GET") },
+  ].filter((l) => l.show);
+  return (
+    <div className="mr-5 hidden space-y-1 border-r-2 border-gold/30 pr-2 lg:block" aria-label={`صفحات ${employee.firstName} ${employee.surname}`}>
+      <div className="flex items-center justify-between gap-2 px-3 pt-1 text-xs font-bold text-gold">
+        <span className="truncate">
+          {employee.firstName} {employee.surname}
+        </span>
+        <Link href={base} aria-label="إغلاق صفحات الموظف" title="إغلاق" className="grid size-6 shrink-0 place-items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white">
+          <X className="size-3.5" />
+        </Link>
+      </div>
+      {links.map((l) => {
+        const active = samePath(pathname, l.at);
+        return (
+          <Link
+            key={l.at}
+            href={l.href}
+            aria-current={active ? "page" : undefined}
+            className={cn("relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-bold transition [&_svg]:size-4", active ? "on-light text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white")}
+          >
+            {active && <span className="absolute inset-0 rounded-xl bg-gradient-to-l from-gold to-gold-light" />}
+            <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{l.icon}</span>
+            <span className="relative whitespace-nowrap">{l.label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 

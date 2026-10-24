@@ -73,7 +73,7 @@ if run("emp"):
     p.locator(f"{D} button:has-text('تراجع')").first.click(); c.settle(700)
 
     # ── adding an employee: his own screen
-    s.nav("إضافة موظف", 1800)
+    s.link("إضافة موظف", 1800)  # a sub-page of the register: its button, not an entry of the menu
     def fill(label, val):
         p.locator(f"main label:has-text('{label}') input").first.fill(val)
     # the record of رزان الحسن, whose portal account has none yet (linked in the next section)
@@ -82,7 +82,7 @@ if run("emp"):
     fill("سنة الميلاد", "1994"); fill("الرقم الوطني", "01044400123")
     c.settle(300)
     c.shot("emp-new", "إضافة موظف: الاسم والجنس وسنة الميلاد والرقم الوطني والمحافظة والمسمى والبعثة",
-           hl=[(side("/staff/employees/manage/edit"), "1"), ("main label:has-text('الاسم الأول') input", "2")], section=S)
+           hl=[("aside nav div.border-r-2", "1"), ("main label:has-text('الاسم الأول') input", "2")], section=S)
     fill("هاتف سوريا", "0944 400 123")
     c.scroll_top()
     c.shot("emp-new-more", "نوع الموظف، والهواتف، واللغات، و«مشارك في موسم 1448»، ثم «إضافة الموظف»",
@@ -121,10 +121,10 @@ if run("emp"):
     s.close()
 
 
-# ═════════════════ 2. «الملفات التشغيلية والبيانات المرجعية» — ghassan ═════════════════
+# ═════════════════ 2. «الملفات التشغيلية والبيانات المرجعية» — the reference lists are rima's, the files ghassan's ═════════════════
 if run("of"):
     s = Staff(); c, p = s.c, s.p; S = "of"
-    s.login("ghassan")
+    s.login("rima")
     # ── the reference data
     s.nav("البيانات المرجعية", 2000)
     c.shot("refd-hotels", "البيانات المرجعية: الفنادق والقطاعات والمراكز والمخيمات لكل موسم",
@@ -148,10 +148,15 @@ if run("of"):
     p.get_by_role("tab", name="المخيمات").first.click(); c.settle(1000)
     c.shot("refd-camps", "المخيمات: رقم المخيم وموقعه وطاقته، والمركز الذي هو فيه في الملف", section=S)
 
-    # ── the operational files
+    # ── the operational files: the head of the mission's affairs
+    s.logout(); s.login("ghassan")
     s.nav("الملفات التشغيلية", 2000)
     c.shot("of-list", "الملفات التشغيلية: ملف لكل نوع في كل موسم، بحالته وقراره ومناصبه الشاغرة",
            hl=[(side("/staff/operational-files"), "1"), ("main tbody tr >> nth=0 >> td >> nth=0", "2")], section=S)
+    # the Madinah file: the hotels of Madinah alone, the staff sorted straight on them
+    c.goto("/staff/operational-files?type=madinah-housing&season=1448", wait=2500)
+    c.shot("of-madinah", "ملف التسكين في المدينة المنورة: فنادقها وحدها، والموظفون المسندون إلى كل فندق", hl=[("main button:has-text('إضافة فندق')", "1")], section=S)
+    s.nav("الملفات التشغيلية", 2000)
     p.locator("main tbody tr").first.locator("a:has-text('تعديل')").click(); c.settle(2200)
     c.shot("of-file", "ملف التسكين في مكة: المناصب الإلزامية الشاغرة، والقطاعات وأبراجها، وفي الجانب حالة الملف",
            hl=[("main section:has(h2:has-text('مناصب إلزامية شاغرة'))", "1"), ("main button:has-text('تفعيل الملف')", "2")], section=S)

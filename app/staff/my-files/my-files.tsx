@@ -4,26 +4,7 @@ import { motion } from "motion/react";
 import { BedDouble, BriefcaseBusiness, CalendarRange, Clock, FileText, Hotel as HotelIcon, MapPin, Phone, Tent, UserRound, UsersRound } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { useClusters } from "@/lib/cms/content";
-import {
-  CADENCE_LABEL,
-  CURRENT_SEASON,
-  fileState,
-  fileTypeOf,
-  fullName,
-  roleIn,
-  useEmployees,
-  useOpFiles,
-  usePlaces,
-  useRefs,
-  type Assignment,
-  type Employee,
-  type FileState,
-  type FileType,
-  type InnerNode,
-  type OpFile,
-  type OuterNode,
-  type Role,
-} from "@/lib/ops";
+import { CADENCE_LABEL, CURRENT_SEASON, fileState, fileTypeOf, fullName, roleIn, useEmployees, useOpFiles, usePlaces, useRefs, type Assignment, type Employee, type FileState, type FileType, type InnerNode, type OpFile, type OuterNode, type Role, outerOf } from "@/lib/ops";
 import { cn, formatNumber } from "@/lib/utils";
 import { Empty, Panel, fmtDate, useNow } from "../_components/kit";
 import { Avatar, Chip } from "../_components/ops-ui";
@@ -45,7 +26,7 @@ function seatsOf(employeeId: string, files: OpFile[]): Seat[] {
       o.children.forEach((c) => c.members.forEach((a) => add(a, o, c)));
     }
   }
-  // In the order the season runs: Makkah first, then Mina, then Arafat
+  // In the order the season runs: Makkah first, then Mina, then Arafat, then the stay in Madinah
   return out.sort((a, b) => b.file.season - a.file.season || a.file.startsOn.localeCompare(b.file.startsOn));
 }
 
@@ -148,7 +129,7 @@ function Timeline({ seats }: { seats: Seat[] }) {
                   animate={{ scaleX: 1 }}
                   transition={{ duration: 0.8, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] }}
                   style={{ right: `${from}%`, width: `${Math.min(width, 100 - from)}%`, transformOrigin: "right" }}
-                  className={cn("absolute inset-y-1 flex items-center overflow-hidden rounded-lg px-2 text-[11px] font-bold", s.type.inner.ref === "camps" ? "bg-gold text-ink" : "bg-green-light/80 text-white")}
+                  className={cn("absolute inset-y-1 flex items-center overflow-hidden rounded-lg px-2 text-[11px] font-bold", s.type.inner?.ref === "camps" ? "bg-gold text-ink" : "bg-green-light/80 text-white")}
                 >
                   <span className="truncate">{Math.round((at(s.file.endsOn) - at(s.file.startsOn)) / DAY) + 1} يوماً</span>
                 </motion.div>
@@ -171,7 +152,7 @@ function SeatCard({ seat, self, index, compact }: { seat: Seat; self: string; in
   const who = (id: string) => employees.find((e) => e.id === id);
   const outerPlace = outer ? places.get(outer.refId) : undefined;
   const innerPlace = inner ? places.get(inner.refId) : undefined;
-  const isCamp = type.inner.ref === "camps";
+  const isCamp = type.inner?.ref === "camps";
   const mapUrl = inner ? (refs.hotels.find((h) => h.id === inner.refId)?.mapUrl ?? refs.camps.find((c) => c.id === inner.refId)?.mapUrl) : undefined;
   const housing = type.housing ? places.get(inner?.refId ?? assignment.housingHotelId ?? "") : undefined;
 
@@ -206,7 +187,7 @@ function SeatCard({ seat, self, index, compact }: { seat: Seat; self: string; in
             <p className="text-sm text-white/80">
               {where ? where.name : (type.team ?? type.short)}
               {outerPlace && innerPlace && <span className="text-white/60"> · {outerPlace.name}</span>}
-              {role.level === "file" && <span className="text-white/60"> · يخدم {type.outer.plural} كلها</span>}
+              {role.level === "file" && <span className="text-white/60"> · يخدم {outerOf(type).plural} كلها</span>}
             </p>
           </div>
         </div>
@@ -226,7 +207,7 @@ function SeatCard({ seat, self, index, compact }: { seat: Seat; self: string; in
             <span className="block text-xs text-white/55">{type.endCondition}</span>
           </Info>
           {where && (
-            <Info icon={<MapPin />} label={role.level === "outer" ? type.outer.name : isCamp ? "المخيم" : "البرج / الفندق"}>
+            <Info icon={<MapPin />} label={role.level === "outer" ? outerOf(type).name : isCamp ? "المخيم" : "البرج / الفندق"}>
               {where.name} — {where.sub}
               {where.capacity ? <span className="block text-xs text-white/55">الطاقة الاستيعابية {formatNumber(where.capacity)}</span> : null}
               {mapUrl && (
@@ -266,7 +247,7 @@ function SeatCard({ seat, self, index, compact }: { seat: Seat; self: string; in
           {overseen.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-bold text-gold">
-                {type.inner.plural} التي تشرف عليها ({overseen.length})
+                {type.inner?.plural} التي تشرف عليها ({overseen.length})
               </p>
               <ul className="space-y-1.5">
                 {overseen.map((c) => {
@@ -288,7 +269,7 @@ function SeatCard({ seat, self, index, compact }: { seat: Seat; self: string; in
               </ul>
             </div>
           )}
-          {!compact && <People title={role.level === "outer" ? `معك على ${type.outer.name}` : role.level === "file" ? `فريقك في ${type.team ?? "الملف"}` : `فريقك في ${isCamp ? "المخيم" : "البرج"}`} ids={team.map((m) => m.employeeId)} who={who} roleOf={(id) => roleIn(type, team.find((m) => m.employeeId === id)!.role).name} empty="لا أحد غيرك بعد" />}
+          {!compact && <People title={role.level === "outer" ? `معك على ${outerOf(type).name}` : role.level === "file" ? `فريقك في ${type.team ?? "الملف"}` : `فريقك في ${isCamp ? "المخيم" : "البرج"}`} ids={team.map((m) => m.employeeId)} who={who} roleOf={(id) => roleIn(type, team.find((m) => m.employeeId === id)!.role).name} empty="لا أحد غيرك بعد" />}
         </div>
       </div>
     </Panel>

@@ -5,6 +5,7 @@ import { ArrowRight, ChevronDown, ScrollText } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { SystemKey } from "@/lib/systems";
 import { cn } from "@/lib/utils";
+import { useNavBranch } from "./branch";
 import { Panel } from "./kit";
 import { SystemRecords } from "./system";
 
@@ -112,8 +113,15 @@ export function Box({ title, children, open: initial = true }: { title: string; 
   );
 }
 
-/** An edit screen's head: back to the list, and what is being edited */
-export function EditHeader({ back, backLabel, title, children }: { back: string; backLabel: string; title: ReactNode; children?: ReactNode }) {
+/**
+ * An edit screen's head: back to the list, and what is being edited. The screen also hangs from its list in the
+ * sidebar's tree (`useNavBranch`) — adding an item too, which has no entry of its own — unless `nav={false}` (not found).
+ */
+export function EditHeader({ back, backLabel, title, children, nav = true, navTitle }: { back: string; backLabel: string; title: ReactNode; children?: ReactNode; nav?: boolean; navTitle?: string }) {
+  // `navTitle`: the line in the tree when the title is more than text (a flight's number with its status)
+  const text = navTitle ?? (typeof title === "string" ? title : null);
+  const named = nav ? text : null;
+  useNavBranch(named ? { anchor: back.split("?")[0], title: named, closeHref: back } : null);
   return (
     <div className="mb-5">
       <Link href={back} className="inline-flex items-center gap-1 text-sm font-bold text-gold hover:underline">

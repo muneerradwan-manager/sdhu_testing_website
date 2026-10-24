@@ -174,7 +174,7 @@ function ReviewScreen({ id }: { id: string }) {
   if (!item) {
     return (
       <div>
-        <EditHeader back={BASE} backLabel="كل الطلبات" title="الطلب غير موجود" />
+        <EditHeader back={BASE} backLabel="كل الطلبات" nav={false} title="الطلب غير موجود" />
         <p className="text-white/70">لم يعد هذا الطلب في قائمة المراجعة.</p>
       </div>
     );

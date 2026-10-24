@@ -61,7 +61,7 @@ export function FlightScreen({ id }: { id: string }) {
   if (!f) {
     return (
       <div>
-        <EditHeader back={FLIGHTS_LIST} backLabel="كل الرحلات" title="الرحلة غير موجودة">
+        <EditHeader back={FLIGHTS_LIST} backLabel="كل الرحلات" nav={false} title="الرحلة غير موجودة">
           ربما حُذفت مسودتها. ارجع إلى الرحلات واخترها من القائمة.
         </EditHeader>
       </div>
@@ -615,6 +615,7 @@ function Screen({ f }: { f: Flight }) {
       <EditHeader
         back={FLIGHTS_LIST}
         backLabel="كل الرحلات"
+        navTitle={`الرحلة ${f.flightNo}`}
         title={
           <span className="flex flex-wrap items-center gap-3">
             <span dir="ltr" className="font-mono">

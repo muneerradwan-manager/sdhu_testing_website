@@ -373,7 +373,7 @@ export function ExamEditor() {
   if (id && !stored)
     return (
       <div>
-        <EditHeader back={LIST} backLabel="كل الاختبارات" title="لم يُعثر على هذا الاختبار" />
+        <EditHeader back={LIST} backLabel="كل الاختبارات" nav={false} title="لم يُعثر على هذا الاختبار" />
         <p className="text-white/70">ربما حُذف. ارجع إلى الاختبارات وافتحه من القائمة.</p>
       </div>
     );

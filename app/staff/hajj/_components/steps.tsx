@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useNavBranch } from "../../_components/branch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDown, ArrowRight, ArrowUp, ChevronDown, Lock, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -136,6 +137,7 @@ function Editor({ initial }: { initial: PostStepDef }) {
   const set = (p: Partial<PostStepDef>) => setS((x) => ({ ...x, ...p }));
   const at = ed.config.postSteps.findIndex((x) => x.id === s.id);
   const isNew = at < 0;
+  useNavBranch({ anchor: "/staff/hajj/manage/steps", title: isNew ? "إضافة خطوة" : s.title || "الخطوة" });
   const others = ed.config.postSteps.filter((x) => x.id !== s.id);
   const visaAt = others.findIndex((x) => x.system === "visa");
   // The first step stays first («__first»); a new one goes before the visa

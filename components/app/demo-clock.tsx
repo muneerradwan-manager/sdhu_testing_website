@@ -45,8 +45,9 @@ const OP_EN: Record<OperationKey, string> = {
   "cluster-management": "Cluster management",
   "pilgrim-evaluation": "Pilgrims' evaluation after the return",
   "self-evaluation": "Administrators' self-evaluation",
-  "peer-evaluation": "Staff evaluating the administrators, groups and clusters",
+  "peer-evaluation": "Staff evaluating the administrators",
   "evaluation-objection": "Objecting to the evaluation",
+  "evaluation-committee": "The evaluation committee's decision",
 };
 
 /** «20 January», with the year when asked, and «, 09:00» when it has an hour */

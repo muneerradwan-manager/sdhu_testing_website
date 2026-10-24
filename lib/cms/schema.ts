@@ -1427,7 +1427,19 @@ const GLOBAL: PageDef = {
   ],
 };
 
-export const CMS_PAGES: PageDef[] = [HOME, ABOUT, CONDITIONS, FAQ_PAGE, GUIDE, ACADEMY, NEWS_PAGE, PRAYER, RESULTS, VERIFY, SERVICES, UMRAH, PILGRIM_JOURNEY, GLOBAL];
+/**
+ * Pages that only hold a header while their content lives in a collection of its own: the page points to it, so
+ * whoever opens «الأكاديمية» finds its tracks and lessons and quizzes, not only the header.
+ */
+const RELATED: Record<string, PageDef["related"]> = {
+  faq: [{ collection: "faq" }],
+  guide: [{ collection: "guideDays" }, { collection: "guideDuas" }],
+  academy: [{ collection: "academyTracks" }, { collection: "academyLessons" }, { collection: "academyQuizzes" }],
+  news: [{ collection: "news" }],
+  services: [{ collection: "clusters" }],
+};
+
+export const CMS_PAGES: PageDef[] = [HOME, ABOUT, CONDITIONS, FAQ_PAGE, GUIDE, ACADEMY, NEWS_PAGE, PRAYER, RESULTS, VERIFY, SERVICES, UMRAH, PILGRIM_JOURNEY, GLOBAL].map((p) => (RELATED[p.id] ? { ...p, related: RELATED[p.id] } : p));
 
 export const CMS_GROUPS = [...new Set(CMS_PAGES.map((p) => p.group))];
 

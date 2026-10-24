@@ -7,16 +7,20 @@ import { useClusterRequests } from "@/app/administrator/_lib/formation";
 import { branchOf, useCadre, useStructure } from "@/app/administrator/_lib/structure";
 import { useClusters } from "./cms/content";
 import { SEASON } from "./season";
-import { coverOf, type Cluster, type LatLng } from "./data/clusters";
+import { coverOf, type Cluster } from "./data/clusters";
+import { CURRENT_SEASON, useHotels, type Hotel } from "./ops";
 import { useStore } from "./store";
 import { formatRoomPrices, type RoomPrices } from "./rooms";
 import { photosLabel } from "./group-profile";
 
 /**
  * The part of a cluster's public page that belongs to the cluster itself: its programme, its housing,
- * its transport and its meals. The head writes it, because he is the one who contracted the hotels and
- * the buses — but the page carries the administration's approval, so nothing he writes reaches the
- * pilgrims before the administration approves it.
+ * its transport and its meals. The head writes it — but the page carries the administration's approval, so
+ * nothing he writes reaches the pilgrims before the administration approves it.
+ *
+ * The hotels are not written: every fact about a hotel (its name, its area, its stars, its rooms, its amenities, its
+ * place on the map and the distance from the mosque) is entered by the staff in «البيانات المرجعية»
+ * (lib/ops Hotel). The head only picks the cluster's two hotels from that list, one in Makkah and one in Madinah.
  *
  * What he may NOT touch: the rating and the number of reviews (they come from the pilgrims), the
  * service level and the approval date (the administration's), and the groups (they join by contract).
@@ -24,17 +28,9 @@ import { photosLabel } from "./group-profile";
 export type ClusterProfileFields = {
   specialty: string;
   about: string;
-  makkahHotel: string;
-  makkahArea: string;
-  makkahDistance: string;
-  makkahRooms: string;
-  makkahFeatures: string[];
-  madinahHotel: string;
-  madinahArea: string;
-  madinahDistance: string;
-  /** The two hotels on the map (the distances are measured from them) */
-  makkahAt?: LatLng;
-  madinahAt?: LatLng;
+  /** The cluster's two hotels, picked from the reference list (lib/ops Hotel ids); empty: not picked yet */
+  makkahHotelId: string;
+  madinahHotelId: string;
   transport: string[];
   meals: string[];
   programs: string[];
@@ -65,16 +61,8 @@ export type ClusterProfileState = {
 export const PROFILE_LABELS: Record<keyof ClusterProfileFields, string> = {
   specialty: "التخصص — سطر تحت الاسم",
   about: "نبذة عن التكتل",
-  makkahHotel: "فندق مكة",
-  makkahArea: "منطقة السكن في مكة",
-  makkahDistance: "المسافة عن الحرم",
-  makkahRooms: "نوع الغرف",
-  makkahFeatures: "مزايا سكن مكة",
-  madinahHotel: "فندق المدينة",
-  madinahArea: "منطقة السكن في المدينة",
-  madinahDistance: "المسافة عن المسجد النبوي",
-  makkahAt: "موقع فندق مكة على الخريطة",
-  madinahAt: "موقع فندق المدينة على الخريطة",
+  makkahHotelId: "فندق مكة",
+  madinahHotelId: "فندق المدينة",
   transport: "النقل",
   meals: "الإعاشة",
   programs: "البرامج",
@@ -83,20 +71,18 @@ export const PROFILE_LABELS: Record<keyof ClusterProfileFields, string> = {
   gallery: "معرض الصور",
 };
 
-export function fieldsOf(c: Cluster): ClusterProfileFields {
+/** The hotels a cluster may pick in a city: this season's live ones, from the staff's reference list */
+export const hotelsIn = (hotels: Hotel[], city: Hotel["city"]) => hotels.filter((h) => h.season === CURRENT_SEASON && h.city === city && !h.archived);
+
+/** The hotel a published programme names, by its name in the city: the seeded programmes name theirs in words */
+const hotelIdOf = (name: string, city: Hotel["city"], hotels: Hotel[]) => hotelsIn(hotels, city).find((h) => h.name === name)?.id ?? "";
+
+export function fieldsOf(c: Cluster, hotels: Hotel[]): ClusterProfileFields {
   return {
     specialty: c.specialty,
     about: c.about,
-    makkahHotel: c.makkah.hotel,
-    makkahArea: c.makkah.area,
-    makkahDistance: c.makkah.distance,
-    makkahRooms: c.makkah.rooms,
-    makkahFeatures: [...c.makkah.features],
-    madinahHotel: c.madinah.hotel,
-    madinahArea: c.madinah.area,
-    madinahDistance: c.madinah.distance,
-    makkahAt: c.makkah.at,
-    madinahAt: c.madinah.at,
+    makkahHotelId: hotelIdOf(c.makkah.hotel, "makkah", hotels),
+    madinahHotelId: hotelIdOf(c.madinah.hotel, "madinah", hotels),
     transport: [...c.transport],
     meals: [...c.meals],
     programs: [...c.programs],
@@ -106,13 +92,16 @@ export function fieldsOf(c: Cluster): ClusterProfileFields {
   };
 }
 
-export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
+/** The cluster as its page shows it: the two hotels read whole from the reference list, whatever the programme said before */
+export function withFields(c: Cluster, f: ClusterProfileFields, hotels: Hotel[]): Cluster {
+  const mk = hotels.find((h) => h.id === f.makkahHotelId);
+  const md = hotels.find((h) => h.id === f.madinahHotelId);
   return {
     ...c,
     specialty: f.specialty,
     about: f.about,
-    makkah: { hotel: f.makkahHotel, area: f.makkahArea, distance: f.makkahDistance, rooms: f.makkahRooms, features: f.makkahFeatures, at: f.makkahAt ?? c.makkah.at },
-    madinah: { hotel: f.madinahHotel, area: f.madinahArea, distance: f.madinahDistance, at: f.madinahAt ?? c.madinah.at },
+    makkah: mk ? { hotel: mk.name, area: mk.area, distance: mk.distance, rooms: mk.rooms ?? "", features: mk.features ?? [], at: mk.at, stars: mk.stars } : c.makkah,
+    madinah: md ? { hotel: md.name, area: md.area, distance: md.distance, at: md.at, stars: md.stars } : c.madinah,
     transport: f.transport,
     meals: f.meals,
     programs: f.programs,
@@ -123,7 +112,7 @@ export function withFields(c: Cluster, f: ClusterProfileFields): Cluster {
 }
 
 /** What changed between what the pilgrims see now and what the head submitted */
-export function diffFields(before: ClusterProfileFields, after: ClusterProfileFields) {
+export function diffFields(before: ClusterProfileFields, after: ClusterProfileFields, hotels: Hotel[]) {
   return (Object.keys(PROFILE_LABELS) as (keyof ClusterProfileFields)[])
     .map((k) => {
       const show = (v: ClusterProfileFields[typeof k]) =>
@@ -135,10 +124,8 @@ export function diffFields(before: ClusterProfileFields, after: ClusterProfileFi
               ? v
                 ? "صورة"
                 : ""
-              : k === "makkahAt" || k === "madinahAt"
-                ? v
-                  ? `${(v as LatLng).lat}، ${(v as LatLng).lng}`
-                  : ""
+              : k === "makkahHotelId" || k === "madinahHotelId"
+                ? (hotels.find((h) => h.id === v)?.name ?? "")
               : Array.isArray(v)
                 ? v.join(" · ")
                 : String(v ?? "");
@@ -214,14 +201,16 @@ export function useClusterDirectory(): Cluster[] {
   const requests = useClusterRequests();
   const structure = useStructure();
   const cadre = useCadre();
+  const hotels = useHotels();
   return useMemo(
     () =>
       programmes.flatMap(({ cluster: c, listed }) => {
         const r = requests.find((x) => x.cluster.id === c.slug);
         if (!r || !listed) return [];
-        const published = profiles[c.slug]?.approved ? withFields(c, profiles[c.slug].approved!.fields) : c;
+        // Its hotels are the staff's reference entries: a published programme names them, the approved one picks them
+        const published = withFields(c, profiles[c.slug]?.approved ? { ...fieldsOf(c, hotels), ...profiles[c.slug].approved!.fields } : fieldsOf(c, hotels), hotels);
         return [{ ...published, ...structureFacts(structure, r), team: teamOf(structure, cadre, admins, r) }];
       }),
-    [programmes, profiles, requests, structure, cadre, admins],
+    [programmes, profiles, requests, structure, cadre, admins, hotels],
   );
 }

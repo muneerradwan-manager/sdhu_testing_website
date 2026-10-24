@@ -187,6 +187,25 @@ main:has([data-dark-page]) + footer {
   margin-top: 0;
 }
 
+/* The registration desk is the pilgrims' and administrators' screen, drawn on cream and white; the staff portal
+   hosts it on its dark glass, so inside .staff-desk the light surfaces and the dark text written on them are
+   re-coloured to the portal's own (white becomes glass, ink becomes white, green and maroon text their light
+   counterparts). Nothing outside the wrapper changes, and the desk of the administrators stays as it is. */
+.staff-desk {
+  --color-sand: rgb(0 0 0 / 0.2);
+  --color-ink: #f3f1ea;
+  --color-ink-soft: rgb(255 255 255 / 0.74);
+  --color-hint: rgb(255 255 255 / 0.55);
+  --color-gold-dark: #d9c89e;
+  color: #f3f1ea;
+}
+/* White is also the text of every band (text-white), so only the white surfaces are made glass, by their classes */
+.staff-desk :is(.bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/85, .bg-white\/80, .bg-white\/70, .bg-white\/60, .bg-white\/50) { background-color: rgb(255 255 255 / 0.07); }
+/* Green and maroon are also backgrounds (buttons, bands) that keep theirs: only their text is re-coloured */
+.staff-desk .text-green-dark { color: #8fdccf; }
+.staff-desk .text-green { color: #8fdccf; }
+.staff-desk .text-maroon { color: #f3a9c6; }
+
 /* ───────────────────────── English (lib/i18n.ts) ─────────────────────────
    The public site in English, left to right: Latin letters in Inter (Arabic names inside keep Qomra), the arrows
    that point forward or back drawn the other way round, and the page kept hidden for the moment it takes React to

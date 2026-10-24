@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useNavBranch } from "../../_components/branch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, FlaskConical, Lock, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -135,6 +136,7 @@ function Editor({ initial }: { initial: EligibilityRule }) {
   const fields = allFields(ed.config);
   const stored = ed.config.eligibility.find((r) => r.id === x.id);
   const isNew = !stored;
+  useNavBranch({ anchor: "/staff/hajj/manage/rules", title: isNew ? "إضافة شرط" : x.label || "الشرط" });
   // A new rule needs adding, a stored one changing
   const ro = !ed.may("eligibility-rules", isNew ? "POST" : "PUT");
   const dirty = !stored || JSON.stringify(x) !== JSON.stringify(stored);

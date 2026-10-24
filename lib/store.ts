@@ -224,17 +224,16 @@ export type SeasonOverrides = Partial<{
   demoteShare: number;
   honorTop: number;
   hady: number;
-  /** The meals the administration serves, at the times it sets ("06:00 – 09:00"): breakfast and lunch at the Makkah hotel and at the Madinah hotel */
-  mealMakkahBreakfast: string;
-  mealMakkahLunch: string;
-  mealMadinahBreakfast: string;
-  mealMadinahLunch: string;
-  /** Each meal's menu as the administration sets it (empty: the hotel's menu of the day) */
-  menuMakkahBreakfast: string;
-  menuMakkahLunch: string;
-  menuMadinahBreakfast: string;
-  menuMadinahLunch: string;
 }>;
+
+/** A cluster's meals: the time of each («06:00 – 09:00») and, optionally, its menu, for the Makkah hotel and the Madinah hotel */
+export type ClusterMeals = {
+  makkah: { breakfast: string; lunch: string };
+  madinah: { breakfast: string; lunch: string };
+  menus?: { makkah: { breakfast?: string; lunch?: string }; madinah: { breakfast?: string; lunch?: string } };
+  at: number;
+  by: string;
+};
 
 export type TicketKind = "health" | "missing" | "transport" | "meal" | "room" | "lost" | "complaint";
 export type Ticket = {
@@ -712,14 +711,37 @@ export type StageScores = Record<string, { score: number; note?: string }>;
  */
 export type SelfEvaluation = { stages: StageScores; sections?: Record<string, StageScores>; answers?: Record<string, string>; savedAt: number; submittedAt?: number; note?: string };
 
-/**
- * An administrator's objection to the staff's evaluation: the stages he objects to and why; the administration
- * accepts it (and revises the evaluation) or rejects it, with its reply
- */
-export type EvaluationObjection = { stages: string[]; reason: string; at: number; status: "pending" | "accepted" | "rejected"; reply?: string; decidedBy?: string; decidedAt?: number };
+/** A piece of evidence an objection or a reply carries: a photo, a recording, a video or a document (its media-library reference) */
+export type Evidence = { name: string; ref: string; type: string };
 
-/** One staff member's scores of an administrator, a group or a cluster that lived where he was posted */
-export type PeerEvaluation = { kind: "staff"; by: string; role: string; place?: string; stages: StageScores; note?: string; at: number };
+/**
+ * An administrator's objection to the staff's evaluation: the stages he objects to, why, and the evidence he holds. The
+ * staff who rated him answer it, each with his own words and evidence (`replies`, unnamed to the administrator); the
+ * evaluation committee reads both sides, knowing who is who, and decides (`EvaluationDecision`).
+ */
+export type EvaluationObjection = { stages: string[]; reason: string; evidence?: Evidence[]; at: number; replies?: Record<string, EvaluationReply> };
+
+/**
+ * Who rated: kept with his rating and with his reply, and read by the evaluation committee alone — so that, if it summons him, it
+ * can reach him. The administrator and the administration never see it.
+ */
+export type Rater = { id: string; name: string; title: string; place: string };
+
+/** What one of the staff who rated him answers to the objection, with his own evidence */
+export type EvaluationReply = { by: Rater; text: string; evidence?: Evidence[]; at: number };
+
+/**
+ * The committee's decision on the stages he objected to: for each, his own score, the staff's, or a third score of the
+ * committee's own, and why. It is the committee's, not a member's: no one is named.
+ */
+export type EvaluationDecision = { stages: Record<string, { pick: "self" | "staff" | "own"; score: number; note?: string }>; at: number };
+
+/**
+ * One staff member's scores of an administrator (the group's head stands for his group, the cluster's head for his
+ * cluster), stage by stage, with the questions of the administrator's role under each stage. Who rated (`by`) is kept
+ * with it and shown to the evaluation committee only: the administrator and the administration see how many rated, never who.
+ */
+export type PeerEvaluation = { by: Rater; stages: StageScores; sections?: Record<string, StageScores>; note?: string; at: number };
 
 /**
  * «يومي»: the day's report. Whoever works in a group sends his group's to the head of its cluster; the cluster's
@@ -842,24 +864,29 @@ export type State = {
    * approval, so a change waits in pending until the administration approves or sends it back.
    */
   clusterProfiles: Record<string, import("./cluster-profile").ClusterProfileState>;
+  /**
+   * The meals of each cluster's hotels, by the cluster's id: the technical coordinator times them, breakfast and
+   * lunch at the Makkah hotel and at the Madinah hotel, and the cluster's pilgrims read them (lib/season-live)
+   */
+  clusterMeals: Record<string, ClusterMeals>;
   /** Each group's public page (its picture, a word, its gallery), by the group's number — lib/group-profile */
   groupProfiles: Record<string, import("./group-profile").GroupProfileState>;
-  /** What the staff scored each administrator at the end of the season, by national id */
-  evaluations: Record<string, { avg: number; at: number; by: string; stages: Record<string, { score: number; note?: string; file?: string }> }>;
   /**
    * The season's evaluation after the pilgrims are home (app/administrator/_lib/evaluation.ts). Each administrator's
    * self-evaluation, stage by stage — saved as he goes, sent once.
    */
   selfEvaluations: Record<string, SelfEvaluation>;
   /**
-   * What the staff posted in a tower or a camp gave, stage by stage, besides the administration's own
-   * (`evaluations`): to each administrator of the clusters that lived there (by his id), to each of their groups
-   * («g-<group>») and to each cluster («c-<cluster>»); then by the staff member («staff:<staff id>»).
-   * Administrators do not rate one another.
+   * What the staff gave each administrator (the group's head, the cluster's head, a guide) after the season, stage by
+   * stage: by his id, then by a key per rater. Who rated is hidden from the administrator and from the administration, and
+   * known to the evaluation committee alone. Administrators do not rate one another, and the administration does not
+   * rate them either: its staff do.
    */
   peerEvaluations: Record<string, Record<string, PeerEvaluation>>;
-  /** An administrator's objection to the staff's evaluation of him, and the administration's decision */
+  /** An administrator's objection to the staff's evaluation of him, with the evidence and the raters' answers */
   evaluationObjections: Record<string, EvaluationObjection>;
+  /** The evaluation committee's decision on what he objected to */
+  evaluationDecisions: Record<string, EvaluationDecision>;
   /** Employees, reference data and operational files as the staff edited them (lib/ops.ts); a missing list means the seed */
   ops: import("./ops").OpsState;
   /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
@@ -1008,6 +1035,7 @@ const initial: State = {
   grading: {},
   adminRules: {},
   clusterProfiles: {},
+  clusterMeals: {},
   groupProfiles: {
     "27": {
       approved: {
@@ -1023,10 +1051,10 @@ const initial: State = {
       },
     },
   },
-  evaluations: {},
   selfEvaluations: {},
   peerEvaluations: {},
   evaluationObjections: {},
+  evaluationDecisions: {},
   ops: {},
   flights: {},
   riteLists: {},
@@ -1105,6 +1133,8 @@ function normalize(s: State): State {
     accounts,
     academy,
     newsComments: obj(s.newsComments) as State["newsComments"],
+    clusterMeals: obj(s.clusterMeals) as State["clusterMeals"],
+    evaluationDecisions: obj(s.evaluationDecisions) as State["evaluationDecisions"],
     dailyReports: list(s.dailyReports) as DailyReport[],
     // One session for the account, whichever door he came in by
     adminSessionId: s.sessionId ?? null,
@@ -1431,6 +1461,10 @@ export const actions = {
   setSeason(patch: SeasonOverrides) {
     setState((s) => ({ ...s, season: { ...s.season, ...patch } }));
   },
+  /** A cluster's meals as its technical coordinator timed them */
+  setClusterMeals(clusterId: string, meals: ClusterMeals) {
+    setState((s) => ({ ...s, clusterMeals: { ...s.clusterMeals, [clusterId]: meals } }));
+  },
   resetSeason() {
     setState((s) => ({ ...s, season: {} }));
   },
@@ -1575,9 +1609,6 @@ export const actions = {
   resetAdminRules(keep: readonly (keyof AdminRules)[] = []) {
     setState((s) => ({ ...s, adminRules: Object.fromEntries(keep.map((k) => [k, s.adminRules[k]])) as AdminRules }));
   },
-  setEvaluation(id: string, value: State["evaluations"][string]) {
-    setState((s) => ({ ...s, evaluations: { ...s.evaluations, [id]: value } }));
-  },
   saveSelfEvaluation(id: string, value: Pick<SelfEvaluation, "stages" | "sections" | "answers">, opts: { submit?: boolean } = {}) {
     setState((s) => {
       if (s.selfEvaluations[id]?.submittedAt) return s;
@@ -1585,14 +1616,23 @@ export const actions = {
       return { ...s, selfEvaluations: { ...s.selfEvaluations, [id]: { ...value, savedAt: at, ...(opts.submit ? { submittedAt: at } : {}) } } };
     });
   },
-  setPeerEvaluation(adminId: string, evaluator: string, value: PeerEvaluation) {
-    setState((s) => ({ ...s, peerEvaluations: { ...s.peerEvaluations, [adminId]: { ...s.peerEvaluations[adminId], [evaluator]: value } } }));
+  /** One rater's scores of an administrator, under his opaque key (lib/evaluation raterKey) */
+  setPeerEvaluation(adminId: string, rater: string, value: PeerEvaluation) {
+    setState((s) => ({ ...s, peerEvaluations: { ...s.peerEvaluations, [adminId]: { ...s.peerEvaluations[adminId], [rater]: value } } }));
   },
-  objectToEvaluation(id: string, value: Pick<EvaluationObjection, "stages" | "reason">) {
-    setState((s) => (s.evaluationObjections[id] ? s : { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...value, at: Date.now(), status: "pending" } } }));
+  objectToEvaluation(id: string, value: Pick<EvaluationObjection, "stages" | "reason" | "evidence">) {
+    setState((s) => (s.evaluationObjections[id] ? s : { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...value, at: Date.now() } } }));
   },
-  decideObjection(id: string, decision: Pick<EvaluationObjection, "status" | "reply" | "decidedBy">) {
-    setState((s) => (s.evaluationObjections[id] ? { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...s.evaluationObjections[id], ...decision, decidedAt: Date.now() } } } : s));
+  /** A rater's answer to the objection, under his opaque key */
+  replyToObjection(id: string, rater: string, reply: EvaluationReply) {
+    setState((s) => {
+      const o = s.evaluationObjections[id];
+      return o ? { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...o, replies: { ...o.replies, [rater]: reply } } } } : s;
+    });
+  },
+  /** The committee's decision on some of the stages he objected to: a stage decided stays decided until it is decided again */
+  decideEvaluation(id: string, stages: EvaluationDecision["stages"]) {
+    setState((s) => ({ ...s, evaluationDecisions: { ...s.evaluationDecisions, [id]: { stages: { ...s.evaluationDecisions[id]?.stages, ...stages }, at: Date.now() } } }));
   },
   setGrading(patch: State["grading"]) {
     setState((s) => ({ ...s, grading: { ...s.grading, ...patch } }));

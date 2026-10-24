@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, Bus, CheckCircle2, Circle, ClipboardCheck, Dices, FileStack, HeartPulse, ListTodo, PencilLine, RadioTower, ScrollText, Settings2, UserRoundPlus } from "lucide-react";
+import { ArrowLeft, Bus, Database, CheckCircle2, Circle, ClipboardCheck, Dices, FileStack, HeartPulse, ListTodo, PencilLine, RadioTower, ScrollText, Settings2, UserRoundPlus } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { filedBy } from "@/app/administrator/_lib/coordinator";
 import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
@@ -11,7 +11,7 @@ import { medicalDocsFor, medicalKey } from "@/lib/registration/post";
 import { ageOf, fullName } from "@/lib/registry";
 import { DAILY_REGISTRATIONS, EXEC, LOTTERY, REG_STATS } from "@/lib/data/staff-seed";
 import { groupName } from "@/lib/groups";
-import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, useEmployees, useOpFiles } from "@/lib/ops";
+import { CURRENT_SEASON, FILE_TYPES, fileState, gapsOf, useEmployees, useOpFiles, useRefs } from "@/lib/ops";
 import { STATS_SYSTEMS, statsKey, type StatsSystem } from "@/lib/permissions";
 import { SEASON } from "@/lib/season";
 import { useSeason } from "@/lib/season-live";
@@ -41,6 +41,7 @@ export const STATS_META: Record<StatsSystem, { title: string; icon: ReactNode; h
   medical: { title: "الفريق الطبي", icon: <HeartPulse />, href: "/staff/medical", link: "افتح عمل الفريق" },
   transport: { title: "المواصلات", icon: <Bus />, href: "/staff/transport", link: "افتح عمل الفريق" },
   opfiles: { title: "الملفات التشغيلية", icon: <FileStack />, href: "/staff/operational-files", link: "افتح الملفات" },
+  reference: { title: "البيانات المرجعية", icon: <Database />, href: "/staff/reference", link: "افتح القوائم" },
   content: { title: "محتوى الموقع", icon: <PencilLine />, href: "/staff/content", link: "افتح المحتوى" },
   audit: { title: "سجل الأحداث", icon: <ScrollText />, href: "/staff/audit", link: "افتح السجل" },
 };
@@ -74,10 +75,15 @@ function useStatsData(user: StaffUser) {
   const content = useContentSummary();
   const employees = useEmployees();
   const allFiles = useOpFiles();
+  const refs = useRefs();
   const draw = usePublishedDraw();
 
   return useMemo(() => {
     const seasonFiles = allFiles.filter((f) => f.season === CURRENT_SEASON);
+    // The reference lists of this season: what is live in each, and the hotels' beds
+    const liveRefs = (l: { season: number; archived?: boolean }[]) => l.filter((x) => x.season === CURRENT_SEASON && !x.archived);
+    const hotelsLive = liveRefs(refs.hotels) as typeof refs.hotels;
+    const refCounts = { hotels: hotelsLive.length, sectors: liveRefs(refs.sectors).length, centers: liveRefs(refs.centers).length, camps: liveRefs(refs.camps).length };
     const realApps = Object.values(applications);
     const openTickets = tickets.filter((t) => t.status !== "resolved");
 
@@ -130,6 +136,12 @@ function useStatsData(user: StaffUser) {
       conditions,
       equipped,
       seasonFiles,
+      refCounts,
+      refsEmpty: Object.values(refCounts).filter((n) => n === 0).length,
+      refsArchived: [refs.hotels, refs.sectors, refs.centers, refs.camps].reduce((a, l) => a + l.filter((x) => x.season === CURRENT_SEASON && x.archived).length, 0),
+      makkahHotels: hotelsLive.filter((h) => h.city === "makkah").length,
+      madinahHotels: hotelsLive.filter((h) => h.city === "madinah").length,
+      beds: hotelsLive.reduce((a, h) => a + h.capacity, 0),
       opsGaps: seasonFiles.reduce((a, f) => a + gapsOf(f).length, 0),
       opsMissing: FILE_TYPES.length - seasonFiles.length,
       opsActive: seasonFiles.filter((f) => fileState(f) === "active").length,
@@ -137,7 +149,7 @@ function useStatsData(user: StaffUser) {
       published,
       entered: published || !!lottery.sent,
     };
-  }, [user.id, now, season, reviews, tickets, events, applications, post, lottery, content, employees, allFiles, draw]);
+  }, [user.id, now, season, reviews, tickets, events, applications, post, lottery, content, employees, allFiles, refs, draw]);
 }
 type Data = ReturnType<typeof useStatsData>;
 
@@ -181,6 +193,8 @@ function todosOf(sys: StatsSystem, d: Data, user: StaffUser): Todo[] {
         { id: "gaps", text: `إسناد المناصب الإلزامية الشاغرة في الملفات التشغيلية (${d.opsGaps})`, href: "/staff/operational-files", tone: "maroon", done: d.opsGaps === 0 },
         { id: "activate", text: `تفعيل الملفات التشغيلية بعد إدخال أرقام القرارات (${d.opsActive} من ${FILE_TYPES.length} مفعّلة)`, href: "/staff/operational-files", tone: "gold", done: d.opsActive === FILE_TYPES.length },
       ];
+    case "reference":
+      return [{ id: "empty", text: d.refsEmpty ? `قوائم موسم ${CURRENT_SEASON} الفارغة: انقل إليها من الموسم السابق أو أضف (${d.refsEmpty} من 4)` : `قوائم موسم ${CURRENT_SEASON} الأربع فيها بيانات`, href: "/staff/reference", tone: "gold", done: d.refsEmpty === 0 }];
     case "content":
       return d.content.drafts ? [{ id: "drafts", text: `نشر المسودات أو تجاهلها في محتوى الموقع (${d.content.drafts})`, href: "/staff/content", tone: "gold" }] : [];
     case "audit":
@@ -279,6 +293,13 @@ function itemsOf(sys: StatsSystem, d: Data): FigureItem[] {
             { k: "مناصب إلزامية شاغرة", v: d.opsGaps, tone: d.opsGaps ? "maroon" : undefined },
             { k: "موظفون مشاركون", v: d.participants },
           ];
+    case "reference":
+      return [
+            { k: "فنادق الموسم", v: d.refCounts.hotels, hint: `${d.makkahHotels} في مكة · ${d.madinahHotels} في المدينة` },
+            { k: "أسرّة متعاقد عليها", v: formatNumber(d.beds), hint: "مجموع طاقات الفنادق" },
+            { k: "قطاعات ومراكز ومخيمات", v: `${d.refCounts.sectors} · ${d.refCounts.centers} · ${d.refCounts.camps}`, hint: "قطاعات مكة · مراكز المشاعر · مخيماتها" },
+            { k: "مؤرشفة هذا الموسم", v: d.refsArchived, hint: "قابلة للاستعادة" },
+          ];
     case "content":
       return [
             { k: "صفحات منشورة", v: d.content.published, hint: "يراها الزوار الآن" },
@@ -364,6 +385,12 @@ function SystemFigures({ sys, d, together, compact }: { sys: StatsSystem; d: Dat
       return (
         <Figures
           items={itemsOf("opfiles", d)}
+        />
+      );
+    case "reference":
+      return (
+        <Figures
+          items={itemsOf("reference", d)}
         />
       );
     case "reviews":

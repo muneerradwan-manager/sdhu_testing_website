@@ -29,6 +29,8 @@ import {
   type Sector,
 } from "@/lib/ops";
 import { can } from "@/lib/staff";
+import { MapPicker, distanceLabel, distanceM, mapsLink } from "@/components/ui/map-picker";
+import { HARAM, NABAWI } from "@/lib/data/clusters";
 import { cn, digitsOnly, formatNumber } from "@/lib/utils";
 import { Drawer, Gate, PageHeader, Tabs, logAs, useStaffUser } from "../_components/kit";
 import { Field, SearchBox, fieldClass, selectClass } from "../_components/ops-ui";
@@ -422,7 +424,7 @@ function Reference() {
                       h,
                       h.name,
                       <span className="tabular-nums">
-                        ترخيص {h.licence || "—"}
+                        {h.stars ? `${"★".repeat(h.stars)} · ` : ""}ترخيص {h.licence || "—"}
                         {h.floors ? ` · ${h.floors} طابقاً` : ""}
                       </span>,
                       () => setEditHotel(h),
@@ -623,7 +625,7 @@ function HotelForm({ initial, taken, onSave, onCancel }: { initial: Hotel; taken
           <input value={h.area} onChange={(e) => set("area", e.target.value)} className={fieldClass} />
           {err(tried && !h.area.trim(), "مطلوب")}
         </Field>
-        <Field label="المسافة عن الحرم" hint="كما في العقد، مثل: 3.4 كم أو 450 م">
+        <Field label="المسافة عن الحرم" hint="تُحسب من الخريطة أدناه، ويمكنك كتابتها كما في العقد، مثل: 3.4 كم أو 450 م">
           <input value={h.distance} onChange={(e) => set("distance", e.target.value)} className={fieldClass} />
         </Field>
         <Field label="الطاقة الاستيعابية" hint="عدد الأسرّة المتعاقد عليها هذا الموسم">
@@ -643,7 +645,43 @@ function HotelForm({ initial, taken, onSave, onCancel }: { initial: Hotel; taken
           />
         </Field>
       </div>
-      <Field label="رابط الموقع على الخريطة">
+      {/* What the pilgrims read of the hotel on its cluster's page is entered here: the cluster's team only picks the hotel */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="عدد النجوم" hint="يظهر للحاج في صفحة التكتل">
+          <select value={h.stars ?? ""} onChange={(e) => set("stars", e.target.value ? Number(e.target.value) : undefined)} className={selectClass}>
+            <option value="">غير مصنّف</option>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {"★".repeat(n)} ({n})
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="نوع الغرف" hint="مثل: غرف ثلاثية ورباعية">
+          <input value={h.rooms ?? ""} onChange={(e) => set("rooms", e.target.value || undefined)} className={fieldClass} />
+        </Field>
+      </div>
+      <Field label="مزايا الفندق" hint="ميزة في كل سطر، مثل: مصاعد، مصلى للنساء">
+        <textarea
+          value={(h.features ?? []).join("\n")}
+          onChange={(e) => set("features", e.target.value.split("\n").map((x) => x.trim()).filter(Boolean))}
+          rows={3}
+          className={cn(fieldClass, "h-auto py-2 leading-6")}
+        />
+      </Field>
+      <Field label="موقع الفندق على الخريطة" hint="قرّب الخريطة واضغط على موقع الفندق: تُحسب منه المسافة، ويظهر الفندق على الخريطة في صفحة التكتل">
+        <MapPicker
+          label="موقع الفندق"
+          value={h.at}
+          center={h.at ? undefined : (h.city === "madinah" ? NABAWI : HARAM)}
+          zoom={h.at ? 15 : 14}
+          landmark={h.city === "madinah" ? { at: NABAWI, label: "المسجد النبوي" } : { at: HARAM, label: "المسجد الحرام" }}
+          prompt="قرّب الخريطة واضغط على موقع الفندق"
+          onChange={(v) => setH((x) => ({ ...x, at: v, mapUrl: mapsLink(v), distance: `${distanceLabel(distanceM(v, x.city === "madinah" ? NABAWI : HARAM))} ${x.city === "madinah" ? "عن المسجد النبوي" : "عن الحرم"}` }))}
+          className="h-64"
+        />
+      </Field>
+      <Field label="رابط الموقع على الخريطة" hint="يُملأ من الخريطة أعلاه، ويمكنك تعديله">
         <input value={h.mapUrl ?? ""} onChange={(e) => set("mapUrl", e.target.value || undefined)} placeholder="https://maps.google.com/..." className={fieldClass} dir="ltr" />
       </Field>
       <FormFooter onCancel={onCancel} />

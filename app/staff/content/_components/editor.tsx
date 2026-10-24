@@ -21,6 +21,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/widgets";
 import { CmsIcon } from "@/components/cms/bits";
+import { getCollectionDef } from "@/lib/cms/collections";
 import { sectionDefaults } from "@/lib/cms/schema";
 import { cms, hasDraft, pageState, readDraftValues, readOrder, STATUS_LABEL, useCms } from "@/lib/cms/store";
 import type { PageDef, PageStatus, SectionDef } from "@/lib/cms/types";
@@ -166,6 +167,9 @@ export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: Page
       )}
       {!editable && <p className="rounded-2xl bg-white/10 px-4 py-2.5 text-sm text-white/75 ring-1 ring-white/15">للاطلاع فقط: تحرير الصفحة يحتاج صلاحية «تعديل — الصفحات وأقسامها».</p>}
 
+      {/* ── محتوى الصفحة الذي في مجموعات: ترويستها هنا وعناصرها هناك ── */}
+      {page.related && <RelatedCollections items={page.related} />}
+
       {/* ── الأقسام + النموذج ── */}
       <div className="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
         <SectionList
@@ -187,6 +191,28 @@ export function PageEditor({ page, user, onBack, onOpenRevisions }: { page: Page
         )}
       </div>
     </div>
+  );
+}
+
+/** What this page shows besides its header — its tracks, lessons, questions, articles — and where it is edited */
+function RelatedCollections({ items }: { items: NonNullable<PageDef["related"]> }) {
+  const defs = items.map((x) => getCollectionDef(x.collection)).filter((d): d is NonNullable<typeof d> => !!d);
+  if (!defs.length) return null;
+  return (
+    <section className="rounded-3xl border border-gold/30 bg-white/[.05] p-4 ring-1 ring-white/10">
+      <h3 className="font-display text-lg font-bold text-white">محتوى هذه الصفحة</h3>
+      <p className="mt-1 text-sm text-white/65">ما أدناه ترويسة الصفحة فقط. محتواها نفسه في مجموعات، تفتح كل واحدة لتعدّل عناصرها:</p>
+      <ul className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {defs.map((d) => (
+          <li key={d.id}>
+            <Link href={`/staff/content?collection=${d.id}`} className="block rounded-2xl bg-white/[.06] p-3 ring-1 ring-white/10 transition hover:ring-gold/50">
+              <span className="block font-bold text-gold">{d.label}</span>
+              <span className="mt-0.5 block text-xs leading-5 text-white/65">{d.description}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

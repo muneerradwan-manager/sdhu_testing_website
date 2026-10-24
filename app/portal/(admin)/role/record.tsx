@@ -67,11 +67,11 @@ export function useRecord() {
 /**
  * The file is the season's once he is accepted to work in it — qualified (the written test and the oral exam
  * passed, or his role renewed without a test, and the result shown to him): nothing in it changes until the
- * season ends with the last objection to the evaluations. Then it opens again, for the next season's application.
+ * season ends with the evaluation committee's last decision. Then it opens again, for the next season's application.
  */
 export function useFileLock() {
   const admin = useAdmin();
-  const end = useOperation("evaluation-objection");
+  const end = useOperation("evaluation-committee");
   const res = resultOf(admin?.profile);
   const accepted = res.passed && !!res.published;
   return { locked: accepted && end.status !== "closed", until: end.end ? dayLabel(end.end, true) : "" };

@@ -143,8 +143,8 @@ MODULE = M("formation", "التشكيل: المجموعات والتكتلات �
       "كل إرسال صف، والمنشور آخر صف معتمد.", [
         pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
         c("status", enum("pending", "approved", "rejected", "superseded"), "pending «عند الإدارة»، approved «معتمدة»، rejected «أُعيدت إليك»، superseded حلّت محلها نسخة أحدث", d="'pending'"),
-        c("fields", "JSON", "الحقول: specialty «التخصص»، about «نبذة عن التكتل»، makkahHotel، makkahArea، makkahDistance، makkahRooms «نوع الغرف»، makkahFeatures[]، madinahHotel، madinahArea، madinahDistance، "
-          "makkahAt و madinahAt {lat,lng}، transport[] «النقل»، meals[] «الإعاشة»، programs[] «البرامج»، rooms {1,2,3,4} «السكن الخاص — للفرد بحسب أسرّة الغرفة»، cover، gallery[] (معرّفات files)"),
+        c("fields", "JSON", "الحقول: specialty «التخصص»، about «نبذة عن التكتل»، makkahHotelId و madinahHotelId (فندقان يُختاران من hotels، وبياناتهما منها لا من هنا)، "
+          "transport[] «النقل»، meals[] «الإعاشة»، programs[] «البرامج»، rooms {1,2,3,4} «السكن الخاص — للفرد بحسب أسرّة الغرفة»، cover، gallery[] (معرّفات files)"),
         c("note", "VARCHAR(500)", "ملاحظة المرسل", null=True),
         account("submitted_by_account_id", "من أرسل (رئيس التكتل أو منسقه أو معاونه أو معاون مجموعة أو رئيس مجموعة معتمدة فيه؛ لا الموجّهون)"),
         c("submitted_by_label", "VARCHAR(160)", "«<الاسم> — <الموقع>»"),

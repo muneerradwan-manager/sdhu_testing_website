@@ -88,6 +88,18 @@ MODULE = M("season", "الحاج في الموسم وبعد العودة: الب
         file_("file_id", "نسخة PDF إن وُلّدت"),
         c("revoked_at", "DATETIME(3)", "إلغاء الشهادة", null=True),
     ], uq=[("application_id", "national_id")], new=True, src="app/portal/season/_components (الشهادة مشتقة)"),
+    T("cluster_meals", "وجبات التكتل", "فطور وغداء فندق مكة وفندق المدينة لكل تكتل، يضبط مواعيدها وقوائمها منسقه التقني، فيقرؤها حجاج مجموعات التكتل. لا تحدد الإدارة وجبات.", [
+        pk(), season(),
+        ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
+        c("city", enum("makkah", "madinah"), "فندق مكة أو فندق المدينة"),
+        c("meal", enum("breakfast", "lunch"), "الوجبة"),
+        c("time_from", "TIME", "من"),
+        c("time_to", "TIME", "إلى"),
+        c("menu", "TEXT", "القائمة (فارغة = «قائمة الفندق اليومية»)", null=True),
+        person("set_by_national_id", "المنسق التقني الذي ضبطها"),
+        updated(),
+    ], uq=[("season_year", "cluster_id", "city", "meal")], new=True, src="app/portal/(admin)/meals؛ lib/season-live.ts mealsOfCluster وDEFAULT_MEALS",
+       seed="الافتراضي حتى يضبطه المنسق: مكة 06:00–09:00 و13:00–15:00؛ المدينة 05:30–08:30 و13:00–15:00."),
 ], flow=[
     "زر الطوارئ والشكوى والمفقودات وبلاغ فريق المجموعة كلها تكتب tickets، وكل معالجة تكتب ticket_updates.",
     "نجوم المراحل والوجبات والمشاعر والتقييم الشامل تكتب season_ratings، وملاحظات التقييم الشامل pilgrim_evaluations.",

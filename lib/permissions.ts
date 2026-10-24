@@ -178,7 +178,7 @@ export const CATALOG: PermSystem[] = [
       R("group-pages", "صفحات المجموعات", G, { special: [["approve", "اعتماد ونشر"], ["return", "إعادة مع السبب"]] }),
       R("directory", "التكتلات والمجموعات", ["GET", "PUT"], { special: [["export", "تصدير"], ["season-start", "بدء موسم جديد"], ["season-undo", "التراجع عن بدء الموسم"]] }),
       R("letters", "المراسلات", ["GET", "PUT"], { special: [["close", "إغلاق المراسلة وإعادة فتحها"], ["print", "طباعة"]] }),
-      R("evaluation", "تقييم الإداريين", ["GET", "PUT"], { special: [["decide-objection", "البت في الاعتراض"]] }),
+      R("evaluation", "نتائج التقييم", ["GET"], { note: "للاطلاع فقط: لا تقيّم الإدارة ولا تبتّ في الاعتراضات (لجنة التقييم)، ولا ترى من قيّم؛ هويته للجنة وحدها" }),
       R("grading", "التصنيف", G, { special: [["publish", "اعتماد النتائج ونشرها"]] }),
     ],
   },
@@ -261,13 +261,12 @@ export const CATALOG: PermSystem[] = [
   {
     key: "season",
     label: "إعدادات الموسم",
-    desc: "شروط الموسم ورسومه، ومواعيد العمليات، ومواعيد الوجبات.",
+    desc: "شروط الموسم ورسومه، ومواعيد العمليات.",
     href: "/staff/season",
     resources: [
       R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("values", "الشروط والرسوم", ["GET", "PUT"], { special: [["reset", "القيم الافتراضية"]] }),
       R("windows", "مواعيد العمليات", ["GET", "PUT"], { scope: "operation" }),
-      R("meals", "مواعيد الوجبات", ["GET", "PUT"]),
     ],
   },
   {
@@ -329,6 +328,7 @@ export const CATALOG: PermSystem[] = [
     desc: "فنادق الموسم وقطاعات مكة ومراكز المشاعر ومخيماتها.",
     href: "/staff/reference",
     resources: [
+      R("stats", "الإحصائيات", G, { note: "أرقام النظام وما ينتظر فيه، في صفحة إحصائياته" }),
       R("hotels", "الفنادق", ["GET", "POST", "PUT"], { special: [["archive", "أرشفة واستعادة"], ["import", "نقل من الموسم السابق"]] }),
       R("sectors", "القطاعات", ["GET", "POST", "PUT"], { special: [["archive", "أرشفة واستعادة"], ["import", "نقل من الموسم السابق"]] }),
       R("centers", "المراكز", ["GET", "POST", "PUT"], { special: [["archive", "أرشفة واستعادة"], ["import", "نقل من الموسم السابق"]] }),
@@ -369,10 +369,10 @@ export const CATALOG: PermSystem[] = [
   {
     key: "evaluate",
     label: "تقييم الإداريين بعد الموسم",
-    desc: "تقييم التكتلات التي سكنت حيث رابط الموظف، ومجموعاتها وإدارييها.",
+    desc: "تقييم من كان مع الموظف في ملفه التشغيلي (رئيس التكتل ورؤساء المجموعات والموجّهون) بأسئلة صفاتهم، والرد على اعتراضاتهم؛ وقرار لجنة التقييم في الاعتراضات.",
     href: "/staff/evaluate",
     scope: "posting",
-    resources: [R("evaluations", "التقييمات", ["GET", "PUT"])],
+    resources: [R("evaluations", "التقييمات", ["GET", "PUT"], { note: "هوية المقيِّم سرّية عن الإداري والإدارة؛ تعرفها اللجنة وحدها" }), R("committee", "قرارات لجنة التقييم", ["GET", "PUT"], { note: "لأعضاء ملف «لجنة التقييم» وحدهم" })],
   },
 ];
 
@@ -393,7 +393,7 @@ export const viewKeys = (sys: string) => systemKeys(sys).filter((k) => k.endsWit
  * its statistics) nor a field post. «إدارة الامتحانات» has a «الإحصائيات» of its own too, but as one of its
  * operations, so it is not among them
  */
-export const STATS_SYSTEMS = ["reviews", "office", "lottery", "season", "operations", "medical", "transport", "opfiles", "audit", "content"] as const;
+export const STATS_SYSTEMS = ["reviews", "office", "lottery", "season", "operations", "medical", "transport", "opfiles", "reference", "audit", "content"] as const;
 export type StatsSystem = (typeof STATS_SYSTEMS)[number];
 export const hasStats = (sys: string): sys is StatsSystem => (STATS_SYSTEMS as readonly string[]).includes(sys);
 /** The permission to see a system's statistics */
@@ -486,6 +486,6 @@ export function mergeGrants(...lists: PermGrant[][]): PermGrant[] {
 /** The operation windows each former file controlled, now granted as scoped `season.windows` */
 export const WINDOWS_OF = {
   registration: ["hajj-direct", "hajj-lottery"],
-  admins: ["admin-registration", "group-formation", "cluster-formation", "group-management", "cluster-management", "pilgrim-evaluation", "self-evaluation", "peer-evaluation", "evaluation-objection"],
+  admins: ["admin-registration", "group-formation", "cluster-formation", "group-management", "cluster-management", "pilgrim-evaluation", "self-evaluation", "peer-evaluation", "evaluation-objection", "evaluation-committee"],
   exams: ["admin-exams", "admin-orals"],
 };

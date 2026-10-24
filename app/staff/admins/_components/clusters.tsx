@@ -12,6 +12,7 @@ import { PrintSheet } from "@/components/print/print-sheet";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { diffFields, fieldsOf } from "@/lib/cluster-profile";
+import { useHotels } from "@/lib/ops";
 import { diffGroupFields, groupSeed } from "@/lib/group-profile";
 import { CmsImage } from "@/components/cms/image";
 import { groupName } from "@/lib/groups";
@@ -1089,6 +1090,7 @@ const REASONS = ["الوصف لا يطابق العقد الموقّع مع ال
  * is approved. Waiting programmes and published ones are the list's two filters; each opens in a side sheet.
  */
 function Programmes({ desk }: { desk: AdminsDesk }) {
+  const hotels = useHotels();
   const user = useStaffUser()!;
   const toast = useToast();
   const [filter, setFilter] = useState<"pending" | "published">(desk.pendingProgrammes.length || !desk.programmes.some((x) => x.state?.approved) ? "pending" : "published");
@@ -1125,7 +1127,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
         {list.length === 0 && <EmptyRow cols={4}>{filter === "pending" ? "لا تعديلات معلّقة." : "لا برامج منشورة بعد."}</EmptyRow>}
         {list.map(({ cluster: c, state }) => {
           const pending = filter === "pending" && state?.pending;
-          const live = state?.approved ? { ...fieldsOf(c), ...state.approved.fields } : fieldsOf(c);
+          const live = state?.approved ? { ...fieldsOf(c, hotels), ...state.approved.fields } : fieldsOf(c, hotels);
           return (
             <tr key={c.slug}>
               <TitleCell
@@ -1140,7 +1142,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
               />
               <td className="p-3 align-top text-white/80">{pending ? state!.pending!.by : state?.approved?.approvedBy}</td>
               <td className="whitespace-nowrap p-3 align-top text-xs text-white/60">{fmtDateTime(pending ? state!.pending!.at : (state?.approved?.approvedAt ?? 0))}</td>
-              <td className="p-3 align-top text-white/80">{pending ? `${diffFields(live, state!.pending!.fields).length} حقلاً` : state?.approved?.by}</td>
+              <td className="p-3 align-top text-white/80">{pending ? `${diffFields(live, state!.pending!.fields, hotels).length} حقلاً` : state?.approved?.by}</td>
             </tr>
           );
         })}
@@ -1175,7 +1177,7 @@ function Programmes({ desk }: { desk: AdminsDesk }) {
                 </p>
                 {sheet.state.pending.note && <p className="text-gold">ملاحظته: {sheet.state.pending.note}</p>}
                 <ul className="space-y-2">
-                  {diffFields(sheet.state.approved ? { ...fieldsOf(sheet.cluster), ...sheet.state.approved.fields } : fieldsOf(sheet.cluster), sheet.state.pending.fields).map((ch) => (
+                  {diffFields(sheet.state.approved ? { ...fieldsOf(sheet.cluster, hotels), ...sheet.state.approved.fields } : fieldsOf(sheet.cluster, hotels), sheet.state.pending.fields, hotels).map((ch) => (
                     <li key={ch.key} className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
                       <p className="font-bold text-gold">{ch.label}</p>
                       <p className="mt-1 text-white/50 line-through">{ch.before || "—"}</p>

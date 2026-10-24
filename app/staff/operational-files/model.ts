@@ -1,4 +1,4 @@
-import { fileTypeOf, fullName, roleIn, type Assignment, type Employee, type OpFile, type Place } from "@/lib/ops";
+import { fileTypeOf, fullName, roleIn, type Assignment, type Employee, type OpFile, type Place, outerOf } from "@/lib/ops";
 
 /** Pure edits of an operational file; the view saves the result and logs it */
 
@@ -74,13 +74,13 @@ export function toCsv(file: OpFile, employees: Employee[], places: Map<string, P
   const type = fileTypeOf(file.type);
   const emp = (id: string) => employees.find((e) => e.id === id);
   const place = (id?: string) => (id ? (places.get(id)?.name ?? "") : "");
-  const head = [type.outer.name, type.inner.name, "الدور", "الاسم", "المسمى الوظيفي", "البعثة", "هاتف سوريا", "هاتف السعودية"];
+  const head = [outerOf(type).name, ...(type.inner ? [type.inner.name] : []), "الدور", "الاسم", "المسمى الوظيفي", "البعثة", "هاتف سوريا", "هاتف السعودية"];
   if (type.housing) head.push("مكان السكن");
   if (type.campFields) head.push("الخيمة", "جهات مخصّصة");
   const rows: string[][] = [head];
   const line = (m: Assignment, outer: string, inner: string, extra: string[]) => {
     const e = emp(m.employeeId);
-    rows.push([outer, inner, roleIn(type, m.role).name, e ? fullName(e) : m.employeeId, e?.jobTitle ?? "", e?.mission ?? "", e?.phoneSy ?? "", e?.phoneSa ?? "", ...extra]);
+    rows.push([outer, ...(type.inner ? [inner] : []), roleIn(type, m.role).name, e ? fullName(e) : m.employeeId, e?.jobTitle ?? "", e?.mission ?? "", e?.phoneSy ?? "", e?.phoneSa ?? "", ...extra]);
   };
   const blank = [type.housing ? [""] : [], type.campFields ? ["", ""] : []].flat();
   file.members.forEach((m) => line(m, type.team ?? "الملف", "—", blank));

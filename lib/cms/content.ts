@@ -9,7 +9,7 @@
  */
 
 import { useMemo } from "react";
-import { lessonItemId, toStrings } from "./collections";
+import { lessonItemId, quizItemId, toStrings } from "./collections";
 import {
   cms,
   cmsMemo,
@@ -283,6 +283,17 @@ const isLecturer = (v: unknown): v is Lecturer["id"] =>
 const keep = (edited: string[], original: string[]) =>
   edited.length ? edited : original;
 
+/** أسئلة الاختبار من اللوحة: خيار في كل سطر، ورقم الصحيح يبدأ من 1؛ وسؤال ناقص (دون خيارين) يُهمل */
+function quizOf(values: Record<string, unknown> | undefined, original: Level["quiz"]): Level["quiz"] {
+  if (!values) return original;
+  const out = rows<Record<string, unknown>>(values.questions).flatMap((x) => {
+    const options = s(x.options).split("\n").map((o) => o.trim()).filter(Boolean);
+    if (!s(x.q) || options.length < 2) return [];
+    return [{ q: s(x.q), options, answer: Math.min(options.length, Math.max(1, Math.round(n(x.answer, 1)))) - 1, explain: s(x.explain) }];
+  });
+  return out.length ? out : original;
+}
+
 function overlayLesson(
   base: Lesson,
   values: Record<string, unknown> | undefined,
@@ -304,6 +315,13 @@ function overlayLesson(
     minutes: n(values.minutes, base.minutes) || base.minutes,
     lecturer: isLecturer(values.lecturer) ? values.lecturer : base.lecturer,
     poster: s(values.poster) || base.poster,
+    media: values.media === "audio" || values.media === "video" ? values.media : base.media,
+    hasAudio: typeof values.hasAudio === "boolean" ? values.hasAudio : base.hasAudio,
+    videoSrc: s(values.videoSrc) || base.videoSrc,
+    gallery: (() => {
+      const g = rows<Record<string, unknown>>(values.gallery).map((x) => s(x.src)).filter(Boolean);
+      return g.length ? g : base.gallery;
+    })(),
     summary: keep(toStrings(values.summary), base.summary),
     points: keep(toStrings(values.points), base.points),
     tags: keep(toStrings(values.tags), base.tags),
@@ -326,6 +344,8 @@ function buildTracks(state: CmsState): Track[] {
   const byId = new Map(
     readLiveCollection(state, "academyLessons").map((i) => [i.id, i.values]),
   );
+  // اختبار كل مستوى كما حرّره الموظف؛ ما لم يُحرَّر بقي اختباره الأصلي
+  const quizzes = new Map(readLiveCollection(state, "academyQuizzes").map((i) => [i.id, i.values]));
 
   return readLiveCollection(state, "academyTracks").flatMap((t) => {
     const base = TRACKS.find((x) => x.slug === t.id);
@@ -341,6 +361,7 @@ function buildTracks(state: CmsState): Track[] {
         ...lvl,
         title: s(levelEdits[li]?.title) || lvl.title,
         subtitle: s(levelEdits[li]?.subtitle) || lvl.subtitle,
+        quiz: quizOf(quizzes.get(quizItemId(t.id, li)), lvl.quiz),
         lessons: lvl.lessons.flatMap((ls) => {
           const id = lessonItemId(t.id, ls.slug);
           return byId.has(id) ? [overlayLesson(ls, byId.get(id))] : [];

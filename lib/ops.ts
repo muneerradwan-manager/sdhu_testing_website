@@ -6,8 +6,10 @@
  * administration opens one FILE of each type per season, choosing its places from the season's
  * reference data (البيانات المرجعية) and assigning employees to every role.
  *
- * Every type is a two-level tree plus, optionally, a team held on the whole file:
+ * Every type is a two-level tree (the Madinah file one level) plus, optionally, a team held on the whole file:
  *   - Makkah housing: القطاع → البرج/الفندق (sector head and deputy; tower supervisor, deputies, members)
+ *   - Madinah housing: الفندق only — the stay is a few days, so no sectors: the staff are sorted straight on the
+ *     Madinah hotels
  *   - Mina camps:     المركز → المخيم, and فريق الكوسترات on the file (the buses serve every centre)
  *   - Arafat camps:   المركز → المخيم
  * Everything changes from one season to the next — the hotels, the sectors, the people — so hotels and
@@ -19,6 +21,7 @@
 
 import { EMPLOYEES_SEED } from "./data/employees-seed";
 import { CAMPS_SEED, CENTERS_SEED, FILES_SEED, HOTELS_SEED, SECTORS_SEED } from "./data/ops-seed";
+import type { LatLng } from "./data/clusters";
 import { SEASON } from "./season";
 import { useMemo } from "react";
 import { setState, useStore } from "./store";
@@ -175,6 +178,15 @@ export type Hotel = {
   licence: string;
   floors?: number;
   mapUrl?: string;
+  /**
+   * What the pilgrims read of the hotel on its cluster's public page — all of it entered here, by the staff: the
+   * stars, the room types, the amenities, and the hotel on the map (the distance is measured from the pin). The
+   * cluster's team only picks the hotel (lib/cluster-profile)
+   */
+  stars?: number;
+  rooms?: string;
+  features?: string[];
+  at?: LatLng;
   archived?: boolean;
 };
 
@@ -317,7 +329,7 @@ export type Role = {
   description: string;
 };
 
-export type FileTypeCode = "makkah-housing" | "mina-camps" | "arafat-camps";
+export type FileTypeCode = "makkah-housing" | "madinah-housing" | "mina-camps" | "arafat-camps" | "flights" | "evaluation-committee";
 
 export type FileType = {
   code: FileTypeCode;
@@ -328,8 +340,21 @@ export type FileType = {
   description: string;
   startCondition: string;
   endCondition: string;
-  outer: { name: string; plural: string; ref: "sectors" | "centers" };
-  inner: { name: string; plural: string; ref: "hotels" | "camps" };
+  /** No places in the flights and the committee files: a team held on the whole file (`team`), nothing else */
+  outer?: { name: string; plural: string; ref: "sectors" | "centers" | "hotels" };
+  /** No inner level in the Madinah file: its staff sit straight on the hotels (the outer level) */
+  inner?: { name: string; plural: string; ref: "hotels" | "camps" };
+  /** Housing files offer the hotels of this city only */
+  city?: City;
+  /**
+   * The staff of this file rate the administrators after the season (app/administrator/_lib/evaluation): `stages`
+   * are the evaluation stages they saw — the Makkah hotel's staff rate «مكة المكرمة», the camps' «المشاعر» — and
+   * `all` is for a team that serves every cluster (the flights' supervisors): they rate every cluster, not those
+   * that lived where they were posted
+   */
+  evaluates?: { stages: string[]; all?: true };
+  /** The members of this file decide the objections to the evaluation (the evaluation committee) */
+  decides?: true;
   /** Camp files offer the centres and camps of this mashaer only */
   mashaer?: Mashaer;
   /** Outer roles choose the hotel they sleep in (housing file) */
@@ -353,6 +378,8 @@ const HOUSING: FileType = {
   endCondition: "ينتهي العمل بترحيل آخر حاج إلى المدينة المنورة.",
   outer: { name: "القطاع", plural: "القطاعات", ref: "sectors" },
   inner: { name: "البرج / الفندق", plural: "الأبراج", ref: "hotels" },
+  city: "makkah",
+  evaluates: { stages: ["makkah"] },
   housing: true,
   roles: [
     {
@@ -410,6 +437,34 @@ const HOUSING: FileType = {
   },
 };
 
+const MADINAH: FileType = {
+  code: "madinah-housing",
+  name: "التسكين في المدينة المنورة — فنادق البعثة",
+  short: "التسكين في المدينة المنورة",
+  where: "المدينة المنورة",
+  description: "يوزّع أعضاء البعثة على فنادق المدينة المنورة في إقامتهم القصيرة بعد الحج. لا قطاعات ولا مراكز: فنادق المدينة من البيانات المرجعية، ويُسند كل موظف إلى فندق منها.",
+  startCondition: "يبدأ العمل بوصول أعضاء البعثة إلى المدينة المنورة بعد انتهاء الحج.",
+  endCondition: "ينتهي العمل بمغادرة آخر عضو من البعثة المدينة المنورة.",
+  outer: { name: "الفندق", plural: "الفنادق", ref: "hotels" },
+  city: "madinah",
+  evaluates: { stages: ["madinah"] },
+  roles: [
+    {
+      code: "madinah-member",
+      level: "outer",
+      name: "عضو بعثة",
+      plural: "أعضاء البعثة في الفندق",
+      required: false,
+      multiple: true,
+      description: "عضو البعثة الذي يسكن في هذا الفندق خلال إقامة البعثة في المدينة المنورة.",
+    },
+  ],
+  dates: {
+    1447: { startsOn: "2026-06-06", endsOn: "2026-06-09" },
+    1448: { startsOn: "2027-05-25", endsOn: "2027-05-28" },
+  },
+};
+
 const centerSupervisor = (where: string): Role => ({
   code: "center-supervisor",
   level: "outer",
@@ -444,6 +499,7 @@ const MINA: FileType = {
   outer: { name: "المركز", plural: "المراكز", ref: "centers" },
   inner: { name: "المخيم", plural: "المخيمات", ref: "camps" },
   mashaer: "mina",
+  evaluates: { stages: ["mashaer"] },
   campFields: true,
   team: "فريق الكوسترات",
   roles: [
@@ -485,6 +541,7 @@ const ARAFAT: FileType = {
   outer: { name: "المركز", plural: "المراكز", ref: "centers" },
   inner: { name: "المخيم", plural: "المخيمات", ref: "camps" },
   mashaer: "arafat",
+  evaluates: { stages: ["mashaer"] },
   campFields: true,
   roles: [
     centerSupervisor("عرفات"),
@@ -496,7 +553,63 @@ const ARAFAT: FileType = {
   },
 };
 
-export const FILE_TYPES: FileType[] = [HOUSING, MINA, ARAFAT];
+const FLIGHTS: FileType = {
+  code: "flights",
+  name: "مشرفو الطيران — رحلات الموسم",
+  short: "الطيران",
+  where: "المطارات ورحلات الموسم",
+  description: "فريق المسؤولين عن الطيران في الموسم: من يشرف على رحلات الذهاب والعودة والتفويج. لا أماكن فيه ولا قطاعات: مشرفو الطيران يُسندون على الملف نفسه، ويقيّمون بعد الموسم كل تكتل وكل مجموعة وموجّهيها في مرحلتي المطار والسفر.",
+  startCondition: "يبدأ العمل بفتح رحلات الذهاب للتفويج.",
+  endCondition: "ينتهي العمل بهبوط آخر رحلات العودة في دمشق.",
+  team: "مشرفو الطيران",
+  evaluates: { stages: ["airport", "travel"], all: true },
+  roles: [
+    {
+      code: "flights-supervisor",
+      level: "file",
+      name: "مشرف طيران",
+      plural: "مشرفو الطيران",
+      required: true,
+      multiple: true,
+      description: "الإشراف على رحلات الموسم ذهاباً وعودة: التفويج في المطارات، ومتابعة إقلاع الرحلات وهبوطها، وما يطرأ على الحجاج والمجموعات في المطار وعلى الطائرة. ويقيّم بعد الموسم كل تكتل ومجموعة وموجّهيها في مرحلتي المطار والسفر.",
+    },
+  ],
+  dates: {
+    1447: { startsOn: "2026-04-15", endsOn: "2026-06-04" },
+    1448: { startsOn: "2027-04-08", endsOn: "2027-06-04" },
+  },
+};
+
+const COMMITTEE: FileType = {
+  code: "evaluation-committee",
+  name: "لجنة التقييم",
+  short: "لجنة التقييم",
+  where: "تقييم الإداريين بعد الموسم",
+  description: "لجنة تشرف على تقييم الإداريين بعد الموسم. لا أماكن فيها: يُسند أعضاؤها على الملف نفسه. إن اعترض إداري على تقييم الموظفين له، قرأت اللجنة أدلته وأدلة المقيّمين (دون أن تعرف من هم) وقرّرت: درجة الإداري، أو درجة الموظفين، أو درجة ثالثة من عندها. وهي وحدها تعرف هوية المقيِّمين، لتصل إلى من تستدعيه منهم.",
+  startCondition: "تبدأ مهمتها بفتح الاعتراضات على التقييم.",
+  endCondition: "تنتهي بالبتّ في كل الاعتراضات.",
+  team: "أعضاء لجنة التقييم",
+  decides: true,
+  roles: [
+    {
+      code: "committee-member",
+      level: "file",
+      name: "عضو لجنة التقييم",
+      plural: "أعضاء لجنة التقييم",
+      required: true,
+      multiple: true,
+      description: "النظر في الاعتراضات على التقييم: يقرأ أدلة الإداري وأدلة المقيّمين، ويقرّر مع اللجنة لكل مرحلة معترض عليها درجة الإداري أو درجة الموظفين أو درجة ثالثة. وهو وحده، مع بقية الأعضاء، يعرف هوية المقيِّمين ليصل إليهم إن استُدعوا.",
+    },
+  ],
+  dates: {
+    1447: { startsOn: "2026-06-18", endsOn: "2026-06-27" },
+    1448: { startsOn: "2027-06-18", endsOn: "2027-06-27" },
+  },
+};
+
+export const FILE_TYPES: FileType[] = [HOUSING, MADINAH, MINA, ARAFAT, FLIGHTS, COMMITTEE];
+/** The type's places level, or a stand-in for the files that have none (their pages never show it) */
+export const outerOf = (t: FileType) => t.outer ?? { name: "الملف", plural: "الملف", ref: "hotels" as const };
 export const HOUSING_TYPE = HOUSING;
 export const fileTypeOf = (code: FileTypeCode) => FILE_TYPES.find((t) => t.code === code)!;
 export const rolesAt = (type: FileType, level: Level) => type.roles.filter((r) => r.level === level);
@@ -506,11 +619,18 @@ export const roleIn = (type: FileType, code: string) => type.roles.find((r) => r
 export function optionsFor(type: FileType, season: number, refs: Refs) {
   const idx = placeIndex(refs);
   const live = (ids: string[]) => ids.map((id) => idx.get(id)!).filter((p) => !p.archived);
-  const outer =
-    type.outer.ref === "sectors" ? refs.sectors.filter((s) => s.season === season).map((s) => s.id) : refs.centers.filter((c) => c.season === season && c.mashaer === type.mashaer).map((c) => c.id);
-  const inner =
-    type.inner.ref === "hotels"
-      ? refs.hotels.filter((h) => h.season === season && h.city === "makkah").map((h) => h.id)
+  const hotels = refs.hotels.filter((h) => h.season === season && h.city === type.city).map((h) => h.id);
+  const outer = !type.outer
+    ? []
+    : type.outer.ref === "hotels"
+      ? hotels
+      : type.outer.ref === "sectors"
+        ? refs.sectors.filter((s) => s.season === season).map((s) => s.id)
+        : refs.centers.filter((c) => c.season === season && c.mashaer === type.mashaer).map((c) => c.id);
+  const inner = !type.inner
+    ? []
+    : type.inner.ref === "hotels"
+      ? hotels
       : refs.camps.filter((c) => c.season === season && c.mashaer === type.mashaer).map((c) => c.id);
   return {
     outer: live(outer).sort((a, b) => a.order - b.order),
@@ -869,14 +989,14 @@ export function copyFile(
   for (const o of from.nodes) {
     const refId = carry(o.refId);
     if (!refId) {
-      missing.push(places.get(o.refId)?.name ?? type.outer.name);
+      missing.push(places.get(o.refId)?.name ?? outerOf(type).name);
       continue;
     }
     const children: InnerNode[] = [];
     for (const c of o.children) {
       const inner = carry(c.refId);
       if (!inner) {
-        missing.push(places.get(c.refId)?.name ?? type.inner.name);
+        missing.push(places.get(c.refId)?.name ?? type.inner?.name ?? "");
         continue;
       }
       // Last season's clusters and pilgrim count are a starting point; the office corrects them for this year

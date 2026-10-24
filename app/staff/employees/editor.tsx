@@ -33,7 +33,7 @@ export function EmployeeEditor() {
   if (id && !e)
     return (
       <div>
-        <EditHeader back="/staff/employees/manage" backLabel="سجل الموظفين" title="موظف غير موجود" />
+        <EditHeader back="/staff/employees/manage" backLabel="سجل الموظفين" nav={false} title="موظف غير موجود" />
         <Empty icon={<UserX />} title="لا موظف بهذا الرقم في السجل" text="ارجع إلى السجل وابحث عنه بالاسم." />
       </div>
     );

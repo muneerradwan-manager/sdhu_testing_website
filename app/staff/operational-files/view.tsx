@@ -1,41 +1,13 @@
 "use client";
 
-import { AlertTriangle, CopyPlus, FilePlus2, FileStack, FileText, Hotel as HotelIcon, Lock, MapPinned, Plus, Power, Save, Tent, Trash2, UsersRound } from "lucide-react";
+import { AlertTriangle, CopyPlus, FilePlus2, FileStack, FileText, Hotel as HotelIcon, Lock, MapPinned, Plus, Plane, Power, Save, Scale, Tent, Trash2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
 import { useClusters } from "@/lib/cms/content";
-import {
-  CADENCE_LABEL,
-  CURRENT_SEASON,
-  FILE_STATE_LABEL,
-  FILE_TYPES,
-  copyFile,
-  fileState,
-  fileStats,
-  fileTypeOf,
-  fullName,
-  gapsOf,
-  matches,
-  newId,
-  opsActions,
-  optionsFor,
-  roleIn,
-  rolesAt,
-  useEmployees,
-  useOpFiles,
-  useRefs,
-  type FileType,
-  type FileTypeCode,
-  type InnerNode,
-  type OpFile,
-  type OuterNode,
-  type Place,
-  type ReportCadence,
-  type Role,
-} from "@/lib/ops";
+import { CADENCE_LABEL, CURRENT_SEASON, FILE_STATE_LABEL, FILE_TYPES, copyFile, fileState, fileStats, fileTypeOf, fullName, gapsOf, matches, newId, opsActions, optionsFor, roleIn, rolesAt, useEmployees, useOpFiles, useRefs, type FileType, type FileTypeCode, type InnerNode, type OpFile, type OuterNode, type Place, type ReportCadence, type Role, outerOf } from "@/lib/ops";
 import { can } from "@/lib/staff";
 import { cn, formatNumber } from "@/lib/utils";
 import { Empty, Gate, PageHeader, Panel, fmtDate, fmtDateTime, logAs, textareaClass, useStaffUser } from "../_components/kit";
@@ -63,9 +35,15 @@ const STATE_TONE: Record<string, "gold" | "green" | "muted"> = {
 const dateOf = (iso: string) => fmtDate(new Date(`${iso}T12:00:00`).getTime());
 const TYPE_ICON: Record<FileTypeCode, typeof HotelIcon> = {
   "makkah-housing": HotelIcon,
+  "madinah-housing": HotelIcon,
   "mina-camps": Tent,
   "arafat-camps": Tent,
+  flights: Plane,
+  "evaluation-committee": Scale,
 };
+/** A file's counts as its line reads them: the Madinah file has hotels and people only, no towers and no pilgrims */
+const countsOf = (t: FileType, st: ReturnType<typeof fileStats>) =>
+  !t.outer ? `${st.people} موظفاً` : t.inner ? `${st.outer} ${outerOf(t).plural} · ${st.inner} ${t.inner.plural} · ${st.people} موظفاً · ${formatNumber(st.pilgrims)} حاجاً` : `${st.outer} ${outerOf(t).plural} · ${st.people} موظفاً`;
 /** "القطاع" → "قطاع", for "إضافة قطاع" */
 const bare = (s: string) => s.split(" ")[0].replace(/^ال/, "");
 const SEASONS = [CURRENT_SEASON, CURRENT_SEASON - 1];
@@ -136,7 +114,7 @@ function FilesList() {
                     <Link href={href} className="font-bold text-white hover:text-gold">
                       {t.short}
                     </Link>
-                    <p className="text-xs text-white/60">{st ? `${st.outer} ${t.outer.plural} · ${st.inner} ${t.inner.plural} · ${st.people} موظفاً · ${formatNumber(st.pilgrims)} حاجاً` : `لا ملف لموسم ${season} بعد`}</p>
+                    <p className="text-xs text-white/60">{st ? countsOf(t, st) : `لا ملف لموسم ${season} بعد`}</p>
                     <RowActions>
                       {f ? <RowLink href={href}>{can(user, "opfiles.files.PUT", t.code) && state !== "ended" ? "تعديل" : "عرض"}</RowLink> : canCreate ? <RowLink href={href}>إنشاء</RowLink> : <RowLink href={href}>عن هذا النوع</RowLink>}
                       {f && can(user, "opfiles.files.export", t.code) && <RowLink onClick={() => exportFile(f)}>تصدير Excel</RowLink>}
@@ -155,7 +133,7 @@ function FilesList() {
 
       <HowTo>
         <p>الملف التشغيلي يحدد هيكل العمل الميداني وتوزيع الموظفين عليه. يُفتح لكل نوع ملف واحد في كل موسم.</p>
-        <p>افتح الملف باسمه: أضف {FILE_TYPES[0].outer.plural} ثم {FILE_TYPES[0].inner.plural} من البيانات المرجعية للموسم، ثم أسند كل منصب إلى موظف من المشاركين في الموسم، ثم أدخل رقم القرار وفعّل الملف.</p>
+        <p>افتح الملف باسمه: أضف {outerOf(FILE_TYPES[0]).plural} ثم {FILE_TYPES[0].inner?.plural} من البيانات المرجعية للموسم (وملف المدينة المنورة فنادقها وحدها، تُسند الموظفين إليها مباشرة)، ثم أسند كل منصب إلى موظف من المشاركين في الموسم، ثم أدخل رقم القرار وفعّل الملف.</p>
         <p>لا يُفعَّل ملف قبل شغل كل منصب إلزامي فيه. وبعد تفعيله يصل إشعار كل تغيير في الإسناد إلى الموظف المعني.</p>
       </HowTo>
     </div>
@@ -176,12 +154,16 @@ function TypeBox({ type, open = false }: { type: FileType; open?: boolean }) {
             <UsersRound className="size-4 text-gold" /> {type.team} <span className="text-xs font-normal text-white/55">(على الملف)</span>
           </p>
         )}
-        <p className="flex items-center gap-2 font-bold text-white">
-          <MapPinned className="size-4 text-gold" /> {type.outer.name}
-        </p>
-        <p className="mr-6 mt-2 flex items-center gap-2 border-r-2 border-gold/40 pr-3 font-bold text-white">
-          {type.inner.ref === "camps" ? <Tent className="size-4 text-gold" /> : <HotelIcon className="size-4 text-gold" />} {type.inner.name}
-        </p>
+        {type.outer && (
+          <p className="flex items-center gap-2 font-bold text-white">
+            {outerOf(type).ref === "hotels" ? <HotelIcon className="size-4 text-gold" /> : <MapPinned className="size-4 text-gold" />} {outerOf(type).name}
+          </p>
+        )}
+        {type.inner && (
+          <p className="mr-6 mt-2 flex items-center gap-2 border-r-2 border-gold/40 pr-3 font-bold text-white">
+            {type.inner.ref === "camps" ? <Tent className="size-4 text-gold" /> : <HotelIcon className="size-4 text-gold" />} {type.inner.name}
+          </p>
+        )}
       </div>
       <p className="text-xs leading-6 text-white/65">
         <span className="font-bold text-white/85">بداية العمل: </span>
@@ -196,7 +178,7 @@ function TypeBox({ type, open = false }: { type: FileType; open?: boolean }) {
           <li key={r.code} className="rounded-xl bg-white/5 p-2.5 ring-1 ring-white/10">
             <div className="flex flex-wrap items-center gap-1.5">
               <p className="font-bold text-white">{r.name}</p>
-              <Chip>{r.level === "file" ? (type.team ?? "على الملف") : r.level === "outer" ? `على ${type.outer.name}` : `في ${type.inner.name}`}</Chip>
+              <Chip>{r.level === "file" ? (type.team ?? "على الملف") : r.level === "outer" ? `على ${outerOf(type).name}` : `في ${type.inner?.name}`}</Chip>
               {r.required && <Chip tone="maroon">إلزامي</Chip>}
               {r.multiple && <Chip tone="gold">{r.max ? `حتى ${r.max}` : "أكثر من شخص"}</Chip>}
             </div>
@@ -251,7 +233,7 @@ function CreateFile({ type, season, previous, canCreate }: { type: FileType; sea
       logAs(user, {
         action: "إنشاء ملف تشغيلي من ملف الموسم السابق",
         target: `${type.short} — ${season}`,
-        detail: `${file.nodes.length} ${type.outer.plural} · ${file.nodes.reduce((a, s) => a + s.children.length, 0)} ${type.inner.plural}${withPeople ? " مع الموظفين" : ""}`,
+        detail: `${file.nodes.length} ${outerOf(type).plural}${type.inner ? ` · ${file.nodes.reduce((a, s) => a + s.children.length, 0)} ${type.inner.plural}` : ""}${withPeople ? " مع الموظفين" : ""}`,
       });
       toast({
         title: "أُنشئ الملف مسودةً",
@@ -287,7 +269,7 @@ function CreateFile({ type, season, previous, canCreate }: { type: FileType; sea
       });
       toast({
         title: "أُنشئ ملف فارغ",
-        body: `أضف ${type.outer.plural} ثم ${type.inner.plural}.`,
+        body: type.inner ? `أضف ${outerOf(type).plural} ثم ${type.inner.plural}.` : `أضف ${outerOf(type).plural} ثم أسند الموظفين إليها.`,
         tone: "success",
         icon: "📁",
       });
@@ -297,7 +279,7 @@ function CreateFile({ type, season, previous, canCreate }: { type: FileType; sea
   return (
     <Panel icon={<FilePlus2 />} title={`إنشاء ملف «${type.short}» لموسم ${season}`}>
       <p className="max-w-3xl text-sm leading-7 text-white/75">
-        لا يوجد بعد ملف {type.short} لهذا الموسم. يمكنك البدء من الصفر، أو بناؤه على ملف موسم {season - 1}: تُنقل {type.outer.plural} و{type.inner.plural} الموجودة في قوائم هذا الموسم (بمطابقة الاسم)،
+        لا يوجد بعد ملف {type.short} لهذا الموسم. يمكنك البدء من الصفر، أو بناؤه على ملف موسم {season - 1}: تُنقل {outerOf(type).plural}{type.inner && ` و${type.inner.plural}`} الموجودة في قوائم هذا الموسم (بمطابقة الاسم)،
         ويُبلَّغ عمّا لم يعد موجوداً.
       </p>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -305,7 +287,7 @@ function CreateFile({ type, season, previous, canCreate }: { type: FileType; sea
           <div className="rounded-2xl bg-gold/10 p-4 ring-1 ring-gold/40">
             <p className="font-bold text-white">بناءً على ملف موسم {season - 1}</p>
             <p className="mt-1 text-xs text-white/70">
-              {previous.nodes.length} {type.outer.plural} · {previous.nodes.reduce((a, s) => a + s.children.length, 0)} {type.inner.plural} · {fileStats(previous).people} موظفاً
+              {previous.nodes.length} {outerOf(type).plural} · {type.inner && `${previous.nodes.reduce((a, s) => a + s.children.length, 0)} ${type.inner.plural} · `}{fileStats(previous).people} موظفاً
             </p>
             <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-white/85">
               <input type="checkbox" checked={withPeople} onChange={(e) => setWithPeople(e.target.checked)} className="mt-1 size-4 accent-[#D9C89E]" />
@@ -322,7 +304,7 @@ function CreateFile({ type, season, previous, canCreate }: { type: FileType; sea
         <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
           <p className="font-bold text-white">ملف فارغ</p>
           <p className="mt-1 text-xs text-white/70">
-            تبدأ من {type.outer.plural}، ثم تضيف {type.inner.plural} إلى كل {bare(type.outer.name)}، ثم تسند المناصب.
+            {type.inner ? `تبدأ من ${outerOf(type).plural}، ثم تضيف ${type.inner.plural} إلى كل ${bare(outerOf(type).name)}، ثم تسند المناصب.` : `تضيف ${outerOf(type).plural} من البيانات المرجعية، ثم تسند الموظفين إليها.`}
           </p>
           <Button className="mt-4" variant="glass" onClick={() => create()}>
             <FilePlus2 className="size-4" /> إنشاء ملف فارغ
@@ -558,7 +540,7 @@ function FileView({ file }: { file: OpFile }) {
         <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
           <h2 className="font-display text-lg font-bold text-white">{type.team ?? "فريق الملف"}</h2>
           <p className="mb-3 text-xs text-white/60">
-            لا يتبع {bare(type.outer.name)}اً بعينه — يخدم {type.outer.plural} كلها.
+            {type.outer ? `لا يتبع ${bare(outerOf(type).name)}اً بعينه — يخدم ${outerOf(type).plural} كلها.` : "يُسندون على الملف نفسه: لا أماكن فيه."}
           </p>
           <div className="grid gap-2.5 md:grid-cols-2">
             {fileRoles.map((r) => (
@@ -568,28 +550,29 @@ function FileView({ file }: { file: OpFile }) {
         </section>
       )}
 
-      {/* ── Outer nodes ── */}
+      {/* ── Outer nodes: the flights' and the committee's files have no places, only their team ── */}
+      {type.outer && (
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <h2 className="font-display text-2xl font-bold text-white">{type.outer.plural}</h2>
+          <h2 className="font-display text-2xl font-bold text-white">{outerOf(type).plural}</h2>
           {acts.addNode && (
             <AddButton onClick={() => setAddOuter(true)}>
-              <Plus className="size-4" /> إضافة {bare(type.outer.name)}
+              <Plus className="size-4" /> إضافة {bare(outerOf(type).name)}
             </AddButton>
           )}
         </div>
         <ListToolbar
           filters={
             <p className="text-sm text-white/65">
-              {stats.outer} {type.outer.plural} · {stats.inner} {type.inner.plural} · {stats.people} موظفاً · {formatNumber(stats.pilgrims)} حاجاً
+              {countsOf(type, stats)}
             </p>
           }
         >
-          <SearchBox className="flex-1" value={q} onChange={setQ} label="بحث داخل الملف" placeholder={`موظف أو ${bare(type.inner.name)} أو ${bare(type.outer.name)}...`} />
+          <SearchBox className="flex-1" value={q} onChange={setQ} label="بحث داخل الملف" placeholder={type.inner ? `موظف أو ${bare(type.inner.name)} أو ${bare(outerOf(type).name)}...` : `موظف أو ${bare(outerOf(type).name)}...`} />
         </ListToolbar>
 
         {file.nodes.length === 0 ? (
-          <Empty icon={<MapPinned />} title={`الملف بلا ${type.outer.plural} بعد`} text={`ابدأ بإضافة ${bare(type.outer.name)} من ${type.outer.plural} الموسم في البيانات المرجعية.`} />
+          <Empty icon={<MapPinned />} title={`الملف بلا ${outerOf(type).plural} بعد`} text={`ابدأ بإضافة ${bare(outerOf(type).name)} من ${outerOf(type).plural} الموسم في البيانات المرجعية.`} />
         ) : view.length === 0 ? (
           <Empty icon={<MapPinned />} title="لا شيء في الملف يطابق البحث" />
         ) : (
@@ -613,7 +596,7 @@ function FileView({ file }: { file: OpFile }) {
                   save({ ...file, nodes: file.nodes.filter((x) => x.id !== o.id) }, "إزالة من ملف تشغيلي", name(o.refId));
                   toast({
                     title: `أُزيل ${name(o.refId)}`,
-                    body: `مع ${type.inner.plural} التابعة له — صار موظفوه غير مُسندين.`,
+                    body: type.inner ? `مع ${type.inner.plural} التابعة له — صار موظفوه غير مُسندين.` : "صار موظفوه غير مُسندين.",
                     tone: "info",
                     icon: "🗑️",
                   });
@@ -623,6 +606,7 @@ function FileView({ file }: { file: OpFile }) {
           </div>
         )}
       </div>
+      )}
     </>
   );
 
@@ -743,9 +727,9 @@ function FileView({ file }: { file: OpFile }) {
               members: [],
               children: [],
             };
-            save({ ...file, nodes: [...file.nodes, node] }, `إضافة ${bare(type.outer.name)} إلى ملف تشغيلي`, name(id));
+            save({ ...file, nodes: [...file.nodes, node] }, `إضافة ${bare(outerOf(type).name)} إلى ملف تشغيلي`, name(id));
             setAddOuter(false);
-          } else if (addInnerTo) {
+          } else if (addInnerTo && type.inner) {
             const node: InnerNode = {
               id: newId("n"),
               refId: id,
@@ -774,7 +758,7 @@ function FileView({ file }: { file: OpFile }) {
       <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <h3 className="font-display text-2xl font-bold text-maroon">حذف مسودة الملف؟</h3>
         <p className="mt-2 text-sm leading-7 text-ink-soft">
-          يُحذف ملف {type.short} لموسم {file.season} بكل {type.outer.plural} و{type.inner.plural} وإسناداته ({stats.people} موظفاً). القوائم المرجعية والموظفون لا يتأثرون.
+          يُحذف ملف {type.short} لموسم {file.season} بكل {outerOf(type).plural}{type.inner && ` و${type.inner.plural}`} وإسناداته ({stats.people} موظفاً). القوائم المرجعية والموظفون لا يتأثرون.
         </p>
         <div className="mt-5 flex justify-end gap-3">
           <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
@@ -843,7 +827,7 @@ function OuterSection({
   const pilgrims = node.children.reduce((a, t) => a + t.pilgrims, 0);
   const people = new Set([...node.members, ...node.children.flatMap((t) => t.members)].map((m) => m.employeeId)).size;
   const housingOptions = node.children.map((t) => placeOf(t.refId)).filter((p): p is Place => !!p);
-  const isCamp = type.inner.ref === "camps";
+  const isCamp = type.inner?.ref === "camps";
   const innerWord = isCamp ? "مخيم" : "برج";
   const lead = rolesAt(type, "inner").find((r) => r.required);
   const name = (id?: string) => {
@@ -854,15 +838,15 @@ function OuterSection({
   return (
     <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
       <div className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold font-display text-lg font-bold text-ink">{outer?.order ?? "؟"}</span>
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold font-display text-lg font-bold text-ink">{outerOf(type).ref === "hotels" ? <HotelIcon className="size-5" /> : (outer?.order ?? "؟")}</span>
         <div className="min-w-0">
           <h3 className="font-display text-xl font-bold text-white">{outer?.name}</h3>
           <p className="text-xs text-white/65">
-            {outer?.sub} · {node.children.length} {type.inner.plural} · {formatNumber(pilgrims)} حاجاً · {people} موظفاً
+            {outer?.sub}{type.inner ? ` · ${node.children.length} ${type.inner.plural} · ${formatNumber(pilgrims)} حاجاً` : ""} · {people} موظفاً
           </p>
           {(acts.addNode || acts.removeNode) && (
             <RowActions>
-              {acts.addNode && <RowLink onClick={onAddInner}>إضافة {innerWord}</RowLink>}
+              {acts.addNode && type.inner && <RowLink onClick={onAddInner}>إضافة {innerWord}</RowLink>}
               {acts.removeNode && (
                 <RowLink danger onClick={onRemoveOuter}>
                   إزالة من الملف
@@ -908,6 +892,7 @@ function OuterSection({
         ))}
       </div>
 
+      {type.inner && (
       <div className="mt-4">
         <ListTable head={[type.inner.name, isCamp ? "أعضاء المخيم" : roleIn(type, "tower-supervisor").name, "الحجاج والإشغال"]} minWidth="40rem">
           {shown.length === 0 ? (
@@ -976,6 +961,7 @@ function OuterSection({
           )}
         </ListTable>
       </div>
+      )}
     </section>
   );
 }
@@ -1000,7 +986,8 @@ function PlaceModal({
 }) {
   const used = new Set(level === "outer" ? file.nodes.map((o) => o.refId) : file.nodes.flatMap((o) => o.children.map((c) => c.refId)));
   const free = options.filter((p) => !used.has(p.id));
-  const what = level === "outer" ? type.outer : type.inner;
+  // The Madinah file has no inner level: the modal is never opened for it, but it is still drawn
+  const what = (level === "outer" ? outerOf(type) : type.inner) ?? outerOf(type);
   return (
     <Modal open={open} onClose={onClose} className="max-w-xl">
       <h3 className="font-display text-2xl font-bold text-green-dark">إضافة إلى الملف: {what.plural}</h3>
@@ -1078,7 +1065,7 @@ function InfoModal({ open, onClose, file, type }: { open: boolean; onClose: () =
             {!valid && <span className="font-bold text-[#ffc9d8]"> — النهاية قبل البداية</span>}
           </p>
         )}
-        <Field label="التقارير الدورية" hint={`يرفع المسؤولون في ${type.inner.plural} تقاريرهم إلى ${type.outer.plural} بهذا الإيقاع.`}>
+        <Field label="التقارير الدورية" hint={`${type.inner ? `يرفع المسؤولون في ${type.inner.plural} تقاريرهم إلى ${outerOf(type).plural}` : `يرفع المسؤولون في ${outerOf(type).plural} تقاريرهم`} بهذا الإيقاع.`}>
           <select value={d.reportCadence} onChange={(e) => setD({ ...d, reportCadence: e.target.value as ReportCadence })} className={selectClass}>
             {(Object.keys(CADENCE_LABEL) as ReportCadence[]).map((c) => (
               <option key={c} value={c}>

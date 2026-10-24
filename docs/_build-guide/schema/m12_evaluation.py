@@ -4,10 +4,9 @@ from .dsl import *
 SCORE = "TINYINT UNSIGNED"
 
 MODULE = M("evaluation", "التقييم بعد الموسم والتصنيف ولوحة الشرف", [
-    "بعد عودة الحجاج ثلاث نوافذ: «التقييم الذاتي للإداريين»، ثم «تقييم الموظفين للإداريين والمجموعات والتكتلات»، ثم «الاعتراض على التقييم». "
-    "التقييم المعتمد جزءان متجاوران لا يُدمجان في رقم واحد: تقييم الإداري لنفسه، وتقييم الموظفين له. والإداريون لا يقيّم بعضهم بعضاً.",
-    "يقيّم الموظفون المرابطون في برج أو مخيم سكنه التكتل: التكتل كله، وكل مجموعة، وكل إداري فيه، مرحلةً مرحلة من 1 إلى 5 (ملاحظة إلزامية تحت 3). "
-    "ويقيّم مكتب «إدارة الإداريين» كل إداري مؤهل بالمراحل نفسها مع دليل اختياري. ثم تُنشر نتائج التصنيف: ترقية فئة، أو بقاء، أو تخفيض، أو إنذار، وتُكرَّم الصفوة.",
+    "بعد عودة الحجاج ثلاث مراحل: «التقييم الذاتي للإداريين» وبالتوازي معه «تقييم الموظفين للإداريين»، ثم «الاعتراض على التقييم» بالأدلة وبرد المقيِّمين، ثم «قرار لجنة التقييم». "
+    "يُقيَّم رئيس التكتل (تقييمه تقييم للتكتل) ورؤساء المجموعات (لمجموعاتهم) والموجّهون والموجّهات فقط، بأسئلة صفاتهم، من موظفي البعثة الذين كانوا معهم في ملفاتهم: فندق مكة (مرحلة مكة) وفندق المدينة (المدينة) والمخيمات (المشاعر) ومشرفو الطيران (المطار والسفر). "
+    "هوية المقيِّم محفوظة مع تقييمه ومخفية عن الإداري والإدارة، وتعرفها لجنة التقييم وحدها. بلا اعتراض تُعتمد درجة الموظفين، ومعه تقرّر اللجنة. ثم تُنشر نتائج التصنيف: ترقية فئة، أو بقاء، أو تخفيض، أو إنذار، وتُكرَّم الصفوة. ولا تقيّم الإدارة ولا يقيّم الإداريون بعضهم بعضاً.",
 ], [
     T("self_evaluations", "التقييم الذاتي", "تقييم الإداري لنفسه: قسم لكل مرحلة من مراحل التقييم بأسئلتها بحسب صفته (ثلاثة أسئلة لكل مرحلة)، ثم «خلاصة موسمك» كتابة. يُحفظ أولاً بأول ويُرسل مرة واحدة. متوسط كل مرحلة محسوب من بنودها.", [
         pk(), ref("admin_season_file_id", "admin_season_files", "الملف الموسمي", od="CASCADE", uq=True),
@@ -34,57 +33,60 @@ MODULE = M("evaluation", "التقييم بعد الموسم والتصنيف و
         c("answer", "TEXT", "الإجابة"),
     ], uq=[("self_evaluation_id", "question_key")]),
 
-    T("staff_evaluations", "تقييم مكتب إدارة الإداريين", "تقييم الإدارة لكل إداري مؤهل، مرحلةً مرحلة، والمتوسط.", [
-        pk(), ref("admin_season_file_id", "admin_season_files", "الملف الموسمي", od="CASCADE", uq=True),
-        c("average", "DECIMAL(2,1)", "المتوسط على المراحل الحالية (منزلة عشرية واحدة)", null=True),
-        staff("evaluated_by_staff_id", "آخر من قيّم", null=False),
-        updated(),
-    ], src="State.evaluations؛ app/staff/admins/_components/evaluation.tsx",
-       rules=["التقييم «المتطرف» (أكثر من مرحلة كلها 5 أو كلها 1 بلا ملاحظة) يُعلَّم للمراجعة في السجل."]),
-
-    T("staff_evaluation_scores", "درجات تقييم الإدارة", "درجة كل مرحلة ودليلها.", [
-        ref("staff_evaluation_id", "staff_evaluations", "التقييم", od="CASCADE"),
-        c("stage_key", "VARCHAR(40)", "المرحلة"),
-        c("score", SCORE, "1–5", ck="score BETWEEN 1 AND 5"),
-        c("note", "VARCHAR(500)", "ملاحظة (إلزامية تحت 3)", null=True),
-        file_("evidence_file_id", "دليل (الكود يضع اسماً وهمياً)"),
-    ], uq=[("staff_evaluation_id", "stage_key")], checks=["score >= 3 OR note IS NOT NULL"]),
-
-    T("peer_evaluations", "تقييم موظفي الأبراج والمخيمات", "يقيّم الموظف المرابط في برج أو مخيم سكنه تكتلٌ معتمد: التكتل، وكل مجموعة فيه، وكل إداري. يمكن تعديله ما دامت النافذة مفتوحة.", [
+    T("peer_evaluations", "تقييم موظفي البعثة للإداريين", "يقيّم الموظف رئيس التكتل ورؤساء المجموعات والموجّهين الذين كانوا معه في ملفه التشغيلي (أو لمشرف الطيران كل التكتلات)، بأسئلة صفة كل منهم، في المراحل التي رآها. تقييم رئيس المجموعة تقييم لمجموعته، ورئيس التكتل لتكتله. يمكن تعديله ما دامت النافذة مفتوحة.", [
         pk(), season(),
-        c("target_kind", enum("cluster", "group", "admin"), "المقيَّم: cluster «التكتل»، group «مجموعاته»، admin «إداريوه»"),
-        ref("cluster_id", "clusters", "التكتل المقيَّم", null=True),
-        ref("group_id", "admin_groups", "المجموعة المقيَّمة", null=True),
-        ref("admin_season_file_id", "admin_season_files", "الإداري المقيَّم", null=True),
-        staff("evaluator_staff_id", "الموظف المقيِّم", null=False),
-        c("evaluator_role", "VARCHAR(120)", "مسماه وقت التقييم"),
-        c("place_label", "VARCHAR(160)", "البرج أو المخيم الذي رابط فيه", null=True),
+        ref("admin_season_file_id", "admin_season_files", "الإداري المقيَّم: رئيس تكتل أو رئيس مجموعة أو موجّه أو موجّهة"),
+        c("self_role", enum("group-head", "cluster-head", "guide-m", "guide-f"), "الصفة التي قُيّم بها (تحدد الأسئلة)"),
+        staff("rater_staff_id", "الموظف المقيِّم: يُحفظ مع تقييمه لتعرفه لجنة التقييم وحدها (يخفى عن الإداري وعن الإدارة)", null=False),
+        c("rater_title", "VARCHAR(120)", "مسماه وقت التقييم (للجنة وحدها)"),
+        c("rater_place", "VARCHAR(160)", "الفندق أو المخيم أو الملف الذي كان فيه (للجنة وحدها)"),
         c("note", "VARCHAR(1000)", "ملاحظة عامة", null=True),
         updated(),
-    ], src="lib/store.ts:722 PeerEvaluation؛ State.peerEvaluations؛ app/staff/evaluate/view.tsx",
-       rules=["نافذة peer-evaluation. المقيِّمون يُشتقون من الملفات التشغيلية: من في عقدة فيها التكتل.",
-              "صف واحد لكل مقيِّم ومقيَّم (يُفرض في التطبيق لأن المقيَّم عمود من ثلاثة)."],
-       checks=["target_kind <> 'cluster' OR cluster_id IS NOT NULL", "target_kind <> 'group' OR group_id IS NOT NULL",
-               "target_kind <> 'admin' OR admin_season_file_id IS NOT NULL"]),
+    ], src="lib/store.ts PeerEvaluation؛ State.peerEvaluations؛ app/staff/evaluate/view.tsx",
+       rules=["نافذة peer-evaluation، بالتوازي مع التقييم الذاتي. المقيِّمون يُشتقون من الملفات التشغيلية: التسكين في مكة (مرحلة مكة)، التسكين في المدينة (المدينة)، منى وعرفات (المشاعر)، الطيران (المطار والسفر لكل التكتلات).",
+              "صف واحد لكل مقيِّم ومقيَّم. لا يعرض أي نظام اسم المقيِّم للإداري أو لإدارة الإداريين: الاسم لشاشة لجنة التقييم، ويُكتب الحدث في سجل الأحداث دون اسمه."],
+       uq=[("admin_season_file_id", "rater_staff_id")]),
 
-    T("peer_evaluation_scores", "درجات تقييم الموظفين", "درجة كل مرحلة.", [
+    T("peer_evaluation_scores", "درجات تقييم الموظفين", "درجة كل سؤال في كل مرحلة، ومتوسط المرحلة.", [
         ref("peer_evaluation_id", "peer_evaluations", "التقييم", od="CASCADE"),
         c("stage_key", "VARCHAR(40)", "المرحلة"),
-        c("score", SCORE, "1–5", ck="score BETWEEN 1 AND 5"),
+        c("question_key", "VARCHAR(50)", "البند <المرحلة>:<n>، أو فارغ لدرجة المرحلة (متوسط بنودها)", null=True),
+        c("score", "DECIMAL(2,1)", "1–5", ck="score BETWEEN 1 AND 5"),
         c("note", "VARCHAR(500)", "ملاحظة (إلزامية تحت 3)", null=True),
-    ], uq=[("peer_evaluation_id", "stage_key")], checks=["score >= 3 OR note IS NOT NULL"]),
+    ], uq=[("peer_evaluation_id", "stage_key", "question_key")], checks=["score >= 3 OR note IS NOT NULL"]),
 
-    T("evaluation_objections", "الاعتراض على التقييم", "اعتراض الإداري على تقييم الموظفين له في مراحل بعينها، وقرار الإدارة. اعتراض واحد لكل إداري في الموسم.", [
+    T("evaluation_objections", "الاعتراض على التقييم", "اعتراض الإداري على تقييم الموظفين له في مراحل بعينها، بسببه وأدلته. اعتراض واحد لكل إداري في الموسم. تبتّ فيه لجنة التقييم (لا الإدارة).", [
         pk(), ref("admin_season_file_id", "admin_season_files", "الملف الموسمي", od="CASCADE", uq=True),
         c("stage_keys", "JSON", "المراحل المعترض عليها (مما قيّمه الموظفون)"),
         c("reason", "TEXT", "السبب (10 أحرف على الأقل)"),
         c("submitted_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
-        c("status", enum("pending", "accepted", "rejected"), "pending «عند إدارة الإداريين»، accepted «قُبل — يُعاد التقييم»، rejected «رُفض»", d="'pending'"),
-        c("reply", "VARCHAR(1000)", "رد الإدارة (5 أحرف على الأقل)", null=True),
-        staff("decided_by_staff_id", "من قرر"),
-        c("decided_at", "DATETIME(3)", "الوقت", null=True),
-    ], src="lib/store.ts:719 EvaluationObjection؛ actions.objectToEvaluation، decideObjection",
-       rules=["نافذة evaluation-objection. القبول لا يعدّل الدرجات وحده: يعيد الموظف تقييم المراحل المعترض عليها."]),
+    ], src="lib/store.ts EvaluationObjection؛ actions.objectToEvaluation",
+       rules=["نافذة evaluation-objection. الأدلة في evaluation_evidence، وردود المقيِّمين في evaluation_replies."]),
+
+    T("evaluation_evidence", "أدلة الاعتراض والردود", "صورة أو تسجيل صوتي أو فيديو أو مستند يرفقه الإداري باعتراضه أو المقيِّم بردّه (حتى 12 ميغابايت للملف).", [
+        pk(), ref("objection_id", "evaluation_objections", "الاعتراض", od="CASCADE"),
+        c("owner", enum("administrator", "rater"), "من أرفقه: الإداري أو المقيِّم"),
+        staff("rater_staff_id", "إن كان المقيِّم: هو (للجنة وحدها)"),
+        file_("file_id", "الملف (بمرجعه ev:<id> في الكود، يُحفظ في IndexedDB لا في مكتبة الوسائط)"),
+        c("kind", enum("image", "audio", "video", "file"), "نوعه"),
+    ], src="lib/evidence.ts؛ app/administrator/_components/evidence.tsx"),
+
+    T("evaluation_replies", "ردود المقيِّمين", "ردّ كل موظف مقيِّم على الاعتراض بكلماته وأدلته. لا يُعرف للإداري، وتعرفه لجنة التقييم.", [
+        pk(), ref("objection_id", "evaluation_objections", "الاعتراض", od="CASCADE"),
+        staff("rater_staff_id", "الموظف المقيِّم", null=False),
+        c("text", "TEXT", "الرد (10 أحرف على الأقل)"),
+        c("replied_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+    ], uq=[("objection_id", "rater_staff_id")], src="lib/store.ts EvaluationReply؛ actions.replyToObjection"),
+
+    T("evaluation_decisions", "قرارات لجنة التقييم", "قرار اللجنة في كل مرحلة معترض عليها: درجة الإداري، أو درجة الموظفين، أو درجة ثالثة منها. قرار جماعي لا يُنسب إلى عضو. بلا اعتراض تُعتمد درجة الموظفين.", [
+        pk(), ref("objection_id", "evaluation_objections", "الاعتراض", od="CASCADE"),
+        c("stage_key", "VARCHAR(40)", "المرحلة"),
+        c("pick", enum("self", "staff", "own"), "self «درجة الإداري»، staff «درجة الموظفين»، own «درجة ثالثة من اللجنة»"),
+        c("score", "DECIMAL(2,1)", "الدرجة المعتمدة (1–5 بنصف درجة)", ck="score BETWEEN 1 AND 5"),
+        c("note", "VARCHAR(500)", "التعليل (إلزامي للدرجة الثالثة)", null=True),
+        c("decided_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+    ], uq=[("objection_id", "stage_key")], src="lib/store.ts EvaluationDecision؛ app/staff/committee/view.tsx",
+       rules=["نافذة evaluation-committee. لا يقرّر إلا من أُسند على ملف «لجنة التقييم» وملك «قرارات لجنة التقييم — تعديل»."]),
 
     T("grading_publications", "نشر التصنيف", "نشر نتائج تصنيف المجموعات والتكتلات آخر الموسم. إعادة النشر صف جديد.", [
         pk(), season(),

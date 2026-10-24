@@ -8,13 +8,14 @@ import { Card } from "@/components/portal/shell";
 import { Button } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { rangeLabel, useOperation, type OperationState } from "@/lib/operations";
-import { actions, useStore, type StageScores } from "@/lib/store";
+import { actions, useStore, type Evidence, type StageScores } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { effectiveRole, logAdmin, positionKeyOf, positionLabelOf, useAdmin } from "@/app/administrator/_lib/admin";
 import { useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
 import { SELF_ROLE_LABEL, avgOf, round1, sectionScores, selfRoleOf, selfSections, useEvaluationOf } from "@/app/administrator/_lib/evaluation";
 import { examRoleOf } from "@/app/administrator/_lib/structure";
 import { AdminShell } from "@/app/administrator/_components/ui";
+import { EvidencePicker, EvidenceView } from "@/app/administrator/_components/evidence";
 import { StageScoresForm, cleanScores, scoresReady } from "@/app/administrator/_components/stage-scores";
 
 type Tab = "self" | "result";
@@ -33,7 +34,7 @@ export function AdminEvaluation() {
     { key: "result", label: "نتيجتي", icon: Star },
   ];
   return (
-    <AdminShell title="التقييم بعد الموسم" subtitle="بعد عودة الحجاج: تقيّم نفسك، ثم يقيّمك موظفو البعثة الذين كانوا مع تكتلك. ترى التقييمين جنباً إلى جنب، ولك أن تعترض على تقييم الموظفين.">
+    <AdminShell title="التقييم بعد الموسم" subtitle="بعد عودة الحجاج: تقيّم نفسك، وفي الوقت نفسه يقيّمك موظفو البعثة الذين كانوا معك في ملفاتهم، بالأسئلة نفسها. ترى التقييمين جنباً إلى جنب، ولك أن تعترض على تقييم الموظفين بأدلتك، فتقرّر لجنة التقييم.">
       <Windows />
       <div className="scrollbar-none -mx-4 mb-6 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="flex w-max gap-1 rounded-2xl border border-gold/30 bg-white p-1" role="tablist">
@@ -52,10 +53,11 @@ export function AdminEvaluation() {
   );
 }
 
-/** The three windows, in their order, each with its dates and state */
+/** The three phases, in their order, each with its dates and state: the two ratings together, the objections, the committee's decision */
 function Windows() {
-  const ops = [useOperation("self-evaluation"), useOperation("peer-evaluation"), useOperation("evaluation-objection")];
+  const ops = [useOperation("self-evaluation"), useOperation("evaluation-objection"), useOperation("evaluation-committee")];
   const label = (o: OperationState) => (o.open ? "مفتوحة الآن" : o.status === "upcoming" ? "لم تُفتح بعد" : o.status === "off" ? "موقوفة" : "أُغلقت");
+  const names = ["التقييم الذاتي وتقييم الموظفين لك (معاً)", "الاعتراض على تقييم الموظفين", "قرار لجنة التقييم"];
   return (
     <ol className="mb-6 grid gap-3 md:grid-cols-3">
       {ops.map((o, i) => (
@@ -64,7 +66,7 @@ function Windows() {
             <span>المرحلة {i + 1}</span>
             <Badge tone={o.open ? "green" : o.status === "upcoming" ? "gold" : "ink"}>{label(o)}</Badge>
           </p>
-          <p className="mt-1 font-bold text-green-dark">{o.label}</p>
+          <p className="mt-1 font-bold text-green-dark">{names[i]}</p>
           <p className="text-xs text-ink-soft">{rangeLabel(o.start, o.end)}</p>
         </li>
       ))}
@@ -255,23 +257,22 @@ function SelfEvaluation() {
 // ───────────────────────── His result ─────────────────────────
 
 /**
- * «نتيجتي»: the two parts of his evaluation that are adopted, side by side — what he gave himself and what the
- * staff gave him — never mixed into one number; then each stage with the gaps pointed out, and his objection to
- * the staff's evaluation (in its window) with the administration's decision. He sees averages, never who scored him.
+ * «نتيجتي»: his own evaluation and the staff's, side by side, stage by stage with the gaps pointed out, and the adopted score —
+ * the staff's where he did not object, the committee's where he did. He sees how many rated him, never who.
  */
 export function EvaluationResultView({ id }: { id: string }) {
-  const peer = useOperation("peer-evaluation");
   const r = useEvaluationOf(id);
   if (!r) return null;
   const gaps = r.stages.filter((x) => x.gap);
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         {[
           { k: "تقييمي لنفسي", v: r.selfAvg, hint: r.self?.submittedAt ? "متوسط كل ما قيّمت به نفسك في أقسام التقييم الذاتي" : "لم ترسل تقييمك الذاتي بعد" },
-          { k: "تقييم الموظفين لي", v: r.staffAvg, hint: r.staffCount ? `متوسط ${r.staffCount === 1 ? "مقيّم واحد" : r.staffCount === 2 ? "مقيّمَين" : `${r.staffCount} مقيّمين`}: إدارة الإداريين وموظفو البعثة الذين كانوا مع تكتلك` : `يُفتح تقييم الموظفين ${rangeLabel(peer.start, peer.end)}` },
+          { k: "تقييم الموظفين لي", v: r.staffAvg, hint: r.staffCount ? `متوسط ${r.staffCount === 1 ? "مقيّم واحد" : r.staffCount === 2 ? "مقيّمَين" : `${r.staffCount} مقيّمين`} من موظفي البعثة الذين كانوا معك. هويتهم سرّية` : "لم يقيّمك أحد من الموظفين بعد" },
+          { k: "الدرجة المعتمدة", v: r.finalAvg, hint: r.pending ? `${r.pending} ${r.pending === 1 ? "مرحلة" : "مراحل"} اعترضت عليها تنتظر قرار لجنة التقييم` : "درجة الموظفين، ولجنة التقييم فيما اعترضت عليه" },
         ].map((x, i) => (
-          <Card key={x.k} className={cn("text-center md:p-7", i === 1 && "border-green-light/40 bg-green-light/5")}>
+          <Card key={x.k} className={cn("text-center md:p-7", i === 2 && "border-green-light/40 bg-green-light/5")}>
             <p className="text-sm font-bold text-hint">{x.k}</p>
             <p className="mt-2 font-display text-6xl font-bold text-green-dark">{x.v ?? "—"}</p>
             <p className="text-sm text-hint">من 5</p>
@@ -282,14 +283,15 @@ export function EvaluationResultView({ id }: { id: string }) {
 
       <Card className="md:p-7">
         <h3 className="font-display text-xl font-bold text-green-dark">مرحلة مرحلة</h3>
-        <p className="mt-1 text-sm text-ink-soft">تقييمك لنفسك في كل مرحلة بجانب متوسط ما أعطاك الموظفون. يُشار إلى كل مرحلة بينها فرق نقطة أو أكثر.</p>
+        <p className="mt-1 text-sm text-ink-soft">تقييمك لنفسك في كل مرحلة بجانب متوسط ما أعطاك الموظفون، ثم الدرجة المعتمدة. يُشار إلى كل مرحلة بينها فرق نقطة أو أكثر.</p>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[28rem] text-sm">
+          <table className="w-full min-w-[32rem] text-sm">
             <thead>
               <tr className="text-xs text-hint">
                 <th className="p-2 text-start font-semibold">المرحلة</th>
                 <th className="p-2 font-semibold">تقييمي</th>
                 <th className="p-2 font-semibold">الموظفون</th>
+                <th className="p-2 font-semibold">المعتمدة</th>
               </tr>
             </thead>
             <tbody>
@@ -298,9 +300,11 @@ export function EvaluationResultView({ id }: { id: string }) {
                   <td className="p-2 font-semibold text-ink">
                     {x.label}
                     {x.gap && <AlertTriangle className="ms-1 inline size-4 text-maroon" aria-label="فرق نقطة أو أكثر" />}
+                    {x.objected && <span className="ms-2 text-xs font-bold text-maroon">{x.pending ? "اعتراضك عند اللجنة" : `قرّرت اللجنة: ${x.decision!.pick === "self" ? "درجتك" : x.decision!.pick === "staff" ? "درجة الموظفين" : "درجة منها"}`}</span>}
                   </td>
                   <td className="p-2 text-center tabular-nums">{x.self ?? "—"}</td>
-                  <td className="p-2 text-center font-bold tabular-nums text-green-dark">{x.staff ?? "—"}</td>
+                  <td className="p-2 text-center tabular-nums">{x.staff ?? "—"}</td>
+                  <td className="p-2 text-center font-bold tabular-nums text-green-dark">{x.final ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -314,33 +318,47 @@ export function EvaluationResultView({ id }: { id: string }) {
   );
 }
 
-/** His objection to the staff's evaluation: in its window, once the staff have rated him; then its decision */
+/**
+ * His objection to the staff's evaluation: in its window, once the staff have rated him, with the reason and his evidence — photos,
+ * recordings, video, documents; then the committee's decision. The staff who rated him answer, unseen and unnamed.
+ */
 function Objection({ id }: { id: string }) {
   const toast = useToast();
   const op = useOperation("evaluation-objection");
+  const committee = useOperation("evaluation-committee");
   const r = useEvaluationOf(id)!;
   const [stages, setStages] = useState<string[]>([]);
   const [reason, setReason] = useState("");
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [tried, setTried] = useState(false);
   const o = r.objection;
   const label = (k: string) => r.stages.find((x) => x.key === k)?.label ?? k;
 
   if (o) {
+    const decided = r.stages.filter((x) => x.objected && !x.pending);
     return (
-      <Card className={cn("md:p-7", o.status === "accepted" ? "border-green-light/40" : o.status === "rejected" ? "border-maroon/30" : "border-gold/50")}>
+      <Card className={cn("md:p-7", r.pending ? "border-gold/50" : "border-green-light/40")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
             <MessageSquareWarning className="size-5 text-gold-dark" /> اعتراضي على تقييم الموظفين
           </h3>
-          <Badge tone={o.status === "accepted" ? "green" : o.status === "rejected" ? "maroon" : "gold"}>{o.status === "accepted" ? "قُبل — يُعاد التقييم" : o.status === "rejected" ? "رُفض" : "عند إدارة الإداريين"}</Badge>
+          <Badge tone={r.pending ? "gold" : "green"}>{r.pending ? "عند لجنة التقييم" : "قرّرت اللجنة"}</Badge>
         </div>
         <p className="mt-3 text-sm text-ink-soft">المراحل: {o.stages.map(label).join("، ")}</p>
         <p className="mt-2 rounded-2xl bg-sand p-3 leading-7">{o.reason}</p>
-        {o.reply && (
-          <p className="mt-3 rounded-2xl bg-green-light/10 p-3 text-sm leading-7">
-            <b>رد الإدارة ({o.decidedBy}):</b> {o.reply}
-          </p>
+        <EvidenceView items={o.evidence} />
+        <p className="mt-3 text-xs text-hint">{Object.keys(o.replies ?? {}).length ? `ردّ ${Object.keys(o.replies!).length} من الموظفين الذين قيّموك بأدلتهم` : "لم يردّ أحد من الموظفين بعد"}، وتقرؤهما لجنة التقييم دون أن تعرف من هم.</p>
+        {decided.length > 0 && (
+          <ul className="mt-4 space-y-2">
+            {decided.map((x) => (
+              <li key={x.key} className="rounded-2xl bg-green-light/10 p-3 text-sm leading-7">
+                <b>{x.label}:</b> {x.decision!.pick === "self" ? "اعتمدت اللجنة درجتك" : x.decision!.pick === "staff" ? "اعتمدت اللجنة درجة الموظفين" : "قرّرت اللجنة درجة من عندها"} — <b className="text-green-dark">{x.decision!.score} من 5</b>
+                {x.decision!.note && <span className="block text-xs text-ink-soft">{x.decision!.note}</span>}
+              </li>
+            ))}
+          </ul>
         )}
+        {r.pending > 0 && committee.status === "upcoming" && <p className="mt-3 text-xs text-ink-soft">تقرّر اللجنة في {rangeLabel(committee.start, committee.end)}.</p>}
       </Card>
     );
   }
@@ -360,24 +378,28 @@ function Objection({ id }: { id: string }) {
   const send = () => {
     setTried(true);
     if (!stages.length || reason.trim().length < 10) return;
-    actions.objectToEvaluation(id, { stages, reason: reason.trim() });
+    actions.objectToEvaluation(id, { stages, reason: reason.trim(), evidence: evidence.length ? evidence : undefined });
     logAdmin(id, "اعتراض على تقييم الموظفين", stages.map(label).join("، "), reason.trim());
-    toast({ title: "أُرسل اعتراضك", body: "تنظر فيه إدارة الإداريين، ويصلك قرارها هنا.", icon: "📨", tone: "info" });
+    toast({ title: "أُرسل اعتراضك", body: "يردّ عليه من قيّموك بأدلتهم، ثم تقرّر لجنة التقييم.", icon: "📨", tone: "info" });
   };
   return (
     <Card className="md:p-7">
       <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
         <MessageSquareWarning className="size-5 text-gold-dark" /> الاعتراض على تقييم الموظفين
       </h3>
-      <p className="mt-1 text-sm leading-7 text-ink-soft">إن رأيت أن تقييم الموظفين لك في مرحلة لم يكن منصفاً، اخترها واكتب سببك. تنظر فيه إدارة الإداريين: تقبله وتعيد التقييم، أو ترفضه بردّها. تعترض مرة واحدة، حتى {rangeLabel(op.end, op.end)}.</p>
+      <p className="mt-1 text-sm leading-7 text-ink-soft">إن رأيت أن تقييم الموظفين لك في مرحلة لم يكن منصفاً، اخترها واكتب سببك وأرفق أدلتك: صوراً أو تسجيلاً صوتياً أو فيديو أو مستندات. يردّ عليك من قيّمك بأدلته دون أن تعرف من هو، وتقرأ لجنة التقييم الطرفين وتقرّر. تعترض مرة واحدة، حتى {rangeLabel(op.start, op.end)}.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {r.stages.filter((x) => x.staff !== null).map((x) => (
-          <button key={x.key} type="button" aria-pressed={stages.includes(x.key)} onClick={() => setStages((s) => (s.includes(x.key) ? s.filter((k) => k !== x.key) : [...s, x.key]))} className={cn("rounded-full border-2 px-3 py-1.5 text-sm font-bold transition", stages.includes(x.key) ? "border-green-dark bg-green-dark text-white" : "border-gold/50 text-ink-soft hover:border-green-dark/40")}>
+          <button key={x.key} type="button" aria-pressed={stages.includes(x.key)} onClick={() => setStages((s) => (s.includes(x.key) ? s.filter((k) => k !== x.key) : [...s, x.key]))} className={cn("rounded-full border-2 px-3 py-1.5 text-sm font-bold transition", stages.includes(x.key) ? "border-maroon bg-maroon text-white" : "border-gold/40 bg-white text-ink-soft hover:border-gold-dark")}>
             {x.label} — {x.staff}
           </button>
         ))}
       </div>
       <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} aria-label="سبب الاعتراض" placeholder="ما الذي حدث فعلاً في هذه المراحل؟ ومن يشهد عليه؟" className="mt-4 w-full rounded-2xl border-2 border-gold/40 p-3 leading-7 outline-none focus:border-green-light" />
+      <div className="mt-3">
+        <EvidencePicker value={evidence} onChange={setEvidence} />
+        <EvidenceView items={evidence} />
+      </div>
       {tried && (!stages.length || reason.trim().length < 10) && <p className="mt-2 text-sm font-bold text-maroon">{!stages.length ? "اختر مرحلة واحدة على الأقل." : "اكتب سبب اعتراضك (10 أحرف على الأقل)."}</p>}
       <Button className="mt-4" onClick={send}>
         <Send className="size-4" /> إرسال الاعتراض
