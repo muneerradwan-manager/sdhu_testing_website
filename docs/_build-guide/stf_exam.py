@@ -35,7 +35,7 @@ print("candidate:", NID)
 # ═════════════ «إدارة الامتحانات» before the sitting (munir) ═════════════
 s.login("munir")
 c.goto("/staff/exam", wait=2200)
-c.shot("ex-dash", "لوحة التحكم: أرقام ملف الامتحانات، و«كيف تعمل» بخطواته الأربع", hl=[("aside a[href$='/staff/exam']", "1"), ("main a:has-text('إدارة الامتحانات')", "2")], section=EX)
+c.shot("ex-dash", "الإحصائيات والسجل: أرقام ملف الامتحانات، و«كيف تعمل» بخطواته الأربع", hl=[("aside a[href$='/staff/exam']", "1"), ("main a:has-text('إدارة الامتحانات')", "2")], section=EX)
 c.scroll_to("main h2:has-text('ما ينتظرك الآن'), main :text-is('ما ينتظرك الآن')", 110)
 c.shot("ex-dash-todo", "ما ينتظرك الآن، والآن في القاعات، والمحاولات والجلسات والنتائج حسب الحالة", hl=[("main a:has-text('راجعها'), main button:has-text('راجعها')", "")], section=EX)
 c.scroll_to("main :text-is('القاعات')", 110)

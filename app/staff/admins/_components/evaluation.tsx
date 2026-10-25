@@ -9,8 +9,8 @@ import { REFLECTION, evaluationOf, useEvaluationOf, useEvaluationState } from "@
 import { roleLabel } from "../../_components/data";
 import { Meter } from "../../_components/kit";
 import { SearchBox } from "../../_components/ops-ui";
-import { Box, EditHeader, EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../../_components/wp";
-import { Filters, Help, Lead, NotFound, TitleCell, useHrefWith, useOpenId } from "./ui";
+import { Box, EditHeader, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../../_components/wp";
+import { Filters, Help, NotFound, TitleCell, useHrefWith, useOpenId } from "./ui";
 import { useAdminsDesk, type AdminsDesk } from "../desk";
 
 type Filter = "all" | "pending" | "decided" | "none";
@@ -39,8 +39,6 @@ export function EvaluationTab() {
 
   return (
     <div className="space-y-4">
-      <Title>نتائج التقييم</Title>
-      <Lead>من يقيّمه الموظفون هذا الموسم: تقييمه لنفسه بجانب تقييم الموظفين، واعتراضه إن اعترض، وقرار لجنة التقييم، والدرجة المعتمدة. للاطلاع فقط.</Lead>
       <p className="flex items-start gap-2 rounded-2xl bg-gold/10 p-3 text-sm leading-7 text-white/85 ring-1 ring-gold/30">
         <EyeOff className="mt-1 size-4 shrink-0 text-gold" /> هوية من قيّم سرّية عن الإدارة كما هي عن الإداري، ولا تعرفها إلا لجنة التقييم: ترى هنا كم قيّم وبكم، لا من.
       </p>

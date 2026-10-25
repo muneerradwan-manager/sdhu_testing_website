@@ -73,7 +73,7 @@ export function ExamSummary({ embedded = false }: { embedded?: boolean } = {}) {
       {!embedded && (
         <>
         <PageHeader
-          eyebrow={`${SYSTEMS.exams.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          eyebrow={`${SYSTEMS.exams.label}${grant?.by ? ` — منحك عرض إحصائياته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
           title={SYSTEMS.exams.summary.label}
           icon={<Gauge />}
           description="أرقام الاختبار الآن. للعمل استعمل القائمة الجانبية."
@@ -89,14 +89,6 @@ export function ExamSummary({ embedded = false }: { embedded?: boolean } = {}) {
           }
         />
 
-        <HowItWorks
-          steps={[
-            { title: "جهّز القاعات", text: "لكل قاعة محافظاتها ومشرفها ورقم شاشتها.", href: "/staff/exam/manage", link: "القاعات والمحافظات" },
-            { title: "ابنِ الاختبار", text: "أقسام كل اختبار وموعده، وأسئلة البنك التي تملؤه، ثم انشره.", href: "/staff/exam/manage/exams", link: "الاختبارات" },
-            { title: "تابع الجلسات", text: "يفتح المشرف قاعته ويدير الجلسة من لوحته، وتتابعها أنت.", href: "/staff/exam/manage/sittings", link: "جلسات الاختبار" },
-            { title: "راجع واعتمد", text: "قرّر في المحاولات غير المؤكَّدة، ثم النتائج والإحصائيات.", href: "/staff/exam/manage/review", link: "المراجعة والتقارير" },
-          ]}
-        />
         </>
       )}
 
@@ -180,6 +172,16 @@ export function ExamSummary({ embedded = false }: { embedded?: boolean } = {}) {
         <RaisedList onRaise={() => setEscalating(true)} />
       </Box>
       <Escalate system="exams" open={escalating} onClose={() => setEscalating(false)} example="مثال: مديرية أوقاف حمص لا تتيح القاعة يوم الاختبار، ونحتاج قاعة بديلة لـ 40 متقدماً." />
+      {!embedded && (
+          <HowItWorks
+            steps={[
+              { title: "جهّز القاعات", text: "لكل قاعة محافظاتها ومشرفها ورقم شاشتها.", href: "/staff/exam/manage", link: "القاعات والمحافظات" },
+              { title: "ابنِ الاختبار", text: "أقسام كل اختبار وموعده، وأسئلة البنك التي تملؤه، ثم انشره.", href: "/staff/exam/manage/exams", link: "الاختبارات" },
+              { title: "تابع الجلسات", text: "يفتح المشرف قاعته ويدير الجلسة من لوحته، وتتابعها أنت.", href: "/staff/exam/manage/sittings", link: "جلسات الاختبار" },
+              { title: "راجع واعتمد", text: "قرّر في المحاولات غير المؤكَّدة، ثم النتائج والإحصائيات.", href: "/staff/exam/manage/review", link: "المراجعة والتقارير" },
+            ]}
+          />
+      )}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { Building2, FileCheck2, Languages, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import { RecordHistory } from "../../_components/system";
 import { Box, EditHeader, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, SettingsSection, Tag, Title } from "../../_components/wp";
 import { useAdminsDesk, type AdminsDesk, type FileState, type Funnel } from "../desk";
 import { PersonCadre } from "./cadre";
-import { Filters, Help, Lead, NotFound, TitleCell, useHrefWith, useOpenId } from "./ui";
+import { Help, Lead, NotFound, TitleCell, Views, useHrefWith, useOpenId, useView } from "./ui";
 
 /**
  * «المتقدمون» — every applicant's permanent file, as a site's list: one table (those that fall short under
@@ -96,9 +95,8 @@ export function FunnelTable({ funnel, totals }: { funnel: Funnel[]; totals: Reco
  * link), each opening on its own screen (`?id=`).
  */
 function Files({ desk }: { desk: AdminsDesk }) {
-  const params = useSearchParams();
   const hrefWith = useHrefWith();
-  const [only, setOnly] = useState<"all" | "docs">(params.get("f") === "docs" ? "docs" : "all");
+  const only = useView("f", ["all", "docs"] as const);
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(60);
   // The fee, the receipt and the exam result are «رسوم المتقدمين وإيصالاتهم ونتائج اختبارهم»
@@ -107,18 +105,19 @@ function Files({ desk }: { desk: AdminsDesk }) {
 
   return (
     <div className="space-y-4">
-      <Title>ملفات المتقدمين</Title>
-      <Lead>من تقدّم هذا الموسم وملفه الدائم: وثائقه وصلاحيتها، وما تطلبه صفته وينقصه. افتح الملف لتراه كاملاً.</Lead>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <Filters
-          label="الملفات المعروضة"
-          value={only}
-          onChange={setOnly}
-          items={[
-            { key: "all", label: "الكل", count: desk.files.length },
-            { key: "docs", label: "ناقصة أو منتهية", count: desk.flaggedFiles.length },
-          ]}
-        />
+      <Views
+        tabs
+        param="f"
+        value={only}
+        label="الملفات المعروضة"
+        items={[
+          { key: "all", label: "كل الملفات", count: desk.files.length },
+          { key: "docs", label: "ناقصة أو منتهية", count: desk.flaggedFiles.length },
+        ]}
+      />
+      <Title>{only === "docs" ? "ملفات ناقصة أو منتهية" : "كل الملفات"}</Title>
+      <Lead>{only === "docs" ? "من سدد الرسم وتنقصه وثيقة تطلبها صفته، أو انتهت صلاحية وثيقة في ملفه." : "كل من تقدّم هذا الموسم بوثائقه ورسمه وحاله. افتح الملف لتراه كاملاً."}</Lead>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
         <SearchBox className="md:w-80" value={q} onChange={setQ} label="بحث في ملفات الإداريين" placeholder="اسم، أو آخر أرقام الرقم الوطني، أو صفة..." />
       </div>
       <ListTable head={["الإداري", "الصفة", "الوثائق", "الرسم", "الحالة"]}>

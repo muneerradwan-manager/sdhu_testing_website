@@ -245,7 +245,7 @@ if "audit" in PARTS:
     c.shot("exec-now", "لوحة الإدارة العليا: صف واحد من الأزرار، و«الموسم الآن» بأرقام الأنظمة العشرة جنباً إلى جنب",
            hl=[(side("/staff/executive"), "1"), ("main [role=tablist]", "2")], section=S)
     p.locator("main [role=tab]:text-is('الطيران')").first.click(); c.settle(2200)
-    c.shot("exec-file", "لوحة التحكم في ملف إدارة كما يراها صاحبها: «الطيران»", hl=[("main [role=tab]:text-is('الطيران')", "1")], section=S)
+    c.shot("exec-file", "الإحصائيات والسجل في ملف إدارة كما يراها صاحبها: «الطيران»", hl=[("main [role=tab]:text-is('الطيران')", "1")], section=S)
     s.stats("audit", 2200)
     c.shot("audit-stats", "الإحصائيات لسجل الأحداث، والصفحتان تحت «سجل الأحداث» في القائمة", hl=[(side("/staff/stats/audit"), "1"), (side("/staff/audit"), "2")], section=S)
     s.nav("سجل الأحداث", 2000)

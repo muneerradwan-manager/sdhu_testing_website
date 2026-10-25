@@ -90,6 +90,7 @@ function Medical() {
         value={view}
         onChange={(v) => router.replace(v === "docs" ? "/staff/medical" : `/staff/medical?view=${v}`)}
         label="القسم"
+        tabs
         items={[
           { value: "docs" as const, label: "وثائق تنتظر المراجعة", count: docs.length, tone: "maroon" as const },
           { value: "files" as const, label: "الحالات الصحية", count: files.length },

@@ -42,25 +42,50 @@ export function Pick({ on, onClick, children, label, disabled }: { on: boolean; 
 }
 
 /** A row of filter buttons, one of them on */
-export function Segments<T extends string>({ value, onChange, items, label }: { value: T; onChange: (v: T) => void; items: { value: T; label: ReactNode; count?: number; tone?: "maroon" }[]; label: string }) {
+/**
+ * A list's filters as light links with their counts («الكل (12) | مؤرشفة (3)»), or — `tabs` — a page's sections as
+ * tabs over a line, the way the administrators' pages show theirs. A count marked `maroon` waits for someone: it stands out.
+ */
+export function Segments<T extends string>({ value, onChange, items, label, tabs = false }: { value: T; onChange: (v: T) => void; items: { value: T; label: ReactNode; count?: number; tone?: "maroon" }[]; label: string; tabs?: boolean }) {
+  const count = (it: (typeof items)[number], on: boolean) =>
+    it.count === undefined ? null : it.tone === "maroon" && it.count > 0 ? (
+      <span className="ms-1.5 rounded-full bg-maroon px-1.5 text-[11px] font-bold tabular-nums text-white">{it.count}</span>
+    ) : (
+      <span className={cn("ms-1 text-xs font-normal tabular-nums", on ? "text-white/70" : "text-white/50")}>({it.count})</span>
+    );
+  if (tabs)
+    return (
+      <div role="tablist" aria-label={label} className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto border-b border-white/15 px-1">
+        {items.map((it) => {
+          const on = it.value === value;
+          return (
+            <button
+              key={it.value}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => onChange(it.value)}
+              className={cn("-mb-px flex shrink-0 items-center rounded-t-xl border px-3.5 py-2 text-sm font-bold transition", on ? "border-white/15 border-b-transparent bg-white/[.08] text-white" : "border-transparent text-white/65 hover:text-gold")}
+            >
+              {it.label}
+              {count(it, on)}
+            </button>
+          );
+        })}
+      </div>
+    );
   return (
-    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
-      {items.map((it) => {
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
+      {items.map((it, i) => {
         const on = it.value === value;
         return (
-          <button
-            key={it.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(it.value)}
-            className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition", on ? "bg-gold text-ink ring-gold" : "bg-white/[.06] text-white/85 ring-white/15 hover:bg-white/10")}
-          >
-            {it.label}
-            {it.count !== undefined && (
-              <span className={cn("rounded-full px-1.5 tabular-nums", on ? "bg-white/40" : it.tone === "maroon" && it.count ? "bg-maroon text-white" : "bg-white/10")}>{it.count}</span>
-            )}
-          </button>
+          <span key={it.value} className="flex items-center gap-1">
+            {i > 0 && <span className="text-white/25">|</span>}
+            <button type="button" role="radio" aria-checked={on} onClick={() => onChange(it.value)} className={cn("flex items-center rounded-md px-1 font-bold", on ? "text-white" : "text-gold hover:underline")}>
+              {it.label}
+              {count(it, on)}
+            </button>
+          </span>
         );
       })}
     </div>

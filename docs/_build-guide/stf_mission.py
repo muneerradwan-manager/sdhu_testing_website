@@ -30,7 +30,7 @@ if run("emp"):
     s.login("abusami")
     # ── the dashboard: numbers only
     c.goto("/staff/employees", wait=2200)
-    c.shot("emp-dash", "لوحة التحكم في ملف الموظفين: كيف تعمل، وأرقام السجل والحسابات والموسم",
+    c.shot("emp-dash", "الإحصائيات والسجل في ملف الموظفين: كيف تعمل، وأرقام السجل والحسابات والموسم",
            hl=[(side("/staff/employees"), "1"), ("main button:has-text('رفع أمر إلى المدير')", "2")], section=S)
     c.scroll_to("main :text('ما ينتظرك الآن')", 120)
     c.shot("emp-todo", "ما ينتظرك الآن: كل بند بزر يفتح مكان العمل", hl=[("main a:has-text('أكملها'), main button:has-text('أكملها')", "")], section=S)
@@ -226,7 +226,7 @@ if run("fl"):
     s.login("haitham")
     # ── the dashboard
     c.goto("/staff/flights", wait=2300)
-    c.shot("fl-dash", "لوحة التحكم في ملف الطيران: كيف تعمل، وأرقام الموسم",
+    c.shot("fl-dash", "الإحصائيات والسجل في ملف الطيران: كيف تعمل، وأرقام الموسم",
            hl=[(side("/staff/flights"), "1"), ("main a:has-text('إدارة الطيران')", "2")], section=S)
     c.scroll_to("main :text('ما ينتظرك الآن')", 120)
     c.shot("fl-todo", "ما ينتظرك الآن: مطار بلا مندوب، ومسودة لم تُنشر، ومجموعات وموظفون بلا رحلة", section=S)

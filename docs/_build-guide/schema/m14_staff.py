@@ -27,7 +27,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("scope_kind", enum("center", "airport", "operation", "collection", "office", "opfileType", "posting"), "نطاق المورد إن كان له نطاق غير نطاق نظامه: operation لمواعيد العمليات، collection لعناصر مجموعات المحتوى", null=True),
         c("note", "VARCHAR(200)", "قاعدة تُفرض في الكود («من أدخل النتائج لا يعتمدها»)", null=True),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
-    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef؛ lib/permissions.ts:396 STATS_SYSTEMS", seed="143 مورداً، منها 18 حساساً، و10 موارد «الإحصائيات» (stats).",
+    ], uq=[("system_code", "resource_key")], src="lib/permissions.ts:29 ResourceDef؛ lib/permissions.ts:396 STATS_SYSTEMS", seed="144 مورداً، منها 18 حساساً، و10 موارد «الإحصائيات» (stats).",
        rules=["المورد stats «الإحصائيات» في أحد عشر نظاماً (reviews، office، lottery، season، operations، medical، transport، opfiles، reference، audit، content): عرضه يفتح صفحة أرقام النظام (/staff/stats/‹النظام›) وحدها، "
               "ولا يُعد من صلاحيات عرض النظام، فلا يفتح صفحاته. وفي exams مورد stats آخر هو عملية «الإحصائيات» في الملف، يُعد من صلاحيات عرضه."]),
 
@@ -37,7 +37,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("verb", "VARCHAR(30)", "الفعل: GET، POST، PUT، DELETE، أو اسم فعل خاص (approve، publish، export، lock…)"),
         c("kind", enum("verb", "special"), "verb أحد الأفعال الأربعة؛ special فعل خاص بالاسم"),
         c("label", "VARCHAR(120)", "الاسم: «عرض»، «إضافة»، «تعديل»، «حذف»، أو اسم الفعل الخاص («إقفال وإصدار الكشف»)"),
-    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:382 keysOf، ALL_KEYS", seed="408 صلاحيات.",
+    ], uq=[("resource_id", "verb")], src="lib/permissions.ts:382 keysOf، ALL_KEYS", seed="413 صلاحية.",
        rules=["كل فعل على مورد يحتاج عرضه: من يُمنح POST أو PUT أو DELETE أو فعلاً خاصاً يُمنح GET المورد نفسه معه، ومن يُسحب منه GET يُسحب منه كل ما على المورد."]),
 
     T("staff_users", "حسابات الموظفين", "حساب الدخول إلى بوابة الموظفين. ينشئه قسم الموارد البشرية من الرقم الوطني والهاتف، وتُرسل كلمة مرور مؤقتة تُغيَّر عند أول دخول.", [
@@ -76,7 +76,7 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
         c("code", "VARCHAR(20)", "المفتاح: staff، registration، admins، exams، flights (الترتيب يحدد القائمة وصفحة الدخول)", pk=True),
         c("label", "VARCHAR(80)", "الاسم: «إدارة الموظفين»، «إدارة التسجيل على الحج»، «إدارة الإداريين»، «إدارة الامتحانات»، «إدارة الطيران»"),
         c("description", "TEXT", "الشرح"),
-        c("summary_href", "VARCHAR(120)", "رابط «لوحة التحكم»"),
+        c("summary_href", "VARCHAR(120)", "رابط «الإحصائيات والسجل»"),
         c("manage_href", "VARCHAR(120)", "رابط الإدارة"),
         c("opened_at", "DATETIME(3)", "متى فُتح الملف في الموسم", null=True),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
@@ -151,6 +151,38 @@ MODULE = M("staff", "الموظفون والصلاحيات والملفات ال
     ], uq=[("employee_id", "season_year")], src="Employee.seasons؛ app/staff/my-files/view.tsx:24",
        rules=["سطر هنا للموسم يعني أن الموظف يسافر مع البعثة فيه: له في «ملفاتي التشغيلية» رحلتا ذهاب وعودة (flight_assignments) ومواقعه في الملفات التشغيلية. "
               "ومن لا سطر له للموسم يعمل من مكتبه في سوريا: لا رحلة له ولا موقع، ويرى «لا تسافر مع البعثة»."]),
+
+    T("staff_circulars", "القرارات والتعميمات", "ما تصدره الإدارة إلى موظفيها: قرار أو تعميم برقمه وتاريخه ونصه. مسودة لا يراها أحد، ثم منشور يصل إلى جمهوره، ثم مؤرشف. لا يُعدَّل نص المنشور.", [
+        pk(),
+        c("kind", enum("decision", "circular"), "decision «قرار»، circular «تعميم»"),
+        c("number", "VARCHAR(30)", "الرقم (مثل 14/1448)"),
+        c("title", "VARCHAR(200)", "العنوان (5 أحرف على الأقل)"),
+        c("body", "TEXT", "النص، كل سطر فقرة (20 حرفاً على الأقل)"),
+        c("issued_on", "DATE", "تاريخ الإصدار"),
+        c("audience", enum("all", "files", "staff"), "all كل الموظفين، files موظفو ملفات تشغيلية، staff موظفون بأسمائهم"),
+        c("status", enum("draft", "published", "archived"), "الحال", d="'draft'"),
+        staff("created_by_staff_id", "من كتبه", null=False),
+        staff("published_by_staff_id", "من نشره"),
+        c("published_at", "DATETIME(3)", "وقت النشر", null=True),
+    ], new=True, src="lib/circulars.ts Circular؛ app/staff/employees/circulars.tsx",
+       rules=["يُنشر بصلاحية staff.circulars.publish. مرفقاته في staff_circular_files، وجمهوره في staff_circular_audience حين لا يكون «الكل»."]),
+
+    T("staff_circular_audience", "جمهور القرار أو التعميم", "حين لا يُوجَّه إلى كل الموظفين: نوع ملف تشغيلي (فيصل إلى من أُسند فيه في الموسم الجاري) أو حساب موظف بعينه.", [
+        ref("circular_id", "staff_circulars", "القرار أو التعميم", od="CASCADE"),
+        c("file_type_code", "VARCHAR(40)", "نوع الملف التشغيلي (op_file_types.code)", null=True),
+        staff("staff_user_id", "موظف بعينه"),
+    ], new=True, checks=["(file_type_code IS NULL) <> (staff_user_id IS NULL)"]),
+
+    T("staff_circular_files", "مرفقات القرار أو التعميم", "صورة أو مستند يُرفق به.", [
+        ref("circular_id", "staff_circulars", "القرار أو التعميم", od="CASCADE"),
+        file_("file_id", "الملف"),
+    ], new=True),
+
+    T("staff_circular_reads", "الاطّلاع على القرارات والتعميمات", "كل موظف ضغط «اطّلعت عليه»، بوقته.", [
+        ref("circular_id", "staff_circulars", "القرار أو التعميم", od="CASCADE"),
+        staff("staff_user_id", "الموظف", null=False),
+        c("read_at", "DATETIME(3)", "وقت الاطّلاع", d="CURRENT_TIMESTAMP(3)"),
+    ], uq=[("circular_id", "staff_user_id")], new=True, src="Circular.reads؛ circularActions.read"),
 
     T("employee_languages", "لغات الموظف", "اللغات (العربية افتراضياً).", [
         ref("employee_id", "employees", "الموظف", od="CASCADE"),

@@ -88,9 +88,9 @@ s = Staff(storage=STATE_FILE); c, p = s.c, s.p; S = "REG"
 s.login("hiba")
 wait_toasts(p)
 # ── the dashboard ──
-c.shot("reg-dash", "لوحة التحكم: «كيف تعمل» في ثلاث خطوات، وأرقام التسجيل", hl=[("aside a[href$='/staff/hajj']", "")], section=S)
+c.shot("reg-dash", "الإحصائيات والسجل: «كيف تعمل» في ثلاث خطوات، وأرقام التسجيل", hl=[("aside a[href$='/staff/hajj']", "")], section=S)
 c.scroll_by(380)
-c.shot("reg-dash-2", "لوحة التحكم: الطلبات حسب حالتها ومسارها ومكتبها، وأين توقف من لم يكمل", section=S)
+c.shot("reg-dash-2", "الإحصائيات والسجل: الطلبات حسب حالتها ومسارها ومكتبها، وأين توقف من لم يكمل", section=S)
 
 # ── the registration pages ──
 s.nav("صفحات التسجيل", wait=2000)

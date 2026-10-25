@@ -35,6 +35,8 @@ import {
   Layers,
   ListTree,
   LogOut,
+  Menu,
+  Search,
   Mails,
   Network,
   PencilLine,
@@ -55,16 +57,17 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Emblem } from "@/components/brand/logo";
 import { useToast } from "@/components/ui/widgets";
 import { useEmployees } from "@/lib/ops";
 import { can, type StaffUser } from "@/lib/staff";
 import { hasStats, statsKey, viewKeys, PERM_SYSTEM } from "@/lib/permissions";
 import { actions, useHydrated, useStore } from "@/lib/store";
+import { useMyCirculars } from "@/lib/circulars";
 import { useEvaluatees } from "../evaluate/view";
 import { useIsCommittee } from "../committee/view";
-import { SYSTEMS, SYSTEM_KEYS, type SystemKey } from "@/lib/systems";
+import { SYSTEMS, SYSTEM_FAMILIES, SYSTEM_KEYS, type SystemKey } from "@/lib/systems";
 import { cn, hijriDate, samePath } from "@/lib/utils";
 import { useHalls } from "@/app/administrator/_lib/halls";
 import { useAirportReps, useFlightsData } from "@/lib/flights";
@@ -93,6 +96,16 @@ import { statsHref } from "../stats/sections";
 type NavItem = {
   href: string;
   label: string;
+  /** The system this entry belongs to in the menu: the line it hangs from */
+  group: string;
+  /** What it does, for the menu's search */
+  desc?: string;
+  /** The other pages that are tabs of this entry: they light it and are reached from the tab bar above them */
+  also?: string[];
+  /** The desk's parts that count what waits in this entry (one per tab) */
+  areas?: string[];
+  /** A desk's own page permissions, apart from its statistics': an employee with only the statistics opens the entry on them */
+  own?: string[];
   icon: ReactNode;
   perms: string[];
   badge?: "reviews" | "tickets" | "hall" | "airport" | "systems" | SystemKey;
@@ -146,32 +159,58 @@ const OPERATION_ICONS: Record<string, ReactNode> = {
   "/staff/flights/manage/dispatch": <Route />,
 };
 
-/** A management file in the menu: its summary, then each of its operations, under the file's name */
+/** Every operation path of every file: one that another continues is lit on its own path only */
+const OPERATION_HREFS = SYSTEM_KEYS.flatMap((k) => SYSTEMS[k].operations.map((o) => o.href));
+const continued = (href: string) => OPERATION_HREFS.some((h) => h !== href && h.startsWith(`${href}/`));
+
+/** A management file in the menu: its summary, then its pages — each matter one entry, its related pages its tabs */
 function systemEntries(key: SystemKey): NavItem[] {
   const s = SYSTEMS[key];
+  const ops = s.operations.filter((o) => !o.sub);
+  const families = SYSTEM_FAMILIES[key] ?? [];
+  const familyOf = (href: string) => families.find((f) => f.hrefs.includes(href));
+  // The work first, its numbers and record last: a file's pages are for working in, not for reading about
   return [
-    { href: s.summary.href, label: s.summary.label, icon: <Gauge />, perms: [`${key}.summary.GET`], system: key, badge: key, exact: true },
-    // The first operation is the file's own path, which the others continue: lit on its own path only
-    ...s.operations.filter((o) => !o.sub).map((o, i): NavItem => ({ href: o.href, label: o.label, icon: OPERATION_ICONS[o.href] ?? <ScrollText />, perms: o.perms, system: key, area: o.area, ...(i === 0 && { exact: true as const }) })),
+    ...ops
+      .filter((o) => (familyOf(o.href)?.hrefs[0] ?? o.href) === o.href)
+      .map((o): NavItem => {
+        const f = familyOf(o.href);
+        const members = f ? f.hrefs.map((h) => ops.find((x) => x.href === h)!) : [o];
+        return {
+          href: o.href,
+          label: f?.label ?? o.label,
+          group: key,
+          desc: members.map((m) => `${m.label} ${m.desc}`).join(" "),
+          icon: OPERATION_ICONS[o.href] ?? <ScrollText />,
+          perms: [...new Set(members.flatMap((m) => m.perms))],
+          system: key,
+          area: o.area,
+          areas: members.map((m) => m.area),
+          ...(f && f.hrefs.length > 1 && { also: f.hrefs.slice(1) }),
+          ...(continued(o.href) && { exact: true as const }),
+        };
+      }),
+    { href: s.summary.href, label: s.summary.label, group: key, icon: <Gauge />, perms: [`${key}.summary.GET`], system: key, badge: key, exact: true },
   ];
 }
 
-/** A system that is not a management file: its statistics, when it has them, then its own page */
-function deskEntries(item: NavItem & { system?: undefined }, sys: string): NavItem[] {
-  return [...(hasStats(sys) ? [{ href: statsHref(sys), label: "الإحصائيات", icon: <ChartColumn />, perms: [statsKey(sys)], desk: sys, exact: true as const }] : []), { ...item, desk: sys }];
+/** A system that is not a management file: one entry, its own page, with its statistics as the other tab when it has them */
+function deskEntries(item: Omit<NavItem, "group"> & { system?: undefined }, sys: string): NavItem[] {
+  if (!hasStats(sys)) return [{ ...item, group: sys, desk: sys }];
+  return [{ ...item, group: sys, desk: sys, also: [statsHref(sys)], own: item.perms, perms: [...item.perms, statsKey(sys)] }];
 }
 
 export const STAFF_NAV: NavItem[] = [
   // Every system's numbers in one place: at the top for whoever holds it
-  { href: "/staff/executive", label: "لوحة الإدارة العليا", icon: <BarChart3 />, perms: viewKeys("executive") },
-  { href: "/staff/access", label: "صلاحيات الموظفين", icon: <KeyRound />, perms: viewKeys("access"), badge: "systems" },
+  { href: "/staff/executive", label: "لوحة الإدارة العليا", group: "executive", icon: <BarChart3 />, perms: viewKeys("executive") },
+  { href: "/staff/access", label: "صلاحيات الموظفين", group: "access", icon: <KeyRound />, perms: viewKeys("access"), badge: "systems" },
   // The management files, in the season's order: each file's summary and its operations
   ...SYSTEM_KEYS.flatMap(systemEntries),
   // The field posts: granted for a hall, an airport
-  { href: "/staff/hall", label: "قاعتي الامتحانية", icon: <DoorOpen />, perms: ["hall.sittings.GET"], badge: "hall" },
-  { href: "/staff/airport", label: "رحلات مطاري", icon: <TowerControl />, perms: ["airport.flights.GET"], badge: "airport" },
-  { href: "/staff/evaluate", label: "تقييم الإداريين", icon: <Star />, perms: ["evaluate.evaluations.GET"], evaluate: true },
-  { href: "/staff/committee", label: "لجنة التقييم", icon: <Scale />, perms: ["evaluate.committee.GET"], committee: true },
+  { href: "/staff/hall", label: "قاعتي الامتحانية", group: "hall", icon: <DoorOpen />, perms: ["hall.sittings.GET"], badge: "hall" },
+  { href: "/staff/airport", label: "رحلات مطاري", group: "airport", icon: <TowerControl />, perms: ["airport.flights.GET"], badge: "airport" },
+  { href: "/staff/evaluate", label: "تقييم الإداريين", group: "evaluate", icon: <Star />, perms: ["evaluate.evaluations.GET"], evaluate: true },
+  { href: "/staff/committee", label: "لجنة التقييم", group: "committee", icon: <Scale />, perms: ["evaluate.committee.GET"], committee: true },
   // The other systems in the order the season is worked: set up first, then run, then looked back on
   ...deskEntries({ href: "/staff/season", label: "إعدادات الموسم", icon: <Settings2 />, perms: viewKeys("season") }, "season"),
   ...deskEntries({ href: "/staff/reference", label: "البيانات المرجعية", icon: <Database />, perms: viewKeys("reference") }, "reference"),
@@ -187,7 +226,10 @@ export const STAFF_NAV: NavItem[] = [
 ];
 
 /** Every employee's own page, at the foot of the menu above «تسجيل الخروج»: where he is housed, his flights, his place in Mina and Arafat */
-const MY_FILES: NavItem = { href: "/staff/my-files", label: "ملفاتي التشغيلية", icon: <BriefcaseBusiness />, perms: [] };
+const MY_FILES: NavItem = { href: "/staff/my-files", label: "ملفاتي التشغيلية", group: "my-files", icon: <BriefcaseBusiness />, perms: [] };
+
+/** Beside it, every employee's decisions and circulars (lib/circulars.ts): what the administration issued to him */
+const CIRCULARS: NavItem = { href: "/staff/circulars", label: "القرارات والتعميمات", group: "circulars", icon: <Mails />, perms: [] };
 
 export function StaffFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -234,19 +276,61 @@ function Shell({ user, children }: { user: StaffUser; children: ReactNode }) {
           <Suspense fallback={<aside className="min-w-0" />}>
             <Sidebar user={user} />
           </Suspense>
-          <div className="min-w-0">{children}</div>
+          <div className="min-w-0">
+            <FamilyTabs user={user} />
+            {children}
+          </div>
         </div>
       </NavBranchProvider>
     </div>
   );
 }
 
+/**
+ * The tab bar above a merged entry's pages: the other pages about the same matter, one click apart, each with what waits in it.
+ * It shows on the tabs themselves, not on the screens they open (an item being edited), and only when he may open two or more.
+ */
+function FamilyTabs({ user }: { user: StaffUser }) {
+  const pathname = usePathname().replace(/\/+$/, "");
+  const family = STAFF_NAV.find((n) => n.also && [n.href, ...n.also].includes(pathname));
+  if (!family) return null;
+  const hrefs = [family.href, ...(family.also ?? [])];
+  const tabs = hrefs
+    .map((href) => {
+      if (family.system) {
+        const op = SYSTEMS[family.system].operations.find((o) => o.href === href);
+        return op && { href, label: op.label, perms: op.perms, area: op.area };
+      }
+      return href.startsWith("/staff/stats/") ? { href, label: "الإحصائيات", perms: [statsKey(family.desk!)], area: undefined } : { href, label: PAGE_LABEL[family.desk ?? ""] ?? family.label, perms: family.own ?? family.perms, area: undefined };
+    })
+    .filter((t): t is NonNullable<typeof t> => !!t && canAny(user, t.perms));
+  if (tabs.length < 2) return null;
+  return (
+    <nav aria-label={family.label} className="scrollbar-none mb-5 flex gap-1 overflow-x-auto rounded-2xl bg-black/20 p-1 ring-1 ring-white/10">
+      {tabs.map((t) => {
+        const on = t.href === pathname;
+        return (
+          <Link
+            key={t.href}
+            href={t.href}
+            aria-current={on ? "page" : undefined}
+            className={cn("relative flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition", on ? "on-light bg-gradient-to-l from-gold to-gold-light text-ink shadow-md" : "text-white/75 hover:bg-white/[.07] hover:text-white")}
+          >
+            {t.label}
+            {family.system && t.area && <OperationCount system={family.system} areas={[t.area]} active={on} />}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function LiveClock() {
   const now = useNow(1000);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-black/20 px-4 py-3 ring-1 ring-white/10">
+    <div className="flex items-center justify-between gap-3 rounded-2xl bg-black/20 px-4 py-2 ring-1 ring-white/10">
       <div>
-        <p className="font-display text-2xl font-bold tabular-nums tracking-wider text-white" dir="ltr">
+        <p className="font-display text-xl font-bold tabular-nums tracking-wider text-white" dir="ltr">
           {fmtTime(now, true)}
         </p>
         <p className="text-[11px] text-white/55">{hijriDate(new Date(now), { weekday: "long" })}</p>
@@ -265,14 +349,107 @@ function LiveClock() {
   );
 }
 
+/**
+ * The menu is a tree of three levels, the way the WordPress admin keeps hundreds of pages in a short list:
+ * sections of the work (الإدارة العليا، تجهيز الموسم، الحجاج…), each holding systems, each system one line that opens
+ * onto its own pages only while it is the one he is in. Whoever holds every permission sees five section headings;
+ * whoever holds one system sees that system alone. A search finds any page, sub-pages included, by its name or by what
+ * it does.
+ */
+const SECTIONS: { key: string; label: string; groups: string[] }[] = [
+  { key: "top", label: "الإدارة العليا", groups: ["executive", "access", "audit"] },
+  { key: "prepare", label: "تجهيز الموسم", groups: ["season", "reference", "opfiles", "content", "staff"] },
+  { key: "pilgrims", label: "الحجاج", groups: ["registration", "office", "reviews", "lottery"] },
+  { key: "admins", label: "الإداريون والامتحانات", groups: ["admins", "exams", "hall", "evaluate", "committee"] },
+  { key: "field", label: "الميدان والعمليات", groups: ["operations", "flights", "airport", "transport", "medical"] },
+];
+
+const GROUP_ICON: Record<string, ReactNode> = {
+  executive: <BarChart3 />,
+  access: <KeyRound />,
+  audit: <ScrollText />,
+  staff: <IdCard />,
+  registration: <ListTree />,
+  admins: <BadgeCheck />,
+  exams: <Landmark />,
+  flights: <Plane />,
+  season: <Settings2 />,
+  reference: <Database />,
+  opfiles: <FileStack />,
+  content: <PencilLine />,
+  office: <UserRoundPlus />,
+  reviews: <ClipboardCheck />,
+  lottery: <Dices />,
+  operations: <RadioTower />,
+  medical: <HeartPulse />,
+  transport: <Bus />,
+  hall: <DoorOpen />,
+  airport: <TowerControl />,
+  evaluate: <Star />,
+  committee: <Scale />,
+};
+
+/** What a system's own page is called under its name, beside its statistics */
+const PAGE_LABEL: Record<string, string> = {
+  season: "الإعدادات",
+  reference: "القوائم",
+  opfiles: "الملفات",
+  content: "الصفحات",
+  office: "التسجيل",
+  reviews: "الطلبات",
+  lottery: "القرعة",
+  operations: "البلاغات",
+  medical: "العمل الطبي",
+  transport: "النقل",
+  audit: "السجل",
+};
+
+/** How a system or a section unfolds and folds in the menu: its height and its lines, eased */
+const UNFOLD = {
+  initial: { height: 0, opacity: 0 },
+  animate: { height: "auto", opacity: 1, transition: { height: { duration: 0.28, ease: [0.16, 1, 0.3, 1] }, opacity: { duration: 0.2, delay: 0.05 } } },
+  exit: { height: 0, opacity: 0, transition: { height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.12 } } },
+} as const;
+
+type NavGroup = { key: string; label: string; icon: ReactNode; items: NavItem[]; main: NavItem };
+
+const isStats = (n: NavItem) => !!n.desk && n.href.startsWith("/staff/stats/");
+
+/** The entries he may see, gathered by the system they belong to */
+function groupsOf(items: NavItem[]): NavGroup[] {
+  const by = new Map<string, NavItem[]>();
+  for (const n of items) by.set(n.group, [...(by.get(n.group) ?? []), n]);
+  return [...by].map(([key, list]) => {
+    const page = list.find((n) => !isStats(n));
+    const main = list.find((n) => n.system && n.area) ?? list.find((n) => n.system) ?? page ?? list[0];
+    const label = main.system ? SYSTEMS[main.system].label : page?.label ?? PERM_SYSTEM[key]?.label ?? main.label;
+    return { key, label, icon: GROUP_ICON[key] ?? main.icon, items: list, main };
+  });
+}
+
+/** An entry's name under its system: a lone entry takes the system's own name */
+const shownLabel = (g: NavGroup, n: NavItem) => (g.items.length === 1 ? g.label : n.system || isStats(n) ? n.label : PAGE_LABEL[g.key] ?? n.label);
+
+function ItemBadge({ n, active, counts }: { n: NavItem; active: boolean; counts: Record<string, number> }) {
+  if (n.badge === "staff") return <EmployeesCount active={active} />;
+  if (n.badge === "registration") return <RegistrationCount active={active} />;
+  if (n.badge === "admins") return <AdminsCount active={active} />;
+  if (n.badge === "exams") return <ExamCount active={active} />;
+  if (n.badge === "flights") return <FlightsCount active={active} />;
+  if (n.system && n.area) return <OperationCount system={n.system} areas={n.areas ?? [n.area]} active={active} />;
+  return <Count n={n.badge ? counts[n.badge] ?? 0 : 0} active={active} urgent={n.badge === "tickets" || n.badge === "systems"} />;
+}
+
 function Sidebar({ user }: { user: StaffUser }) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
   const [showPerms, setShowPerms] = useState(false);
   const params = useSearchParams();
-  // A management file opens on its own when the page is one of its pages; the employee can open or close any of them
-  const [openSys, setOpenSys] = useState<Record<string, boolean>>({});
+  // What he opened or closed by hand on this page; a new page forgets it and opens the system it belongs to
+  const [manual, setManual] = useState<{ path: string; group?: string; open?: boolean; sections: Record<string, boolean>; menu?: boolean; query: string }>({ path: pathname, sections: {}, query: "" });
+  const here = manual.path === pathname ? manual : { path: pathname, sections: {}, query: "" };
+  const patch = (p: Partial<typeof manual>) => setManual({ ...here, ...p });
   const reviews = useReviewQueue();
   const civil = useCivilClaims().filter((c) => c.claim.status === "pending").length;
   const contracts = useStore((s) => Object.values(s.post).filter((p) => p.contract?.status === "pending").length);
@@ -304,43 +481,142 @@ function Sidebar({ user }: { user: StaffUser }) {
       airport: flights.flights.filter((f) => (myAirports.includes(f.fromId) && f.status === "locked") || (myAirports.includes(f.divertedToId ?? f.toId) && f.status === "departed")).length,
       // What the director has not read yet; what waits for a system's owner is counted by its own badge
       systems: unseen,
-      staff: 0,
-      registration: 0,
-      admins: 0,
-      exams: 0,
-      flights: 0,
     }),
     [reviews, civil, contracts, tickets, halls.runs, myCenters, admins, flights.flights, myAirports, unseen],
-  );
+  ) as Record<string, number>;
   const grants = useGrantSummary(user);
-  const items = STAFF_NAV.filter((n) => canAny(user, n.perms) && (!n.evaluate || evaluatees > 0) && (!n.committee || onCommittee));
-  // A system's statistics and its page sit under its name when both show; one alone needs no heading
-  const deskShown = (sys: string) => items.filter((n) => n.desk === sys).length;
+  const unreadCirculars = useMyCirculars(user).filter((c) => !c.reads?.[user.id]).length;
+  const items = STAFF_NAV.filter((n) => canAny(user, n.perms) && (!n.evaluate || evaluatees > 0) && (!n.committee || onCommittee)).map((n) =>
+    // A desk he holds only the statistics of opens on them
+    n.own && n.also && !canAny(user, n.own) ? { ...n, href: n.also[0], also: [n.href], exact: true as const } : n,
+  );
+  const groups = groupsOf(items);
+  const sections = SECTIONS.map((s) => ({ ...s, groups: s.groups.map((k) => groups.find((g) => g.key === k)).filter((g): g is NavGroup => !!g) })).filter((s) => s.groups.length);
+  // A system the sections do not list is never lost: it joins the last one
+  const unlisted = groups.filter((g) => !SECTIONS.some((s) => s.groups.includes(g.key)));
+  if (unlisted.length && sections.length) sections[sections.length - 1].groups.push(...unlisted);
   // The employee whose page is open: his record (?id=), his season or register line (?e=), or his account (?a=)
   const people = useEmployees();
   const picked = employeeOf(pathname, params, people);
   // «/reference» opens its own pages, not «/references»: a segment of the path, not any prefix
-  const isOn = (n: NavItem) => {
-    return n.exact ? samePath(pathname, n.href) : samePath(pathname, n.href) || pathname.startsWith(`${n.href.replace(/\/$/, "")}/`);
-  };
-  // The file whose page is open: any page under its own path, an employee's included
-  const inSystem = (k: SystemKey) => samePath(pathname, SYSTEMS[k].summary.href) || pathname.startsWith(`${SYSTEMS[k].summary.href}/`);
-  const activeSystem = items.find((n) => n.system && inSystem(n.system))?.system;
-  const open0 = (n: NavItem) => !n.system || (openSys[n.system] ?? n.system === activeSystem);
+  // An entry is lit on its own page and on each of its tabs; a path another page continues is lit on itself only
+  const matchLen = (n: NavItem) =>
+    [n.href, ...(n.also ?? [])].reduce((best, h) => {
+      const exact = h === n.href ? !!n.exact : continued(h) || h.startsWith("/staff/stats/");
+      const on = samePath(pathname, h) || (!exact && pathname.startsWith(`${h.replace(/\/$/, "")}/`));
+      return on ? Math.max(best, h.length) : best;
+    }, -1);
+  const isOn = (n: NavItem) => matchLen(n) >= 0;
+  const activeItem = items.filter(isOn).sort((a, b) => matchLen(b) - matchLen(a))[0];
+  // A sub-page («إضافة صفحة») is no entry of its own: it belongs to the system whose path it continues
+  const inSystem = items.find((n) => n.system && (samePath(pathname, SYSTEMS[n.system].summary.href) || pathname.startsWith(`${SYSTEMS[n.system].summary.href}/`)));
+  const activeGroup = activeItem?.group ?? inSystem?.group;
+  const groupOpen = (k: string) => (here.group === k && here.open !== undefined ? here.open : k === activeGroup);
+  // Few systems need no folding: everything shows. Many fold into sections, the one he is in open
+  const fold = groups.length > 7;
+  const sectionOpen = (s: { key: string; groups: NavGroup[] }) => here.sections[s.key] ?? (!fold || s.groups.some((g) => g.key === activeGroup));
   // The sub-page that is open hangs from its main page: the item whose path is the sub-page's list, else the nearest one above it.
   // An employee has a branch of his own (his pages), so his sub-page does not hang twice
   const branch = useOpenBranch();
   const anchorHref = branch
     ? items
-        .filter((n) => n.href === branch.anchor || branch.anchor.startsWith(`${n.href.replace(/\/$/, "")}/`))
-        .sort((a, b) => Number(b.href === branch.anchor) - Number(a.href === branch.anchor) || b.href.length - a.href.length)[0]?.href
+        .flatMap((n) => [n.href, ...(n.also ?? [])].filter((h) => h === branch.anchor || branch.anchor.startsWith(`${h.replace(/\/$/, "")}/`)).map((h) => ({ n, h })))
+        .sort((a, b) => Number(b.h === branch.anchor) - Number(a.h === branch.anchor) || b.h.length - a.h.length)[0]?.n.href
     : undefined;
+  // The page he is on is brought into view inside the menu's own scroll, never moving the page itself
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const on = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !on) return;
+    const n = nav.getBoundingClientRect();
+    const r = on.getBoundingClientRect();
+    if (r.top < n.top || r.bottom > n.bottom) nav.scrollTop += r.top - n.top - n.height / 3;
+  }, [pathname, activeGroup]);
+  const activeGroupDef = groups.find((g) => g.key === activeGroup);
+  const query = here.query.trim();
+  const found = query
+    ? items.filter((n) => {
+        const g = groups.find((x) => x.key === n.group)!;
+        return [n.label, g.label, shownLabel(g, n), n.desc ?? ""].some((t) => t.includes(query));
+      })
+    : [];
 
   const logout = () => {
     logAs(user, { action: "تسجيل خروج", target: "بوابة الموظفين" });
     actions.staffLogout();
     toast({ title: "تم تسجيل الخروج", body: `إلى اللقاء يا ${user.name.split(" ")[0]}`, tone: "info", icon: "👋" });
     router.push("/staff/login");
+  };
+
+  /** One entry as a line: a system's own line, or one of its pages under it */
+  const line = (g: NavGroup, n: NavItem, child: boolean, withGroup = false) => {
+    // A page with its sub-page open is not the one he is on: the leaf under it is
+    const hasLeaf = !!branch && n.href === anchorHref && groupOpen(g.key) && !(picked && n.system === "staff" && n.area === "register");
+    const active = isOn(n) && n === activeItem && !hasLeaf;
+    return [
+      <Link
+        key={n.href}
+        href={n.href}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "relative flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]",
+          child && "gap-2.5 rounded-xl px-3 py-2 text-[13px] [&_svg]:size-4",
+          active ? "on-light text-ink" : hasLeaf ? "text-white hover:bg-white/[.06]" : "text-white/75 hover:bg-white/[.06] hover:text-white",
+        )}
+      >
+        {active && (
+          <motion.span
+            layoutId={query ? undefined : "staff-nav"}
+            className={cn("absolute inset-0 bg-gradient-to-l from-gold to-gold-light shadow-[0_10px_30px_-12px_rgba(217,200,158,.8)]", child ? "rounded-xl" : "rounded-2xl")}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+          />
+        )}
+        <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{child || withGroup ? n.icon : g.icon}</span>
+        <span className="relative min-w-0 flex-1 truncate">
+          {shownLabel(g, n)}
+          {withGroup && g.items.length > 1 && <span className={cn("me-1.5 text-[11px] font-normal", active ? "text-ink/60" : "text-white/45")}> · {g.label}</span>}
+        </span>
+        <ItemBadge n={n} active={active} counts={counts} />
+      </Link>,
+      // The register's own branch: the employee chosen there, and his pages
+      !withGroup && n.system === "staff" && n.area === "register" && picked && groupOpen(g.key) ? <EmployeeBranch key="employee-branch" user={user} employee={picked} pathname={pathname} /> : null,
+      !withGroup && hasLeaf ? <PageBranch key="page-branch" title={branch!.title} closeHref={branch!.closeHref ?? branch!.anchor} /> : null,
+    ];
+  };
+
+  /** A system: its own line when it has nothing under it, else a heading that opens onto its pages */
+  const groupBlock = (g: NavGroup) => {
+    if (g.items.length === 1) return <div key={g.key}>{line(g, g.items[0], false)}</div>;
+    const open = groupOpen(g.key);
+    const inside = g.key === activeGroup;
+    const badged = g.items.find((x) => x.badge);
+    return (
+      <div key={g.key}>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => {
+            // Entering a system opens it on its first page; the one he is in folds and unfolds
+            if (inside) patch({ group: g.key, open: !open });
+            else router.push(g.main.href);
+          }}
+          className={cn("flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]", inside ? "bg-white/[.09] text-white" : "text-white/75 hover:bg-white/[.06] hover:text-white")}
+        >
+          <span className="text-gold/80">{g.icon}</span>
+          <span className="min-w-0 flex-1 truncate text-start">{g.label}</span>
+          {!open && badged && <ItemBadge n={badged} active={false} counts={counts} />}
+          <ChevronDown className={cn("size-3.5 shrink-0 text-white/50 transition-transform duration-300", !open && "rotate-90")} />
+        </button>
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div key="pages" {...UNFOLD} className="overflow-hidden">
+              <div className="mr-5 mt-1 space-y-0.5 border-r-2 border-white/10 pr-2">{g.items.map((n) => line(g, n, true))}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
   };
 
   return (
@@ -396,14 +672,14 @@ function Sidebar({ user }: { user: StaffUser }) {
             </div>
             <AnimatePresence initial={false}>
               {showPerms && (
-                <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-wrap gap-1.5 overflow-hidden">
+                <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="max-h-48 flex-wrap gap-1.5 overflow-y-auto">
                   {grants.map((p, i) => (
                     <motion.li
                       key={p}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.04 * i }}
-                      className="mt-2 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] text-gold"
+                      transition={{ delay: Math.min(0.04 * i, 0.6) }}
+                      className="mt-2 inline-block rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[11px] text-gold"
                     >
                       {p}
                     </motion.li>
@@ -416,93 +692,83 @@ function Sidebar({ user }: { user: StaffUser }) {
           <div className="hidden lg:block">
             <LiveClock />
           </div>
+
+          {/* On a phone the menu folds away behind its button, which names the page he is on */}
+          <button
+            type="button"
+            onClick={() => patch({ menu: !here.menu })}
+            aria-expanded={!!here.menu}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-white/[.07] px-4 py-3 text-sm font-bold ring-1 ring-white/10 lg:hidden"
+          >
+            <span className="flex items-center gap-2">
+              <Menu className="size-5 text-gold" /> القائمة
+            </span>
+            <span className="truncate text-xs font-normal text-white/60">{activeItem && activeGroupDef ? shownLabel(activeGroupDef, activeItem) : ""}</span>
+          </button>
+
+          {items.length > 8 && (
+            <label className={cn("relative lg:block", here.menu ? "block" : "hidden")}>
+              <span className="sr-only">ابحث عن صفحة</span>
+              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
+              <input
+                value={here.query}
+                onChange={(e) => patch({ query: e.target.value })}
+                onKeyDown={(e) => e.key === "Escape" && patch({ query: "" })}
+                placeholder="ابحث عن صفحة…"
+                className="h-10 w-full rounded-xl bg-white/[.07] pr-9 text-sm text-white outline-none ring-1 ring-white/10 placeholder:text-white/40 focus:ring-gold/60"
+              />
+            </label>
+          )}
         </div>
 
-        {/* Navigation — vertical on desktop, a swipeable strip on phones */}
-        <nav aria-label="أقسام بوابة الموظفين" className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:block lg:space-y-1 lg:overflow-visible">
-          {[...items, MY_FILES].map((n, i, all) => {
-            // A page with its sub-page open is not the one he is on: the leaf under it is
-            const hasLeaf = !!branch && n.href === anchorHref && open0(n) && !(picked && n.system === "staff" && n.area === "register");
-            const active = isOn(n) && !hasLeaf;
-            const count = n.badge ? counts[n.badge] : 0;
-            // A management file's entries sit under its name, and a system's statistics and page under its name
-            // when both show; what follows a group is set apart from it
-            const groupOf = (x?: NavItem) => (x?.system ? x.system : x?.desk && deskShown(x.desk) > 1 ? x.desk : undefined);
-            const g = groupOf(n);
-            const prev = groupOf(all[i - 1]);
-            const label = n.system ? SYSTEMS[n.system].label : g ? PERM_SYSTEM[g]?.label : undefined;
-            // On a phone the menu is a strip, every entry in it; on a desktop a management file folds under its name
-            const open = !n.system || (openSys[n.system] ?? n.system === activeSystem);
-            const heading =
-              n.system && g && g !== prev && label ? (
-                <button
-                  key={`g-${g}`}
-                  type="button"
-                  aria-expanded={openSys[n.system] ?? n.system === activeSystem}
-                  onClick={() => {
-                    const sys = n.system!;
-                    setOpenSys((o) => ({ ...o, [sys]: !(o[sys] ?? sys === activeSystem) }));
-                  }}
-                  className={cn("hidden w-full items-center justify-between rounded-xl px-3.5 py-1.5 text-[11px] font-bold tracking-wide text-gold/80 transition hover:bg-white/[.06] hover:text-gold lg:flex", i > 0 && "mt-3 border-t border-white/10 pt-3")}
-                >
-                  {label}
-                  <ChevronDown className={cn("size-3.5 transition", !(openSys[n.system] ?? n.system === activeSystem) && "-rotate-90")} />
-                </button>
-              ) : g && g !== prev && label ? (
-                <p key={`g-${g}`} className={cn("hidden px-3.5 pb-1 text-[11px] font-bold tracking-wide text-gold/70 lg:block", i > 0 && "mt-3 border-t border-white/10 pt-3")}>
-                  {label}
-                </p>
-              ) : !g && prev && n !== MY_FILES ? (
-                <hr key={`after-${prev}`} className="my-3 hidden border-white/10 lg:block" />
-              ) : null;
-            return [
-              heading,
-              <Link
-                key={n.href}
-                href={n.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "relative shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]",
-                  open ? "flex" : "max-lg:flex lg:hidden",
-                  active ? "on-light text-ink" : hasLeaf ? "text-white hover:bg-white/[.06]" : "text-white/75 hover:bg-white/[.06] hover:text-white",
-                  n === MY_FILES && "lg:hidden",
-                )}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="staff-nav"
-                    className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light shadow-[0_10px_30px_-12px_rgba(217,200,158,.8)]"
-                    transition={{ type: "spring", damping: 30, stiffness: 350 }}
-                  />
-                )}
-                <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{n.icon}</span>
-                <span className="relative whitespace-nowrap">{n.label}</span>
-                {n.badge === "staff" ? (
-                  <EmployeesCount active={active} />
-                ) : n.badge === "registration" ? (
-                  <RegistrationCount active={active} />
-                ) : n.badge === "admins" ? (
-                  <AdminsCount active={active} />
-                ) : n.badge === "exams" ? (
-                  <ExamCount active={active} />
-                ) : n.badge === "flights" ? (
-                  <FlightsCount active={active} />
-                ) : n.system && n.area ? (
-                  <OperationCount system={n.system} area={n.area} active={active} />
-                ) : (
-                  <Count n={count} active={active} urgent={n.badge === "tickets" || n.badge === "systems"} />
-                )}
-              </Link>,
-              // The register's own branch: the employee chosen there, and his pages
-              n.system === "staff" && n.area === "register" && picked && open ? <EmployeeBranch key="employee-branch" user={user} employee={picked} pathname={pathname} /> : null,
-              hasLeaf ? <PageBranch key="page-branch" title={branch.title} closeHref={branch.closeHref ?? branch.anchor} /> : null,
-            ];
-          })}
+        {/* Navigation — sections of systems, the one he is in open; a search turns it into a list of what matches */}
+        <nav ref={navRef} aria-label="أقسام بوابة الموظفين" className={cn("space-y-1 px-3 pb-3 [scrollbar-width:thin] lg:block lg:max-h-[calc(100dvh/var(--zoom)-31rem)] lg:min-h-[12rem] lg:overflow-y-auto", here.menu ? "block" : "hidden")}>
+          {query ? (
+            found.length ? (
+              found.map((n) => <div key={n.href}>{line(groups.find((g) => g.key === n.group)!, n, false, true)}</div>)
+            ) : (
+              <p className="px-3 py-4 text-center text-xs text-white/55">لا صفحة بهذا الاسم بين ما تملكه.</p>
+            )
+          ) : sections.length > 1 && fold ? (
+            sections.map((s) => {
+              const open = sectionOpen(s);
+              return (
+                <div key={s.key} className="[&:not(:first-child)]:mt-2 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-white/10 [&:not(:first-child)]:pt-2">
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => patch({ sections: { ...here.sections, [s.key]: !open } })}
+                    className="flex w-full items-center justify-between rounded-xl px-3.5 py-2 text-xs font-bold tracking-wide text-gold transition hover:bg-white/[.06]"
+                  >
+                    <span>
+                      {s.label} <span className="font-normal text-white/40">({s.groups.length})</span>
+                    </span>
+                    <ChevronDown className={cn("size-3.5 transition-transform duration-300", !open && "rotate-90")} />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {open && (
+                      <motion.div key="systems" {...UNFOLD} className="overflow-hidden">
+                        <div className="space-y-0.5 pb-1">{s.groups.map(groupBlock)}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })
+          ) : (
+            sections.flatMap((s) => s.groups).map(groupBlock)
+          )}
+          {/* On a phone his own files are the last line of the menu; on a desktop they sit at its foot */}
+          <div className="space-y-1 lg:hidden">
+            <FootLink item={CIRCULARS} active={samePath(pathname, CIRCULARS.href)} count={unreadCirculars} />
+            <FootLink item={MY_FILES} active={samePath(pathname, MY_FILES.href) || pathname.startsWith(`${MY_FILES.href}/`)} />
+          </div>
         </nav>
 
         {/* Always last: his own operational files, set apart from the systems above, then «تسجيل الخروج» */}
         <div className="hidden space-y-1 border-t border-white/10 p-3 lg:block">
-          <MyFilesLink active={samePath(pathname, MY_FILES.href) || pathname.startsWith(`${MY_FILES.href}/`)} />
+          <FootLink item={CIRCULARS} active={samePath(pathname, CIRCULARS.href)} count={unreadCirculars} />
+          <FootLink item={MY_FILES} active={samePath(pathname, MY_FILES.href) || pathname.startsWith(`${MY_FILES.href}/`)} />
           <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-bold text-white/70 transition hover:bg-maroon/40 hover:text-white">
             <LogOut className="size-4" /> تسجيل الخروج
           </button>
@@ -518,7 +784,7 @@ function Sidebar({ user }: { user: StaffUser }) {
 /** The open sub-page under its main page, as a leaf of the tree: it is where he is, so it is lit; «×» closes it */
 function PageBranch({ title, closeHref }: { title: string; closeHref: string }) {
   return (
-    <div className="mr-5 hidden border-r-2 border-gold/30 pr-2 lg:block">
+    <div className="mr-5 border-r-2 border-gold/30 pr-2">
       <div className="on-light relative flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-bold text-ink">
         <span className="absolute inset-0 rounded-xl bg-gradient-to-l from-gold to-gold-light" />
         <span className="relative min-w-0 flex-1 truncate" title={title}>
@@ -555,7 +821,7 @@ function EmployeeBranch({ user, employee, pathname }: { user: StaffUser; employe
     { href: `${base}/season?e=${employee.id}`, at: `${base}/season`, label: "مشاركته في الموسم", icon: <CalendarCheck />, show: can(user, "staff.season-participation.GET") },
   ].filter((l) => l.show);
   return (
-    <div className="mr-5 hidden space-y-1 border-r-2 border-gold/30 pr-2 lg:block" aria-label={`صفحات ${employee.firstName} ${employee.surname}`}>
+    <div className="mr-5 space-y-1 border-r-2 border-gold/30 pr-2" aria-label={`صفحات ${employee.firstName} ${employee.surname}`}>
       <div className="flex items-center justify-between gap-2 px-3 pt-1 text-xs font-bold text-gold">
         <span className="truncate">
           {employee.firstName} {employee.surname}
@@ -583,16 +849,18 @@ function EmployeeBranch({ user, employee, pathname }: { user: StaffUser; employe
   );
 }
 
-function MyFilesLink({ active }: { active: boolean }) {
+/** One of every employee's own pages at the menu's foot: his decisions and circulars, his operational files */
+function FootLink({ item, active, count = 0 }: { item: NavItem; active: boolean; count?: number }) {
   return (
     <Link
-      href={MY_FILES.href}
+      href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn("relative flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition [&_svg]:size-[18px]", active ? "on-light text-ink" : "text-white/75 hover:bg-white/[.06] hover:text-white")}
     >
       {active && <span className="absolute inset-0 rounded-2xl bg-gradient-to-l from-gold to-gold-light shadow-[0_10px_30px_-12px_rgba(217,200,158,.8)]" />}
-      <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{MY_FILES.icon}</span>
-      <span className="relative whitespace-nowrap">{MY_FILES.label}</span>
+      <span className={cn("relative", active ? "text-green-dark" : "text-gold/80")}>{item.icon}</span>
+      <span className="relative whitespace-nowrap">{item.label}</span>
+      <Count n={count} active={active} urgent />
     </Link>
   );
 }
@@ -628,36 +896,38 @@ function FlightsCount({ active }: { active: boolean }) {
   return <Count n={desk.alerts.length} active={active} urgent={desk.high.length > 0} />;
 }
 
-/** What waits in one operation of a file, by its desk's part: each file's desk is read only by its own entries */
-function OperationCount({ system, area, active }: { system: SystemKey; area: string; active: boolean }) {
-  if (system === "admins") return <AdminsArea area={area} active={active} />;
-  if (system === "registration") return <RegistrationArea area={area} active={active} />;
-  if (system === "exams") return <ExamArea area={area} active={active} />;
-  if (system === "flights") return <FlightsArea area={area} active={active} />;
-  return <EmployeesArea area={area} active={active} />;
+/** What waits in one entry of a file, by its desk's parts (one for each tab): each file's desk is read only by its own entries */
+function OperationCount({ system, areas, active }: { system: SystemKey; areas: string[]; active: boolean }) {
+  if (system === "admins") return <AdminsArea areas={areas} active={active} />;
+  if (system === "registration") return <RegistrationArea areas={areas} active={active} />;
+  if (system === "exams") return <ExamArea areas={areas} active={active} />;
+  if (system === "flights") return <FlightsArea areas={areas} active={active} />;
+  return <EmployeesArea areas={areas} active={active} />;
 }
 
-function AdminsArea({ area, active }: { area: string; active: boolean }) {
+const sumOf = (badges: object, areas: string[]) => areas.reduce((n, a) => n + ((badges as Record<string, number>)[a] ?? 0), 0);
+
+function AdminsArea({ areas, active }: { areas: string[]; active: boolean }) {
   const desk = useAdminsDesk();
-  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+  return <Count n={sumOf(desk.badges, areas)} active={active} />;
 }
 
-function RegistrationArea({ area, active }: { area: string; active: boolean }) {
+function RegistrationArea({ areas, active }: { areas: string[]; active: boolean }) {
   const desk = useRegistrationDesk();
-  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+  return <Count n={sumOf(desk.badges, areas)} active={active} />;
 }
 
-function ExamArea({ area, active }: { area: string; active: boolean }) {
+function ExamArea({ areas, active }: { areas: string[]; active: boolean }) {
   const desk = useExamDesk();
-  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+  return <Count n={sumOf(desk.badges, areas)} active={active} />;
 }
 
-function FlightsArea({ area, active }: { area: string; active: boolean }) {
+function FlightsArea({ areas, active }: { areas: string[]; active: boolean }) {
   const desk = useFlightsDesk();
-  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+  return <Count n={sumOf(desk.badges, areas)} active={active} />;
 }
 
-function EmployeesArea({ area, active }: { area: string; active: boolean }) {
+function EmployeesArea({ areas, active }: { areas: string[]; active: boolean }) {
   const desk = useEmployeesDesk();
-  return <Count n={(desk.badges as Record<string, number>)[area] ?? 0} active={active} />;
+  return <Count n={sumOf(desk.badges, areas)} active={active} />;
 }

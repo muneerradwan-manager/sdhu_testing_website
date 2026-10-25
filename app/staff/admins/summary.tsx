@@ -69,7 +69,7 @@ export function AdminsSummary({ embedded = false }: { embedded?: boolean } = {})
       {!embedded && (
         <>
         <PageHeader
-          eyebrow={`${SYSTEMS.admins.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          eyebrow={`${SYSTEMS.admins.label}${grant?.by ? ` — منحك عرض إحصائياته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
           title={SYSTEMS.admins.summary.label}
           icon={<Gauge />}
           description="أرقام الإداريين هذا الموسم وما ينتظرك. العمل نفسه في عمليات الملف من القائمة الجانبية."
@@ -80,14 +80,6 @@ export function AdminsSummary({ embedded = false }: { embedded?: boolean } = {})
           }
         />
 
-        <HowItWorks
-          steps={[
-            { title: "جهّز القواعد", text: "المواعيد والصلاحيات وشروط الصفات، والقوائم المرجعية، قبل أن يتقدم أحد.", href: M, link: "قواعد الإداريين" },
-            { title: "تابع المتقدمين", text: "ملفاتهم ووثائقهم، ثم شكّل مجموعة كل رئيس مجموعة مؤهل في المكتب.", href: `${M}/groups`, link: "تشكيل المجموعات" },
-            { title: "شكّل التكتلات", text: "شكّل كل تكتل في المكتب بحضور رئيسه وكادره، ثم راجع برامج التكتلات وصفحات المجموعات.", href: `${M}/clusters`, link: "التكتلات" },
-            { title: "قيّم وصنّف", text: "قيّم من عمل مرحلةً مرحلة، ثم اعتمد التصنيف وانشره في ختام الموسم.", href: `${M}/evaluation`, link: "التقييم" },
-          ]}
-        />
         </>
       )}
 
@@ -219,6 +211,16 @@ export function AdminsSummary({ embedded = false }: { embedded?: boolean } = {})
       <RaisedBox onRaise={() => setEscalating(true)} />
 
       <Escalate system="admins" open={escalating} onClose={() => setEscalating(false)} example="مثال: طلب تكتل أُعيد بملاحظات قبل الموعد النهائي بيوم، ورئيسه يطلب مهلة يومين ليستبدل منسقاً. نحتاج قراراً قبل إغلاق الطلبات." />
+      {!embedded && (
+          <HowItWorks
+            steps={[
+              { title: "جهّز القواعد", text: "المواعيد والصلاحيات وشروط الصفات، والقوائم المرجعية، قبل أن يتقدم أحد.", href: M, link: "قواعد الإداريين" },
+              { title: "تابع المتقدمين", text: "ملفاتهم ووثائقهم، ثم شكّل مجموعة كل رئيس مجموعة مؤهل في المكتب.", href: `${M}/groups`, link: "تشكيل المجموعات" },
+              { title: "شكّل التكتلات", text: "شكّل كل تكتل في المكتب بحضور رئيسه وكادره، ثم راجع برامج التكتلات وصفحات المجموعات.", href: `${M}/clusters`, link: "التكتلات" },
+              { title: "قيّم وصنّف", text: "قيّم من عمل مرحلةً مرحلة، ثم اعتمد التصنيف وانشره في ختام الموسم.", href: `${M}/evaluation`, link: "التقييم" },
+            ]}
+          />
+      )}
     </div>
   );
 }

@@ -928,6 +928,8 @@ export type State = {
    * changed them; a missing account keeps those it opened with (lib/staff.ts STAFF).
    */
   staffPermissions?: Record<string, import("./permissions").PermGrant[]>;
+  /** «القرارات والتعميمات» issued to the staff, once one was changed (lib/circulars.ts SEED otherwise) */
+  staffCirculars?: import("./circulars").Circular[];
   /**
    * The Hajj registration as configuration (lib/registration): the seasons, each one's working draft, the
    * versions published, and the payments the providers confirmed

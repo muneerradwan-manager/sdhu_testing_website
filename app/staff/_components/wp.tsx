@@ -6,7 +6,6 @@ import { useState, type ReactNode } from "react";
 import type { SystemKey } from "@/lib/systems";
 import { cn } from "@/lib/utils";
 import { useNavBranch } from "./branch";
-import { Panel } from "./kit";
 import { SystemRecords } from "./system";
 
 /**
@@ -170,21 +169,22 @@ export function SettingsRow({ label, hint, children }: { label: string; hint?: R
 export function HowItWorks({ steps }: { steps: { title: string; text: string; href: string; link: string }[] }) {
   const n = ["١", "٢", "٣", "٤", "٥"];
   return (
-    <Panel title="كيف تعمل">
-      <ol className={cn("grid gap-3", steps.length === 4 ? "md:grid-cols-4" : "md:grid-cols-3")}>
+    <Box title="كيف تعمل؟" open={false}>
+      <ol className="space-y-3">
         {steps.map((s, i) => (
-          <li key={s.title} className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-            <p className="flex items-center gap-2 font-display text-lg font-bold text-white">
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gold text-ink">{n[i]}</span> {s.title}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-white/70">{s.text}</p>
-            <Link href={s.href} className="mt-2 inline-block text-sm font-bold text-gold hover:underline">
-              {s.link} ←
-            </Link>
+          <li key={s.title} className="flex gap-3">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-ink">{n[i]}</span>
+            <div className="min-w-0">
+              <p className="font-bold text-white">{s.title}</p>
+              <p className="leading-6 text-white/70">{s.text}</p>
+              <Link href={s.href} className="text-sm font-bold text-gold hover:underline">
+                {s.link} ←
+              </Link>
+            </div>
           </li>
         ))}
       </ol>
-    </Panel>
+    </Box>
   );
 }
 

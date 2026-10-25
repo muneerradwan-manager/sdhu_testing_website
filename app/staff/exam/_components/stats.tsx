@@ -206,7 +206,7 @@ export function Stats() {
     <div className="space-y-4">
       <Panel
         icon={<ChartColumn />}
-        title="الإحصائيات"
+        title="أرقام الاختبار المختار"
         action={
           may("exams.stats.export") && (
             <Button size="sm" variant="glass" onClick={print} disabled={!exam}>

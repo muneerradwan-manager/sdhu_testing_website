@@ -72,6 +72,7 @@ function Transport() {
         value={view}
         onChange={(v) => router.replace(v === "reports" ? "/staff/transport" : `/staff/transport?view=${v}`)}
         label="القسم"
+        tabs
         items={[
           { value: "reports" as const, label: "بلاغات النقل", count: reports.filter((t) => t.status !== "resolved").length, tone: "maroon" as const },
           { value: "needs" as const, label: "حجاج يحتاجون تجهيزاً", count: needs.length },

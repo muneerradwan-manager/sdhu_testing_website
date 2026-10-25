@@ -201,6 +201,7 @@ function Season() {
         value={section}
         onChange={(v) => router.replace(v === "values" ? "/staff/season" : `/staff/season?section=${v}`, { scroll: false })}
         label="أقسام الإعدادات"
+        tabs
         items={[
           { value: "values" as const, label: "الشروط والرسوم" },
           { value: "operations" as const, label: "مواعيد العمليات" },

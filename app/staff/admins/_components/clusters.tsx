@@ -53,7 +53,7 @@ export function ClustersTab() {
   const sees = (v: (typeof VIEWS)[number]) => may(v === "programmes" ? "admins.programmes.GET" : v === "group-pages" ? "admins.group-pages.GET" : "admins.clusters.GET");
   if (id) return may("admins.clusters.GET") ? <RequestScreen id={id} desk={desk} /> : <Locked perm="admins.clusters.GET" />;
   const items = [
-    { key: "requests" as const, label: "التكتلات", count: desk.live.length },
+    { key: "requests" as const, label: "التشكيلات", count: desk.live.length },
     { key: "outside" as const, label: "مجموعات خارج التكتلات", count: desk.outside.length },
     { key: "programmes" as const, label: "برامج التكتلات", count: desk.pendingProgrammes.length },
     { key: "group-pages" as const, label: "صفحات المجموعات", count: desk.pendingGroupPages.length },
@@ -61,7 +61,7 @@ export function ClustersTab() {
   ].filter((v) => sees(v.key));
   return (
     <div className="space-y-5">
-      <Views param="v" value={view} label="التكتلات" items={items} />
+      <Views param="v" value={view} label="التكتلات" items={items} tabs />
       {!sees(view) && <Locked perm={view === "programmes" ? "admins.programmes.GET" : view === "group-pages" ? "admins.group-pages.GET" : "admins.clusters.GET"} />}
       {sees(view) && (view === "requests" || view === "archived") && <Requests key={view} desk={desk} shelf={view === "archived" ? "archived" : "live"} />}
       {sees(view) && view === "outside" && <Outside desk={desk} />}
@@ -154,7 +154,7 @@ function Requests({ desk, shelf }: { desk: AdminsDesk; shelf: "live" | "archived
   const may = useCan();
   return (
     <div className="space-y-4">
-      <Title action={shelf === "live" && may("admins.clusters.POST") && <AddButton onClick={() => setCreating(true)}>تشكيل تكتل في المكتب</AddButton>}>{shelf === "live" ? "التكتلات" : "التشكيلات المؤرشفة"}</Title>
+      <Title action={shelf === "live" && may("admins.clusters.POST") && <AddButton onClick={() => setCreating(true)}>تشكيل تكتل في المكتب</AddButton>}>{shelf === "live" ? "التشكيلات" : "التشكيلات المؤرشفة"}</Title>
       <Lead>{shelf === "live" ? "يُشكَّل التكتل في المكتب بحضور رئيسه وكل من فيه: «تشكيل تكتل في المكتب»، ثم أدخل مجموعاته وكادره وتوزيعه، وخذ رسمه، وارفع عقده الموقّع، وأنشئه." : "تشكيلات أُرشفت واحداً واحداً، أو كلها عند «بدء موسم جديد» في «التكتلات والمجموعات»."}</Lead>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Filters label="حال الطلبات" value={filter} onChange={setFilter} items={FILTERS.map((f) => ({ ...f, count: f.key === "all" ? inTier.length : inTier.filter((r) => r.status === f.key).length }))} />
@@ -1027,7 +1027,7 @@ function Outside({ desk }: { desk: AdminsDesk }) {
 
   return (
     <div className="space-y-4">
-      <Title>مجموعات معتمدة خارج كل تكتل</Title>
+      <Title>مجموعات خارج التكتلات</Title>
       <Lead>{desk.deadlinePassed ? "لم تدخل تكتلاً حين شُكّلت التكتلات في المكتب: أضف كلاً منها إلى تكتل بتعديل استثنائي بسببه." : `ما دام تشكيل التكتلات مفتوحاً تدخل تكتلاً حين يُشكَّل في المكتب؛ وبعد الموعد النهائي ${dayLabel(desk.formationWindow.op.end, true)} تُضاف بتعديل استثنائي.`}</Lead>
       <ListTable head={["المجموعة", "الفرع", "الفئة", "الحجاج", "كانت في"]}>
         {desk.outside.length === 0 && <EmptyRow cols={5}>كل مجموعة مشكّلة في تكتل.</EmptyRow>}

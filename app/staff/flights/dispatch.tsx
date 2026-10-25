@@ -142,6 +142,7 @@ export function DispatchPage() {
         value={view}
         onChange={setView}
         label="التفويج"
+        tabs
         items={[
           { value: "groups", label: "المجموعات", count: desk.groups.length },
           { value: "needs", label: "بحاجة إلى رحلة", count: needsFlight.length, tone: "maroon" },

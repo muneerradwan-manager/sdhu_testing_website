@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Building2, Plus, Save } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,35 +13,12 @@ import { OperationHeader } from "../_components/system";
 import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../_components/wp";
 import { Segments } from "../exam/_components/ui";
 
-const AIRPORTS = "/staff/flights/manage";
-
 /** What an airport is in the pilgrims' trip: the holy city it serves, where its travellers return, or returns only */
 function roleOf(a: Airport, d: Pick<FlightsData, "airports">) {
   if (isHoly(a)) return `يصل إليه الذهاب وتقلع منه العودة — ${a.serves ?? a.city}`;
   if (a.arrivalsOnly) return "تهبط فيه العودة فقط";
   return `يقلع منه الذهاب، ويعود ركابه إلى ${returnAirportsFor(d, a.id).map((id) => airportOf(d, id)?.city ?? id).join(" أو ")}`;
 }
-const CARRIERS = "/staff/flights/manage/carriers";
-
-/** What the flights are built from, in two lists: the airports (with who represents each) and the carriers */
-function RefsSwitch() {
-  const path = usePathname().replace(/\/+$/, "");
-  const data = useFlightsData();
-  const items = [
-    { href: AIRPORTS, label: "المطارات ومندوبوها", n: data.airports.filter((a) => !a.archived).length },
-    { href: CARRIERS, label: "الناقلون الجويون", n: data.carriers.filter((c) => !c.archived).length },
-  ];
-  return (
-    <nav aria-label="المطارات والناقلون" className="flex flex-wrap gap-1 rounded-2xl bg-white/[.06] p-1 ring-1 ring-white/10 sm:w-fit">
-      {items.map((x) => (
-        <Link key={x.href} href={x.href} aria-current={path === x.href ? "page" : undefined} className={cn("rounded-xl px-4 py-2 text-sm font-bold transition", path === x.href ? "bg-gold text-ink" : "text-white/80 hover:text-white")}>
-          {x.label} <span className="tabular-nums opacity-70">({x.n})</span>
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
 // ───────────────────────── Airports ─────────────────────────
 
 type AirportFilter = "all" | "norep" | "archived";
@@ -77,7 +53,6 @@ export function AirportsPage() {
   return (
     <div className="space-y-5">
       <OperationHeader system="flights" icon={<Building2 />} />
-      <RefsSwitch />
       <Title
         action={
           may("flights.airports.POST") && (
@@ -279,7 +254,6 @@ export function CarriersPage() {
   return (
     <div className="space-y-5">
       <OperationHeader system="flights" icon={<Building2 />} />
-      <RefsSwitch />
       <Title
         action={
           may("flights.carriers.POST") && (

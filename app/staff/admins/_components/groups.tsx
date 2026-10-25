@@ -24,7 +24,7 @@ import { FilterSelect, InfoGrid, SearchBox } from "../../_components/ops-ui";
 import { RecordHistory } from "../../_components/system";
 import { AddButton, Box, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { GROUP_STATE, logAdmins, useAdminsDesk, type AdminsDesk, type GroupRow, type GroupState } from "../desk";
-import { Filters, Help, Lead, Locked, TitleCell } from "./ui";
+import { Filters, Help, Locked, TitleCell } from "./ui";
 
 /** The shared input without its full width, for an input given its own */
 const sizedInput = smallInputClass.replace("w-full", "");
@@ -59,8 +59,7 @@ export function GroupsTab() {
 
   return (
     <div className="space-y-5">
-      <Title action={may("admins.groups.POST") && <AddButton onClick={() => setForming(true)}>تشكيل مجموعة</AddButton>}>مجموعات الموسم</Title>
-      <Lead>يأتي رئيس المجموعة المؤهل إلى المكتب باسم مجموعته ويسدد رسمها، فتشكّلها بفئته. افتح أي مجموعة لترى شروطها وسجلّها.</Lead>
+      <Title action={may("admins.groups.POST") && <AddButton onClick={() => setForming(true)}>تشكيل مجموعة</AddButton>} />
       <GroupsList desk={desk} onOpen={setOpen} onReturn={setReturning} />
 
       <div className="grid gap-4 lg:grid-cols-2">

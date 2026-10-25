@@ -142,7 +142,7 @@ export function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <Panel icon={<ClipboardList />} title="الطلبات">
+      <Panel icon={<ClipboardList />} title="طلبات الحجاج وحالة كل منها">
         <p className="mb-4 text-sm leading-7 text-white/70">
           <b className="text-white">حالة الطلب</b> قرار المنصة والموظفين (مقدَّم، تدقيق البيانات، مؤهل، اعتماد القبول أو القرعة، مقبول) — لا تتغير من هنا ولا بتعديل الصفحات. <b className="text-white">المرحلة</b> ما يراه صاحب الطلب الآن. وكل طلب على إصدار الإعدادات الذي بدأ عليه.
         </p>

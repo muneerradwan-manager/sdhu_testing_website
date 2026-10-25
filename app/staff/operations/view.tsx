@@ -79,6 +79,7 @@ function Operations() {
         value={view}
         onChange={(v) => router.replace(v === "tickets" ? BASE : `${BASE}?view=${v}`, { scroll: false })}
         label="الأقسام"
+        tabs
         items={[
           { value: "tickets" as const, label: "البلاغات", count: active, tone: "maroon" as const },
           { value: "tasks" as const, label: "المهام الداخلية", count: tasks.filter((t) => t.column !== "verified").length },

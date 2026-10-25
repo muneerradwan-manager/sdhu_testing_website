@@ -54,7 +54,7 @@ export function CadreTab() {
           ...(may("admins.cadre-events.GET") ? [{ key: "events" as const, label: "أحداث الكادر", count: events.length }] : []),
           ...(may("admins.telegram.GET") ? [{ key: "telegram" as const, label: "رسائل تيليجرام", count: sent.length }] : []),
         ]}
-      />
+       tabs />
       {view === "roster" && <Roster />}
       {view === "events" && (may("admins.cadre-events.GET") ? <Events /> : <Locked perm="admins.cadre-events.GET" />)}
       {view === "telegram" && (may("admins.telegram.GET") ? <TelegramLog /> : <Locked perm="admins.telegram.GET" />)}
@@ -267,7 +267,9 @@ function Roster() {
 
   return (
     <div className="space-y-4">
-      <Title action={may("admins.cadre.POST") && <AddButton onClick={() => setAdding(true)}>إضافة فرد إلى الكادر</AddButton>}>الكادر الإداري</Title>
+      <Title action={may("admins.cadre.POST") && <AddButton onClick={() => setAdding(true)}>إضافة فرد إلى الكادر</AddButton>}>
+        الكادر
+      </Title>
       <Lead>كل فرد مرة واحدة عبر المواسم. افتح أي فرد لتعديل بياناته وصفته وفئته وفروعه، أو لإيقاف حسابه.</Lead>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -729,7 +731,9 @@ function Events() {
     ]);
   return (
     <div className="space-y-4">
-      <Title action={may("admins.cadre-events.POST") && <AddButton onClick={() => setAdding(true)}>إضافة حدث</AddButton>}>أحداث الكادر</Title>
+      <Title action={may("admins.cadre-events.POST") && <AddButton onClick={() => setAdding(true)}>إضافة حدث</AddButton>}>
+        أحداث الكادر
+      </Title>
       <Lead>ملف كل فرد عبر المواسم: انضمامه إلى تكتل، والتعديلات التي مسّته، وما تكتبه الإدارة بيدها.</Lead>
       <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_auto]">
         <SearchBox value={q} onChange={setQ} placeholder="الفرد، التغيير، التوضيح، من سجّله" label="بحث في الأحداث" />
@@ -931,7 +935,7 @@ function TelegramLog() {
   const sent = useStore((s) => s.cadre.telegram);
   return (
     <div className="space-y-4">
-      <Title>رسائل تيليجرام المرسلة</Title>
+      <Title>رسائل تيليجرام</Title>
       <Lead>من «الكادر»: صفِّ القائمة ثم «إرسال تيليجرام»، أو أرسل رمز الدخول لفرد من ملفه.</Lead>
       <ListTable head={["الرسالة", "أرسلها", "الوقت", "وصلت إلى"]}>
         {sent.length === 0 && <EmptyRow cols={4}>لم تُرسل رسالة بعد.</EmptyRow>}

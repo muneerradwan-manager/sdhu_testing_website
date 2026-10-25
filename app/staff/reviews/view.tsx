@@ -62,6 +62,7 @@ function Reviews() {
         value={view}
         onChange={(v) => router.replace(v === "reviews" ? BASE : `${BASE}?view=${v}`, { scroll: false })}
         label="الأقسام"
+        tabs
         items={[
           { value: "reviews" as const, label: "طلبات تحتاج قراراً", count: pending, tone: "maroon" as const },
           { value: "civil" as const, label: "تصحيح البيانات المدنية", count: civil.filter((c) => c.claim.status === "pending").length, tone: "maroon" as const },

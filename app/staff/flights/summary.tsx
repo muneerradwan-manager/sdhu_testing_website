@@ -37,7 +37,7 @@ export function FlightsSummary({ embedded = false }: { embedded?: boolean } = {}
       {!embedded && (
         <>
         <PageHeader
-          eyebrow={`${SYSTEMS.flights.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          eyebrow={`${SYSTEMS.flights.label}${grant?.by ? ` — منحك عرض إحصائياته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
           title={SYSTEMS.flights.summary.label}
           icon={<Gauge />}
           description="أرقام رحلات الموسم الآن، وما ينتظرك. العمل نفسه من القائمة الجانبية."
@@ -53,14 +53,6 @@ export function FlightsSummary({ embedded = false }: { embedded?: boolean } = {}
           }
         />
 
-        <HowItWorks
-          steps={[
-            { title: "جهّز", text: "المطارات والناقلون، ومندوب لكل مطار يسجّل الإقلاع منه والهبوط فيه.", href: "/staff/flights/manage", link: "المطارات" },
-            { title: "أنشئ وانشر", text: "رحلة ذهاب وعودة معاً تُحفظ مسودة، ثم تُنشر من صفحتها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
-            { title: "أعطِ التكتلات أيامها", text: "لكل تكتل رحلاته ذهاباً وعودة ومقاعده عليها، فيضع منسقوه مجموعاتهم عليها. والموظفون ومن فقد مقعده من التفويج.", href: "/staff/flights/manage/allotments", link: "أيام التكتلات" },
-            { title: "أقفل وسافر", text: "إقفال الرحلة يصدر كشف ركابها، ثم يسجّل مندوب المطار إقلاعها وهبوطها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
-          ]}
-        />
         </>
       )}
 
@@ -176,6 +168,16 @@ export function FlightsSummary({ embedded = false }: { embedded?: boolean } = {}
       </Box>
 
       <Escalate system="flights" open={escalating} onClose={() => setEscalating(false)} example="مثال: ألغت الخطوط السعودية الرحلة SV 3427، ولا مقاعد بديلة لـ 290 مسافراً قبل 5 أيار." />
+      {!embedded && (
+          <HowItWorks
+            steps={[
+              { title: "جهّز", text: "المطارات والناقلون، ومندوب لكل مطار يسجّل الإقلاع منه والهبوط فيه.", href: "/staff/flights/manage", link: "المطارات" },
+              { title: "أنشئ وانشر", text: "رحلة ذهاب وعودة معاً تُحفظ مسودة، ثم تُنشر من صفحتها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
+              { title: "أعطِ التكتلات أيامها", text: "لكل تكتل رحلاته ذهاباً وعودة ومقاعده عليها، فيضع منسقوه مجموعاتهم عليها. والموظفون ومن فقد مقعده من التفويج.", href: "/staff/flights/manage/allotments", link: "أيام التكتلات" },
+              { title: "أقفل وسافر", text: "إقفال الرحلة يصدر كشف ركابها، ثم يسجّل مندوب المطار إقلاعها وهبوطها.", href: "/staff/flights/manage/flights", link: "الرحلات" },
+            ]}
+          />
+      )}
     </div>
   );
 }

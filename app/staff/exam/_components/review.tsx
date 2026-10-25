@@ -40,6 +40,7 @@ function ReviewViews({ start }: { start: View }) {
         value={view}
         onChange={setView}
         label="القائمة"
+        tabs
         items={[
           { value: "review", label: "تحتاج قراراً", count: desk.decisions.length, tone: "maroon" },
           { value: "attendance", label: "الحضور والغياب", count: held.length },

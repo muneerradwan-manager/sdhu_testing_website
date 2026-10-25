@@ -60,14 +60,15 @@ export const CATALOG: PermSystem[] = [
   {
     key: "staff",
     label: "إدارة الموظفين",
-    desc: "سجل موظفي البعثة الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم.",
+    desc: "سجل موظفي البعثة الدائمين والمنتدبين، وحساباتهم في البوابة، ومشاركتهم في الموسم، والقرارات والتعميمات التي تصدرها الإدارة إليهم.",
     href: "/staff/employees",
     resources: [
-      R("summary", "لوحة التحكم", G),
+      R("summary", "الإحصائيات والسجل", G),
       R("employees", "سجل الموظفين", ["GET", "POST", "PUT"], { special: [["suspend", "إيقاف موظف وإعادته"]] }),
       R("employees-pii", "الرقم الوطني والهواتف والبريد", ["GET", "PUT"], { sensitive: true }),
       R("season-participation", "المشاركون في الموسم", ["GET", "POST", "DELETE"]),
       R("accounts", "حسابات البوابة", ["GET", "POST", "PUT"], { special: [["reset-password", "إرسال كلمة مرور مؤقتة"]] }),
+      R("circulars", "القرارات والتعميمات", CRUD, { special: [["publish", "نشر قرار أو تعميم"]] }),
       R("records", "سجلات الإضافة والتعديل", G),
     ],
   },
@@ -77,7 +78,7 @@ export const CATALOG: PermSystem[] = [
     desc: "صفحات التقديم على الحج وأسئلتها، وخطوات ما بعد القبول، وشروط الأهلية، والدفعات، ونشر الإصدارات، ومتابعة الطلبات.",
     href: "/staff/hajj",
     resources: [
-      R("summary", "لوحة التحكم", G),
+      R("summary", "الإحصائيات والسجل", G),
       R("pages", "صفحات التقديم وأسئلتها", CRUD),
       R("general-texts", "النصوص العامة", ["GET", "PUT"]),
       R("post-steps", "الخطوات بعد القبول", CRUD),
@@ -135,7 +136,7 @@ export const CATALOG: PermSystem[] = [
     desc: "قواعد الإداريين وقوائمهم المرجعية ومراجعهم، والكادر، والمتقدمون، وتشكيل المجموعات والتكتلات، والمراسلات، والتقييم والتصنيف.",
     href: "/staff/admins",
     resources: [
-      R("summary", "لوحة التحكم", G),
+      R("summary", "الإحصائيات والسجل", G),
       R("records", "سجلات التعديل", G),
       R("role-permissions", "صلاحيات الصفات في البوابة الإدارية", ["GET", "PUT"], { special: [["reset", "إرجاعها إلى الأصل"]] }),
       R("commitments", "الالتزامات", ["GET", "PUT"]),
@@ -188,7 +189,7 @@ export const CATALOG: PermSystem[] = [
     desc: "القاعات والمحافظات، والاختبارات وأقسامها، وبنك الأسئلة، والمتقدمون، والجلسات، والمراجعة والنتائج، والشفهي، والإحصائيات.",
     href: "/staff/exam",
     resources: [
-      R("summary", "لوحة التحكم", G),
+      R("summary", "الإحصائيات والسجل", G),
       R("records", "سجلات التعديل", G),
       R("centers", "القاعات والمحافظات", ["GET", "POST", "PUT"], { special: [["disable", "تعطيل قاعة وتفعيلها"]] }),
       R("exams", "الاختبارات", CRUD, { special: [["publish", "نشر الاختبار"], ["archive", "أرشفة الاختبار"], ["reset", "إعادة الاختبارات والبنك إلى الأصل"]] }),
@@ -226,7 +227,7 @@ export const CATALOG: PermSystem[] = [
     desc: "المطارات والناقلون، والرحلات ذهاباً وعودة، وركابها وكشوفها، وأيام التكتلات، والتفويج.",
     href: "/staff/flights",
     resources: [
-      R("summary", "لوحة التحكم", G),
+      R("summary", "الإحصائيات والسجل", G),
       R("records", "سجلات التعديل", G),
       R("airports", "المطارات", ["GET", "POST", "PUT"], { special: [["archive", "أرشفة واستعادة"]] }),
       R("carriers", "الناقلون الجويون", ["GET", "POST", "PUT"], { special: [["archive", "أرشفة واستعادة"]] }),

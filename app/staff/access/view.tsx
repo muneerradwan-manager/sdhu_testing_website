@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, Copy, KeyRound, Save, ShieldAlert, Undo2 } from "lucide-react";
+import { Copy, KeyRound, Save, ShieldAlert, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal, useToast } from "@/components/ui/widgets";
@@ -14,11 +14,12 @@ import { SYSTEM_KEYS, systemActions, useStaffAccounts, type SystemKey } from "@/
 import { cn, nowMs } from "@/lib/utils";
 import { useAdminsStatus } from "../admins/desk";
 import { useEmployeesStatus } from "../employees/desk";
-import { Chip, Pick, Segments, selectClass } from "../exam/_components/ui";
+import { Pick, Segments, selectClass } from "../exam/_components/ui";
 import { useRegistrationStatus } from "../hajj/desk";
 import { SearchBox } from "../_components/ops-ui";
-import { can, fmtDate, Gate, logAs, PageHeader, useGrantSummary, useScopeNames, useScopeOptions, useStaffUser } from "../_components/kit";
-import { EditHeader, EditLayout, EmptyRow, ListTable, RowActions, RowLink, Tag } from "../_components/wp";
+import { can, fmtDate, Gate, logAs, PageHeader, useScopeNames, useScopeOptions, useStaffUser } from "../_components/kit";
+import { Box, EditHeader, EmptyRow, ListTable, RowActions, RowLink, Tag, Title } from "../_components/wp";
+import { Filters, Help, Lead } from "../admins/_components/ui";
 import { BASE, FileOverview, useExamStatus, useFlightsStatus, type Status } from "./overview";
 
 /**
@@ -65,7 +66,7 @@ function Access() {
         icon={<KeyRound />}
         description="لا يُسند موظف إلى نظام: تُمنح له على كل نظام الصلاحيات التي يحتاجها وحدها — عرض، إضافة، تعديل، حذف، وأفعال بأسمائها كالاعتماد والنشر — وبعضها لقاعة أو مطار أو عملية بعينها. والعرض نفسه صلاحية: لا يظهر نظام في قائمة موظف لا يملك فيه عرض شيء."
       />
-      {views.length > 1 && <Segments value={shown!} onChange={setView} items={views} label="عرض الصفحة" />}
+      {views.length > 1 && <Segments value={shown!} onChange={setView} items={views} label="عرض الصفحة" tabs />}
       {shown === "people" && <People />}
       {shown === "systems" && <Systems />}
       {shown === "files" && <Files />}
@@ -82,36 +83,37 @@ function People() {
   const rows = accounts.filter((a) => !q.trim() || `${a.name} ${a.title} ${a.username}`.includes(q.trim()));
   return (
     <div className="space-y-4">
+      <Title>الموظفون وصلاحياتهم</Title>
+      <Lead>كل موظف بالأنظمة التي يملك فيها شيئاً. افتح الموظف لتمنحه صلاحياته أو تسحبها، ثم احفظ.</Lead>
       <SearchBox value={q} onChange={setQ} placeholder="ابحث باسم الموظف أو صفته" label="بحث في الموظفين" className="max-w-md" />
-      <ListTable head={["الموظف", "صلاحياته نظاماً نظاماً", "العدد", "آخر منح"]} minWidth="48rem">
+      <ListTable head={["الموظف", "الأنظمة", "الصلاحيات", "آخر منح"]} minWidth="44rem">
         {rows.length === 0 && <EmptyRow cols={4}>لا موظف بهذا الاسم.</EmptyRow>}
         {rows.map((a) => {
           const last = a.grants.reduce<PermGrant | null>((m, g) => (g.at && (!m?.at || g.at > m.at) ? g : m), null);
+          const lines = grantLines(a, nameOf);
           return (
             <tr key={a.id} className="align-top">
               <td className="p-3">
-                <p className="flex items-center gap-2 font-bold text-white">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-gold to-gold-dark font-display text-ink">{a.initials}</span>
-                  <Link href={`${BASE}?id=${a.id}`} className="hover:text-gold">
-                    {a.name}
-                  </Link>
-                </p>
+                <Link href={`${BASE}?id=${a.id}`} className="font-bold text-white hover:text-gold">
+                  {a.name}
+                </Link>
                 <p className="mt-0.5 text-xs text-white/60">{a.title}</p>
                 <RowActions>
                   <RowLink href={`${BASE}?id=${a.id}`}>صلاحياته</RowLink>
                 </RowActions>
               </td>
-              <td className="p-3">
-                <span className="flex flex-wrap gap-1">
-                  {grantLines(a, nameOf).map((x) => (
-                    <Chip key={x} tone="muted">
-                      {x}
-                    </Chip>
-                  ))}
-                  {!a.grants.length && <span className="text-xs text-white/50">بلا صلاحية: يرى «ملفاتي التشغيلية» وحدها</span>}
-                </span>
+              <td className="max-w-md p-3 text-xs leading-6 text-white/80">
+                {!lines.length ? (
+                  <span className="text-white/50">بلا صلاحية: يرى «ملفاتي التشغيلية» وحدها</span>
+                ) : lines.length === CATALOG.length && lines.every((l) => l.endsWith("كاملة")) ? (
+                  "كل الأنظمة — كاملة"
+                ) : lines.length > 4 ? (
+                  `${lines.slice(0, 3).join("، ")}، و${lines.length - 3} أنظمة أخرى`
+                ) : (
+                  lines.join("، ")
+                )}
               </td>
-              <td className="p-3 font-display text-lg font-bold tabular-nums text-white">{a.grants.length}</td>
+              <td className="p-3 font-bold tabular-nums text-white">{a.grants.length}</td>
               <td className="p-3 text-xs text-white/65">{last?.at ? `${fmtDate(last.at)}${last.by ? ` — ${last.by}` : ""}` : "—"}</td>
             </tr>
           );
@@ -137,7 +139,10 @@ function grantLines(a: StaffUser, nameOf: (kind: ScopeKind, id: string) => strin
 function Systems() {
   const accounts = useStaffAccounts();
   return (
-    <ListTable head={["النظام", "صلاحياته", "من يملك فيه شيئاً"]} minWidth="44rem">
+    <div className="space-y-4">
+      <Title>من يملك ماذا</Title>
+      <Lead>كل نظام بعدد صلاحياته ومن يملك فيه شيئاً. افتح النظام لترى كل صلاحية فيه ومن يملكها.</Lead>
+      <ListTable head={["النظام", "صلاحياته", "من يملك فيه شيئاً"]} minWidth="44rem">
       {CATALOG.map((s) => {
         const keys = systemKeys(s.key);
         const holders = accounts.filter((a) => a.grants.some((g) => g.key.startsWith(`${s.key}.`)));
@@ -157,7 +162,8 @@ function Systems() {
           </tr>
         );
       })}
-    </ListTable>
+      </ListTable>
+    </div>
   );
 }
 
@@ -216,6 +222,10 @@ function Files() {
   const status: Record<SystemKey, Status> = { staff: useEmployeesStatus(), registration: useRegistrationStatus(), admins: useAdminsStatus(), exams: useExamStatus(), flights: useFlightsStatus() };
   return (
     <div className="space-y-6">
+      <div>
+        <Title>ملفات الإدارة</Title>
+        <Lead>كيف يقف كل ملف من ملفات الإدارة الخمسة، وما رفعه أصحابها إليك.</Lead>
+      </div>
       {SYSTEM_KEYS.map((k) => (
         <FileOverview key={k} system={k} since={since[k] ?? 0} status={status[k]} />
       ))}
@@ -284,16 +294,13 @@ function EmployeeScreen({ account }: { account: StaffUser }) {
   const toast = useToast();
   const accounts = useStaffAccounts();
   const options = useScopeOptions();
-  const nameOf = useScopeNames();
-  const summary = useGrantSummary(account);
   const editable = can(user, "access.permissions.PUT");
   const canCopy = editable && can(user, "access.permissions.copy");
   const [draft, setDraft] = useState<Draft>(() => draftOf(account.grants));
   const [q, setQ] = useState("");
-  const [onlyHeld, setOnlyHeld] = useState(false);
+  const [onlyHeld, setOnlyHeld] = useState(true);
   const [from, setFrom] = useState("");
   const [reviewing, setReviewing] = useState(false);
-  const [open, setOpen] = useState<Set<string>>(() => new Set(CATALOG.filter((s) => account.grants.some((g) => g.key.startsWith(`${s.key}.`))).map((s) => s.key)));
 
   const next = useMemo(() => grantsOf(draft, account.grants, user.name, 0), [draft, account.grants, user.name]);
   const diff = useMemo(() => diffOf(account.grants, next), [account.grants, next]);
@@ -328,7 +335,7 @@ function EmployeeScreen({ account }: { account: StaffUser }) {
     const src = accounts.find((a) => a.id === from);
     if (!src) return;
     setDraft(draftOf(src.grants));
-    setOpen(new Set(CATALOG.filter((s) => src.grants.some((g) => g.key.startsWith(`${s.key}.`))).map((s) => s.key)));
+    setOnlyHeld(true);
     toast({ title: `نُسخت صلاحيات ${src.name}`, body: `${src.grants.length} صلاحية في المسودة. راجعها ثم احفظ: لا يُحفظ شيء قبل التأكيد.`, tone: "info", icon: "📋" });
   };
 
@@ -360,95 +367,78 @@ function EmployeeScreen({ account }: { account: StaffUser }) {
   };
 
   const needle = q.trim();
-  const systems = CATALOG.filter((s) => (!onlyHeld || systemKeys(s.key).some((k) => draft.keys.has(k))) && (!needle || s.label.includes(needle) || s.resources.some((r) => r.label.includes(needle))));
+  const heldSystems = CATALOG.filter((s) => systemKeys(s.key).some((k) => draft.keys.has(k)));
+  const scope = onlyHeld && heldSystems.length ? "held" : "all";
+  const systems = CATALOG.filter((s) => (scope === "all" || systemKeys(s.key).some((k) => draft.keys.has(k))) && (!needle || s.label.includes(needle) || s.resources.some((r) => r.label.includes(needle))));
 
   return (
-    <div>
+    <div className="space-y-4">
       <EditHeader back={BASE} backLabel="صلاحيات الموظفين" title={`صلاحيات ${account.name}`}>
-        {account.title}. {editable ? "اختر لكل مورد ما يُسمح له به، ثم احفظ: تُعرض الفروق قبل الحفظ، ويُسجَّل كل منح وسحب في سجل الأحداث." : "للاطلاع: تعديل الصلاحيات يحتاج صلاحية «تعديل — صلاحيات الموظفين»."}
+        {account.title} — {draft.keys.size} صلاحية{dirty && <span className="text-gold"> (لم تُحفظ)</span>}
       </EditHeader>
-      <EditLayout
-        main={
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchBox value={q} onChange={setQ} placeholder="ابحث عن نظام أو مورد" label="بحث في الأنظمة" className="min-w-56 flex-1" />
-              <Pick on={onlyHeld} onClick={() => setOnlyHeld((v) => !v)}>
-                ما يملكه فقط
-              </Pick>
-            </div>
-            {systems.map((s) => (
-              <SystemCard
-                key={s.key}
-                sys={s}
-                draft={draft}
-                editable={editable}
-                open={open.has(s.key) || !!needle}
-                onOpen={() => setOpen((o) => (o.has(s.key) ? new Set([...o].filter((k) => k !== s.key)) : new Set([...o, s.key])))}
-                toggle={toggle}
-                set={set}
-                setScope={setScope}
-                options={options}
-              />
-            ))}
-            {systems.length === 0 && <p className="rounded-2xl bg-white/[.06] p-6 text-center text-sm text-white/60 ring-1 ring-white/10">لا نظام يطابق البحث.</p>}
-          </div>
-        }
-        side={
-          <>
-            <div className="space-y-3 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-              <p className="text-sm font-bold text-white">
-                {draft.keys.size} صلاحية{dirty && <span className="text-gold"> — لم تُحفظ</span>}
-              </p>
-              <ul className="space-y-1 text-xs text-white/75">
-                {(dirty ? grantLines({ ...account, grants: next }, nameOf) : summary).map((x) => (
-                  <li key={x}>{x}</li>
+      <Lead>{editable ? "فعّل لكل مورد ما يُسمح له به أو أوقفه، ثم احفظ: تُعرض الفروق قبل الحفظ، ويُسجَّل كل منح وسحب في سجل الأحداث." : "للاطلاع: تعديل الصلاحيات يحتاج صلاحية «تعديل — صلاحيات الموظفين»."}</Lead>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Filters
+          label="الأنظمة المعروضة"
+          value={scope}
+          onChange={(v) => setOnlyHeld(v === "held")}
+          items={[
+            { key: "held" as const, label: "ما يملكه", count: heldSystems.length },
+            { key: "all" as const, label: "كل الأنظمة", count: CATALOG.length },
+          ]}
+        />
+        <SearchBox value={q} onChange={setQ} placeholder="ابحث عن نظام أو مورد" label="بحث في الأنظمة" className="md:w-80" />
+      </div>
+      {systems.map((s) => (
+        <SystemTable key={s.key} sys={s} draft={draft} editable={editable} toggle={toggle} set={set} setScope={setScope} options={options} />
+      ))}
+      {systems.length === 0 && <p className="rounded-2xl bg-white/[.06] p-6 text-center text-sm text-white/60 ring-1 ring-white/10">لا نظام يطابق البحث.</p>}
+
+      {editable && (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="gold" disabled={!dirty || selfLock} onClick={() => setReviewing(true)}>
+            <Save className="size-4" /> حفظ الصلاحيات
+          </Button>
+          {dirty && (
+            <Button variant="glass" onClick={() => setDraft(draftOf(account.grants))}>
+              <Undo2 className="size-4" /> التراجع
+            </Button>
+          )}
+          <span className="text-xs text-white/60">{dirty ? "لديك تعديلات لم تُحفظ." : "لا تعديلات."}</span>
+        </div>
+      )}
+      {selfLock && (
+        <p className="flex items-start gap-1.5 rounded-xl bg-maroon/30 p-2 text-xs leading-5 text-white ring-1 ring-maroon/50">
+          <ShieldAlert className="mt-0.5 size-3.5 shrink-0" /> لا تسحب من نفسك «تعديل — صلاحيات الموظفين»: لن يبقى من يعيدها. يسحبها منك غيرك ممن يملكها.
+        </p>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Help>
+          <p>كل فعل على مورد يحتاج عرضه، فيُمنح العرض معه. وسحب العرض يسحب ما عداه من المورد نفسه.</p>
+          <p>«حساس»: بيانات شخصية أو سرية، تُمنح وحدها لمن يحتاجها.</p>
+          <p>لا يظهر نظام في قائمة الموظف الجانبية إلا إن ملك فيه عرض شيء.</p>
+        </Help>
+        {canCopy && (
+          <Box title="خيارات متقدمة" open={false}>
+            <p className="font-bold text-white">نسخ صلاحيات موظف آخر</p>
+            <select value={from} onChange={(e) => setFrom(e.target.value)} className={selectClass} aria-label="الموظف الذي تُنسخ صلاحياته">
+              <option value="">— اختر موظفاً —</option>
+              {accounts
+                .filter((a) => a.id !== account.id)
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} — {a.grants.length} صلاحية
+                  </option>
                 ))}
-                {draft.keys.size === 0 && <li className="text-white/50">بلا صلاحية: يرى «ملفاتي التشغيلية» وحدها.</li>}
-              </ul>
-              {editable && (
-                <>
-                  {selfLock && (
-                    <p className="flex items-start gap-1.5 rounded-xl bg-maroon/30 p-2 text-xs leading-5 text-white ring-1 ring-maroon/50">
-                      <ShieldAlert className="mt-0.5 size-3.5 shrink-0" /> لا تسحب من نفسك «تعديل — صلاحيات الموظفين»: لن يبقى من يعيدها. يسحبها منك غيرك ممن يملكها.
-                    </p>
-                  )}
-                  <Button variant="gold" className="w-full" disabled={!dirty || selfLock} onClick={() => setReviewing(true)}>
-                    <Save className="size-4" /> مراجعة التغييرات وحفظها
-                  </Button>
-                  {dirty && (
-                    <Button variant="glass" className="w-full" onClick={() => setDraft(draftOf(account.grants))}>
-                      <Undo2 className="size-4" /> التراجع عن التعديلات
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-            {canCopy && (
-              <div className="space-y-2 rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-                <p className="text-sm font-bold text-white">نسخ من موظف آخر</p>
-                <select value={from} onChange={(e) => setFrom(e.target.value)} className={selectClass} aria-label="الموظف الذي تُنسخ صلاحياته">
-                  <option value="">— اختر موظفاً —</option>
-                  {accounts
-                    .filter((a) => a.id !== account.id)
-                    .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} — {a.grants.length} صلاحية
-                      </option>
-                    ))}
-                </select>
-                <Button variant="glass" className="w-full" disabled={!from} onClick={copyFrom}>
-                  <Copy className="size-4" /> نسخ صلاحياته
-                </Button>
-                <p className="text-xs leading-5 text-white/55">تحل محل ما في المسودة مرة واحدة، ولا يُحفظ دور مشترك: يبقى لكل موظف صلاحياته وحده.</p>
-              </div>
-            )}
-            <div className="rounded-2xl bg-white/[.04] p-4 text-xs leading-6 text-white/60 ring-1 ring-white/10">
-              <p>كل فعل على مورد يحتاج عرضه، فيُمنح العرض معه. وسحب العرض يسحب ما عداه من المورد نفسه.</p>
-              <p className="mt-1">«حساس»: بيانات شخصية أو سرية، تُمنح وحدها لمن يحتاجها.</p>
-            </div>
-          </>
-        }
-      />
+            </select>
+            <Button size="sm" variant="glass" disabled={!from} onClick={copyFrom}>
+              <Copy className="size-4" /> نسخ صلاحياته
+            </Button>
+            <p className="text-xs leading-5 text-white/55">تحل محل ما في المسودة مرة واحدة، ولا يُحفظ دور مشترك: يبقى لكل موظف صلاحياته وحده.</p>
+          </Box>
+        )}
+      </div>
 
       <Modal open={reviewing} onClose={() => setReviewing(false)} className="max-w-2xl border border-gold/30 bg-linear-to-b from-[#004a42] to-[#00352f] text-white">
         <p className="text-xs font-bold text-gold">قبل الحفظ</p>
@@ -492,121 +482,114 @@ function EmployeeScreen({ account }: { account: StaffUser }) {
   );
 }
 
-type CardProps = {
+type TableProps = {
   sys: PermSystem;
   draft: Draft;
   editable: boolean;
-  open: boolean;
-  onOpen: () => void;
   toggle: (key: string) => void;
   set: (keys: string[], on: boolean) => void;
   setScope: (group: string, v: "all" | string[]) => void;
   options: Record<ScopeKind, { id: string; label: string }[]>;
 };
 
-/** One system: its resources as rows, the four verbs and the named acts as columns */
-function SystemCard({ sys, draft, editable, open, onOpen, toggle, set, setScope, options }: CardProps) {
+/** On or off, the way «صلاحيات الصفات» shows it */
+function Toggle({ on, onClick, disabled, label }: { on: boolean; onClick: () => void; disabled?: boolean; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn("inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition disabled:cursor-not-allowed disabled:opacity-60", on ? "justify-end bg-gold" : "justify-start bg-white/15")}
+    >
+      <span className={cn("size-5 rounded-full", on ? "bg-green-dark" : "bg-white/60")} />
+    </button>
+  );
+}
+
+/** One system: its title with how much of it he holds, then its resources as rows and the verbs as switches */
+function SystemTable({ sys, draft, editable, toggle, set, setScope, options }: TableProps) {
   const all = systemKeys(sys.key);
   const held = all.filter((k) => draft.keys.has(k)).length;
   const gets = viewKeys(sys.key);
+  const quick = [
+    { label: "كل العرض", on: gets.every((k) => draft.keys.has(k)), run: () => set(gets, !gets.every((k) => draft.keys.has(k))) },
+    { label: "النظام كله", on: held === all.length, run: () => set(all, held !== all.length) },
+    ...(held > 0 ? [{ label: "لا شيء", on: false, run: () => set(all, false) }] : []),
+  ];
   return (
-    <section className={cn("overflow-hidden rounded-2xl ring-1", held ? "bg-white/[.07] ring-gold/30" : "bg-white/[.04] ring-white/10")}>
-      <button type="button" onClick={onOpen} aria-expanded={open} className="flex w-full items-center justify-between gap-3 p-4 text-start">
-        <span className="min-w-0">
-          <span className="block font-bold text-white">{sys.label}</span>
-          <span className="block text-xs text-white/55">{sys.desc}</span>
-        </span>
-        <span className="flex shrink-0 items-center gap-2">
-          <Chip tone={held === all.length ? "gold" : held ? "green" : "muted"}>
-            {held} من {all.length}
-          </Chip>
-          <ChevronDown className={cn("size-4 text-white/60 transition", open && "rotate-180")} />
-        </span>
-      </button>
-      {open && (
-        <div className="space-y-3 border-t border-white/10 p-4">
-          {editable && (
-            <div className="flex flex-wrap gap-1.5">
-              <Pick on={gets.every((k) => draft.keys.has(k))} onClick={() => set(gets, !gets.every((k) => draft.keys.has(k)))}>
-                كل العرض
-              </Pick>
-              <Pick on={held === all.length} onClick={() => set(all, held !== all.length)}>
-                النظام كله
-              </Pick>
-              {held > 0 && (
-                <Pick on={false} onClick={() => set(all, false)}>
-                  لا شيء
-                </Pick>
-              )}
-            </div>
-          )}
-          {sys.scope && <ScopeRow group={sys.key} kind={sys.scope} draft={draft} editable={editable} setScope={setScope} options={options} />}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-sm">
-              <thead>
-                <tr className="text-xs text-white/55">
-                  <th className="p-2 text-start font-semibold">المورد</th>
-                  {VERBS.map((v) => (
-                    <th key={v} className="w-16 p-2 text-center font-semibold">
-                      {VERB_LABEL[v]}
-                    </th>
-                  ))}
-                  <th className="p-2 text-start font-semibold">أفعال خاصة</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {sys.resources.map((r) => (
-                  <ResourceRow key={r.key} sys={sys} r={r} draft={draft} editable={editable} toggle={toggle} setScope={setScope} options={options} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+    <section className="space-y-2 pt-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-xl font-bold text-white">
+          {sys.label} <span className="text-sm font-normal text-white/55">— {held} من {all.length}</span>
+        </h2>
+        {editable && (
+          <span className="flex items-center gap-1 text-sm">
+            {quick.map((x, i) => (
+              <span key={x.label} className="flex items-center gap-1">
+                {i > 0 && <span className="text-white/25">|</span>}
+                <button type="button" onClick={x.run} className={cn("rounded-md px-1 font-bold", x.on ? "text-white" : "text-gold hover:underline")}>
+                  {x.label}
+                </button>
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
+      <p className="text-xs leading-5 text-white/55">{sys.desc}</p>
+      {sys.scope && <ScopeRow group={sys.key} kind={sys.scope} draft={draft} editable={editable} setScope={setScope} options={options} />}
+      <ListTable
+        head={[
+          "المورد",
+          ...VERBS.map((v) => (
+            <span key={v} className="block text-center">
+              {VERB_LABEL[v]}
+            </span>
+          )),
+          "أفعال خاصة",
+        ]}
+        minWidth="44rem"
+      >
+        {sys.resources.map((r) => (
+          <ResourceRow key={r.key} sys={sys} r={r} draft={draft} editable={editable} toggle={toggle} setScope={setScope} options={options} />
+        ))}
+      </ListTable>
     </section>
   );
 }
 
-function ResourceRow({ sys, r, draft, editable, toggle, setScope, options }: Pick<CardProps, "sys" | "draft" | "editable" | "toggle" | "setScope" | "options"> & { r: ResourceDef }) {
+function ResourceRow({ sys, r, draft, editable, toggle, setScope, options }: Pick<TableProps, "sys" | "draft" | "editable" | "toggle" | "setScope" | "options"> & { r: ResourceDef }) {
   const key = (v: string) => `${sys.key}.${r.key}.${v}`;
   return (
     <>
-      <tr className="align-top">
-        <td className="p-2">
-          <p className="font-semibold text-white">
+      <tr>
+        <td className="p-3 align-top">
+          <p className="font-bold text-white">
             {r.label} {r.sensitive && <Tag tone="maroon">حساس</Tag>}
           </p>
-          {r.note && <p className="text-[11px] text-gold">{r.note}</p>}
+          {r.note && <p className="text-xs text-white/55">{r.note}</p>}
         </td>
         {VERBS.map((v) => (
-          <td key={v} className="p-2 text-center">
-            {r.verbs.includes(v) ? (
-              <input
-                type="checkbox"
-                className="size-4 accent-gold disabled:opacity-60"
-                checked={draft.keys.has(key(v))}
-                disabled={!editable}
-                onChange={() => toggle(key(v))}
-                aria-label={`${VERB_LABEL[v]} — ${r.label}`}
-              />
-            ) : (
-              <span className="text-white/20">—</span>
-            )}
+          <td key={v} className="p-3 text-center align-top">
+            {r.verbs.includes(v) ? <Toggle on={draft.keys.has(key(v))} disabled={!editable} onClick={() => toggle(key(v))} label={`${VERB_LABEL[v]} — ${r.label}`} /> : <span className="text-white/20">—</span>}
           </td>
         ))}
-        <td className="p-2">
-          <span className="flex flex-wrap gap-1">
+        <td className="p-3 align-top">
+          <span className="flex flex-col gap-2">
             {(r.special ?? []).map(([k, label]) => (
-              <Pick key={k} on={draft.keys.has(key(k))} disabled={!editable} onClick={() => toggle(key(k))}>
+              <span key={k} className="flex items-center gap-2 text-xs text-white/80">
+                <Toggle on={draft.keys.has(key(k))} disabled={!editable} onClick={() => toggle(key(k))} label={`${label} — ${r.label}`} />
                 {label}
-              </Pick>
+              </span>
             ))}
           </span>
         </td>
       </tr>
       {r.scope && (
         <tr>
-          <td colSpan={6} className="px-2 pb-3">
+          <td colSpan={6} className="px-3 pb-3">
             <ScopeRow group={`${sys.key}.${r.key}`} kind={r.scope} draft={draft} editable={editable} setScope={setScope} options={options} />
           </td>
         </tr>
@@ -616,7 +599,7 @@ function ResourceRow({ sys, r, draft, editable, toggle, setScope, options }: Pic
 }
 
 /** For which halls, airports, operations… the permissions of a group are granted */
-function ScopeRow({ group, kind, draft, editable, setScope, options }: { group: string; kind: ScopeKind } & Pick<CardProps, "draft" | "editable" | "setScope" | "options">) {
+function ScopeRow({ group, kind, draft, editable, setScope, options }: { group: string; kind: ScopeKind } & Pick<TableProps, "draft" | "editable" | "setScope" | "options">) {
   const list = options[kind];
   const v = draft.scopes[group] ?? "all";
   if (!list.length)

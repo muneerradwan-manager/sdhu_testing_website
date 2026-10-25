@@ -39,7 +39,7 @@ export function DirectoryTab() {
           { key: "clusters", label: "التكتلات", count: formed.length },
           { key: "groups", label: "المجموعات", count: groups.length },
         ]}
-      />
+       tabs />
       {view === "clusters" ? <Clusters formed={formed} /> : <Groups rows={groups} />}
       <div className="grid gap-4 lg:grid-cols-2">
         <Season formed={formed} />
@@ -218,7 +218,9 @@ function Groups({ rows }: { rows: { r: ClusterRequest; g: ClusterRequest["groups
     ]);
   return (
     <div className="space-y-4">
-      <Title action={<Tool onClick={exportAll} perm="admins.directory.export"><Download /> Excel</Tool>}>المجموعات</Title>
+      <Title action={<Tool onClick={exportAll} perm="admins.directory.export"><Download /> Excel</Tool>}>
+        المجموعات
+      </Title>
       <Lead>كل مجموعة في تكتل معتمد، بموسمها وفئة رئيسها وحجاجها.</Lead>
       <div className="grid gap-2 md:grid-cols-[2fr_1fr_1fr_1fr]">
         <SearchBox value={q} onChange={setQ} placeholder="المجموعة، رئيسها، تكتلها" label="بحث في المجموعات" />

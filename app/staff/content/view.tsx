@@ -120,6 +120,7 @@ function Inner() {
             value={tab}
             onChange={(v) => router.replace(v === "pages" ? BASE : `${BASE}?tab=${v}`, { scroll: false })}
             label="أقسام المحتوى"
+        tabs
             items={[
               { value: "pages" as const, label: "الصفحات والمجموعات", count: CMS_PAGES.length + CMS_COLLECTIONS.length },
               { value: "media" as const, label: "مكتبة الوسائط", count: stats.media },

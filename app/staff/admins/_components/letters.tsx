@@ -11,8 +11,8 @@ import { cn, nowMs } from "@/lib/utils";
 import { LETTER_KINDS, LETTER_STATE, lastAt, letterState, putLetter, useLetters, type LetterState } from "@/app/administrator/_lib/letters";
 import { Drawer, fmtDateTime, textareaClass, useCan, useStaffUser } from "../../_components/kit";
 import { Chip, FilterSelect, SearchBox } from "../../_components/ops-ui";
-import { EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
-import { Filters, Lead, Locked, TitleCell } from "./ui";
+import { EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag } from "../../_components/wp";
+import { Filters, Locked, TitleCell } from "./ui";
 import { logAdmins } from "../desk";
 
 /**
@@ -40,8 +40,6 @@ export function LettersTab() {
   };
   return (
     <div className="space-y-4">
-      <Title>المراسلات</Title>
-      <Lead>يكتبها الإداري من «المراسلات» في حسابه. افتح المراسلة تُعَدّ مقروءة، وردّ في سياقها، وأغلقها حين تنتهي.</Lead>
       <Filters
         label="حال المراسلات"
         value={state}

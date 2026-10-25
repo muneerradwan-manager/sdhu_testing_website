@@ -325,12 +325,12 @@ export function Gate({ perms, children }: { perms: string[]; children: ReactNode
   );
 }
 
+/** A page's sections as tabs over a line, the way the administrators' pages show theirs */
 export function Tabs<T extends string>({
   tabs,
   value,
   onChange,
   id,
-  dark = true,
 }: {
   tabs: { value: T; label: ReactNode; count?: number }[];
   value: T;
@@ -339,7 +339,7 @@ export function Tabs<T extends string>({
   dark?: boolean;
 }) {
   return (
-    <div role="tablist" className={cn("scrollbar-none flex max-w-full gap-1 overflow-x-auto rounded-2xl p-1", dark ? "bg-white/10" : "bg-sand ring-1 ring-gold/30")}>
+    <div role="tablist" id={`tabs-${id}`} className="scrollbar-none -mx-1 flex max-w-full gap-1 overflow-x-auto border-b border-white/15 px-1">
       {tabs.map((t) => {
         const active = t.value === value;
         return (
@@ -348,22 +348,10 @@ export function Tabs<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t.value)}
-            className={cn(
-              "relative flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition",
-              active ? (dark ? "on-light text-ink" : "text-white") : dark ? "text-white/85 hover:text-white" : "text-ink-soft hover:text-green-dark",
-            )}
+            className={cn("-mb-px flex shrink-0 items-center gap-1 rounded-t-xl border px-3.5 py-2 text-sm font-bold transition", active ? "border-white/15 border-b-transparent bg-white/[.08] text-white" : "border-transparent text-white/65 hover:text-gold")}
           >
-            {active && (
-              <motion.span
-                layoutId={`tab-${id}`}
-                className={cn("absolute inset-0 rounded-xl", dark ? "bg-gold" : "bg-green-dark")}
-                transition={{ type: "spring", damping: 30, stiffness: 380 }}
-              />
-            )}
-            <span className="relative">{t.label}</span>
-            {t.count !== undefined && (
-              <span className={cn("relative rounded-full px-1.5 text-[11px] tabular-nums", active ? "bg-white/25" : dark ? "bg-white/10" : "bg-white")}>{t.count}</span>
-            )}
+            {t.label}
+            {t.count !== undefined && <span className={cn("text-xs font-normal tabular-nums", active ? "text-white/70" : "text-white/50")}>({t.count})</span>}
           </button>
         );
       })}

@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { BarChart3, ClipboardList, Eye, FileCheck2, Hourglass, PencilLine, Rocket, UsersRound } from "lucide-react";
+import { BarChart3, ClipboardList, FileCheck2, Hourglass, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
@@ -9,6 +8,7 @@ import { useReg } from "@/lib/registration/client";
 import { pinnedVersion } from "@/lib/registration/engine";
 import { useSeason } from "@/lib/season-live";
 import { BarList, Kpi, PageHeader, Panel, useNow } from "../_components/kit";
+import { HowItWorks } from "../_components/wp";
 import { Escalate } from "../_components/system";
 import { useRegistrationDesk } from "./desk";
 
@@ -58,30 +58,8 @@ export function RegistrationSummary({ embedded = false }: { embedded?: boolean }
     <div className="space-y-6">
       {!embedded && (
         <>
-        <PageHeader eyebrow="إدارة التسجيل على الحج" title="لوحة التحكم" icon={<BarChart3 />} description="أرقام التسجيل على الحج في هذا الموسم. للتعديل استعمل القائمة الجانبية." />
+        <PageHeader eyebrow="إدارة التسجيل على الحج" title="الإحصائيات والسجل" icon={<BarChart3 />} description="أرقام التسجيل على الحج في هذا الموسم. للتعديل استعمل القائمة الجانبية." />
 
-        <Panel icon={<FileCheck2 />} title="كيف تعمل">
-          <ol className="grid gap-3 md:grid-cols-3">
-            {[
-              { n: "١", icon: <PencilLine />, t: "عدّل", d: "الصفحات والأسئلة والخطوات والدفعات. كل تعديل يُحفظ ولا يراه الحجاج بعد.", href: "/staff/hajj/manage", a: "صفحات التسجيل" },
-              { n: "٢", icon: <Eye />, t: "عاين", d: "شاهد التسجيل كما سيراه الحاج، صفحة بعد صفحة، دون أن يُحفظ شيء.", href: "/staff/hajj/manage/preview", a: "معاينة" },
-              { n: "٣", icon: <Rocket />, t: "انشر", d: "زر «نشر التغييرات» في أعلى كل صفحة. من بدأ طلبه قبل النشر يكمله كما بدأه.", href: "/staff/hajj/manage", a: "إلى الصفحات" },
-            ].map((s) => (
-              <li key={s.n} className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-white/10">
-                <p className="flex items-center gap-2 font-display text-lg font-bold text-white">
-                  <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">{s.n}</span> {s.t}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-white/70">{s.d}</p>
-                <Link href={s.href} className="mt-2 inline-block text-sm font-bold text-gold hover:underline">
-                  {s.a} ←
-                </Link>
-              </li>
-            ))}
-          </ol>
-          <button type="button" onClick={() => setRaise(true)} className="mt-3 text-xs font-bold text-white/60 hover:text-white hover:underline">
-            تحتاج شيئاً لا تستطيعه من هنا؟ ارفعه إلى مدير الموسم
-          </button>
-        </Panel>
         </>
       )}
 
@@ -100,6 +78,20 @@ export function RegistrationSummary({ embedded = false }: { embedded?: boolean }
       </div>
 
       <Escalate system="registration" open={raise} onClose={() => setRaise(false)} example="مثال: نحتاج مساراً ثالثاً للتسجيل (المنح)، وهو منطق قبول جديد لا تدعمه المنصة." />
+      {!embedded && (
+        <>
+          <HowItWorks
+            steps={[
+              { title: "عدّل", text: "الصفحات والأسئلة والخطوات والدفعات. كل تعديل يُحفظ ولا يراه الحجاج بعد.", href: "/staff/hajj/manage", link: "صفحات التسجيل" },
+              { title: "عاين", text: "شاهد التسجيل كما سيراه الحاج، صفحة بعد صفحة، دون أن يُحفظ شيء.", href: "/staff/hajj/manage/preview", link: "معاينة" },
+              { title: "انشر", text: "زر «نشر التغييرات» في أعلى كل صفحة. من بدأ طلبه قبل النشر يكمله كما بدأه.", href: "/staff/hajj/manage", link: "إلى الصفحات" },
+            ]}
+          />
+          <button type="button" onClick={() => setRaise(true)} className="text-xs font-bold text-white/60 hover:text-white hover:underline">
+            تحتاج شيئاً لا تستطيعه من هنا؟ ارفعه إلى مدير الموسم
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { OUTCOME_TEXT, classify, tierLabel, type Outcome, type Ranked, type Tier
 import { useSeason } from "@/lib/season-live";
 import { actions, useStore } from "@/lib/store";
 import { formatNumber } from "@/lib/utils";
-import { Drawer, fmtDateTime, stamp, useCan, useStaffUser } from "../../_components/kit";
+import { Drawer, fmtDateTime, stamp, Tabs, useCan, useStaffUser } from "../../_components/kit";
 import { SearchBox } from "../../_components/ops-ui";
 import { Box, EditLayout, EmptyRow, ListTable, RecordsBox, RowActions, RowLink, Tag, Title } from "../../_components/wp";
 import { Filters, Help, Lead, Locked, TitleCell } from "./ui";
@@ -89,21 +89,20 @@ export function GradingTab() {
       <EditLayout
         main={
           <div className="space-y-4">
+            <Tabs
+              id="grading-scope"
+              value={scope}
+              onChange={(v) => {
+                setScope(v);
+                setTierKey("all");
+              }}
+              tabs={SCOPES.map((s) => ({ value: s.key, label: s.label }))}
+            />
             <Title>ترتيب {meta.label}</Title>
             <Lead>
               داخل كل فئة على مستوى كل المكاتب: الأعلى {upPct}% تُرقّى فئةً، والأدنى {downPct}% تُخفَّض فئةً، ومن بينهما يبقى في فئته.
             </Lead>
             <div className="flex flex-wrap items-center gap-3">
-              <Filters
-                label="المجموعات أو التكتلات"
-                value={scope}
-                onChange={(v) => {
-                  setScope(v);
-                  setTierKey("all");
-                }}
-                items={SCOPES.map((s) => ({ key: s.key, label: s.label }))}
-              />
-              <span className="text-white/25">—</span>
               <Filters label="الفئة" value={tierKey} onChange={setTierKey} items={[{ key: "all", label: "كل الفئات", count: tiers.reduce((n, t) => n + t.total, 0) }, ...tiers.map((t) => ({ key: String(t.tier), label: t.label, count: t.total }))]} />
             </div>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

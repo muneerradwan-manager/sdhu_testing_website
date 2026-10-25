@@ -52,7 +52,7 @@ def start(storage=None, today="2026-10-11", time="09:00"):
 if ONLY in (None, "a"):
     s, c, p = start()
     c.goto("/staff/admins", wait=2200)
-    c.shot("adm-dash", "لوحة التحكم: «كيف تعمل» بخطواته الأربع، وعمليات الملف في القائمة الجانبية بترتيب الموسم", hl=[("aside a[href$='/staff/admins']", "1"), ("aside a[href$='/staff/admins/manage']", "2")], section=S_DASH)
+    c.shot("adm-dash", "الإحصائيات والسجل: «كيف تعمل» بخطواته الأربع، وعمليات الملف في القائمة الجانبية بترتيب الموسم", hl=[("aside a[href$='/staff/admins']", "1"), ("aside a[href$='/staff/admins/manage']", "2")], section=S_DASH)
     c.scroll_to("main :text-is('ما ينتظرك الآن')", 300)
     c.shot("adm-dash-todo", "أرقام الإداريين الأربعة، وما ينتظرك الآن: لكل بند زر يفتح مكان عمله", hl=[("main a:has-text('قرّر'), main button:has-text('قرّر')", "")], section=S_DASH)
     c.scroll_to("main h2:has-text('القواعد'), main :text-is('القواعد')", 110)

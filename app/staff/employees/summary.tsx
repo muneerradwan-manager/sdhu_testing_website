@@ -31,7 +31,7 @@ export function EmployeesSummary({ embedded = false }: { embedded?: boolean } = 
       {!embedded && (
         <>
         <PageHeader
-          eyebrow={`${SYSTEMS.staff.label}${grant?.by ? ` — منحك عرض لوحته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
+          eyebrow={`${SYSTEMS.staff.label}${grant?.by ? ` — منحك عرض إحصائياته ${grant.by}` : ""}${grant?.at ? ` في ${fmtDate(grant.at)}` : ""}`}
           title={SYSTEMS.staff.summary.label}
           icon={<Gauge />}
           description="أرقام موظفي البعثة الآن. للعمل استعمل القائمة الجانبية."
@@ -42,14 +42,6 @@ export function EmployeesSummary({ embedded = false }: { embedded?: boolean } = 
           }
         />
 
-        <HowItWorks
-          steps={[
-            { title: "السجل", text: "أضف الموظفين الدائمين والمنتدبين، وأكمل ما ينقص سجلاتهم.", href: "/staff/employees/manage", link: "سجل الموظفين" },
-            { title: "الحسابات", text: "اربط كل حساب في البوابة بسجل صاحبه، فإليه تصل كلمة المرور.", href: "/staff/employees/manage/accounts", link: "حسابات البوابة" },
-            { title: "الموسم", text: `سجّل في موسم ${CURRENT_SEASON} من سيسافر مع البعثة.`, href: "/staff/employees/manage/season", link: "المشاركون في الموسم" },
-            { title: "الإسناد", text: "يسند صاحب «الملفات التشغيلية» المشاركين إلى مواقعهم. تابع من بقي بلا موقع.", href: "/staff/employees/manage/season?f=free", link: "المتاحون للإسناد" },
-          ]}
-        />
         </>
       )}
 
@@ -130,6 +122,16 @@ export function EmployeesSummary({ embedded = false }: { embedded?: boolean } = 
       </Box>
 
       <Escalate system="staff" open={escalating} onClose={() => setEscalating(false)} example={`مثال: لم ترسل وزارة الصحة بعد أسماء الأطباء المنتدبين لموسم ${CURRENT_SEASON}، ومخيمات منى تنتظرهم.`} />
+      {!embedded && (
+          <HowItWorks
+            steps={[
+              { title: "السجل", text: "أضف الموظفين الدائمين والمنتدبين، وأكمل ما ينقص سجلاتهم.", href: "/staff/employees/manage", link: "سجل الموظفين" },
+              { title: "الحسابات", text: "اربط كل حساب في البوابة بسجل صاحبه، فإليه تصل كلمة المرور.", href: "/staff/employees/manage/accounts", link: "حسابات البوابة" },
+              { title: "الموسم", text: `سجّل في موسم ${CURRENT_SEASON} من سيسافر مع البعثة.`, href: "/staff/employees/manage/season", link: "المشاركون في الموسم" },
+              { title: "الإسناد", text: "يسند صاحب «الملفات التشغيلية» المشاركين إلى مواقعهم. تابع من بقي بلا موقع.", href: "/staff/employees/manage/season?f=free", link: "المتاحون للإسناد" },
+            ]}
+          />
+      )}
     </div>
   );
 }
