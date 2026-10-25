@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, EyeOff, MapPin, MessageSquareWarning, Star, UserRound, UserX, UsersRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, EyeOff, MapPin, MessageSquareWarning, Minus, Plus, Star, Trash2, UserRound, UserX, UsersRound } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { DemoJump } from "@/components/app/operation-closed";
 import { rangeLabel, useOperation } from "@/lib/operations";
-import { CURRENT_SEASON, useEmployees, useOpFiles, usePlaces } from "@/lib/ops";
+import { CURRENT_SEASON, newId, useEmployees, useOpFiles, usePlaces } from "@/lib/ops";
 import type { StaffUser } from "@/lib/staff";
 import { actions, useStore, type Evidence, type StageScores } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -206,8 +206,122 @@ function EvaluateOne({ who, onBack, editable }: { who: Evaluatee; onBack: () => 
           <CheckCircle2 className="size-4" /> حفظ التقييم
         </Button>
       )}
+      <Points who={who} editable={editable} />
       <Objection who={who} />
     </div>
+  );
+}
+
+/**
+ * Positives and negatives: points the rater adds to the administrator on top of the stage scores — plus for what deserves it,
+ * minus for what does not, as many as he likes and of any size up to 100 — each with its reason and a photo or other evidence.
+ * The administrator sees them (never by whom) and may object to a negative; the committee may raise or lower any of them
+ * before the final result. Only his own are here: the other raters' stay theirs.
+ */
+function Points({ who, editable }: { who: Evaluatee; editable: boolean }) {
+  const user = useStaffUser()!;
+  const toast = useToast();
+  const mine = useStore((s) => (s.evaluationPoints[who.id] ?? []).filter((p) => p.by.id === user.id));
+  const [sign, setSign] = useState<1 | -1>(1);
+  const [value, setValue] = useState("5");
+  const [reason, setReason] = useState("");
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
+  const n = Math.round(Number(value));
+  const valid = n >= 1 && n <= 100 && reason.trim().length >= 10;
+
+  const reset = () => {
+    setEditing(null);
+    setSign(1);
+    setValue("5");
+    setReason("");
+    setEvidence([]);
+    setTried(false);
+  };
+  const save = () => {
+    setTried(true);
+    if (!editable || !valid) return;
+    actions.setEvaluationPoint(who.id, { id: editing ?? newId("pt"), points: sign * n, reason: reason.trim(), evidence: evidence.length ? evidence : undefined, by: { id: user.id, name: user.name, title: user.title, place: who.place }, at: stamp() });
+    actions.logEvent({ actor: "مقيِّم", role: "هويته سرّية", action: sign > 0 ? "إضافة إيجابية لإداري" : "إضافة سلبية لإداري", target: `${who.name} — ${who.clusterName}`, after: `${sign > 0 ? "+" : "−"}${n}`, system: "admins", area: "evaluation", ref: who.id });
+    toast({ title: sign > 0 ? "أُضيفت الإيجابية" : "أُضيفت السلبية", body: "تراها لجنة التقييم باسمك، ويراها الإداري دون اسمك. تعدّل اللجنة قيمتها إن رأت.", icon: sign > 0 ? "➕" : "➖", tone: "success" });
+    reset();
+  };
+  return (
+    <section className="mt-8 rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+      <h2 className="font-display text-lg font-bold text-gold">الإيجابيات والسلبيات</h2>
+      <p className="mt-1 text-xs leading-6 text-white/65">نقاط تضيفها فوق درجات المراحل: زائد لما يستحق، وناقص لما لا يستحق، بالعدد الذي تراه (حتى 100) وبسببه وصورته أو دليله. يراها الإداري دون اسمك ويعترض على السلبيات، وتعدّل لجنة التقييم قيمتها صعوداً أو نزولاً قبل النتيجة النهائية.</p>
+      {mine.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {mine.map((p) => (
+            <li key={p.id} className="rounded-xl bg-white/[.06] p-3 ring-1 ring-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className={cn("rounded-full px-2.5 py-0.5 font-display text-lg font-bold tabular-nums", p.points > 0 ? "bg-green-light/25 text-white" : "bg-maroon/50 text-white")}>
+                  {p.points > 0 ? "+" : "−"}
+                  {Math.abs(p.points)}
+                </span>
+                {editable && (
+                  <span className="flex gap-3 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(p.id);
+                        setSign(p.points > 0 ? 1 : -1);
+                        setValue(String(Math.abs(p.points)));
+                        setReason(p.reason);
+                        setEvidence(p.evidence ?? []);
+                      }}
+                      className="text-gold hover:underline"
+                    >
+                      تعديل
+                    </button>
+                    <button type="button" aria-label="حذف" onClick={() => actions.removeEvaluationPoint(who.id, p.id)} className="flex items-center gap-1 text-white/60 hover:text-white">
+                      <Trash2 className="size-3.5" /> حذف
+                    </button>
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 text-sm leading-7 text-white/90">{p.reason}</p>
+              <EvidenceView items={p.evidence} tone="dark" />
+            </li>
+          ))}
+        </ul>
+      )}
+      {editable && (
+        <div className="mt-4 rounded-xl bg-black/15 p-3">
+          <p className="mb-2 text-sm font-bold text-white">{editing ? "تعديل النقطة" : "نقطة جديدة"}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-1" role="radiogroup" aria-label="نوع النقطة">
+              {([1, -1] as const).map((k) => (
+                <button key={k} type="button" role="radio" aria-checked={sign === k} onClick={() => setSign(k)} className={cn("flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold ring-1 transition", sign === k ? (k > 0 ? "bg-green-light text-white ring-green-light" : "bg-maroon text-white ring-maroon") : "bg-white/[.06] text-white/80 ring-white/15 hover:ring-gold/50")}>
+                  {k > 0 ? <Plus className="size-4" /> : <Minus className="size-4" />} {k > 0 ? "إيجابية" : "سلبية"}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-2 text-sm text-white/80">
+              العدد
+              <input type="number" min={1} max={100} value={value} onChange={(e) => setValue(e.target.value)} aria-label="عدد النقاط" dir="ltr" className="h-10 w-24 rounded-xl border-2 border-white/15 bg-white/5 px-3 text-center text-white outline-none focus:border-gold" />
+            </label>
+          </div>
+          <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-label="سبب النقطة" placeholder="لماذا؟ ما الذي رأيته؟ (10 أحرف على الأقل)" className={cn("mt-3 w-full rounded-xl border-2 bg-white/5 p-3 text-sm text-white outline-none focus:border-gold", tried && reason.trim().length < 10 ? "border-gold" : "border-white/15")} />
+          <div className="mt-2">
+            <EvidencePicker value={evidence} onChange={setEvidence} tone="dark" label="إرفاق صورة أو دليل" />
+          </div>
+          {tried && !valid && <p className="mt-2 text-sm font-bold text-gold">{n < 1 || n > 100 || Number.isNaN(n) ? "اكتب عدداً من 1 إلى 100." : "اكتب السبب (10 أحرف على الأقل)."}</p>}
+          <div className="mt-3 flex gap-2">
+            <Button variant="gold" size="sm" onClick={save}>
+              {editing ? "حفظ التعديل" : "إضافة"}
+            </Button>
+            {editing && (
+              <Button variant="glass" size="sm" onClick={reset}>
+                إلغاء
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      {!editable && mine.length === 0 && <p className="mt-3 text-sm text-white/55">لم تضف نقاطاً.</p>}
+    </section>
   );
 }
 
@@ -227,9 +341,10 @@ function Objection({ who }: { who: Evaluatee }) {
   const [text, setText] = useState(reply?.text ?? "");
   const [evidence, setEvidence] = useState<Evidence[]>(reply?.evidence ?? []);
   const [tried, setTried] = useState(false);
-  // Only the stages he objected to that this rater also scored concern him
+  // Only what he objected to that this rater also scored or added concerns him: the stages he scored, the negatives he added
   const concerned = (objection?.stages ?? []).filter((k) => mine?.stages[k]);
-  if (!objection || !mine || concerned.length === 0) return null;
+  const myPoints = useStore((s) => (s.evaluationPoints[who.id] ?? []).filter((p) => p.by.id === user.id && objection?.points?.includes(p.id)));
+  if (!objection || (concerned.length === 0 && myPoints.length === 0)) return null;
   const label = (k: string) => stages.find((x) => x.key === k)?.label ?? k;
   const editable = win.open && can(user, "evaluate.evaluations.PUT");
   const send = () => {
@@ -244,7 +359,8 @@ function Objection({ who }: { who: Evaluatee }) {
       <h2 className="flex items-center gap-2 font-display text-lg font-bold text-gold">
         <MessageSquareWarning className="size-5" /> اعترض {who.name} على تقييمك
       </h2>
-      <p className="mt-1 text-sm text-white/75">المراحل: {concerned.map(label).join("، ")}</p>
+      {concerned.length > 0 && <p className="mt-1 text-sm text-white/75">المراحل: {concerned.map(label).join("، ")}</p>}
+      {myPoints.length > 0 && <p className="mt-1 text-sm text-white/75">سلبياتك التي اعترض عليها: {myPoints.map((p) => `${p.points}: ${p.reason.slice(0, 40)}`).join(" — ")}</p>}
       <p className="mt-3 rounded-xl bg-black/20 p-3 leading-7 text-white">{objection.reason}</p>
       <EvidenceView items={objection.evidence} tone="dark" />
       <div className="mt-5 border-t border-white/10 pt-4">

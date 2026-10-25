@@ -719,7 +719,15 @@ export type Evidence = { name: string; ref: string; type: string };
  * staff who rated him answer it, each with his own words and evidence (`replies`, unnamed to the administrator); the
  * evaluation committee reads both sides, knowing who is who, and decides (`EvaluationDecision`).
  */
-export type EvaluationObjection = { stages: string[]; reason: string; evidence?: Evidence[]; at: number; replies?: Record<string, EvaluationReply> };
+export type EvaluationObjection = { stages: string[]; /** The negative points (`EvaluationPoint` ids) he objects to */ points?: string[]; reason: string; evidence?: Evidence[]; at: number; replies?: Record<string, EvaluationReply> };
+
+/**
+ * A positive or a negative: points one of the staff adds to an administrator on top of the stage scores — plus for
+ * what deserves it, minus for what does not — with the reason and a photo or any other evidence. The sign is the
+ * kind. He sees it without the rater's name, may object to a negative, and the committee may change its value, up or
+ * down, before the final result.
+ */
+export type EvaluationPoint = { id: string; points: number; reason: string; evidence?: Evidence[]; by: Rater; at: number };
 
 /**
  * Who rated: kept with his rating and with his reply, and read by the evaluation committee alone — so that, if it summons him, it
@@ -734,7 +742,14 @@ export type EvaluationReply = { by: Rater; text: string; evidence?: Evidence[]; 
  * The committee's decision on the stages he objected to: for each, his own score, the staff's, or a third score of the
  * committee's own, and why. It is the committee's, not a member's: no one is named.
  */
-export type EvaluationDecision = { stages: Record<string, { pick: "self" | "staff" | "own"; score: number; note?: string }>; at: number };
+export type EvaluationDecision = {
+  stages: Record<string, { pick: "self" | "staff" | "own"; score: number; note?: string }>;
+  /** The committee's value for a positive or a negative (by its id): what the staff gave, raised or lowered */
+  points?: Record<string, { points: number; note?: string }>;
+  at: number;
+  /** The committee adopted the final result: only then do the points count and the administrator sees it */
+  finalAt?: number;
+};
 
 /**
  * One staff member's scores of an administrator (the group's head stands for his group, the cluster's head for his
@@ -885,8 +900,10 @@ export type State = {
   peerEvaluations: Record<string, Record<string, PeerEvaluation>>;
   /** An administrator's objection to the staff's evaluation of him, with the evidence and the raters' answers */
   evaluationObjections: Record<string, EvaluationObjection>;
-  /** The evaluation committee's decision on what he objected to */
+  /** The evaluation committee's decision on what he objected to, on the positives and negatives, and the final result */
   evaluationDecisions: Record<string, EvaluationDecision>;
+  /** The positives and negatives the staff added to each administrator (by his id) */
+  evaluationPoints: Record<string, EvaluationPoint[]>;
   /** Employees, reference data and operational files as the staff edited them (lib/ops.ts); a missing list means the seed */
   ops: import("./ops").OpsState;
   /** Airports, carriers, flights and seat assignments (lib/flights.ts); a missing list means the seed */
@@ -1055,6 +1072,7 @@ const initial: State = {
   peerEvaluations: {},
   evaluationObjections: {},
   evaluationDecisions: {},
+  evaluationPoints: {},
   ops: {},
   flights: {},
   riteLists: {},
@@ -1135,6 +1153,7 @@ function normalize(s: State): State {
     newsComments: obj(s.newsComments) as State["newsComments"],
     clusterMeals: obj(s.clusterMeals) as State["clusterMeals"],
     evaluationDecisions: obj(s.evaluationDecisions) as State["evaluationDecisions"],
+    evaluationPoints: obj(s.evaluationPoints) as State["evaluationPoints"],
     dailyReports: list(s.dailyReports) as DailyReport[],
     // One session for the account, whichever door he came in by
     adminSessionId: s.sessionId ?? null,
@@ -1620,7 +1639,7 @@ export const actions = {
   setPeerEvaluation(adminId: string, rater: string, value: PeerEvaluation) {
     setState((s) => ({ ...s, peerEvaluations: { ...s.peerEvaluations, [adminId]: { ...s.peerEvaluations[adminId], [rater]: value } } }));
   },
-  objectToEvaluation(id: string, value: Pick<EvaluationObjection, "stages" | "reason" | "evidence">) {
+  objectToEvaluation(id: string, value: Pick<EvaluationObjection, "stages" | "points" | "reason" | "evidence">) {
     setState((s) => (s.evaluationObjections[id] ? s : { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...value, at: Date.now() } } }));
   },
   /** A rater's answer to the objection, under his opaque key */
@@ -1630,9 +1649,41 @@ export const actions = {
       return o ? { ...s, evaluationObjections: { ...s.evaluationObjections, [id]: { ...o, replies: { ...o.replies, [rater]: reply } } } } : s;
     });
   },
-  /** The committee's decision on some of the stages he objected to: a stage decided stays decided until it is decided again */
-  decideEvaluation(id: string, stages: EvaluationDecision["stages"]) {
-    setState((s) => ({ ...s, evaluationDecisions: { ...s.evaluationDecisions, [id]: { stages: { ...s.evaluationDecisions[id]?.stages, ...stages }, at: Date.now() } } }));
+  /** A positive or a negative added to an administrator; replaces the one with the same id (its author changed it) */
+  setEvaluationPoint(adminId: string, point: EvaluationPoint) {
+    setState((s) => {
+      const list = s.evaluationPoints[adminId] ?? [];
+      return { ...s, evaluationPoints: { ...s.evaluationPoints, [adminId]: list.some((x) => x.id === point.id) ? list.map((x) => (x.id === point.id ? point : x)) : [...list, point] } };
+    });
+  },
+  removeEvaluationPoint(adminId: string, pointId: string) {
+    setState((s) => ({ ...s, evaluationPoints: { ...s.evaluationPoints, [adminId]: (s.evaluationPoints[adminId] ?? []).filter((x) => x.id !== pointId) } }));
+  },
+  /** The committee's decision on stages he objected to and on points: what is decided stays decided until it is decided again */
+  decideEvaluation(id: string, patch: { stages?: EvaluationDecision["stages"]; points?: NonNullable<EvaluationDecision["points"]> }) {
+    setState((s) => {
+      const cur = s.evaluationDecisions[id];
+      return { ...s, evaluationDecisions: { ...s.evaluationDecisions, [id]: { ...cur, stages: { ...cur?.stages, ...patch.stages }, points: { ...cur?.points, ...patch.points }, at: Date.now() } } };
+    });
+  },
+  /** The demo's way back to the start: forgets everything of one administrator's evaluation, to try it again */
+  resetEvaluation(id: string) {
+    const without = <T,>(m: Record<string, T>) => Object.fromEntries(Object.entries(m).filter(([k]) => k !== id));
+    setState((s) => ({
+      ...s,
+      selfEvaluations: without(s.selfEvaluations),
+      peerEvaluations: without(s.peerEvaluations),
+      evaluationObjections: without(s.evaluationObjections),
+      evaluationDecisions: without(s.evaluationDecisions),
+      evaluationPoints: without(s.evaluationPoints),
+    }));
+  },
+  /** The committee adopts the final result: the points count from here, and the administrator sees it */
+  finalizeEvaluation(id: string) {
+    setState((s) => {
+      const cur = s.evaluationDecisions[id];
+      return { ...s, evaluationDecisions: { ...s.evaluationDecisions, [id]: { ...cur, stages: cur?.stages ?? {}, at: Date.now(), finalAt: Date.now() } } };
+    });
   },
   setGrading(patch: State["grading"]) {
     setState((s) => ({ ...s, grading: { ...s.grading, ...patch } }));

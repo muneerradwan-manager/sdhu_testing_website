@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { groupName } from "@/lib/groups";
 import { CURRENT_SEASON, fileTypeOf, type FileTypeCode, type OpFile, type Place } from "@/lib/ops";
-import { useStore, type ClusterRecord, type StageScores, type State } from "@/lib/store";
+import { useStore, type ClusterRecord, type EvaluationPoint, type StageScores, type State } from "@/lib/store";
 import { useEvaluationStages } from "./admin-rules";
 import { acceptedGroups } from "./cluster";
 
@@ -308,6 +308,9 @@ export type StageResult = {
   pending: boolean;
 };
 
+/** A positive or a negative as it counts: the staff's value, or the committee's where it changed it */
+export type PointResult = { point: EvaluationPoint; objected: boolean; decided?: { points: number; note?: string }; value: number; pending: boolean };
+
 export type EvaluationResult = {
   self?: State["selfEvaluations"][string];
   /** His self-evaluation averaged over every item he scored */
@@ -319,17 +322,36 @@ export type EvaluationResult = {
   stages: StageResult[];
   objection?: State["evaluationObjections"][string];
   decision?: State["evaluationDecisions"][string];
-  /** The adopted evaluation: the average of the stages' adopted scores (those still pending are left out until decided) */
+  /** The stages' adopted scores averaged (those still pending are left out until decided), out of 5 */
   finalAvg: number | null;
+  /** Stages objected to and not yet decided */
   pending: number;
+  /** The positives and negatives the staff added, as they count, and their totals */
+  points: PointResult[];
+  plus: number;
+  minus: number;
+  net: number;
+  /** Negatives objected to and not yet decided */
+  pendingPoints: number;
+  /** The first result, out of 100: the stages' adopted average, before the points */
+  base100: number | null;
+  /** The committee adopted the final result */
+  finalized: boolean;
+  /** The final result, out of 100: the first result plus the net points (never above 100 or below 0), once adopted */
+  final100: number | null;
+  /** What the classification takes, out of 5: the final result once adopted, else the first */
+  score5: number | null;
 };
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /**
  * One administrator's season evaluation as it stands: his own and the staff's side by side, stage by stage, his objection
  * and the committee's decision, and the adopted score — the staff's where he did not object, the committee's where he did.
- * No rater is ever named: only how many.
+ * Then the staff's positives and negatives (points, each with its reason and evidence), which the committee may change; and
+ * the final result: the first result out of 100 plus the net points, adopted by the committee. No rater is ever named: only how many.
  */
-export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "peerEvaluations" | "selfEvaluations" | "evaluationObjections" | "evaluationDecisions">): EvaluationResult {
+export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "peerEvaluations" | "selfEvaluations" | "evaluationObjections" | "evaluationDecisions" | "evaluationPoints">): EvaluationResult {
   const self = s.selfEvaluations[id];
   const peers = Object.values(s.peerEvaluations[id] ?? {});
   const objection = s.evaluationObjections[id];
@@ -346,6 +368,19 @@ export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "peerEv
   });
   const staffAvgs = peers.map((p) => avgOf(p.stages)).filter((x): x is number => x !== null);
   const everything = sent ? Object.assign({}, ...Object.values(self!.sections ?? {})) : undefined;
+  const finalAvg = round1(mean(rows.map((r) => r.final).filter((x): x is number => x !== null)));
+
+  const points: PointResult[] = (s.evaluationPoints[id] ?? []).map((point) => {
+    const objected = !!objection?.points?.includes(point.id);
+    const decided = decision?.points?.[point.id];
+    return { point, objected, decided, value: decided?.points ?? point.points, pending: objected && !decided };
+  });
+  const plus = points.reduce((a, x) => a + (x.value > 0 ? x.value : 0), 0);
+  const minus = points.reduce((a, x) => a + (x.value < 0 ? x.value : 0), 0);
+  const net = plus + minus;
+  const base100 = finalAvg === null ? null : round1(finalAvg * 20);
+  const finalized = !!decision?.finalAt;
+  const final100 = finalized && base100 !== null ? round1(clamp(base100 + net, 0, 100)) : null;
   return {
     self,
     selfAvg: round1(avgOf(everything)),
@@ -354,36 +389,49 @@ export function evaluationOf(id: string, stages: Stage[], s: Pick<State, "peerEv
     stages: rows,
     objection,
     decision,
-    finalAvg: round1(mean(rows.map((r) => r.final).filter((x): x is number => x !== null))),
+    finalAvg,
     pending: rows.filter((r) => r.pending).length,
+    points,
+    plus,
+    minus,
+    net,
+    pendingPoints: points.filter((x) => x.pending).length,
+    base100,
+    finalized,
+    final100,
+    score5: final100 !== null ? round1(final100 / 20) : finalAvg,
   };
+}
+
+/** The five stores the evaluation reads, as one stable object */
+export function useEvaluationState() {
+  const peerEvaluations = useStore((x) => x.peerEvaluations);
+  const selfEvaluations = useStore((x) => x.selfEvaluations);
+  const evaluationObjections = useStore((x) => x.evaluationObjections);
+  const evaluationDecisions = useStore((x) => x.evaluationDecisions);
+  const evaluationPoints = useStore((x) => x.evaluationPoints);
+  return useMemo(() => ({ peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions, evaluationPoints }), [peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions, evaluationPoints]);
 }
 
 /** The same, live */
 export function useEvaluationOf(id: string | undefined) {
   const stages = useEvaluationStages();
-  const peerEvaluations = useStore((x) => x.peerEvaluations);
-  const selfEvaluations = useStore((x) => x.selfEvaluations);
-  const evaluationObjections = useStore((x) => x.evaluationObjections);
-  const evaluationDecisions = useStore((x) => x.evaluationDecisions);
-  return useMemo(() => (id ? evaluationOf(id, stages, { peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions }) : null), [id, stages, peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions]);
+  const st = useEvaluationState();
+  return useMemo(() => (id ? evaluationOf(id, stages, st) : null), [id, stages, st]);
 }
 
-/** Every rated administrator's adopted score, by id: what the classification of the groups and the clusters is made of */
+/** Every rated administrator's score out of 5, by id: what the classification of the groups and the clusters is made of */
 export function useFinalScores(): Record<string, number> {
   const stages = useEvaluationStages();
-  const peerEvaluations = useStore((x) => x.peerEvaluations);
-  const selfEvaluations = useStore((x) => x.selfEvaluations);
-  const evaluationObjections = useStore((x) => x.evaluationObjections);
-  const evaluationDecisions = useStore((x) => x.evaluationDecisions);
+  const st = useEvaluationState();
   return useMemo(() => {
     const out: Record<string, number> = {};
-    for (const id of Object.keys(peerEvaluations)) {
-      const f = evaluationOf(id, stages, { peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions }).finalAvg;
+    for (const id of new Set([...Object.keys(st.peerEvaluations), ...Object.keys(st.evaluationPoints)])) {
+      const f = evaluationOf(id, stages, st).score5;
       if (f !== null) out[id] = f;
     }
     return out;
-  }, [stages, peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions]);
+  }, [stages, st]);
 }
 
 /** Whether an employee sits on the evaluation committee this season: he is assigned to the committee's file */

@@ -313,8 +313,83 @@ export function EvaluationResultView({ id }: { id: string }) {
         {gaps.length > 0 && <p className="mt-3 text-xs font-bold text-maroon">في {gaps.length} {gaps.length === 1 ? "مرحلة" : "مراحل"} فرق نقطة أو أكثر بين تقييمك وتقييم الموظفين: {gaps.map((g) => g.label).join("، ")}.</p>}
       </Card>
 
+      <PointsCard id={id} />
+      <FinalCard id={id} />
       <Objection id={id} />
     </div>
+  );
+}
+
+/** The positives and negatives the staff added to him, as they count — never by whom */
+function PointsCard({ id }: { id: string }) {
+  const r = useEvaluationOf(id)!;
+  if (!r.points.length) return null;
+  return (
+    <Card className="md:p-7">
+      <h3 className="font-display text-xl font-bold text-green-dark">الإيجابيات والسلبيات</h3>
+      <p className="mt-1 text-sm text-ink-soft">نقاط أضافها الموظفون فوق درجات المراحل، كل منها بسببه ودليله. هويتهم سرّية عنك. لك أن تعترض على السلبيات، ولجنة التقييم تعدّل قيمة أي منها قبل النتيجة النهائية.</p>
+      <ul className="mt-4 space-y-3">
+        {r.points.map((x) => (
+          <li key={x.point.id} className={cn("rounded-2xl p-4 ring-1", x.value >= 0 ? "bg-green-light/5 ring-green-light/30" : "bg-maroon/5 ring-maroon/25")}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={cn("rounded-full px-3 py-0.5 font-display text-xl font-bold tabular-nums", x.value >= 0 ? "bg-green-light text-white" : "bg-maroon text-white")}>
+                {x.value >= 0 ? "+" : "−"}
+                {Math.abs(x.value)}
+              </span>
+              {x.decided && x.decided.points !== x.point.points && (
+                <span className="text-xs font-bold text-maroon">
+                  عدّلتها اللجنة من {x.point.points > 0 ? "+" : "−"}
+                  {Math.abs(x.point.points)}
+                </span>
+              )}
+              {x.pending && <span className="text-xs font-bold text-gold-dark">اعتراضك عند اللجنة</span>}
+            </div>
+            <p className="mt-2 leading-7">{x.point.reason}</p>
+            <EvidenceView items={x.point.evidence} />
+            {x.decided?.note && <p className="mt-2 rounded-xl bg-sand p-2.5 text-xs leading-6 text-ink-soft">اللجنة: {x.decided.note}</p>}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm font-bold">
+        <span className="text-green-dark">الإيجابيات: +{r.plus}</span>
+        <span className="text-maroon">السلبيات: −{Math.abs(r.minus)}</span>
+        <span>
+          الصافي: {r.net >= 0 ? "+" : "−"}
+          {Math.abs(r.net)}
+        </span>
+      </p>
+    </Card>
+  );
+}
+
+/**
+ * The result out of 100: the stages' adopted average (×20) plus the net points. The first is shown from the start; the final
+ * once the committee adopts it — it decides it last.
+ */
+function FinalCard({ id }: { id: string }) {
+  const r = useEvaluationOf(id)!;
+  if (r.base100 === null) return null;
+  const left = r.pending + r.pendingPoints;
+  return (
+    <Card className={cn("md:p-7", r.finalized && "border-green-light/50 bg-green-light/5")}>
+      <h3 className="font-display text-xl font-bold text-green-dark">النتيجة النهائية</h3>
+      <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+        {[
+          { k: "النتيجة الأولية (المراحل)", v: r.base100, unit: "من 100" },
+          { k: "صافي الإيجابيات والسلبيات", v: r.points.length ? `${r.net >= 0 ? "+" : "−"}${Math.abs(r.net)}` : "0", unit: "نقطة" },
+          { k: r.finalized ? "النتيجة النهائية" : "النهائية بعد اعتماد اللجنة", v: r.final100 ?? "—", unit: "من 100" },
+        ].map((x, i) => (
+          <div key={x.k} className={cn("rounded-2xl p-3", i === 2 ? "bg-green-dark text-white" : "bg-sand")}>
+            <p className={cn("text-xs", i === 2 ? "text-white/70" : "text-hint")}>{x.k}</p>
+            <p className="font-display text-3xl font-bold">{x.v}</p>
+            <p className={cn("text-[11px]", i === 2 ? "text-white/60" : "text-hint")}>{x.unit}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs leading-6 text-ink-soft">
+        النتيجة النهائية = النتيجة الأولية + الصافي، وهي بين 0 و100. تعتمدها لجنة التقييم آخراً بعد أن تبتّ في الاعتراضات وتعدّل النقاط.{left > 0 ? ` بقي ${left} من اعتراضاتك عندها.` : ""}
+      </p>
+    </Card>
   );
 }
 
@@ -328,6 +403,7 @@ function Objection({ id }: { id: string }) {
   const committee = useOperation("evaluation-committee");
   const r = useEvaluationOf(id)!;
   const [stages, setStages] = useState<string[]>([]);
+  const [pts, setPts] = useState<string[]>([]);
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [tried, setTried] = useState(false);
@@ -336,15 +412,17 @@ function Objection({ id }: { id: string }) {
 
   if (o) {
     const decided = r.stages.filter((x) => x.objected && !x.pending);
+    const left = r.pending + r.pendingPoints;
     return (
-      <Card className={cn("md:p-7", r.pending ? "border-gold/50" : "border-green-light/40")}>
+      <Card className={cn("md:p-7", left ? "border-gold/50" : "border-green-light/40")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
             <MessageSquareWarning className="size-5 text-gold-dark" /> اعتراضي على تقييم الموظفين
           </h3>
-          <Badge tone={r.pending ? "gold" : "green"}>{r.pending ? "عند لجنة التقييم" : "قرّرت اللجنة"}</Badge>
+          <Badge tone={left ? "gold" : "green"}>{left ? "عند لجنة التقييم" : "قرّرت اللجنة"}</Badge>
         </div>
-        <p className="mt-3 text-sm text-ink-soft">المراحل: {o.stages.map(label).join("، ")}</p>
+        {o.stages.length > 0 && <p className="mt-3 text-sm text-ink-soft">المراحل: {o.stages.map(label).join("، ")}</p>}
+        {r.points.some((x) => x.objected) && <p className="mt-1 text-sm text-ink-soft">السلبيات: {r.points.filter((x) => x.objected).map((x) => `−${Math.abs(x.point.points)}`).join("، ")}</p>}
         <p className="mt-2 rounded-2xl bg-sand p-3 leading-7">{o.reason}</p>
         <EvidenceView items={o.evidence} />
         <p className="mt-3 text-xs text-hint">{Object.keys(o.replies ?? {}).length ? `ردّ ${Object.keys(o.replies!).length} من الموظفين الذين قيّموك بأدلتهم` : "لم يردّ أحد من الموظفين بعد"}، وتقرؤهما لجنة التقييم دون أن تعرف من هم.</p>
@@ -362,7 +440,8 @@ function Objection({ id }: { id: string }) {
       </Card>
     );
   }
-  if (!r.staffCount) return null;
+  const negatives = r.points.filter((x) => x.point.points < 0);
+  if (!r.staffCount && !negatives.length) return null;
   if (!op.open) {
     return (
       <Card className="md:p-6">
@@ -377,9 +456,9 @@ function Objection({ id }: { id: string }) {
   }
   const send = () => {
     setTried(true);
-    if (!stages.length || reason.trim().length < 10) return;
-    actions.objectToEvaluation(id, { stages, reason: reason.trim(), evidence: evidence.length ? evidence : undefined });
-    logAdmin(id, "اعتراض على تقييم الموظفين", stages.map(label).join("، "), reason.trim());
+    if ((!stages.length && !pts.length) || reason.trim().length < 10) return;
+    actions.objectToEvaluation(id, { stages, points: pts.length ? pts : undefined, reason: reason.trim(), evidence: evidence.length ? evidence : undefined });
+    logAdmin(id, "اعتراض على تقييم الموظفين", [...stages.map(label), ...(pts.length ? [`${pts.length} سلبيات`] : [])].join("، "), reason.trim());
     toast({ title: "أُرسل اعتراضك", body: "يردّ عليه من قيّموك بأدلتهم، ثم تقرّر لجنة التقييم.", icon: "📨", tone: "info" });
   };
   return (
@@ -387,7 +466,7 @@ function Objection({ id }: { id: string }) {
       <h3 className="flex items-center gap-2 font-display text-xl font-bold text-green-dark">
         <MessageSquareWarning className="size-5 text-gold-dark" /> الاعتراض على تقييم الموظفين
       </h3>
-      <p className="mt-1 text-sm leading-7 text-ink-soft">إن رأيت أن تقييم الموظفين لك في مرحلة لم يكن منصفاً، اخترها واكتب سببك وأرفق أدلتك: صوراً أو تسجيلاً صوتياً أو فيديو أو مستندات. يردّ عليك من قيّمك بأدلته دون أن تعرف من هو، وتقرأ لجنة التقييم الطرفين وتقرّر. تعترض مرة واحدة، حتى {rangeLabel(op.start, op.end)}.</p>
+      <p className="mt-1 text-sm leading-7 text-ink-soft">إن رأيت أن تقييم الموظفين لك في مرحلة لم يكن منصفاً، اخترها واكتب سببك وأرفق أدلتك: صوراً أو تسجيلاً صوتياً أو فيديو أو مستندات. يردّ عليك من قيّمك بأدلته دون أن تعرف من هو، وتقرأ لجنة التقييم الطرفين وتقرّر. تعترض مرة واحدة على المراحل وعلى السلبيات معاً، حتى {rangeLabel(op.start, op.end)}.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {r.stages.filter((x) => x.staff !== null).map((x) => (
           <button key={x.key} type="button" aria-pressed={stages.includes(x.key)} onClick={() => setStages((s) => (s.includes(x.key) ? s.filter((k) => k !== x.key) : [...s, x.key]))} className={cn("rounded-full border-2 px-3 py-1.5 text-sm font-bold transition", stages.includes(x.key) ? "border-maroon bg-maroon text-white" : "border-gold/40 bg-white text-ink-soft hover:border-gold-dark")}>
@@ -395,12 +474,24 @@ function Objection({ id }: { id: string }) {
           </button>
         ))}
       </div>
+      {negatives.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1 text-xs font-bold text-hint">السلبيات (تعترض على السلبيات وحدها، لا الإيجابيات)</p>
+          <div className="flex flex-wrap gap-2">
+            {negatives.map((x) => (
+              <button key={x.point.id} type="button" aria-pressed={pts.includes(x.point.id)} onClick={() => setPts((s) => (s.includes(x.point.id) ? s.filter((k) => k !== x.point.id) : [...s, x.point.id]))} className={cn("max-w-full truncate rounded-full border-2 px-3 py-1.5 text-sm font-bold transition", pts.includes(x.point.id) ? "border-maroon bg-maroon text-white" : "border-gold/40 bg-white text-ink-soft hover:border-gold-dark")}>
+                −{Math.abs(x.point.points)} — {x.point.reason.slice(0, 40)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} aria-label="سبب الاعتراض" placeholder="ما الذي حدث فعلاً في هذه المراحل؟ ومن يشهد عليه؟" className="mt-4 w-full rounded-2xl border-2 border-gold/40 p-3 leading-7 outline-none focus:border-green-light" />
       <div className="mt-3">
         <EvidencePicker value={evidence} onChange={setEvidence} />
         <EvidenceView items={evidence} />
       </div>
-      {tried && (!stages.length || reason.trim().length < 10) && <p className="mt-2 text-sm font-bold text-maroon">{!stages.length ? "اختر مرحلة واحدة على الأقل." : "اكتب سبب اعتراضك (10 أحرف على الأقل)."}</p>}
+      {tried && ((!stages.length && !pts.length) || reason.trim().length < 10) && <p className="mt-2 text-sm font-bold text-maroon">{!stages.length && !pts.length ? "اختر مرحلة أو سلبية على الأقل." : "اكتب سبب اعتراضك (10 أحرف على الأقل)."}</p>}
       <Button className="mt-4" onClick={send}>
         <Send className="size-4" /> إرسال الاعتراض
       </Button>

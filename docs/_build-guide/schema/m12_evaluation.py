@@ -4,7 +4,7 @@ from .dsl import *
 SCORE = "TINYINT UNSIGNED"
 
 MODULE = M("evaluation", "التقييم بعد الموسم والتصنيف ولوحة الشرف", [
-    "بعد عودة الحجاج ثلاث مراحل: «التقييم الذاتي للإداريين» وبالتوازي معه «تقييم الموظفين للإداريين»، ثم «الاعتراض على التقييم» بالأدلة وبرد المقيِّمين، ثم «قرار لجنة التقييم». "
+    "بعد عودة الحجاج ثلاث نوافذ: «التقييم الذاتي للإداريين» وبالتوازي معه «تقييم الموظفين للإداريين» (وفيه إيجابياتهم وسلبياتهم)، ثم «الاعتراض على التقييم» وعلى السلبيات بالأدلة وبرد أصحابها، ثم «قرار لجنة التقييم» الذي يحسم المراحل والنقاط ويعتمد النتيجة النهائية من 100 (المراحل × 20 + صافي النقاط). "
     "يُقيَّم رئيس التكتل (تقييمه تقييم للتكتل) ورؤساء المجموعات (لمجموعاتهم) والموجّهون والموجّهات فقط، بأسئلة صفاتهم، من موظفي البعثة الذين كانوا معهم في ملفاتهم: فندق مكة (مرحلة مكة) وفندق المدينة (المدينة) والمخيمات (المشاعر) ومشرفو الطيران (المطار والسفر). "
     "هوية المقيِّم محفوظة مع تقييمه ومخفية عن الإداري والإدارة، وتعرفها لجنة التقييم وحدها. بلا اعتراض تُعتمد درجة الموظفين، ومعه تقرّر اللجنة. ثم تُنشر نتائج التصنيف: ترقية فئة، أو بقاء، أو تخفيض، أو إنذار، وتُكرَّم الصفوة. ولا تقيّم الإدارة ولا يقيّم الإداريون بعضهم بعضاً.",
 ], [
@@ -61,11 +61,35 @@ MODULE = M("evaluation", "التقييم بعد الموسم والتصنيف و
         c("reason", "TEXT", "السبب (10 أحرف على الأقل)"),
         c("submitted_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
     ], src="lib/store.ts EvaluationObjection؛ actions.objectToEvaluation",
-       rules=["نافذة evaluation-objection. الأدلة في evaluation_evidence، وردود المقيِّمين في evaluation_replies."]),
+       rules=["نافذة evaluation-objection. الأدلة في evaluation_evidence، وردود المقيِّمين وأصحاب النقاط في evaluation_replies، والسلبيات المعترض عليها في evaluation_objection_points."]),
+
+    T("evaluation_points", "الإيجابيات والسلبيات", "نقاط يضيفها موظف البعثة للإداري أو عليه: عدد صحيح من 1 إلى 100 (موجب إيجابية، سالب سلبية) بسببه ودليله. هوية صاحبها محفوظة للجنة وحدها ومخفية عن الإداري والإدارة.", [
+        pk(), season(),
+        ref("admin_season_file_id", "admin_season_files", "الإداري المقيَّم", od="CASCADE"),
+        staff("rater_staff_id", "الموظف صاحب النقطة (للجنة وحدها)", null=False),
+        c("rater_title", "VARCHAR(120)", "مسماه وقت الإضافة (للجنة وحدها)"),
+        c("rater_place", "VARCHAR(160)", "الفندق أو المخيم أو الملف الذي كان فيه (للجنة وحدها)"),
+        c("points", "SMALLINT", "عدد النقاط: موجب إيجابية وسالب سلبية", ck="points BETWEEN -100 AND 100 AND points <> 0"),
+        c("reason", "TEXT", "السبب (10 أحرف على الأقل)"),
+        c("created_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+    ], new=True, src="lib/store.ts EvaluationPoint؛ State.evaluationPoints؛ app/staff/evaluate/view.tsx",
+       rules=["تُضاف وتُعدَّل وتُحذف في نافذة peer-evaluation، ولصاحبها وحده. أدلتها في evaluation_evidence، والاعتراض عليها للسلبيات وحدها."]),
+
+    T("evaluation_objection_points", "السلبيات المعترض عليها", "السلبيات التي يعترض عليها الإداري في اعتراضه الواحد.", [
+        ref("objection_id", "evaluation_objections", "الاعتراض", od="CASCADE"),
+        ref("point_id", "evaluation_points", "السلبية", od="CASCADE"),
+    ], uq=[("objection_id", "point_id")], new=True, src="lib/store.ts EvaluationObjection.points"),
+
+    T("evaluation_point_decisions", "قرارات اللجنة في النقاط", "القيمة التي تعتمدها اللجنة لنقطة، صعوداً أو نزولاً عمّا وضعه الموظف (حتى ±100). قرار جماعي، ولا بدّ منه في كل سلبية معترض عليها.", [
+        ref("point_id", "evaluation_points", "النقطة", od="CASCADE", uq=True),
+        c("points", "SMALLINT", "القيمة المعتمدة", ck="points BETWEEN -100 AND 100"),
+        c("note", "VARCHAR(500)", "التعليل (إلزامي إن اختلفت عن قيمة الموظف)", null=True),
+        c("decided_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+    ], new=True, src="lib/store.ts EvaluationDecision.points؛ app/staff/committee/view.tsx"),
 
     T("evaluation_evidence", "أدلة الاعتراض والردود", "صورة أو تسجيل صوتي أو فيديو أو مستند يرفقه الإداري باعتراضه أو المقيِّم بردّه (حتى 12 ميغابايت للملف).", [
         pk(), ref("objection_id", "evaluation_objections", "الاعتراض", od="CASCADE"),
-        c("owner", enum("administrator", "rater"), "من أرفقه: الإداري أو المقيِّم"),
+        c("owner", enum("administrator", "rater", "point"), "من أرفقه: الإداري (اعتراضه) أو المقيِّم (ردّه) أو صاحب نقطة (دليل نقطته)"),
         staff("rater_staff_id", "إن كان المقيِّم: هو (للجنة وحدها)"),
         file_("file_id", "الملف (بمرجعه ev:<id> في الكود، يُحفظ في IndexedDB لا في مكتبة الوسائط)"),
         c("kind", enum("image", "audio", "video", "file"), "نوعه"),
@@ -85,6 +109,7 @@ MODULE = M("evaluation", "التقييم بعد الموسم والتصنيف و
         c("score", "DECIMAL(2,1)", "الدرجة المعتمدة (1–5 بنصف درجة)", ck="score BETWEEN 1 AND 5"),
         c("note", "VARCHAR(500)", "التعليل (إلزامي للدرجة الثالثة)", null=True),
         c("decided_at", "DATETIME(3)", "الوقت", d="CURRENT_TIMESTAMP(3)"),
+        c("finalized_at", "DATETIME(3)", "اعتماد اللجنة للنتيجة النهائية (من 100): قبله لا تدخل في التصنيف", null=True),
     ], uq=[("objection_id", "stage_key")], src="lib/store.ts EvaluationDecision؛ app/staff/committee/view.tsx",
        rules=["نافذة evaluation-committee. لا يقرّر إلا من أُسند على ملف «لجنة التقييم» وملك «قرارات لجنة التقييم — تعديل»."]),
 

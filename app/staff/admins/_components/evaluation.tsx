@@ -3,10 +3,9 @@
 import { AlertTriangle, EyeOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { matches } from "@/lib/ops";
-import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
-import { REFLECTION, evaluationOf, useEvaluationOf } from "@/app/administrator/_lib/evaluation";
+import { REFLECTION, evaluationOf, useEvaluationOf, useEvaluationState } from "@/app/administrator/_lib/evaluation";
 import { roleLabel } from "../../_components/data";
 import { Meter } from "../../_components/kit";
 import { SearchBox } from "../../_components/ops-ui";
@@ -27,16 +26,10 @@ export function EvaluationTab() {
   const id = useOpenId();
   const hrefWith = useHrefWith();
   const stages = useEvaluationStages();
-  const peerEvaluations = useStore((s) => s.peerEvaluations);
-  const selfEvaluations = useStore((s) => s.selfEvaluations);
-  const evaluationObjections = useStore((s) => s.evaluationObjections);
-  const evaluationDecisions = useStore((s) => s.evaluationDecisions);
+  const state = useEvaluationState();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  const results = useMemo(
-    () => new Map(desk.toEvaluate.map((r) => [r.id, evaluationOf(r.id, stages, { peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions })])),
-    [desk.toEvaluate, stages, peerEvaluations, selfEvaluations, evaluationObjections, evaluationDecisions],
-  );
+  const results = useMemo(() => new Map(desk.toEvaluate.map((r) => [r.id, evaluationOf(r.id, stages, state)])), [desk.toEvaluate, stages, state]);
   if (id) return <EvaluationScreen id={id} desk={desk} />;
   const stateOf = (rid: string): Exclude<Filter, "all"> => {
     const r = results.get(rid)!;
@@ -65,8 +58,8 @@ export function EvaluationTab() {
         />
         <SearchBox className="md:w-80" value={q} onChange={setQ} label="بحث في الإداريين" placeholder="اسم، أو آخر أرقام الرقم الوطني، أو صفة..." />
       </div>
-      <ListTable head={["الإداري", "الصفة", "تقييمه لنفسه", "الموظفون", "الاعتراض", "المعتمدة"]}>
-        {shown.length === 0 && <EmptyRow cols={6}>{desk.toEvaluate.length ? "لا أحد هنا. غيّر البحث أو التصفية." : "يظهر هنا من يقيّمه الموظفون: رؤساء المجموعات والتكتلات والموجّهون."}</EmptyRow>}
+      <ListTable head={["الإداري", "الصفة", "تقييمه لنفسه", "الموظفون", "الاعتراض", "الإيجابيات والسلبيات", "النهائية"]}>
+        {shown.length === 0 && <EmptyRow cols={7}>{desk.toEvaluate.length ? "لا أحد هنا. غيّر البحث أو التصفية." : "يظهر هنا من يقيّمه الموظفون: رؤساء المجموعات والتكتلات والموجّهون."}</EmptyRow>}
         {shown.map((r) => {
           const res = results.get(r.id)!;
           const href = hrefWith({ id: r.id });
@@ -94,7 +87,8 @@ export function EvaluationTab() {
                 )}
               </td>
               <td className="p-3 align-top">{st === "none" ? <span className="text-white/40">—</span> : <Tag tone={st === "pending" ? "gold" : "green"}>{st === "pending" ? "عند اللجنة" : "قُرّر"}</Tag>}</td>
-              <td className="p-3 align-top font-bold tabular-nums text-gold">{res.finalAvg !== null ? `${res.finalAvg} من 5` : <span className="font-normal text-white/40">—</span>}</td>
+              <td className="p-3 align-top tabular-nums text-white/85">{res.points.length ? `${res.net >= 0 ? "+" : "−"}${Math.abs(res.net)} (${res.points.length})` : <span className="text-white/40">—</span>}</td>
+              <td className="p-3 align-top font-bold tabular-nums text-gold">{res.finalized ? `${res.final100} من 100` : res.base100 !== null ? <span className="font-normal text-white/55">{res.base100} مبدئية</span> : <span className="font-normal text-white/40">—</span>}</td>
             </tr>
           );
         })}
@@ -131,11 +125,13 @@ function Result({ id }: { id: string }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
       <div className="min-w-0 space-y-5">
-        <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-5">
           {[
             { k: "تقييمه لنفسه", v: r.selfAvg },
             { k: `الموظفون${r.staffCount ? ` (${r.staffCount})` : ""}`, v: r.staffAvg },
-            { k: "المعتمدة", v: r.finalAvg },
+            { k: "المراحل (من 100)", v: r.base100 },
+            { k: "صافي الإيجابيات والسلبيات", v: r.points.length ? `${r.net >= 0 ? "+" : "−"}${Math.abs(r.net)}` : "0" },
+            { k: r.finalized ? "النهائية المعتمدة" : "النهائية (بانتظار اللجنة)", v: r.finalized ? r.final100 : null },
           ].map((x) => (
             <p key={x.k} className="rounded-xl bg-white/[.06] p-3 ring-1 ring-white/10">
               <span className="block text-[11px] text-white/60">{x.k}</span>

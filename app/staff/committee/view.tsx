@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Gavel, MessageSquareWarning, Scale, UserRoundSearch, UserX } from "lucide-react";
+import { BadgeCheck, CheckCircle2, Gavel, MessageSquareWarning, Scale, UserRoundSearch, UserX } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
@@ -10,11 +10,11 @@ import { DemoJump } from "@/components/app/operation-closed";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import { CURRENT_SEASON, useEmployees, useOpFiles } from "@/lib/ops";
 import type { StaffUser } from "@/lib/staff";
-import { actions, useStore } from "@/lib/store";
+import { actions } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { adminName } from "@/app/administrator/_lib/admin";
 import { useEvaluationStages } from "@/app/administrator/_lib/admin-rules";
-import { inCommittee, useEvaluationOf, type StageResult } from "@/app/administrator/_lib/evaluation";
+import { evaluationOf, inCommittee, raterKey, useEvaluationOf, useEvaluationState, type StageResult } from "@/app/administrator/_lib/evaluation";
 import { EvidenceView } from "@/app/administrator/_components/evidence";
 import { can, Empty, Gate, PageHeader, logAs, useStaffUser } from "../_components/kit";
 import { SimulateEvaluation } from "../_components/simulate-evaluation";
@@ -42,23 +42,29 @@ function Committee() {
   const user = useStaffUser()!;
   const member = useIsCommittee(user);
   const id = useSearchParams().get("id");
-  if (!member) return <Empty icon={<UserX />} title="لست من أعضاء لجنة التقييم" text="يُسند أعضاء اللجنة على ملفها في «الملفات التشغيلية». تقرأ اللجنة اعتراضات الإداريين على تقييم الموظفين وتقرّر فيها." />;
+  if (!member) return <Empty icon={<UserX />} title="لست من أعضاء لجنة التقييم" text="يُسند أعضاء اللجنة على ملفها في «الملفات التشغيلية». تقرأ اللجنة اعتراضات الإداريين على التقييم، وتعدّل الإيجابيات والسلبيات، وتعتمد النتيجة النهائية." />;
   return id ? <Case id={id} user={user} /> : <Cases />;
 }
 
-/** The objections, those waiting first */
+/** Everyone with something before the committee — an objection, or positives and negatives — those waiting first */
 function Cases() {
   const op = useOperation("evaluation-committee");
   const stages = useEvaluationStages();
-  const objections = useStore((s) => s.evaluationObjections);
-  const decisions = useStore((s) => s.evaluationDecisions);
-  const rows = Object.entries(objections)
-    .map(([id, o]) => ({ id, o, left: o.stages.filter((k) => !decisions[id]?.stages[k]).length }))
-    .sort((a, b) => Number(b.left > 0) - Number(a.left > 0) || b.o.at - a.o.at);
-  const label = (k: string) => stages.find((x) => x.key === k)?.label ?? k;
+  const state = useEvaluationState();
+  const rows = useMemo(() => {
+    const ids = new Set([...Object.keys(state.evaluationObjections), ...Object.entries(state.evaluationPoints).filter(([, l]) => l.length).map(([id]) => id)]);
+    return [...ids]
+      .map((id) => ({ id, r: evaluationOf(id, stages, state) }))
+      .sort((a, b) => Number(a.r.finalized) - Number(b.r.finalized) || b.r.pending + b.r.pendingPoints - (a.r.pending + a.r.pendingPoints));
+  }, [state, stages]);
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="لجنة التقييم" icon={<Scale />} title="اعتراضات الإداريين على التقييم" description="تقرأ اللجنة أدلة الإداري وأدلة من قيّمه، وتعرف من هم لتصل إليهم إن استدعتهم، ثم تقرّر لكل مرحلة معترض عليها: درجة الإداري، أو درجة الموظفين، أو درجة ثالثة منها." />
+      <PageHeader
+        eyebrow="لجنة التقييم"
+        icon={<Scale />}
+        title="التقييم: الاعتراضات والإيجابيات والسلبيات"
+        description="تقرأ اللجنة أدلة الإداري وأدلة من قيّمه، وتعرف من هم لتصل إليهم إن استدعتهم. تقرّر في الاعتراضات (درجة الإداري أو الموظفين أو ثالثة منها)، وتعدّل قيمة الإيجابيات والسلبيات صعوداً أو نزولاً، ثم تعتمد النتيجة النهائية."
+      />
       <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4 ring-1", op.open ? "bg-green-light/15 ring-green-light/40" : "bg-white/[.06] ring-white/10")}>
         <p className="text-sm text-white/85">
           <b className="text-gold">{op.label}</b> — {rangeLabel(op.start, op.end)}: {op.open ? "مفتوحة الآن." : op.status === "upcoming" ? "لم تُفتح بعد." : "أُغلقت."}
@@ -66,10 +72,12 @@ function Cases() {
         {!op.open && <DemoJump state={op} />}
       </div>
       <SimulateEvaluation />
-      <ListTable head={["الإداري", "المراحل المعترض عليها", "ردود المقيّمين", "الحال"]}>
-        {rows.length === 0 && <EmptyRow cols={4}>لا اعتراضات بعد. تظهر هنا حين يعترض إداري على تقييم الموظفين له.</EmptyRow>}
-        {rows.map(({ id, o, left }) => {
+      <ListTable head={["الإداري", "اعتراضه", "النقاط", "النتيجة", "الحال"]}>
+        {rows.length === 0 && <EmptyRow cols={5}>لا شيء أمام اللجنة بعد. يظهر هنا من اعترض، ومن أضاف له الموظفون إيجابيات أو سلبيات.</EmptyRow>}
+        {rows.map(({ id, r }) => {
           const href = `${BASE}?id=${id}`;
+          const left = r.pending + r.pendingPoints;
+          const neg = r.points.filter((x) => x.objected).length;
           return (
             <tr key={id}>
               <td className="p-3 align-top">
@@ -77,12 +85,13 @@ function Cases() {
                   {adminName(id)}
                 </Link>
                 <RowActions>
-                  <RowLink href={href}>{left ? "النظر في الاعتراض" : "عرض القرار"}</RowLink>
+                  <RowLink href={href}>{r.finalized ? "عرض النتيجة" : "النظر"}</RowLink>
                 </RowActions>
               </td>
-              <td className="p-3 align-top text-white/80">{o.stages.map(label).join("، ")}</td>
-              <td className="p-3 align-top tabular-nums text-white/85">{Object.keys(o.replies ?? {}).length}</td>
-              <td className="p-3 align-top">{left ? <Tag tone="gold">تنتظر قراراً ({left})</Tag> : <Tag tone="green">قُرّر</Tag>}</td>
+              <td className="p-3 align-top text-white/80">{r.objection ? [r.objection.stages.length ? `${r.objection.stages.length} مراحل` : "", neg ? `${neg} سلبيات` : ""].filter(Boolean).join(" + ") : "—"}</td>
+              <td className="p-3 align-top tabular-nums text-white/85">{r.points.length ? `${r.net >= 0 ? "+" : "−"}${Math.abs(r.net)} (${r.points.length})` : "—"}</td>
+              <td className="p-3 align-top font-bold tabular-nums text-gold">{r.final100 ?? r.base100 ?? "—"}</td>
+              <td className="p-3 align-top">{r.finalized ? <Tag tone="green">نهائية</Tag> : left ? <Tag tone="gold">تنتظر قراراً ({left})</Tag> : <Tag tone="gold">جاهزة للاعتماد</Tag>}</td>
             </tr>
           );
         })}
@@ -92,58 +101,84 @@ function Cases() {
 }
 
 type Pick = "self" | "staff" | "own";
+const signed = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n)}`;
 
 /**
- * One objection: the administrator's reason and evidence, then each stage he objected to — what he gave himself, what each rater gave
- * (named: the committee alone may know), each rater's answer with his evidence — and the committee's decision on it.
+ * One administrator before the committee: his objection (if he objected) with each stage he objected to — what he gave himself,
+ * what each rater gave (named: the committee alone knows), each rater's answer with his evidence — then all the positives and
+ * negatives, each with its rater, reason and evidence, whose value the committee may raise or lower; then the final result,
+ * which the committee adopts last.
  */
 function Case({ id, user }: { id: string; user: StaffUser }) {
   const toast = useToast();
   const op = useOperation("evaluation-committee");
   const r = useEvaluationOf(id);
-  const peers = useStore((s) => s.peerEvaluations[id]);
+  const state = useEvaluationState();
+  const peers = state.peerEvaluations[id];
   const stages = useEvaluationStages();
   const objection = r?.objection;
-  const editable = op.open && can(user, "evaluate.committee.PUT");
+  const editable = op.open && can(user, "evaluate.committee.PUT") && !r?.finalized;
   const objected = (r?.stages ?? []).filter((x) => x.objected);
   const [draft, setDraft] = useState<Record<string, { pick: Pick; own: string; note: string }>>(() => Object.fromEntries(objected.map((x) => [x.key, { pick: (x.decision?.pick ?? "staff") as Pick, own: String(x.decision?.pick === "own" ? x.decision.score : ""), note: x.decision?.note ?? "" }])));
+  const [pts, setPts] = useState<Record<string, { value: string; note: string }>>(() => Object.fromEntries((r?.points ?? []).map((x) => [x.point.id, { value: String(x.value), note: x.decided?.note ?? "" }])));
   const raters = useMemo(() => Object.entries(peers ?? {}), [peers]);
-  if (!r || !objection) return <Empty icon={<MessageSquareWarning />} title="لا اعتراض لهذا الإداري" text="لم يعترض على تقييم الموظفين له." />;
+  if (!r || (!objection && r.points.length === 0)) return <Empty icon={<MessageSquareWarning />} title="لا شيء أمام اللجنة لهذا الإداري" text="لم يعترض، ولم يضف الموظفون له إيجابيات أو سلبيات." />;
 
   const scoreOf = (x: StageResult, d: { pick: Pick; own: string }) => (d.pick === "self" ? x.self : d.pick === "staff" ? x.staff : d.own ? Number(d.own) : null);
-  const ready = objected.every((x) => {
+  const stagesReady = objected.every((x) => {
     const d = draft[x.key];
     const sc = d && scoreOf(x, d);
     return !!d && sc !== null && sc >= 1 && sc <= 5 && (d.pick !== "own" || d.note.trim().length >= 5);
   });
+  const valueOf = (id2: string) => Number(pts[id2]?.value);
+  const pointsReady = r.points.every((x) => {
+    const v = valueOf(x.point.id);
+    const changed = v !== x.point.points;
+    return Number.isInteger(v) && v >= -100 && v <= 100 && (!changed || (pts[x.point.id]?.note ?? "").trim().length >= 5);
+  });
+  const ready = stagesReady && pointsReady;
+  // What the final result would be with the values as they stand in the form
+  const draftNet = r.points.reduce((a, x) => a + (Number.isFinite(valueOf(x.point.id)) ? valueOf(x.point.id) : x.value), 0);
+  const draftFinal = r.base100 === null ? null : Math.round(Math.min(100, Math.max(0, r.base100 + draftNet)) * 10) / 10;
+
   const decide = () => {
     if (!editable || !ready) return;
-    const out = Object.fromEntries(objected.map((x) => [x.key, { pick: draft[x.key].pick, score: scoreOf(x, draft[x.key])!, ...(draft[x.key].note.trim() ? { note: draft[x.key].note.trim() } : {}) }]));
-    actions.decideEvaluation(id, out);
-    logAs(user, { action: "قرار لجنة التقييم في اعتراض", target: adminName(id), detail: objected.map((x) => `${x.label}: ${out[x.key].score}`).join(" · "), system: "admins", area: "evaluation", ref: id });
-    toast({ title: "سُجّل قرار اللجنة", body: `${adminName(id)}: تُعتمد الدرجات المقرَّرة في نتيجته.`, icon: "⚖️", tone: "success" });
+    const stageOut = Object.fromEntries(objected.map((x) => [x.key, { pick: draft[x.key].pick, score: scoreOf(x, draft[x.key])!, ...(draft[x.key].note.trim() ? { note: draft[x.key].note.trim() } : {}) }]));
+    // A value is recorded when the committee changed it or the administrator objected to it
+    const pointOut = Object.fromEntries(r.points.filter((x) => x.objected || valueOf(x.point.id) !== x.point.points).map((x) => [x.point.id, { points: valueOf(x.point.id), ...(pts[x.point.id]?.note.trim() ? { note: pts[x.point.id].note.trim() } : {}) }]));
+    actions.decideEvaluation(id, { stages: stageOut, points: pointOut });
+    logAs(user, { action: "قرار لجنة التقييم", target: adminName(id), detail: [...objected.map((x) => `${x.label}: ${stageOut[x.key].score}`), ...Object.values(pointOut).map((p) => `نقطة: ${signed(p.points)}`)].join(" · ") || "بلا تعديل", system: "admins", area: "evaluation", ref: id });
+    toast({ title: "سُجّلت قرارات اللجنة", body: `${adminName(id)}: بعد حفظ كل ما تقرّر تعتمد اللجنة النتيجة النهائية.`, icon: "⚖️", tone: "success" });
+  };
+  const finalize = () => {
+    if (!editable || r.pending + r.pendingPoints > 0) return;
+    actions.finalizeEvaluation(id);
+    logAs(user, { action: "اعتماد النتيجة النهائية للتقييم", target: adminName(id), after: `${r.final100 ?? draftFinal ?? r.base100} من 100`, system: "admins", area: "evaluation", ref: id });
+    toast({ title: "اعتُمدت النتيجة النهائية", body: `${adminName(id)}: يراها الآن، وتدخل في تصنيف مجموعته أو تكتله.`, icon: "✅", tone: "success" });
   };
   const label = (k: string) => stages.find((x) => x.key === k)?.label ?? k;
+  const left = r.pending + r.pendingPoints;
 
   return (
     <div>
-      <EditHeader back={BASE} backLabel="كل الاعتراضات" title={`اعتراض ${adminName(id)}`}>
-        {objected.some((x) => x.pending) ? "ينتظر قرار اللجنة" : "قرّرت اللجنة"} — {rangeLabel(op.start, op.end)}
+      <EditHeader back={BASE} backLabel="كل ما أمام اللجنة" title={`تقييم ${adminName(id)}`}>
+        {r.finalized ? "النتيجة نهائية" : left ? `ينتظر ${left} قراراً` : "جاهز للاعتماد"} — {rangeLabel(op.start, op.end)}
       </EditHeader>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-5">
-          <section className="rounded-2xl bg-maroon/25 p-4 ring-1 ring-gold/40">
-            <h2 className="flex items-center gap-2 font-display text-lg font-bold text-gold">
-              <MessageSquareWarning className="size-5" /> ما قاله الإداري
-            </h2>
-            <p className="mt-2 leading-7 text-white">{objection.reason}</p>
-            <EvidenceView items={objection.evidence} tone="dark" />
-          </section>
+          {objection && (
+            <section className="rounded-2xl bg-maroon/25 p-4 ring-1 ring-gold/40">
+              <h2 className="flex items-center gap-2 font-display text-lg font-bold text-gold">
+                <MessageSquareWarning className="size-5" /> ما قاله الإداري في اعتراضه
+              </h2>
+              <p className="mt-2 leading-7 text-white">{objection.reason}</p>
+              <EvidenceView items={objection.evidence} tone="dark" />
+            </section>
+          )}
 
           {objected.map((x) => {
             const d = draft[x.key];
             const mine = raters.filter(([, p]) => p.stages[x.key]);
-            const answers = mine.map(([k]) => objection.replies?.[k]).filter(Boolean);
             return (
               <section key={x.key} className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
                 <h2 className="font-display text-xl font-bold text-gold">{x.label}</h2>
@@ -163,7 +198,7 @@ function Case({ id, user }: { id: string; user: StaffUser }) {
                 </h3>
                 <ul className="mt-2 space-y-3">
                   {mine.map(([k, p]) => {
-                    const reply = objection.replies?.[k];
+                    const reply = objection?.replies?.[k];
                     const notes = Object.values(p.sections?.[x.key] ?? {}).map((q) => q.note).filter(Boolean);
                     return (
                       <li key={k} className="rounded-xl bg-white/[.06] p-3 ring-1 ring-white/10">
@@ -188,7 +223,6 @@ function Case({ id, user }: { id: string; user: StaffUser }) {
                   })}
                   {mine.length === 0 && <li className="text-sm text-white/55">لا مقيّمين في هذه المرحلة.</li>}
                 </ul>
-                {answers.length === 0 && mine.length > 0 && <p className="mt-2 text-xs text-white/55">لم يردّ أحد منهم. لك أن تستدعيهم قبل أن تقرّري.</p>}
 
                 <fieldset disabled={!editable} className="mt-5 border-t border-white/10 pt-4">
                   <legend className="mb-2 flex items-center gap-1.5 text-sm font-bold text-white">
@@ -231,12 +265,84 @@ function Case({ id, user }: { id: string; user: StaffUser }) {
               </section>
             );
           })}
-          {editable && (
-            <Button variant="gold" disabled={!ready} onClick={decide}>
-              <CheckCircle2 className="size-4" /> اعتماد قرار اللجنة
-            </Button>
+
+          {r.points.length > 0 && (
+            <section className="rounded-2xl bg-white/[.04] p-4 ring-1 ring-white/10">
+              <h2 className="font-display text-xl font-bold text-gold">الإيجابيات والسلبيات</h2>
+              <p className="mb-3 mt-1 text-xs leading-6 text-white/60">لكل نقطة من أضافها وسببها ودليلها. قيمة اللجنة تبدأ بما وضعه الموظف، وتعدّلها صعوداً أو نزولاً (حتى 100)، وتعلّل كل تعديل. المعترض عليها من السلبيات لا بدّ من قرار فيها.</p>
+              <ul className="space-y-3">
+                {r.points.map((x) => {
+                  const by = x.point.by;
+                  const reply = objection?.replies?.[raterKey(by.id)];
+                  const f = pts[x.point.id];
+                  const changed = valueOf(x.point.id) !== x.point.points;
+                  return (
+                    <li key={x.point.id} className={cn("rounded-xl p-3 ring-1", x.point.points >= 0 ? "bg-green-light/10 ring-green-light/30" : "bg-maroon/20 ring-maroon/40")}>
+                      <p className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                        <span className="font-bold text-white">
+                          {by.name} <span className="font-normal text-white/60">— {by.title} — {by.place}</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          {x.objected && <Tag tone="gold">اعترض عليها</Tag>}
+                          <span className="font-display text-xl font-bold tabular-nums text-white">{signed(x.point.points)}</span>
+                        </span>
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-white/90">{x.point.reason}</p>
+                      <EvidenceView items={x.point.evidence} tone="dark" />
+                      {reply && x.objected && (
+                        <div className="mt-2 rounded-lg bg-black/20 p-2.5">
+                          <p className="text-xs font-bold text-gold">ردّ صاحبها على الاعتراض</p>
+                          <p className="mt-1 text-sm leading-7 text-white">{reply.text}</p>
+                          <EvidenceView items={reply.evidence} tone="dark" />
+                        </div>
+                      )}
+                      <fieldset disabled={!editable} className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
+                        <label className="flex items-center gap-2 text-sm text-white/80">
+                          قيمة اللجنة
+                          <input type="number" min={-100} max={100} value={f?.value ?? ""} onChange={(e) => setPts((s) => ({ ...s, [x.point.id]: { ...s[x.point.id], value: e.target.value } }))} aria-label={`قيمة اللجنة لنقطة ${signed(x.point.points)}`} dir="ltr" className="h-10 w-24 rounded-xl border-2 border-white/15 bg-white/5 px-3 text-center text-white outline-none focus:border-gold" />
+                        </label>
+                        <input value={f?.note ?? ""} onChange={(e) => setPts((s) => ({ ...s, [x.point.id]: { ...s[x.point.id], note: e.target.value } }))} aria-label={`تعليل نقطة ${signed(x.point.points)}`} placeholder={changed ? "تعليل التعديل (إلزامي)" : "تعليل (اختياري)"} className={cn("h-10 min-w-0 flex-1 rounded-xl border-2 bg-white/5 px-3 text-sm text-white outline-none focus:border-gold", changed && (f?.note ?? "").trim().length < 5 ? "border-gold" : "border-white/15")} />
+                      </fieldset>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
-          {!editable && <p className="text-sm text-white/60">{op.open ? "القرار للجنة بصلاحية «قرارات لجنة التقييم — تعديل»." : "تُسجَّل القرارات حين تُفتح مدة اللجنة."}</p>}
+
+          <section className="rounded-2xl bg-white/[.06] p-4 ring-1 ring-gold/30">
+            <h2 className="font-display text-lg font-bold text-gold">النتيجة النهائية</h2>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              {[
+                { k: "الأولية (المراحل)", v: r.base100 ?? "—" },
+                { k: "صافي النقاط بقراراتك", v: r.points.length ? signed(draftNet) : "0" },
+                { k: r.finalized ? "النهائية (معتمدة)" : "النهائية المتوقعة", v: r.finalized ? r.final100 : draftFinal ?? "—" },
+              ].map((x, i) => (
+                <p key={x.k} className={cn("rounded-xl p-3", i === 2 ? "bg-gold text-ink" : "bg-white/[.06]")}>
+                  <span className={cn("block text-[11px]", i === 2 ? "text-ink/70" : "text-white/60")}>{x.k}</span>
+                  <span className="font-display text-3xl font-bold">{x.v}</span>
+                </p>
+              ))}
+            </div>
+            <p className="mt-2 text-xs leading-6 text-white/60">النهائية = الأولية + الصافي، بين 0 و100. تُحفظ القرارات أولاً، ثم تُعتمد النتيجة فيراها الإداري وتدخل في التصنيف.</p>
+            {r.finalized ? (
+              <p className="mt-3 flex items-center gap-2 text-sm font-bold text-green-light">
+                <BadgeCheck className="size-5" /> اعتُمدت النتيجة النهائية.
+              </p>
+            ) : (
+              editable && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button variant="gold" disabled={!ready} onClick={decide}>
+                    <CheckCircle2 className="size-4" /> حفظ قرارات اللجنة
+                  </Button>
+                  <Button variant="glass" disabled={left > 0} onClick={finalize} title={left > 0 ? "احفظ القرارات في كل ما اعترض عليه الإداري أولاً" : undefined}>
+                    <BadgeCheck className="size-4" /> اعتماد النتيجة النهائية
+                  </Button>
+                </div>
+              )
+            )}
+            {!editable && !r.finalized && <p className="mt-3 text-sm text-white/60">{op.open ? "القرار للجنة بصلاحية «قرارات لجنة التقييم — تعديل»." : "تُسجَّل القرارات حين تُفتح مدة اللجنة."}</p>}
+          </section>
         </div>
 
         <div className="space-y-4">
@@ -249,6 +355,7 @@ function Case({ id, user }: { id: string; user: StaffUser }) {
                   <span className="mt-0.5 block text-white/55">قيّم {Object.keys(p.stages).map(label).join("، ")}</span>
                 </li>
               ))}
+              {raters.length === 0 && <li className="text-white/55">لم يقيّم أحد المراحل.</li>}
             </ul>
             <p className="text-[11px] leading-5 text-white/50">هويات المقيّمين للجنة وحدها، ليصلوا إلى من يستدعونه. لا يراها الإداري ولا الإدارة.</p>
           </Box>
