@@ -221,7 +221,9 @@ function EvaluateOne({ who, onBack, editable }: { who: Evaluatee; onBack: () => 
 function Points({ who, editable }: { who: Evaluatee; editable: boolean }) {
   const user = useStaffUser()!;
   const toast = useToast();
-  const mine = useStore((s) => (s.evaluationPoints[who.id] ?? []).filter((p) => p.by.id === user.id));
+  // The store's own list (a stable reference), filtered here: a selector returning a new array each time loops for ever
+  const all = useStore((s) => s.evaluationPoints[who.id]);
+  const mine = useMemo(() => (all ?? []).filter((p) => p.by.id === user.id), [all, user.id]);
   const [sign, setSign] = useState<1 | -1>(1);
   const [value, setValue] = useState("5");
   const [reason, setReason] = useState("");
@@ -343,7 +345,8 @@ function Objection({ who }: { who: Evaluatee }) {
   const [tried, setTried] = useState(false);
   // Only what he objected to that this rater also scored or added concerns him: the stages he scored, the negatives he added
   const concerned = (objection?.stages ?? []).filter((k) => mine?.stages[k]);
-  const myPoints = useStore((s) => (s.evaluationPoints[who.id] ?? []).filter((p) => p.by.id === user.id && objection?.points?.includes(p.id)));
+  const points = useStore((s) => s.evaluationPoints[who.id]);
+  const myPoints = (points ?? []).filter((p) => p.by.id === user.id && objection?.points?.includes(p.id));
   if (!objection || (concerned.length === 0 && myPoints.length === 0)) return null;
   const label = (k: string) => stages.find((x) => x.key === k)?.label ?? k;
   const editable = win.open && can(user, "evaluate.evaluations.PUT");
