@@ -1,0 +1,171 @@
+[
+  {
+    "nationalId": "01033300871",
+    "position": "رئيس مجموعة",
+    "positions": [
+      "رئيس مجموعة"
+    ],
+    "languages": [
+      "العربية",
+      "الإنكليزية"
+    ],
+    "skills": [
+      "إسعافات أولية"
+    ],
+    "feePaidAt": "2026-09-21T09:00",
+    "receipt": "1448-A-000871",
+    "eligibleAt": "2026-09-28T09:00",
+    "exam": {
+      "role": "group-head",
+      "hall": "group-head@damascus",
+      "startedAt": "2026-10-07T09:02",
+      "submittedAt": "2026-10-07T09:21",
+      "by": "@nisreen"
+    },
+    "oral": {
+      "slotId": "oral-group-head-damascus-2026-10-17-0900",
+      "bookedAt": "2026-10-11T10:00",
+      "status": "passed",
+      "score": 88,
+      "by": "@mazen",
+      "at": "2026-10-17T09:25",
+      "note": "يعرف مجموعته وحجاجها، ويحسن التصرف في المواقف اليومية."
+    },
+    "group": {
+      "number": 27,
+      "capacity": 50,
+      "requestedAt": "2026-11-03T12:00",
+      "feePaidAt": "2026-11-03T12:20"
+    }
+  },
+  {
+    "nationalId": "01033300872",
+    "position": "معاون",
+    "previous": "1447 — معاون — تقييم 4.6",
+    "positions": [
+      "معاون"
+    ],
+    "feePaidAt": "2026-09-22T09:00",
+    "exam": {
+      "role": "group-deputy",
+      "hall": "group-deputy@damascus",
+      "startedAt": "2026-10-06T09:01",
+      "submittedAt": "2026-10-06T09:24",
+      "wrong": 3,
+      "by": "@nisreen"
+    },
+    "oral": {
+      "slotId": "oral-group-deputy-damascus-2026-10-14-1030",
+      "bookedAt": "2026-10-11T12:00",
+      "status": "passed",
+      "score": 81,
+      "by": "@mazen",
+      "at": "2026-10-14T10:50"
+    }
+  },
+  {
+    "nationalId": "01033301105",
+    "position": "موجّه ديني",
+    "positions": [
+      "موجّه ديني"
+    ],
+    "feePaidAt": "2026-09-23T09:00",
+    "exam": {
+      "role": "guide-m",
+      "hall": "guide-m@daraa",
+      "startedAt": "2026-10-04T09:03",
+      "submittedAt": "2026-10-04T09:19",
+      "wrong": 1,
+      "by": "مشرف قاعة درعا"
+    },
+    "oral": {
+      "slotId": "oral-guide-m-daraa-2026-10-12-0900",
+      "bookedAt": "2026-10-11T09:00",
+      "status": "passed",
+      "score": 93,
+      "by": "الشيخ محمد الحسني",
+      "at": "2026-10-12T09:30",
+      "note": "تلاوة متقنة وحفظ جيد، وأحكام المناسك حاضرة."
+    }
+  },
+  {
+    "nationalId": "01033301261",
+    "position": "منسق تقني",
+    "positions": [
+      "منسق تقني"
+    ],
+    "feePaidAt": "2026-09-24T09:00",
+    "exam": {
+      "role": "tech",
+      "hall": "tech@latakia",
+      "startedAt": "2026-10-08T09:02",
+      "submittedAt": "2026-10-08T09:23",
+      "wrong": 3,
+      "status": "unconfirmed",
+      "reason": "غادر القاعة قبل أن يكتب المشرف رمزه على جهازه"
+    }
+  },
+  {
+    "nationalId": "05022400335",
+    "position": "رئيس مجموعة",
+    "positions": [
+      "رئيس مجموعة"
+    ],
+    "feePaidAt": "2026-09-25T09:00",
+    "exam": {
+      "role": "group-head",
+      "hall": "group-head@latakia",
+      "startedAt": "2026-10-07T09:01",
+      "submittedAt": "2026-10-07T09:25",
+      "wrong": 8,
+      "by": "مشرف قاعة اللاذقية"
+    }
+  },
+  {
+    "nationalId": "02041700545",
+    "position": "رئيس مجموعة",
+    "positions": [
+      "رئيس مجموعة"
+    ],
+    "feePaidAt": "2026-09-21T09:00",
+    "exam": {
+      "role": "group-head",
+      "hall": "group-head@hama",
+      "startedAt": "2026-10-07T09:04",
+      "submittedAt": "2026-10-07T09:22",
+      "wrong": 1,
+      "by": "مشرف قاعة حماة"
+    },
+    "oral": {
+      "slotId": "oral-group-head-hama-2026-10-18-1030",
+      "bookedAt": "2026-10-12T18:00",
+      "status": "booked"
+    },
+    "group": {
+      "number": 8,
+      "capacity": 45,
+      "requestedAt": "2026-11-04T15:00",
+      "feePaidAt": "2026-11-04T15:12"
+    }
+  },
+  {
+    "nationalId": "01033300955",
+    "position": "رئيس مجموعة",
+    "previous": "1446، 1447 — معتمد (معفى من الاختبار بالتجديد)",
+    "positions": [
+      "رئيس مجموعة"
+    ],
+    "feePaidAt": "2026-09-21T09:00",
+    "eligibleAt": "2026-09-21T09:00",
+    "examExempt": true,
+    "group": {
+      "number": 5,
+      "clusterId": "al-nour",
+      "capacity": 50,
+      "requestedAt": "2026-11-02T10:00",
+      "feePaidAt": "2026-11-02T10:05",
+      "approvedAt": "2026-11-09T12:00",
+      "approvedBy": "@mazen"
+    }
+  }
+]

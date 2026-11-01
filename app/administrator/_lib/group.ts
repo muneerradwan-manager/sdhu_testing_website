@@ -1,7 +1,9 @@
+import DEFAULTS from "@/testdata/demo/defaults.json";
+import { ageOf, fullName, getPerson, personName, phoneOf } from "@/lib/registry";
 import { groupName } from "@/lib/groups";
-import { ageOf, fullName } from "@/lib/registry";
 import type { AdminProfile, Application, PostAcceptance } from "@/lib/store";
 import { seeded } from "@/lib/utils";
+import REQUESTS from "@/testdata/admins/group-requests.json";
 
 /**
  * Members of group 27 already in it before this demo (38 + the three seeded families = 44;
@@ -28,44 +30,28 @@ export type JoinRequest = {
 /** Needs that call for a room near the lift — forwarded to the tower supervisor automatically */
 export const LIFT_NEEDS = ["كرسي متحرك", "صعوبة في المشي", "أكسجين ليلي", "مرافقة كبير سن"];
 
-export const SEED_REQUESTS: JoinRequest[] = [
-  {
-    id: "seed-salim",
-    real: false,
-    applicant: "سليم حسن",
-    number: "5130",
-    kind: "enrolled",
-    receivedLabel: "ألحقه المكتب بعقده (رنا حداد) — قبل يومين",
-    note: "اتفق مع المجموعة ليكون مع جيرانه من حي المزة.",
-    members: [{ id: "01011105130", name: "سليم حسن", age: 66, gender: "M", relation: "صاحب الطلب", needs: ["ضغط الدم"] }],
-  },
-  {
-    id: "seed-saadi",
-    real: false,
-    applicant: "هشام عبد الكريم السعدي",
-    number: "4877",
-    kind: "enrolled",
-    receivedLabel: "ألحقه المكتب بعقده (رنا حداد) — قبل 5 ساعات",
-    members: [
-      { id: "01044404877", name: "هشام عبد الكريم السعدي", age: 71, gender: "M", relation: "صاحب الطلب", needs: ["كرسي متحرك", "سكري"] },
-      { id: "01044404878", name: "بلال هشام السعدي", age: 38, gender: "M", relation: "ابن — مرافق", needs: [] },
-    ],
-  },
-  {
-    id: "seed-hourani",
-    real: false,
-    applicant: "طارق محمود الحوراني",
-    number: "6215",
-    kind: "transfer",
-    receivedLabel: `انتقل من ${groupName(31)} بعقد جديد — رفعه المنسق سامر نجار واعتمده المكتب — قبل يوم`,
-    note: `انتقلت العائلة كاملة (3 أفراد) من ${groupName(31)} لتكون مع أقاربها.`,
-    members: [
-      { id: "01055506215", name: "طارق محمود الحوراني", age: 52, gender: "M", relation: "صاحب الطلب", needs: [] },
-      { id: "01055506216", name: "هالة جميل الشيخ", age: 47, gender: "F", relation: "زوجة", needs: [] },
-      { id: "01055506217", name: "أنس طارق الحوراني", age: 19, gender: "M", relation: "ابن", needs: [] },
-    ],
-  },
-];
+/** A member as a seed request lists him: his name, age and gender from the civil registry (testdata/people/citizens.json) */
+function citizen(id: string) {
+  const p = getPerson(id)!;
+  return { id, name: fullName(p), age: ageOf(p), gender: p.gender };
+}
+
+/** «{group:31}» and «{person:<id>}» in a seed's text: the group's name, and the person's from the civil registry */
+const fill = (text: string) => text.replace(/\{group:(\d+)\}/g, (_, n: string) => groupName(Number(n))).replace(/\{person:(\d+)\}/g, (_, id: string) => personName(id));
+
+/** The families attached to the demo's group before today (testdata/admins/group-requests.json): each member by id */
+export const SEED_REQUESTS: JoinRequest[] = (
+  REQUESTS as (Omit<JoinRequest, "applicant" | "members"> & { applicantId: string; members: { id: string; relation: string; needs: string[] }[] })[]
+).map(({ applicantId, members, ...r }) => ({
+  id: r.id,
+  real: r.real,
+  applicant: personName(applicantId, "full"),
+  number: r.number,
+  kind: r.kind,
+  receivedLabel: fill(r.receivedLabel),
+  ...(r.note !== undefined && { note: fill(r.note) }),
+  members: members.map((m) => ({ ...citizen(m.id), relation: m.relation, needs: m.needs })),
+}));
 
 const RELATIONS: Record<string, string> = {
   self: "صاحب الطلب",
@@ -183,7 +169,7 @@ const MEN = ["خالد", "بلال", "أنس", "طارق", "مصطفى", "إبر
 const WOMEN = ["سلمى", "رغد", "نور", "ميساء", "لبنى", "دعاء", "سمر", "إيمان", "هالة", "بشرى", "وفاء", "منى", "ريم", "سوسن"];
 const LASTS = ["الأحمد", "الحموي", "الدمشقي", "السعدي", "العلي", "الحسين", "الشيخ", "الإدلبي", "الحوراني", "المصري", "القباني", "الطباع", "الخياط", "النحاس"];
 
-export const MISSING_ID = "01011105130";
+export const MISSING_ID: string = DEFAULTS.missingPilgrimId;
 
 /**
  * A group's pilgrims (48 for group 27): real assigned families first, then stable generated members, each group's
@@ -217,7 +203,7 @@ export function buildRoster(
     });
   }
   const number = groupNumber ?? 27;
-  const salim: RosterEntry | null = number === 27 ? { id: MISSING_ID, name: "سليم حسن", age: 66, gender: "M", room: "1211", needs: ["ضغط الدم"], phone: "0933105130" } : null;
+  const salim: RosterEntry | null = number === 27 ? { id: MISSING_ID, name: personName(MISSING_ID), age: ageOf(getPerson(MISSING_ID)!), gender: "M", room: "1211", needs: ["ضغط الدم"], phone: phoneOf(MISSING_ID) } : null;
   const target = Math.max(opts.size ?? 48, real.length + 1);
   const rnd = seeded(`group-${number}-roster`);
   const filler: RosterEntry[] = [];

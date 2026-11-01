@@ -1,5 +1,8 @@
 "use client";
 
+import DEFAULTS from "@/testdata/demo/defaults.json";
+import { personName } from "@/lib/registry";
+import { staffName } from "@/lib/staff";
 import { Bus, ClipboardList, HeartPulse, Luggage, Tent, UserRoundSearch, Utensils } from "lucide-react";
 import type { ReactNode } from "react";
 import { SLA_MINUTES, type Zone } from "@/lib/data/staff-seed";
@@ -31,7 +34,7 @@ export const STATUS_LABEL: Record<Ticket["status"], string> = { open: "مفتو�
 
 export const ZONE_LABELS: Record<Zone, string> = { makkah: "مكة — الفندق", jamarat: "الجمرات", mina: "منى", muzdalifah: "مزدلفة", arafat: "عرفة" };
 
-export const ASSIGNEES = ["د. ليلى شمس — الفريق الطبي", "باسل النوري — المواصلات", "فادي سلوم — غرفة العمليات", "الفريق الميداني للتكتل", "مشرف الإعاشة", `أحمد الحمصي — رئيس ${groupName(27)}`];
+export const ASSIGNEES = [`${staffName("layla")} — الفريق الطبي`, `${staffName("bassel")} — المواصلات`, `${staffName("fadi")} — غرفة العمليات`, "الفريق الميداني للتكتل", "مشرف الإعاشة", `${personName(DEFAULTS.leaderId)} — رئيس ${groupName(27)}`];
 
 /** The systems that work tickets: the room all of them, the medical team its health ones, transport its own (`‹system›.tickets.…`) */
 export type TicketSystem = "operations" | "medical" | "transport";

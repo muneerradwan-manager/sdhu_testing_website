@@ -1,0 +1,152 @@
+{
+  "group-head": {
+    "minutes": 25,
+    "sections": [
+      {
+        "id": "admin",
+        "name": "القسم الإداري",
+        "categories": [
+          "إداري",
+          "تشغيلي",
+          "إدارة الحشود",
+          "نقل",
+          "إسعافات أولية",
+          "طوارئ"
+        ],
+        "draw": 14,
+        "pass": 50,
+        "order": "random"
+      },
+      {
+        "id": "sharia",
+        "name": "القسم الشرعي",
+        "categories": [
+          "ديني"
+        ],
+        "draw": 1,
+        "pass": 50,
+        "order": "random"
+      }
+    ]
+  },
+  "group-deputy": {
+    "minutes": 25,
+    "sections": [
+      {
+        "id": "admin",
+        "name": "القسم الإداري",
+        "categories": [
+          "إداري",
+          "تشغيلي",
+          "إدارة الحشود",
+          "نقل",
+          "إسعافات أولية",
+          "طوارئ"
+        ],
+        "draw": 14,
+        "pass": 50,
+        "order": "random"
+      },
+      {
+        "id": "sharia",
+        "name": "القسم الشرعي",
+        "categories": [
+          "ديني"
+        ],
+        "draw": 1,
+        "pass": 50,
+        "order": "random"
+      }
+    ]
+  },
+  "guide-m": {
+    "minutes": 25,
+    "sections": [
+      {
+        "id": "sharia",
+        "name": "القسم الشرعي",
+        "categories": [
+          "ديني"
+        ],
+        "draw": 10,
+        "pass": 50,
+        "order": "random"
+      },
+      {
+        "id": "admin",
+        "name": "القسم الإداري",
+        "categories": [
+          "إداري",
+          "تشغيلي",
+          "إدارة الحشود",
+          "نقل",
+          "إسعافات أولية",
+          "طوارئ"
+        ],
+        "draw": 5,
+        "pass": 50,
+        "order": "random"
+      }
+    ]
+  },
+  "guide-f": {
+    "minutes": 25,
+    "sections": [
+      {
+        "id": "sharia",
+        "name": "القسم الشرعي",
+        "categories": [
+          "ديني"
+        ],
+        "draw": 10,
+        "pass": 50,
+        "order": "random"
+      },
+      {
+        "id": "admin",
+        "name": "القسم الإداري",
+        "categories": [
+          "إداري",
+          "تشغيلي",
+          "إدارة الحشود",
+          "نقل",
+          "إسعافات أولية",
+          "طوارئ"
+        ],
+        "draw": 5,
+        "pass": 50,
+        "order": "random"
+      }
+    ]
+  },
+  "tech": {
+    "minutes": 25,
+    "sections": [
+      {
+        "id": "admin",
+        "name": "القسم الإداري",
+        "categories": [
+          "إداري",
+          "تشغيلي",
+          "إدارة الحشود",
+          "نقل",
+          "إسعافات أولية",
+          "طوارئ"
+        ],
+        "draw": 8,
+        "pass": 50,
+        "order": "random"
+      },
+      {
+        "id": "tech",
+        "name": "القسم التقني",
+        "categories": [
+          "تقني"
+        ],
+        "draw": 7,
+        "pass": 50,
+        "order": "random"
+      }
+    ]
+  }
+}

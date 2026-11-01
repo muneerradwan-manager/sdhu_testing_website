@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { actions, getState, type AdminProfile, type OralState } from "@/lib/store";
 import { seeded } from "@/lib/utils";
 import { EXAM_CENTERS } from "./halls";
@@ -20,8 +21,8 @@ export type OralSlot = { id: string; role: string; centerId: string; day: string
 const DAYS: Record<string, { days: string[]; committee: string[] }> = {
   "guide-m": { days: ["2026-10-12", "2026-10-13"], committee: ["الشيخ محمد الحسني", "الشيخ عبد الرزاق المصري"] },
   "guide-f": { days: ["2026-10-12", "2026-10-13"], committee: ["الداعية هدى الخطيب", "الداعية أمل السباعي"] },
-  "group-deputy": { days: ["2026-10-14", "2026-10-15"], committee: ["مازن الحلبي", "رولا الشامي"] },
-  "group-head": { days: ["2026-10-17", "2026-10-18"], committee: ["مازن الحلبي", "رولا الشامي", "الشيخ محمد الحسني"] },
+  "group-deputy": { days: ["2026-10-14", "2026-10-15"], committee: [staffName("mazen"), "رولا الشامي"] },
+  "group-head": { days: ["2026-10-17", "2026-10-18"], committee: [staffName("mazen"), "رولا الشامي", "الشيخ محمد الحسني"] },
   tech: { days: ["2026-10-19", "2026-10-20"], committee: ["رولا الشامي", "باسل العظمة"] },
 };
 const TIMES = ["09:00", "10:30", "12:00"];

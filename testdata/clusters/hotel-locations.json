@@ -1,0 +1,72 @@
+{
+  "al-nour": {
+    "makkah": {
+      "lat": 21.4108,
+      "lng": 39.8558
+    },
+    "madinah": {
+      "lat": 24.4645,
+      "lng": 39.6122
+    }
+  },
+  "al-safa": {
+    "makkah": {
+      "lat": 21.4246,
+      "lng": 39.8226
+    },
+    "madinah": {
+      "lat": 24.4686,
+      "lng": 39.6112
+    }
+  },
+  "al-yaqeen": {
+    "makkah": {
+      "lat": 21.3745,
+      "lng": 39.852
+    },
+    "madinah": {
+      "lat": 24.469,
+      "lng": 39.62
+    }
+  },
+  "al-shahba": {
+    "makkah": {
+      "lat": 21.3895,
+      "lng": 39.844
+    },
+    "madinah": {
+      "lat": 24.4675,
+      "lng": 39.6072
+    }
+  },
+  "al-asi": {
+    "makkah": {
+      "lat": 21.401,
+      "lng": 39.871
+    },
+    "madinah": {
+      "lat": 24.458,
+      "lng": 39.615
+    }
+  },
+  "bawabat-al-haramain": {
+    "makkah": {
+      "lat": 21.4228,
+      "lng": 39.8232
+    },
+    "madinah": {
+      "lat": 24.4681,
+      "lng": 39.611
+    }
+  },
+  "hawran": {
+    "makkah": {
+      "lat": 21.403,
+      "lng": 39.856
+    },
+    "madinah": {
+      "lat": 24.4628,
+      "lng": 39.6115
+    }
+  }
+}

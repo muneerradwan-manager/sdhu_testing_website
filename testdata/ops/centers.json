@@ -1,0 +1,178 @@
+[
+  {
+    "id": "ce47-mina-10",
+    "season": 1447,
+    "name": "مركز 10",
+    "mashaer": "mina",
+    "order": 10,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce47-mina-11",
+    "season": 1447,
+    "name": "مركز 11",
+    "mashaer": "mina",
+    "order": 11,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce47-mina-12",
+    "season": 1447,
+    "name": "مركز 12",
+    "mashaer": "mina",
+    "order": 12,
+    "company": "شركة أنوار المشاعر"
+  },
+  {
+    "id": "ce47-mina-14",
+    "season": 1447,
+    "name": "مركز 14",
+    "mashaer": "mina",
+    "order": 14,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce47-mina-15",
+    "season": 1447,
+    "name": "مركز 15",
+    "mashaer": "mina",
+    "order": 15,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce47-arafat-10",
+    "season": 1447,
+    "name": "مركز 10",
+    "mashaer": "arafat",
+    "order": 10,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce47-arafat-11",
+    "season": 1447,
+    "name": "مركز 11",
+    "mashaer": "arafat",
+    "order": 11,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce47-arafat-12",
+    "season": 1447,
+    "name": "مركز 12",
+    "mashaer": "arafat",
+    "order": 12,
+    "company": "شركة أنوار المشاعر"
+  },
+  {
+    "id": "ce47-arafat-14",
+    "season": 1447,
+    "name": "مركز 14",
+    "mashaer": "arafat",
+    "order": 14,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce47-arafat-15",
+    "season": 1447,
+    "name": "مركز 15",
+    "mashaer": "arafat",
+    "order": 15,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce48-mina-10",
+    "season": 1448,
+    "name": "مركز 10",
+    "mashaer": "mina",
+    "order": 10,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce48-mina-11",
+    "season": 1448,
+    "name": "مركز 11",
+    "mashaer": "mina",
+    "order": 11,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce48-mina-12",
+    "season": 1448,
+    "name": "مركز 12",
+    "mashaer": "mina",
+    "order": 12,
+    "company": "شركة أنوار المشاعر"
+  },
+  {
+    "id": "ce48-mina-14",
+    "season": 1448,
+    "name": "مركز 14",
+    "mashaer": "mina",
+    "order": 14,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce48-mina-15",
+    "season": 1448,
+    "name": "مركز 15",
+    "mashaer": "mina",
+    "order": 15,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce48-mina-16",
+    "season": 1448,
+    "name": "مركز 16",
+    "mashaer": "mina",
+    "order": 16,
+    "company": "شركة أنوار المشاعر"
+  },
+  {
+    "id": "ce48-arafat-10",
+    "season": 1448,
+    "name": "مركز 10",
+    "mashaer": "arafat",
+    "order": 10,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce48-arafat-11",
+    "season": 1448,
+    "name": "مركز 11",
+    "mashaer": "arafat",
+    "order": 11,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce48-arafat-12",
+    "season": 1448,
+    "name": "مركز 12",
+    "mashaer": "arafat",
+    "order": 12,
+    "company": "شركة أنوار المشاعر"
+  },
+  {
+    "id": "ce48-arafat-14",
+    "season": 1448,
+    "name": "مركز 14",
+    "mashaer": "arafat",
+    "order": 14,
+    "company": "شركة ركب الحجيج"
+  },
+  {
+    "id": "ce48-arafat-15",
+    "season": 1448,
+    "name": "مركز 15",
+    "mashaer": "arafat",
+    "order": 15,
+    "company": "شركة ضيوف البيت"
+  },
+  {
+    "id": "ce48-arafat-16",
+    "season": 1448,
+    "name": "مركز 16",
+    "mashaer": "arafat",
+    "order": 16,
+    "company": "شركة أنوار المشاعر"
+  }
+]

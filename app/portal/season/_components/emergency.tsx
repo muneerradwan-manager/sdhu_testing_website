@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertOctagon, ArrowRight, Ambulance, CheckCircle2, HeartPulse, Loader2, MapPin, Radio, Siren, Stethoscope, UserRound } from "lucide-react";
 import { useState } from "react";
@@ -18,10 +19,10 @@ import { SIM, TicketTimeline } from "./tickets";
 type EmergencyType = { kind: TicketKind; label: string; icon: string; route: string; sla: string; severity: Ticket["severity"]; assignee: string };
 
 const TYPES: EmergencyType[] = [
-  { kind: "health", label: "حالة صحية", icon: "🩺", route: "الفريق الطبي + رئيس المجموعة + غرفة العمليات", sla: "خلال 10 دقائق", severity: "high", assignee: "د. ليلى شمس — الفريق الطبي" },
-  { kind: "missing", label: "حاج مفقود", icon: "🧭", route: "غرفة العمليات مباشرة", sla: "فوري", severity: "critical", assignee: "فادي سلوم — غرفة العمليات" },
-  { kind: "transport", label: "نقل أو تأخر حافلة", icon: "🚌", route: "فريق المواصلات", sla: "خلال 30 دقيقة", severity: "medium", assignee: "هيثم زيدان — فريق المواصلات" },
-  { kind: "meal", label: "شكوى وجبة أو غرفة", icon: "🍽️", route: "مشرف البرج", sla: "خلال ساعتين", severity: "medium", assignee: "وسام خوري — مشرف البرج (ب)" },
+  { kind: "health", label: "حالة صحية", icon: "🩺", route: "الفريق الطبي + رئيس المجموعة + غرفة العمليات", sla: "خلال 10 دقائق", severity: "high", assignee: `${staffName("layla")} — الفريق الطبي` },
+  { kind: "missing", label: "حاج مفقود", icon: "🧭", route: "غرفة العمليات مباشرة", sla: "فوري", severity: "critical", assignee: `${staffName("fadi")} — غرفة العمليات` },
+  { kind: "transport", label: "نقل أو تأخر حافلة", icon: "🚌", route: "فريق المواصلات", sla: "خلال 30 دقيقة", severity: "medium", assignee: `${staffName("bassel")} — فريق المواصلات` },
+  { kind: "meal", label: "شكوى وجبة أو غرفة", icon: "🍽️", route: "مشرف البرج", sla: "خلال ساعتين", severity: "medium", assignee: `${staffName("wissam")} — مشرف البرج (ب)` },
 ];
 
 function locationFor(ctx: SeasonCtx, m: Member) {
@@ -161,7 +162,7 @@ function LiveEmergency({ ctx, ticket, onClose }: { ctx: SeasonCtx; ticket: Ticke
     ? [
         { who: "د. ليلى شمس", role: "عيادة الفندق — الفريق الطبي", icon: <Stethoscope className="size-5" /> },
         { who: ctx.group.leader, role: `رئيس ${groupName(ctx.group.number)}`, icon: <UserRound className="size-5" /> },
-        { who: "فادي سلوم", role: "غرفة العمليات", icon: <Radio className="size-5" /> },
+        { who: staffName("fadi"), role: "غرفة العمليات", icon: <Radio className="size-5" /> },
       ]
     : [{ who: ticket.assignee, role: "المستلم", icon: <Radio className="size-5" /> }];
 

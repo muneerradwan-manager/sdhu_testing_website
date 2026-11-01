@@ -1,7 +1,12 @@
 "use client";
 
+import { withStaffNames } from "@/lib/staff";
 import { useMemo } from "react";
-import { actions, getState, useStore, type Letter } from "@/lib/store";
+import { personName } from "@/lib/registry";
+import { actions, getState, useStore, type Letter, type LetterMessage } from "@/lib/store";
+import LETTERS_RAW from "@/testdata/admins/letters.json";
+
+const LETTERS = withStaffNames(LETTERS_RAW);
 
 /**
  * The letters between the administrators and the administration («المراسلات» on its platform): an administrator
@@ -34,46 +39,29 @@ export function unreadReplies(l: Letter) {
   return l.messages.filter((m) => m.from === "staff" && m.at > (l.adminReadAt ?? 0)).length;
 }
 
-/** The demo's letters from before today: invented writers among the season's people, invented staff */
-const day = (d: number, h = 10) => Date.UTC(2026, 9, d, h);
-export const SEED_LETTERS: Letter[] = [
-  {
-    id: "lt-1",
-    number: "م-1448-0112",
-    adminId: "01033300941",
-    adminName: "عماد الشامي",
-    subject: "تصحيح الفرع في ملفي",
-    kind: "طلب",
-    at: day(1, 9),
-    messages: [
-      { id: "lt-1a", from: "admin", name: "عماد الشامي", text: "السلام عليكم، ما زال فرعي في الملف حمص مع أني انتقلت إلى دمشق منذ الموسم الماضي. أرجو التصحيح قبل تشكيل التكتلات.", at: day(1, 9), file: "سند-إقامة.pdf" },
-      { id: "lt-1b", from: "staff", name: "مازن الحلبي", text: "وعليكم السلام. فرعك في الملف دمشق منذ 3 تشرين الثاني 1447 بطلبك، وهذا ما يراه رؤساء التكتلات. لا يلزمك شيء آخر.", at: day(1, 13) },
-    ],
-    readAt: day(1, 12),
-    adminReadAt: day(1, 18),
-  },
-  {
-    id: "lt-2",
-    number: "م-1448-0127",
-    adminId: "01033300982",
-    adminName: "سمر الخطيب",
-    subject: "موعد اختباري المؤتمت يتعارض مع دوامي",
-    kind: "استفسار",
-    at: day(5, 11),
-    messages: [{ id: "lt-2a", from: "admin", name: "سمر الخطيب", text: "هل يمكن أن أختبر في جلسة أخرى؟ يوم اختبار صفتي يتعارض مع دوام المدرسة.", at: day(5, 11) }],
-    readAt: day(5, 15),
-  },
-  {
-    id: "lt-3",
-    number: "م-1448-0131",
-    adminId: "01033300972",
-    adminName: "حسان المارديني",
-    subject: "لا تصلني رسائل الإدارة على تيليجرام",
-    kind: "إبلاغ عن مشكلة",
-    at: day(6, 20),
-    messages: [{ id: "lt-3a", from: "admin", name: "حسان المارديني", text: "بدأت البوت وأرسلت رمز الربط، ولا تصلني رسائل الإدارة. أرفقت صورة الشاشة.", at: day(6, 20), file: "صورة-الشاشة.png" }],
-  },
-];
+type RawLetter = Omit<Letter, "adminName" | "at" | "messages" | "readAt" | "adminReadAt"> & {
+  at: string;
+  readAt?: string;
+  adminReadAt?: string;
+  /** The administrator's own messages carry no name: his is the letter's writer's */
+  messages: (Omit<LetterMessage, "name" | "at"> & { name?: string; at: string })[];
+};
+
+/**
+ * The demo's letters from before today (testdata/admins/letters.json): invented writers among the season's people,
+ * by id, their names from the civil registry; invented staff by name. Times as ISO strings.
+ */
+export const SEED_LETTERS: Letter[] = (LETTERS as RawLetter[]).map(({ readAt, adminReadAt, ...l }) => {
+  const adminName = personName(l.adminId);
+  return {
+    ...l,
+    adminName,
+    at: Date.parse(l.at),
+    messages: l.messages.map((m) => ({ ...m, name: m.from === "admin" ? adminName : (m.name ?? ""), at: Date.parse(m.at) })),
+    ...(readAt && { readAt: Date.parse(readAt) }),
+    ...(adminReadAt && { adminReadAt: Date.parse(adminReadAt) }),
+  };
+});
 
 /** The latest moment in a letter's thread */
 export const lastAt = (l: Letter) => l.messages.at(-1)?.at ?? l.at;

@@ -1,0 +1,101 @@
+[
+  {
+    "clusterId": "al-nour",
+    "flightId": "f48-07"
+  },
+  {
+    "clusterId": "al-nour",
+    "flightId": "f48-11"
+  },
+  {
+    "clusterId": "al-nour",
+    "flightId": "f48-r07"
+  },
+  {
+    "clusterId": "al-nour",
+    "flightId": "f48-r11"
+  },
+  {
+    "clusterId": "al-nour",
+    "flightId": "f48-r13",
+    "seats": 60
+  },
+  {
+    "clusterId": "al-safa",
+    "flightId": "f48-01"
+  },
+  {
+    "clusterId": "al-safa",
+    "flightId": "f48-r01"
+  },
+  {
+    "clusterId": "al-yaqeen",
+    "flightId": "f48-02"
+  },
+  {
+    "clusterId": "al-yaqeen",
+    "flightId": "f48-r02"
+  },
+  {
+    "clusterId": "bawabat-al-haramain",
+    "flightId": "f48-03"
+  },
+  {
+    "clusterId": "bawabat-al-haramain",
+    "flightId": "f48-r03"
+  },
+  {
+    "clusterId": "al-shahba",
+    "flightId": "f48-04"
+  },
+  {
+    "clusterId": "al-shahba",
+    "flightId": "f48-r04"
+  },
+  {
+    "clusterId": "al-asi",
+    "flightId": "f48-05"
+  },
+  {
+    "clusterId": "al-asi",
+    "flightId": "f48-r05"
+  },
+  {
+    "clusterId": "ibn-al-walid",
+    "flightId": "f48-12"
+  },
+  {
+    "clusterId": "ibn-al-walid",
+    "flightId": "f48-r12"
+  },
+  {
+    "clusterId": "ibn-al-walid",
+    "flightId": "f48-r13",
+    "seats": 60
+  },
+  {
+    "clusterId": "al-yasmin",
+    "flightId": "f48-08",
+    "seats": 150
+  },
+  {
+    "clusterId": "al-yasmin",
+    "flightId": "f48-r08",
+    "seats": 150
+  },
+  {
+    "clusterId": "al-bayan",
+    "flightId": "f48-08",
+    "seats": 142
+  },
+  {
+    "clusterId": "al-bayan",
+    "flightId": "f48-r08",
+    "seats": 142
+  },
+  {
+    "clusterId": "al-bayan",
+    "flightId": "f48-r13",
+    "seats": 50
+  }
+]

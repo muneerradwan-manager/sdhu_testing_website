@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { motion } from "motion/react";
 import { BadgeCheck, CheckCircle2, FileUp, HeartPulse, Loader2, MessageCircle, Phone, Pill as PillIcon, Upload } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -34,7 +35,7 @@ export function StepMedical({ app, post, sessionId, stepLabel }: StepProps) {
     if (!pending.length) return;
     const t = setTimeout(() => {
       actions.setPost(sessionId, { medical: { ...medical, ...Object.fromEntries(pending.map(([k]) => [k, "approved" as const])) } });
-      actions.logEvent({ actor: "د. ليلى شمس (محاكاة)", role: "الفريق الطبي", action: "اعتماد وثائق طبية", target: `طلب ${app.number}`, detail: `${pending.length} وثائق` });
+      actions.logEvent({ actor: `${staffName("layla")} (محاكاة)`, role: "الفريق الطبي", action: "اعتماد وثائق طبية", target: `طلب ${app.number}`, detail: `${pending.length} وثائق` });
       toast({ title: "اعتمد الفريق الطبي الوثائق", body: "د. ليلى شمس — تُراعى الحالات في السكن والنقل والوجبات.", icon: "🩺", tone: "success" });
     }, REVIEW_MS);
     return () => clearTimeout(t);

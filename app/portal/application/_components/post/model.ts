@@ -25,6 +25,7 @@ import { accommodationCost } from "@/lib/rooms";
 import { DEFAULT_POST_STEPS } from "@/lib/registration/defaults";
 import { DOCS, docKey } from "@/lib/registration/post";
 import { actions, type AdminProfile, type Application, type DocStatus, type HealthFile, type PostAcceptance } from "@/lib/store";
+import DEFAULTS from "@/testdata/demo/defaults.json";
 
 export {
   DOCS,
@@ -45,9 +46,9 @@ export {
 } from "@/lib/registration/post";
 
 /** The leader of مجموعة اللطيف (key 27) in the administrator portal (lib/registry: أحمد سليمان الحمصي) */
-export const LEADER_ID = "01033300871";
+export const LEADER_ID = DEFAULTS.leaderId;
 /** The technical coordinator of مجموعة اللطيف (key 27) — he enrolls pilgrims into the group and takes their health files (lib/registry: سامر نبيل نجار) */
-export const COORDINATOR_ID = "01033300874";
+export const COORDINATOR_ID = DEFAULTS.coordinatorId;
 
 /** Restarting the demo: drop the group leader's "received" mark and the needs the health file wrote into the application */
 export function clearJoinDecisions(sessionId: string, admins: Record<string, AdminProfile>, app?: Application) {

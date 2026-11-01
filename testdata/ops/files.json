@@ -1,0 +1,2628 @@
+[
+  {
+    "id": "f47-housing",
+    "type": "makkah-housing",
+    "season": 1447,
+    "decisionNumber": "3142",
+    "startsOn": "2026-04-19",
+    "endsOn": "2026-06-10",
+    "startNote": "استلام الفنادق من الشركات المشغّلة بمحاضر رسمية قبل وصول أول فوج بثلاثة أيام.",
+    "endNote": "سُلّمت الفنادق كلها بعد ترحيل آخر فوج إلى المدينة المنورة في 24 ذو الحجة.",
+    "reportCadence": "daily",
+    "status": "active",
+    "activatedAt": 1775986200000,
+    "activatedBy": "@ghassan",
+    "createdAt": 1774692000000,
+    "createdBy": "@ghassan",
+    "members": [],
+    "nodes": [
+      {
+        "id": "s47-1",
+        "refId": "sc47-1",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-019",
+            "housingHotelId": "mk47-01"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-142",
+            "housingHotelId": "mk47-01"
+          }
+        ],
+        "children": [
+          {
+            "id": "t47-1-1",
+            "refId": "mk47-01",
+            "pilgrims": 600,
+            "clusters": [
+              "al-nour"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-018"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-102"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-136"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-091"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-089"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-096"
+              }
+            ]
+          },
+          {
+            "id": "t47-1-2",
+            "refId": "mk47-02",
+            "pilgrims": 480,
+            "clusters": [
+              "hawran"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-129"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-050"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-083"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-132"
+              }
+            ]
+          },
+          {
+            "id": "t47-1-3",
+            "refId": "mk47-03",
+            "pilgrims": 440,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-116"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-077"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-032"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-040"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s47-2",
+        "refId": "sc47-2",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-049",
+            "housingHotelId": "mk47-04"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-111",
+            "housingHotelId": "mk47-04"
+          }
+        ],
+        "children": [
+          {
+            "id": "t47-2-1",
+            "refId": "mk47-04",
+            "pilgrims": 400,
+            "clusters": [
+              "al-safa"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-048"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-024"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-042"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-053"
+              }
+            ]
+          },
+          {
+            "id": "t47-2-2",
+            "refId": "mk47-05",
+            "pilgrims": 300,
+            "clusters": [
+              "bawabat-al-haramain"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-033"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-030"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-086"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-118"
+              }
+            ]
+          },
+          {
+            "id": "t47-2-3",
+            "refId": "mk47-06",
+            "pilgrims": 360,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-140"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-044"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-056"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-039"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s47-3",
+        "refId": "sc47-3",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-038",
+            "housingHotelId": "mk47-07"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-115",
+            "housingHotelId": "mk47-07"
+          }
+        ],
+        "children": [
+          {
+            "id": "t47-3-1",
+            "refId": "mk47-07",
+            "pilgrims": 800,
+            "clusters": [
+              "al-yaqeen"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-093"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-052"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-088"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-128"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-123"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-145"
+              }
+            ]
+          },
+          {
+            "id": "t47-3-2",
+            "refId": "mk47-08",
+            "pilgrims": 520,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-143"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-078"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-105"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-029"
+              }
+            ]
+          },
+          {
+            "id": "t47-3-3",
+            "refId": "mk47-09",
+            "pilgrims": 450,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-051"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-138"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-139"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-133"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s47-4",
+        "refId": "sc47-4",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-095",
+            "housingHotelId": "mk47-10"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-080",
+            "housingHotelId": "mk47-10"
+          }
+        ],
+        "children": [
+          {
+            "id": "t47-4-1",
+            "refId": "mk47-10",
+            "pilgrims": 700,
+            "clusters": [
+              "al-shahba"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-090"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-064"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-099"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-113"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-035"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-074"
+              }
+            ]
+          },
+          {
+            "id": "t47-4-2",
+            "refId": "mk47-11",
+            "pilgrims": 500,
+            "clusters": [
+              "al-asi"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-045"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-121"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-065"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-057"
+              }
+            ]
+          },
+          {
+            "id": "t47-4-3",
+            "refId": "mk47-12",
+            "pilgrims": 420,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-055"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-130"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-110"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-120"
+              }
+            ]
+          },
+          {
+            "id": "t47-4-4",
+            "refId": "mk47-13",
+            "pilgrims": 380,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-127"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-026"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-098"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-028"
+              }
+            ]
+          },
+          {
+            "id": "t47-4-5",
+            "refId": "mk47-14",
+            "pilgrims": 540,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-069"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-072"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-092"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-094"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f48-housing",
+    "type": "makkah-housing",
+    "season": 1448,
+    "decisionNumber": "",
+    "startsOn": "2027-04-08",
+    "endsOn": "2027-05-31",
+    "startNote": "تصل طلائع البعثة قبل أول فوج بخمسة أيام لاستلام الفنادق وتجهيز الغرف.",
+    "reportCadence": "daily",
+    "status": "draft",
+    "createdAt": 1789902900000,
+    "createdBy": "@ghassan",
+    "members": [],
+    "nodes": [
+      {
+        "id": "s48-1",
+        "refId": "sc48-1",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-021"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-066",
+            "housingHotelId": "mk48-01"
+          }
+        ],
+        "children": [
+          {
+            "id": "t48-1-1",
+            "refId": "mk48-01",
+            "pilgrims": 600,
+            "clusters": [
+              "al-nour"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-018"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-050"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-082"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-023"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-071"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-136"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-006"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-150"
+              }
+            ]
+          },
+          {
+            "id": "t48-1-2",
+            "refId": "mk48-02",
+            "pilgrims": 450,
+            "clusters": [
+              "hawran"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-043"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-131"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-073"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-118"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-005"
+              }
+            ]
+          },
+          {
+            "id": "t48-1-3",
+            "refId": "mk48-03",
+            "pilgrims": 440,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-103"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-064"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-044"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-087"
+              }
+            ]
+          },
+          {
+            "id": "t48-1-4",
+            "refId": "mk48-04",
+            "pilgrims": 560,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-129"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-123"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-099"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-029"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s48-2",
+        "refId": "sc48-2",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-045",
+            "housingHotelId": "mk48-05"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-115",
+            "housingHotelId": "mk48-05"
+          }
+        ],
+        "children": [
+          {
+            "id": "t48-2-1",
+            "refId": "mk48-05",
+            "pilgrims": 400,
+            "clusters": [
+              "al-safa"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-114"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-054"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-076"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-106"
+              }
+            ]
+          },
+          {
+            "id": "t48-2-2",
+            "refId": "mk48-06",
+            "pilgrims": 300,
+            "clusters": [
+              "bawabat-al-haramain"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-142"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-107"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-092"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-052"
+              }
+            ]
+          },
+          {
+            "id": "t48-2-3",
+            "refId": "mk48-07",
+            "pilgrims": 380,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-049"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-116"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-036"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-145"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s48-3",
+        "refId": "sc48-3",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-113",
+            "housingHotelId": "mk48-08"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-143",
+            "housingHotelId": "mk48-08"
+          }
+        ],
+        "children": [
+          {
+            "id": "t48-3-1",
+            "refId": "mk48-08",
+            "pilgrims": 800,
+            "clusters": [
+              "al-yaqeen"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-124"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-128"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-053"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-140"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-055"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-098"
+              }
+            ]
+          },
+          {
+            "id": "t48-3-2",
+            "refId": "mk48-09",
+            "pilgrims": 460,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-138"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-105"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-127"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-110"
+              }
+            ]
+          },
+          {
+            "id": "t48-3-3",
+            "refId": "mk48-10",
+            "pilgrims": 600,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-069"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-077"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-091"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s48-4",
+        "refId": "sc48-4",
+        "members": [
+          {
+            "role": "sector-head",
+            "employeeId": "E-100",
+            "housingHotelId": "mk48-11"
+          },
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-051",
+            "housingHotelId": "mk48-11"
+          }
+        ],
+        "children": [
+          {
+            "id": "t48-4-1",
+            "refId": "mk48-11",
+            "pilgrims": 700,
+            "clusters": [
+              "al-shahba"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-060"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-046"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-028"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-030"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-074"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-101"
+              }
+            ]
+          },
+          {
+            "id": "t48-4-2",
+            "refId": "mk48-12",
+            "pilgrims": 500,
+            "clusters": [
+              "al-asi"
+            ],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-111"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-047"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-089"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-122"
+              }
+            ]
+          },
+          {
+            "id": "t48-4-3",
+            "refId": "mk48-13",
+            "pilgrims": 440,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-090"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-102"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-034"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s48-5",
+        "refId": "sc48-5",
+        "members": [
+          {
+            "role": "sector-deputy",
+            "employeeId": "E-086",
+            "housingHotelId": "mk48-14"
+          }
+        ],
+        "children": [
+          {
+            "id": "t48-5-1",
+            "refId": "mk48-14",
+            "pilgrims": 560,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-supervisor",
+                "employeeId": "E-038"
+              },
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-094"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-119"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-063"
+              }
+            ]
+          },
+          {
+            "id": "t48-5-2",
+            "refId": "mk48-15",
+            "pilgrims": 500,
+            "clusters": [],
+            "members": [
+              {
+                "role": "tower-deputy",
+                "employeeId": "E-080"
+              },
+              {
+                "role": "mission-member",
+                "employeeId": "E-144"
+              }
+            ]
+          },
+          {
+            "id": "t48-5-3",
+            "refId": "mk48-16",
+            "pilgrims": 420,
+            "clusters": [],
+            "members": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f47-madinah",
+    "type": "madinah-housing",
+    "season": 1447,
+    "decisionNumber": "3188",
+    "startsOn": "2026-06-06",
+    "endsOn": "2026-06-09",
+    "startNote": "تصل البعثة إلى المدينة المنورة بعد ترحيل آخر فوج، وتقيم ثلاثة أيام قبل العودة.",
+    "reportCadence": "none",
+    "status": "active",
+    "activatedAt": 1779958800000,
+    "activatedBy": "@ghassan",
+    "createdAt": 1779271200000,
+    "createdBy": "@ghassan",
+    "members": [],
+    "nodes": [
+      {
+        "id": "m47-1",
+        "refId": "md47-01",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-059"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-039"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-062"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-031"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-063"
+          }
+        ]
+      },
+      {
+        "id": "m47-2",
+        "refId": "md47-02",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-035"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-105"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-129"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-052"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-092"
+          }
+        ]
+      },
+      {
+        "id": "m47-3",
+        "refId": "md47-03",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-032"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-103"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-047"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-088"
+          }
+        ]
+      },
+      {
+        "id": "m47-4",
+        "refId": "md47-04",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-066"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-051"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-075"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-073"
+          }
+        ]
+      },
+      {
+        "id": "m47-5",
+        "refId": "md47-05",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-045"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-067"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-108"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f48-madinah",
+    "type": "madinah-housing",
+    "season": 1448,
+    "decisionNumber": "",
+    "startsOn": "2027-05-25",
+    "endsOn": "2027-05-28",
+    "reportCadence": "none",
+    "status": "draft",
+    "createdAt": 1790074800000,
+    "createdBy": "@ghassan",
+    "members": [],
+    "nodes": [
+      {
+        "id": "m48-1",
+        "refId": "md48-01",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-045"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-029"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-121"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-099"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-066"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-046"
+          }
+        ]
+      },
+      {
+        "id": "m48-2",
+        "refId": "md48-02",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-022"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-038"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-028"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-057"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-036"
+          }
+        ]
+      },
+      {
+        "id": "m48-3",
+        "refId": "md48-03",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-113"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-111"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-094"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-085"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-033"
+          }
+        ]
+      },
+      {
+        "id": "m48-4",
+        "refId": "md48-04",
+        "children": [],
+        "members": [
+          {
+            "role": "madinah-member",
+            "employeeId": "E-051"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-138"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-048"
+          },
+          {
+            "role": "madinah-member",
+            "employeeId": "E-120"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f47-mina",
+    "type": "mina-camps",
+    "season": 1447,
+    "decisionNumber": "3173",
+    "startsOn": "2026-05-23",
+    "endsOn": "2026-05-30",
+    "reportCadence": "daily",
+    "status": "active",
+    "createdAt": 1777539600000,
+    "createdBy": "@ghassan",
+    "members": [
+      {
+        "role": "coaster-lead",
+        "employeeId": "E-055"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-090"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-080"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-027"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-048"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "o47-mina-10",
+        "refId": "ce47-mina-10",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-116"
+          },
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-095"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-mina-41",
+            "refId": "cp47-mina-41",
+            "pilgrims": 420,
+            "clusters": [],
+            "tent": "الخيمة 27",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-136"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-139"
+              }
+            ]
+          },
+          {
+            "id": "n47-mina-42",
+            "refId": "cp47-mina-42",
+            "pilgrims": 600,
+            "clusters": [
+              "al-nour"
+            ],
+            "tent": "الخيمة 12 (نقطة التجمّع)",
+            "bodies": "الإدارة الصحية — عيادة المخيم",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-084"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-089"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-018"
+              }
+            ]
+          },
+          {
+            "id": "n47-mina-43",
+            "refId": "cp47-mina-43",
+            "pilgrims": 450,
+            "clusters": [
+              "hawran"
+            ],
+            "tent": "الخيمة 13",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-140"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-031"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-mina-11",
+        "refId": "ce47-mina-11",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-049"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-mina-44",
+            "refId": "cp47-mina-44",
+            "pilgrims": 400,
+            "clusters": [
+              "al-safa"
+            ],
+            "tent": "الخيمة 18",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-108"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-067"
+              }
+            ]
+          },
+          {
+            "id": "n47-mina-45",
+            "refId": "cp47-mina-45",
+            "pilgrims": 300,
+            "clusters": [
+              "bawabat-al-haramain"
+            ],
+            "tent": "الخيمة 26",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-072"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-134"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-mina-12",
+        "refId": "ce47-mina-12",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-096"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-mina-46",
+            "refId": "cp47-mina-46",
+            "pilgrims": 800,
+            "clusters": [
+              "al-yaqeen"
+            ],
+            "tent": "الخيمة 32",
+            "bodies": "مكتب الإرشاد الديني",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-032"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-144"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-024"
+              }
+            ]
+          },
+          {
+            "id": "n47-mina-47",
+            "refId": "cp47-mina-47",
+            "pilgrims": 330,
+            "clusters": [],
+            "tent": "الخيمة 10",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-026"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-109"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-mina-14",
+        "refId": "ce47-mina-14",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-045"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-mina-49",
+            "refId": "cp47-mina-49",
+            "pilgrims": 630,
+            "clusters": [],
+            "tent": "الخيمة 23",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-094"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-076"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-077"
+              }
+            ]
+          },
+          {
+            "id": "n47-mina-50",
+            "refId": "cp47-mina-50",
+            "pilgrims": 410,
+            "clusters": [],
+            "tent": "الخيمة 31",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-052"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-073"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-mina-15",
+        "refId": "ce47-mina-15",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-141"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-mina-53",
+            "refId": "cp47-mina-53",
+            "pilgrims": 500,
+            "clusters": [
+              "al-asi"
+            ],
+            "tent": "الخيمة 21",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-131"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-037"
+              }
+            ]
+          },
+          {
+            "id": "n47-mina-54",
+            "refId": "cp47-mina-54",
+            "pilgrims": 340,
+            "clusters": [],
+            "tent": "الخيمة 29",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-143"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-135"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "activatedAt": 1778407200000,
+    "activatedBy": "@ghassan",
+    "startNote": "أُدير المركزان 10 و12 بمشرفَين لكل منهما لكثرة مخيماتهما.",
+    "endNote": "غادر آخر حاج منى في 13 ذو الحجة بعد رمي الجمرات."
+  },
+  {
+    "id": "f47-arafat",
+    "type": "arafat-camps",
+    "season": 1447,
+    "decisionNumber": "3172",
+    "startsOn": "2026-05-24",
+    "endsOn": "2026-05-26",
+    "reportCadence": "daily",
+    "status": "active",
+    "createdAt": 1777539600000,
+    "createdBy": "@ghassan",
+    "members": [],
+    "nodes": [
+      {
+        "id": "o47-arafat-10",
+        "refId": "ce47-arafat-10",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-049"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-arafat-110",
+            "refId": "cp47-arafat-110",
+            "pilgrims": 600,
+            "clusters": [
+              "al-nour"
+            ],
+            "tent": "الخيمة 30",
+            "bodies": "الإدارة الصحية — عيادة المخيم",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-090"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-034"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-018"
+              }
+            ]
+          },
+          {
+            "id": "n47-arafat-111",
+            "refId": "cp47-arafat-111",
+            "pilgrims": 450,
+            "clusters": [
+              "hawran"
+            ],
+            "tent": "الخيمة 38",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-123"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-071"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-arafat-11",
+        "refId": "ce47-arafat-11",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-132"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-arafat-112",
+            "refId": "cp47-arafat-112",
+            "pilgrims": 400,
+            "clusters": [
+              "al-safa"
+            ],
+            "tent": "الخيمة 14",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-024"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-075"
+              }
+            ]
+          },
+          {
+            "id": "n47-arafat-113",
+            "refId": "cp47-arafat-113",
+            "pilgrims": 300,
+            "clusters": [
+              "bawabat-al-haramain"
+            ],
+            "tent": "الخيمة 22",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-088"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-134"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-arafat-12",
+        "refId": "ce47-arafat-12",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-051"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-arafat-114",
+            "refId": "cp47-arafat-114",
+            "pilgrims": 800,
+            "clusters": [
+              "al-yaqeen"
+            ],
+            "tent": "الخيمة 28",
+            "bodies": "أعضاء اللجنة الاعتبارية",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-053"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-104"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-026"
+              }
+            ]
+          },
+          {
+            "id": "n47-arafat-115",
+            "refId": "cp47-arafat-115",
+            "pilgrims": 390,
+            "clusters": [],
+            "tent": "الخيمة 36",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-094"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-126"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-arafat-14",
+        "refId": "ce47-arafat-14",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-103"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-arafat-117",
+            "refId": "cp47-arafat-117",
+            "pilgrims": 640,
+            "clusters": [],
+            "tent": "الخيمة 19",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-046"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-145"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-102"
+              }
+            ]
+          },
+          {
+            "id": "n47-arafat-118",
+            "refId": "cp47-arafat-118",
+            "pilgrims": 700,
+            "clusters": [
+              "al-shahba"
+            ],
+            "tent": "الخيمة 27",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-118"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-101"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o47-arafat-15",
+        "refId": "ce47-arafat-15",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-045"
+          }
+        ],
+        "children": [
+          {
+            "id": "n47-arafat-120",
+            "refId": "cp47-arafat-120",
+            "pilgrims": 500,
+            "clusters": [
+              "al-asi"
+            ],
+            "tent": "الخيمة 10",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-106"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-135"
+              }
+            ]
+          },
+          {
+            "id": "n47-arafat-121",
+            "refId": "cp47-arafat-121",
+            "pilgrims": 330,
+            "clusters": [],
+            "tent": "الخيمة 18",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-030"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-139"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "activatedAt": 1778409000000,
+    "activatedBy": "@ghassan",
+    "endNote": "اكتمل الدفع إلى مزدلفة بعد الغروب دون حالات تأخر."
+  },
+  {
+    "id": "f48-mina",
+    "type": "mina-camps",
+    "season": 1448,
+    "decisionNumber": "",
+    "startsOn": "2027-05-12",
+    "endsOn": "2027-05-19",
+    "reportCadence": "daily",
+    "status": "draft",
+    "createdAt": 1790067600000,
+    "createdBy": "@ghassan",
+    "members": [
+      {
+        "role": "coaster-lead",
+        "employeeId": "E-150"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-090"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-062"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-080"
+      },
+      {
+        "role": "coaster-member",
+        "employeeId": "E-048"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "o48-mina-10",
+        "refId": "ce48-mina-10",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-103"
+          },
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-019"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-mina-41",
+            "refId": "cp48-mina-41",
+            "pilgrims": 440,
+            "clusters": [],
+            "tent": "الخيمة 27",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-044"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-042"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-42",
+            "refId": "cp48-mina-42",
+            "pilgrims": 600,
+            "clusters": [
+              "al-nour"
+            ],
+            "tent": "الخيمة 12 (نقطة التجمّع)",
+            "bodies": "الإدارة الصحية — عيادة المخيم",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-052"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-145"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-018"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-006"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-43",
+            "refId": "cp48-mina-43",
+            "pilgrims": 450,
+            "clusters": [
+              "hawran"
+            ],
+            "tent": "الخيمة 13",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-032"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-063"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-mina-11",
+        "refId": "ce48-mina-11",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-143"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-mina-44",
+            "refId": "cp48-mina-44",
+            "pilgrims": 400,
+            "clusters": [
+              "al-safa"
+            ],
+            "tent": "الخيمة 18",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-069"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-091"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-45",
+            "refId": "cp48-mina-45",
+            "pilgrims": 300,
+            "clusters": [
+              "bawabat-al-haramain"
+            ],
+            "tent": "الخيمة 26",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-102"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-031"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-mina-12",
+        "refId": "ce48-mina-12",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-043"
+          },
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-124"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-mina-46",
+            "refId": "cp48-mina-46",
+            "pilgrims": 800,
+            "clusters": [
+              "al-yaqeen"
+            ],
+            "tent": "الخيمة 32",
+            "bodies": "مكتب الإرشاد الديني",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-087"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-029"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-121"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-47",
+            "refId": "cp48-mina-47",
+            "pilgrims": 400,
+            "clusters": [],
+            "tent": "الخيمة 10",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-131"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-144"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-48",
+            "refId": "cp48-mina-48",
+            "pilgrims": 360,
+            "clusters": [],
+            "tent": "الخيمة 18",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-033"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-067"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-mina-14",
+        "refId": "ce48-mina-14",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-094"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-mina-51",
+            "refId": "cp48-mina-51",
+            "pilgrims": 700,
+            "clusters": [
+              "al-shahba"
+            ],
+            "tent": "الخيمة 37",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-086"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-035"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-045"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-52",
+            "refId": "cp48-mina-52",
+            "pilgrims": 400,
+            "clusters": [],
+            "tent": "الخيمة 15",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-053"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-119"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-mina-15",
+        "refId": "ce48-mina-15",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-100"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-mina-53",
+            "refId": "cp48-mina-53",
+            "pilgrims": 500,
+            "clusters": [
+              "al-asi"
+            ],
+            "tent": "الخيمة 21",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-050"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-101"
+              }
+            ]
+          },
+          {
+            "id": "n48-mina-54",
+            "refId": "cp48-mina-54",
+            "pilgrims": 320,
+            "clusters": [],
+            "tent": "الخيمة 29",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-038"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-034"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-mina-16",
+        "refId": "ce48-mina-16",
+        "members": [],
+        "children": [
+          {
+            "id": "n48-mina-55",
+            "refId": "cp48-mina-55",
+            "pilgrims": 400,
+            "clusters": [],
+            "tent": "الخيمة 35",
+            "members": []
+          },
+          {
+            "id": "n48-mina-56",
+            "refId": "cp48-mina-56",
+            "pilgrims": 400,
+            "clusters": [],
+            "tent": "الخيمة 13",
+            "members": []
+          }
+        ]
+      }
+    ],
+    "startNote": "المركز 16 جديد هذا الموسم، ولم يُسمَّ مشرفه بعد."
+  },
+  {
+    "id": "f48-arafat",
+    "type": "arafat-camps",
+    "season": 1448,
+    "decisionNumber": "",
+    "startsOn": "2027-05-13",
+    "endsOn": "2027-05-15",
+    "reportCadence": "daily",
+    "status": "draft",
+    "createdAt": 1790067600000,
+    "createdBy": "@ghassan",
+    "members": [],
+    "nodes": [
+      {
+        "id": "o48-arafat-10",
+        "refId": "ce48-arafat-10",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-143"
+          },
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-019"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-arafat-110",
+            "refId": "cp48-arafat-110",
+            "pilgrims": 600,
+            "clusters": [
+              "al-nour"
+            ],
+            "tent": "الخيمة 30",
+            "bodies": "الإدارة الصحية — عيادة المخيم",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-096"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-073"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-018"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-006"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-111",
+            "refId": "cp48-arafat-111",
+            "pilgrims": 450,
+            "clusters": [
+              "hawran"
+            ],
+            "tent": "الخيمة 38",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-080"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-145"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-arafat-11",
+        "refId": "ce48-arafat-11",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-047"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-arafat-112",
+            "refId": "cp48-arafat-112",
+            "pilgrims": 400,
+            "clusters": [
+              "al-safa"
+            ],
+            "tent": "الخيمة 14",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-032"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-134"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-113",
+            "refId": "cp48-arafat-113",
+            "pilgrims": 300,
+            "clusters": [
+              "bawabat-al-haramain"
+            ],
+            "tent": "الخيمة 22",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-138"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-029"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-arafat-12",
+        "refId": "ce48-arafat-12",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-132"
+          },
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-051"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-arafat-114",
+            "refId": "cp48-arafat-114",
+            "pilgrims": 800,
+            "clusters": [
+              "al-yaqeen"
+            ],
+            "tent": "الخيمة 28",
+            "bodies": "أعضاء اللجنة الاعتبارية",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-050"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-034"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-042"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-115",
+            "refId": "cp48-arafat-115",
+            "pilgrims": 390,
+            "clusters": [],
+            "tent": "الخيمة 36",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-142"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-133"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-116",
+            "refId": "cp48-arafat-116",
+            "pilgrims": 320,
+            "clusters": [],
+            "tent": "الخيمة 14",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-038"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-101"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-arafat-14",
+        "refId": "ce48-arafat-14",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-113"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-arafat-118",
+            "refId": "cp48-arafat-118",
+            "pilgrims": 700,
+            "clusters": [
+              "al-shahba"
+            ],
+            "tent": "الخيمة 26",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-033"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-065"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-098"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-119",
+            "refId": "cp48-arafat-119",
+            "pilgrims": 400,
+            "clusters": [],
+            "tent": "الخيمة 34",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-108"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-089"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-arafat-15",
+        "refId": "ce48-arafat-15",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-060"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-arafat-120",
+            "refId": "cp48-arafat-120",
+            "pilgrims": 500,
+            "clusters": [
+              "al-asi"
+            ],
+            "tent": "الخيمة 10",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-053"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-119"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-121",
+            "refId": "cp48-arafat-121",
+            "pilgrims": 380,
+            "clusters": [],
+            "tent": "الخيمة 18",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-077"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-081"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "o48-arafat-16",
+        "refId": "ce48-arafat-16",
+        "members": [
+          {
+            "role": "center-supervisor",
+            "employeeId": "E-129"
+          }
+        ],
+        "children": [
+          {
+            "id": "n48-arafat-122",
+            "refId": "cp48-arafat-122",
+            "pilgrims": 380,
+            "clusters": [],
+            "tent": "الخيمة 24",
+            "members": [
+              {
+                "role": "camp-member",
+                "employeeId": "E-099"
+              },
+              {
+                "role": "camp-member",
+                "employeeId": "E-076"
+              }
+            ]
+          },
+          {
+            "id": "n48-arafat-123",
+            "refId": "cp48-arafat-123",
+            "pilgrims": 380,
+            "clusters": [],
+            "tent": "الخيمة 32",
+            "members": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "f47-flights",
+    "type": "flights",
+    "season": 1447,
+    "reportCadence": "none",
+    "createdAt": 1775383200000,
+    "createdBy": "@ghassan",
+    "members": [
+      {
+        "role": "flights-supervisor",
+        "employeeId": "E-007"
+      },
+      {
+        "role": "flights-supervisor",
+        "employeeId": "E-149"
+      }
+    ],
+    "nodes": [],
+    "decisionNumber": "3120",
+    "startsOn": "2026-04-15",
+    "endsOn": "2026-06-04",
+    "status": "active",
+    "activatedAt": 1775811600000,
+    "activatedBy": "@ghassan"
+  },
+  {
+    "id": "f48-flights",
+    "type": "flights",
+    "season": 1448,
+    "reportCadence": "none",
+    "createdAt": 1788602400000,
+    "createdBy": "@ghassan",
+    "members": [
+      {
+        "role": "flights-supervisor",
+        "employeeId": "E-007"
+      },
+      {
+        "role": "flights-supervisor",
+        "employeeId": "E-149"
+      }
+    ],
+    "nodes": [],
+    "decisionNumber": "",
+    "startsOn": "2027-04-08",
+    "endsOn": "2027-06-04",
+    "status": "draft"
+  },
+  {
+    "id": "f47-committee",
+    "type": "evaluation-committee",
+    "season": 1447,
+    "reportCadence": "none",
+    "createdAt": 1775383200000,
+    "createdBy": "@ghassan",
+    "members": [
+      {
+        "role": "committee-member",
+        "employeeId": "E-008"
+      },
+      {
+        "role": "committee-member",
+        "employeeId": "E-147"
+      },
+      {
+        "role": "committee-member",
+        "employeeId": "E-002"
+      }
+    ],
+    "nodes": [],
+    "decisionNumber": "3201",
+    "startsOn": "2026-06-18",
+    "endsOn": "2026-06-27",
+    "status": "active",
+    "activatedAt": 1781082000000,
+    "activatedBy": "@ghassan"
+  },
+  {
+    "id": "f48-committee",
+    "type": "evaluation-committee",
+    "season": 1448,
+    "reportCadence": "none",
+    "createdAt": 1788602400000,
+    "createdBy": "@ghassan",
+    "members": [
+      {
+        "role": "committee-member",
+        "employeeId": "E-008"
+      },
+      {
+        "role": "committee-member",
+        "employeeId": "E-147"
+      },
+      {
+        "role": "committee-member",
+        "employeeId": "E-002"
+      }
+    ],
+    "nodes": [],
+    "decisionNumber": "",
+    "startsOn": "2027-06-18",
+    "endsOn": "2027-06-27",
+    "status": "draft"
+  }
+]

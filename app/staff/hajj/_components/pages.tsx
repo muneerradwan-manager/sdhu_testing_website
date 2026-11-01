@@ -18,6 +18,7 @@ import { Segments, Switch, selectClass } from "../../exam/_components/ui";
 import { ConditionEditor, ContentEditor } from "./builders";
 import { Box, IssuesFor, Kind, ListTable, RowActions, RowLink, Title, move, newId, useRegEditor } from "./editor";
 import { AUDIENCES, PresetPicker, QuestionList, presetLabel } from "./questions";
+import DEFAULTS from "@/testdata/demo/defaults.json";
 
 /** What the platform does on each essential page, in a line */
 const ESSENTIAL: Record<string, string> = {
@@ -226,7 +227,7 @@ function Editor({ initial, isNew: opened, defaultAfter }: { initial: StageDef; i
   // Against what is stored now (after a save the page and its place are the stored ones)
   const stored = ed.config.stages[at];
   const dirty = !stored || JSON.stringify(s) !== JSON.stringify(stored) || after !== (at > 0 ? ed.config.stages[at - 1].id : "__first");
-  const me = getPerson("01012345412")!;
+  const me = getPerson(DEFAULTS.demoPilgrim)!;
 
   const save = () => {
     if (!system && !s.title.trim()) return toast({ title: "اكتب عنوان الصفحة أولاً", icon: "✏️", tone: "gold" });

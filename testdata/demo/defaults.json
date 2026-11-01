@@ -1,0 +1,17 @@
+{
+  "demoPilgrim": "01012345412",
+  "leaderId": "01033300871",
+  "coordinatorId": "01033300874",
+  "accountPassword": "hajj1448",
+  "emergencyContact": {
+    "name": "سارة",
+    "relation": "ابنتي",
+    "phone": "0933000412"
+  },
+  "missingPilgrimId": "01011105130",
+  "clusterDemo": {
+    "head": "01033300881",
+    "bassam": "01033300883",
+    "next": "01033300882"
+  }
+}

@@ -9,7 +9,7 @@
  */
 import { firstPayment, seasonPlan } from "./installments";
 import { applicationNumberFor } from "./journey";
-import { DEMO_SCENARIOS, getPerson, type Person } from "./registry";
+import { DEMO_SCENARIOS, getPerson, personName, type Person } from "./registry";
 import type { Member } from "./rules";
 import { SEASON, officeFor } from "./season";
 import { attachByStaff, DEMO_ATTACHER, demoContractFile } from "./assignment";
@@ -18,35 +18,16 @@ import { simulateGroupFlights } from "./flights";
 import { actions, getState, type Application, type StoreState } from "./store";
 import { COORDINATOR_ID, demoHealth, recordHealth } from "@/app/portal/application/_components/post/model";
 import { demoVisaNumber } from "@/lib/visas";
+import SEEDED from "@/testdata/pilgrims/scenario-applications.json";
 
 const member = (p: Person, relation: Member["relation"], extra: Partial<Member> = {}): Member => ({ person: p, relation, relationVerified: true, needs: [], ...extra });
 
-/** Members of each seeded family, applicant first */
-const FAMILIES: Record<string, { id: string; relation: Member["relation"]; companionOf?: string }[]> = {
-  "01066600620": [
-    { id: "01066600620", relation: "self" },
-    { id: "01066600621", relation: "spouse" },
-  ],
-  "01088800910": [
-    { id: "01088800910", relation: "self" },
-    { id: "01088800911", relation: "spouse" },
-  ],
-  "01055500730": [
-    { id: "01055500730", relation: "self" },
-    { id: "01055500731", relation: "child", companionOf: "01055500730" },
-  ],
-  "01044400750": [
-    { id: "01044400750", relation: "self" },
-    { id: "01044400751", relation: "spouse" },
-  ],
-  "01058200970": [
-    { id: "01058200970", relation: "self" },
-    { id: "01058200971", relation: "spouse" },
-  ],
+/** Members of each seeded family, applicant first; «complete»'s group: مجموعة اللطيف in تكتل النور, whose team the
+ * demo administrators are (testdata/pilgrims/scenario-applications.json) */
+const { families: FAMILIES, completeGroup: COMPLETE_GROUP } = SEEDED as {
+  families: Record<string, { id: string; relation: Member["relation"]; companionOf?: string }[]>;
+  completeGroup: { clusterId: string; number: number };
 };
-
-/** «complete»'s group: مجموعة اللطيف in تكتل النور, whose team the demo administrators are */
-const COMPLETE_GROUP = { clusterId: "al-nour", number: 27 };
 
 export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applications">, now: number) {
   const scenario = DEMO_SCENARIOS.find((s) => s.id === id);
@@ -113,7 +94,7 @@ function completeSteps(id: string, app: Application, now: number) {
   const docs = Object.fromEntries(app.members.flatMap((m) => (["photo", "passport"] as const).map((d) => [docKey(m, d), "approved" as const])));
   actions.setPost(id, { confirmedAt: now - 80 * day, documents: docs, accommodation: { kind: "general" }, ratings: {}, payments: {} });
   attachByStaff({ sessionId: id, app, post: undefined, group: COMPLETE_GROUP, staff: DEMO_ATTACHER, file: demoContractFile(app, COMPLETE_GROUP.number), at: now - 60 * day });
-  const health = { ...demoHealth(app.members, { id: COORDINATOR_ID, name: "سامر نجار" }, now - 50 * day), confirmedAt: now - 49 * day };
+  const health = { ...demoHealth(app.members, { id: COORDINATOR_ID, name: personName(COORDINATOR_ID) }, now - 50 * day), confirmedAt: now - 49 * day };
   recordHealth(id, app, health);
   const medical = Object.fromEntries(app.members.flatMap((m) => medicalDocsFor(m, health).map((d) => [medicalKey(m, d), "approved" as const])));
   const lines = costLines(app, { hajjCost: SEASON.fees.hajjCost, firstInstallment: SEASON.fees.firstInstallment, hady: SEASON.fees.hady });

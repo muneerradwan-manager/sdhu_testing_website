@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowLeftRight,
@@ -45,7 +46,7 @@ export function StepGroup({ app, post, sessionId, stepLabel }: StepProps) {
     toast({ title: `ألحقكم المكتب ب${groupName(DEMO_GROUP.number)}`, body: "وقّعتم العقد في المكتب، ورفعه موظف المكتب مع إلحاقكم.", icon: "✅", tone: "success" });
   };
   const approve = () => {
-    decideContract({ sessionId, app, post, status: "approved", by: { name: "رنا حداد (محاكاة)", role: "إدارة التسجيل" }, at: Date.now() });
+    decideContract({ sessionId, app, post, status: "approved", by: { name: `${staffName("rana")} (محاكاة)`, role: "إدارة التسجيل" }, at: Date.now() });
     toast({ title: "اعتمد المكتب عقدكم", body: "أنتم الآن في المجموعة.", icon: "✅", tone: "success" });
   };
   return (

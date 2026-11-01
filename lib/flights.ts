@@ -1,4 +1,13 @@
+import DEMO_GROUP from "@/testdata/journey/group.json";
 import { useMemo } from "react";
+import AIRPORTS from "@/testdata/flights/airports.json";
+import CARRIERS from "@/testdata/flights/carriers.json";
+import FLIGHTS from "@/testdata/flights/flights.json";
+import ALLOTMENTS from "@/testdata/flights/allotments.json";
+import GROUP_PLAN from "@/testdata/flights/group-plan.json";
+import STAFF_PARTIES from "@/testdata/flights/staff-parties.json";
+import HOME_YARDS from "@/testdata/flights/home-yards.json";
+import NAME_POOLS from "@/testdata/flights/name-pools.json";
 import { requestNow } from "@/app/administrator/_lib/directory";
 import { SEED_CLUSTERS, acceptedGroups, asGroup } from "@/app/administrator/_lib/cluster";
 import { structureNow } from "@/app/administrator/_lib/structure";
@@ -6,11 +15,11 @@ import { CLUSTERS } from "./data/clusters";
 import { groupName, groupShort } from "./groups";
 import { SEASON } from "./season";
 import { actions, getState, setState, useStore, type AdminProfile, type Application, type PostAcceptance } from "./store";
-import { fullName, ageOf } from "./registry";
+import { fullName, ageOf, personName } from "./registry";
 import { seeded } from "./utils";
-import { EMPLOYEES_SEED, NAMED_EMPLOYEES } from "./data/employees-seed";
+import { EMPLOYEES_SEED } from "./data/employees-seed";
 import { can } from "./permissions";
-import { STAFF, withPermissions } from "./staff";
+import { STAFF, staffName, withPermissions } from "./staff";
 
 /**
  * ملف الطيران — flights for the employees and for the pilgrims.
@@ -215,29 +224,20 @@ export const isoDate = (ts: number) => new Intl.DateTimeFormat("en-CA", { timeZo
 export const isoTime = (ts: number) => fmtClock(ts);
 
 // ───────────────────────── Seeds ─────────────────────────
+// The seeds' data is in testdata/flights/; the defaults every seeded flight shares, and the seats the demo starts
+// with (built from the clusters' live requests), are made here.
 
-export const AIRPORTS_SEED: Airport[] = [
-  { id: "ap-dam", code: "DAM", name: "مطار دمشق الدولي", city: "دمشق", country: "سوريا", returnsTo: ["ap-dam", "ap-ltk"] },
-  { id: "ap-alp", code: "ALP", name: "مطار حلب الدولي", city: "حلب", country: "سوريا", returnsTo: ["ap-alp", "ap-ltk"] },
-  { id: "ap-ltk", code: "LTK", name: "مطار اللاذقية الدولي", city: "اللاذقية", country: "سوريا", arrivalsOnly: true },
-  { id: "ap-ist", code: "IST", name: "مطار إسطنبول", city: "إسطنبول", country: "تركيا" },
-  { id: "ap-gzt", code: "GZT", name: "مطار غازي عنتاب", city: "غازي عنتاب", country: "تركيا" },
-  { id: "ap-cai", code: "CAI", name: "مطار القاهرة الدولي", city: "القاهرة", country: "مصر" },
-  { id: "ap-jed", code: "JED", name: "مطار الملك عبد العزيز — صالة الحجاج", city: "جدة", country: "السعودية", serves: "مكة المكرمة" },
-  { id: "ap-med", code: "MED", name: "مطار الأمير محمد بن عبد العزيز", city: "المدينة المنورة", country: "السعودية", serves: "المدينة المنورة" },
-  { id: "ap-amm", code: "AMM", name: "مطار الملكة علياء الدولي", city: "عمّان", country: "الأردن" },
-];
+export const AIRPORTS_SEED: Airport[] = AIRPORTS as Airport[];
 
-export const CARRIERS_SEED: Carrier[] = [
-  { id: "ca-rb", code: "RB", name: "السورية للطيران", phone: "011 2240774" },
-  { id: "ca-sv", code: "SV", name: "الخطوط السعودية", phone: "920022222" },
-  { id: "ca-xy", code: "XY", name: "طيران ناس", phone: "920001234" },
-];
+export const CARRIERS_SEED: Carrier[] = CARRIERS;
 
 const FLIGHT_SEED_AT = at("2027-04-08", "10:00");
-const SEEDER = "هيثم زيدان";
+const SEEDER = staffName("haitham");
 
 type SeedFlight = Omit<Flight, "season" | "groundLegs" | "createdBy" | "createdAt" | "status"> & { status?: FlightStatus };
+/** A seeded flight as testdata/flights/flights.json holds it: its times in Makkah's time, «2027-04-22T09:00»; `publishedAt: null` a draft */
+type SeedFlightJson = Omit<SeedFlight, "departAt" | "arriveAt" | "publishedAt"> & { departAt: string; arriveAt: string; publishedAt?: null };
+const when = (local: string) => at(local.slice(0, 10), local.slice(11, 16));
 const sf = (f: SeedFlight): Flight => ({
   season: FLIGHT_SEASON,
   groundLegs: [],
@@ -253,42 +253,9 @@ const sf = (f: SeedFlight): Flight => ({
  * Istanbul) to Jeddah for Makkah, and some to Madinah; returns three weeks later from Madinah, or from Jeddah for
  * those who began in Madinah, to the city they left — and one to Latakia. Each outbound is created with its return.
  */
-export const FLIGHTS_SEED: Flight[] = [
-  // ── advance party of the mission (staff only)
-  sf({ id: "f48-s01", pairedFlightId: "f48-s02", direction: "outbound", audience: "staff", flightNo: "RB 401", carrierId: "ca-rb", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-04-22", "09:00"), arriveAt: at("2027-04-22", "11:30"), capacity: 60, staffReserve: 0, gate: "البوابة 1", gathering: "مبنى الإدارة — 05:30", notes: "طليعة البعثة: فرق الإسكان والمخيمات" }),
-  // ── outbound, Damascus → Jeddah
-  sf({ id: "f48-01", direction: "outbound", audience: "pilgrims", flightNo: "RB 501", carrierId: "ca-rb", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-04-24", "06:00"), arriveAt: at("2027-04-24", "08:30"), capacity: 340, staffReserve: 10, gate: "البوابة 3", gathering: "ساحة المزة — الحافلات 01:30", pairedFlightId: "f48-r01" }),
-  sf({ id: "f48-02", direction: "outbound", audience: "pilgrims", flightNo: "SV 3421", carrierId: "ca-sv", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-04-25", "07:30"), arriveAt: at("2027-04-25", "10:00"), capacity: 300, staffReserve: 8, gate: "البوابة 2", gathering: "ساحة المزة — الحافلات 03:00", pairedFlightId: "f48-r02" }),
-  sf({ id: "f48-03", direction: "outbound", audience: "pilgrims", flightNo: "XY 2210", carrierId: "ca-xy", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-04-27", "05:45"), arriveAt: at("2027-04-27", "08:15"), capacity: 186, staffReserve: 6, gate: "البوابة 4", gathering: "ساحة المزة — الحافلات 01:15", pairedFlightId: "f48-r03" }),
-  sf({ id: "f48-07", direction: "outbound", audience: "pilgrims", flightNo: "RB 507", carrierId: "ca-rb", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-05-01", "06:00"), arriveAt: at("2027-05-01", "08:30"), capacity: 340, staffReserve: 10, gate: "البوابة 3", gathering: "ساحة المزة — الحافلات 01:30", pairedFlightId: "f48-r07" }),
-  sf({ id: "f48-08", direction: "outbound", audience: "pilgrims", flightNo: "SV 3427", carrierId: "ca-sv", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-05-02", "08:00"), arriveAt: at("2027-05-02", "10:30"), capacity: 300, staffReserve: 8, gate: "البوابة 2", gathering: "ساحة المزة — الحافلات 03:30", pairedFlightId: "f48-r08" }),
-  sf({ id: "f48-09", pairedFlightId: "f48-r09", direction: "outbound", audience: "pilgrims", flightNo: "RB 511", carrierId: "ca-rb", fromId: "ap-dam", toId: "ap-jed", departAt: at("2027-05-06", "06:00"), arriveAt: at("2027-05-06", "08:30"), capacity: 340, staffReserve: 10, gate: "البوابة 3", gathering: "ساحة المزة — الحافلات 01:30", notes: "لاستكمال النقص وإعادة الإسناد" }),
-  // ── outbound, Aleppo → Jeddah
-  sf({ id: "f48-04", direction: "outbound", audience: "pilgrims", flightNo: "RB 521", carrierId: "ca-rb", fromId: "ap-alp", toId: "ap-jed", departAt: at("2027-04-26", "06:30"), arriveAt: at("2027-04-26", "09:00"), capacity: 300, staffReserve: 8, gate: "البوابة 1", gathering: "ساحة الجامعة — الحافلات 02:00", pairedFlightId: "f48-r04" }),
-  sf({ id: "f48-05", direction: "outbound", audience: "pilgrims", flightNo: "XY 2214", carrierId: "ca-xy", fromId: "ap-alp", toId: "ap-jed", departAt: at("2027-04-29", "07:00"), arriveAt: at("2027-04-29", "09:30"), capacity: 186, staffReserve: 6, gate: "البوابة 2", gathering: "ساحة الجامعة — الحافلات 02:30", pairedFlightId: "f48-r05" }),
-  // ── outbound to Madinah: these pilgrims begin with the Prophet's city, and return from Jeddah
-  sf({ id: "f48-11", pairedFlightId: "f48-r11", direction: "outbound", audience: "pilgrims", flightNo: "RB 515", carrierId: "ca-rb", fromId: "ap-dam", toId: "ap-med", departAt: at("2027-05-03", "07:00"), arriveAt: at("2027-05-03", "09:40"), capacity: 186, staffReserve: 6, gate: "البوابة 4", gathering: "ساحة المزة — الحافلات 02:30" }),
-  sf({ id: "f48-12", pairedFlightId: "f48-r12", direction: "outbound", audience: "pilgrims", flightNo: "XY 2218", carrierId: "ca-xy", fromId: "ap-alp", toId: "ap-med", departAt: at("2027-04-28", "06:30"), arriveAt: at("2027-04-28", "09:20"), capacity: 186, staffReserve: 6, gate: "البوابة 2", gathering: "ساحة الجامعة — الحافلات 02:00" }),
-  // ── outbound, Istanbul → Jeddah
-  sf({ id: "f48-06", direction: "outbound", audience: "pilgrims", flightNo: "SV 3501", carrierId: "ca-sv", fromId: "ap-ist", toId: "ap-jed", departAt: at("2027-04-30", "10:00"), arriveAt: at("2027-04-30", "14:00"), capacity: 280, staffReserve: 6, gate: "البوابة D4", gathering: "مكتب تركيا — 06:00", notes: "للمقيمين في تركيا" }),
-  // ── return, Madinah → Damascus / Aleppo
-  sf({ id: "f48-r01", direction: "return", audience: "pilgrims", flightNo: "RB 502", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-05-22", "13:00"), arriveAt: at("2027-05-22", "16:10"), capacity: 340, staffReserve: 10, gate: "صالة الحجاج", gathering: "بهو الفندق — 08:00" , pairedFlightId: "f48-01"}),
-  sf({ id: "f48-r02", direction: "return", audience: "pilgrims", flightNo: "SV 3422", carrierId: "ca-sv", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-05-23", "15:00"), arriveAt: at("2027-05-23", "18:10"), capacity: 300, staffReserve: 8, gate: "صالة الحجاج", gathering: "بهو الفندق — 10:00" , pairedFlightId: "f48-02"}),
-  sf({ id: "f48-r03", direction: "return", audience: "pilgrims", flightNo: "XY 2211", carrierId: "ca-xy", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-05-25", "12:30"), arriveAt: at("2027-05-25", "15:40"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق — 07:30" , pairedFlightId: "f48-03"}),
-  sf({ id: "f48-r07", direction: "return", audience: "pilgrims", flightNo: "RB 508", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-05-29", "14:00"), arriveAt: at("2027-05-29", "17:10"), capacity: 340, staffReserve: 10, gate: "صالة الحجاج", gathering: "بهو فندق روضة طيبة 08:00 — تسليم الغرف بمسح البطاقة" , pairedFlightId: "f48-07"}),
-  sf({ id: "f48-r08", direction: "return", audience: "pilgrims", flightNo: "SV 3428", carrierId: "ca-sv", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-05-30", "16:00"), arriveAt: at("2027-05-30", "19:10"), capacity: 300, staffReserve: 8, gate: "صالة الحجاج", gathering: "بهو الفندق — 11:00" , pairedFlightId: "f48-08"}),
-  sf({ id: "f48-r04", direction: "return", audience: "pilgrims", flightNo: "RB 522", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-alp", departAt: at("2027-05-24", "13:30"), arriveAt: at("2027-05-24", "16:50"), capacity: 300, staffReserve: 8, gate: "صالة الحجاج", gathering: "بهو الفندق — 08:30" , pairedFlightId: "f48-04"}),
-  sf({ id: "f48-r05", direction: "return", audience: "pilgrims", flightNo: "XY 2215", carrierId: "ca-xy", fromId: "ap-med", toId: "ap-alp", departAt: at("2027-05-27", "12:00"), arriveAt: at("2027-05-27", "15:20"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق — 07:00" , pairedFlightId: "f48-05"}),
-  // ── return, Jeddah → Damascus / Aleppo (for those who began in Madinah), and Madinah → Latakia
-  sf({ id: "f48-r11", pairedFlightId: "f48-11", direction: "return", audience: "pilgrims", flightNo: "RB 516", carrierId: "ca-rb", fromId: "ap-jed", toId: "ap-dam", departAt: at("2027-05-31", "13:00"), arriveAt: at("2027-05-31", "15:50"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق في مكة — 06:00" }),
-  sf({ id: "f48-r12", pairedFlightId: "f48-12", direction: "return", audience: "pilgrims", flightNo: "XY 2219", carrierId: "ca-xy", fromId: "ap-jed", toId: "ap-alp", departAt: at("2027-05-26", "12:00"), arriveAt: at("2027-05-26", "15:00"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق في مكة — 05:30" }),
-  sf({ id: "f48-r13", direction: "return", audience: "pilgrims", flightNo: "RB 538", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-ltk", departAt: at("2027-05-29", "16:00"), arriveAt: at("2027-05-29", "19:00"), capacity: 186, staffReserve: 6, gate: "صالة الحجاج", gathering: "بهو الفندق — 10:00", notes: "عودة لأهل الساحل ممن أقلعوا من دمشق أو حلب" }),
-  sf({ id: "f48-r09", pairedFlightId: "f48-09", direction: "return", audience: "pilgrims", flightNo: "RB 512", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-06-03", "14:00"), arriveAt: at("2027-06-03", "17:10"), capacity: 340, staffReserve: 10, gate: "صالة الحجاج", gathering: "بهو الفندق — 09:00", notes: "آخر رحلات العودة" }),
-  // ── a draft the officer has not published yet
-  sf({ id: "f48-10", direction: "outbound", audience: "pilgrims", flightNo: "RB 531", carrierId: "ca-rb", fromId: "ap-gzt", toId: "ap-jed", departAt: at("2027-05-03", "11:00"), arriveAt: at("2027-05-03", "14:30"), capacity: 180, staffReserve: 4, status: "draft", publishedAt: undefined, notes: "للمقيمين في جنوب تركيا — بانتظار تأكيد الناقل" }),
-  // ── rear party (staff only)
-  sf({ id: "f48-s02", pairedFlightId: "f48-s01", direction: "return", audience: "staff", flightNo: "RB 402", carrierId: "ca-rb", fromId: "ap-med", toId: "ap-dam", departAt: at("2027-06-06", "10:00"), arriveAt: at("2027-06-06", "13:10"), capacity: 60, staffReserve: 0, gate: "صالة الحجاج", gathering: "بهو الفندق — 06:00", notes: "الفريق المتأخر: غرفة العمليات والمواصلات" }),
-];
+export const FLIGHTS_SEED: Flight[] = (FLIGHTS as SeedFlightJson[]).map(({ publishedAt, ...f }) =>
+  sf({ ...f, departAt: when(f.departAt), arriveAt: when(f.arriveAt), ...(publishedAt === null && { publishedAt: undefined }) }),
+);
 
 // ───────────────────────── Groups and families ─────────────────────────
 
@@ -331,9 +298,8 @@ const clusterDigits = (clusterId: string) => {
 };
 export const allGroups = () => allClusterIds().flatMap(groupsOfCluster);
 
-const MEN = ["خالد", "بلال", "أنس", "طارق", "مصطفى", "إبراهيم", "علي", "نزار", "وائل", "هشام", "زياد", "عماد", "فراس", "ماهر", "عدنان", "رياض", "محمود", "سامر", "أحمد", "يوسف"];
-const WOMEN = ["سلمى", "رغد", "نور", "ميساء", "لبنى", "دعاء", "سمر", "إيمان", "هالة", "بشرى", "وفاء", "منى", "ريم", "سوسن", "فاطمة", "خديجة", "عائشة", "مريم"];
-const LASTS = ["الأحمد", "الحموي", "الدمشقي", "السعدي", "العلي", "الحسين", "الشيخ", "الإدلبي", "الحوراني", "المصري", "القباني", "الطباع", "الخياط", "النحاس", "الحلبي", "الشامي"];
+/** The names the generated families and teams draw from (testdata/flights/name-pools.json) */
+const { men: MEN, women: WOMEN, lasts: LASTS } = NAME_POOLS;
 
 /**
  * The families of a group: the real ones the coordinator enrolled (by application), then stable generated
@@ -380,10 +346,10 @@ export function familiesOfGroup(g: GroupRef, post: Record<string, PostAcceptance
 
 /** The group's team travels with it: its head, the people in its seats and its coordinator, counted as escorts on the flight */
 export function teamOfGroup(g: GroupRef, admins: Record<string, AdminProfile>): Traveler[] {
-  const base = (id: string, name: string): Traveler => ({ id, name, kind: "administrator", gender: "M", needs: [], requestId: `team-${g.clusterId}-${g.number}`, groupNumber: g.number, clusterId: g.clusterId });
+  const base = (id: string, name = personName(id)): Traveler => ({ id, name, kind: "administrator", gender: "M", needs: [], requestId: `team-${g.clusterId}-${g.number}`, groupNumber: g.number, clusterId: g.clusterId });
   // the demo group: the four administrators of the guide
   if (g.clusterId === "al-nour" && g.number === 27) {
-    return [base("01033300871", "أحمد سليمان الحمصي"), base("01033300872", "ياسر عبد الله"), base("01033300873", "الشيخ خالد الرفاعي"), base("01033300874", "سامر نبيل نجار")];
+    return DEMO_GROUP.team.map((m) => base(m.id));
   }
   // its head, and the team its cluster's head assigned to it: from a cluster formed live, else the cluster's request
   const head = Object.entries(admins).find(([, p]) => p.group?.number === g.number);
@@ -443,51 +409,20 @@ function seatsFor(flight: Flight, travelers: Traveler[], atTs: number, by = SEED
  * and its return, and Latakia's return). The makeup RB 511 and its return are given to no one yet, nor are the
  * clusters without days: the demo's work (the staff guide gives them to سهل حوران).
  */
-const SEED_ALLOT: { clusterId: string; flightId: string; seats?: number }[] = [
-  { clusterId: "al-nour", flightId: "f48-07" },
-  { clusterId: "al-nour", flightId: "f48-11" },
-  { clusterId: "al-nour", flightId: "f48-r07" },
-  { clusterId: "al-nour", flightId: "f48-r11" },
-  { clusterId: "al-nour", flightId: "f48-r13", seats: 60 },
-  { clusterId: "al-safa", flightId: "f48-01" },
-  { clusterId: "al-safa", flightId: "f48-r01" },
-  { clusterId: "al-yaqeen", flightId: "f48-02" },
-  { clusterId: "al-yaqeen", flightId: "f48-r02" },
-  { clusterId: "bawabat-al-haramain", flightId: "f48-03" },
-  { clusterId: "bawabat-al-haramain", flightId: "f48-r03" },
-  { clusterId: "al-shahba", flightId: "f48-04" },
-  { clusterId: "al-shahba", flightId: "f48-r04" },
-  { clusterId: "al-asi", flightId: "f48-05" },
-  { clusterId: "al-asi", flightId: "f48-r05" },
-  { clusterId: "ibn-al-walid", flightId: "f48-12" },
-  { clusterId: "ibn-al-walid", flightId: "f48-r12" },
-  { clusterId: "ibn-al-walid", flightId: "f48-r13", seats: 60 },
-  { clusterId: "al-yasmin", flightId: "f48-08", seats: 150 },
-  { clusterId: "al-yasmin", flightId: "f48-r08", seats: 150 },
-  { clusterId: "al-bayan", flightId: "f48-08", seats: 142 },
-  { clusterId: "al-bayan", flightId: "f48-r08", seats: 142 },
-  { clusterId: "al-bayan", flightId: "f48-r13", seats: 50 },
-];
+const SEED_ALLOT: { clusterId: string; flightId: string; seats?: number }[] = ALLOTMENTS;
 export const ALLOTMENTS_SEED: Allotment[] = SEED_ALLOT.map((x, i) => ({ id: `al-${x.clusterId}-${x.flightId}`, ...x, by: SEEDER, at: FLIGHT_SEED_AT + DAY + i }));
 
 /** Groups the demo starts with on their flights: their clusters' heads put them there (the rest are the demo's work) */
 /** «first2»: its first two groups that fit the flight, the head's own first */
-const SEED_PLAN: { clusterId: string; groups: number[] | "first2"; out: string; back: string }[] = [
-  { clusterId: "al-nour", groups: [31, 18, 33], out: "f48-07", back: "f48-r07" },
-  { clusterId: "al-safa", groups: "first2", out: "f48-01", back: "f48-r01" },
-  { clusterId: "al-yaqeen", groups: "first2", out: "f48-02", back: "f48-r02" },
-  { clusterId: "al-shahba", groups: "first2", out: "f48-04", back: "f48-r04" },
-  { clusterId: "al-asi", groups: "first2", out: "f48-05", back: "f48-r05" },
-  { clusterId: "bawabat-al-haramain", groups: "first2", out: "f48-03", back: "f48-r03" },
-];
+const SEED_PLAN = GROUP_PLAN as { clusterId: string; groups: number[] | "first2"; out: string; back: string }[];
 
 /**
  * Whoever travels with the mission has a seat both ways. wissam, nader, ghassan, layla, samira, bassel (the coaster
  * team) and a dozen housing/camp members go ahead on the staff flight and come back on the last one; fadi (the
  * operations room) and haitham (the flights) go with the first pilgrims and fly back last with them.
  */
-const ADVANCE_PARTY = ["E-018", "E-019", "E-021", "E-006", "E-017", NAMED_EMPLOYEES.bassel, "E-030", "E-031", "E-032", "E-033", "E-034", "E-035", "E-036", "E-037", "E-038"];
-const REAR_PARTY = ["E-005", "E-007"];
+const ADVANCE_PARTY: string[] = STAFF_PARTIES.advance;
+const REAR_PARTY: string[] = STAFF_PARTIES.rear;
 
 let seedCache: { assignments: FlightAssignment[]; groups: GroupLeg[] } | null = null;
 function seeds() {
@@ -1254,7 +1189,7 @@ export function manifestCsv(m: Manifest, f: Flight, d: Pick<FlightsData, "airpor
 // ───────────────────────── Pilgrim-facing cards ─────────────────────────
 
 /** Where the cluster's buses leave the pilgrims back home, by the airport the return lands at */
-const HOME_YARD: Record<string, string> = { "ap-dam": "ساحة المزة", "ap-alp": "ساحة الجامعة في حلب", "ap-ltk": "ساحة اليمن في اللاذقية" };
+const HOME_YARD: Record<string, string> = HOME_YARDS;
 
 /** The shape the boarding-pass card in the pilgrim portal draws */
 export type PassCard = {

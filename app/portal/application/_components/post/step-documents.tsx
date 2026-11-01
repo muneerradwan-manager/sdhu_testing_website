@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertOctagon, BadgeCheck, FileUp, Loader2, RefreshCw, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -85,7 +86,7 @@ export function StepDocuments({ app, post, sessionId, which = "documents", stepL
       }
       actions.setPost(sessionId, { documents, rejectedOnce });
       if (bounced.length && elder) {
-        actions.logEvent({ actor: "رنا حداد (محاكاة)", role: "إدارة التسجيل", action: "إعادة وثيقة: جواز السفر", target: `طلب ${app.number}`, detail: `${fullName(elder.person)} — الصلاحية أقل من 6 أشهر بعد العودة` });
+        actions.logEvent({ actor: `${staffName("rana")} (محاكاة)`, role: "إدارة التسجيل", action: "إعادة وثيقة: جواز السفر", target: `طلب ${app.number}`, detail: `${fullName(elder.person)} — الصلاحية أقل من 6 أشهر بعد العودة` });
         toast({ title: `أُعيد جواز ${elder.person.firstName}`, body: "صلاحيته أقل من 6 أشهر بعد العودة. جدّده ثم ارفع الجواز الجديد.", icon: "⚠️", tone: "warning" });
       }
       // Finished uploads and reviews leave the local clocks, so a later staff rejection needs a fresh upload

@@ -1,11 +1,13 @@
 "use client";
 
+import { personName } from "@/lib/registry";
 import { useMemo } from "react";
 import { actions, getState, useStore, type AdminProfile, type ChannelMessage, type ClusterChannel, type ClusterRecord, type State } from "@/lib/store";
 import { getPerson } from "@/lib/registry";
 import { nowMs } from "@/lib/utils";
 import { logAdmin } from "./admin";
 import { SEED_CLUSTERS, acceptedGroups, headRecordOf } from "./cluster";
+import CHANNELS from "@/testdata/admins/channel-messages.json";
 
 /**
  * «قناة التكتل»: one channel for everyone who works in a cluster — its head and the accountant, the
@@ -87,25 +89,23 @@ export function clusterOfMember(id: string, p: AdminProfile | undefined, s: Pick
   return seed ? { headId: seed.headId, headName: seed.headName, cluster: s.formation.overrides[cid] ?? seed.cluster } : null;
 }
 
+/** A seed message's moment as testdata/admins/channel-messages.json keeps it: days back from the demo's day, at an hour */
+type Ago = { daysAgo: number; h: number; m: number };
+
 /**
- * تكتل النور's channel as the season left it: the head opened it to the group heads, and they used it over the
- * last two days. Dated back from the demo's day, so a message written now always comes after them.
+ * The season's channels as it left them (testdata/admins/channel-messages.json): تكتل النور's, which its head opened
+ * to the group heads, who used it over the last two days. Dated back from the demo's day, so a message written now
+ * always comes after them; each writer by id, his name from the civil registry.
  */
 function seeds(today: string | undefined): Record<string, ClusterChannel> {
   const base = today ? new Date(`${today}T00:00:00`) : new Date(new Date().setHours(0, 0, 0, 0));
-  const at = (daysAgo: number, h: number, m = 0) => base.getTime() - daysAgo * 86_400_000 + (h * 60 + m) * 60_000;
-  return {
-    "al-nour": {
-      writers: ["head", "accountant", "group-head"],
-      messages: [
-        { id: "n1", by: "01033300881", name: "عبد الرحمن العلي", role: "head", text: "السلام عليكم. هذه قناة تكتل النور لكل كادره: الإعلانات من القيادة، ويكتب فيها رؤساء المجموعات. الأسئلة الخاصة بمجموعة واحدة تبقى مع رئيسها.", at: at(2, 10), pinned: true },
-        { id: "n2", by: "01033300881", name: "عبد الرحمن العلي", role: "head", text: "اجتماع رؤساء المجموعات والمنسقين يوم الخميس القادم الساعة 18:00 في مكتب دمشق: توزيع المنسقين والموجّهات، وخطة التفويج.", at: at(2, 12) },
-        { id: "n3", by: "01033300871", name: "أحمد سليمان الحمصي", role: "group-head", text: "حاضرون إن شاء الله. هل نحضر قوائم الحجاج المطبوعة أم تكفي على المنصة؟", at: at(2, 13, 15), replyTo: "n2" },
-        { id: "n4", by: "01033300883", name: "بسام درويش", role: "group-head", text: "تكفي على المنصة. أحضروا فقط أرقام هواتف معاونيكم.", at: at(2, 13, 40), replyTo: "n3" },
-        { id: "n5", by: "01033300944", name: "مهند السيد", role: "accountant", text: "تذكير: رسوم خدمات التكتل تُسدَّد قبل آخر الشهر، والإيصالات ترفع إليّ.", at: at(1, 9, 5) },
-      ],
-    },
-  };
+  const at = ({ daysAgo, h, m }: Ago) => base.getTime() - daysAgo * 86_400_000 + (h * 60 + m) * 60_000;
+  return Object.fromEntries(
+    Object.entries(CHANNELS as Record<string, { writers: string[]; messages: (Omit<ChannelMessage, "name" | "at"> & { at: Ago })[] }>).map(([id, c]) => [
+      id,
+      { writers: c.writers, messages: c.messages.map((m) => ({ ...m, name: personName(m.by), at: at(m.at) })) },
+    ]),
+  );
 }
 /** A cluster's channel before anyone touched it on this device */
 export const channelSeed = (clusterId: string, today = getState().clock.today): ClusterChannel => seeds(today)[clusterId] ?? {};

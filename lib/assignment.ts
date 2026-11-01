@@ -9,12 +9,13 @@
  * - الانتقال إلى مجموعة أخرى بعقد جديد يلحقه به موظف المكتب، والطلب العائلي ينتقل كاملاً أو لا ينتقل.
  * - عقود رفعتها المجموعات قبل ذلك (`submitContract`) ما زال المكتب يعتمدها أو يعيدها (`decideContract`).
  */
+import { staffName } from "./staff";
 import { directoryNow, requestNow } from "@/app/administrator/_lib/directory";
 import { clustersNow } from "./cms/content";
 import { syncFamily } from "./flights";
 import { groupName } from "./groups";
 import { GROUP } from "./journey";
-import { fullName } from "./registry";
+import { fullName, personName, phoneOf } from "./registry";
 import { officeFor } from "./season";
 import { actions, type Application, type PilgrimContract, type PostAcceptance } from "./store";
 
@@ -31,19 +32,13 @@ export type GroupInfo = GroupRef & {
   team: { role: string; name: string; phone: string; note: string }[];
 };
 
-/** تكتل النور's two coordinators as the pilgrim guide shows them, with their phones */
-const KNOWN_COORDINATORS: Record<string, { name: string; phone: string }> = {
-  "01033300874": { name: "سامر نجار", phone: "0944 274 449" },
-  "01033300961": { name: "لؤي العظمة", phone: "0944 961 449" },
-};
-
 /** The cluster's coordinator its head sorted to this group, as the cluster's request holds it */
 function clusterCoordinator(slug: string, no: number, phone: string) {
   const c = requestNow(slug)?.cluster;
   const id = c?.sorting[no];
   const who = c?.coordinators.find((x) => x.id === id && x.status === "accepted");
   if (!who) return { name: "يسمّيه رئيس التكتل", phone };
-  return KNOWN_COORDINATORS[who.id] ?? { name: who.name, phone };
+  return { name: personName(who.id), phone: phoneOf(who.id, true) || phone };
 }
 
 /**
@@ -181,7 +176,7 @@ export function demoContractFile(app: Application, group: number): PilgrimContra
 }
 
 /** The office's member who attaches families in the demo («التسجيل والمراجعة») */
-export const DEMO_ATTACHER = { id: "rana", name: "رنا حداد", role: "إدارة التسجيل" };
+export const DEMO_ATTACHER = { id: "rana", name: staffName("rana"), role: "إدارة التسجيل" };
 
 /** The demo's shortcut on the pilgrim's side: the family signed its contract at the office, and the office attaches it */
 export function attachByContract(opts: { sessionId: string; app: Application; post: PostAcceptance | undefined; group: GroupRef; at: number }) {

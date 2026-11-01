@@ -1,0 +1,386 @@
+[
+  {
+    "id": "cp47-mina-41",
+    "season": 1447,
+    "number": "41",
+    "mashaer": "mina",
+    "capacity": 500,
+    "location": "منى — المعيصم، المربع 6"
+  },
+  {
+    "id": "cp47-mina-42",
+    "season": 1447,
+    "number": "42",
+    "mashaer": "mina",
+    "capacity": 650,
+    "location": "منى — المعيصم، المربع 7"
+  },
+  {
+    "id": "cp47-mina-43",
+    "season": 1447,
+    "number": "43",
+    "mashaer": "mina",
+    "capacity": 480,
+    "location": "منى — المعيصم، المربع 7"
+  },
+  {
+    "id": "cp47-mina-44",
+    "season": 1447,
+    "number": "44",
+    "mashaer": "mina",
+    "capacity": 450,
+    "location": "منى — شارع سوق العرب"
+  },
+  {
+    "id": "cp47-mina-45",
+    "season": 1447,
+    "number": "45",
+    "mashaer": "mina",
+    "capacity": 380,
+    "location": "منى — شارع سوق العرب"
+  },
+  {
+    "id": "cp47-mina-46",
+    "season": 1447,
+    "number": "46",
+    "mashaer": "mina",
+    "capacity": 820,
+    "location": "منى — شارع الجوهرة"
+  },
+  {
+    "id": "cp47-mina-47",
+    "season": 1447,
+    "number": "47",
+    "mashaer": "mina",
+    "capacity": 420,
+    "location": "منى — شارع الجوهرة"
+  },
+  {
+    "id": "cp47-mina-49",
+    "season": 1447,
+    "number": "49",
+    "mashaer": "mina",
+    "capacity": 720,
+    "location": "منى — طريق الملك فهد"
+  },
+  {
+    "id": "cp47-mina-50",
+    "season": 1447,
+    "number": "50",
+    "mashaer": "mina",
+    "capacity": 520,
+    "location": "منى — طريق الملك فهد"
+  },
+  {
+    "id": "cp47-mina-53",
+    "season": 1447,
+    "number": "53",
+    "mashaer": "mina",
+    "capacity": 540,
+    "location": "منى — شارع الملك عبد العزيز"
+  },
+  {
+    "id": "cp47-mina-54",
+    "season": 1447,
+    "number": "54",
+    "mashaer": "mina",
+    "capacity": 420,
+    "location": "منى — شارع الملك عبد العزيز"
+  },
+  {
+    "id": "cp47-arafat-110",
+    "season": 1447,
+    "number": "110",
+    "mashaer": "arafat",
+    "capacity": 650,
+    "location": "عرفات — شرق مسجد نمرة"
+  },
+  {
+    "id": "cp47-arafat-111",
+    "season": 1447,
+    "number": "111",
+    "mashaer": "arafat",
+    "capacity": 480,
+    "location": "عرفات — شرق مسجد نمرة"
+  },
+  {
+    "id": "cp47-arafat-112",
+    "season": 1447,
+    "number": "112",
+    "mashaer": "arafat",
+    "capacity": 450,
+    "location": "عرفات — الطريق 6"
+  },
+  {
+    "id": "cp47-arafat-113",
+    "season": 1447,
+    "number": "113",
+    "mashaer": "arafat",
+    "capacity": 380,
+    "location": "عرفات — الطريق 6"
+  },
+  {
+    "id": "cp47-arafat-114",
+    "season": 1447,
+    "number": "114",
+    "mashaer": "arafat",
+    "capacity": 820,
+    "location": "عرفات — الطريق 8"
+  },
+  {
+    "id": "cp47-arafat-115",
+    "season": 1447,
+    "number": "115",
+    "mashaer": "arafat",
+    "capacity": 420,
+    "location": "عرفات — الطريق 8"
+  },
+  {
+    "id": "cp47-arafat-117",
+    "season": 1447,
+    "number": "117",
+    "mashaer": "arafat",
+    "capacity": 720,
+    "location": "عرفات — قرب جبل الرحمة"
+  },
+  {
+    "id": "cp47-arafat-118",
+    "season": 1447,
+    "number": "118",
+    "mashaer": "arafat",
+    "capacity": 520,
+    "location": "عرفات — قرب جبل الرحمة"
+  },
+  {
+    "id": "cp47-arafat-120",
+    "season": 1447,
+    "number": "120",
+    "mashaer": "arafat",
+    "capacity": 540,
+    "location": "عرفات — المربع 3"
+  },
+  {
+    "id": "cp47-arafat-121",
+    "season": 1447,
+    "number": "121",
+    "mashaer": "arafat",
+    "capacity": 420,
+    "location": "عرفات — المربع 3"
+  },
+  {
+    "id": "cp48-mina-41",
+    "season": 1448,
+    "number": "41",
+    "mashaer": "mina",
+    "capacity": 520,
+    "location": "منى — المعيصم، المربع 6"
+  },
+  {
+    "id": "cp48-mina-42",
+    "season": 1448,
+    "number": "42",
+    "mashaer": "mina",
+    "capacity": 650,
+    "location": "منى — المعيصم، المربع 7"
+  },
+  {
+    "id": "cp48-mina-43",
+    "season": 1448,
+    "number": "43",
+    "mashaer": "mina",
+    "capacity": 480,
+    "location": "منى — المعيصم، المربع 7"
+  },
+  {
+    "id": "cp48-mina-44",
+    "season": 1448,
+    "number": "44",
+    "mashaer": "mina",
+    "capacity": 450,
+    "location": "منى — شارع سوق العرب"
+  },
+  {
+    "id": "cp48-mina-45",
+    "season": 1448,
+    "number": "45",
+    "mashaer": "mina",
+    "capacity": 380,
+    "location": "منى — شارع سوق العرب"
+  },
+  {
+    "id": "cp48-mina-46",
+    "season": 1448,
+    "number": "46",
+    "mashaer": "mina",
+    "capacity": 850,
+    "location": "منى — شارع الجوهرة"
+  },
+  {
+    "id": "cp48-mina-47",
+    "season": 1448,
+    "number": "47",
+    "mashaer": "mina",
+    "capacity": 420,
+    "location": "منى — شارع الجوهرة"
+  },
+  {
+    "id": "cp48-mina-48",
+    "season": 1448,
+    "number": "48",
+    "mashaer": "mina",
+    "capacity": 400,
+    "location": "منى — قرب جسر الجمرات"
+  },
+  {
+    "id": "cp48-mina-51",
+    "season": 1448,
+    "number": "51",
+    "mashaer": "mina",
+    "capacity": 760,
+    "location": "منى — طريق الملك فهد"
+  },
+  {
+    "id": "cp48-mina-52",
+    "season": 1448,
+    "number": "52",
+    "mashaer": "mina",
+    "capacity": 460,
+    "location": "منى — طريق الملك فهد"
+  },
+  {
+    "id": "cp48-mina-53",
+    "season": 1448,
+    "number": "53",
+    "mashaer": "mina",
+    "capacity": 560,
+    "location": "منى — شارع الملك عبد العزيز"
+  },
+  {
+    "id": "cp48-mina-54",
+    "season": 1448,
+    "number": "54",
+    "mashaer": "mina",
+    "capacity": 420,
+    "location": "منى — شارع الملك عبد العزيز"
+  },
+  {
+    "id": "cp48-mina-55",
+    "season": 1448,
+    "number": "55",
+    "mashaer": "mina",
+    "capacity": 500,
+    "location": "منى — المنطقة الجنوبية"
+  },
+  {
+    "id": "cp48-mina-56",
+    "season": 1448,
+    "number": "56",
+    "mashaer": "mina",
+    "capacity": 440,
+    "location": "منى — المنطقة الجنوبية"
+  },
+  {
+    "id": "cp48-arafat-110",
+    "season": 1448,
+    "number": "110",
+    "mashaer": "arafat",
+    "capacity": 650,
+    "location": "عرفات — شرق مسجد نمرة"
+  },
+  {
+    "id": "cp48-arafat-111",
+    "season": 1448,
+    "number": "111",
+    "mashaer": "arafat",
+    "capacity": 480,
+    "location": "عرفات — شرق مسجد نمرة"
+  },
+  {
+    "id": "cp48-arafat-112",
+    "season": 1448,
+    "number": "112",
+    "mashaer": "arafat",
+    "capacity": 450,
+    "location": "عرفات — الطريق 6"
+  },
+  {
+    "id": "cp48-arafat-113",
+    "season": 1448,
+    "number": "113",
+    "mashaer": "arafat",
+    "capacity": 380,
+    "location": "عرفات — الطريق 6"
+  },
+  {
+    "id": "cp48-arafat-114",
+    "season": 1448,
+    "number": "114",
+    "mashaer": "arafat",
+    "capacity": 850,
+    "location": "عرفات — الطريق 8"
+  },
+  {
+    "id": "cp48-arafat-115",
+    "season": 1448,
+    "number": "115",
+    "mashaer": "arafat",
+    "capacity": 420,
+    "location": "عرفات — الطريق 8"
+  },
+  {
+    "id": "cp48-arafat-116",
+    "season": 1448,
+    "number": "116",
+    "mashaer": "arafat",
+    "capacity": 400,
+    "location": "عرفات — الطريق 9"
+  },
+  {
+    "id": "cp48-arafat-118",
+    "season": 1448,
+    "number": "118",
+    "mashaer": "arafat",
+    "capacity": 760,
+    "location": "عرفات — قرب جبل الرحمة"
+  },
+  {
+    "id": "cp48-arafat-119",
+    "season": 1448,
+    "number": "119",
+    "mashaer": "arafat",
+    "capacity": 460,
+    "location": "عرفات — قرب جبل الرحمة"
+  },
+  {
+    "id": "cp48-arafat-120",
+    "season": 1448,
+    "number": "120",
+    "mashaer": "arafat",
+    "capacity": 560,
+    "location": "عرفات — المربع 3"
+  },
+  {
+    "id": "cp48-arafat-121",
+    "season": 1448,
+    "number": "121",
+    "mashaer": "arafat",
+    "capacity": 420,
+    "location": "عرفات — المربع 3"
+  },
+  {
+    "id": "cp48-arafat-122",
+    "season": 1448,
+    "number": "122",
+    "mashaer": "arafat",
+    "capacity": 500,
+    "location": "عرفات — المربع 5"
+  },
+  {
+    "id": "cp48-arafat-123",
+    "season": 1448,
+    "number": "123",
+    "mashaer": "arafat",
+    "capacity": 440,
+    "location": "عرفات — المربع 5"
+  }
+]

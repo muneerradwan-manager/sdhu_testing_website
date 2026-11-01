@@ -4,9 +4,11 @@
  * named act on it (lib/permissions.ts) — is granted to an employee directly, some for a scope only (a hall, an
  * airport, an operation…). The holder of «صلاحيات الموظفين» grants and takes them back at /staff/access, and
  * every grant is in the audit log.
- * The accounts below open with the permissions that let each one do the work its title says, so a permission is
- * seen by signing in as its holder. Demo login: username + password "1448".
+ * The accounts (testdata/staff/accounts.json) open with the permissions that let each one do the work its title
+ * says, so a permission is seen by signing in as its holder. Demo login: username + password "1448".
  */
+import ACCOUNTS from "@/testdata/staff/accounts.json";
+import EMPLOYEES from "@/testdata/staff/employees.json";
 import { CATALOG, can as canKey, expand, mergeGrants, WINDOWS_OF, type PermGrant } from "./permissions";
 
 export type StaffUser = {
@@ -29,53 +31,78 @@ const OPENED = new Date(2026, 8, 1, 9, 0).getTime();
  */
 const VIEW_ALL = CATALOG.filter((sys) => !["hall", "airport", "evaluate", "executive", "access"].includes(sys.key)).flatMap((sys) => sys.resources.filter((r) => !r.sensitive && r.verbs.includes("GET")).map((r) => `${sys.key}.${r.key}.GET`));
 
+/** Who granted the accounts their permissions as the season opened: the season director, by his employee record */
+const grantor = () => {
+  const e = (EMPLOYEES as EmployeeRecord[]).find((x) => x.handle === "nour.a")!;
+  return `${e.firstName} ${e.surname}`;
+};
+
 /** Grants as the season opened, from patterns like `flights.*` or `season.windows.PUT@hajj-direct,hajj-lottery` */
 function seed(...patterns: string[]): PermGrant[] {
   return mergeGrants(
     ...patterns.map((p) => {
       const [pattern, scope] = p.split("@");
-      return expand(pattern, scope ? scope.split(",") : undefined, { by: "نور الأعرج", at: OPENED });
+      return expand(pattern, scope ? scope.split(",") : undefined, { by: grantor(), at: OPENED });
     }),
   );
 }
 const windows = (ops: string[]) => [`season.windows.GET@${ops.join(",")}`, `season.windows.PUT@${ops.join(",")}`];
 
-const LOTTERY_IMPORT = ["lottery.stats.GET", "lottery.ages.GET", "lottery.ages.issue", "lottery.pool.GET", "lottery.pool.export", "lottery.draw.GET", "lottery.draw.POST", "lottery.draw.PUT", "lottery.draw.submit"];
-const LOTTERY_APPROVE = ["lottery.stats.GET", "lottery.ages.GET", "lottery.ages.approve", "lottery.pool.GET", "lottery.draw.GET", "lottery.draw.publish"];
-const OPFILES_READ = ["opfiles.files.GET", "opfiles.nodes.GET", "opfiles.assignments.GET", "opfiles.staff-contact.GET"];
+/**
+ * A grant pattern as testdata/staff/accounts.json writes it: a permission or a wildcard (`flights.*`), with a scope
+ * after «@» (`airport.*@ap-dam`), or one of two computed sets — `VIEW_ALL`, and `WINDOWS:<system>` for the windows of
+ * that system's operations (`season.windows.GET`/`PUT` scoped to them).
+ */
+function patterns(p: string): string[] {
+  if (p === "VIEW_ALL") return VIEW_ALL;
+  if (p.startsWith("WINDOWS:")) return windows(WINDOWS_OF[p.slice("WINDOWS:".length) as keyof typeof WINDOWS_OF]);
+  return [p];
+}
 
-export const STAFF: StaffUser[] = [
-  // The season director: who may do what (the staff's permissions), the whole season's numbers (the executive dashboard),
-  // and the right to view every system's pages. Every system's work is one employee's below; none of it is his to change
-  { id: "nour.a", username: "nour.a", name: "نور الأعرج", title: "مدير الموسم", travels: false, initials: "ن", grants: seed("access.*", "executive.*", ...VIEW_ALL) },
-  { id: "rana", username: "rana", name: "رنا حداد", title: "إدارة التسجيل", travels: false, initials: "ر", grants: seed("reviews.*", "evaluate.committee.*") },
-  // Data entry: registering citizens at the office and nothing else — no group, no cluster, no administrator
-  { id: "razan", username: "razan", name: "رزان الحسن", title: "إدخال بيانات — التسجيل على الحج", travels: false, initials: "ر", grants: seed("office.*") },
-  // The registration as configuration: its pages, questions, rules, installments and steps, published per season, and its two windows
-  { id: "hiba", username: "hiba", name: "هبة القدسي", title: "مسؤولة إدارة التسجيل على الحج", travels: false, initials: "ه", grants: seed("registration.*", ...windows(WINDOWS_OF.registration)) },
-  { id: "kinan", username: "kinan", name: "كنان الأحمد", title: "إدارة التسجيل — إدخال نتائج القرعة", travels: false, initials: "ك", grants: seed(...LOTTERY_IMPORT) },
-  { id: "yousef", username: "yousef", name: "يوسف الزعبي", title: "لجنة اعتماد ونشر نتائج القرعة", travels: false, initials: "ي", grants: seed(...LOTTERY_APPROVE, "evaluate.committee.*") },
-  { id: "munir", username: "munir", name: "منير السيد", title: "مسؤول الامتحانات", travels: false, initials: "م", grants: seed("exams.*", ...windows(WINDOWS_OF.exams)) },
-  { id: "mazen", username: "mazen", name: "مازن الحلبي", title: "مدير المكتب", travels: false, initials: "م", grants: seed("admins.*", ...windows(WINDOWS_OF.admins)) },
-  // The operations room reads the operational files without changing them
-  { id: "fadi", username: "fadi", name: "فادي سلوم", title: "غرفة العمليات — مكة", travels: true, initials: "ف", grants: seed("operations.*", ...OPFILES_READ) },
-  // Damascus airport's representative: take-offs and landings there, nothing else
-  { id: "omar", username: "omar", name: "عمر الشامي", title: "مندوب مطار دمشق — الإقلاع والهبوط", travels: false, initials: "ع", grants: seed("airport.*@ap-dam", "evaluate.evaluations.*") },
-  { id: "layla", username: "layla", name: "د. ليلى شمس", title: "الفريق الطبي", travels: true, initials: "ل", grants: seed("medical.*", "evaluate.evaluations.*") },
-  { id: "haitham", username: "haitham", name: "هيثم زيدان", title: "مسؤول الطيران", travels: true, initials: "ه", grants: seed("flights.*", "evaluate.evaluations.*") },
-  { id: "bassel", username: "bassel", name: "باسل النوري", title: "فريق المواصلات", travels: true, initials: "ب", grants: seed("transport.*", "evaluate.evaluations.*") },
-  { id: "tarek", username: "tarek", name: "طارق مصطفى", title: "التدقيق", travels: false, initials: "ط", grants: seed("audit.*", "executive.*", "evaluate.committee.*") },
-  { id: "abusami", username: "abusami", name: "سامي حلاق (أبو سامي)", title: "الموارد البشرية", travels: false, initials: "س", grants: seed("staff.*") },
-  { id: "nour", username: "nour", name: "نور العابد", title: "محرّرة محتوى المنصة", travels: false, initials: "ن", grants: seed("content.*") },
-  { id: "ghassan", username: "ghassan", name: "غسان العمر", title: "مدير شؤون البعثة — الملفات التشغيلية", travels: true, initials: "غ", grants: seed("opfiles.*") },
-  // The reference lists (hotels, sectors, centres, camps) that the operational files choose their places from
-  { id: "rima", username: "rima", name: "ريما الجندي", title: "مسؤولة البيانات المرجعية", travels: false, initials: "ر", grants: seed("reference.*") },
-  { id: "lubna", username: "lubna", name: "لبنى الشهابي", title: "مسؤولة إعدادات الموسم", travels: false, initials: "ل", grants: seed("season.*") },
-  // Posted as the supervisor of فندق أبراج النور, where تكتل النور lived: after the season he rates its administrators
-  { id: "wissam", username: "wissam", name: "وسام خوري", title: "مشرف برج — فندق أبراج النور", travels: true, initials: "و", grants: seed("evaluate.evaluations.*") },
-  // Damascus centre's hall supervisor: its sittings, attendance, devices and submissions, nothing else
-  { id: "nisreen", username: "nisreen", name: "نسرين الحكيم", title: "مشرفة قاعة امتحانية — مركز دمشق", travels: false, initials: "ن", grants: seed("hall.*@damascus") },
-];
+type AccountRecord = { id: string; title: string; travels: boolean; grants: string[] };
+/** `honorific` «د.» before his name, `nickname` «أبو سامي» after it, as the portal shows him */
+type EmployeeRecord = { handle?: string; firstName: string; surname: string; honorific?: string; nickname?: string };
+
+/**
+ * The accounts (testdata/staff/accounts.json), each under its holder's handle in the employees' register
+ * (testdata/staff/employees.json), which gives his name, its honorific and by-name, and his initial. The season director reads every system and changes none;
+ * every system's work is one employee's — data entry at the office, the registration's configuration and windows,
+ * the lottery's results and their approval, the exams, the administrators, the operations room (reading the
+ * operational files), an airport's take-offs and landings, the medical team, flights, transport, audit, HR,
+ * content, the operational files, the reference lists, the season's settings, a tower supervisor who rates the
+ * administrators after the season, and the Damascus hall's supervisor.
+ */
+const EMPLOYEE_BY_HANDLE = new Map((EMPLOYEES as EmployeeRecord[]).filter((e) => e.handle).map((e) => [e.handle!, e]));
+
+export const STAFF: StaffUser[] = (ACCOUNTS as AccountRecord[]).map((a) => {
+  const e = EMPLOYEE_BY_HANDLE.get(a.id)!;
+  return {
+    id: a.id,
+    username: a.id,
+    name: `${e.honorific ? `${e.honorific} ` : ""}${e.firstName} ${e.surname}${e.nickname ? ` (${e.nickname})` : ""}`,
+    title: a.title,
+    travels: a.travels,
+    initials: [...e.firstName][0],
+    grants: seed(...a.grants.flatMap(patterns)),
+  };
+});
+
+/** A staff member's name by account id («mazen» → «مازن الحلبي»), from the employees' register */
+export const staffName = (id: string) => STAFF.find((u) => u.id === id)?.name ?? id;
+
+/**
+ * The test data writes who did something on the staff's side as the account («@mazen»), never the name: this puts the
+ * name back, anywhere in the data it is given (lib/data/*, app/administrator/_lib/* read their JSON through it).
+ */
+export function withStaffNames<T>(data: T): T {
+  const walk = (x: unknown): unknown => {
+    if (typeof x === "string") return x.startsWith("@") && STAFF.some((u) => u.id === x.slice(1)) ? staffName(x.slice(1)) : x;
+    if (Array.isArray(x)) return x.map(walk);
+    if (x && typeof x === "object") return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, walk(v)]));
+    return x;
+  };
+  return walk(data) as T;
+}
 
 export const STAFF_PASSWORD = "1448";
 

@@ -1,5 +1,7 @@
+import { personName } from "./registry";
 import { actions, getState, setState, useStore, type AdminProfile } from "./store";
 import { seeded } from "./utils";
+import SEED from "@/testdata/religious/lessons.json";
 
 /**
  * الدروس الدينية — what the religious guides teach their groups' pilgrims, and who came.
@@ -97,30 +99,16 @@ export function attended(l: GroupLesson, personId: string) {
 
 // ───────────────────────── Seeds ─────────────────────────
 
-const at = (iso: string, hhmm: string) => new Date(`${iso}T${hhmm}:00+03:00`).getTime();
-const KHALED = { byId: "01033300873", byName: "الشيخ خالد الرفاعي", byRole: "guide" as const };
-const HALA = { byId: "01033300981", byName: "هالة الدقر", byRole: "guide-f" as const };
-const seed = (x: Omit<GroupLesson, "createdAt" | "interested" | "clusterId"> & { interested?: string[] }): GroupLesson => ({ clusterId: "al-nour", createdAt: x.at - 7 * 86_400_000, interested: [], ...x });
-
 /**
  * تكتل النور's lessons for مجموعة اللطيف (27): its guide's to all of it and to its men, and its female guide's to
  * the women of her three groups — the season before travel and in it, given and recorded (the demo's guides
  * finished their season), and still to come: two in the first days in Makkah, two in Madinah.
+ * Kept in testdata/religious/lessons.json; each was announced a week before it.
  */
-export const LESSONS_SEED: GroupLesson[] = [
-  seed({ id: "ls-27-1", groups: [27], ...KHALED, title: "كيف نستعد للحج: النية والتوبة وآداب الرحلة", topic: "التوبة وآداب الرحلة", stage: "pretravel", at: at("2027-03-13", "18:00"), minutes: 60, place: "مكتب دمشق — القاعة 2", audience: "all", summary: "اللقاء الأول للمجموعة. أحضروا دفتراً صغيراً للأدعية.", closedAt: at("2027-03-13", "19:10"), seedRate: 0.9 }),
-  seed({ id: "ls-27-2", groups: [27], ...KHALED, title: "أحكام الإحرام ومحظوراته", topic: "أحكام الإحرام ومحظوراته", stage: "pretravel", at: at("2027-03-27", "18:00"), minutes: 75, place: "مكتب دمشق — القاعة 2", audience: "all", summary: "نتدرب على لبس الإحرام للرجال. أحضروا قطعتي الإحرام إن وُجدتا.", closedAt: at("2027-03-27", "19:20"), seedRate: 0.86 }),
-  seed({ id: "ls-f-1", groups: [31, 27, 18], ...HALA, title: "أحكام خاصة بالمرأة في الإحرام والطواف", topic: "أحكام خاصة بالمرأة في الحج", stage: "pretravel", at: at("2027-04-03", "17:00"), minutes: 60, place: "مكتب دمشق — قاعة السيدات", audience: "women", summary: "لباس المرأة في الإحرام، والحيض والطواف، والمحرم.", closedAt: at("2027-04-03", "18:05"), seedRate: 0.82 }),
-  seed({ id: "ls-27-3", groups: [27], ...KHALED, title: "العمرة خطوة بخطوة: الطواف والسعي", topic: "العمرة: الطواف والسعي", stage: "pretravel", at: at("2027-04-17", "18:00"), minutes: 75, place: "مكتب دمشق — القاعة 2", audience: "all", closedAt: at("2027-04-17", "19:25"), seedRate: 0.88 }),
-  // the first days in Makkah: still to give, the families say who will come
-  seed({ id: "ls-27-m1", groups: [27], ...KHALED, title: "آداب المسجد الحرام والطواف في الزحام", topic: "العمرة: الطواف والسعي", stage: "makkah", at: at("2027-05-03", "20:30"), minutes: 45, place: "فندق روضة طيبة — قاعة الطابق (م)", audience: "all", summary: "بعد صلاة العشاء. كبار السن مع مرافقيهم في الصف الأول." }),
-  seed({ id: "ls-f-m1", groups: [31, 27, 18], ...HALA, title: "صلاة المرأة في الحرم وأماكن مصليات السيدات", topic: "أحكام خاصة بالمرأة في الحج", stage: "makkah", at: at("2027-05-04", "17:00"), minutes: 30, place: "فندق روضة طيبة — قاعة السيدات", audience: "women" }),
-  seed({ id: "ls-27-4", groups: [27], ...KHALED, title: "أعمال يوم التروية وعرفة", topic: "يوم التروية ويوم عرفة", stage: "makkah", at: at("2027-05-12", "20:30"), minutes: 60, place: "فندق روضة طيبة — قاعة الطابق (م)", audience: "all", closedAt: at("2027-05-12", "21:40"), seedRate: 0.93 }),
-  seed({ id: "ls-27-5", groups: [27], ...KHALED, title: "رمي الجمرات والتعجّل للرجال", topic: "مزدلفة ورمي الجمرات", stage: "mashaer", at: at("2027-05-16", "16:00"), minutes: 45, place: "منى — الخيمة 12", audience: "men", summary: "التوكيل في الرمي لكبار السن، ومن يرمي عن النساء.", closedAt: at("2027-05-16", "16:50"), seedRate: 0.9 }),
-  seed({ id: "ls-f-2", groups: [31, 27, 18], ...HALA, title: "طواف الإفاضة والوداع للحاجّات", topic: "أيام التشريق وطواف الوداع", stage: "mashaer", at: at("2027-05-17", "10:00"), minutes: 45, place: "منى — خيمة السيدات 13", audience: "women", closedAt: at("2027-05-17", "10:50"), seedRate: 0.84 }),
-  seed({ id: "ls-27-6", groups: [27], ...KHALED, title: "آداب زيارة المسجد النبوي والسلام على النبي ﷺ", topic: "آداب زيارة المسجد النبوي", stage: "madinah", at: at("2027-05-23", "21:00"), minutes: 45, place: "فندق المدينة — قاعة الطابق الأول", audience: "all" }),
-  seed({ id: "ls-f-3", groups: [31, 27, 18], ...HALA, title: "زيارة الروضة للسيدات: موعدها وآدابها", topic: "آداب زيارة المسجد النبوي", stage: "madinah", at: at("2027-05-24", "08:30"), minutes: 30, place: "فندق المدينة — بهو السيدات", audience: "women", summary: "التجمّع للروضة بعد الدرس مباشرة، ومعكن بطاقة الموعد في «نسك»." }),
-];
+export const LESSONS_SEED: GroupLesson[] = SEED.map(({ at, closedAt, ...l }) => {
+  const when = new Date(at).getTime();
+  return { ...l, byName: personName(l.byId), byRole: l.byRole as LessonRole, stage: l.stage as LessonStage, audience: l.audience as LessonAudience, at: when, ...(closedAt && { closedAt: new Date(closedAt).getTime() }), createdAt: when - 7 * 86_400_000, interested: [] };
+});
 
 // ───────────────────────── Store access ─────────────────────────
 

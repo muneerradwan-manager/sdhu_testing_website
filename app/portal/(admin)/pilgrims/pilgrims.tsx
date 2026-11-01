@@ -35,6 +35,8 @@ import { firstPayment, seasonPlan } from "@/lib/installments";
 import { applicationNumberFor } from "@/lib/journey";
 import { useSeason } from "@/lib/season-live";
 import { FIRST_NAME_TRIES, ageOf, firstNameMatches, fullName, getPerson, isValidNationalId, lookupPerson, type Person } from "@/lib/registry";
+import { withNames } from "@/lib/demo-text";
+import DESK_DATA from "@/testdata/demo/desk-shortcuts.json";
 import { evaluate, withOldestAsApplicant, type Member } from "@/lib/rules";
 import { getState, useStore } from "@/lib/store";
 import { cn, countOf, digitsOnly, formatUSD, maskNationalId } from "@/lib/utils";
@@ -48,6 +50,9 @@ import { statusLabel, useAnyOperation } from "@/lib/operations";
 import { ApplicationDetail } from "./detail";
 
 type Step = "citizen" | "consent" | "members" | "booklet" | "adder" | "eligibility" | "office" | "done";
+
+/** National numbers ready to try at the desk, each with its case (testdata/demo/desk-shortcuts.json) */
+const DESK_SHORTCUTS = DESK_DATA.map((x) => ({ id: x.id, note: withNames(x.note, x.id) }));
 
 const STEPS: { key: Step; label: string }[] = [
   { key: "citizen", label: "المواطن" },
@@ -300,12 +305,7 @@ export function RegistrationDesk({ registrar, aside }: { registrar: Registrar; a
                   <div className="mt-6 rounded-2xl border border-dashed border-gold/50 bg-sand/60 p-4">
                     <p className="text-sm font-bold text-green-dark">أرقام جاهزة للتجربة</p>
                     <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {[
-                        { id: "01012340078", note: "خديجة الخطيب — 78 عاماً، تحتاج مرافقاً مسمّى" },
-                        { id: "02033300552", note: "ريم النجار — دون 44 عاماً، تحتاج محرماً" },
-                        { id: "01011100208", note: "ياسين العمر — مسجّل في طلب آخر" },
-                        { id: "01012345412", note: "محمد الخطيب — رب أسرة بدفتر عائلة" },
-                      ].map((x) => (
+                      {DESK_SHORTCUTS.map((x) => (
                         <li key={x.id}>
                           <button
                             type="button"

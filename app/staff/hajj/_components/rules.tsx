@@ -11,6 +11,8 @@ import { describe } from "@/lib/registration/conditions";
 import { allFields, configuredChecks } from "@/lib/registration/engine";
 import type { EligibilityRule } from "@/lib/registration/types";
 import { getPerson, type Relation } from "@/lib/registry";
+import { withNames } from "@/lib/demo-text";
+import RULE_FAMILIES from "@/testdata/demo/rule-families.json";
 import type { Member } from "@/lib/rules";
 import { useSeason } from "@/lib/season-live";
 import { cn } from "@/lib/utils";
@@ -21,13 +23,8 @@ import { Box, IssuesFor, Kind, ListTable, RowActions, RowLink, Title, newId, use
 
 const FIX_LABEL: Record<EligibilityRule["fix"], string> = { none: "لا شيء", remove: "إزالة الفرد من الطلب", addPerson: "إضافة شخص إلى الطلب", lottery: "التسجيل على القرعة بدلاً من ذلك" };
 
-/** Demo families to try a rule on: the operating document's cases */
-const FAMILIES: { key: string; label: string; members: [string, Relation][] }[] = [
-  { key: "khatib", label: "آل الخطيب (محمد وزوجته ووالدته)", members: [["01012340078", "self"], ["01012345412", "child"], ["01012345413", "other"]] },
-  { key: "mohammad", label: "محمد وحده (58)", members: [["01012345412", "self"]] },
-  { key: "reem", label: "ريم وأخوها مازن", members: [["02033300552", "self"], ["02033300553", "sibling"]] },
-  { key: "hassan", label: "حسان ووالدته نجاح", members: [["06055500701", "self"], ["06055500711", "child"]] },
-];
+/** Demo families to try a rule on: the operating document's cases (testdata/demo/rule-families.json) */
+const FAMILIES = (RULE_FAMILIES as { key: string; label: string; members: [string, Relation][] }[]).map((f) => ({ ...f, label: withNames(f.label) }));
 
 /** The platform's own conditions, always applied — shown, not edited (their numbers are the season settings') */
 function useFixedRules() {

@@ -1,0 +1,86 @@
+{
+  "directEligible": 61830,
+  "directSeats": 14625,
+  "ageBuckets": [
+    {
+      "label": "80+",
+      "minAge": 80,
+      "seats": 2750
+    },
+    {
+      "label": "75–79",
+      "minAge": 75,
+      "seats": 3350
+    },
+    {
+      "label": "70–74",
+      "minAge": 70,
+      "seats": 5300
+    },
+    {
+      "label": "69",
+      "minAge": 69,
+      "seats": 1580
+    },
+    {
+      "label": "68",
+      "minAge": 68,
+      "seats": 1645
+    },
+    {
+      "label": "67",
+      "minAge": 67,
+      "seats": 760
+    },
+    {
+      "label": "66",
+      "minAge": 66,
+      "seats": 665
+    },
+    {
+      "label": "65",
+      "minAge": 65,
+      "seats": 910
+    },
+    {
+      "label": "64",
+      "minAge": 64,
+      "seats": 980
+    },
+    {
+      "label": "63",
+      "minAge": 63,
+      "seats": 1040
+    },
+    {
+      "label": "62",
+      "minAge": 62,
+      "seats": 1120
+    },
+    {
+      "label": "61",
+      "minAge": 61,
+      "seats": 1190
+    },
+    {
+      "label": "60",
+      "minAge": 60,
+      "seats": 1260
+    },
+    {
+      "label": "50–59",
+      "minAge": 50,
+      "seats": 14300
+    },
+    {
+      "label": "40–49",
+      "minAge": 40,
+      "seats": 19800
+    },
+    {
+      "label": "29–39",
+      "minAge": 29,
+      "seats": 13355
+    }
+  ]
+}

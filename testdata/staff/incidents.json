@@ -1,0 +1,117 @@
+[
+  {
+    "id": "OR-1207",
+    "minutesAgo": 3,
+    "zone": "mina",
+    "name": "سليم حسن (66) — {group:27}",
+    "kind": "missing",
+    "severity": "critical",
+    "location": "منى — بوابة الجمرات الشرقية",
+    "text": "غاب عن تجمّع العودة من الجمرات. هاتفه مغلق. آخر مسح لبطاقته عند البوابة الشرقية 15:20. سوار أخضر رقم 27-044.",
+    "status": "open",
+    "assignee": "",
+    "updates": []
+  },
+  {
+    "id": "OR-1204",
+    "minutesAgo": 6,
+    "zone": "arafat",
+    "name": "حاجة من {group:14} — تكتل النور",
+    "kind": "health",
+    "severity": "critical",
+    "location": "عرفة — مخيم تكتل النور، خيمة 12",
+    "text": "إجهاد حراري: دوار وتعرّق شديد. نُقلت إلى الظل وأُعطيت ماء.",
+    "status": "in_progress",
+    "assignee": "د. ليلى شمس",
+    "updates": [
+      {
+        "at": 0,
+        "by": "@fadi",
+        "text": "أُسند إلى د. ليلى — الفريق في الطريق"
+      }
+    ]
+  },
+  {
+    "id": "OR-1201",
+    "minutesAgo": 12,
+    "zone": "arafat",
+    "name": "حاج من {group:31}",
+    "kind": "health",
+    "severity": "high",
+    "location": "عرفة — قرب مسجد نمرة، الجهة الشرقية",
+    "text": "إجهاد حراري بعد المشي من موقف الحافلات. الحاج واعٍ.",
+    "status": "open",
+    "assignee": "",
+    "updates": []
+  },
+  {
+    "id": "OR-1199",
+    "minutesAgo": 17,
+    "zone": "arafat",
+    "name": "حاج من {group:8} — تكتل الشهباء",
+    "kind": "health",
+    "severity": "critical",
+    "location": "عرفة — مخيم تكتل الشهباء",
+    "text": "إجهاد حراري وهبوط ضغط. نُقل إلى العيادة الميدانية.",
+    "status": "in_progress",
+    "assignee": "د. ليلى شمس",
+    "updates": [
+      {
+        "at": 0,
+        "by": "د. ليلى شمس",
+        "text": "وصلنا — محلول وريدي — الحالة مستقرة"
+      }
+    ]
+  },
+  {
+    "id": "OR-1196",
+    "minutesAgo": 24,
+    "zone": "muzdalifah",
+    "name": "حافلة 14 — تكتل العاصي",
+    "kind": "transport",
+    "severity": "medium",
+    "location": "طريق عرفة ← مزدلفة — نقطة التجمّع 3",
+    "text": "السائق لم يؤكد الحضور. الحافلة متأخرة 25 دقيقة عن موعد الجاهزية.",
+    "status": "open",
+    "assignee": "",
+    "updates": []
+  },
+  {
+    "id": "OR-1190",
+    "minutesAgo": 41,
+    "zone": "arafat",
+    "name": "{group:19} — تكتل اليقين",
+    "kind": "meal",
+    "severity": "low",
+    "location": "عرفة — مخيم تكتل اليقين",
+    "text": "الماء المقدّم غير بارد في ثلاث خيام.",
+    "status": "in_progress",
+    "assignee": "مشرف الإعاشة",
+    "updates": [
+      {
+        "at": 0,
+        "by": "@fadi",
+        "text": "طُلبت شحنة ثلج إضافية"
+      }
+    ]
+  },
+  {
+    "id": "OR-1184",
+    "minutesAgo": 58,
+    "zone": "arafat",
+    "name": "{group:27} — تكتل النور",
+    "kind": "room",
+    "severity": "medium",
+    "location": "عرفة — مخيم تكتل النور، خيمة 7",
+    "text": "مكيف الخيمة معطل.",
+    "status": "resolved",
+    "assignee": "صيانة المخيم",
+    "updates": [
+      {
+        "at": 0,
+        "by": "صيانة المخيم",
+        "text": "استُبدل المكيف — تم التحقق"
+      }
+    ]
+  }
+]

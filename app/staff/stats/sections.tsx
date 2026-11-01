@@ -1,5 +1,7 @@
 "use client";
 
+import { HEADS_POOL } from "@/app/administrator/_lib/people";
+import { SEED_CLUSTERS } from "@/app/administrator/_lib/cluster";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowLeft, Bus, Database, CheckCircle2, Circle, ClipboardCheck, Dices, FileStack, HeartPulse, ListTodo, PencilLine, RadioTower, ScrollText, Settings2, UserRoundPlus } from "lucide-react";
@@ -54,12 +56,22 @@ export const statsOf = (user: StaffUser | null) => STATS_SYSTEMS.filter((s) => c
 const POOL = drawTotals([]);
 
 /** The groups of the cluster on the day of Arafat, as the room's last reports gave them */
+/** A group's head by its number, as the season's clusters hold him (his name from the civil registry or the heads' pool) */
+function headOfGroup(no: number) {
+  for (const c of SEED_CLUSTERS) {
+    if (c.headGroup === no) return c.headName;
+    const g = c.cluster.groups[no];
+    if (g) return g.name;
+  }
+  return HEADS_POOL.find((h) => h.group === no)?.name ?? "";
+}
+
 const GROUP_REPORTS = [
-  { group: 27, cluster: "النور", inArafat: 48, of: 48, report: "13:00", leader: "أحمد الحمصي" },
-  { group: 14, cluster: "النور", inArafat: 49, of: 50, report: "13:40", leader: "محمود الشامي" },
-  { group: 31, cluster: "النور", inArafat: 50, of: 50, report: "12:55", leader: "بسام درويش" },
-  { group: 19, cluster: "اليقين", inArafat: 44, of: 45, report: "13:20", leader: "عمر الزين" },
-  { group: 8, cluster: "الشهباء", inArafat: 44, of: 45, report: "14:05", leader: "لؤي حمدان" },
+  { group: 27, cluster: "النور", inArafat: 48, of: 48, report: "13:00" },
+  { group: 14, cluster: "النور", inArafat: 49, of: 50, report: "13:40" },
+  { group: 31, cluster: "النور", inArafat: 50, of: 50, report: "12:55" },
+  { group: 19, cluster: "اليقين", inArafat: 44, of: 45, report: "13:20" },
+  { group: 8, cluster: "الشهباء", inArafat: 44, of: 45, report: "14:05" },
 ];
 
 /** Everything the statistics read, once: each system takes its part */
@@ -130,7 +142,7 @@ function useStatsData(user: StaffUser) {
       health: openTickets.filter((t) => t.kind === "health").length,
       missing: openTickets.filter((t) => t.kind === "missing").length,
       transportOpen: openTickets.filter((t) => t.kind === "transport").length,
-      groupReports: GROUP_REPORTS.map((r) => ({ ...r, open: openTickets.filter((t) => t.name.includes(groupName(r.group))).length })),
+      groupReports: GROUP_REPORTS.map((r) => ({ ...r, leader: headOfGroup(r.group), open: openTickets.filter((t) => t.name.includes(groupName(r.group))).length })),
       busAccepted: events.some((e) => e.action === "اعتماد حافلة إضافية"),
       docsWaiting,
       conditions,

@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { Download, FileSignature, Maximize2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CmsImage } from "@/components/cms/image";
@@ -15,7 +16,7 @@ export const seedContract = (kind: "group" | "cluster", title: string): SignedCo
   name: `${title}.svg`,
   type: "image/svg+xml",
   at: SEED_AT,
-  by: "مازن الحلبي",
+  by: staffName("mazen"),
 });
 
 const fmt = (ts: number) => new Date(ts).toLocaleDateString("ar-SY-u-nu-latn", { day: "numeric", month: "long", year: "numeric" });

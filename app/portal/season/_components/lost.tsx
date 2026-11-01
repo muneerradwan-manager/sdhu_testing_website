@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import { Camera, CheckCircle2, Luggage, Send } from "lucide-react";
 import { useState } from "react";
@@ -36,7 +37,7 @@ export function LostSection({ ctx }: { ctx: SeasonCtx }) {
       severity: "low",
       location: place,
       text: `مفقودات لـ${m.person.firstName}: ${desc}${photo ? " (مع صورة مشابهة)" : ""} — ${ctx.day.hijri}`,
-      assignee: "هيثم زيدان — فريق المواصلات",
+      assignee: `${staffName("bassel")} — فريق المواصلات`,
     });
     actions.setInSeason(ctx.sessionId, { lostReports: lostReports + 1 });
     logPilgrimSeason(ctx, "بلاغ مفقودات", `تذكرة ${id} — ${desc}`);

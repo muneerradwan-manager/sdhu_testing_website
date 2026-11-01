@@ -1,0 +1,42 @@
+[
+  {
+    "clusterId": "al-nour",
+    "groups": [
+      31,
+      18,
+      33
+    ],
+    "out": "f48-07",
+    "back": "f48-r07"
+  },
+  {
+    "clusterId": "al-safa",
+    "groups": "first2",
+    "out": "f48-01",
+    "back": "f48-r01"
+  },
+  {
+    "clusterId": "al-yaqeen",
+    "groups": "first2",
+    "out": "f48-02",
+    "back": "f48-r02"
+  },
+  {
+    "clusterId": "al-shahba",
+    "groups": "first2",
+    "out": "f48-04",
+    "back": "f48-r04"
+  },
+  {
+    "clusterId": "al-asi",
+    "groups": "first2",
+    "out": "f48-05",
+    "back": "f48-r05"
+  },
+  {
+    "clusterId": "bawabat-al-haramain",
+    "groups": "first2",
+    "out": "f48-03",
+    "back": "f48-r03"
+  }
+]

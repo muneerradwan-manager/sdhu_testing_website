@@ -14,34 +14,21 @@ import { enterDemoCase } from "@/lib/demo-cases";
 import { useOperation } from "@/lib/operations";
 import { DEMO_SCENARIOS, getPerson, isValidNationalId } from "@/lib/registry";
 import { DEMO_ADMINS, DEMO_GROUPS, DEMO_LISTED, demoAdminLogin } from "@/app/administrator/_lib/admin";
-import { cn } from "@/lib/utils";
+import { cn, nowMs } from "@/lib/utils";
 import { actions, getState, seasonNow, useStore } from "@/lib/store";
+import { withNames } from "@/lib/demo-text";
+import DEFAULTS from "@/testdata/demo/defaults.json";
+import LOGIN_MEMBERS from "@/testdata/demo/login-members.json";
+import SCENARIOS_EN_DATA from "@/testdata/demo/scenarios-en.json";
 
-/** The members of the demo: accounts that chose nothing this season — new, a pilgrim before, an administrator before */
-const MEMBERS = [
-  { id: "09099912345", title: "عضو جديد", note: "لم يشارك في أي موسم: يتعلّم في الأكاديمية، ويختار الحج أو صفة إدارية متى شاء." },
-  { id: "06055500711", title: "حجّ في موسم 1445", note: "يُذكَّر بموسمه حاجاً، ويُسأل: يكمل كحاج هذا الموسم، أو يفتح ملفاً إدارياً جديداً." },
-  { id: "01033300899", title: "رئيس مجموعة في موسم 1447", note: "يُذكَّر بصفته وتقييمه 4.4، ويُسأل: يكمل كإداري بملفه الدائم، أو يفتح ملف حاج لهذا الموسم." },
-];
-import { nowMs } from "@/lib/utils";
+/** The members of the demo: accounts that chose nothing this season — new, a pilgrim before, an administrator before (testdata/demo/login-members.json) */
+const MEMBERS: { id: string; title: string; note: string }[] = LOGIN_MEMBERS;
 
-/** The demo pilgrims in English: the situation after the name (the name stays as it is) */
-const SCENARIOS_EN: Record<string, { title: string; note: string }> = {
-  "01012345412": { title: "The full example", note: "Head of a family (58): his wife, his son عمر, and his mother خديجة (78), who is not in his family book. Adding خديجة moves the application to her name, as she is the eldest." },
-  "01099900440": { title: "Direct acceptance", note: "Aged 69, with his wife هيام: within direct acceptance (born in 1958 or earlier), so he pays the registration fee and the first instalment." },
-  "01077700351": { title: "Application in the father's name", note: "A young man (35) signs up and adds his father عادل (64) by national ID, so the father becomes the applicant automatically." },
-  "02088800410": { title: "Living in Türkiye", note: "From Aleppo (50), with his wife ديما. He chooses “In Türkiye — Gaziantep”, so he comes under the Gaziantep office (Türkiye has two: Istanbul and Gaziantep) and travels with his group." },
-  "12099900520": { title: "Living in Jordan", note: "A woman (48) who does not need a mahram (male guardian): a single application through the Jordan office." },
-  "01066600620": { title: "Below the direct-acceptance age", note: "Aged 60, with his wife. If he chooses direct acceptance (born in 1958 or earlier), he is warned at the eligibility stage before any payment, and moves his application to the lottery in one click. Born in April 1966, so he is not accepted in the lottery: 1966 was not drawn." },
-  "01055500730": { title: "Accepted directly", note: "Aged 71, with her son فراس: she paid the fee and the first instalment when she registered. She starts with her personal photo, then agrees with a group and signs its contract at the office, where a staff member adds her to it; then the second instalment, the passport and the medical file." },
-  "01058100960": { title: "Applies for direct acceptance", note: "No application yet, and every condition makes him accepted directly: born in 1958 (68), with his wife منى from the family booklet. He opens on «Apply for Hajj» within the direct-acceptance window (12 – 25 August), applies from the start, and is accepted." },
-  "01080300980": { title: "Applies for the lottery", note: "No application yet, below the direct-acceptance age (46), and every condition makes him accepted in the lottery: born in 1980, a year drawn in full. With his wife رنا from the family booklet. He opens on «Apply for Hajj» within the lottery window (26 August – 10 September), applies from the start, and is accepted." },
-  "01058200970": { title: "Not accepted directly, nor in the lottery", note: "Born in 1958, with his wife هدى: not accepted directly (the seats were filled at 69 and he is 68), then registered for the lottery, where his birth year was not drawn. He opens on «My application» to see the season's final result." },
-  "01088800910": { title: "Accepted in the lottery", note: "Aged 46, with his wife: he paid only the lottery pre-registration fee, and everyone born in 1980 was drawn. He confirms his registration with the first instalment." },
-  "06055500711": { title: "Has performed Hajj before", note: "Accepted only because he is the mahram (male guardian) of his mother نجاح (76) or of his wife." },
-  "02033300552": { title: "Under 44", note: "Needs a mahram (male guardian): add her brother مازن or her father سامر." },
-  "01011100208": { title: "Duplicate application", note: "Already in another application this season (one application per person)." },
-};
+/** The demo pilgrims in English: the situation after the name (the name stays as it is); testdata/demo/scenarios-en.json, its people by national number */
+const SCENARIOS_EN: Record<string, { title: string; note: string }> = Object.fromEntries(Object.entries(SCENARIOS_EN_DATA).map(([id, s]) => [id, { title: s.title, note: withNames(s.note) }]));
+
+/** A demo account opened by its card: the demo's password, and its emergency contact for a pilgrim */
+const { accountPassword, emergencyContact } = DEFAULTS;
 
 export function LoginFlow() {
   const t = useT();
@@ -93,7 +80,7 @@ export function LoginFlow() {
 
   const quickLogin = (nationalId: string) => {
     if (!accounts[nationalId]) {
-      actions.register({ nationalId, phone: `0944${nationalId.slice(-6)}`, password: "hajj1448", createdAt: nowMs(), emergencyName: "سارة", emergencyPhone: "0933000412" });
+      actions.register({ nationalId, phone: `0944${nationalId.slice(-6)}`, password: accountPassword, createdAt: nowMs(), emergencyName: emergencyContact.name, emergencyPhone: emergencyContact.phone });
     } else {
       actions.login(nationalId);
     }
@@ -121,7 +108,7 @@ export function LoginFlow() {
 
   /** A member of the platform: an account that chose nothing this season, to try the season's question */
   const quickMember = (nationalId: string) => {
-    if (!accounts[nationalId]) actions.register({ nationalId, phone: `0944${nationalId.slice(-6)}`, password: "hajj1448", createdAt: nowMs() });
+    if (!accounts[nationalId]) actions.register({ nationalId, phone: `0944${nationalId.slice(-6)}`, password: accountPassword, createdAt: nowMs() });
     else actions.login(nationalId);
     actions.chooseSeasonPath(nationalId, seasonNow(getState()), null);
     toast({ title: t(`مرحباً ${getPerson(nationalId)?.firstName}`, `Welcome, ${getPerson(nationalId)?.firstName}`), body: t("دخول تجريبي سريع", "Quick demo sign-in"), icon: "⚡", tone: "success" });

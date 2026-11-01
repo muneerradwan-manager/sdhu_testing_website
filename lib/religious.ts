@@ -1,7 +1,9 @@
+import { personName } from "./registry";
 import { ADHKAR, NAWAWI, juzOf, juzPages, pageLabel } from "./data/quran";
 import type { LessonAudience, LessonRole } from "./lessons";
 import { actions, getState, setState, useStore } from "./store";
 import { seeded } from "./utils";
+import SEED from "@/testdata/religious/activities.json";
 
 /**
  * النشاطات الدينية — what the guides follow pilgrim by pilgrim, beyond a lesson: memorising the Quran (which page,
@@ -124,18 +126,24 @@ export const partOfUnit = (unit: string) => (unit.startsWith("p") ? juzOf(Number
 
 // ───────────────────────── Seeds ─────────────────────────
 
-const at = (iso: string) => new Date(`${iso}T12:00:00+03:00`).getTime();
-const KHALED = { byId: "01033300873", byName: "الشيخ خالد الرفاعي", byRole: "guide" as const };
-const HALA = { byId: "01033300981", byName: "هالة الدقر", byRole: "guide-f" as const };
-const base = { clusterId: "al-nour", joined: [], left: [], progress: {}, sittings: [] };
-
-/** تكتل النور's activities for مجموعة اللطيف (27) and its female guide's three groups, begun before travel */
-export const ACTIVITIES_SEED: Activity[] = [
-  { ...base, id: "ac-27-quran", groups: [27], ...KHALED, kind: "quran", title: "تحفيظ جزء عمّ", goal: "جزء عمّ (الجزء 30)، من السور القصيرة", units: unitsFor("quran", 30, 30), audience: "all", schedule: "الأحد والأربعاء بعد العصر", place: "مكتب دمشق — القاعة 2، ثم قاعة الفندق", startAt: at("2027-03-07"), createdAt: at("2027-03-01"), seed: { join: 0.45, reach: 0.9 } },
-  { ...base, id: "ac-27-hadith", groups: [27], ...KHALED, kind: "hadith", title: "الأربعون النووية: الأحاديث 1 – 20", goal: "الأحاديث 1 – 20 من الأربعين النووية", units: unitsFor("hadith", 1, 20), audience: "men", schedule: "بعد درس الأحد", place: "مكتب دمشق — القاعة 2", startAt: at("2027-03-14"), createdAt: at("2027-03-10"), seed: { join: 0.35, reach: 0.8 } },
-  { ...base, id: "ac-f-adhkar", groups: [31, 27, 18], ...HALA, kind: "adhkar", title: "أدعية الحج والعمرة للحاجّات", goal: "عشرة أدعية يحتاجها الحاج بترتيبها", units: unitsFor("adhkar", 0, 0), audience: "women", schedule: "السبت بعد العصر", place: "مكتب دمشق — قاعة السيدات", startAt: at("2027-03-20"), createdAt: at("2027-03-15"), seed: { join: 0.6, reach: 0.85 } },
-  { ...base, id: "ac-f-khatma", groups: [31, 27, 18], ...HALA, kind: "khatma", title: "ختمة الحاجّات في مكة", goal: "ختمة كاملة قبل يوم التروية", units: unitsFor("khatma", 0, 0), audience: "women", schedule: "كل حاجّة جزءاً أو أكثر بحسب وقتها", place: "في الفندق والحرم", startAt: at("2027-05-02"), createdAt: at("2027-04-25"), seed: { join: 0.5, reach: 0.7 } },
-];
+/** تكتل النور's activities for مجموعة اللطيف (27) and its female guide's three groups, begun before travel (testdata/religious/activities.json) */
+export const ACTIVITIES_SEED: Activity[] = SEED.map(({ unitRange, startAt, createdAt, ...a }) => {
+  const kind = a.kind as ActivityKind;
+  return {
+    ...a,
+    byName: personName(a.byId),
+    byRole: a.byRole as LessonRole,
+    kind,
+    audience: a.audience as LessonAudience,
+    units: unitsFor(kind, unitRange?.[0] ?? 0, unitRange?.[1] ?? 0),
+    startAt: new Date(startAt).getTime(),
+    createdAt: new Date(createdAt).getTime(),
+    joined: [],
+    left: [],
+    progress: {},
+    sittings: [],
+  };
+});
 
 // ───────────────────────── Store access ─────────────────────────
 

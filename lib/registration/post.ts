@@ -4,6 +4,7 @@
  * the office's contract decision, the coordinator's health file) — never from a flag the page could set — so
  * reordering or rewording the steps in the configuration cannot open a step early.
  */
+import { staffName } from "../staff";
 import { installmentsOf, seasonPlan } from "../installments";
 import { ageOf } from "../registry";
 import { accommodationCost, costBreakdown, describeRooms } from "../rooms";
@@ -19,8 +20,8 @@ export type DocKey = "photo" | "passport";
  * after the second. Every medical document (vaccines included) waits until the pilgrim has joined a group.
  */
 export const DOCS: { key: DocKey; label: string; emoji: string; reviewer: string; reviewMs: number; hint: string }[] = [
-  { key: "photo", label: "الصورة الشخصية", emoji: "🖼️", reviewer: "رنا حداد", reviewMs: 2200, hint: "خلفية بيضاء، حديثة، دون نظارات" },
-  { key: "passport", label: "جواز السفر", emoji: "🛂", reviewer: "رنا حداد", reviewMs: 3200, hint: "صفحة البيانات كاملة وواضحة" },
+  { key: "photo", label: "الصورة الشخصية", emoji: "🖼️", reviewer: staffName("rana"), reviewMs: 2200, hint: "خلفية بيضاء، حديثة، دون نظارات" },
+  { key: "passport", label: "جواز السفر", emoji: "🛂", reviewer: staffName("rana"), reviewMs: 3200, hint: "صفحة البيانات كاملة وواضحة" },
 ];
 export const docKey = (m: Member, d: DocKey) => `${m.person.id}-${d}`;
 

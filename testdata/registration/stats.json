@@ -1,0 +1,69 @@
+{
+  "applications": 72420,
+  "persons": 118640,
+  "eligible": 61830,
+  "autoApproved": 59214,
+  "needsReview": 1284,
+  "rejected": 10590,
+  "family": 31870,
+  "byGovernorate": [
+    {
+      "name": "دمشق",
+      "value": 18940
+    },
+    {
+      "name": "ريف دمشق",
+      "value": 12310
+    },
+    {
+      "name": "حلب",
+      "value": 11870
+    },
+    {
+      "name": "حمص",
+      "value": 7420
+    },
+    {
+      "name": "حماة",
+      "value": 5980
+    },
+    {
+      "name": "إدلب",
+      "value": 4950
+    },
+    {
+      "name": "درعا",
+      "value": 3870
+    },
+    {
+      "name": "اللاذقية",
+      "value": 3610
+    },
+    {
+      "name": "دير الزور",
+      "value": 3470
+    }
+  ],
+  "rejectionReasons": [
+    {
+      "label": "أدى الحج سابقاً",
+      "value": 4210
+    },
+    {
+      "label": "المرافق دون السن",
+      "value": 2380
+    },
+    {
+      "label": "امرأة دون 44 بلا محرم",
+      "value": 1640
+    },
+    {
+      "label": "اسم مكرر في طلبين",
+      "value": 1320
+    },
+    {
+      "label": "أسباب أخرى",
+      "value": 1040
+    }
+  ]
+}

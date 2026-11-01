@@ -1,0 +1,58 @@
+{
+  "01012345412": {
+    "title": "The full example",
+    "note": "Head of a family (58): his wife, his son {first:01012345414}, and his mother {first:01012340078} (78), who is not in his family book. Adding {first:01012340078} moves the application to her name, as she is the eldest."
+  },
+  "01099900440": {
+    "title": "Direct acceptance",
+    "note": "Aged 69, with his wife {first:01099900441}: within direct acceptance (born in 1958 or earlier), so he pays the registration fee and the first instalment."
+  },
+  "01077700351": {
+    "title": "Application in the father's name",
+    "note": "A young man (35) signs up and adds his father {first:01077700350} (64) by national ID, so the father becomes the applicant automatically."
+  },
+  "02088800410": {
+    "title": "Living in Türkiye",
+    "note": "From Aleppo (50), with his wife {first:02088800411}. He chooses “In Türkiye — Gaziantep”, so he comes under the Gaziantep office (Türkiye has two: Istanbul and Gaziantep) and travels with his group."
+  },
+  "12099900520": {
+    "title": "Living in Jordan",
+    "note": "A woman (48) who does not need a mahram (male guardian): a single application through the Jordan office."
+  },
+  "01066600620": {
+    "title": "Below the direct-acceptance age",
+    "note": "Aged 60, with his wife. If he chooses direct acceptance (born in 1958 or earlier), he is warned at the eligibility stage before any payment, and moves his application to the lottery in one click. Born in April 1966, so he is not accepted in the lottery: 1966 was not drawn."
+  },
+  "01055500730": {
+    "title": "Accepted directly",
+    "note": "Aged 71, with her son {first:01055500731}: she paid the fee and the first instalment when she registered. She starts with her personal photo, then agrees with a group and signs its contract at the office, where a staff member adds her to it; then the second instalment, the passport and the medical file."
+  },
+  "01058100960": {
+    "title": "Applies for direct acceptance",
+    "note": "No application yet, and every condition makes him accepted directly: born in 1958 (68), with his wife {first:01058100961} from the family booklet. He opens on «Apply for Hajj» within the direct-acceptance window (12 – 25 August), applies from the start, and is accepted."
+  },
+  "01080300980": {
+    "title": "Applies for the lottery",
+    "note": "No application yet, below the direct-acceptance age (46), and every condition makes him accepted in the lottery: born in 1980, a year drawn in full. With his wife {first:01080300981} from the family booklet. He opens on «Apply for Hajj» within the lottery window (26 August – 10 September), applies from the start, and is accepted."
+  },
+  "01058200970": {
+    "title": "Not accepted directly, nor in the lottery",
+    "note": "Born in 1958, with his wife {first:01058200971}: not accepted directly (the seats were filled at 69 and he is 68), then registered for the lottery, where his birth year was not drawn. He opens on «My application» to see the season's final result."
+  },
+  "01088800910": {
+    "title": "Accepted in the lottery",
+    "note": "Aged 46, with his wife: he paid only the lottery pre-registration fee, and everyone born in 1980 was drawn. He confirms his registration with the first instalment."
+  },
+  "06055500711": {
+    "title": "Has performed Hajj before",
+    "note": "Accepted only because he is the mahram (male guardian) of his mother {first:06055500701} (76) or of his wife."
+  },
+  "02033300552": {
+    "title": "Under 44",
+    "note": "Needs a mahram (male guardian): add her brother {first:02033300553} or her father {first:02033300550}."
+  },
+  "01011100208": {
+    "title": "Duplicate application",
+    "note": "Already in another application this season (one application per person)."
+  }
+}

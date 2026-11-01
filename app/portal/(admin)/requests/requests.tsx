@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import { Accessibility, ArrowLeftRight, BadgeCheck, BellRing, Check, Eye, FileHeart, FileSignature, Search, HeartPulse, Inbox, Radio, Stethoscope, UserPlus, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -153,7 +154,7 @@ export function AdminRequests({ fixed, embedded = false }: { fixed?: number; emb
     // Addressed to the application (a family of the platform): the family is told in its «الإشعارات»
     const target = r.real ? `طلب ${r.number} — ${r.applicant}` : `${r.applicant} — الطلب ${r.number}`;
     logAdmin(admin.id, `استلام عائلة في ${openName} والترحيب بها`, target, `${r.members.length} أفراد — ${r.kind === "transfer" ? "انتقلت من مجموعة أخرى" : "سجّلها منسق المجموعة"}`);
-    if (needsLift(r)) logAdmin(admin.id, "إحالة احتياج خاص إلى مشرف البرج", r.real ? target : "وسام خوري — البرج (ب)", `${r.applicant}: غرفة قريبة من المصعد — وسام خوري، البرج (ب)`);
+    if (needsLift(r)) logAdmin(admin.id, "إحالة احتياج خاص إلى مشرف البرج", r.real ? target : `${staffName("wissam")} — البرج (ب)`, `${r.applicant}: غرفة قريبة من المصعد — وسام خوري، البرج (ب)`);
     toast({ title: `رحّبت بعائلة ${r.applicant.split(" ")[0]}`, body: "يصلهم إشعار الترحيب وموعد اللقاء التعريفي.", icon: "🤝", tone: "success" });
   };
 

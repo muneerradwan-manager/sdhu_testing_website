@@ -1,0 +1,478 @@
+{
+  "01033300881": [
+    {
+      "season": "1445",
+      "roleKey": "group-head",
+      "groups": [
+        31
+      ],
+      "rating": 4.6
+    },
+    {
+      "season": "1446",
+      "roleKey": "group-head",
+      "groups": [
+        31
+      ],
+      "rating": 4.7
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        31
+      ],
+      "rating": 4.8
+    }
+  ],
+  "01033300882": [
+    {
+      "season": "1445",
+      "roleKey": "group-head",
+      "groups": [
+        63
+      ],
+      "rating": 4.3
+    },
+    {
+      "season": "1446",
+      "roleKey": "group-head",
+      "groups": [
+        63
+      ],
+      "rating": 4.5
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        63
+      ],
+      "rating": 4.6
+    }
+  ],
+  "01033300883": [
+    {
+      "season": "1446",
+      "roleKey": "group-head",
+      "groups": [
+        5
+      ],
+      "rating": 4.2
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        5
+      ],
+      "rating": 4.4
+    }
+  ],
+  "01033300884": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        44
+      ],
+      "rating": 3.2
+    }
+  ],
+  "01033300899": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        67
+      ],
+      "rating": 4.4
+    }
+  ],
+  "01033300880": [
+    {
+      "season": "1444",
+      "roleKey": "group-head",
+      "groups": [
+        68
+      ],
+      "rating": 4.5
+    },
+    {
+      "season": "1445",
+      "roleKey": "group-head",
+      "groups": [
+        68
+      ],
+      "rating": 4.6
+    },
+    {
+      "season": "1446",
+      "roleKey": "group-head",
+      "groups": [
+        68
+      ],
+      "rating": 4.8
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        68
+      ],
+      "rating": 4.7
+    }
+  ],
+  "01033300871": [
+    {
+      "season": "1446",
+      "roleKey": "group-deputy",
+      "groups": [
+        12
+      ],
+      "rating": 4.6
+    },
+    {
+      "season": "1447",
+      "roleKey": null
+    }
+  ],
+  "01033300872": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-deputy",
+      "groups": [
+        27
+      ],
+      "rating": 4.1
+    }
+  ],
+  "01033300874": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "tech",
+      "cluster": "تكتل النور",
+      "groups": [
+        27,
+        31,
+        5
+      ],
+      "rating": 4.8
+    }
+  ],
+  "01033300886": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-deputy",
+      "groups": [
+        41
+      ],
+      "rating": 4.3
+    }
+  ],
+  "01033300873": [
+    {
+      "season": "1446",
+      "roleKey": "guide-m",
+      "groups": [
+        27
+      ],
+      "rating": 4.9
+    },
+    {
+      "season": "1447",
+      "roleKey": "guide-m",
+      "groups": [
+        27
+      ],
+      "rating": 4.9
+    }
+  ],
+  "01033300944": [
+    {
+      "season": "1445",
+      "roleKey": "group-deputy",
+      "groups": [
+        5
+      ],
+      "rating": 4.5
+    },
+    {
+      "season": "1446",
+      "roleKey": "group-deputy",
+      "groups": [
+        5
+      ],
+      "rating": 4.6
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-deputy",
+      "groups": [
+        44
+      ],
+      "rating": 4.7
+    }
+  ],
+  "01033300947": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-deputy",
+      "groups": [
+        33
+      ],
+      "rating": 4.3
+    }
+  ],
+  "01033300975": [
+    {
+      "season": "1446",
+      "roleKey": "assistant-count",
+      "cluster": "تكتل النور",
+      "rating": 4
+    },
+    {
+      "season": "1447",
+      "roleKey": "assistant-count",
+      "cluster": "تكتل النور",
+      "rating": 4.2
+    }
+  ],
+  "01033300961": [
+    {
+      "season": "1446",
+      "roleKey": "tech",
+      "groups": [
+        18
+      ],
+      "rating": 4.2
+    },
+    {
+      "season": "1447",
+      "roleKey": "assistant-tech",
+      "cluster": "تكتل النور",
+      "groups": [
+        18,
+        33
+      ],
+      "rating": 4.4
+    }
+  ],
+  "01033300965": [
+    {
+      "season": "1445",
+      "roleKey": "murshid",
+      "groups": [
+        31
+      ],
+      "rating": 4.8
+    },
+    {
+      "season": "1446",
+      "roleKey": "murshid",
+      "groups": [
+        31
+      ],
+      "rating": 4.9
+    },
+    {
+      "season": "1447",
+      "roleKey": "murshid",
+      "groups": [
+        31
+      ],
+      "rating": 4.9
+    }
+  ],
+  "01033300981": [
+    {
+      "season": "1446",
+      "roleKey": "guide-f",
+      "cluster": "تكتل النور",
+      "rating": 4.6
+    },
+    {
+      "season": "1447",
+      "roleKey": "guide-f",
+      "cluster": "تكتل النور",
+      "rating": 4.7
+    }
+  ],
+  "01033300984": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "guide-f",
+      "cluster": "تكتل الشهباء",
+      "rating": 4.2
+    }
+  ],
+  "01033300985": [
+    {
+      "season": "1446",
+      "roleKey": "murshida",
+      "cluster": "تكتل النور",
+      "rating": 4.7
+    },
+    {
+      "season": "1447",
+      "roleKey": "murshida",
+      "cluster": "تكتل النور",
+      "rating": 4.8
+    }
+  ],
+  "01033300891": [
+    {
+      "season": "1446",
+      "roleKey": "group-head",
+      "groups": [
+        64
+      ],
+      "rating": 4.2
+    },
+    {
+      "season": "1447",
+      "roleKey": "group-head",
+      "groups": [
+        64
+      ],
+      "rating": 4.4
+    }
+  ],
+  "01033300892": [
+    {
+      "season": "1447",
+      "roleKey": "group-deputy",
+      "groups": [
+        22
+      ],
+      "rating": 4.3
+    }
+  ],
+  "01033300893": [
+    {
+      "season": "1447",
+      "roleKey": "group-deputy",
+      "groups": [
+        12
+      ],
+      "rating": 4.2
+    }
+  ],
+  "01033300894": [
+    {
+      "season": "1447",
+      "roleKey": "assistant-count",
+      "cluster": "تكتل الشهباء",
+      "rating": 4.1
+    }
+  ],
+  "01033300895": [
+    {
+      "season": "1446",
+      "roleKey": "assistant-tech",
+      "groups": [
+        14
+      ],
+      "rating": 4.3
+    },
+    {
+      "season": "1447",
+      "roleKey": "assistant-tech",
+      "groups": [
+        14,
+        22
+      ],
+      "rating": 4.5
+    }
+  ],
+  "01033300896": [
+    {
+      "season": "1447",
+      "roleKey": "murshid",
+      "groups": [
+        9
+      ],
+      "rating": 4.6
+    }
+  ],
+  "01033300897": [
+    {
+      "season": "1447",
+      "roleKey": "murshida",
+      "cluster": "تكتل الشهباء",
+      "rating": 4.5
+    }
+  ],
+  "01033300902": [
+    {
+      "season": "1446",
+      "roleKey": null
+    },
+    {
+      "season": "1447",
+      "roleKey": "assistant-count",
+      "cluster": "تكتل اليقين",
+      "rating": 4.3
+    }
+  ],
+  "01033300904": [
+    {
+      "season": "1446",
+      "roleKey": "murshid",
+      "groups": [
+        61
+      ],
+      "rating": 4.6
+    },
+    {
+      "season": "1447",
+      "roleKey": "murshid",
+      "groups": [
+        41
+      ],
+      "rating": 4.7
+    }
+  ],
+  "01033300906": [
+    {
+      "season": "1446",
+      "roleKey": "murshida",
+      "cluster": "تكتل الصفا والمروة",
+      "rating": 4.5
+    },
+    {
+      "season": "1447",
+      "roleKey": "murshida",
+      "cluster": "تكتل الصفا والمروة",
+      "rating": 4.6
+    }
+  ]
+}

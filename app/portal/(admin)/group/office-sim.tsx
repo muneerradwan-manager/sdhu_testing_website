@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { Building2 } from "lucide-react";
 import { DemoJump } from "@/components/app/operation-closed";
 import { useToast } from "@/components/ui/widgets";
@@ -16,7 +17,7 @@ import { seedContract } from "@/app/administrator/_components/contract-view";
 import { SimButton } from "@/app/administrator/_components/ui";
 
 /** The employee of the administrators' desk who forms the groups at the office in the demo */
-const DESK = "مازن الحلبي";
+const DESK = staffName("mazen");
 
 /**
  * The demo's stand-in for the visit to the office: the group head who passed the written test and the oral exam

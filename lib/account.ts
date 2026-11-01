@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { effectiveRole, positionLabelOf, seasonHistory } from "@/app/administrator/_lib/admin";
 import { getPerson } from "./registry";
 import { academyKey, seasonNow, useStore, type AdminProfile, type SeasonPath, type State } from "./store";
+import HISTORIES from "@/testdata/pilgrims/histories.json";
 
 export type { SeasonPath };
 
@@ -53,10 +54,8 @@ export function canChangePath(s: S, id: string, season = currentSeasonOf(s)) {
   return !(p && (p.season ?? 1448) === season && adminActive(p));
 }
 
-/** The pilgrims' earlier seasons as the platform keeps them (the demo's) */
-const PILGRIM_HISTORY: Record<string, { season: number; label: string }[]> = {
-  "01012345412": [{ season: 1446, label: "تقدّم على الحج ولم يُقبل" }],
-};
+/** The pilgrims' earlier seasons as the platform keeps them (the demo's: testdata/pilgrims/histories.json) */
+const PILGRIM_HISTORY: Record<string, { season: number; label: string; certificate: string }[]> = HISTORIES;
 
 export type Participation = {
   season: number;

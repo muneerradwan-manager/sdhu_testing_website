@@ -1,0 +1,200 @@
+[
+  {
+    "id": "nour.a",
+    "title": "مدير الموسم",
+    "travels": false,
+    "grants": [
+      "access.*",
+      "executive.*",
+      "VIEW_ALL"
+    ]
+  },
+  {
+    "id": "rana",
+    "title": "إدارة التسجيل",
+    "travels": false,
+    "grants": [
+      "reviews.*",
+      "evaluate.committee.*"
+    ]
+  },
+  {
+    "id": "razan",
+    "title": "إدخال بيانات — التسجيل على الحج",
+    "travels": false,
+    "grants": [
+      "office.*"
+    ]
+  },
+  {
+    "id": "hiba",
+    "title": "مسؤولة إدارة التسجيل على الحج",
+    "travels": false,
+    "grants": [
+      "registration.*",
+      "WINDOWS:registration"
+    ]
+  },
+  {
+    "id": "kinan",
+    "title": "إدارة التسجيل — إدخال نتائج القرعة",
+    "travels": false,
+    "grants": [
+      "lottery.stats.GET",
+      "lottery.ages.GET",
+      "lottery.ages.issue",
+      "lottery.pool.GET",
+      "lottery.pool.export",
+      "lottery.draw.GET",
+      "lottery.draw.POST",
+      "lottery.draw.PUT",
+      "lottery.draw.submit"
+    ]
+  },
+  {
+    "id": "yousef",
+    "title": "لجنة اعتماد ونشر نتائج القرعة",
+    "travels": false,
+    "grants": [
+      "lottery.stats.GET",
+      "lottery.ages.GET",
+      "lottery.ages.approve",
+      "lottery.pool.GET",
+      "lottery.draw.GET",
+      "lottery.draw.publish",
+      "evaluate.committee.*"
+    ]
+  },
+  {
+    "id": "munir",
+    "title": "مسؤول الامتحانات",
+    "travels": false,
+    "grants": [
+      "exams.*",
+      "WINDOWS:exams"
+    ]
+  },
+  {
+    "id": "mazen",
+    "title": "مدير المكتب",
+    "travels": false,
+    "grants": [
+      "admins.*",
+      "WINDOWS:admins"
+    ]
+  },
+  {
+    "id": "fadi",
+    "title": "غرفة العمليات — مكة",
+    "travels": true,
+    "grants": [
+      "operations.*",
+      "opfiles.files.GET",
+      "opfiles.nodes.GET",
+      "opfiles.assignments.GET",
+      "opfiles.staff-contact.GET"
+    ]
+  },
+  {
+    "id": "omar",
+    "title": "مندوب مطار دمشق — الإقلاع والهبوط",
+    "travels": false,
+    "grants": [
+      "airport.*@ap-dam",
+      "evaluate.evaluations.*"
+    ]
+  },
+  {
+    "id": "layla",
+    "title": "الفريق الطبي",
+    "travels": true,
+    "grants": [
+      "medical.*",
+      "evaluate.evaluations.*"
+    ]
+  },
+  {
+    "id": "haitham",
+    "title": "مسؤول الطيران",
+    "travels": true,
+    "grants": [
+      "flights.*",
+      "evaluate.evaluations.*"
+    ]
+  },
+  {
+    "id": "bassel",
+    "title": "فريق المواصلات",
+    "travels": true,
+    "grants": [
+      "transport.*",
+      "evaluate.evaluations.*"
+    ]
+  },
+  {
+    "id": "tarek",
+    "title": "التدقيق",
+    "travels": false,
+    "grants": [
+      "audit.*",
+      "executive.*",
+      "evaluate.committee.*"
+    ]
+  },
+  {
+    "id": "abusami",
+    "title": "الموارد البشرية",
+    "travels": false,
+    "grants": [
+      "staff.*"
+    ]
+  },
+  {
+    "id": "nour",
+    "title": "محرّرة محتوى المنصة",
+    "travels": false,
+    "grants": [
+      "content.*"
+    ]
+  },
+  {
+    "id": "ghassan",
+    "title": "مدير شؤون البعثة — الملفات التشغيلية",
+    "travels": true,
+    "grants": [
+      "opfiles.*"
+    ]
+  },
+  {
+    "id": "rima",
+    "title": "مسؤولة البيانات المرجعية",
+    "travels": false,
+    "grants": [
+      "reference.*"
+    ]
+  },
+  {
+    "id": "lubna",
+    "title": "مسؤولة إعدادات الموسم",
+    "travels": false,
+    "grants": [
+      "season.*"
+    ]
+  },
+  {
+    "id": "wissam",
+    "title": "مشرف برج — فندق أبراج النور",
+    "travels": true,
+    "grants": [
+      "evaluate.evaluations.*"
+    ]
+  },
+  {
+    "id": "nisreen",
+    "title": "مشرفة قاعة امتحانية — مركز دمشق",
+    "travels": false,
+    "grants": [
+      "hall.*@damascus"
+    ]
+  }
+]

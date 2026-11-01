@@ -6,8 +6,10 @@ import { ArrowLeft, ArrowRight, Briefcase, Compass, Landmark, Loader2, UserRound
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SpeakButton } from "@/components/ui/widgets";
 import { useLang } from "@/lib/i18n";
+import { personName } from "@/lib/registry";
 import { actions, useHydrated, useStore } from "@/lib/store";
 import { cn, samePath } from "@/lib/utils";
+import DEFAULTS from "@/testdata/demo/defaults.json";
 
 /**
  * Guided tour (جولة تعريفية) — an onboarding walkthrough, not a page of its own.
@@ -88,7 +90,10 @@ const STEPS: Step[] = [
   },
 ];
 
-const DEMO_PILGRIM = "01012345412";
+/** The guides' full example, whose family the tour's pilgrim card opens on (testdata/demo/defaults.json) */
+const DEMO_PILGRIM = DEFAULTS.demoPilgrim;
+/** مجموعة اللطيف's head, whom the tour's administrator card names */
+const DEMO_ADMIN = DEFAULTS.leaderId;
 const PAD = 10; // breathing room around the spotlight
 const GAP = 16; // distance between spotlight and card
 const CARD_W = 380;
@@ -251,7 +256,8 @@ export function GuidedTour() {
 
   const startPilgrim = () => {
     if (!accounts[DEMO_PILGRIM]) {
-      actions.register({ nationalId: DEMO_PILGRIM, phone: "0944345412", password: "hajj1448", createdAt: Date.now(), emergencyName: "سارة (ابنتي)", emergencyPhone: "0933000412" });
+      const { name, relation, phone } = DEFAULTS.emergencyContact;
+      actions.register({ nationalId: DEMO_PILGRIM, phone: `0944${DEMO_PILGRIM.slice(-6)}`, password: DEFAULTS.accountPassword, createdAt: Date.now(), emergencyName: `${name} (${relation})`, emergencyPhone: phone });
     } else {
       actions.login(DEMO_PILGRIM);
     }
@@ -366,14 +372,14 @@ export function GuidedTour() {
                       <button onClick={startPilgrim} className="flex items-center gap-3 rounded-2xl bg-green-dark p-3.5 text-start text-white transition hover:bg-green">
                         <UserRound className="size-6 shrink-0 text-gold" />
                         <span>
-                          <span className="block font-bold">{t({ ar: "الحاج: عائلة محمد الخطيب", en: "Pilgrim: the family of محمد الخطيب" })}</span>
+                          <span className="block font-bold">{t({ ar: `الحاج: عائلة ${personName(DEMO_PILGRIM)}`, en: `Pilgrim: the family of ${personName(DEMO_PILGRIM)}` })}</span>
                           <span className="text-sm text-white/70">{t({ ar: "من التقديم حتى القبول والرحلة", en: "From applying to acceptance and the journey" })}</span>
                         </span>
                       </button>
                       <button onClick={() => { close(); router.push("/login?demo=admins"); }} className="flex items-center gap-3 rounded-2xl bg-maroon p-3.5 text-start text-white transition hover:bg-maroon-dark">
                         <Briefcase className="size-6 shrink-0 text-gold" />
                         <span>
-                          <span className="block font-bold">{t({ ar: "الإداري: أحمد سليمان الحمصي", en: "Administrator: أحمد سليمان الحمصي" })}</span>
+                          <span className="block font-bold">{t({ ar: `الإداري: ${personName(DEMO_ADMIN, "full")}`, en: `Administrator: ${personName(DEMO_ADMIN, "full")}` })}</span>
                           <span className="text-sm text-white/70">{t({ ar: "الاختبار، تشكيل المجموعة، حجاج المجموعة", en: "The exam, forming the group, the group's pilgrims" })}</span>
                         </span>
                       </button>

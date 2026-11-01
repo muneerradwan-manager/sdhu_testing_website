@@ -1,5 +1,7 @@
 "use client";
 
+import DEFAULTS from "@/testdata/demo/defaults.json";
+import { staffName } from "@/lib/staff";
 import { useClusterMeals } from "@/lib/season-live";
 import { AnimatePresence, motion } from "motion/react";
 import { Camera, CheckCircle2, Clock, HeartPulse, MapPin, MessageSquareWarning, Send, UtensilsCrossed } from "lucide-react";
@@ -8,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Modal, SpeakButton, StarRating, useToast } from "@/components/ui/widgets";
 import { groupName } from "@/lib/groups";
 import { PLACES } from "@/lib/journey";
-import { ageOf, fullName } from "@/lib/registry";
+import { ageOf, fullName, personName } from "@/lib/registry";
 import { actions, useStore, type Ticket, type TicketKind } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Choice } from "../../apply/_components/ui";
@@ -18,7 +20,7 @@ import { TicketTimeline, useMyTickets } from "./tickets";
 
 export const mealWord = (m: Meal) => (m.name.startsWith("وجبة") ? m.name : `وجبة ${m.name}`);
 
-export const MEAL_ASSIGNEE = "وسام خوري — مشرف البرج (ب)";
+export const MEAL_ASSIGNEE = `${staffName("wissam")} — مشرف البرج (ب)`;
 
 export function logPilgrimSeason(ctx: SeasonCtx, action: string, detail?: string) {
   actions.logEvent({ actor: fullName(ctx.self.person), role: "حاج", action, target: `طلب ${ctx.app.number}`, detail });
@@ -153,8 +155,8 @@ export function MealsSection({ ctx }: { ctx: SeasonCtx }) {
 const COMPLAINT_KINDS: { kind: TicketKind; label: string; icon: string; assignee: string; severity: Ticket["severity"]; sla: string }[] = [
   { kind: "meal", label: "وجبة", icon: "🍽️", assignee: MEAL_ASSIGNEE, severity: "medium", sla: "مشرف البرج — خلال ساعتين" },
   { kind: "room", label: "الغرفة أو النظافة", icon: "🛏️", assignee: MEAL_ASSIGNEE, severity: "low", sla: "مشرف البرج — خلال ساعتين" },
-  { kind: "transport", label: "نقل أو تأخر حافلة", icon: "🚌", assignee: "هيثم زيدان — فريق المواصلات", severity: "medium", sla: "فريق المواصلات — خلال 30 دقيقة" },
-  { kind: "complaint", label: "المجموعة أو المعاملة", icon: "📝", assignee: "الحاج عبد الرحمن العلي — رئيس التكتل", severity: "medium", sla: "رئيس التكتل — خلال 4 ساعات" },
+  { kind: "transport", label: "نقل أو تأخر حافلة", icon: "🚌", assignee: `${staffName("bassel")} — فريق المواصلات`, severity: "medium", sla: "فريق المواصلات — خلال 30 دقيقة" },
+  { kind: "complaint", label: "المجموعة أو المعاملة", icon: "📝", assignee: `${personName(DEFAULTS.clusterDemo.head)} — رئيس التكتل`, severity: "medium", sla: "رئيس التكتل — خلال 4 ساعات" },
 ];
 
 /** Complaint pre-filled from where the pilgrim is (and from the meal, when opened from one) */

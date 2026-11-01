@@ -1,0 +1,612 @@
+[
+  {
+    "id": "01033300872",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 88,
+    "seasons": 1,
+    "rating": 4.1,
+    "skills": [
+      "first-aid",
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300941",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 91,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300942",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "ركن الدين",
+    "score": 79,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300943",
+    "roleKey": "group-deputy",
+    "branch": "درعا",
+    "area": "درعا المحطة",
+    "score": 84,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "first-aid"
+    ]
+  },
+  {
+    "id": "01033300944",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "القنوات",
+    "score": 93,
+    "seasons": 3,
+    "rating": 4.7,
+    "skills": [
+      "first-aid",
+      "computer",
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300945",
+    "roleKey": "group-deputy",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 82,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "sign"
+    ]
+  },
+  {
+    "id": "01033300946",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 86,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300947",
+    "roleKey": "group-deputy",
+    "branch": "اللاذقية",
+    "area": "الصليبة",
+    "score": 85,
+    "seasons": 1,
+    "rating": 4.3,
+    "skills": [
+      "first-aid",
+      "bus"
+    ]
+  },
+  {
+    "id": "01033300948",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 80,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300993",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 87,
+    "seasons": 1,
+    "rating": 4.3,
+    "skills": [
+      "first-aid",
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300994",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الزاهرة",
+    "score": 83,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus"
+    ]
+  },
+  {
+    "id": "01033300995",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 85,
+    "seasons": 2,
+    "rating": 4.1,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300996",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 89,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300975",
+    "roleKey": "assistant-count",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 83,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "elderly",
+      "bus"
+    ]
+  },
+  {
+    "id": "01033300976",
+    "roleKey": "assistant-count",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 81,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "first-aid"
+    ]
+  },
+  {
+    "id": "01033300961",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "أبو رمانة",
+    "score": 89,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "computer",
+      "sign"
+    ]
+  },
+  {
+    "id": "01033300971",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 90,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "computer",
+      "first-aid"
+    ]
+  },
+  {
+    "id": "01033300972",
+    "roleKey": "assistant-tech",
+    "branch": "حمص",
+    "area": "الوعر",
+    "score": 87,
+    "seasons": 1,
+    "rating": 4.3,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300973",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 84,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ]
+  },
+  {
+    "id": "01033300874",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 94,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "computer",
+      "first-aid"
+    ]
+  },
+  {
+    "id": "01033300887",
+    "roleKey": "tech",
+    "branch": "حمص",
+    "area": "الوعر",
+    "score": 83,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300962",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 78,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ]
+  },
+  {
+    "id": "01033300963",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 96,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "computer",
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300964",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "جرمانا",
+    "score": 80,
+    "seasons": 1,
+    "rating": 3.8,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300873",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 95,
+    "seasons": 2,
+    "rating": 4.9,
+    "skills": [
+      "elderly",
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300951",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 90,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300952",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 87,
+    "seasons": 1,
+    "rating": 4.3,
+    "skills": [
+      "sign",
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300888",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 81,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300953",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "التل",
+    "score": 92,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ]
+  },
+  {
+    "id": "01033300954",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الوعر",
+    "score": 85,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300957",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "ركن الدين",
+    "score": 88,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300958",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "الرمل الشمالي",
+    "score": 84,
+    "seasons": 1,
+    "rating": 4.2,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300959",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 86,
+    "seasons": 2,
+    "rating": 4.3,
+    "skills": [
+      "sign"
+    ]
+  },
+  {
+    "id": "01033300960",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "باب سريجة",
+    "score": 83,
+    "seasons": 1,
+    "rating": 4.1,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300990",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 89,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300991",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 86,
+    "seasons": 1,
+    "rating": 4.2,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300992",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 94,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "elderly",
+      "sign"
+    ]
+  },
+  {
+    "id": "01033300965",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "المزرعة",
+    "score": 97,
+    "seasons": 5,
+    "rating": 4.9,
+    "skills": [
+      "elderly",
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300956",
+    "roleKey": "murshid",
+    "branch": "درعا",
+    "area": "طفس",
+    "score": 91,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300966",
+    "roleKey": "guide-m-c",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 78,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300967",
+    "roleKey": "guide-m-c",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 80,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300981",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "الشعلان",
+    "score": 92,
+    "seasons": 2,
+    "rating": 4.7,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300982",
+    "roleKey": "guide-f",
+    "branch": "حمص",
+    "area": "الغوطة",
+    "score": 88,
+    "seasons": 1,
+    "rating": 4.4,
+    "skills": [
+      "computer"
+    ]
+  },
+  {
+    "id": "01033300983",
+    "roleKey": "guide-f",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 85,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300984",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 87,
+    "seasons": 1,
+    "rating": 4.2,
+    "skills": [
+      "sign"
+    ]
+  },
+  {
+    "id": "01033300985",
+    "roleKey": "murshida",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 95,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300986",
+    "roleKey": "murshida",
+    "branch": "حمص",
+    "area": "الخالدية",
+    "score": 90,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ]
+  },
+  {
+    "id": "01033300987",
+    "roleKey": "guide-f-c",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 82,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly"
+    ]
+  },
+  {
+    "id": "01033300988",
+    "roleKey": "guide-f-c",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 79,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "sign"
+    ]
+  }
+]

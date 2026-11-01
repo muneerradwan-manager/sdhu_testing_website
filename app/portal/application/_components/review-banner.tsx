@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import { BadgeCheck, FileWarning, Megaphone, Send } from "lucide-react";
 import { useState } from "react";
@@ -88,7 +89,7 @@ export function ReviewBanner({ app, review, sessionId }: { app: Application; rev
               severity: "medium",
               location: `طلب ${app.number} — ${app.office}`,
               text: `${APPEAL_TAG}: ${text.trim()}`,
-              assignee: "رنا حداد",
+              assignee: staffName("rana"),
             });
             logPilgrim(app, "تقديم اعتراض على قرار المراجعة", `تذكرة ${id}`);
             toast({ title: `أُرسل اعتراضك — تذكرة ${id}`, body: "يصل إلى رنا حداد في إدارة التسجيل.", icon: "📨", tone: "info" });

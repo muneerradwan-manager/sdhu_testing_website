@@ -1,0 +1,115 @@
+[
+  {
+    "slug": "clip-women-head",
+    "title": "هل تغطي المرأة رأسها في الإحرام؟",
+    "seconds": 84,
+    "track": "hajj-fiqh",
+    "lesson": "women-ihram",
+    "tags": [
+      "تغطية الرأس للمرأة",
+      "الإحرام",
+      "الحجاب"
+    ]
+  },
+  {
+    "slug": "clip-niqab",
+    "title": "النقاب والقفازان للمحرمة: ما البديل؟",
+    "seconds": 58,
+    "track": "hajj-fiqh",
+    "lesson": "women-ihram",
+    "tags": [
+      "تغطية الرأس للمرأة في الإحرام",
+      "النقاب",
+      "سدل الغطاء"
+    ]
+  },
+  {
+    "slug": "clip-plane-ihram",
+    "title": "كيف أُحرم في الطائرة؟",
+    "seconds": 72,
+    "track": "hajj-fiqh",
+    "lesson": "miqat",
+    "tags": [
+      "الميقات",
+      "الطائرة"
+    ]
+  },
+  {
+    "slug": "clip-talbiyah",
+    "title": "التلبية الصحيحة بصوت الشيخ",
+    "seconds": 40,
+    "track": "duas",
+    "lesson": "talbiyah",
+    "tags": [
+      "التلبية"
+    ]
+  },
+  {
+    "slug": "clip-black-stone",
+    "title": "من أين أبدأ الطواف؟",
+    "seconds": 66,
+    "track": "hajj-fiqh",
+    "lesson": "tawaf-steps",
+    "tags": [
+      "الحجر الأسود",
+      "الطواف"
+    ]
+  },
+  {
+    "slug": "clip-raml",
+    "title": "الاضطباع والرمل في دقيقة",
+    "seconds": 61,
+    "track": "hajj-fiqh",
+    "lesson": "tawaf-steps",
+    "tags": [
+      "الاضطباع",
+      "الرمل",
+      "الطواف"
+    ]
+  },
+  {
+    "slug": "clip-arafah-time",
+    "title": "متى ينتهي وقت الوقوف بعرفة؟",
+    "seconds": 55,
+    "track": "hajj-fiqh",
+    "lesson": "arafah",
+    "tags": [
+      "عرفة",
+      "وقت الوقوف"
+    ]
+  },
+  {
+    "slug": "clip-proxy-stoning",
+    "title": "الرمي عن كبار السن خطوة بخطوة",
+    "seconds": 78,
+    "track": "hajj-fiqh",
+    "lesson": "jamarat",
+    "tags": [
+      "التوكيل في الرمي",
+      "كبار السن",
+      "الجمرات"
+    ]
+  },
+  {
+    "slug": "clip-heatstroke",
+    "title": "علامات ضربة الشمس",
+    "seconds": 49,
+    "track": "preparation",
+    "lesson": "heat-safety",
+    "tags": [
+      "ضربة الشمس",
+      "الحر"
+    ]
+  },
+  {
+    "slug": "clip-lost",
+    "title": "تهت عن مجموعتي، ماذا أفعل؟",
+    "seconds": 45,
+    "track": "preparation",
+    "lesson": "using-app",
+    "tags": [
+      "أنا تائه",
+      "التطبيق"
+    ]
+  }
+]

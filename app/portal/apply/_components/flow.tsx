@@ -29,7 +29,9 @@ import { Badge, useToast } from "@/components/ui/widgets";
 import { ConfiguredStage, setAnswer } from "@/components/registration/stage-view";
 import { applicationNumberFor, directAccepted, stageAt, trackOf, trackSteps, type Track } from "@/lib/journey";
 import { MONTHS, birthOf } from "@/lib/lottery";
-import { DEMO_SCENARIOS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
+import { DEMO_SCENARIOS, FAMILY_BOOKS, ageOf, birthYear, fullName, getPerson, isValidNationalId, lookupPerson, relationLabel, type Person } from "@/lib/registry";
+import { withNames } from "@/lib/demo-text";
+import APPLY_SHORTCUTS from "@/testdata/demo/apply-shortcuts.json";
 import { evaluate, withOldestAsApplicant, withSimulated, type Member } from "@/lib/rules";
 import { SeasonPlanNote } from "@/components/payment/plan-picker";
 import { firstPayment, seasonPlan } from "@/lib/installments";
@@ -121,22 +123,28 @@ const RESIDENCE_FLAGS: Record<string, string> = { "تركيا": "🇹🇷", "م�
 
 const ORDINALS = ["المرافق الأول", "المرافق الثاني", "المرافق الثالث", "المرافق الرابع", "المرافق الخامس"];
 
+/** The demo's shortcuts (testdata/demo/apply-shortcuts.json), their people by national number */
+const SHORTCUTS = APPLY_SHORTCUTS as {
+  books: string[];
+  people: { id: string; label: string }[];
+  otherApplicant: { id: string; label: string };
+  suggestions: Record<string, { id: string; label?: string }[]>;
+};
+
 /** Demo family booklets from the operating document — offered to every applicant for easy testing */
-const DEMO_BOOKS = [
-  { no: "45112233", label: "آل الخطيب" },
-  { no: "77001234", label: "آل القاسم" },
-  { no: "33300550", label: "آل النجار" },
-];
+const DEMO_BOOKS = SHORTCUTS.books.map((no) => ({ no, label: `آل ${getPerson(FAMILY_BOOKS[no].headId)!.lastName}` }));
 
 /** Demo people for "add by national ID" — each one shows a case from the eligibility rules */
-const DEMO_PEOPLE = [
-  { id: "01012340078", label: "خديجة — 78 عاماً، تحتاج مرافقاً" },
-  { id: "02033300553", label: "مازن — شاب، يصلح محرماً" },
-  { id: "02033300552", label: "ريم — دون 44، تحتاج محرماً" },
-  { id: "01012349901", label: "عبد الله — حجّ سابقاً" },
-  { id: "01012345416", label: "يوسف — 15 عاماً، دون السن" },
-  { id: "01011100208", label: "ياسين — مسجّل في طلب آخر" },
-];
+const DEMO_PEOPLE = SHORTCUTS.people.map((p) => ({ id: p.id, label: withNames(p.label, p.id) }));
+
+/** The applicant the "someone else" screen offers to try */
+const DEMO_OTHER = { id: SHORTCUTS.otherApplicant.id, label: withNames(SHORTCUTS.otherApplicant.label, SHORTCUTS.otherApplicant.id) };
+
+/** The people offered to add: an applicant's own family first where the demo has one, then cases above; else those cases */
+function demoSuggestions(applicantId: string) {
+  const own = SHORTCUTS.suggestions[applicantId];
+  return own ? own.map((s) => (s.label ? { id: s.id, label: withNames(s.label, s.id) } : DEMO_PEOPLE.find((p) => p.id === s.id)!)) : DEMO_PEOPLE;
+}
 
 /**
  * The application form. `preview`: the staff's preview of a draft configuration — the same engine and the
@@ -830,8 +838,8 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                         <NumberPad value={other.id} onChange={(v) => setOther((o) => ({ ...o, id: v, error: "" }))} maxLength={11} />
                       </div>
                       <p className="mt-4 text-center text-sm">
-                        <button className="rounded-full border border-dashed border-gold-dark bg-gold/15 px-3 py-1.5 font-semibold text-maroon" onClick={() => setOther((o) => ({ ...o, id: "01012340078" }))}>
-                          تجريبي: خديجة الخطيب (78 عاماً)
+                        <button className="rounded-full border border-dashed border-gold-dark bg-gold/15 px-3 py-1.5 font-semibold text-maroon" onClick={() => setOther((o) => ({ ...o, id: DEMO_OTHER.id }))}>
+                          {DEMO_OTHER.label}
                         </button>
                       </p>
                       {other.error && <p className="mt-4 rounded-2xl bg-maroon/8 p-4 text-center font-bold text-maroon">{other.error}</p>}
@@ -1062,20 +1070,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                   applicantIsMe={applicant.id === sessionId}
                   existingIds={members.map((m) => m.person.id)}
                   ordinal={adderReturn === "loop" ? `${ORDINALS[companions.length] ?? "مرافق"} من ${target}` : "إضافة مرافق"}
-                  suggestions={(applicant.id === "01012345412"
-                    ? [
-                        { id: "01012340078", label: "والدته خديجة" },
-                        { id: "01012345413", label: "زوجته فاطمة" },
-                        { id: "01012349901", label: "عبد الله (حجّ سابقاً)" },
-                      ]
-                    : applicant.id === "06055500711"
-                      ? [{ id: "06055500701", label: "والدته نجاح" }, ...DEMO_PEOPLE.slice(3)]
-                      : applicant.id === "01077700351"
-                        ? [{ id: "01077700350", label: "والده عادل (64) — يصبح صاحب الطلب" }, ...DEMO_PEOPLE.slice(3)]
-                        : applicant.id === "02033300552"
-                        ? [{ id: "02033300553", label: "أخوها مازن" }, ...DEMO_PEOPLE.filter((p) => p.id !== "02033300552" && p.id !== "02033300553")]
-                        : DEMO_PEOPLE
-                  ).filter((s) => s.id !== applicant.id && !members.some((m) => m.person.id === s.id))}
+                  suggestions={demoSuggestions(applicant.id).filter((s) => s.id !== applicant.id && !members.some((m) => m.person.id === s.id))}
                   onCancel={back}
                   onAdd={(m) => {
                     addMember(m);

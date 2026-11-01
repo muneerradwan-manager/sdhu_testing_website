@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ac-27-quran",
+    "clusterId": "al-nour",
+    "groups": [
+      27
+    ],
+    "byId": "01033300873",
+    "byRole": "guide",
+    "kind": "quran",
+    "title": "تحفيظ جزء عمّ",
+    "goal": "جزء عمّ (الجزء 30)، من السور القصيرة",
+    "unitRange": [
+      30,
+      30
+    ],
+    "audience": "all",
+    "schedule": "الأحد والأربعاء بعد العصر",
+    "place": "مكتب دمشق — القاعة 2، ثم قاعة الفندق",
+    "startAt": "2027-03-07T12:00:00+03:00",
+    "createdAt": "2027-03-01T12:00:00+03:00",
+    "seed": {
+      "join": 0.45,
+      "reach": 0.9
+    }
+  },
+  {
+    "id": "ac-27-hadith",
+    "clusterId": "al-nour",
+    "groups": [
+      27
+    ],
+    "byId": "01033300873",
+    "byRole": "guide",
+    "kind": "hadith",
+    "title": "الأربعون النووية: الأحاديث 1 – 20",
+    "goal": "الأحاديث 1 – 20 من الأربعين النووية",
+    "unitRange": [
+      1,
+      20
+    ],
+    "audience": "men",
+    "schedule": "بعد درس الأحد",
+    "place": "مكتب دمشق — القاعة 2",
+    "startAt": "2027-03-14T12:00:00+03:00",
+    "createdAt": "2027-03-10T12:00:00+03:00",
+    "seed": {
+      "join": 0.35,
+      "reach": 0.8
+    }
+  },
+  {
+    "id": "ac-f-adhkar",
+    "clusterId": "al-nour",
+    "groups": [
+      31,
+      27,
+      18
+    ],
+    "byId": "01033300981",
+    "byRole": "guide-f",
+    "kind": "adhkar",
+    "title": "أدعية الحج والعمرة للحاجّات",
+    "goal": "عشرة أدعية يحتاجها الحاج بترتيبها",
+    "audience": "women",
+    "schedule": "السبت بعد العصر",
+    "place": "مكتب دمشق — قاعة السيدات",
+    "startAt": "2027-03-20T12:00:00+03:00",
+    "createdAt": "2027-03-15T12:00:00+03:00",
+    "seed": {
+      "join": 0.6,
+      "reach": 0.85
+    }
+  },
+  {
+    "id": "ac-f-khatma",
+    "clusterId": "al-nour",
+    "groups": [
+      31,
+      27,
+      18
+    ],
+    "byId": "01033300981",
+    "byRole": "guide-f",
+    "kind": "khatma",
+    "title": "ختمة الحاجّات في مكة",
+    "goal": "ختمة كاملة قبل يوم التروية",
+    "audience": "women",
+    "schedule": "كل حاجّة جزءاً أو أكثر بحسب وقتها",
+    "place": "في الفندق والحرم",
+    "startAt": "2027-05-02T12:00:00+03:00",
+    "createdAt": "2027-04-25T12:00:00+03:00",
+    "seed": {
+      "join": 0.5,
+      "reach": 0.7
+    }
+  }
+]

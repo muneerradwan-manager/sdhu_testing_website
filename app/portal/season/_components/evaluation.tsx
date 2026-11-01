@@ -17,6 +17,7 @@ import { EVALUATION } from "../_data";
 import type { SeasonCtx } from "./ctx";
 import { logPilgrimSeason } from "./meals";
 import { useMyTickets } from "./tickets";
+import HISTORIES from "@/testdata/pilgrims/histories.json";
 
 const EMPTY: PostAcceptance = { documents: {}, payments: {}, ratings: {} };
 
@@ -145,16 +146,9 @@ export function ReturnHome({ ctx }: { ctx: SeasonCtx }) {
 
 function Certificates({ ctx }: { ctx: SeasonCtx }) {
   const number = `1448-C-${ctx.app.number.padStart(6, "0")}`;
-  const history =
-    ctx.self.person.id === "01012345412"
-      ? [
-          { s: "1446", t: "تقدّم — لم يُقبل" },
-          { s: "1447", t: "لم يتقدم" },
-        ]
-      : [
-          { s: "1446", t: "لم يتقدم" },
-          { s: "1447", t: "لم يتقدم" },
-        ];
+  // The two seasons before this one, as the platform keeps them (testdata/pilgrims/histories.json)
+  const kept = (HISTORIES as Record<string, { season: number; certificate: string }[]>)[ctx.self.person.id] ?? [];
+  const history = [1446, 1447].map((season) => ({ s: String(season), t: kept.find((h) => h.season === season)?.certificate ?? "لم يتقدم" }));
   return (
     <motion.section initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <h2 className="flex items-center gap-3 font-display text-3xl font-bold text-green-dark">

@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import Link from "next/link";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import {
@@ -728,7 +729,7 @@ function TicketDesk({ roster, about }: { roster: RosterEntry[]; about?: string }
       severity: form.severity,
       location: `${groupName(g.number)} — ${form.place}`,
       text: form.text.trim(),
-      assignee: form.kind === "health" ? "د. ليلى شمس" : form.kind === "transport" ? "هيثم زيدان" : form.kind === "room" || form.kind === "meal" ? "وسام خوري" : "غرفة العمليات — فادي سلوم",
+      assignee: form.kind === "health" ? staffName("layla") : form.kind === "transport" ? staffName("bassel") : form.kind === "room" || form.kind === "meal" ? staffName("wissam") : `غرفة العمليات — ${staffName("fadi")}`,
     });
     logAdmin(admin.id, "رفع بلاغ إلى غرفة العمليات", app ? `طلب ${app.number} — البلاغ ${id}` : `البلاغ ${id}`, `${form.name} — ${KINDS.find((k) => k.k === form.kind)?.label} — ${SEVERITY.find((s) => s.k === form.severity)?.label} — ${form.place} — ${groupName(g.number)}`);
     toast({ title: `البلاغ ${id} وصل إلى غرفة العمليات`, body: form.severity === "critical" ? "بلاغ حرج: يُصعَّد تلقائياً إن لم يُغلق خلال 15 دقيقة." : "ستصلك تحديثات الحالة هنا.", icon: "🚨", tone: form.severity === "critical" ? "warning" : "info" });

@@ -1,0 +1,5105 @@
+[
+  {
+    "id": "s-0010",
+    "name": "كنان الجيلاني",
+    "roleKey": "group-head",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 83,
+    "seasons": 3,
+    "rating": 3.8,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0011",
+    "name": "الشيخ ماجد العاني",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 89,
+    "seasons": 4,
+    "rating": 4.7,
+    "skills": [
+      "elderly"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0012",
+    "name": "نزار النوري",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 77,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0013",
+    "name": "أحمد الصباغ",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 92,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 34
+  },
+  {
+    "id": "s-0014",
+    "name": "الشيخ أنس الحمامي",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 94,
+    "seasons": 4,
+    "rating": 4.2,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0015",
+    "name": "الشيخ نادر الطويل",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 96,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0016",
+    "name": "أحمد الجندلي",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 77,
+    "seasons": 5,
+    "rating": 4.5,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0017",
+    "name": "الشيخ كنان الدرويش",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 82,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0018",
+    "name": "الشيخ مهند الحجار",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 87,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0019",
+    "name": "الشيخ محمد الدرويش",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 86,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0020",
+    "name": "عبد الكريم الخليل",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 81,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 28
+  },
+  {
+    "id": "s-0021",
+    "name": "الشيخ أنس الحكيم",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 74,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0022",
+    "name": "الشيخ منذر الصالح",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 85,
+    "seasons": 1,
+    "rating": 3.8,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0023",
+    "name": "زكريا الأيوبي",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 94,
+    "seasons": 1,
+    "rating": 4.5,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0024",
+    "name": "الشيخ يحيى الدرويش",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 83,
+    "seasons": 5,
+    "rating": 3.9,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0025",
+    "name": "طارق الضاهر",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 72,
+    "seasons": 3,
+    "rating": 4.8,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0026",
+    "name": "زياد الفارس",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 82,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0027",
+    "name": "حسين الأتاسي",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 81,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0028",
+    "name": "عدنان الأيوبي",
+    "roleKey": "assistant-count",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 80,
+    "seasons": 5,
+    "rating": 4.8,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0029",
+    "name": "عبد الرحمن الحسن",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 75,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 26
+  },
+  {
+    "id": "s-0030",
+    "name": "حمزة الإبراهيم",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 87,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0031",
+    "name": "طارق النعيمي",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 80,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0032",
+    "name": "خديجة الحجار",
+    "roleKey": "murshida",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 97,
+    "seasons": 1,
+    "rating": 4.4,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 61
+  },
+  {
+    "id": "s-0033",
+    "name": "هبة الشهابي",
+    "roleKey": "murshida",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 98,
+    "seasons": 4,
+    "rating": 4.4,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 55
+  },
+  {
+    "id": "s-0034",
+    "name": "غادة البكري",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 91,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0042",
+    "name": "الشيخ زكريا البرازي",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 94,
+    "seasons": 4,
+    "rating": 4.9,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 55
+  },
+  {
+    "id": "s-0043",
+    "name": "عدنان البرازي",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 86,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0044",
+    "name": "الشيخ باسل اليوسف",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 91,
+    "seasons": 5,
+    "rating": 3.8,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0045",
+    "name": "صهيب الموسى",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 79,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0046",
+    "name": "الشيخ عبد الكريم المالح",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 76,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "sign"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0047",
+    "name": "طارق الأتاسي",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 80,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0048",
+    "name": "جمال الحكيم",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 97,
+    "seasons": 2,
+    "rating": 3.6,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 34
+  },
+  {
+    "id": "s-0049",
+    "name": "الشيخ فراس الجندلي",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 81,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "sign"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0050",
+    "name": "الشيخ مأمون الطويل",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 88,
+    "seasons": 5,
+    "rating": 3.7,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 58
+  },
+  {
+    "id": "s-0051",
+    "name": "الشيخ خالد الحافظ",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 79,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0052",
+    "name": "جهاد السقا",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 72,
+    "seasons": 1,
+    "rating": 3.8,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0053",
+    "name": "الشيخ عبد الكريم الشهابي",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 84,
+    "seasons": 5,
+    "rating": 4.4,
+    "skills": [
+      "sign"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0054",
+    "name": "حمزة الديري",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 77,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0055",
+    "name": "كنان السعدي",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 85,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0056",
+    "name": "يحيى البرازي",
+    "roleKey": "tech",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 98,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0057",
+    "name": "سلمى العجلاني",
+    "roleKey": "guide-f",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 85,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0058",
+    "name": "رنا العمر",
+    "roleKey": "guide-f",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 91,
+    "seasons": 1,
+    "rating": 4.9,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0069",
+    "name": "الشيخ أيمن المصطفى",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 92,
+    "seasons": 5,
+    "rating": 4,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0070",
+    "name": "نزار الكحالة",
+    "roleKey": "group-deputy",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 74,
+    "seasons": 2,
+    "rating": 4,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 26
+  },
+  {
+    "id": "s-0071",
+    "name": "الشيخ ماجد الخلف",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "الضبيط",
+    "score": 89,
+    "seasons": 3,
+    "rating": 4.2,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0072",
+    "name": "الشيخ زكريا المالح",
+    "roleKey": "murshid",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 77,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0073",
+    "name": "الشيخ محمد الرز",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 72,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0074",
+    "name": "الشيخ أنس الكحالة",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 85,
+    "seasons": 2,
+    "rating": 3.9,
+    "skills": [
+      "sign"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0075",
+    "name": "محمود الشيشكلي",
+    "roleKey": "group-deputy",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 86,
+    "seasons": 4,
+    "rating": 4.4,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0076",
+    "name": "الشيخ سعيد الكزبري",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 91,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 58
+  },
+  {
+    "id": "s-0077",
+    "name": "الشيخ نزار الصباغ",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 98,
+    "seasons": 3,
+    "rating": 4.5,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0078",
+    "name": "الشيخ جهاد الفاعوري",
+    "roleKey": "murshid",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 84,
+    "seasons": 4,
+    "rating": 4.5,
+    "skills": [
+      "bus"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0079",
+    "name": "محمود المحمد",
+    "roleKey": "assistant-tech",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 72,
+    "seasons": 2,
+    "rating": 4.3,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0080",
+    "name": "الشيخ سعيد الطرابيشي",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "القصور",
+    "score": 76,
+    "seasons": 1,
+    "rating": 4.1,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0081",
+    "name": "الشيخ حمزة الحجار",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 98,
+    "seasons": 4,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0082",
+    "name": "غياث الصالح",
+    "roleKey": "group-deputy",
+    "branch": "إدلب",
+    "area": "الضبيط",
+    "score": 84,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0083",
+    "name": "سعيد المحمد",
+    "roleKey": "assistant-count",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 84,
+    "seasons": 5,
+    "rating": 3.7,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0084",
+    "name": "هشام الصواف",
+    "roleKey": "assistant-count",
+    "branch": "إدلب",
+    "area": "الضبيط",
+    "score": 96,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0085",
+    "name": "محمد الدرويش",
+    "roleKey": "assistant-tech",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 87,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0086",
+    "name": "سعيد البرازي",
+    "roleKey": "tech",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 81,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0087",
+    "name": "معاذ الصباغ",
+    "roleKey": "tech",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 73,
+    "seasons": 1,
+    "rating": 4.6,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0088",
+    "name": "بشرى الأتاسي",
+    "roleKey": "guide-f",
+    "branch": "إدلب",
+    "area": "الضبيط",
+    "score": 77,
+    "seasons": 4,
+    "rating": 4.3,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0089",
+    "name": "آمنة الجيلاني",
+    "roleKey": "murshida",
+    "branch": "إدلب",
+    "area": "الضبيط",
+    "score": 98,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0100",
+    "name": "الشيخ جهاد العاني",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 75,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 59
+  },
+  {
+    "id": "s-0101",
+    "name": "الشيخ جهاد العبيد",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 79,
+    "seasons": 2,
+    "rating": 4.1,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0102",
+    "name": "جمال القادري",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 95,
+    "seasons": 3,
+    "rating": 4.7,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0103",
+    "name": "حسين الضاهر",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 77,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0104",
+    "name": "الشيخ بلال الصواف",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 91,
+    "seasons": 4,
+    "rating": 4.7,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0105",
+    "name": "يوسف الديري",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 95,
+    "seasons": 5,
+    "rating": 4,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0106",
+    "name": "أحمد المقداد",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 93,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0107",
+    "name": "الشيخ بلال الصالح",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 96,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "computer"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0108",
+    "name": "باسل القاسم",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 73,
+    "seasons": 1,
+    "rating": 4.7,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0109",
+    "name": "الشيخ محمد السقا",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 72,
+    "seasons": 1,
+    "rating": 3.8,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0110",
+    "name": "الشيخ عبد الحكيم الخلف",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 83,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0111",
+    "name": "جمال السليمان",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 82,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0112",
+    "name": "مأمون السعدي",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 85,
+    "seasons": 2,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 26
+  },
+  {
+    "id": "s-0113",
+    "name": "الشيخ عدنان الجندلي",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 80,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0114",
+    "name": "مأمون المصطفى",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 74,
+    "seasons": 2,
+    "rating": 4.9,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0115",
+    "name": "الشيخ عمار المصطفى",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 72,
+    "seasons": 2,
+    "rating": 4.1,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0116",
+    "name": "الشيخ مهند النعيمي",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 97,
+    "seasons": 2,
+    "rating": 4.8,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0117",
+    "name": "عمر الخليل",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 79,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0118",
+    "name": "الشيخ عمار الصواف",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 92,
+    "seasons": 5,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0119",
+    "name": "جمال القاسم",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 94,
+    "seasons": 5,
+    "rating": 4.1,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0120",
+    "name": "الشيخ طارق التركماني",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 78,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0121",
+    "name": "الشيخ يحيى الفاعوري",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 80,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0122",
+    "name": "إبراهيم الكردي",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 98,
+    "seasons": 2,
+    "rating": 3.8,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0123",
+    "name": "محمد الحجار",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 73,
+    "seasons": 4,
+    "rating": 4.9,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0124",
+    "name": "عبد الكريم الكزبري",
+    "roleKey": "tech",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 87,
+    "seasons": 3,
+    "rating": 3.8,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0125",
+    "name": "كنان اليوسف",
+    "roleKey": "tech",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 91,
+    "seasons": 1,
+    "rating": 4.9,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0126",
+    "name": "صهيب الزعبي",
+    "roleKey": "tech",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 90,
+    "seasons": 4,
+    "rating": 4.1,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 28
+  },
+  {
+    "id": "s-0127",
+    "name": "هدى السليمان",
+    "roleKey": "murshida",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 76,
+    "seasons": 1,
+    "rating": 4.2,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0128",
+    "name": "أسماء البرازي",
+    "roleKey": "guide-f",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 78,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "elderly"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0129",
+    "name": "عائشة الصواف",
+    "roleKey": "murshida",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 76,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "elderly"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0130",
+    "name": "إيمان القاسم",
+    "roleKey": "murshida",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 93,
+    "seasons": 1,
+    "rating": 4.5,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 60
+  },
+  {
+    "id": "s-0140",
+    "name": "حسين الجندلي",
+    "roleKey": "group-head",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 77,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 60
+  },
+  {
+    "id": "s-0141",
+    "name": "الشيخ أنس المصطفى",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 89,
+    "seasons": 3,
+    "rating": 4.7,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0142",
+    "name": "وائل الخلف",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 83,
+    "seasons": 4,
+    "rating": 3.6,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0143",
+    "name": "الشيخ زكريا الصباغ",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 72,
+    "seasons": 1,
+    "rating": 4.5,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 58
+  },
+  {
+    "id": "s-0144",
+    "name": "الشيخ جهاد الكزبري",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 88,
+    "seasons": 3,
+    "rating": 4,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0145",
+    "name": "الشيخ عبد الله الجيلاني",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 95,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer"
+    ],
+    "age": 65
+  },
+  {
+    "id": "s-0146",
+    "name": "الشيخ منذر الإبراهيم",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 96,
+    "seasons": 4,
+    "rating": 4.4,
+    "skills": [
+      "elderly"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0147",
+    "name": "معاذ الخلف",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 92,
+    "seasons": 5,
+    "rating": 3.8,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 34
+  },
+  {
+    "id": "s-0148",
+    "name": "الشيخ غياث الشماع",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 87,
+    "seasons": 5,
+    "rating": 4,
+    "skills": [
+      "computer"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0149",
+    "name": "حمزة المقداد",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 77,
+    "seasons": 4,
+    "rating": 4.6,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0151",
+    "name": "الشيخ قصي العساف",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 87,
+    "seasons": 3,
+    "rating": 4.5,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0152",
+    "name": "الشيخ عدنان السعدي",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 90,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "elderly"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0153",
+    "name": "عدنان الكحالة",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 82,
+    "seasons": 5,
+    "rating": 4.5,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0154",
+    "name": "الشيخ ماجد الرز",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 76,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "elderly"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0155",
+    "name": "الشيخ محمد الملا",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 98,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0156",
+    "name": "عمار الموسى",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 91,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "computer"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0157",
+    "name": "بلال الحمامي",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "برزة",
+    "score": 74,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0158",
+    "name": "نادر الأتاسي",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 88,
+    "seasons": 3,
+    "rating": 4.5,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0159",
+    "name": "أنس الحافظ",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 81,
+    "seasons": 2,
+    "rating": 3.8,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0160",
+    "name": "عبد الرحمن المصطفى",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 79,
+    "seasons": 5,
+    "rating": 3.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0162",
+    "name": "بشرى الحسن",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "القصاع",
+    "score": 96,
+    "seasons": 3,
+    "rating": 4,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0163",
+    "name": "وعد السعدي",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 96,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0171",
+    "name": "الشيخ هشام الحكيم",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "طفس",
+    "score": 96,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0172",
+    "name": "الشيخ قصي الفارس",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 84,
+    "seasons": 3,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0173",
+    "name": "الشيخ أحمد الحريري",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "إزرع",
+    "score": 93,
+    "seasons": 5,
+    "rating": 3.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0174",
+    "name": "نزار الحريري",
+    "roleKey": "group-deputy",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 78,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0175",
+    "name": "الشيخ عبد الله الأحمد",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "درعا المحطة",
+    "score": 98,
+    "seasons": 2,
+    "rating": 4.3,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0176",
+    "name": "الشيخ إبراهيم العيسى",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 79,
+    "seasons": 4,
+    "rating": 3.9,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0177",
+    "name": "الشيخ نادر العيسى",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 94,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 58
+  },
+  {
+    "id": "s-0178",
+    "name": "الشيخ هشام الصالح",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "طفس",
+    "score": 90,
+    "seasons": 3,
+    "rating": 4.4,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0179",
+    "name": "محمود القادري",
+    "roleKey": "group-deputy",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 79,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0180",
+    "name": "محمود الحجار",
+    "roleKey": "assistant-tech",
+    "branch": "درعا",
+    "area": "درعا المحطة",
+    "score": 74,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "sign"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0181",
+    "name": "جمال العمر",
+    "roleKey": "tech",
+    "branch": "درعا",
+    "area": "إزرع",
+    "score": 97,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 26
+  },
+  {
+    "id": "s-0182",
+    "name": "خديجة العمر",
+    "roleKey": "murshida",
+    "branch": "درعا",
+    "area": "إزرع",
+    "score": 83,
+    "seasons": 4,
+    "rating": 4.3,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0183",
+    "name": "آمنة الصالح",
+    "roleKey": "guide-f",
+    "branch": "درعا",
+    "area": "إزرع",
+    "score": 90,
+    "seasons": 5,
+    "rating": 4.6,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0191",
+    "name": "الشيخ أحمد الصواف",
+    "roleKey": "murshid",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 79,
+    "seasons": 3,
+    "rating": 3.9,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 58
+  },
+  {
+    "id": "s-0192",
+    "name": "طارق اليوسف",
+    "roleKey": "assistant-tech",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 86,
+    "seasons": 1,
+    "rating": 4.9,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0193",
+    "name": "الشيخ عبد الله الحمامي",
+    "roleKey": "guide-m",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 91,
+    "seasons": 4,
+    "rating": 3.8,
+    "skills": [
+      "sign"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0194",
+    "name": "الشيخ عبد الله البكري",
+    "roleKey": "guide-m",
+    "branch": "دير الزور",
+    "area": "الحميدية",
+    "score": 92,
+    "seasons": 4,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 56
+  },
+  {
+    "id": "s-0195",
+    "name": "الشيخ جهاد الحسن",
+    "roleKey": "guide-m",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 97,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0196",
+    "name": "حمزة الشيشكلي",
+    "roleKey": "group-deputy",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 98,
+    "seasons": 1,
+    "rating": 3.7,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0197",
+    "name": "الشيخ ماجد الكردي",
+    "roleKey": "guide-m",
+    "branch": "دير الزور",
+    "area": "الحميدية",
+    "score": 92,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0198",
+    "name": "الشيخ زكريا السعدي",
+    "roleKey": "guide-m",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 86,
+    "seasons": 2,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0199",
+    "name": "الشيخ وائل الخلف",
+    "roleKey": "guide-m",
+    "branch": "دير الزور",
+    "area": "القصور",
+    "score": 81,
+    "seasons": 2,
+    "rating": 4.8,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0200",
+    "name": "طارق الدرويش",
+    "roleKey": "group-deputy",
+    "branch": "دير الزور",
+    "area": "القصور",
+    "score": 98,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0201",
+    "name": "الشيخ زكريا المحمد",
+    "roleKey": "guide-m",
+    "branch": "دير الزور",
+    "area": "القصور",
+    "score": 97,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0202",
+    "name": "كنان الأحمد",
+    "roleKey": "group-deputy",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 96,
+    "seasons": 1,
+    "rating": 4.4,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0203",
+    "name": "هشام الطحان",
+    "roleKey": "assistant-tech",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 78,
+    "seasons": 3,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0204",
+    "name": "إبراهيم الشيشكلي",
+    "roleKey": "assistant-tech",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 85,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "computer"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0205",
+    "name": "وعد الشيشكلي",
+    "roleKey": "guide-f",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 82,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "computer"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0206",
+    "name": "منى الملا",
+    "roleKey": "guide-f",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 90,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0220",
+    "name": "الشيخ كنان الحافظ",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 78,
+    "seasons": 5,
+    "rating": 4.7,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0221",
+    "name": "ماجد الدرويش",
+    "roleKey": "group-deputy",
+    "branch": "حمص",
+    "area": "الخالدية",
+    "score": 90,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0222",
+    "name": "الشيخ هاني السعدي",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الغوطة",
+    "score": 77,
+    "seasons": 1,
+    "rating": 4.4,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0223",
+    "name": "الشيخ محمد القاسم",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 97,
+    "seasons": 4,
+    "rating": 3.9,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 56
+  },
+  {
+    "id": "s-0224",
+    "name": "هاني البكري",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 91,
+    "seasons": 5,
+    "rating": 4.1,
+    "skills": [
+      "bus"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0225",
+    "name": "الشيخ بلال العجلاني",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الغوطة",
+    "score": 75,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0226",
+    "name": "الشيخ كنان العجلاني",
+    "roleKey": "murshid",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 81,
+    "seasons": 4,
+    "rating": 3.8,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0227",
+    "name": "الشيخ عبد الكريم الشيشكلي",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الخالدية",
+    "score": 98,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0228",
+    "name": "نزار الفاعوري",
+    "roleKey": "assistant-tech",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 75,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0229",
+    "name": "الشيخ يحيى الكردي",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 97,
+    "seasons": 5,
+    "rating": 3.7,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0230",
+    "name": "الشيخ ماجد الجابر",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "عكرمة",
+    "score": 86,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0231",
+    "name": "أيمن الفاعوري",
+    "roleKey": "assistant-tech",
+    "branch": "حمص",
+    "area": "عكرمة",
+    "score": 97,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0232",
+    "name": "هشام الزعبي",
+    "roleKey": "group-deputy",
+    "branch": "حمص",
+    "area": "الخالدية",
+    "score": 79,
+    "seasons": 3,
+    "rating": 3.9,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0233",
+    "name": "عبد الحكيم الفاعوري",
+    "roleKey": "assistant-tech",
+    "branch": "حمص",
+    "area": "الوعر",
+    "score": 80,
+    "seasons": 4,
+    "rating": 3.7,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0234",
+    "name": "أحمد الشيشكلي",
+    "roleKey": "assistant-tech",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 76,
+    "seasons": 4,
+    "rating": 3.6,
+    "skills": [
+      "sign"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0235",
+    "name": "فاطمة الحسن",
+    "roleKey": "guide-f",
+    "branch": "حمص",
+    "area": "عكرمة",
+    "score": 98,
+    "seasons": 2,
+    "rating": 4,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 55
+  },
+  {
+    "id": "s-0236",
+    "name": "فاطمة الفاعوري",
+    "roleKey": "guide-f",
+    "branch": "حماة",
+    "area": "طريق حلب",
+    "score": 98,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0243",
+    "name": "الشيخ محمد الفارس",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 77,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0244",
+    "name": "جمال الضاهر",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 89,
+    "seasons": 4,
+    "rating": 4.7,
+    "skills": [
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0245",
+    "name": "الشيخ محمود الحسن",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 88,
+    "seasons": 4,
+    "rating": 3.8,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0246",
+    "name": "الشيخ خالد المقداد",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "طريق حلب",
+    "score": 74,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0247",
+    "name": "علي الصواف",
+    "roleKey": "assistant-tech",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 88,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0248",
+    "name": "الشيخ صهيب السمان",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 84,
+    "seasons": 5,
+    "rating": 4.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0249",
+    "name": "الشيخ حسن السليمان",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "طريق حلب",
+    "score": 78,
+    "seasons": 5,
+    "rating": 3.7,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0250",
+    "name": "الشيخ مهند السليمان",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "طريق حلب",
+    "score": 95,
+    "seasons": 3,
+    "rating": 4.3,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0251",
+    "name": "وائل العساف",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 77,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0252",
+    "name": "زكريا الزعبي",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 88,
+    "seasons": 1,
+    "rating": 4.9,
+    "skills": [
+      "computer"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0253",
+    "name": "خالد الجيلاني",
+    "roleKey": "assistant-tech",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 76,
+    "seasons": 5,
+    "rating": 4.6,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0254",
+    "name": "فراس السعدي",
+    "roleKey": "assistant-tech",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 89,
+    "seasons": 5,
+    "rating": 4.3,
+    "skills": [
+      "bus"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0255",
+    "name": "سلمى المصطفى",
+    "roleKey": "guide-f",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 94,
+    "seasons": 3,
+    "rating": 4.8,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0256",
+    "name": "هبة الحريري",
+    "roleKey": "guide-f",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 95,
+    "seasons": 5,
+    "rating": 3.6,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0265",
+    "name": "الشيخ مهند الجندلي",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 74,
+    "seasons": 1,
+    "rating": 4.4,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0266",
+    "name": "هشام الديري",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 88,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0267",
+    "name": "الشيخ فراس الزعبي",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 94,
+    "seasons": 4,
+    "rating": 3.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0268",
+    "name": "بلال العيسى",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 79,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0269",
+    "name": "الشيخ يوسف المحمد",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 80,
+    "seasons": 5,
+    "rating": 4,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0270",
+    "name": "الشيخ محمد العاني",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 88,
+    "seasons": 5,
+    "rating": 4,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0271",
+    "name": "الشيخ مصطفى الشماع",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 79,
+    "seasons": 2,
+    "rating": 3.9,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0272",
+    "name": "عمار الطرابيشي",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 84,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0273",
+    "name": "الشيخ علي الشماع",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 89,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus"
+    ],
+    "age": 60
+  },
+  {
+    "id": "s-0274",
+    "name": "الشيخ عبد الرحمن الكحالة",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 88,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0275",
+    "name": "الشيخ أنس الديري",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "ركن الدين",
+    "score": 97,
+    "seasons": 1,
+    "rating": 4.7,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0276",
+    "name": "مهند الشماع",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "المزة",
+    "score": 79,
+    "seasons": 5,
+    "rating": 4.6,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0277",
+    "name": "الشيخ زكريا الزعبي",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 91,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0278",
+    "name": "بلال الموسى",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 79,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "elderly"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0279",
+    "name": "بلال الزعبي",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 75,
+    "seasons": 5,
+    "rating": 3.6,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0280",
+    "name": "فراس التركماني",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "كفرسوسة",
+    "score": 73,
+    "seasons": 2,
+    "rating": 4.9,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0281",
+    "name": "مهند الكردي",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 91,
+    "seasons": 5,
+    "rating": 4.4,
+    "skills": [
+      "elderly"
+    ],
+    "age": 23
+  },
+  {
+    "id": "s-0282",
+    "name": "هدى السعدي",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 87,
+    "seasons": 5,
+    "rating": 4.4,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0283",
+    "name": "سمية الحريري",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 91,
+    "seasons": 4,
+    "rating": 3.8,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0289",
+    "name": "الشيخ إياد الخلف",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "الرمل الشمالي",
+    "score": 75,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0290",
+    "name": "علي التركماني",
+    "roleKey": "group-deputy",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 93,
+    "seasons": 5,
+    "rating": 3.7,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 28
+  },
+  {
+    "id": "s-0291",
+    "name": "الشيخ غياث البرازي",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 95,
+    "seasons": 5,
+    "rating": 4.7,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0292",
+    "name": "الشيخ معاذ الصباغ",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "الصليبة",
+    "score": 95,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0293",
+    "name": "الشيخ إياد الحكيم",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 86,
+    "seasons": 3,
+    "rating": 4.8,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0294",
+    "name": "نادر الطحان",
+    "roleKey": "group-deputy",
+    "branch": "اللاذقية",
+    "area": "الزراعة",
+    "score": 87,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "bus"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0295",
+    "name": "الشيخ أنس الجيلاني",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "الزراعة",
+    "score": 85,
+    "seasons": 4,
+    "rating": 3.7,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0296",
+    "name": "عمر الحريري",
+    "roleKey": "group-deputy",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 96,
+    "seasons": 5,
+    "rating": 3.9,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 28
+  },
+  {
+    "id": "s-0297",
+    "name": "مصطفى الكيال",
+    "roleKey": "assistant-tech",
+    "branch": "اللاذقية",
+    "area": "الزراعة",
+    "score": 96,
+    "seasons": 2,
+    "rating": 4.9,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0298",
+    "name": "محمد السعدي",
+    "roleKey": "tech",
+    "branch": "اللاذقية",
+    "area": "الصليبة",
+    "score": 73,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0324",
+    "name": "الشيخ نادر الرز",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 95,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0325",
+    "name": "الشيخ أيمن المحمد",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 91,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0326",
+    "name": "الشيخ عمر العجلاني",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "الصالحية",
+    "score": 95,
+    "seasons": 3,
+    "rating": 4.8,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0327",
+    "name": "الشيخ باسل الإبراهيم",
+    "roleKey": "guide-m",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 91,
+    "seasons": 3,
+    "rating": 4.4,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0328",
+    "name": "الشيخ يوسف الرز",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 76,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "sign"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0329",
+    "name": "الشيخ عبد الحكيم القاسم",
+    "roleKey": "murshid",
+    "branch": "دمشق",
+    "area": "باب توما",
+    "score": 81,
+    "seasons": 3,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0330",
+    "name": "فاطمة العجلاني",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 84,
+    "seasons": 2,
+    "rating": 4.1,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0331",
+    "name": "مريم الأحمد",
+    "roleKey": "guide-f",
+    "branch": "دمشق",
+    "area": "ركن الدين",
+    "score": 78,
+    "seasons": 4,
+    "rating": 4.2,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0332",
+    "name": "ميساء التركماني",
+    "roleKey": "murshida",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 82,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0333",
+    "name": "ميساء الكيال",
+    "roleKey": "murshida",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 86,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0334",
+    "name": "طارق الصواف",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 94,
+    "seasons": 3,
+    "rating": 4.7,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0335",
+    "name": "إياد الصالح",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 73,
+    "seasons": 5,
+    "rating": 4.9,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0336",
+    "name": "أنس الحمامي",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 95,
+    "seasons": 4,
+    "rating": 4.7,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0337",
+    "name": "زكريا العجلاني",
+    "roleKey": "group-deputy",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 96,
+    "seasons": 4,
+    "rating": 4.1,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0338",
+    "name": "أيمن الدرويش",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "القدم",
+    "score": 98,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "elderly"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0339",
+    "name": "يحيى الجندلي",
+    "roleKey": "assistant-tech",
+    "branch": "دمشق",
+    "area": "ركن الدين",
+    "score": 75,
+    "seasons": 2,
+    "rating": 4.8,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0340",
+    "name": "صهيب الشماع",
+    "roleKey": "assistant-count",
+    "branch": "دمشق",
+    "area": "الميدان",
+    "score": 94,
+    "seasons": 1,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0341",
+    "name": "إياد النوري",
+    "roleKey": "assistant-count",
+    "branch": "دمشق",
+    "area": "المهاجرين",
+    "score": 78,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0342",
+    "name": "زياد الشماع",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "المالكي",
+    "score": 92,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 28
+  },
+  {
+    "id": "s-0343",
+    "name": "منذر الحمامي",
+    "roleKey": "tech",
+    "branch": "دمشق",
+    "area": "الشاغور",
+    "score": 73,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "elderly"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0344",
+    "name": "الشيخ حسين العبيد",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 96,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "elderly"
+    ],
+    "age": 56
+  },
+  {
+    "id": "s-0345",
+    "name": "الشيخ خالد السعدي",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 82,
+    "seasons": 4,
+    "rating": 3.9,
+    "skills": [
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0346",
+    "name": "الشيخ يحيى المقداد",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 74,
+    "seasons": 2,
+    "rating": 4.4,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0347",
+    "name": "الشيخ مصطفى البرازي",
+    "roleKey": "guide-m",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 87,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0348",
+    "name": "الشيخ عبد الحكيم العساف",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 91,
+    "seasons": 5,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0349",
+    "name": "الشيخ هشام العاني",
+    "roleKey": "murshid",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 75,
+    "seasons": 1,
+    "rating": 4.5,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 56
+  },
+  {
+    "id": "s-0350",
+    "name": "زينب المحمد",
+    "roleKey": "guide-f",
+    "branch": "حلب",
+    "area": "السليمانية",
+    "score": 93,
+    "seasons": 2,
+    "rating": 4.8,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0351",
+    "name": "غادة الحداد",
+    "roleKey": "guide-f",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 88,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0352",
+    "name": "هبة المصطفى",
+    "roleKey": "murshida",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 79,
+    "seasons": 4,
+    "rating": 3.9,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0353",
+    "name": "مريم النعيمي",
+    "roleKey": "murshida",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 84,
+    "seasons": 2,
+    "rating": 3.8,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0354",
+    "name": "عبد الكريم الصواف",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 80,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0355",
+    "name": "صهيب الجيلاني",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 75,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0356",
+    "name": "جهاد التركماني",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "الحمدانية",
+    "score": 84,
+    "seasons": 5,
+    "rating": 4.5,
+    "skills": [
+      "first-aid"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0357",
+    "name": "عمار النوري",
+    "roleKey": "group-deputy",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 74,
+    "seasons": 3,
+    "rating": 4.9,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0358",
+    "name": "صهيب الخلف",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "الفرقان",
+    "score": 85,
+    "seasons": 5,
+    "rating": 4.2,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0359",
+    "name": "يوسف العبيد",
+    "roleKey": "assistant-tech",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 89,
+    "seasons": 4,
+    "rating": 4.3,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0360",
+    "name": "مأمون البكري",
+    "roleKey": "assistant-count",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 78,
+    "seasons": 5,
+    "rating": 4.3,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0361",
+    "name": "عبد الكريم الحمامي",
+    "roleKey": "assistant-count",
+    "branch": "حلب",
+    "area": "الجميلية",
+    "score": 85,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0362",
+    "name": "حسن الطويل",
+    "roleKey": "tech",
+    "branch": "حلب",
+    "area": "السبيل",
+    "score": 76,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0363",
+    "name": "جمال الطويل",
+    "roleKey": "tech",
+    "branch": "حلب",
+    "area": "الشهباء",
+    "score": 83,
+    "seasons": 5,
+    "rating": 3.9,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 23
+  },
+  {
+    "id": "s-0364",
+    "name": "الشيخ وائل الصواف",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "الضبيط",
+    "score": 77,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0365",
+    "name": "الشيخ محمد الطحان",
+    "roleKey": "guide-m",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 97,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 58
+  },
+  {
+    "id": "s-0366",
+    "name": "الشيخ نادر المالح",
+    "roleKey": "murshid",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 88,
+    "seasons": 4,
+    "rating": 4.9,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0367",
+    "name": "عائشة الخلف",
+    "roleKey": "guide-f",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 96,
+    "seasons": 1,
+    "rating": 4.5,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0368",
+    "name": "رنا الطرابيشي",
+    "roleKey": "murshida",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 72,
+    "seasons": 4,
+    "rating": 4.5,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 57
+  },
+  {
+    "id": "s-0369",
+    "name": "ماجد الملا",
+    "roleKey": "group-deputy",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 97,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0370",
+    "name": "هاني الأيوبي",
+    "roleKey": "group-deputy",
+    "branch": "إدلب",
+    "area": "المدينة",
+    "score": 96,
+    "seasons": 2,
+    "rating": 4.1,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0371",
+    "name": "منذر الملا",
+    "roleKey": "assistant-tech",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 93,
+    "seasons": 2,
+    "rating": 4.8,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0372",
+    "name": "عبد الحكيم الجندلي",
+    "roleKey": "assistant-count",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 85,
+    "seasons": 3,
+    "rating": 4.1,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 55
+  },
+  {
+    "id": "s-0373",
+    "name": "بلال العجلاني",
+    "roleKey": "tech",
+    "branch": "إدلب",
+    "area": "المحافظة",
+    "score": 80,
+    "seasons": 5,
+    "rating": 4.5,
+    "skills": [
+      "bus"
+    ],
+    "age": 27
+  },
+  {
+    "id": "s-0374",
+    "name": "الشيخ حمزة العيسى",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 79,
+    "seasons": 3,
+    "rating": 4.2,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0375",
+    "name": "الشيخ نزار الكيال",
+    "roleKey": "guide-m",
+    "branch": "حمص",
+    "area": "الغوطة",
+    "score": 93,
+    "seasons": 1,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "sign"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0376",
+    "name": "الشيخ فراس المقداد",
+    "roleKey": "murshid",
+    "branch": "حمص",
+    "area": "الخالدية",
+    "score": 98,
+    "seasons": 5,
+    "rating": 4.7,
+    "skills": [
+      "bus"
+    ],
+    "age": 56
+  },
+  {
+    "id": "s-0377",
+    "name": "خديجة الحكيم",
+    "roleKey": "guide-f",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 91,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0378",
+    "name": "زينب العيسى",
+    "roleKey": "murshida",
+    "branch": "حمص",
+    "area": "الوعر",
+    "score": 84,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0379",
+    "name": "منذر الأحمد",
+    "roleKey": "group-deputy",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 93,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "computer"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0380",
+    "name": "صهيب الحجار",
+    "roleKey": "group-deputy",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 93,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0381",
+    "name": "بلال الملا",
+    "roleKey": "assistant-tech",
+    "branch": "حمص",
+    "area": "عكرمة",
+    "score": 98,
+    "seasons": 3,
+    "rating": 4.5,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 26
+  },
+  {
+    "id": "s-0382",
+    "name": "صهيب الصواف",
+    "roleKey": "assistant-count",
+    "branch": "حمص",
+    "area": "الوعر",
+    "score": 82,
+    "seasons": 5,
+    "rating": 3.9,
+    "skills": [
+      "computer"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0383",
+    "name": "طارق الأيوبي",
+    "roleKey": "tech",
+    "branch": "حمص",
+    "area": "الإنشاءات",
+    "score": 86,
+    "seasons": 5,
+    "rating": 3.8,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0384",
+    "name": "الشيخ إياد الجندلي",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 94,
+    "seasons": 1,
+    "rating": 4.9,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0385",
+    "name": "الشيخ جمال النعيمي",
+    "roleKey": "guide-m",
+    "branch": "حماة",
+    "area": "طريق حلب",
+    "score": 76,
+    "seasons": 4,
+    "rating": 4,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0386",
+    "name": "الشيخ أحمد العبيد",
+    "roleKey": "murshid",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 84,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 55
+  },
+  {
+    "id": "s-0387",
+    "name": "نور الحكيم",
+    "roleKey": "guide-f",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 72,
+    "seasons": 2,
+    "rating": 4.9,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0388",
+    "name": "سلمى السعدي",
+    "roleKey": "murshida",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 72,
+    "seasons": 3,
+    "rating": 4.7,
+    "skills": [
+      "bus"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0389",
+    "name": "علي الخليل",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 94,
+    "seasons": 2,
+    "rating": 3.8,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0390",
+    "name": "يوسف السليمان",
+    "roleKey": "group-deputy",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 94,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0391",
+    "name": "حسن الصالح",
+    "roleKey": "assistant-tech",
+    "branch": "حماة",
+    "area": "الأربعين",
+    "score": 92,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0392",
+    "name": "مهند السمان",
+    "roleKey": "assistant-count",
+    "branch": "حماة",
+    "area": "الحاضر",
+    "score": 78,
+    "seasons": 2,
+    "rating": 4,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0393",
+    "name": "محمد العاني",
+    "roleKey": "tech",
+    "branch": "حماة",
+    "area": "باب قبلي",
+    "score": 97,
+    "seasons": 3,
+    "rating": 4.3,
+    "skills": [
+      "computer",
+      "first-aid"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0394",
+    "name": "الشيخ نادر الطرابيشي",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 95,
+    "seasons": 5,
+    "rating": 4.7,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0395",
+    "name": "الشيخ إياد النعيمي",
+    "roleKey": "guide-m",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 85,
+    "seasons": 2,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0396",
+    "name": "الشيخ غياث الكزبري",
+    "roleKey": "murshid",
+    "branch": "اللاذقية",
+    "area": "الزراعة",
+    "score": 96,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "first-aid",
+      "elderly"
+    ],
+    "age": 65
+  },
+  {
+    "id": "s-0397",
+    "name": "سهير الأحمد",
+    "roleKey": "guide-f",
+    "branch": "اللاذقية",
+    "area": "الزراعة",
+    "score": 79,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0398",
+    "name": "أسماء الأتاسي",
+    "roleKey": "murshida",
+    "branch": "اللاذقية",
+    "area": "الرمل الشمالي",
+    "score": 78,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0399",
+    "name": "وائل الجندلي",
+    "roleKey": "group-deputy",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 74,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0400",
+    "name": "معاذ الجابر",
+    "roleKey": "group-deputy",
+    "branch": "اللاذقية",
+    "area": "الرمل الشمالي",
+    "score": 84,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0401",
+    "name": "عبد الرحمن المالح",
+    "roleKey": "assistant-tech",
+    "branch": "اللاذقية",
+    "area": "مشروع الصليبة",
+    "score": 85,
+    "seasons": 3,
+    "rating": 4,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0402",
+    "name": "عبد الحكيم الحافظ",
+    "roleKey": "assistant-count",
+    "branch": "اللاذقية",
+    "area": "الرمل الشمالي",
+    "score": 91,
+    "seasons": 4,
+    "rating": 4.1,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0403",
+    "name": "نزار السمان",
+    "roleKey": "tech",
+    "branch": "اللاذقية",
+    "area": "الزراعة",
+    "score": 73,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "first-aid",
+      "sign"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0404",
+    "name": "الشيخ نادر الخليل",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 78,
+    "seasons": 5,
+    "rating": 4.4,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 34
+  },
+  {
+    "id": "s-0405",
+    "name": "الشيخ محمود العيسى",
+    "roleKey": "guide-m",
+    "branch": "درعا",
+    "area": "طفس",
+    "score": 75,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0406",
+    "name": "الشيخ معاذ الصواف",
+    "roleKey": "murshid",
+    "branch": "درعا",
+    "area": "درعا المحطة",
+    "score": 72,
+    "seasons": 1,
+    "rating": 4,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 62
+  },
+  {
+    "id": "s-0407",
+    "name": "سمية الكيال",
+    "roleKey": "guide-f",
+    "branch": "درعا",
+    "area": "درعا المحطة",
+    "score": 75,
+    "seasons": 2,
+    "rating": 4.7,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 54
+  },
+  {
+    "id": "s-0408",
+    "name": "زينب المصطفى",
+    "roleKey": "murshida",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 75,
+    "seasons": 5,
+    "rating": 4.9,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 59
+  },
+  {
+    "id": "s-0409",
+    "name": "مصطفى الحافظ",
+    "roleKey": "group-deputy",
+    "branch": "درعا",
+    "area": "درعا المحطة",
+    "score": 85,
+    "seasons": 5,
+    "rating": 4.5,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0410",
+    "name": "محمود الصواف",
+    "roleKey": "group-deputy",
+    "branch": "درعا",
+    "area": "طفس",
+    "score": 98,
+    "seasons": 2,
+    "rating": 3.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0411",
+    "name": "سعيد الديري",
+    "roleKey": "assistant-tech",
+    "branch": "درعا",
+    "area": "نوى",
+    "score": 87,
+    "seasons": 4,
+    "rating": 4.9,
+    "skills": [
+      "sign"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0412",
+    "name": "وائل الحكيم",
+    "roleKey": "assistant-count",
+    "branch": "درعا",
+    "area": "طفس",
+    "score": 85,
+    "seasons": 1,
+    "rating": 3.8,
+    "skills": [
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0413",
+    "name": "بلال العمر",
+    "roleKey": "tech",
+    "branch": "درعا",
+    "area": "إزرع",
+    "score": 85,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0414",
+    "name": "الشيخ عمر العمر",
+    "roleKey": "guide-m",
+    "branch": "دير الزور",
+    "area": "القصور",
+    "score": 74,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 49
+  },
+  {
+    "id": "s-0415",
+    "name": "الشيخ نزار الحافظ",
+    "roleKey": "guide-m",
+    "branch": "دير الزور",
+    "area": "القصور",
+    "score": 97,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "computer"
+    ],
+    "age": 34
+  },
+  {
+    "id": "s-0416",
+    "name": "الشيخ مهند الكحالة",
+    "roleKey": "murshid",
+    "branch": "دير الزور",
+    "area": "الحميدية",
+    "score": 88,
+    "seasons": 2,
+    "rating": 4.7,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 52
+  },
+  {
+    "id": "s-0417",
+    "name": "نور الملا",
+    "roleKey": "guide-f",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 98,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 47
+  },
+  {
+    "id": "s-0418",
+    "name": "ريم الموسى",
+    "roleKey": "murshida",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 88,
+    "seasons": 5,
+    "rating": 4.6,
+    "skills": [
+      "bus"
+    ],
+    "age": 43
+  },
+  {
+    "id": "s-0419",
+    "name": "سعيد السليمان",
+    "roleKey": "group-deputy",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 93,
+    "seasons": 1,
+    "rating": 4.6,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0420",
+    "name": "هشام الطويل",
+    "roleKey": "group-deputy",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 91,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0421",
+    "name": "هاني المحمد",
+    "roleKey": "assistant-tech",
+    "branch": "دير الزور",
+    "area": "الحميدية",
+    "score": 79,
+    "seasons": 2,
+    "rating": 4.5,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 39
+  },
+  {
+    "id": "s-0422",
+    "name": "علي الزعبي",
+    "roleKey": "assistant-count",
+    "branch": "دير الزور",
+    "area": "القصور",
+    "score": 87,
+    "seasons": 4,
+    "rating": 4.7,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0423",
+    "name": "معاذ الإبراهيم",
+    "roleKey": "tech",
+    "branch": "دير الزور",
+    "area": "الجورة",
+    "score": 76,
+    "seasons": 3,
+    "rating": 4.3,
+    "skills": [
+      "computer"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0424",
+    "name": "الشيخ عمر الأحمد",
+    "roleKey": "guide-m",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 86,
+    "seasons": 4,
+    "rating": 4.9,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 51
+  },
+  {
+    "id": "s-0425",
+    "name": "الشيخ قصي العيسى",
+    "roleKey": "guide-m",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 96,
+    "seasons": 3,
+    "rating": 4.4,
+    "skills": [
+      "elderly"
+    ],
+    "age": 56
+  },
+  {
+    "id": "s-0426",
+    "name": "الشيخ صهيب العيسى",
+    "roleKey": "murshid",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 90,
+    "seasons": 4,
+    "rating": 4.1,
+    "skills": [
+      "elderly"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0427",
+    "name": "رقية النعيمي",
+    "roleKey": "guide-f",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 92,
+    "seasons": 5,
+    "rating": 4.7,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0428",
+    "name": "آمنة الزعبي",
+    "roleKey": "murshida",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 74,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0429",
+    "name": "يوسف الفارس",
+    "roleKey": "group-deputy",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 97,
+    "seasons": 4,
+    "rating": 3.7,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0430",
+    "name": "سعيد المصطفى",
+    "roleKey": "group-deputy",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 77,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "bus"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0431",
+    "name": "هاني النعيمي",
+    "roleKey": "assistant-tech",
+    "branch": "الرقة",
+    "area": "المشلب",
+    "score": 88,
+    "seasons": 1,
+    "rating": 4.6,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0432",
+    "name": "جمال الكحالة",
+    "roleKey": "assistant-count",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 78,
+    "seasons": 3,
+    "rating": 3.7,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 32
+  },
+  {
+    "id": "s-0433",
+    "name": "أحمد الصالح",
+    "roleKey": "tech",
+    "branch": "الرقة",
+    "area": "الرميلة",
+    "score": 97,
+    "seasons": 5,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 25
+  },
+  {
+    "id": "s-0434",
+    "name": "الشيخ عبد الكريم الكردي",
+    "roleKey": "guide-m",
+    "branch": "اسطنبول",
+    "area": "الفاتح",
+    "score": 87,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0435",
+    "name": "الشيخ نادر السمان",
+    "roleKey": "guide-m",
+    "branch": "اسطنبول",
+    "area": "الفاتح",
+    "score": 80,
+    "seasons": 1,
+    "rating": 4.8,
+    "skills": [
+      "bus",
+      "first-aid"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0436",
+    "name": "الشيخ محمد الكحالة",
+    "roleKey": "murshid",
+    "branch": "اسطنبول",
+    "area": "إسنيورت",
+    "score": 75,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0437",
+    "name": "هبة العمر",
+    "roleKey": "guide-f",
+    "branch": "اسطنبول",
+    "area": "إسنيورت",
+    "score": 84,
+    "seasons": 1,
+    "rating": 4.2,
+    "skills": [
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0438",
+    "name": "زينب الفاعوري",
+    "roleKey": "murshida",
+    "branch": "اسطنبول",
+    "area": "الفاتح",
+    "score": 87,
+    "seasons": 2,
+    "rating": 4.3,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 53
+  },
+  {
+    "id": "s-0439",
+    "name": "يحيى المحمد",
+    "roleKey": "group-deputy",
+    "branch": "اسطنبول",
+    "area": "إسنيورت",
+    "score": 75,
+    "seasons": 4,
+    "rating": 4.8,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0440",
+    "name": "حسين المحمد",
+    "roleKey": "group-deputy",
+    "branch": "اسطنبول",
+    "area": "إسنيورت",
+    "score": 90,
+    "seasons": 5,
+    "rating": 4.5,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0441",
+    "name": "إبراهيم التركماني",
+    "roleKey": "assistant-tech",
+    "branch": "اسطنبول",
+    "area": "الفاتح",
+    "score": 72,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "computer"
+    ],
+    "age": 29
+  },
+  {
+    "id": "s-0442",
+    "name": "مأمون الكزبري",
+    "roleKey": "assistant-count",
+    "branch": "اسطنبول",
+    "area": "إسنيورت",
+    "score": 82,
+    "seasons": 5,
+    "rating": 4.4,
+    "skills": [
+      "sign",
+      "elderly"
+    ],
+    "age": 31
+  },
+  {
+    "id": "s-0443",
+    "name": "جمال الحسن",
+    "roleKey": "tech",
+    "branch": "اسطنبول",
+    "area": "إسنيورت",
+    "score": 72,
+    "seasons": 5,
+    "rating": 4,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0444",
+    "name": "الشيخ عمار السمان",
+    "roleKey": "guide-m",
+    "branch": "غازي عنتاب",
+    "area": "شاهين بيه",
+    "score": 77,
+    "seasons": 1,
+    "rating": 4.6,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 35
+  },
+  {
+    "id": "s-0445",
+    "name": "الشيخ مهند الكردي",
+    "roleKey": "guide-m",
+    "branch": "غازي عنتاب",
+    "area": "شاهين بيه",
+    "score": 73,
+    "seasons": 4,
+    "rating": 3.7,
+    "skills": [
+      "sign"
+    ],
+    "age": 33
+  },
+  {
+    "id": "s-0446",
+    "name": "الشيخ أحمد السليمان",
+    "roleKey": "murshid",
+    "branch": "غازي عنتاب",
+    "area": "شاهين بيه",
+    "score": 87,
+    "seasons": 3,
+    "rating": 4,
+    "skills": [
+      "elderly",
+      "first-aid"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0447",
+    "name": "سهير الكيال",
+    "roleKey": "guide-f",
+    "branch": "غازي عنتاب",
+    "area": "شهيت كامل",
+    "score": 86,
+    "seasons": 2,
+    "rating": 4.6,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 36
+  },
+  {
+    "id": "s-0448",
+    "name": "غادة البرازي",
+    "roleKey": "murshida",
+    "branch": "غازي عنتاب",
+    "area": "شهيت كامل",
+    "score": 94,
+    "seasons": 4,
+    "rating": 4.4,
+    "skills": [
+      "elderly",
+      "computer"
+    ],
+    "age": 45
+  },
+  {
+    "id": "s-0449",
+    "name": "قصي الزعبي",
+    "roleKey": "group-deputy",
+    "branch": "غازي عنتاب",
+    "area": "شاهين بيه",
+    "score": 91,
+    "seasons": 4,
+    "rating": 3.8,
+    "skills": [
+      "first-aid",
+      "computer"
+    ],
+    "age": 34
+  },
+  {
+    "id": "s-0450",
+    "name": "منذر الصواف",
+    "roleKey": "group-deputy",
+    "branch": "غازي عنتاب",
+    "area": "شهيت كامل",
+    "score": 93,
+    "seasons": 3,
+    "rating": 4.2,
+    "skills": [
+      "computer",
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0451",
+    "name": "يوسف السمان",
+    "roleKey": "assistant-tech",
+    "branch": "غازي عنتاب",
+    "area": "شهيت كامل",
+    "score": 95,
+    "seasons": 2,
+    "rating": 3.9,
+    "skills": [
+      "sign"
+    ],
+    "age": 30
+  },
+  {
+    "id": "s-0452",
+    "name": "أحمد الموسى",
+    "roleKey": "assistant-count",
+    "branch": "غازي عنتاب",
+    "area": "شهيت كامل",
+    "score": 88,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "bus",
+      "elderly"
+    ],
+    "age": 42
+  },
+  {
+    "id": "s-0453",
+    "name": "عبد الرحمن الإبراهيم",
+    "roleKey": "tech",
+    "branch": "غازي عنتاب",
+    "area": "شاهين بيه",
+    "score": 78,
+    "seasons": 5,
+    "rating": 4.4,
+    "skills": [
+      "bus",
+      "sign"
+    ],
+    "age": 38
+  },
+  {
+    "id": "s-0454",
+    "name": "الشيخ محمود الأتاسي",
+    "roleKey": "guide-m",
+    "branch": "مصر",
+    "area": "العبور",
+    "score": 87,
+    "seasons": 1,
+    "rating": 3.9,
+    "skills": [
+      "computer",
+      "bus"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0455",
+    "name": "الشيخ مصطفى التركماني",
+    "roleKey": "guide-m",
+    "branch": "مصر",
+    "area": "العبور",
+    "score": 74,
+    "seasons": 0,
+    "rating": null,
+    "skills": [
+      "sign"
+    ],
+    "age": 48
+  },
+  {
+    "id": "s-0456",
+    "name": "الشيخ معاذ الديري",
+    "roleKey": "murshid",
+    "branch": "مصر",
+    "area": "السادس من أكتوبر",
+    "score": 94,
+    "seasons": 2,
+    "rating": 3.7,
+    "skills": [
+      "first-aid",
+      "bus"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0457",
+    "name": "سمية السقا",
+    "roleKey": "guide-f",
+    "branch": "مصر",
+    "area": "السادس من أكتوبر",
+    "score": 89,
+    "seasons": 2,
+    "rating": 4.8,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 37
+  },
+  {
+    "id": "s-0458",
+    "name": "آمنة العاني",
+    "roleKey": "murshida",
+    "branch": "مصر",
+    "area": "العبور",
+    "score": 89,
+    "seasons": 5,
+    "rating": 4.3,
+    "skills": [
+      "computer"
+    ],
+    "age": 44
+  },
+  {
+    "id": "s-0459",
+    "name": "يوسف الصباغ",
+    "roleKey": "group-deputy",
+    "branch": "مصر",
+    "area": "مدينة نصر",
+    "score": 80,
+    "seasons": 5,
+    "rating": 3.9,
+    "skills": [
+      "sign",
+      "first-aid"
+    ],
+    "age": 50
+  },
+  {
+    "id": "s-0460",
+    "name": "خالد الحافظ",
+    "roleKey": "group-deputy",
+    "branch": "مصر",
+    "area": "السادس من أكتوبر",
+    "score": 98,
+    "seasons": 3,
+    "rating": 4.5,
+    "skills": [
+      "sign",
+      "bus"
+    ],
+    "age": 40
+  },
+  {
+    "id": "s-0461",
+    "name": "سعيد الضاهر",
+    "roleKey": "assistant-tech",
+    "branch": "مصر",
+    "area": "مدينة نصر",
+    "score": 78,
+    "seasons": 3,
+    "rating": 4.6,
+    "skills": [
+      "elderly",
+      "bus"
+    ],
+    "age": 41
+  },
+  {
+    "id": "s-0462",
+    "name": "جهاد العيسى",
+    "roleKey": "assistant-count",
+    "branch": "مصر",
+    "area": "العبور",
+    "score": 80,
+    "seasons": 1,
+    "rating": 4.2,
+    "skills": [
+      "sign"
+    ],
+    "age": 46
+  },
+  {
+    "id": "s-0463",
+    "name": "عبد الكريم الحسن",
+    "roleKey": "tech",
+    "branch": "مصر",
+    "area": "السادس من أكتوبر",
+    "score": 79,
+    "seasons": 2,
+    "rating": 4.9,
+    "skills": [
+      "computer",
+      "elderly"
+    ],
+    "age": 27
+  }
+]

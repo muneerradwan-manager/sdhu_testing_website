@@ -20,6 +20,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { searchResult, type SearchResult, RESULTS_SUMMARY } from "@/lib/data/public-results";
 import { usePublishedDraw } from "@/lib/lottery";
 import { isValidNationalId } from "@/lib/registry";
+import { withNames } from "@/lib/demo-text";
+import LOOKUPS from "@/testdata/demo/result-lookups.json";
 import { useHydrated } from "@/lib/store";
 import { campaignEn, dateEn, placeEn } from "@/app/conditions/_lib/en";
 import { useT } from "@/lib/i18n";
@@ -32,11 +34,8 @@ const WINDOW_MS = 60_000;
 /** Per-tab random seed — computed only in the browser, never during prerender */
 const SESSION_SEED = typeof window === "undefined" ? "server" : Math.random().toString(36).slice(2);
 
-const DEMO_IDS = [
-  { id: "01012345412", label: "محمد الخطيب" },
-  { id: "01011100208", label: "ياسين العمر" },
-  { id: "01012340078", label: "خديجة الخطيب" },
-];
+/** National numbers to try a lookup with (testdata/demo/result-lookups.json) */
+const DEMO_IDS = LOOKUPS.map((d) => ({ id: d.id, label: withNames(d.label, d.id) }));
 
 const STEPS = [
   { ar: "التحقق من رمز التحقق", en: "Checking the verification code" },

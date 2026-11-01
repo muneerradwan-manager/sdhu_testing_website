@@ -1,0 +1,76 @@
+[
+  {
+    "id": "ap-dam",
+    "code": "DAM",
+    "name": "مطار دمشق الدولي",
+    "city": "دمشق",
+    "country": "سوريا",
+    "returnsTo": [
+      "ap-dam",
+      "ap-ltk"
+    ]
+  },
+  {
+    "id": "ap-alp",
+    "code": "ALP",
+    "name": "مطار حلب الدولي",
+    "city": "حلب",
+    "country": "سوريا",
+    "returnsTo": [
+      "ap-alp",
+      "ap-ltk"
+    ]
+  },
+  {
+    "id": "ap-ltk",
+    "code": "LTK",
+    "name": "مطار اللاذقية الدولي",
+    "city": "اللاذقية",
+    "country": "سوريا",
+    "arrivalsOnly": true
+  },
+  {
+    "id": "ap-ist",
+    "code": "IST",
+    "name": "مطار إسطنبول",
+    "city": "إسطنبول",
+    "country": "تركيا"
+  },
+  {
+    "id": "ap-gzt",
+    "code": "GZT",
+    "name": "مطار غازي عنتاب",
+    "city": "غازي عنتاب",
+    "country": "تركيا"
+  },
+  {
+    "id": "ap-cai",
+    "code": "CAI",
+    "name": "مطار القاهرة الدولي",
+    "city": "القاهرة",
+    "country": "مصر"
+  },
+  {
+    "id": "ap-jed",
+    "code": "JED",
+    "name": "مطار الملك عبد العزيز — صالة الحجاج",
+    "city": "جدة",
+    "country": "السعودية",
+    "serves": "مكة المكرمة"
+  },
+  {
+    "id": "ap-med",
+    "code": "MED",
+    "name": "مطار الأمير محمد بن عبد العزيز",
+    "city": "المدينة المنورة",
+    "country": "السعودية",
+    "serves": "المدينة المنورة"
+  },
+  {
+    "id": "ap-amm",
+    "code": "AMM",
+    "name": "مطار الملكة علياء الدولي",
+    "city": "عمّان",
+    "country": "الأردن"
+  }
+]

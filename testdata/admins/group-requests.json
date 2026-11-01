@@ -1,0 +1,69 @@
+[
+  {
+    "id": "seed-salim",
+    "real": false,
+    "applicantId": "01011105130",
+    "number": "5130",
+    "kind": "enrolled",
+    "receivedLabel": "ألحقه المكتب بعقده (رنا حداد) — قبل يومين",
+    "note": "اتفق مع المجموعة ليكون مع جيرانه من حي المزة.",
+    "members": [
+      {
+        "id": "01011105130",
+        "relation": "صاحب الطلب",
+        "needs": [
+          "ضغط الدم"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "seed-saadi",
+    "real": false,
+    "applicantId": "01044404877",
+    "number": "4877",
+    "kind": "enrolled",
+    "receivedLabel": "ألحقه المكتب بعقده (رنا حداد) — قبل 5 ساعات",
+    "members": [
+      {
+        "id": "01044404877",
+        "relation": "صاحب الطلب",
+        "needs": [
+          "كرسي متحرك",
+          "سكري"
+        ]
+      },
+      {
+        "id": "01044404878",
+        "relation": "ابن — مرافق",
+        "needs": []
+      }
+    ]
+  },
+  {
+    "id": "seed-hourani",
+    "real": false,
+    "applicantId": "01055506215",
+    "number": "6215",
+    "kind": "transfer",
+    "receivedLabel": "انتقل من {group:31} بعقد جديد — رفعه المنسق {person:01033300874} واعتمده المكتب — قبل يوم",
+    "note": "انتقلت العائلة كاملة (3 أفراد) من {group:31} لتكون مع أقاربها.",
+    "members": [
+      {
+        "id": "01055506215",
+        "relation": "صاحب الطلب",
+        "needs": []
+      },
+      {
+        "id": "01055506216",
+        "relation": "زوجة",
+        "needs": []
+      },
+      {
+        "id": "01055506217",
+        "relation": "ابن",
+        "needs": []
+      }
+    ]
+  }
+]

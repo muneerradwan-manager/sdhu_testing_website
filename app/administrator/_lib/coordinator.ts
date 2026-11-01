@@ -22,6 +22,7 @@ import { ACTIVE_SEASON } from "@/lib/registration/defaults";
 import { liveVersion, nowKey, regOf } from "@/lib/registration/engine";
 import { policyFor } from "@/lib/registration/service";
 import { POSITIONS, TECH_POSTING } from "./admin";
+import WORK from "@/testdata/admins/coordinator-work.json";
 
 /** لماذا لا يمكن تسجيل هذا المواطن */
 export type Block =
@@ -162,20 +163,11 @@ const member = (id: string, relation: Member["relation"], extra: Partial<Member>
  * حسان القاسم مع والدته (76 عاماً، تحتاج مرافقاً)، وسامر النجار مع زوجته.
  */
 export function seedCoordinatorWork(coordinator: { id: string; name: string; position: string }, now: number, feePerPerson: number) {
-  const cases: { applicantId: string; members: (Member | null)[]; track: "direct" | "lottery"; minutesAgo: number }[] = [
-    {
-      applicantId: "06055500711",
-      members: [member("06055500711", "self"), member("06055500701", "parent", { companionId: "06055500711" })],
-      track: "direct",
-      minutesAgo: 210,
-    },
-    {
-      applicantId: "02033300550",
-      members: [member("02033300550", "self"), member("02033300551", "spouse")],
-      track: "lottery",
-      minutesAgo: 75,
-    },
-  ];
+  // testdata/admins/coordinator-work.json: each member by id, with his relation (and the companion he needs)
+  const cases = (WORK as { applicantId: string; track: "direct" | "lottery"; minutesAgo: number; members: { id: string; relation: Member["relation"]; companionId?: string }[] }[]).map((c) => ({
+    ...c,
+    members: c.members.map(({ id, relation, ...extra }) => member(id, relation, extra)),
+  }));
 
   for (const c of cases) {
     const applicant = getPerson(c.applicantId);

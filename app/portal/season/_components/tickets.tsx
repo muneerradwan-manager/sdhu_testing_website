@@ -1,5 +1,6 @@
 "use client";
 
+import { staffName } from "@/lib/staff";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Circle, Clock, Loader2, MapPin, RotateCcw, ThumbsDown, ThumbsUp, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -36,10 +37,10 @@ const SCRIPTS: Partial<Record<TicketKind, { after: number; by?: string; text: st
     { after: 32_000, text: "تم الحل — وجبة بديلة ساخنة في طريقها إليك.", status: "resolved" },
   ],
   health: [
-    { after: 4_000, by: "فادي سلوم — غرفة العمليات", text: "استلمنا البلاغ. أُبلغ الفريق الطبي ورئيس المجموعة.", status: "in_progress" },
+    { after: 4_000, by: `${staffName("fadi")} — غرفة العمليات`, text: "استلمنا البلاغ. أُبلغ الفريق الطبي ورئيس المجموعة.", status: "in_progress" },
     { after: 11_000, text: "في الطريق إلى موقعك الآن — ابقوا في المكان.", status: "in_progress" },
     { after: 24_000, text: "وصلت الطبيبة وتم التعامل مع الحالة. يُنصح بوجبة خفيفة إضافية قبل الفجر.", status: "in_progress" },
-    { after: 34_000, by: "فادي سلوم — غرفة العمليات", text: "تم إغلاق بلاغ الطوارئ. الحالة مستقرة.", status: "resolved" },
+    { after: 34_000, by: `${staffName("fadi")} — غرفة العمليات`, text: "تم إغلاق بلاغ الطوارئ. الحالة مستقرة.", status: "resolved" },
   ],
   lost: [
     { after: 15_000, text: "تم العثور على الحقيبة — سلّمها السائق إلى مكتب المواصلات.", status: "in_progress" },

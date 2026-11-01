@@ -1,7 +1,11 @@
-import { getState, type AdminProfile, type ClusterInvite, type ClusterRecord, type GroupInvite, type Seat } from "@/lib/store";
-import { HEADS_POOL } from "./people";
-import { GEN_CLUSTERS } from "./season-seed";
+import { withStaffNames } from "@/lib/staff";
+import { getState, type AdminProfile, type ClusterRecord, type GroupInvite, type Seat } from "@/lib/store";
+import STORY_RAW from "@/testdata/admins/clusters.json";
+import { HEADS_POOL, nameOf } from "./people";
+import { GEN_CLUSTERS, seedCluster, type RawCluster } from "./season-seed";
 import { categoryOfId, seatsOf, weightOf, type Structure } from "./structure";
+
+const STORY = withStaffNames(STORY_RAW);
 
 export { HEADS_POOL };
 
@@ -31,26 +35,7 @@ export type ClusterGroup = {
   own?: boolean;
 };
 
-const at = (d: number, h = 9) => Date.UTC(2026, 10, d, h);
-const acc = (id: string, name: string, when = at(14)): ClusterInvite => ({ id, name, at: when, status: "accepted" });
-
-function poolGroup(id: string): GroupInvite {
-  const h = HEADS_POOL.find((x) => x.id === id)!;
-  return { ...acc(h.id, h.name), number: h.group, branch: h.branch, category: h.category, pilgrims: h.pilgrims };
-}
-
-/** The demo administrators' groups in the story (./admin demoGroupNumber): the cluster's head 31, أحمد 27, بسام 5 */
-function demoGroup(id: string, name: string, number: number, category: string, pilgrims: number): GroupInvite {
-  return { ...acc(id, name), number, branch: "دمشق", category, pilgrims };
-}
-
-const guide = (id: string, name: string, free = false): Seat => ({ kind: "guide", free: free || undefined, who: acc(id, name) });
-const assistant = (id: string, name: string, free = false): Seat => ({ kind: "assistant", free: free || undefined, who: acc(id, name) });
-
 export type SeedCluster = { headId: string; headName: string; headGroup?: number; cluster: ClusterRecord };
-
-const byNumber = (gs: GroupInvite[]) => Object.fromEntries(gs.map((g) => [g.number, g]));
-const sorting = (map: Record<string, number[]>) => Object.fromEntries(Object.entries(map).flatMap(([id, ns]) => ns.map((n) => [n, id])));
 
 /**
  * The clusters the season already has, formed at the office with heads who are not on this device (and تكتل
@@ -58,132 +43,8 @@ const sorting = (map: Record<string, number[]>) => Object.fromEntries(Object.ent
  * and a dozen more generated over the branches — every one formed, its fee paid, everyone in it in his place.
  */
 export const SEED_CLUSTERS: SeedCluster[] = [
-  {
-    headId: "01033300881",
-    headName: "عبد الرحمن العلي",
-    headGroup: 31,
-    cluster: {
-      id: "al-nour",
-      name: "تكتل النور",
-      createdAt: at(12),
-      tier: "eco",
-      status: "approved",
-      firstSentAt: at(16),
-      sentAt: at(16),
-      decision: { status: "approved", at: at(18, 11), by: "مازن الحلبي" },
-      feePaidAt: at(18, 11),
-      accountant: acc("01033300944", "مهند السيد"),
-      groups: byNumber([
-        demoGroup("01033300881", "عبد الرحمن العلي", 31, "c3", 112),
-        demoGroup("01033300871", "أحمد سليمان الحمصي", 27, "c2", 44),
-        demoGroup("01033300883", "بسام درويش", 5, "c2", 71),
-        poolGroup("seed-07"),
-        poolGroup("seed-06"),
-        poolGroup("seed-05"),
-      ]),
-      seats: {
-        31: [guide("01033300951", "الشيخ معتز البارودي"), assistant("01033300941", "عماد الشامي"), guide("01033300965", "الشيخ مأمون الحلواني", true)],
-        27: [guide("01033300873", "الشيخ خالد الرفاعي"), assistant("01033300872", "ياسر عبد الله")],
-        5: [guide("01033300957", "الشيخ عمار الكردي"), assistant("01033300944", "مهند السيد")],
-        18: [guide("01033300953", "الشيخ وائل الحافظ")],
-        33: [guide("01033300958", "الشيخ يوسف المحمد")],
-        47: [guide("01033300959", "الشيخ حسن القادري"), assistant("01033300948", "فراس الأحمد")],
-      },
-      assistants: [acc("01033300947", "عمر الحايك"), acc("01033300975", "عبد الكريم الشلاح")],
-      coordinators: [acc("01033300874", "سامر نبيل نجار"), acc("01033300961", "لؤي العظمة")],
-      femaleGuides: [acc("01033300981", "هالة الدقر"), acc("01033300985", "نهى الطباع")],
-      // Within each one's units: سامر 5 of 6 (الخبير 3، اللطيف 2)، لؤي 6 of 6; هالة 6 of 7، نهى 5 of 7
-      sorting: sorting({ "01033300874": [31, 27], "01033300961": [5, 47, 18, 33] }),
-      guideSorting: sorting({ "01033300981": [31, 27, 18], "01033300985": [5, 47, 33] }),
-    },
-  },
-  {
-    headId: "seed-04",
-    headName: "حسام الساعاتي",
-    headGroup: 52,
-    cluster: {
-      id: "ibn-al-walid",
-      name: "تكتل ابن الوليد",
-      createdAt: at(12),
-      tier: "eco-plus",
-      status: "approved",
-      firstSentAt: at(17),
-      sentAt: at(17),
-      decision: { status: "approved", at: at(17, 12), by: "مازن الحلبي" },
-      feePaidAt: at(17, 12),
-      accountant: acc("seed-02", "فراس البيطار"),
-      groups: byNumber([poolGroup("seed-04"), poolGroup("seed-03"), poolGroup("seed-02"), poolGroup("seed-10")]),
-      seats: {
-        52: [guide("01033300954", "الشيخ رياض الأتاسي"), assistant("01033300945", "تمّام الخطيب")],
-        41: [guide("01033300956", "الشيخ بلال العبسي"), assistant("01033300943", "زياد العطار")],
-        9: [guide("01033300952", "الشيخ أيمن قصاب باشي")],
-        8: [guide("01033300960", "الشيخ زهير الملا")],
-      },
-      assistants: [acc("01033300946", "أنس الدقاق")],
-      coordinators: [acc("01033300972", "حسان المارديني")],
-      femaleGuides: [acc("01033300982", "سمر الخطيب")],
-      sorting: sorting({ "01033300972": [52, 41, 9, 8] }),
-      guideSorting: sorting({ "01033300982": [52, 41, 9, 8] }),
-    },
-  },
-  {
-    headId: "seed-01",
-    headName: "عبد الرحمن القباني",
-    headGroup: 61,
-    cluster: {
-      id: "al-yasmin",
-      name: "تكتل الياسمين",
-      createdAt: at(13),
-      tier: "five",
-      status: "approved",
-      firstSentAt: at(15),
-      sentAt: at(15),
-      decision: { status: "approved", at: at(15, 12), by: "مازن الحلبي" },
-      feePaidAt: at(15, 12),
-      accountant: acc("seed-09", "غسان النحاس"),
-      groups: byNumber([poolGroup("seed-01"), poolGroup("seed-08"), poolGroup("seed-09")]),
-      // five stars: no seats in its groups, one coordinator and one female guide for its six units, sorted on all three
-      seats: { 61: [], 55: [], 44: [] },
-      assistants: [],
-      coordinators: [acc("01033300971", "محمد خير الصواف")],
-      femaleGuides: [acc("01033300983", "ريم القدسي")],
-      sorting: sorting({ "01033300971": [61, 55, 44] }),
-      guideSorting: sorting({ "01033300983": [61, 55, 44] }),
-    },
-  },
-  {
-    headId: "seed-16",
-    headName: "سليم القدسي",
-    headGroup: 65,
-    cluster: {
-      id: "al-bayan",
-      name: "تكتل البيان",
-      createdAt: at(13),
-      tier: "eco",
-      status: "approved",
-      firstSentAt: at(13),
-      sentAt: at(13),
-      decision: { status: "approved", at: at(13, 12), by: "مازن الحلبي" },
-      feePaidAt: at(13, 12),
-      accountant: acc("01033300892", "غسان الكيلاني"),
-      groups: byNumber([
-        { ...acc("seed-16", "سليم القدسي"), number: 65, branch: "دمشق", category: "c2", pilgrims: 63 },
-        { ...acc("01033300891", "صلاح الدين المارديني"), number: 64, branch: "دمشق", category: "c2", pilgrims: 52 },
-        { ...acc("seed-17", "رائد الحلاق"), number: 66, branch: "دمشق", category: "c1", pilgrims: 38 },
-      ]),
-      seats: {
-        65: [{ kind: "guide", who: acc("01033300896", "الشيخ عبد الهادي البغدادي") }, { kind: "assistant", who: acc("01033300892", "غسان الكيلاني") }],
-        64: [guide("01033300991", "الشيخ هيثم المالكي"), assistant("01033300995", "مؤيد الزين")],
-        66: [guide("01033300990", "الشيخ نادر السقا")],
-      },
-      assistants: [acc("01033300893", "حسن اللبابيدي"), acc("01033300894", "ماهر الشربجي")],
-      coordinators: [acc("01033300895", "خلدون الصيرفي")],
-      femaleGuides: [acc("01033300897", "سوسن الحفار")],
-      // five units: its one coordinator and its one female guide take all three groups
-      sorting: sorting({ "01033300895": [65, 64, 66] }),
-      guideSorting: sorting({ "01033300897": [65, 64, 66] }),
-    },
-  },
+  // The story's own (testdata/admins/clusters.json)
+  ...(STORY as unknown as RawCluster[]).map((x) => seedCluster(x, nameOf, HEADS_POOL)),
   // The season's other requests, over every branch, tier and state (./season-seed)
   ...GEN_CLUSTERS,
 ];

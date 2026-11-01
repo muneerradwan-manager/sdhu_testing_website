@@ -2,8 +2,17 @@
  * Approved service clusters (التكتلات) for season 1448, their published programmes,
  * known unapproved "campaigns", and the digital documents the platform issues.
  * All fictional. Room numbers and pilgrim names are operational data and never appear here.
+ * The data itself is in testdata/clusters/ (programmes, hotels on the map, covers, galleries, unapproved entities,
+ * issued documents); this module types it and holds the helpers.
  */
 
+import { getPerson } from "@/lib/registry";
+import PROGRAMMES from "@/testdata/clusters/programmes.json";
+import HOTEL_LOCATIONS from "@/testdata/clusters/hotel-locations.json";
+import COVERS from "@/testdata/clusters/covers.json";
+import GALLERIES from "@/testdata/clusters/galleries.json";
+import UNAPPROVED_ENTITIES from "@/testdata/clusters/unapproved.json";
+import ISSUED_DOCUMENTS from "@/testdata/clusters/documents.json";
 import type { RoomPrices } from "../rooms";
 
 export type LatLng = { lat: number; lng: number };
@@ -85,233 +94,22 @@ export type Cluster = {
 export type ClusterProgramme = Omit<Cluster, "level" | "groupsCount" | "pilgrims" | "groups" | "team">;
 
 /** The seeded clusters' hotels on the map, as far from the two mosques as their programmes say */
-export const CLUSTER_HOTELS: Record<string, { makkah: LatLng; madinah: LatLng }> = {
-  "al-nour": { makkah: { lat: 21.4108, lng: 39.8558 }, madinah: { lat: 24.4645, lng: 39.6122 } },
-  "al-safa": { makkah: { lat: 21.4246, lng: 39.8226 }, madinah: { lat: 24.4686, lng: 39.6112 } },
-  "al-yaqeen": { makkah: { lat: 21.3745, lng: 39.852 }, madinah: { lat: 24.469, lng: 39.62 } },
-  "al-shahba": { makkah: { lat: 21.3895, lng: 39.844 }, madinah: { lat: 24.4675, lng: 39.6072 } },
-  "al-asi": { makkah: { lat: 21.401, lng: 39.871 }, madinah: { lat: 24.458, lng: 39.615 } },
-  "bawabat-al-haramain": { makkah: { lat: 21.4228, lng: 39.8232 }, madinah: { lat: 24.4681, lng: 39.611 } },
-  hawran: { makkah: { lat: 21.403, lng: 39.856 }, madinah: { lat: 24.4628, lng: 39.6115 } },
-};
+export const CLUSTER_HOTELS: Record<string, { makkah: LatLng; madinah: LatLng }> = HOTEL_LOCATIONS;
 
 /** The seeded clusters' main pictures, until their teams choose theirs */
-export const CLUSTER_COVER: Record<string, string> = {
-  "al-nour": "/images/clock-tower.jpg",
-  "al-safa": "/images/kaaba-hajj.jpg",
-  "al-yaqeen": "/images/mina-tents.jpg",
-  "al-shahba": "/images/tawaf-night.jpg",
-  "al-asi": "/images/jabal-rahmah.jpg",
-  "bawabat-al-haramain": "/images/nabawi.jpg",
-  hawran: "/images/quba.jpg",
-};
+export const CLUSTER_COVER: Record<string, string> = COVERS;
 
 /** A cluster's main picture: its team's, else the seeded one, else the Kaaba */
 export const coverOf = (c: { slug: string; cover?: string }) => c.cover || CLUSTER_COVER[c.slug] || "/images/kaaba-hajj.jpg";
 
 /** The seeded clusters' galleries: the site's own pictures, until their teams upload theirs */
-export const CLUSTER_GALLERY: Record<string, string[]> = {
-  "al-nour": ["/images/clock-tower.jpg", "/images/haram-2022.jpg", "/images/mina-tents.jpg", "/images/nabawi.jpg", "/images/jabal-rahmah.jpg"],
-  "al-safa": ["/images/kaaba-hajj.jpg", "/images/tawaf-night.jpg", "/images/muzdalifah.jpg", "/images/nabawi-2.jpg"],
-  "al-yaqeen": ["/images/mina-tents.jpg", "/images/mina-arrive.jpg", "/images/jamarat.jpg"],
-  "al-shahba": ["/images/tawaf-night.jpg", "/images/kaaba-panoramio.jpg", "/images/quba.jpg"],
-  "al-asi": ["/images/jabal-rahmah.jpg", "/images/pilgrim-dua.jpg", "/images/muzdalifah.jpg"],
-  "bawabat-al-haramain": ["/images/nabawi.jpg", "/images/quba-quran.jpg", "/images/aisha-mosque.jpg"],
-  hawran: ["/images/quba.jpg", "/images/farewell-tawaf.jpg", "/images/pilgrim-elder.jpg"],
-};
+export const CLUSTER_GALLERY: Record<string, string[]> = GALLERIES;
 
-export const CLUSTERS: ClusterProgramme[] = [
-  {
-    slug: "al-nour",
-    name: "تكتل النور لخدمة الحجاج",
-    since: 1440,
-    rating: 4.8,
-    reviews: 1240,
-    governorate: "دمشق",
-    office: "دمشق",
-    specialty: "خدمة كبار السن والعائلات",
-    about: "تكتل يعمل منذ 1440، متخصص في خدمة كبار السن والعائلات، ويرافق حجاجه فريق طبي دائم.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق أبراج النور",
-      area: "العزيزية الشمالية",
-      distance: "3.4 كم عن الحرم",
-      rooms: "غرف ثلاثية ورباعية",
-      features: ["مصاعد", "غرف مهيأة لذوي الاحتياجات", "مصلى للنساء"],
-    },
-    madinah: { hotel: "فندق روضة طيبة", area: "المنطقة المركزية", distance: "300 متر من باب السلام" },
-    transport: ["حافلة مكيفة إلى الحرم كل ساعة من 04:00 إلى 24:00", "حافلات خاصة للمشاعر", "حافلة مكة – المدينة"],
-    meals: ["ثلاث وجبات يومياً (بوفيه)", "وجبات خاصة لمرضى السكري والضغط عند الطلب"],
-    programs: ["درس ديني يومي بعد العشاء", "رحلة إلى معالم مكة والمدينة", "مرافقة طبية دائمة"],
-    rooms: { 1: 300, 2: 175, 3: 100, 4: 50 },
-    tone: "green",
-  },
-  {
-    slug: "al-safa",
-    name: "تكتل الصفا والمروة",
-    since: 1436,
-    rating: 4.9,
-    reviews: 860,
-    governorate: "دمشق",
-    office: "دمشق",
-    specialty: "سكن قريب من الحرم وخدمة متميزة",
-    about: "من أقدم التكتلات المعتمدة، يوفّر سكناً مطلاً على الساحات الشمالية للحرم وبرنامجاً علمياً مكثفاً.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق إطلالة الصفا",
-      area: "الشبيكة",
-      distance: "450 متراً عن الحرم",
-      rooms: "غرف ثنائية وثلاثية",
-      features: ["إطلالة على الحرم", "خدمة غرف على مدار الساعة", "كراسي متحركة مجانية"],
-    },
-    madinah: { hotel: "فندق دار الهجرة", area: "المنطقة المركزية الشمالية", distance: "150 متراً من الساحات" },
-    transport: ["التنقل سيراً إلى الحرم", "حافلات حديثة للمشاعر بمسارات مخصصة", "قطار الحرمين بين مكة والمدينة"],
-    meals: ["بوفيه مفتوح ثلاث مرات يومياً", "ركن ضيافة على مدار اليوم"],
-    programs: ["دروس يومية مع نخبة من العلماء", "زيارة مجمع كسوة الكعبة", "جلسات تهيئة قبل كل منسك"],
-    rooms: { 1: 450, 2: 275, 3: 160, 4: 90 },
-    tone: "gold",
-  },
-  {
-    slug: "al-yaqeen",
-    name: "تكتل اليقين",
-    since: 1443,
-    rating: 4.5,
-    reviews: 2130,
-    governorate: "دمشق",
-    office: "دمشق",
-    specialty: "تكلفة مناسبة وخدمة منظمة",
-    about: "تكتل يركّز على التنظيم الجيد بتكلفة أساسية، مع متابعة يومية من رؤساء المجموعات.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق منازل اليقين",
-      area: "العوالي",
-      distance: "6.2 كم عن الحرم",
-      rooms: "غرف رباعية وخماسية",
-      features: ["مصاعد", "مغسلة ملابس", "صيدلية قريبة"],
-    },
-    madinah: { hotel: "فندق نسائم المدينة", area: "قرب طريق الملك فيصل", distance: "900 متر من المسجد النبوي" },
-    transport: ["حافلة ترددية إلى الحرم كل ساعتين", "حافلات للمشاعر", "حافلة مكة – المدينة"],
-    meals: ["وجبتان يومياً (فطور وعشاء)", "وجبة غداء في أيام المشاعر"],
-    programs: ["درس أسبوعي في فقه المناسك", "مرشد ميداني لكل مجموعة"],
-    rooms: { 1: 220, 2: 130, 3: 75, 4: 40 },
-    tone: "green",
-  },
-  {
-    slug: "al-shahba",
-    name: "تكتل الشهباء للحج والعمرة",
-    since: 1438,
-    rating: 4.7,
-    reviews: 1510,
-    governorate: "حلب",
-    office: "حلب",
-    specialty: "خبرة طويلة مع حجاج الشمال",
-    about: "تكتل حلبي معروف بدقة مواعيده، ويضم فريقاً نسائياً لخدمة الحاجّات.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق قمم الشهباء",
-      area: "ششة",
-      distance: "4.1 كم عن الحرم",
-      rooms: "غرف ثلاثية ورباعية",
-      features: ["مصاعد", "فريق نسائي للخدمة", "غرفة إسعاف أولي"],
-    },
-    madinah: { hotel: "فندق أنوار الحرم", area: "المنطقة المركزية الغربية", distance: "400 متر من باب الملك فهد" },
-    transport: ["حافلة كل ساعة إلى الحرم", "حافلات للمشاعر", "حافلة مكة – المدينة"],
-    meals: ["ثلاث وجبات يومياً بمطبخ شامي", "وجبات خاصة عند الطلب"],
-    programs: ["درس يومي بعد الفجر", "زيارة معالم المدينة المنورة"],
-    rooms: { 1: 300, 2: 175, 3: 100, 4: 50 },
-    tone: "maroon",
-  },
-  {
-    slug: "al-asi",
-    name: "تكتل العاصي",
-    since: 1441,
-    rating: 4.4,
-    reviews: 980,
-    governorate: "حمص",
-    office: "حمص",
-    specialty: "رعاية الحجاج لأول مرة",
-    about: "تكتل من حمص وحماة، يقدّم برنامج تهيئة متكاملاً للحجاج الذين يسافرون لأول مرة.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق ضيافة العاصي",
-      area: "النسيم",
-      distance: "5.5 كم عن الحرم",
-      rooms: "غرف رباعية",
-      features: ["مصاعد", "قاعة محاضرات"],
-    },
-    madinah: { hotel: "فندق السكينة", area: "حي بني خدرة", distance: "1.1 كم من المسجد النبوي" },
-    transport: ["حافلة ترددية إلى الحرم", "حافلات للمشاعر"],
-    meals: ["وجبتان يومياً", "مياه ومشروبات في الحافلات"],
-    programs: ["ورشة تهيئة قبل السفر", "مرشد لكل 25 حاجاً"],
-    rooms: { 1: 200, 2: 120, 3: 70, 4: 35 },
-    tone: "green",
-  },
-  {
-    slug: "bawabat-al-haramain",
-    name: "تكتل بوابة الحرمين",
-    since: 1444,
-    rating: 4.8,
-    reviews: 540,
-    governorate: "اسطنبول",
-    office: "اسطنبول",
-    specialty: "راحة كاملة وغرف خاصة",
-    about: "تكتل حجاج المكاتب الخارجية (اسطنبول وغازي عنتاب ومصر)، يوفّر غرفاً ثنائية وخدمة كونسيرج ومرافقين طبيين، مناسب لمن يحتاج راحة خاصة.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق بوابة الملك عبد العزيز",
-      area: "جبل عمر",
-      distance: "350 متراً عن الحرم",
-      rooms: "غرف ثنائية",
-      features: ["مصاعد سريعة", "غرف مهيأة لذوي الاحتياجات", "عيادة داخل الفندق"],
-    },
-    madinah: { hotel: "فندق قباب المدينة", area: "المنطقة المركزية", distance: "100 متر من الساحات" },
-    transport: ["التنقل سيراً إلى الحرم", "حافلات فاخرة للمشاعر", "قطار الحرمين"],
-    meals: ["ثلاث وجبات بقائمة متنوعة", "وجبات صحية خاصة"],
-    programs: ["برنامج علمي يومي", "جولات تاريخية مصحوبة بمرشد", "متابعة طبية فردية"],
-    rooms: { 1: 500, 2: 300, 3: 180, 4: 100 },
-    tone: "gold",
-  },
-  {
-    slug: "hawran",
-    name: "تكتل سهل حوران",
-    since: 1442,
-    rating: 4.6,
-    reviews: 720,
-    governorate: "درعا",
-    office: "درعا",
-    specialty: "العائلات الكبيرة",
-    about: "تكتل من الجنوب يجمع أفراد العائلة الواحدة في طابق واحد قدر الإمكان.",
-    approvedOn: "25 جمادى الآخرة 1448",
-    makkah: {
-      hotel: "فندق سنابل حوران",
-      area: "العزيزية الجنوبية",
-      distance: "3.9 كم عن الحرم",
-      rooms: "غرف رباعية وخماسية",
-      features: ["مصاعد", "طوابق للعائلات"],
-    },
-    madinah: { hotel: "فندق ريحانة طيبة", area: "المنطقة المركزية الجنوبية", distance: "500 متر من باب السلام" },
-    transport: ["حافلة كل ساعة إلى الحرم", "حافلات للمشاعر", "حافلة مكة – المدينة"],
-    meals: ["ثلاث وجبات يومياً", "وجبات للأطفال والكبار عند الطلب"],
-    programs: ["درس يومي بعد العشاء", "برنامج خاص للشباب المرافقين"],
-    rooms: { 1: 280, 2: 160, 3: 90, 4: 45 },
-    tone: "maroon",
-  },
-];
+export const CLUSTERS: ClusterProgramme[] = PROGRAMMES as ClusterProgramme[];
 
 export type UnapprovedEntity = { name: string; claims: string[]; reports: number };
 
-export const UNAPPROVED: UnapprovedEntity[] = [
-  {
-    name: "حملة الرحمة للحج المضمون",
-    claims: ["تعد بمقعد حج مضمون دون قرعة", "تطلب مبلغاً مقدماً نقداً أو بالحوالة", "تتواصل عبر واتساب فقط"],
-    reports: 37,
-  },
-  {
-    name: "مكتب البركة للسفر والحج السريع",
-    claims: ["يعرض تأشيرات حج خارج الحصة الرسمية", "يطلب صورة الهوية وكلمة مرور الحساب"],
-    reports: 12,
-  },
-];
+export const UNAPPROVED: UnapprovedEntity[] = UNAPPROVED_ENTITIES;
 
 export const HOTLINE = "9449";
 
@@ -358,14 +156,13 @@ export type IssuedDocument = {
   detail: string;
 };
 
-export const DOCUMENTS: IssuedDocument[] = [
-  { number: "1448-R-004512", type: "إيصال رسم التسجيل", kind: "receipt", amount: 100, date: "1 ربيع الأول 1448", holder: "محمد أ. الخ•••", detail: "طلب عائلي — 4 أفراد × 25 دولاراً" },
-  { number: "1448-P-004512-1", type: "إيصال الدفعة الأولى من تكلفة الحج", kind: "receipt", amount: 14_000, date: "2 جمادى الأولى 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 3,500 دولار — مع التسجيل على القبول المباشر" },
-  { number: "1448-P-004512-2", type: "إيصال الهدي", kind: "receipt", amount: 720, date: "28 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "4 أفراد × 180 دولاراً" },
-  { number: "1448-P-004512-3", type: "إيصال السكن الخاص", kind: "receipt", amount: 200, date: "28 جمادى الآخرة 1448", holder: "محمد أ. الخ•••", detail: "غرفة بأربعة أسرّة — 4 × 50 $" },
-  { number: "1448-A-000871", type: "إيصال رسم تسجيل إداري", kind: "receipt", amount: 30, date: "11 ربيع الآخر 1448", holder: "أحمد م. سل•••", detail: "رسم تسجيل إداري للموسم" },
-  { number: "1448-C-004512", type: "شهادة أداء فريضة الحج", kind: "certificate", date: "25 ذو الحجة 1448", holder: "محمد أ. الخ•••", detail: "موسم 1448هـ — تكتل النور لخدمة الحجاج" },
-];
+/** «محمد أ. الخ•••»: a document shows its holder's name masked, from his civil record (testdata/people/citizens.json) */
+function masked(id: string) {
+  const p = getPerson(id);
+  return p ? `${p.firstName} ${[...p.fatherName][0]}. ${[...p.lastName].slice(0, 3).join("")}•••` : "";
+}
+
+export const DOCUMENTS: IssuedDocument[] = (ISSUED_DOCUMENTS as (Omit<IssuedDocument, "holder"> & { holderId: string })[]).map(({ holderId, ...d }) => ({ ...d, holder: masked(holderId) }));
 
 export function findDocument(no: string) {
   const n = no.trim().toUpperCase().replace(/\s+/g, "").replace(/[–—_]/g, "-");

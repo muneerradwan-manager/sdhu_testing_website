@@ -17,7 +17,10 @@ registerHooks({
     if ((spec.startsWith(".") || spec.startsWith("file:")) && context.parentURL) {
       const base = spec.startsWith("file:") ? fileURLToPath(spec) : resolvePath(dirname(fileURLToPath(context.parentURL)), spec);
       for (const cand of [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`]) {
-        if (existsSync(cand) && statSync(cand).isFile()) return next(pathToFileURL(cand).href, context);
+        if (!existsSync(cand) || !statSync(cand).isFile()) continue;
+        // The test data (testdata/*.json) is imported as the bundler does: Node needs it marked as JSON
+        if (cand.endsWith(".json")) return { ...next(pathToFileURL(cand).href, context), importAttributes: { type: "json" } };
+        return next(pathToFileURL(cand).href, context);
       }
     }
     return next(spec, context);

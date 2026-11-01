@@ -1,0 +1,1799 @@
+[
+  {
+    "headId": "s-0001",
+    "headGroup": 70,
+    "cluster": {
+      "id": "al-yaqeen",
+      "name": "تكتل اليقين",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-16T09:00:00Z",
+      "sentAt": "2026-11-16T09:00:00Z",
+      "review": {
+        "at": "2026-11-17T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-18T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-19T09:00:00Z",
+      "invitedAt": "2026-11-15T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0019",
+      "groups": [
+        {
+          "head": "s-0001"
+        },
+        {
+          "head": "s-0002"
+        },
+        {
+          "head": "s-0003"
+        },
+        {
+          "head": "s-0004"
+        },
+        {
+          "head": "s-0005"
+        },
+        {
+          "head": "s-0006"
+        },
+        {
+          "head": "s-0007"
+        },
+        {
+          "head": "s-0008"
+        },
+        {
+          "head": "s-0009"
+        }
+      ],
+      "seats": {
+        "70": [
+          {
+            "kind": "guide",
+            "who": "s-0011"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0012"
+          },
+          {
+            "kind": "assistant",
+            "free": true,
+            "who": "s-0013"
+          }
+        ],
+        "71": [
+          {
+            "kind": "guide",
+            "who": "s-0014"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0010"
+          }
+        ],
+        "72": [
+          {
+            "kind": "guide",
+            "who": "s-0015"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0016"
+          }
+        ],
+        "73": [
+          {
+            "kind": "guide",
+            "who": "s-0017"
+          }
+        ],
+        "74": [
+          {
+            "kind": "guide",
+            "who": "s-0018"
+          }
+        ],
+        "75": [
+          {
+            "kind": "guide",
+            "who": "s-0019"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0020"
+          }
+        ],
+        "76": [
+          {
+            "kind": "guide",
+            "who": "s-0021"
+          }
+        ],
+        "77": [
+          {
+            "kind": "guide",
+            "who": "s-0022"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0023"
+          }
+        ],
+        "78": [
+          {
+            "kind": "guide",
+            "who": "s-0024"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0025"
+          },
+          {
+            "kind": "assistant",
+            "free": true,
+            "who": "s-0026"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0027",
+        "s-0028"
+      ],
+      "coordinators": [
+        "s-0029",
+        "s-0030",
+        "s-0031"
+      ],
+      "femaleGuides": [
+        "s-0032",
+        "s-0033",
+        "s-0034"
+      ],
+      "sorting": {
+        "s-0029": [
+          70,
+          74,
+          75
+        ],
+        "s-0031": [
+          71,
+          72,
+          73
+        ],
+        "s-0030": [
+          76,
+          77,
+          78
+        ]
+      },
+      "guideSorting": {
+        "s-0032": [
+          70,
+          74,
+          75
+        ],
+        "s-0034": [
+          71,
+          72,
+          73
+        ],
+        "s-0033": [
+          76,
+          77,
+          78
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0035",
+    "headGroup": 79,
+    "cluster": {
+      "id": "al-shahba",
+      "name": "تكتل الشهباء للحج والعمرة",
+      "tier": "eco-plus",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-13T09:00:00Z",
+      "sentAt": "2026-11-13T09:00:00Z",
+      "review": {
+        "at": "2026-11-14T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-15T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-16T09:00:00Z",
+      "invitedAt": "2026-11-12T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0044",
+      "groups": [
+        {
+          "head": "s-0035"
+        },
+        {
+          "head": "s-0036"
+        },
+        {
+          "head": "s-0037"
+        },
+        {
+          "head": "s-0038"
+        },
+        {
+          "head": "s-0039"
+        },
+        {
+          "head": "s-0040"
+        },
+        {
+          "head": "s-0041"
+        }
+      ],
+      "seats": {
+        "79": [
+          {
+            "kind": "guide",
+            "who": "s-0042"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0043"
+          }
+        ],
+        "80": [
+          {
+            "kind": "guide",
+            "who": "s-0044"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0045"
+          }
+        ],
+        "81": [
+          {
+            "kind": "guide",
+            "who": "s-0046"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0047"
+          },
+          {
+            "kind": "assistant",
+            "free": true,
+            "who": "s-0048"
+          }
+        ],
+        "82": [
+          {
+            "kind": "guide",
+            "who": "s-0049"
+          }
+        ],
+        "83": [
+          {
+            "kind": "guide",
+            "who": "s-0050"
+          }
+        ],
+        "84": [
+          {
+            "kind": "guide",
+            "who": "s-0051"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0052"
+          }
+        ],
+        "85": [
+          {
+            "kind": "guide",
+            "who": "s-0053"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0054"
+      ],
+      "coordinators": [
+        "s-0055",
+        "s-0056"
+      ],
+      "femaleGuides": [
+        "s-0057",
+        "s-0058"
+      ],
+      "sorting": {
+        "s-0056": [
+          79,
+          80,
+          82,
+          85
+        ],
+        "s-0055": [
+          81,
+          83,
+          84
+        ]
+      },
+      "guideSorting": {
+        "s-0058": [
+          79,
+          80,
+          82,
+          85
+        ],
+        "s-0057": [
+          81,
+          83,
+          84
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0059",
+    "headGroup": 86,
+    "cluster": {
+      "id": "al-manara",
+      "name": "تكتل المنارة",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-17T09:00:00Z",
+      "sentAt": "2026-11-17T09:00:00Z",
+      "review": {
+        "at": "2026-11-18T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-19T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-20T09:00:00Z",
+      "invitedAt": "2026-11-16T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0077",
+      "groups": [
+        {
+          "head": "s-0059"
+        },
+        {
+          "head": "s-0060"
+        },
+        {
+          "head": "s-0061"
+        },
+        {
+          "head": "s-0062"
+        },
+        {
+          "head": "s-0063"
+        },
+        {
+          "head": "s-0064"
+        },
+        {
+          "head": "s-0065"
+        },
+        {
+          "head": "s-0066"
+        },
+        {
+          "head": "s-0067"
+        },
+        {
+          "head": "s-0068"
+        }
+      ],
+      "seats": {
+        "86": [
+          {
+            "kind": "guide",
+            "who": "s-0069"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0070"
+          }
+        ],
+        "87": [
+          {
+            "kind": "guide",
+            "who": "s-0071"
+          }
+        ],
+        "88": [
+          {
+            "kind": "guide",
+            "who": "s-0072"
+          }
+        ],
+        "89": [
+          {
+            "kind": "guide",
+            "who": "s-0073"
+          }
+        ],
+        "90": [
+          {
+            "kind": "guide",
+            "who": "s-0074"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0075"
+          }
+        ],
+        "91": [
+          {
+            "kind": "guide",
+            "who": "s-0076"
+          }
+        ],
+        "92": [
+          {
+            "kind": "guide",
+            "who": "s-0077"
+          }
+        ],
+        "93": [
+          {
+            "kind": "guide",
+            "who": "s-0078"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0079"
+          }
+        ],
+        "94": [
+          {
+            "kind": "guide",
+            "who": "s-0080"
+          }
+        ],
+        "95": [
+          {
+            "kind": "guide",
+            "who": "s-0081"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0082",
+        "s-0083",
+        "s-0084"
+      ],
+      "coordinators": [
+        "s-0085",
+        "s-0086",
+        "s-0087"
+      ],
+      "femaleGuides": [
+        "s-0088",
+        "s-0089"
+      ],
+      "sorting": {
+        "s-0085": [
+          86,
+          87,
+          91,
+          95
+        ],
+        "s-0086": [
+          88,
+          90,
+          92
+        ],
+        "s-0087": [
+          89,
+          93,
+          94
+        ]
+      },
+      "guideSorting": {
+        "s-0088": [
+          86,
+          89,
+          92,
+          93,
+          95
+        ],
+        "s-0089": [
+          87,
+          88,
+          90,
+          91,
+          94
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0090",
+    "headGroup": 96,
+    "cluster": {
+      "id": "ar-riyada",
+      "name": "تكتل الريادة",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-13T09:00:00Z",
+      "sentAt": "2026-11-13T09:00:00Z",
+      "review": {
+        "at": "2026-11-14T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-15T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-16T09:00:00Z",
+      "invitedAt": "2026-11-12T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0116",
+      "groups": [
+        {
+          "head": "s-0090"
+        },
+        {
+          "head": "s-0091"
+        },
+        {
+          "head": "s-0092"
+        },
+        {
+          "head": "s-0093"
+        },
+        {
+          "head": "s-0094"
+        },
+        {
+          "head": "s-0095"
+        },
+        {
+          "head": "s-0096"
+        },
+        {
+          "head": "s-0097"
+        },
+        {
+          "head": "s-0098"
+        },
+        {
+          "head": "s-0099"
+        }
+      ],
+      "seats": {
+        "96": [
+          {
+            "kind": "guide",
+            "who": "s-0100"
+          },
+          {
+            "kind": "guide",
+            "who": "s-0101"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0102"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0103"
+          }
+        ],
+        "97": [
+          {
+            "kind": "guide",
+            "who": "s-0104"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0105"
+          },
+          {
+            "kind": "assistant",
+            "free": true,
+            "who": "s-0106"
+          }
+        ],
+        "98": [
+          {
+            "kind": "guide",
+            "who": "s-0107"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0108"
+          }
+        ],
+        "99": [
+          {
+            "kind": "guide",
+            "who": "s-0109"
+          },
+          {
+            "kind": "guide",
+            "who": "s-0110"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0111"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0112"
+          }
+        ],
+        "100": [
+          {
+            "kind": "guide",
+            "who": "s-0113"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0114"
+          }
+        ],
+        "101": [
+          {
+            "kind": "guide",
+            "who": "s-0115"
+          }
+        ],
+        "102": [
+          {
+            "kind": "guide",
+            "who": "s-0116"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0117"
+          }
+        ],
+        "103": [
+          {
+            "kind": "guide",
+            "who": "s-0118"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0119"
+          }
+        ],
+        "104": [
+          {
+            "kind": "guide",
+            "who": "s-0120"
+          }
+        ],
+        "105": [
+          {
+            "kind": "guide",
+            "who": "s-0121"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0122"
+      ],
+      "coordinators": [
+        "s-0123",
+        "s-0124",
+        "s-0125",
+        "s-0126"
+      ],
+      "femaleGuides": [
+        "s-0127",
+        "s-0128",
+        "s-0129",
+        "s-0130"
+      ],
+      "sorting": {
+        "s-0123": [
+          96,
+          103
+        ],
+        "s-0125": [
+          97,
+          102
+        ],
+        "s-0126": [
+          98,
+          100,
+          104
+        ],
+        "s-0124": [
+          99,
+          101,
+          105
+        ]
+      },
+      "guideSorting": {
+        "s-0127": [
+          96,
+          103
+        ],
+        "s-0129": [
+          97,
+          102
+        ],
+        "s-0130": [
+          98,
+          100,
+          104
+        ],
+        "s-0128": [
+          99,
+          101,
+          105
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0131",
+    "headGroup": 106,
+    "cluster": {
+      "id": "al-safa",
+      "name": "تكتل الصفا والمروة",
+      "tier": "eco-plus",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-14T09:00:00Z",
+      "sentAt": "2026-11-14T09:00:00Z",
+      "review": {
+        "at": "2026-11-15T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-16T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-17T09:00:00Z",
+      "invitedAt": "2026-11-13T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0156",
+      "groups": [
+        {
+          "head": "s-0131"
+        },
+        {
+          "head": "s-0132"
+        },
+        {
+          "head": "s-0133"
+        },
+        {
+          "head": "s-0134"
+        },
+        {
+          "head": "s-0135"
+        },
+        {
+          "head": "s-0136"
+        },
+        {
+          "head": "s-0137"
+        },
+        {
+          "head": "s-0138"
+        },
+        {
+          "head": "s-0139"
+        }
+      ],
+      "seats": {
+        "106": [
+          {
+            "kind": "guide",
+            "who": "s-0141"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0142"
+          },
+          {
+            "kind": "guide",
+            "free": true,
+            "who": "s-0143"
+          }
+        ],
+        "107": [
+          {
+            "kind": "guide",
+            "who": "s-0144"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0140"
+          },
+          {
+            "kind": "guide",
+            "free": true,
+            "who": "s-0145"
+          }
+        ],
+        "108": [
+          {
+            "kind": "guide",
+            "who": "s-0146"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0147"
+          }
+        ],
+        "109": [
+          {
+            "kind": "guide",
+            "who": "s-0148"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0149"
+          }
+        ],
+        "110": [
+          {
+            "kind": "guide",
+            "who": "01033300966"
+          }
+        ],
+        "111": [
+          {
+            "kind": "guide",
+            "who": "s-0151"
+          }
+        ],
+        "112": [
+          {
+            "kind": "guide",
+            "who": "s-0152"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0153"
+          }
+        ],
+        "113": [
+          {
+            "kind": "guide",
+            "who": "s-0154"
+          }
+        ],
+        "114": [
+          {
+            "kind": "guide",
+            "who": "s-0155"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0156"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0157"
+      ],
+      "coordinators": [
+        "s-0158",
+        "s-0159",
+        "s-0160"
+      ],
+      "femaleGuides": [
+        "01033300987",
+        "s-0162",
+        "s-0163"
+      ],
+      "sorting": {
+        "s-0158": [
+          106,
+          111,
+          112
+        ],
+        "s-0159": [
+          107,
+          113,
+          114
+        ],
+        "s-0160": [
+          108,
+          109,
+          110
+        ]
+      },
+      "guideSorting": {
+        "01033300987": [
+          106,
+          111,
+          112
+        ],
+        "s-0162": [
+          107,
+          113,
+          114
+        ],
+        "s-0163": [
+          108,
+          109,
+          110
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0164",
+    "headGroup": 115,
+    "cluster": {
+      "id": "hawran",
+      "name": "تكتل سهل حوران",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-13T09:00:00Z",
+      "sentAt": "2026-11-13T09:00:00Z",
+      "review": {
+        "at": "2026-11-14T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-15T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-16T09:00:00Z",
+      "invitedAt": "2026-11-12T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0171",
+      "groups": [
+        {
+          "head": "s-0164"
+        },
+        {
+          "head": "s-0165"
+        },
+        {
+          "head": "s-0166"
+        },
+        {
+          "head": "s-0167"
+        },
+        {
+          "head": "s-0168"
+        },
+        {
+          "head": "s-0169"
+        },
+        {
+          "head": "s-0170"
+        }
+      ],
+      "seats": {
+        "115": [
+          {
+            "kind": "guide",
+            "who": "s-0171"
+          }
+        ],
+        "116": [
+          {
+            "kind": "guide",
+            "who": "s-0172"
+          }
+        ],
+        "117": [
+          {
+            "kind": "guide",
+            "who": "s-0173"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0174"
+          }
+        ],
+        "118": [
+          {
+            "kind": "guide",
+            "who": "s-0175"
+          }
+        ],
+        "119": [
+          {
+            "kind": "guide",
+            "who": "s-0176"
+          }
+        ],
+        "120": [
+          {
+            "kind": "guide",
+            "who": "s-0177"
+          }
+        ],
+        "121": [
+          {
+            "kind": "guide",
+            "who": "s-0178"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0179"
+      ],
+      "coordinators": [
+        "s-0180",
+        "s-0181"
+      ],
+      "femaleGuides": [
+        "s-0182",
+        "s-0183"
+      ],
+      "sorting": {
+        "s-0181": [
+          115,
+          116,
+          119,
+          121
+        ],
+        "s-0180": [
+          117,
+          118,
+          120
+        ]
+      },
+      "guideSorting": {
+        "s-0183": [
+          115,
+          116,
+          119,
+          121
+        ],
+        "s-0182": [
+          117,
+          118,
+          120
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0184",
+    "headGroup": 122,
+    "cluster": {
+      "id": "as-sanabel",
+      "name": "تكتل السنابل",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-17T09:00:00Z",
+      "sentAt": "2026-11-17T09:00:00Z",
+      "review": {
+        "at": "2026-11-18T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-19T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-20T09:00:00Z",
+      "invitedAt": "2026-11-16T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0199",
+      "groups": [
+        {
+          "head": "s-0184"
+        },
+        {
+          "head": "s-0185"
+        },
+        {
+          "head": "s-0186"
+        },
+        {
+          "head": "s-0187"
+        },
+        {
+          "head": "s-0188"
+        },
+        {
+          "head": "s-0189"
+        },
+        {
+          "head": "s-0190"
+        }
+      ],
+      "seats": {
+        "122": [
+          {
+            "kind": "guide",
+            "who": "s-0191"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0192"
+          }
+        ],
+        "123": [
+          {
+            "kind": "guide",
+            "who": "s-0193"
+          }
+        ],
+        "124": [
+          {
+            "kind": "guide",
+            "who": "s-0194"
+          }
+        ],
+        "125": [
+          {
+            "kind": "guide",
+            "who": "s-0195"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0196"
+          }
+        ],
+        "126": [
+          {
+            "kind": "guide",
+            "who": "s-0197"
+          }
+        ],
+        "127": [
+          {
+            "kind": "guide",
+            "who": "s-0198"
+          }
+        ],
+        "128": [
+          {
+            "kind": "guide",
+            "who": "s-0199"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0200"
+          },
+          {
+            "kind": "guide",
+            "free": true,
+            "who": "s-0201"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0202"
+      ],
+      "coordinators": [
+        "s-0203",
+        "s-0204"
+      ],
+      "femaleGuides": [
+        "s-0205",
+        "s-0206"
+      ],
+      "sorting": {
+        "s-0204": [
+          122,
+          125,
+          126
+        ],
+        "s-0203": [
+          123,
+          124,
+          127,
+          128
+        ]
+      },
+      "guideSorting": {
+        "s-0206": [
+          122,
+          125,
+          126
+        ],
+        "s-0205": [
+          123,
+          124,
+          127,
+          128
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0207",
+    "headGroup": 129,
+    "cluster": {
+      "id": "bawabat-al-haramain",
+      "name": "تكتل بوابة الحرمين",
+      "tier": "five",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-16T09:00:00Z",
+      "sentAt": "2026-11-16T09:00:00Z",
+      "review": {
+        "at": "2026-11-17T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-18T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-19T09:00:00Z",
+      "invitedAt": "2026-11-15T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0209",
+      "groups": [
+        {
+          "head": "s-0207"
+        },
+        {
+          "head": "s-0208"
+        },
+        {
+          "head": "s-0209"
+        },
+        {
+          "head": "s-0210"
+        },
+        {
+          "head": "s-0211"
+        },
+        {
+          "head": "s-0212"
+        }
+      ],
+      "seats": {
+        "129": [],
+        "130": [],
+        "131": [],
+        "132": [],
+        "133": [],
+        "134": []
+      },
+      "assistants": [],
+      "coordinators": [],
+      "femaleGuides": [],
+      "sorting": {},
+      "guideSorting": {}
+    }
+  },
+  {
+    "headId": "s-0213",
+    "headGroup": 135,
+    "cluster": {
+      "id": "al-asi",
+      "name": "تكتل العاصي",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-17T09:00:00Z",
+      "sentAt": "2026-11-17T09:00:00Z",
+      "review": {
+        "at": "2026-11-18T05:00:00Z",
+        "by": "@mazen"
+      },
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-19T09:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-20T09:00:00Z",
+      "invitedAt": "2026-11-16T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0218",
+      "groups": [
+        {
+          "head": "s-0213"
+        },
+        {
+          "head": "s-0214"
+        },
+        {
+          "head": "s-0215"
+        },
+        {
+          "head": "s-0216"
+        },
+        {
+          "head": "s-0217"
+        },
+        {
+          "head": "s-0218"
+        },
+        {
+          "head": "s-0219"
+        }
+      ],
+      "seats": {
+        "135": [
+          {
+            "kind": "guide",
+            "who": "s-0220"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0221"
+          },
+          {
+            "kind": "guide",
+            "free": true,
+            "who": "s-0222"
+          }
+        ],
+        "136": [
+          {
+            "kind": "guide",
+            "who": "s-0223"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0224"
+          }
+        ],
+        "137": [
+          {
+            "kind": "guide",
+            "who": "s-0225"
+          }
+        ],
+        "138": [
+          {
+            "kind": "guide",
+            "who": "s-0226"
+          }
+        ],
+        "139": [
+          {
+            "kind": "guide",
+            "who": "s-0227"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0228"
+          }
+        ],
+        "140": [
+          {
+            "kind": "guide",
+            "who": "s-0229"
+          }
+        ],
+        "141": [
+          {
+            "kind": "guide",
+            "who": "s-0230"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0231"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0232"
+      ],
+      "coordinators": [
+        "s-0233",
+        "s-0234"
+      ],
+      "femaleGuides": [
+        "s-0235",
+        "s-0236"
+      ],
+      "sorting": {
+        "s-0233": [
+          135,
+          138,
+          141
+        ],
+        "s-0234": [
+          136,
+          137,
+          139,
+          140
+        ]
+      },
+      "guideSorting": {
+        "s-0235": [
+          135,
+          138,
+          141
+        ],
+        "s-0236": [
+          136,
+          137,
+          139,
+          140
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0237",
+    "headGroup": 142,
+    "cluster": {
+      "id": "al-wafaa",
+      "name": "تكتل الوفاء",
+      "tier": "eco-plus",
+      "status": "draft",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "invitedAt": "2026-11-15T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0244",
+      "groups": [
+        {
+          "head": "s-0237"
+        },
+        {
+          "head": "s-0238"
+        },
+        {
+          "head": "s-0239"
+        },
+        {
+          "head": "s-0240"
+        },
+        {
+          "head": "s-0241"
+        },
+        {
+          "head": "s-0242"
+        }
+      ],
+      "seats": {
+        "142": [
+          {
+            "kind": "guide",
+            "who": "s-0243"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0244"
+          }
+        ],
+        "143": [
+          {
+            "kind": "guide",
+            "who": "s-0245"
+          }
+        ],
+        "144": [
+          {
+            "kind": "guide",
+            "who": "s-0246"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0247"
+          }
+        ],
+        "145": [
+          {
+            "kind": "guide",
+            "who": "s-0248"
+          }
+        ],
+        "146": [
+          {
+            "kind": "guide",
+            "who": "s-0249"
+          }
+        ],
+        "147": [
+          {
+            "kind": "guide",
+            "who": "s-0250"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0251"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0252"
+      ],
+      "coordinators": [
+        "s-0253",
+        "s-0254"
+      ],
+      "femaleGuides": [
+        "s-0255",
+        "s-0256"
+      ],
+      "sorting": {
+        "s-0253": [
+          142,
+          146,
+          147
+        ],
+        "s-0254": [
+          143,
+          144,
+          145
+        ]
+      },
+      "guideSorting": {
+        "s-0255": [
+          142,
+          146,
+          147
+        ],
+        "s-0256": [
+          143,
+          144,
+          145
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0257",
+    "headGroup": 148,
+    "cluster": {
+      "id": "al-ishraq",
+      "name": "تكتل الإشراق",
+      "tier": "eco",
+      "status": "draft",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "invitedAt": "2026-11-15T09:00:00Z",
+      "pending": [],
+      "accountant": "s-0268",
+      "groups": [
+        {
+          "head": "s-0257"
+        },
+        {
+          "head": "s-0258"
+        },
+        {
+          "head": "s-0259"
+        },
+        {
+          "head": "s-0260"
+        },
+        {
+          "head": "s-0261"
+        },
+        {
+          "head": "s-0262"
+        },
+        {
+          "head": "s-0263"
+        },
+        {
+          "head": "s-0264"
+        }
+      ],
+      "seats": {
+        "148": [
+          {
+            "kind": "guide",
+            "who": "s-0265"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0266"
+          }
+        ],
+        "149": [
+          {
+            "kind": "guide",
+            "who": "s-0267"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0268"
+          }
+        ],
+        "150": [
+          {
+            "kind": "guide",
+            "who": "s-0269"
+          }
+        ],
+        "151": [
+          {
+            "kind": "guide",
+            "who": "s-0270"
+          }
+        ],
+        "152": [
+          {
+            "kind": "guide",
+            "who": "s-0271"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0272"
+          },
+          {
+            "kind": "guide",
+            "free": true,
+            "who": "s-0273"
+          }
+        ],
+        "153": [
+          {
+            "kind": "guide",
+            "who": "s-0274"
+          }
+        ],
+        "154": [
+          {
+            "kind": "guide",
+            "who": "s-0275"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0276"
+          }
+        ],
+        "155": [
+          {
+            "kind": "guide",
+            "who": "s-0277"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0278"
+      ],
+      "coordinators": [
+        "s-0279",
+        "s-0280",
+        "s-0281"
+      ],
+      "femaleGuides": [
+        "s-0282",
+        "s-0283"
+      ],
+      "sorting": {
+        "s-0280": [
+          148,
+          154
+        ],
+        "s-0281": [
+          149,
+          150,
+          153
+        ],
+        "s-0279": [
+          151,
+          152,
+          155
+        ]
+      },
+      "guideSorting": {
+        "s-0283": [
+          148,
+          149,
+          150,
+          153
+        ],
+        "s-0282": [
+          151,
+          152,
+          154,
+          155
+        ]
+      }
+    }
+  },
+  {
+    "headId": "s-0284",
+    "headGroup": 156,
+    "cluster": {
+      "id": "al-asala",
+      "name": "تكتل الأصالة",
+      "tier": "eco",
+      "status": "draft",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "invitedAt": "2026-11-16T09:00:00Z",
+      "pending": [
+        "s-0290",
+        "s-0293",
+        "s-0296"
+      ],
+      "groups": [
+        {
+          "head": "s-0284"
+        },
+        {
+          "head": "s-0285"
+        },
+        {
+          "head": "s-0286"
+        },
+        {
+          "head": "s-0287"
+        },
+        {
+          "head": "s-0288"
+        }
+      ],
+      "seats": {
+        "156": [
+          {
+            "kind": "guide",
+            "who": "s-0289"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0290"
+          }
+        ],
+        "157": [
+          {
+            "kind": "guide",
+            "who": "s-0291"
+          }
+        ],
+        "158": [
+          {
+            "kind": "guide",
+            "who": "s-0292"
+          }
+        ],
+        "159": [
+          {
+            "kind": "guide",
+            "who": "s-0293"
+          },
+          {
+            "kind": "assistant",
+            "who": "s-0294"
+          }
+        ],
+        "160": [
+          {
+            "kind": "guide",
+            "who": "s-0295"
+          }
+        ]
+      },
+      "assistants": [
+        "s-0296"
+      ],
+      "coordinators": [
+        "s-0297",
+        "s-0298"
+      ],
+      "femaleGuides": [],
+      "sorting": {
+        "s-0297": [
+          156,
+          157,
+          160
+        ],
+        "s-0298": [
+          158,
+          159
+        ]
+      },
+      "guideSorting": {}
+    }
+  }
+]

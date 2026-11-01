@@ -1,0 +1,394 @@
+[
+  {
+    "headId": "01033300881",
+    "headGroup": 31,
+    "cluster": {
+      "id": "al-nour",
+      "name": "تكتل النور",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-16T09:00:00Z",
+      "sentAt": "2026-11-16T09:00:00Z",
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-18T11:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-18T11:00:00Z",
+      "invitedAt": "2026-11-14T09:00:00Z",
+      "pending": [],
+      "accountant": "01033300944",
+      "groups": [
+        {
+          "head": "01033300883",
+          "number": 5,
+          "branch": "دمشق",
+          "category": "c2",
+          "pilgrims": 71
+        },
+        {
+          "head": "seed-07"
+        },
+        {
+          "head": "01033300871",
+          "number": 27,
+          "branch": "دمشق",
+          "category": "c2",
+          "pilgrims": 44
+        },
+        {
+          "head": "01033300881",
+          "number": 31,
+          "branch": "دمشق",
+          "category": "c3",
+          "pilgrims": 112
+        },
+        {
+          "head": "seed-06"
+        },
+        {
+          "head": "seed-05"
+        }
+      ],
+      "seats": {
+        "5": [
+          {
+            "kind": "guide",
+            "who": "01033300957"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300944"
+          }
+        ],
+        "18": [
+          {
+            "kind": "guide",
+            "who": "01033300953"
+          }
+        ],
+        "27": [
+          {
+            "kind": "guide",
+            "who": "01033300873"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300872"
+          }
+        ],
+        "31": [
+          {
+            "kind": "guide",
+            "who": "01033300951"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300941"
+          },
+          {
+            "kind": "guide",
+            "free": true,
+            "who": "01033300965"
+          }
+        ],
+        "33": [
+          {
+            "kind": "guide",
+            "who": "01033300958"
+          }
+        ],
+        "47": [
+          {
+            "kind": "guide",
+            "who": "01033300959"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300948"
+          }
+        ]
+      },
+      "assistants": [
+        "01033300947",
+        "01033300975"
+      ],
+      "coordinators": [
+        "01033300874",
+        "01033300961"
+      ],
+      "femaleGuides": [
+        "01033300981",
+        "01033300985"
+      ],
+      "sorting": {
+        "01033300961": [
+          5,
+          18,
+          33,
+          47
+        ],
+        "01033300874": [
+          27,
+          31
+        ]
+      },
+      "guideSorting": {
+        "01033300985": [
+          5,
+          33,
+          47
+        ],
+        "01033300981": [
+          18,
+          27,
+          31
+        ]
+      }
+    }
+  },
+  {
+    "headId": "seed-04",
+    "headGroup": 52,
+    "cluster": {
+      "id": "ibn-al-walid",
+      "name": "تكتل ابن الوليد",
+      "tier": "eco-plus",
+      "status": "approved",
+      "createdAt": "2026-11-12T09:00:00Z",
+      "firstSentAt": "2026-11-17T09:00:00Z",
+      "sentAt": "2026-11-17T09:00:00Z",
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-17T12:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-17T12:00:00Z",
+      "invitedAt": "2026-11-14T09:00:00Z",
+      "pending": [],
+      "accountant": "seed-02",
+      "groups": [
+        {
+          "head": "seed-10"
+        },
+        {
+          "head": "seed-02"
+        },
+        {
+          "head": "seed-03"
+        },
+        {
+          "head": "seed-04"
+        }
+      ],
+      "seats": {
+        "8": [
+          {
+            "kind": "guide",
+            "who": "01033300960"
+          }
+        ],
+        "9": [
+          {
+            "kind": "guide",
+            "who": "01033300952"
+          }
+        ],
+        "41": [
+          {
+            "kind": "guide",
+            "who": "01033300956"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300943"
+          }
+        ],
+        "52": [
+          {
+            "kind": "guide",
+            "who": "01033300954"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300945"
+          }
+        ]
+      },
+      "assistants": [
+        "01033300946"
+      ],
+      "coordinators": [
+        "01033300972"
+      ],
+      "femaleGuides": [
+        "01033300982"
+      ],
+      "sorting": {
+        "01033300972": [
+          8,
+          9,
+          41,
+          52
+        ]
+      },
+      "guideSorting": {
+        "01033300982": [
+          8,
+          9,
+          41,
+          52
+        ]
+      }
+    }
+  },
+  {
+    "headId": "seed-01",
+    "headGroup": 61,
+    "cluster": {
+      "id": "al-yasmin",
+      "name": "تكتل الياسمين",
+      "tier": "five",
+      "status": "approved",
+      "createdAt": "2026-11-13T09:00:00Z",
+      "firstSentAt": "2026-11-15T09:00:00Z",
+      "sentAt": "2026-11-15T09:00:00Z",
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-15T12:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-15T12:00:00Z",
+      "invitedAt": "2026-11-14T09:00:00Z",
+      "pending": [],
+      "accountant": "seed-09",
+      "groups": [
+        {
+          "head": "seed-09"
+        },
+        {
+          "head": "seed-08"
+        },
+        {
+          "head": "seed-01"
+        }
+      ],
+      "seats": {
+        "44": [],
+        "55": [],
+        "61": []
+      },
+      "assistants": [],
+      "coordinators": [
+        "01033300971"
+      ],
+      "femaleGuides": [
+        "01033300983"
+      ],
+      "sorting": {
+        "01033300971": [
+          44,
+          55,
+          61
+        ]
+      },
+      "guideSorting": {
+        "01033300983": [
+          44,
+          55,
+          61
+        ]
+      }
+    }
+  },
+  {
+    "headId": "seed-16",
+    "headGroup": 65,
+    "cluster": {
+      "id": "al-bayan",
+      "name": "تكتل البيان",
+      "tier": "eco",
+      "status": "approved",
+      "createdAt": "2026-11-13T09:00:00Z",
+      "firstSentAt": "2026-11-13T09:00:00Z",
+      "sentAt": "2026-11-13T09:00:00Z",
+      "decision": {
+        "status": "approved",
+        "at": "2026-11-13T12:00:00Z",
+        "by": "@mazen"
+      },
+      "feePaidAt": "2026-11-13T12:00:00Z",
+      "invitedAt": "2026-11-14T09:00:00Z",
+      "pending": [],
+      "accountant": "01033300892",
+      "groups": [
+        {
+          "head": "01033300891",
+          "number": 64,
+          "branch": "دمشق",
+          "category": "c2",
+          "pilgrims": 52
+        },
+        {
+          "head": "seed-16"
+        },
+        {
+          "head": "seed-17"
+        }
+      ],
+      "seats": {
+        "64": [
+          {
+            "kind": "guide",
+            "who": "01033300991"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300995"
+          }
+        ],
+        "65": [
+          {
+            "kind": "guide",
+            "who": "01033300896"
+          },
+          {
+            "kind": "assistant",
+            "who": "01033300892"
+          }
+        ],
+        "66": [
+          {
+            "kind": "guide",
+            "who": "01033300990"
+          }
+        ]
+      },
+      "assistants": [
+        "01033300893",
+        "01033300894"
+      ],
+      "coordinators": [
+        "01033300895"
+      ],
+      "femaleGuides": [
+        "01033300897"
+      ],
+      "sorting": {
+        "01033300895": [
+          64,
+          65,
+          66
+        ]
+      },
+      "guideSorting": {
+        "01033300897": [
+          64,
+          65,
+          66
+        ]
+      }
+    }
+  }
+]

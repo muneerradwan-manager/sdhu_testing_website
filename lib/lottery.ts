@@ -7,6 +7,7 @@
  * together or not at all. There is no reserve list. The accepted then confirm their registration by
  * paying the first installment before the deadline, or the acceptance lapses.
  */
+import { staffName } from "./staff";
 import type { Person } from "./registry";
 import { SEASON } from "./season";
 import { useStore, type State } from "./store";
@@ -32,7 +33,7 @@ export const OFFICIAL_DRAW: DrawPick[] = [
 ];
 
 /** As published before this demo begins: entered by the lottery desk, approved and published */
-export const OFFICIAL_PUBLISHED: PublishedDraw = { picks: OFFICIAL_DRAW, by: "يوسف الزعبي", label: "15 ربيع الآخر 1448 (26 أيلول) — 21:00" };
+export const OFFICIAL_PUBLISHED: PublishedDraw = { picks: OFFICIAL_DRAW, by: staffName("yousef"), label: "15 ربيع الآخر 1448 (26 أيلول) — 21:00" };
 
 /** The draw that decides: what the desk published, else the 1448 results (unless the demo cleared them) */
 export function publishedDraw(s: Pick<State, "lottery">): PublishedDraw | null {

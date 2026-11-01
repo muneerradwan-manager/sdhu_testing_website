@@ -1,0 +1,33 @@
+[
+  {
+    "applicantId": "06055500711",
+    "track": "direct",
+    "minutesAgo": 210,
+    "members": [
+      {
+        "id": "06055500711",
+        "relation": "self"
+      },
+      {
+        "id": "06055500701",
+        "relation": "parent",
+        "companionId": "06055500711"
+      }
+    ]
+  },
+  {
+    "applicantId": "02033300550",
+    "track": "lottery",
+    "minutesAgo": 75,
+    "members": [
+      {
+        "id": "02033300550",
+        "relation": "self"
+      },
+      {
+        "id": "02033300551",
+        "relation": "spouse"
+      }
+    ]
+  }
+]

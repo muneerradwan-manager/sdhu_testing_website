@@ -6,149 +6,33 @@
 import { groupName } from "./groups";
 import { MONTHS, birthOf, mainApplicant, matchingPick, type PublishedDraw } from "./lottery";
 import { SEASON } from "./season";
-import { ageOf, birthYear, type Person } from "./registry";
+import { ageOf, birthYear, personName, phoneOf, type Person } from "./registry";
+import { withNames } from "./demo-text";
 import type { Member } from "./rules";
 import { seeded } from "./utils";
+import CLUSTER_DATA from "@/testdata/journey/cluster.json";
+import GROUP_DATA from "@/testdata/journey/group.json";
+import PLACES_DATA from "@/testdata/journey/places.json";
+import FLIGHTS_DATA from "@/testdata/journey/flights.json";
+import ITINERARY_DATA from "@/testdata/journey/itinerary.json";
+import APPLICATION_NUMBERS from "@/testdata/pilgrims/application-numbers.json";
 
-export const CLUSTER = {
-  name: "تكتل النور لخدمة الحجاج",
-  level: "اقتصادي محسن",
-  since: 1440,
-  head: "الحاج عبد الرحمن العلي",
-  groups: 12,
-  pilgrims: 600,
-};
+/** The cluster of the operating document's example (testdata/journey/cluster.json): its head by national number */
+const { headId, headTitle, ...cluster } = CLUSTER_DATA;
+export const CLUSTER = { ...cluster, head: `${headTitle} ${personName(headId)}` };
 
+/** Its مجموعة اللطيف (testdata/journey/group.json): the team's names and phones are the civil registry's */
 export const GROUP = {
-  number: 27,
-  capacity: 50,
-  members: 48,
-  team: [
-    { role: "رئيس المجموعة", name: "أحمد سليمان الحمصي", phone: "0944 271 449", note: "يتابع طلبك وعقدك والتجمّعات" },
-    { role: "معاون رئيس المجموعة", name: "ياسر عبد الله", phone: "0944 272 449", note: "الحضور والتجمّع والوجبات الخاصة" },
-    { role: "الموجّه الديني", name: "الشيخ خالد الرفاعي", phone: "0944 273 449", note: "الدروس والمناسك والأسئلة الشرعية" },
-    // Not of the group's team: تكتل النور's coordinator, whom its head sorted to this group among others
-    { role: "المنسق التقني", name: "سامر نجار", phone: "0944 274 449", note: "منسق تكتل النور المفروز لمجموعتكم: التطبيق والبطاقة الرقمية" },
-  ],
+  ...GROUP_DATA,
+  team: GROUP_DATA.team.map((t) => ({ role: t.role, name: withNames(t.name ?? "{short}", t.id), phone: phoneOf(t.id, true), note: t.note })),
 };
 
-export const PLACES = {
-  haram: { lat: 21.4225, lng: 39.8262, label: "المسجد الحرام" },
-  nabawi: { lat: 24.4672, lng: 39.6112, label: "المسجد النبوي" },
-  makkahHotel: {
-    name: "فندق أبراج النور",
-    area: "العزيزية الشمالية — مكة المكرمة",
-    lat: 21.4163,
-    lng: 39.8588,
-    tower: "البرج (ب)",
-    floor: 12,
-    distance: "3.4 كم عن الحرم",
-    stay: "24 ذو القعدة – 7 ذو الحجة، ثم 12 – 16 ذو الحجة",
-    nights: 18,
-    features: ["غرف مهيأة لذوي الاحتياجات", "مصاعد", "عيادة 24 ساعة في الطابق الأرضي", "مكتب المجموعة: الغرفة 1230"],
-    bus: "حافلة إلى الحرم كل ساعة من 04:00 إلى 24:00 — البوابة الجنوبية",
-    meals: [
-      { name: "الفطور", time: "06:00 – 09:00" },
-      { name: "الغداء", time: "13:00 – 15:00" },
-    ],
-  },
-  madinahHotel: {
-    name: "فندق روضة طيبة",
-    area: "المنطقة المركزية — المدينة المنورة",
-    lat: 24.4659,
-    lng: 39.6089,
-    floor: 8,
-    distance: "300 متر من باب السلام",
-    stay: "16 – 23 ذو الحجة",
-    nights: 7,
-    features: ["مشياً إلى المسجد النبوي", "فطور مبكر لصلاة الفجر", "حجز مواعيد الروضة للمجموعة"],
-    rawdah: "18 ذو الحجة — 02:00 للرجال / 10:00 للسيدات",
-    meals: [
-      { name: "الفطور", time: "05:30 – 08:30" },
-      { name: "الغداء", time: "13:00 – 15:00" },
-    ],
-  },
-  mina: {
-    name: "مخيم التكتل رقم 42",
-    area: "منطقة المعيصم — منى — المربع 7",
-    lat: 21.4058,
-    lng: 39.9036,
-    tents: { men: 12, women: 13 },
-    notes: ["خيام مكيفة بفرش أرضي وأسرّة قابلة للطي لكبار السن", "نقطة التجمّع: أمام الخيمة 12", "الحمامات: 40 متراً يساراً — العيادة: مدخل المخيم"],
-  },
-  arafat: {
-    name: "مخيم التكتل في عرفات",
-    area: "بجوار مسجد نمرة من الجهة الشرقية",
-    lat: 21.3549,
-    lng: 39.9688,
-    tents: { men: 12, women: 13 },
-    notes: ["الانطلاق من منى 06:30 — الحافلتان 7 و8", "الماء البارد عند مدخل الخيمة", "الدعاء حتى الغروب ثم التجمّع إلى مزدلفة"],
-  },
-  muzdalifah: {
-    name: `نقطة مبيت ${groupName(GROUP.number)}`,
-    area: "مزدلفة — قرب مسجد المشعر الحرام",
-    lat: 21.3838,
-    lng: 39.9362,
-    notes: ["الوصول المتوقع 21:40", "كبار السن ومرافقوهم يتقدمون إلى منى بعد منتصف الليل بحافلة مبكرة", "جمع الحصى — الانطلاق بعد الفجر 05:15"],
-  },
-  jamarat: {
-    name: "منشأة الجمرات",
-    area: "الدور الثالث — الدخول من الجهة الشرقية",
-    lat: 21.4228,
-    lng: 39.8731,
-    notes: ["رمي جمرة العقبة يوم النحر بعد 07:00", "عربة كهربائية لكبار السن عند الطلب المسبق"],
-  },
-} as const;
+/** Its hotels, camps and the places of the rites (testdata/journey/places.json); مزدلفة's point is its group's */
+export const PLACES = { ...PLACES_DATA, muzdalifah: { name: `نقطة مبيت ${groupName(GROUP.number)}`, ...PLACES_DATA.muzdalifah } };
 
-export const FLIGHTS = {
-  outbound: {
-    code: "RB 507",
-    carrier: "السورية للطيران",
-    from: { code: "DAM", city: "دمشق", airport: "مطار دمشق الدولي" },
-    to: { code: "JED", city: "جدة", airport: "مطار الملك عبد العزيز — صالة الحجاج" },
-    hijri: "24 ذو القعدة 1448",
-    gregorian: "السبت 1 أيار 2027",
-    departure: "06:00",
-    arrival: "08:30",
-    duration: "2س 30د",
-    gate: "البوابة 3",
-    boardingAt: "05:15",
-    airportAt: "02:30",
-    gathering: "ساحة المزة — الحافلة تنطلق 01:30",
-    baggage: "حقيبة 23 كغ + حقيبة يد 7 كغ — حقيبة الإحرام معك في اليد",
-    afterLanding: "الحافلة 32 في الساحة (ج) — مهيأة للكرسي المتحرك — الوصول إلى الفندق نحو 12:05",
-  },
-  inbound: {
-    code: "RB 508",
-    carrier: "السورية للطيران",
-    from: { code: "MED", city: "المدينة المنورة", airport: "مطار الأمير محمد بن عبد العزيز" },
-    to: { code: "DAM", city: "دمشق", airport: "مطار دمشق الدولي" },
-    hijri: "23 ذو الحجة 1448",
-    gregorian: "السبت 29 أيار 2027",
-    departure: "14:00",
-    arrival: "17:10",
-    duration: "3س 10د",
-    gate: "صالة الحجاج",
-    boardingAt: "13:15",
-    airportAt: "09:45",
-    gathering: "بهو فندق روضة طيبة 08:00 — تسليم الغرف بمسح البطاقة",
-    baggage: "حقيبة 23 كغ + حقيبة يد 7 كغ — ماء زمزم (5 لتر) يُسلَّم مغلّفاً في المطار",
-    afterLanding: "حافلة التكتل من المطار إلى ساحة المزة",
-  },
-};
+export const FLIGHTS = FLIGHTS_DATA;
 
-export const ITINERARY = [
-  { hijri: "24 ذو القعدة", title: "السفر إلى جدة ثم مكة", place: "دمشق ← جدة ← مكة", detail: "العمرة الأولى الليلة: تجمّع في بهو الفندق 21:00، الحافلة 21:30", icon: "plane" },
-  { hijri: "25 ذو القعدة – 7 ذو الحجة", title: "الإقامة في مكة المكرمة", place: "فندق أبراج النور", detail: "حافلة الحرم كل ساعة، درس يومي بعد العشاء، رحلة التنعيم وزيارة معالم مكة", icon: "hotel" },
-  { hijri: "8 ذو الحجة", title: "يوم التروية — إلى منى", place: "مخيم 42 — المعيصم", detail: "الحافلتان 7 و8 من البوابة الجنوبية 07:00 — الإحرام من الفندق", icon: "tent" },
-  { hijri: "9 ذو الحجة", title: "يوم عرفة", place: "بجوار مسجد نمرة", detail: "الانطلاق 06:30 — الظهر والعصر جمعاً وقصراً في الخيمة — الدعاء حتى الغروب", icon: "sun" },
-  { hijri: "ليلة 10 ذو الحجة", title: "المبيت في مزدلفة", place: "قرب المشعر الحرام", detail: "جمع الحصى — كبار السن يتقدمون إلى منى بعد منتصف الليل", icon: "moon" },
-  { hijri: "10 ذو الحجة", title: "يوم النحر", place: "الجمرات ثم منى", detail: "رمي جمرة العقبة، الهدي بالقسائم المعتمدة، الحلق والتحلل الأول", icon: "star" },
-  { hijri: "11 – 12 ذو الحجة", title: "أيام التشريق", place: "منى", detail: "رمي الجمرات الثلاث يومياً وفق المواعيد المخصصة للتكتل", icon: "tent" },
-  { hijri: "12 – 16 ذو الحجة", title: "العودة إلى مكة", place: "فندق أبراج النور", detail: "طواف الإفاضة ثم طواف الوداع", icon: "kaaba" },
-  { hijri: "16 – 23 ذو الحجة", title: "المدينة المنورة", place: "فندق روضة طيبة", detail: "الصلاة في المسجد النبوي، زيارة الروضة، رحلة قباء وأحد والقبلتين", icon: "mosque" },
-  { hijri: "23 ذو الحجة", title: "العودة إلى الوطن", place: "المدينة ← دمشق", detail: "رحلة RB 508 — الوصول 17:10 — حمداً لله على السلامة", icon: "home" },
-] as const;
+export const ITINERARY = ITINERARY_DATA;
 
 export type Track = "direct" | "lottery";
 export type TrackKey = "submitted" | "checking" | "eligible" | "direct" | "lottery" | "accepted" | "notAccepted";
@@ -232,8 +116,11 @@ export function stageAt(steps: TrackStep[], elapsed: number) {
 /** After acceptance, the file fills in piece by piece — seconds after submission */
 export const REVEAL = { group: 11.5, makkah: 13, madinah: 14, flights: 15, camps: 16, card: 17 } as const;
 
+/** Applications whose number the demo fixed (testdata/pilgrims/application-numbers.json); the others are drawn from the applicant's */
+const FIXED_NUMBERS: Record<string, string> = APPLICATION_NUMBERS;
+
 export function applicationNumberFor(applicantId: string) {
-  if (applicantId === "01012345412") return "4512";
+  if (FIXED_NUMBERS[applicantId]) return FIXED_NUMBERS[applicantId];
   return String(4000 + Math.floor(seeded(applicantId)() * 5000));
 }
 

@@ -8,6 +8,7 @@ import { SEASON, OFFICES } from "../season";
 import { OFFICIAL_DRAW, drawTotals, lotteryAccepted, type PublishedDraw } from "../lottery";
 import { ageOf, fullName, getPerson, isValidNationalId, type Person } from "../registry";
 import { seeded } from "../utils";
+import PUBLISHED from "@/testdata/registration/public-results.json";
 
 const OFFICIAL = drawTotals(OFFICIAL_DRAW);
 
@@ -18,10 +19,10 @@ export const RESULTS_SUMMARY = {
   lotteryRegisteredSeats: OFFICIAL.poolSeats,
   direct: SEASON.directSeats,
   acceptedAge: SEASON.acceptedDirectAge,
-  lastUpdate: "15 ربيع الآخر 1448 (26 أيلول) — 21:00",
-  directApprovedAt: "13 ربيع الأول 1448 (26 آب) — 10:00",
+  lastUpdate: PUBLISHED.lastUpdate,
+  directApprovedAt: PUBLISHED.directApprovedAt,
   lotteryWindow: SEASON.windows.lottery.hijri,
-  lotteryAt: "15 ربيع الآخر 1448 (السبت 26 أيلول) — جامعة الفرات، دير الزور",
+  lotteryAt: PUBLISHED.lotteryAt,
 } as const;
 
 /** Which registration the application was made in: direct acceptance, lottery, or the scholarship campaign */
@@ -37,22 +38,8 @@ export const OUTCOME_LABEL: Record<Outcome, string> = {
 
 // ───────────────────────── Governorate stats (aggregated only) ─────────────────────────
 
-const GOV_WEIGHTS: Record<string, number> = {
-  "دمشق": 0.18,
-  "ريف دمشق": 0.15,
-  "حلب": 0.17,
-  "حمص": 0.1,
-  "حماة": 0.08,
-  "اللاذقية": 0.06,
-  "إدلب": 0.06,
-  "درعا": 0.05,
-  "دير الزور": 0.04,
-  // Syrians abroad register at the office of their country of residence
-  "تركيا — إسطنبول": 0.04,
-  "تركيا — غازي عنتاب": 0.02,
-  "مصر": 0.02,
-  "الأردن": 0.03,
-};
+/** Each office's share of the applicants (testdata/registration/public-results.json) — Syrians abroad register at the office of their country of residence */
+const GOV_WEIGHTS: Record<string, number> = PUBLISHED.governorateWeights;
 
 /** Splits a total across governorates by weight, fixing rounding on the largest one */
 function split(total: number, jitterSeed: string) {
@@ -90,7 +77,7 @@ export type SearchResult =
     };
 
 /** The guide's example family: application 4512, under Khadija (78), accepted directly */
-const FAMILY_4512 = ["01012345412", "01012340078", "01012345413", "01012345414"];
+const FAMILY_APP = PUBLISHED.familyApplication;
 
 /**
  * A national number's result. Who is 66 or older was accepted directly; most others registered for the
@@ -103,8 +90,8 @@ export function searchResult(id: string, draw: PublishedDraw | null): SearchResu
   if (!p) return { found: false };
   const base = { name: fullName(p), governorate: p.governorate };
 
-  if (FAMILY_4512.includes(id)) {
-    return { ...base, found: true, outcome: "direct", label: `${OUTCOME_LABEL.direct} (طلب عائلي 4512)`, campaign: "القبول المباشر", applicationNo: "4512" };
+  if (FAMILY_APP.members.includes(id)) {
+    return { ...base, found: true, outcome: "direct", label: `${OUTCOME_LABEL.direct} (طلب عائلي ${FAMILY_APP.number})`, campaign: "القبول المباشر", applicationNo: FAMILY_APP.number };
   }
   if (ageOf(p) >= SEASON.acceptedDirectAge) {
     return { ...base, found: true, outcome: "direct", label: OUTCOME_LABEL.direct, campaign: "القبول المباشر" };
