@@ -673,6 +673,8 @@ export type Consent = {
   respondedAt?: number;
   /** Invitation inside the app (has an account) or a code by text message */
   via: "app" | "sms";
+  /** The mobile the code went to: his account's, or the one the applicant entered for him */
+  phone?: string;
 };
 
 /**

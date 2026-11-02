@@ -6,7 +6,6 @@ import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
 import { useReg } from "@/lib/registration/client";
 import { pinnedVersion } from "@/lib/registration/engine";
-import { useSeason } from "@/lib/season-live";
 import { BarList, Kpi, PageHeader, Panel, useNow } from "../_components/kit";
 import { HowItWorks } from "../_components/wp";
 import { Escalate } from "../_components/system";
@@ -24,7 +23,6 @@ export function RegistrationSummary({ embedded = false }: { embedded?: boolean }
   const desk = useRegistrationDesk();
   const reg = useReg();
   const draw = usePublishedDraw();
-  const { acceptedDirectAge } = useSeason();
   const now = useNow(10_000);
   const [raise, setRaise] = useState(false);
 
@@ -34,7 +32,7 @@ export function RegistrationSummary({ embedded = false }: { embedded?: boolean }
     const office: Record<string, number> = {};
     let people = 0;
     for (const a of desk.apps) {
-      const out = outcomeOf(a, draw, a.policy?.acceptedDirectAge ?? acceptedDirectAge);
+      const out = outcomeOf(a, draw);
       const { stage } = stageAt(out.steps, (now - a.submittedAt) / 1000);
       status[stage.title] = (status[stage.title] ?? 0) + 1;
       const t = trackOf(a) === "lottery" ? "القرعة" : "القبول المباشر";
@@ -52,7 +50,7 @@ export function RegistrationSummary({ embedded = false }: { embedded?: boolean }
     }
     const list = (o: Record<string, number>) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value, key: label }));
     return { status: list(status), track: list(track), office: list(office), where: list(where), people };
-  }, [desk.apps, desk.inProgress, draw, acceptedDirectAge, now, reg]);
+  }, [desk.apps, desk.inProgress, draw, now, reg]);
 
   return (
     <div className="space-y-6">

@@ -64,7 +64,7 @@ export function ApplicationDetail({ applicantId, onBack }: { applicantId: string
   const holder = getPerson(applicantId);
   const applicant = app.members.find((m) => m.relation === "self")?.person ?? holder;
   const track = trackOf(app);
-  const steps = outcomeOf(app, draw, season.acceptedDirectAge).steps;
+  const steps = outcomeOf(app, draw).steps;
   const { stage } = stageAt(steps, (now - app.submittedAt) / 1000);
   const accepted = stage.key === "accepted";
   const fee = app.members.length * season.fees.registrationPerPerson;

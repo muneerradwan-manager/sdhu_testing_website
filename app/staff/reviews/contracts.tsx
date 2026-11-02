@@ -12,7 +12,6 @@ import { outcomeOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
 import { rangeLabel, useOperation } from "@/lib/operations";
 import { ageOf, fullName } from "@/lib/registry";
-import { useSeason } from "@/lib/season-live";
 import { useStore } from "@/lib/store";
 import { cn, digitsOnly, nowMs } from "@/lib/utils";
 import { can, Drawer, fmtDateTime, smallInputClass, useStaffUser } from "../_components/kit";
@@ -185,8 +184,7 @@ function AttachForm({ initial, onDone }: { initial: string; onDone: () => void }
   // The groups as the administrators' platform holds them: every approved cluster's, with its head and capacity
   const clusters = useClusterDirectory();
   const draw = usePublishedDraw();
-  const { acceptedDirectAge } = useSeason();
-  const isAccepted = (sid: string) => outcomeOf(applications[sid], draw, acceptedDirectAge).accepted;
+  const isAccepted = (sid: string) => outcomeOf(applications[sid], draw).accepted;
   const lookup = (value: string) => Object.entries(applications).find(([sid, a]) => sid === value.trim() || a.number === value.trim() || a.members.some((m) => m.person.id === value.trim()));
   const [q, setQ] = useState(initial);
   // Opened from a row («نقل إلى مجموعة أخرى»): the application is already found

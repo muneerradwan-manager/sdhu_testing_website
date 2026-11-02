@@ -269,7 +269,7 @@ type RoomCost = Parameters<typeof costLines>[2];
 function acceptedApp(s: State, owner: string): { app: Application; error?: undefined } | { app?: undefined; error: SvcError } {
   const app = s.applications[owner];
   if (!app) return { error: { code: "none", message: "لا طلب" } };
-  const out = outcomeOf(app, publishedDraw(s), app.policy?.acceptedDirectAge ?? mergeSeason(s.season).acceptedDirectAge);
+  const out = outcomeOf(app, publishedDraw(s));
   if (!out.accepted) return { error: { code: "not-accepted", message: "الطلب غير مقبول" } };
   if (s.reviews[owner]?.status === "rejected") return { error: { code: "rejected", message: "الطلب موقوف بقرار المراجعة" } };
   return { app };

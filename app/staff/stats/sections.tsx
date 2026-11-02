@@ -101,7 +101,7 @@ function useStatsData(user: StaffUser) {
 
     // The office: what this employee registered, each application where it stands now, and the whole office's count
     const filed = filedBy(user.id, applications).map((a) => {
-      const out = outcomeOf(a, draw, a.policy?.acceptedDirectAge ?? season.acceptedDirectAge);
+      const out = outcomeOf(a, draw);
       const { stage } = stageAt(out.steps, (now - a.submittedAt) / 1000);
       return { a, stage, applicant: a.members.find((m) => m.relation === "self") ?? a.members[0] };
     });

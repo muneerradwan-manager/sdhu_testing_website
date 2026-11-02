@@ -66,7 +66,7 @@ export function ApplicationsPage() {
   const reg = useReg();
   const live = useLiveVersion();
   const draw = usePublishedDraw();
-  const { fees, acceptedDirectAge } = useSeason();
+  const { fees } = useSeason();
   const now = useNow(5000);
   const user = useStaffUser();
   // The amounts paid are confidential: shown only with «الدفعات المؤكدة للطلبات»
@@ -99,7 +99,7 @@ export function ApplicationsPage() {
     }
     for (const app of Object.values(applications)) {
       const version = pinnedVersion(reg, app.configVersion, app.season);
-      const out1 = outcomeOf(app, draw, app.policy?.acceptedDirectAge ?? acceptedDirectAge);
+      const out1 = outcomeOf(app, draw);
       const { stage: st } = stageAt(out1.steps, (now - app.submittedAt) / 1000);
       const rejected = reviews[app.applicantId]?.status === "rejected";
       let stage = "متابعة الطلب";
@@ -127,7 +127,7 @@ export function ApplicationsPage() {
       });
     }
     return out.sort((a, b) => b.updated - a.updated);
-  }, [drafts, applications, reg, draw, acceptedDirectAge, now, reviews, post, fees]);
+  }, [drafts, applications, reg, draw, now, reviews, post, fees]);
 
   const shown = rows.filter(
     (r) =>

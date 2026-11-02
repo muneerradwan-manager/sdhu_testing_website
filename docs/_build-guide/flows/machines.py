@@ -17,49 +17,39 @@ MACHINES = [
 
     SM("application", "دورة حياة طلب الحج",
        "طلب الحج من أول حفظ للمسودة حتى نتيجته. في النسخة التجريبية لا يُخزَّن للطلب عمود حالة: تُحسب المرحلة في كل عرض من "
-       "وقت التقديم (submittedAt) ومسار التسجيل (مباشر أو قرعة) والعمر المقبول المعلن والسحب المنشور، فيمرّ الطلب بمراحله خلال ثوانٍ "
+       "وقت التقديم (submittedAt) ومسار التسجيل (مباشر أو قرعة) والسحب المنشور، فيمرّ الطلب بمراحله خلال ثوانٍ "
        "بدل أسابيع. القيم هنا مفاتيح الخط الزمني في lib/journey.ts (TrackKey)، ومعها ثلاث حالات لا مفتاح لها في الخط الزمني بل تُقرأ من "
-       "سجلات أخرى: suspended من قرار المراجعة (reviews)، وwithdrawn حين يُحذف الطلب، وmoved-to-lottery حين يقدّم من لم يُقبل مباشرة "
-       "طلب قرعة جديداً يحمل رقم الطلب القديم في previous. ينتهي الطلب بالقبول (ثم تبدأ خطوات ما بعد القبول) أو بعدم القبول أو بالسحب.",
+       "سجلات أخرى: suspended من قرار المراجعة (reviews)، وwithdrawn حين يُحذف الطلب. الأهلية والأعمار تُفحص قبل الدفع، فلا مرحلة لهما بعد التقديم. ينتهي الطلب بالقبول (ثم تبدأ خطوات ما بعد القبول) أو بعدم القبول أو بالسحب.",
        "applications.status",
        [S("draft", "مسودة", "طلب قيد التعبئة، يُحفظ عند كل خطوة على حساب صاحبه (application_drafts)، ومعه موافقات المرافقين"),
         S("submitted", "مُقدَّم", "استلمنا طلبك وما دفعته (رسم التسجيل، والدفعة الأولى في القبول المباشر)"),
-        S("checking", "تدقيق البيانات", "مطابقة الشؤون المدنية وتطبيق شروط الموسم"),
-        S("eligible", "مؤهل", "جميع أفراد الطلب مستوفون للشروط"),
-        S("direct", "اعتماد القبول المباشر", "طلب التسجيل المباشر ينتظر إعلان الأعمار المقبولة"),
+        S("checking", "تدقيق البيانات", "يتحقق موظف التسجيل من صلات القرابة ومن الوثائق التي رُفعت عند التسجيل"),
         S("lottery", "القرعة العلنية", "طلب القرعة ينتظر السحب؛ وما دامت النتائج غير منشورة يقف هنا: «انتهى السحب — بانتظار نشر النتائج»"),
         S("accepted", "مقبول", "«مقبول مباشرة» وفق الأكبر سناً، أو «مقبول بالقرعة» حين سُحبت سنة ميلاد صاحب الطلب (وشهره)"),
-        S("notAccepted", "لم يُقبل", "«لم يُقبل مباشرة» أو «لم يُقبل بالقرعة»"),
+        S("notAccepted", "لم يُقبل", "«لم يُقبل بالقرعة»"),
         S("suspended", "موقوف بقرار المراجعة", "رفض موظف المراجعة الطلب: تُقفل خطوات ما بعد القبول ويُعرض على الحاج تقديم اعتراض"),
-        S("moved-to-lottery", "نُقل إلى طلب القرعة", "من لم يُقبل مباشرة سجّل على القرعة بطلب جديد؛ الدفعة الأولى تنتقل إليه رصيداً", final=True),
         S("withdrawn", "سُحب الطلب", "«سحب الطلب والبدء من جديد»: يُحذف الطلب كله", final=True)],
        [T("draft", "submitted", "يدفع (شام كاش أو المصرف) ثم يُقدَّم الطلب بعد اكتمال الشروط والموافقات؛ تحذف الخدمة المسودة وتربط الدفعة بالطلب", "الحاج",
           src=["app/portal/apply/_components/flow.tsx:460", "lib/registration/service.ts:203", "lib/registration/service.ts:223", "lib/registration/service.ts:245"]),
-        T("submitted", "checking", "بعد ثانيتين من التقديم في النسخة التجريبية؛ في المنصة: مطابقة الشؤون المدنية", SYSTEM,
+        T("submitted", "checking", "بعد ثانيتين من التقديم في النسخة التجريبية؛ في المنصة: يبدأ موظف التسجيل تدقيق صلات القرابة والوثائق", SYSTEM,
           src=["lib/journey.ts:159", "app/portal/application/_components/application-view.tsx:155"], auto=True),
-        T("checking", "eligible", "بعد 4 ثوانٍ في النسخة التجريبية؛ في المنصة: نتيجة تطبيق شروط الموسم", SYSTEM, src=["lib/journey.ts:160"], auto=True),
-        T("eligible", "direct", "طلب على التسجيل المباشر: بعد 6 ثوانٍ", SYSTEM, src=["lib/journey.ts:186"], auto=True),
-        T("eligible", "lottery", "طلب على القرعة: بعد 6.5 ثانية", SYSTEM, src=["lib/journey.ts:192"], auto=True),
-        T("direct", "accepted", "بعد 8 ثوانٍ، إن بلغ عمر صاحب الطلب العمر المقبول المعلن (أو حاكى المختبِر ذلك)", SYSTEM,
-          src=["lib/journey.ts:188", "lib/journey.ts:169"], auto=True),
-        T("direct", "notAccepted", "بعد 8 ثوانٍ، إن كان صاحب الطلب دون العمر المقبول", SYSTEM, src=["lib/journey.ts:189"], auto=True),
+        T("checking", "accepted", "طلب على القبول المباشر: بعد 6 ثوانٍ في النسخة التجريبية؛ في المنصة: انتهاء تدقيق البيانات", REVIEWER, src=["lib/journey.ts:trackSteps"], auto=True),
+        T("checking", "lottery", "طلب على القرعة: بعد 6.5 ثانية؛ في المنصة: انتهاء التدقيق وموعد السحب", SYSTEM, src=["lib/journey.ts:trackSteps"], auto=True),
         T("lottery", "accepted", "بعد 10 ثوانٍ وبعد نشر نتائج القرعة، إن طابقت سنة ميلاد صاحب الطلب (وشهره) سطراً منشوراً", SYSTEM,
           src=["lib/journey.ts:198", "lib/journey.ts:216"], auto=True),
         T("lottery", "notAccepted", "بعد 10 ثوانٍ وبعد النشر، إن لم تُسحب سنته وشهره", SYSTEM, src=["lib/journey.ts:199"], auto=True),
         T("*", "suspended", "«رفض» في شاشة مراجعة الطلب مع سبب يقرؤه الحاج (للطلبات التي لم تقرر فيها المنصة وحدها)", REVIEWER,
           src=["app/staff/reviews/view.tsx:361", "app/portal/application/_components/application-view.tsx:223", "lib/registration/service.ts:274"]),
         T("suspended", "accepted", "«اعتماد» بعد المراجعة: قرار جديد يحل محل الرفض", REVIEWER, src=["app/staff/reviews/view.tsx:361"]),
-        T("notAccepted", "moved-to-lottery", "من لم يُقبل مباشرة يقدّم «التسجيل الأولي على القرعة» بطلب جديد", "الحاج",
-          src=["lib/registration/service.ts:147", "lib/registration/service.ts:227"]),
         T("*", "withdrawn", "«سحب الطلب والبدء من جديد» (زر للتجربة على صفحة التأكيد)", "الحاج",
           src=["app/portal/apply/_components/flow.tsx:506", "lib/store.ts:1347"]),
         T("*", "submitted", "«إعادة المحاكاة»: يعيد وقت التقديم إلى الآن ويمسح خطوات ما بعد القبول (للتجربة فقط)", "الحاج",
           src=["app/portal/application/_components/application-view.tsx:292", "lib/store.ts:1290"])],
        src=["lib/journey.ts:154", "lib/journey.ts:227", "lib/store.ts:49"], initial="draft",
-       gap="لا عمود حالة في الكود: المرحلة تُعاد حسابها في كل عرض من الوقت والعمر والسحب، فلو تغيّر العمر المقبول أو أُعيد نشر القرعة تغيّرت نتيجة طلب "
+       gap="لا عمود حالة في الكود: المرحلة تُعاد حسابها في كل عرض من الوقت والسحب، فلو أُعيد نشر القرعة تغيّرت نتيجة طلب "
            "سبق إعلانها. المؤقت بالثواني بديل عن التدقيق والإعلان الحقيقيين. قيم الكود لا تطابق تعداد applications.status: الكود يجمع "
-           "accepted/notAccepted للمسارين ويضيف direct وlottery مرحلتين، والنموذج يفصل accepted-direct وaccepted-lottery وnot-accepted-direct "
-           "وnot-drawn ويسمّي الانتظار awaiting-draw، ويضيف confirmed وlapsed وsuspended وwithdrawn وmoved-to-lottery مما لا يخزّنه الكود. "
+           "accepted للمسارين ويضيف lottery مرحلة، والنموذج يفصل accepted-direct وaccepted-lottery "
+           "وnot-drawn ويسمّي الانتظار awaiting-draw، ويضيف confirmed وlapsed وsuspended وwithdrawn مما لا يخزّنه الكود. "
            "الإيقاف بالمراجعة يُقرأ من reviews لا من الطلب، ويمكن رفض طلب قبل قبوله أو بعده. السحب يحذف الطلب حذفاً بلا ردّ مدفوعات ولا أثر، "
            "و«إعادة المحاكاة» ترجع أي طلب إلى البداية. لا يوجد سقوط القبول (lapsed) لمن لم يثبّت قبوله في الموعد."),
 

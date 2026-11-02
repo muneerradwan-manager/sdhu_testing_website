@@ -18,6 +18,10 @@ btn("ابحث", wait=400)
 p.wait_for_selector("text=هل هذا صاحب الطلب؟", timeout=15000); c.settle(800)
 c.shot("other-confirm", "تأكيد صاحب الطلب", section=S)
 btn("نعم", wait=1500)
+# Without a phone on the platform she is asked for one: the demo fills a test number
+if p.locator("text=ليصله رمز الموافقة").count():
+    c.shot("other-phone", "رقم هاتف صاحب الطلب ليصله رمز الموافقة", section=S)
+    btn("محاكاة: رقم تجريبي", wait=1500)
 c.shot("other-otp", "رمز الموافقة يصل إلى هاتف صاحب الطلب", section=S)
 c.otp("1448")
 btn("تأكيد الموافقة", wait=1200)

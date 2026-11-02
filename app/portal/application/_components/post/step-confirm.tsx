@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, ArrowDown, Check, FileSignature, ScrollText } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, ArrowDown, Check, FileSignature, Maximize2, Minimize2, ScrollText } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/widgets";
 import { fullName } from "@/lib/registry";
@@ -76,8 +77,29 @@ export function StepConfirm({ app, post, sessionId, stepLabel }: StepProps) {
   const [progress, setProgress] = useState(0);
   const [agree, setAgree] = useState(false);
   const [signing, setSigning] = useState(false);
+  const [full, setFull] = useState(false);
   const readAll = progress >= 0.98;
   const applicant = applicantOf(app);
+
+  // How far the reader has come, kept at its furthest: a document that fits whole on the screen is read
+  const measure = useCallback((el: HTMLElement | null) => {
+    if (!el) return;
+    const p = el.scrollHeight <= el.clientHeight + 2 ? 1 : el.scrollTop / (el.scrollHeight - el.clientHeight);
+    setProgress((old) => Math.max(old, Math.min(1, p)));
+  }, []);
+
+  // Full screen: the page behind it does not scroll, and Esc closes it
+  useEffect(() => {
+    if (!full) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = overflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [full]);
 
   if (post.confirmedAt && !app.firstPaid) return <FirstInstallment app={app} stepLabel={stepLabel} />;
 
@@ -90,37 +112,31 @@ export function StepConfirm({ app, post, sessionId, stepLabel }: StepProps) {
     }, 1400);
   };
 
-  return (
-    <Question
-      step={stepLabel ?? "الخطوة 1 من 7"}
-      title="أكّد قبول الحج لجميع أفراد الطلب"
-      hint="اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً."
-      speak="أكّد قبول الحج لجميع أفراد الطلب. اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً. إذا لم تؤكد في المهلة يسقط قبولك."
-    >
-      <div className="mb-5 flex items-start gap-3 rounded-2xl border-2 border-maroon/25 bg-maroon/5 p-4 text-maroon">
-        <AlertTriangle className="mt-1 size-6 shrink-0" />
-        <p className="text-lg font-bold leading-8">تنبيه: من لا يؤكد قبوله قبل 27 تشرين الأول يسقط قبوله.</p>
-      </div>
-
-      {/* Official document */}
-      <div className="overflow-hidden rounded-3xl border border-gold/50 bg-white shadow-lg">
-        <div className="flex items-center justify-between gap-3 bg-green-dark px-5 py-4 text-white">
-          <span className="flex items-center gap-2 font-bold">
-            <ScrollText className="size-5 text-gold" /> التعليمات والشروط الرسمية — موسم 1448هـ
-          </span>
+  /** The document itself: its header, how far it is read, and its text */
+  const official = (inFull: boolean) => (
+    <>
+      <div className="flex items-center justify-between gap-3 bg-green-dark px-5 py-4 text-white">
+        <span className="flex items-center gap-2 font-bold">
+          <ScrollText className="size-5 text-gold" /> التعليمات والشروط الرسمية — موسم 1448هـ
+        </span>
+        <span className="flex items-center gap-3">
           <span className="font-mono text-sm text-gold">{Math.round(progress * 100)}%</span>
-        </div>
-        <div className="h-1.5 bg-gold-light">
-          <motion.div className="h-full bg-gradient-to-l from-green-light to-gold-dark" animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.2 }} />
-        </div>
-        <div
-          className="relative max-h-80 overflow-y-auto px-6 py-5 text-lg leading-9"
-          onScroll={(e) => {
-            const el = e.currentTarget;
-            const p = el.scrollHeight <= el.clientHeight ? 1 : el.scrollTop / (el.scrollHeight - el.clientHeight);
-            setProgress((old) => Math.max(old, Math.min(1, p)));
-          }}
-        >
+          <button
+            type="button"
+            onClick={() => setFull(!inFull)}
+            title={inFull ? "الخروج من ملء الشاشة" : "ملء الشاشة"}
+            aria-label={inFull ? "الخروج من ملء الشاشة" : "ملء الشاشة"}
+            className="grid size-9 place-items-center rounded-xl bg-white/10 transition hover:bg-white/20"
+          >
+            {inFull ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
+          </button>
+        </span>
+      </div>
+      <div className="h-1.5 shrink-0 bg-gold-light">
+        <motion.div className="h-full bg-gradient-to-l from-green-light to-gold-dark" animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.2 }} />
+      </div>
+      <div ref={inFull ? measure : undefined} onScroll={(e) => measure(e.currentTarget)} className={cn("relative overflow-y-auto text-lg leading-9", inFull ? "flex-1 px-6 py-8 md:text-xl md:leading-10" : "max-h-80 px-6 py-5")}>
+        <div className={cn(inFull && "mx-auto max-w-3xl")}>
           <p className="text-center font-display text-xl font-bold text-green-dark">بسم الله الرحمن الرحيم</p>
           <p className="mt-2 text-center text-ink-soft">
             إلى الحاج {fullName(applicant.person)} وأفراد الطلب رقم {app.number}
@@ -137,6 +153,14 @@ export function StepConfirm({ app, post, sessionId, stepLabel }: StepProps) {
           ))}
           <p className="mt-6 rounded-2xl bg-sand p-4 text-center font-bold text-green-dark">نهاية الوثيقة — تقبّل الله منا ومنكم</p>
         </div>
+      </div>
+      {inFull && readAll ? (
+        <div className="shrink-0 border-t border-gold-light bg-sand/70 p-4 text-center">
+          <Button size="lg" onClick={() => setFull(false)}>
+            <Check className="size-5" /> أنهيت القراءة — العودة إلى التوقيع
+          </Button>
+        </div>
+      ) : (
         <AnimatePresence>
           {!readAll && (
             <motion.p exit={{ opacity: 0, height: 0 }} className="flex items-center justify-center gap-2 border-t border-gold-light bg-sand/70 py-3 font-semibold text-gold-dark">
@@ -147,7 +171,31 @@ export function StepConfirm({ app, post, sessionId, stepLabel }: StepProps) {
             </motion.p>
           )}
         </AnimatePresence>
+      )}
+    </>
+  );
+
+  return (
+    <Question
+      step={stepLabel ?? "الخطوة 1 من 7"}
+      title="أكّد قبول الحج لجميع أفراد الطلب"
+      hint="اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً."
+      speak="أكّد قبول الحج لجميع أفراد الطلب. اقرأ التعليمات الرسمية حتى النهاية، ثم وقّع عليها إلكترونياً. إذا لم تؤكد في المهلة يسقط قبولك."
+    >
+      <div className="mb-5 flex items-start gap-3 rounded-2xl border-2 border-maroon/25 bg-maroon/5 p-4 text-maroon">
+        <AlertTriangle className="mt-1 size-6 shrink-0" />
+        <p className="text-lg font-bold leading-8">تنبيه: من لا يؤكد قبوله قبل 27 تشرين الأول يسقط قبوله.</p>
       </div>
+
+      {/* Official document: read in its box, or in full screen (the same reading counts) */}
+      <div className="overflow-hidden rounded-3xl border border-gold/50 bg-white shadow-lg">{official(false)}</div>
+      {full &&
+        createPortal(
+          <div role="dialog" aria-modal="true" aria-label="التعليمات والشروط الرسمية" className="fixed inset-0 z-[100] flex flex-col bg-white">
+            {official(true)}
+          </div>,
+          document.body,
+        )}
 
       {/* E-sign */}
       <button

@@ -22,7 +22,6 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, useToast } from "@/components/ui/widgets";
 import { outcomeOf, stageAt, trackOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
-import { useSeason } from "@/lib/season-live";
 import { SEASON } from "@/lib/season";
 import { fullName, getPerson } from "@/lib/registry";
 import { actions, useStore } from "@/lib/store";
@@ -35,7 +34,6 @@ export default function PortalHome() {
   const person = getPerson(sessionId)!;
   const [now, setNow] = useState(() => Date.now());
   const draw = usePublishedDraw();
-  const { acceptedDirectAge } = useSeason();
   // The account and what it does this season: the Hajj, an administrative role, or not chosen yet
   const acc = useAccount();
   useEffect(() => {
@@ -44,7 +42,7 @@ export default function PortalHome() {
   }, []);
 
   const elapsed = app ? (now - app.submittedAt) / 1000 : 0;
-  const steps = app ? outcomeOf(app, draw, acceptedDirectAge).steps : [];
+  const steps = app ? outcomeOf(app, draw).steps : [];
   const stage = app ? stageAt(steps, elapsed).stage : null;
   // The card follows where the pilgrim is: following the result, then the steps after acceptance, then the season
   const post = useStore((s) => s.post[sessionId]);

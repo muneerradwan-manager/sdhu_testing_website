@@ -51,11 +51,11 @@ MODULE = M("applications", "طلب الحج: المسودة والأفراد و�
         c("mode", enum("booklet", "national", "solo", "manual"), "طريقة إضافة الأفراد: booklet «وثيقة العائلة»، national «الرقم الوطني»، solo «طلب فردي»، manual «إدخال يدوي» (بيانات قديمة)"),
         c("residence", "VARCHAR(60)", "مكان الإقامة وقت التقديم"),
         ref("office_id", "offices", "المكتب الذي يتبعه الطلب (لا يُختار: محافظة قيد صاحب الطلب، أو بلد الإقامة، أو مكتب من سجّله)"),
-        c("status", enum("submitted", "checking", "eligible", "accepted-direct", "not-accepted-direct", "awaiting-draw", "accepted-lottery",
-                         "not-drawn", "confirmed", "lapsed", "suspended", "withdrawn", "moved-to-lottery"),
-          "الحالة: submitted «مُقدَّم»، checking «تدقيق البيانات»، eligible «مؤهل»، accepted-direct «مقبول مباشرة»، not-accepted-direct «لم يُقبل مباشرة»، "
+        c("status", enum("submitted", "checking", "accepted-direct", "awaiting-draw", "accepted-lottery",
+                         "not-drawn", "confirmed", "lapsed", "suspended", "withdrawn"),
+          "الحالة: submitted «مُقدَّم»، checking «تدقيق البيانات» (صلات القرابة والوثائق؛ الأهلية والأعمار فُحصت قبل الدفع)، accepted-direct «مقبول مباشرة»، "
           "awaiting-draw «بانتظار القرعة»، accepted-lottery «مقبول بالقرعة»، not-drawn «لم يُقبل بالقرعة»، confirmed «ثبّت قبوله» (المقبول بالقرعة بعد الدفعة الأولى)، "
-          "lapsed «سقط قبوله» (لم يثبّت قبل الموعد)، suspended «موقوف بقرار المراجعة»، withdrawn «انسحب»، moved-to-lottery «نُقل أفراده إلى طلب القرعة»", d="'submitted'"),
+          "lapsed «سقط قبوله» (لم يثبّت قبل الموعد)، suspended «موقوف بقرار المراجعة»، withdrawn «انسحب»", d="'submitted'"),
         ref("config_version_id", "reg_config_versions", "الإصدار الذي قُدّم عليه"),
         c("policy_snapshot", "JSON", "شروط الموسم المجمّدة وقت التقديم: rules (الأعمار والمرافقون)، accepted_direct_age، fees {registrationPerPerson، hajjCost، hady، firstInstallment، installmentCount، schedule[{key، label، perPerson، dueLabel، dueStep}]، extrasStep}. كل حساب لاحق للتكاليف يقرأ منها"),
         c("announced_direct_age", "TINYINT UNSIGNED", "العمر المعلَن لجولة هذا الطلب إن اختلف عن الموسم", null=True),
@@ -190,11 +190,11 @@ MODULE = M("applications", "طلب الحج: المسودة والأفراد و�
     ], uq=[("payment_id", "line_key")], src="lib/registration/post.ts:64 CostLine، costLines، receiptBase",
        rules=["التحقق العام من الإيصال (صفحة «التحقق من وثيقة») يقرأ هذا الجدول ويعرض نوعه ومبلغه وتاريخه واسم حامله مقنّعاً فقط."]),
 
-    T("refunds", "المبالغ المردودة", "رد مبلغ: الدفعة الأولى لمن لم يُقبل مباشرة ولم ينتقل إلى القرعة، والرصيد لمن لم تسحبه القرعة. الكود يذكرها نصاً ولا يخزّنها.", [
+    T("refunds", "المبالغ المردودة", "رد مبلغ: الدفعة الأولى لمن رُفض طلبه بعد المراجعة أو انسحب، والرصيد لمن لم تسحبه القرعة. الكود يذكرها نصاً ولا يخزّنها.", [
         pk(), ref("payment_id", "payments", "الدفعة الأصلية"),
         ref("application_id", "applications", "الطلب", null=True),
         c("amount", MONEY, "المبلغ المردود", ck="amount > 0"),
-        c("reason", enum("not-accepted-direct", "not-drawn", "lapsed", "withdrawn", "other"), "السبب: لم يُقبل مباشرة ولم ينتقل، لم تسحبه القرعة، سقط قبوله، انسحب، آخر"),
+        c("reason", enum("rejected-review", "not-drawn", "lapsed", "withdrawn", "other"), "السبب: رُفض بعد المراجعة، لم تسحبه القرعة، سقط قبوله، انسحب، آخر"),
         c("status", enum("requested", "approved", "paid", "rejected"), "الحالة", d="'requested'"),
         c("method", enum("shamcash", "bank", "office"), "طريقة الرد", null=True),
         c("reference", "VARCHAR(60)", "مرجع عملية الرد", null=True),

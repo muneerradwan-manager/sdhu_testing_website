@@ -35,7 +35,6 @@ import { outcomeOf, stageAt } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
 import { statusLabel, type OperationState } from "@/lib/operations";
 import { getPerson } from "@/lib/registry";
-import { useSeason } from "@/lib/season-live";
 import { actions, useStore, type AdminProfile } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -68,10 +67,9 @@ export function usePilgrimAcceptance() {
   const app = useStore((s) => s.applications[sid]);
   const post = useStore((s) => s.post[sid]);
   const draw = usePublishedDraw();
-  const { acceptedDirectAge } = useSeason();
   const now = useNow();
   if (!app) return { app, accepted: false };
-  const steps = outcomeOf(app, draw, acceptedDirectAge).steps;
+  const steps = outcomeOf(app, draw).steps;
   const stage = stageAt(steps, (now - app.submittedAt) / 1000).stage;
   return { app, accepted: stage?.key === "accepted" || !!post?.confirmedAt };
 }

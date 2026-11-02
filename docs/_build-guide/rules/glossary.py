@@ -195,8 +195,8 @@ TERMS = [
       see=["الحصة", "نتائج القبول"]),
 
     G("حالة الطلب", "TrackKey (journey) / applications.status",
-      "مراحل متابعة الطلب كما يعرضها الكود (journey.ts): submitted «مُقدَّم»، checking «تدقيق البيانات»، eligible «مؤهل»، direct «اعتماد القبول المباشر»، lottery «القرعة العلنية»، "
-      "accepted «مقبول مباشرة» أو «مقبول بالقرعة»، notAccepted «لم يُقبل مباشرة» أو «لم يُقبل بالقرعة». في النسخة التجريبية تُحسب المرحلة من وقت التقديم والقرعة المنشورة ولا تُخزَّن؛ "
+      "مراحل متابعة الطلب كما يعرضها الكود (journey.ts): submitted «مُقدَّم»، checking «تدقيق البيانات» (صلات القرابة والوثائق)، lottery «القرعة العلنية»، "
+      "accepted «مقبول مباشرة» أو «مقبول بالقرعة»، notAccepted «لم يُقبل بالقرعة». الأهلية والأعمار تُفحص قبل الدفع، فلا مرحلة لهما. في النسخة التجريبية تُحسب المرحلة من وقت التقديم والقرعة المنشورة ولا تُخزَّن؛ "
       "نموذج البيانات يخزّنها في applications.status بقيم أوسع: awaiting-draw «بانتظار القرعة»، confirmed «ثبّت قبوله»، lapsed «سقط قبوله»، suspended، withdrawn، moved-to-lottery.",
       code=["lib/journey.ts:154", "lib/journey.ts:182"],
       data=["applications.status", "application_status_history"],

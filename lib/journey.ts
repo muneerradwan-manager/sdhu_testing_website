@@ -35,13 +35,12 @@ export const FLIGHTS = FLIGHTS_DATA;
 export const ITINERARY = ITINERARY_DATA;
 
 export type Track = "direct" | "lottery";
-export type TrackKey = "submitted" | "checking" | "eligible" | "direct" | "lottery" | "accepted" | "notAccepted";
+export type TrackKey = "submitted" | "checking" | "lottery" | "accepted" | "notAccepted";
 export type TrackStep = { key: TrackKey; at: number; title: string; text: string };
 
 const COMMON: TrackStep[] = [
   { key: "submitted", at: 0, title: "مُقدَّم", text: "استلمنا طلبك وما دفعته (رسم التسجيل، والدفعة الأولى في القبول المباشر)" },
-  { key: "checking", at: 2, title: "تدقيق البيانات", text: "مطابقة الشؤون المدنية وتطبيق شروط الموسم" },
-  { key: "eligible", at: 4, title: "مؤهل", text: "جميع أفراد الطلب مستوفون للشروط" },
+  { key: "checking", at: 2, title: "تدقيق البيانات", text: "يتحقق موظف التسجيل من صلات القرابة ومن الوثائق التي رُفعت عند التسجيل" },
 ];
 
 /** The registration an application belongs to (older saved applications were direct-acceptance ones) */
@@ -58,21 +57,15 @@ export function directAccepted(app: { members: Member[]; announcedDirectAge?: nu
 }
 
 /**
- * Tracking timeline (seconds after submission in the demo). Each registration has its own:
- * direct → ages announced → accepted directly OR not accepted (nothing moves to the lottery by itself);
+ * Tracking timeline (seconds after submission in the demo). Eligibility and the accepted ages are checked in the
+ * registration itself, before anything is paid, so after submission only the registration staff's review of the
+ * data remains: the members' kinship to the applicant and the documents uploaded with it. Then:
+ * direct → accepted directly;
  * lottery → live draw of birth years and months → accepted when the main applicant's were drawn, or not.
  * Until the draw's results are published, a lottery application waits at the draw.
  */
-export function trackSteps(track: Track, accepted: boolean, lottery?: { published: boolean; line?: string }, minAge: number = SEASON.acceptedDirectAge): TrackStep[] {
-  if (track === "direct") {
-    return [
-      ...COMMON,
-      { key: "direct", at: 6, title: "اعتماد القبول المباشر", text: `صاحب الطلب ضمن الأعمار المقبولة (${minAge}+) — ${SEASON.windows.direct.announce}` },
-      accepted
-        ? { key: "accepted", at: 8, title: "مقبول مباشرة", text: "قُبل طلبك وفق الأكبر سناً" }
-        : { key: "notAccepted", at: 8, title: "لم يُقبل مباشرة", text: `التسجيل الأولي على القرعة ${SEASON.windows.lottery.hijri}` },
-    ];
-  }
+export function trackSteps(track: Track, accepted: boolean, lottery?: { published: boolean; line?: string }): TrackStep[] {
+  if (track === "direct") return [...COMMON, { key: "accepted", at: 6, title: "مقبول مباشرة", text: "انتهى تدقيق بياناتك، فاعتُمد قبول طلبك" }];
   const draw: TrackStep = { key: "lottery", at: 6.5, title: "القرعة العلنية", text: `بث مباشر — ${SEASON.windows.lottery.draw}: تُسحب سنوات ميلاد، ولبعضها أشهر` };
   if (lottery && !lottery.published) return [...COMMON, { ...draw, text: "انتهى السحب — بانتظار نشر النتائج" }];
   return [
@@ -94,16 +87,13 @@ export function drawLine(app: { members: Member[] }, draw: PublishedDraw | null)
 }
 
 /**
- * Where an application stands: whether it is accepted, and its timeline — direct ones by the announced
- * age, lottery ones by the published draw (none published yet: waiting at the draw).
+ * Where an application stands: whether it is accepted, and its timeline — direct ones once their data is reviewed,
+ * lottery ones by the published draw (none published yet: waiting at the draw).
  */
-export function outcomeOf(app: { track?: Track; members: Member[]; announcedDirectAge?: number; simulated?: string[] }, draw: PublishedDraw | null, minAge: number = SEASON.acceptedDirectAge) {
+export function outcomeOf(app: { track?: Track; members: Member[]; announcedDirectAge?: number; simulated?: string[] }, draw: PublishedDraw | null) {
   const track = trackOf(app);
-  if (track === "direct") {
-    const age = app.announcedDirectAge ?? minAge;
-    const accepted = directAccepted(app, age);
-    return { track, accepted, steps: trackSteps("direct", accepted, undefined, age) };
-  }
+  // Its applicant's age was checked against the accepted ages before he paid: once its data is reviewed it is accepted
+  if (track === "direct") return { track, accepted: true, steps: trackSteps("direct", true) };
   const line = drawLine(app, draw);
   return { track, accepted: !!line, steps: trackSteps("lottery", !!line, { published: !!draw, line: line ?? undefined }) };
 }

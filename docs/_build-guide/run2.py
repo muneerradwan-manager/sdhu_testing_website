@@ -93,7 +93,7 @@ c.scroll_by(700)
 c.shot("apply-elig-pass-2", "تفاصيل الفحص لكل فرد وشروط الطلب ككل", hl=[("button:has-text('متابعة')", "")], section=S)
 btn("متابعة", wait=1500)
 c.scroll_top()
-c.shot("apply-consents", "طلبات الموافقة أُرسلت إلى أفراد الطلب", section=S)
+c.shot("apply-consents", "طلبات الموافقة: في الحساب، أو برمز إلى الهاتف الذي تدخله", section=S)
 # save & continue later
 c.scroll_to("button:has-text('احفظ وتابع لاحقاً')", 400)
 c.shot("apply-consents-later", "يمكنك الحفظ والعودة لاحقاً", hl=[("button:has-text('احفظ وتابع لاحقاً')", "")], section=S)
@@ -101,7 +101,9 @@ btn("احفظ وتابع لاحقاً", wait=1800)
 c.shot("portal-draft", "ملفي: طلب محفوظ لم يُقدَّم بعد", hl=[("a:has-text('متابعة الطلب')", "")], section=S)
 c.click("a:has-text('متابعة الطلب')", wait=1800)
 c.shot("apply-resume", "العودة إلى الطلب من حيث توقفت", section=S)
-# simulate approvals
+# simulate the phones of those without one on the platform, then their approvals
+while p.locator("main button:has-text('محاكاة: رقم تجريبي')").count():
+    p.locator("main button:has-text('محاكاة: رقم تجريبي')").first.click(); c.settle(500)
 for _ in range(3):
     b = p.locator("button:has-text('محاكاة: واف')").first
     if b.count() == 0: break
@@ -146,10 +148,8 @@ t0 = time.time()
 def at(sec):
     d = t0 + sec - time.time()
     if d > 0: p.wait_for_timeout(int(d * 1000))
-at(2.6); c.shot("track-checking", "تدقيق البيانات: مطابقة الشؤون المدنية وشروط الموسم", section=S, wait=0)
-at(4.6); c.shot("track-eligible", "جميع أفراد الطلب مؤهلون", section=S, wait=0)
-at(6.9); c.shot("track-direct", "اعتماد القبول المباشر وفق الأكبر سناً", section=S, wait=0)
-at(9.5); c.shot("track-accepted", "مبارك! تم قبول طلبك", section=S, wait=0)
+at(3.5); c.shot("track-checking", "تدقيق البيانات: صلات القرابة والوثائق المرفوعة", section=S, wait=0)
+at(7.5); c.shot("track-accepted", "مبارك! تم قبول طلبك", section=S, wait=0)
 c.settle(1500)
 c.scroll_to("#steps", 100)
 c.shot("post-steps", "الخطوات المطلوبة بعد القبول (7 خطوات)", section="G")
@@ -165,7 +165,7 @@ c.save_state(str(ROOT / "state-submitted.json"))
 # ───────── G. ما بعد القبول ─────────
 S = "G"
 c.scroll_by(250)
-c.shot("post-confirm", "الخطوة 1: أكّد قبول الحج واقرأ التعليمات", section=S)
+c.shot("post-confirm", "الخطوة 1: أكّد قبول الحج واقرأ التعليمات (زر ملء الشاشة في أعلى الوثيقة)", hl=[("button[aria-label='ملء الشاشة']", "")], section=S)
 p.locator("div.max-h-80.overflow-y-auto").evaluate("el => { el.scrollTop = el.scrollHeight; el.dispatchEvent(new Event('scroll')); }")
 c.settle(800)
 c.scroll_to("button:has-text('قرأت التعليمات')", 380)

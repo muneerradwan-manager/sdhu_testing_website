@@ -25,10 +25,10 @@ BrowserType.launch = _launch_any
 from cap import Cap, ROOT, MANIFEST, SHOTS
 
 PARTS = {
-    "track2": ["track2-submitted", "track2-checking", "track2-eligible", "track2-direct", "track2-accepted"],
+    "track2": ["track2-submitted", "track2-checking", "track2-accepted"],
     "academy": ["academy-certificate-saved"],
     "ghassan": ["sc-direct-age", "sc-direct-age-fix", "sc-switched-lottery", "sc-lottery-summary", "sc-lottery-summary2", "sc-lottery-not-drawn"],
-    "wael": ["sc-lottery-summary-solo", "sc-lottery-submitted", "sc-lottery-eligible", "sc-lottery-live", "sc-lottery-won"],
+    "wael": ["sc-lottery-summary-solo", "sc-lottery-submitted", "sc-lottery-live", "sc-lottery-won"],
     "reem": ["sc-mahram"],
 }
 run = sys.argv[1:] or list(PARTS)
@@ -64,6 +64,9 @@ def session(storage=None):
         p.evaluate("""(d) => { const k = 'sdhu-demo-v1'; const s = JSON.parse(localStorage.getItem(k) || '{}');
           s.clock = { ...(s.clock || {}), today: d, time: undefined }; localStorage.setItem(k, JSON.stringify(s)); }""", d)
     def consents():
+        # Those without a phone on the platform: the demo fills a test number and sends the code
+        while p.locator("main button:has-text('محاكاة: رقم تجريبي')").count():
+            p.locator("main button:has-text('محاكاة: رقم تجريبي')").first.click(); c.settle(500)
         for _ in range(3):
             b_ = p.locator("button:has-text('محاكاة: واف')").first
             if b_.count(): b_.click(); c.settle(400)
@@ -108,14 +111,7 @@ if "track2" in run:
     consents()
     at = pay_and_submit()
     at(1.3); c.shot("track2-submitted", "استلمنا طلبك", section=S, wait=0)
-    at(3.8); c.shot("track2-checking", "تدقيق البيانات: مطابقة الشؤون المدنية وشروط الموسم", section=S, wait=0)
-    at(5.6); c.shot("track2-eligible", "جميع أفراد الطلب مؤهلون", section=S, wait=0)
-    # The ages chart: scrolled to show it whole, with the line at the accepted age and the application's place
-    # (on the stage's own badge, not a fixed time: this stage is short)
-    # The stage's badge is in the page ~1 s before its chart has drawn, and the stage fades ~1.8 s after it
-    p.wait_for_selector("text=طلبك ضمن القبول المباشر", state="attached", timeout=15000)
-    c.page.evaluate("window.scrollBy({top: 350, behavior: 'instant'})"); p.wait_for_timeout(1150)
-    c.shot("track2-direct", "اعتماد القبول المباشر وفق الأكبر سناً", section=S, wait=0)
+    at(3.8); c.shot("track2-checking", "تدقيق البيانات: صلات القرابة والوثائق المرفوعة", section=S, wait=0)
     p.wait_for_selector("text=مبارك! تم قبول طلبك", timeout=15000)
     c.page.evaluate("window.scrollTo({top: 0, behavior: 'instant'})"); p.wait_for_timeout(1800)
     c.shot("track2-accepted", "مبارك! تم قبول طلبك", section=S, wait=0)
@@ -204,7 +200,6 @@ if "wael" in run:
     c.shot("sc-lottery-summary-solo", "طلب فردي على القرعة: رسم التسجيل فقط الآن", section=S)
     at = pay_and_submit()
     at(1.3); c.shot("sc-lottery-submitted", "طلب القرعة: مُقدَّم", section=S, wait=0)
-    at(5.6); c.shot("sc-lottery-eligible", "طلب القرعة: مؤهل بانتظار السحب", section=S, wait=0)
     # The live board scrolled into view, the applicant's year 1980 lit
     at(7.0); c.scroll_by(420)
     at(8.4); c.shot("sc-lottery-live", "القرعة العلنية ببث مباشر: تتوالى سنوات الميلاد المسحوبة", section=S, wait=0)

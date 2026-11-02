@@ -34,7 +34,7 @@ import { Badge, MapEmbed, Modal, StarRating, useToast } from "@/components/ui/wi
 import { PLACES, assign, drawLine, outcomeOf, stageAt, trackOf } from "@/lib/journey";
 import { usePublishedDraw } from "@/lib/lottery";
 import { itineraryOf, passCardOf, useFlightsData } from "@/lib/flights";
-import { ageOf, relationLabel } from "@/lib/registry";
+import { relationLabel } from "@/lib/registry";
 import { SEASON } from "@/lib/season";
 import { useClusterMeals, useSeason } from "@/lib/season-live";
 import { actions, useStore, type Application, type PostAcceptance } from "@/lib/store";
@@ -49,16 +49,13 @@ import { EMPTY_POST, RESET_POST, clearJoinDecisions, costLines, stepsDone, useRo
 import { usePinnedVersion } from "@/lib/registration/client";
 import { postStepsOf } from "@/lib/registration/engine";
 import { ReviewBanner } from "./review-banner";
-import { StageChecking, StageDirect, StageEligible, StageIcon, StageLottery, StageNotAccepted, StageSubmitted } from "./stages";
+import { StageChecking, StageIcon, StageLottery, StageNotAccepted, StageSubmitted } from "./stages";
 import { PilgrimLocked, PilgrimShell } from "../../_components/pilgrim-shell";
 
 const NOTIFY: Record<string, { title: string; body: (n: string) => string; icon: string; tone: "success" | "info" | "gold" }> = {
-  checking: { title: "بدأ تدقيق طلبك", body: (n) => `طلبك رقم ${n} قيد التحقق من الأهلية.`, icon: "🔎", tone: "info" },
-  eligible: { title: "طلبك مؤهل", body: (n) => `طلبك رقم ${n} مؤهل، وينتظر نتيجة التسجيل الذي قدّمته فيه.`, icon: "✅", tone: "success" },
-  direct: { title: "اعتُمدت قوائم القبول المباشر", body: () => `طلبك ضمن الأعمار المقبولة: ${SEASON.acceptedDirectAge} عاماً فأكثر.`, icon: "📢", tone: "info" },
+  checking: { title: "بدأ تدقيق طلبك", body: (n) => `يتحقق موظف التسجيل من صلات القرابة ومن وثائق طلبك رقم ${n}.`, icon: "🔎", tone: "info" },
   lottery: { title: "القرعة تبدأ الآن", body: () => "تابع البث المباشر: تُسحب سنوات الميلاد وأشهرها.", icon: "📺", tone: "gold" },
   accepted: { title: "مبارك! تم قبول طلبك", body: (n) => `قُبل طلبك رقم ${n} لأداء فريضة الحج لموسم 1448هـ.`, icon: "🕋", tone: "success" },
-  notAccepted: { title: "لم يُقبل طلبك مباشرة", body: () => `يمكنك التسجيل الأولي على القرعة (${SEASON.windows.lottery.hijri}) بالأفراد أنفسهم بضغطة واحدة، دون إعادة الخطوات.`, icon: "📋", tone: "gold" },
   notDrawn: { title: "نُشرت نتائج القرعة", body: () => "لم تُسحب سنة ميلاد صاحب طلبك وشهره هذا الموسم.", icon: "📋", tone: "info" },
 };
 
@@ -138,7 +135,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   const post = useStore((s) => s.post[s.sessionId ?? ""]) ?? EMPTY_POST;
   const review = useStore((s) => s.reviews[s.sessionId ?? ""]);
   const admins = useStore((s) => s.admins);
-  const { fees, acceptedDirectAge } = useSeason();
+  const { fees } = useSeason();
   // The meals of the cluster's two hotels, as its technical coordinator timed them
   const meals = useClusterMeals(groupInfo(post.clusterId, post.groupNumber).clusterId);
   const draw = usePublishedDraw();
@@ -157,7 +154,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   const elapsed = app ? Math.max(0, (now - app.submittedAt) / 1000) : 0;
   const track = app ? trackOf(app) : "direct";
   const direct = track === "direct";
-  const steps = app ? outcomeOf(app, draw, acceptedDirectAge).steps : [];
+  const steps = app ? outcomeOf(app, draw).steps : [];
   // No application yet: no stages, and the page shows how to file one (below)
   const { stage, index: stageIdx } = stageAt(steps, elapsed);
   const stageKey = stage?.key;
@@ -190,7 +187,7 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
   useEffect(() => {
     if (!app || !stageKey) return;
     if (lastStage.current && lastStage.current !== stageKey) {
-      const n = NOTIFY[stageKey === "notAccepted" && !direct ? "notDrawn" : stageKey];
+      const n = NOTIFY[stageKey === "notAccepted" ? "notDrawn" : stageKey];
       if (n) toast({ title: n.title, body: n.body(app.number), icon: n.icon, tone: n.tone });
     }
     if (stageKey === "accepted" && !celebrated.current && lastStage.current !== null && lastStage.current !== "accepted") {
@@ -308,11 +305,13 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
           {direct ? `التسجيل على القبول المباشر (${SEASON.windows.direct.hijri})` : `التسجيل الأولي على القرعة (${SEASON.windows.lottery.hijri})`}
           {app.previous && <span className="font-normal text-hint"> — سبقه طلب قبول مباشر رقم {app.previous.number} لم يُقبل</span>}
         </p>
-        <ol className="relative mt-6 grid grid-cols-5 gap-1">
-          <div className="absolute right-[10%] left-[10%] top-5 h-1 rounded-full bg-gold-light" />
+        {/* As many columns as the track has stages; the line runs between the first and last circle */}
+        <ol className="relative mx-auto mt-6 grid max-w-3xl gap-1" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+          <div className="absolute top-5 h-1 rounded-full bg-gold-light" style={{ right: `${50 / steps.length}%`, left: `${50 / steps.length}%` }} />
           <motion.div
-            className="absolute right-[10%] top-5 h-1 rounded-full bg-gradient-to-l from-green-light to-green-dark"
-            animate={{ width: `${(Math.min(stageIdx, steps.length - 1) / (steps.length - 1)) * 80}%` }}
+            className="absolute top-5 h-1 rounded-full bg-gradient-to-l from-green-light to-green-dark"
+            style={{ right: `${50 / steps.length}%` }}
+            animate={{ width: `${(Math.min(stageIdx, steps.length - 1) / steps.length) * 100}%` }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           />
           {steps.map((t, i) => {
@@ -348,10 +347,8 @@ export function ApplicationView({ view = "status" }: { view?: ApplicationPart })
             <motion.div key={stage.key} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.45 }}>
               {stage.key === "submitted" && <StageSubmitted app={app} />}
               {stage.key === "checking" && <StageChecking members={app.members} />}
-              {stage.key === "eligible" && <StageEligible app={app} />}
-              {stage.key === "direct" && <StageDirect age={ageOf(applicant.person)} cut={app.simulated?.includes(`${applicant.person.id}:direct-age`) ? Math.min(ageOf(applicant.person), app.announcedDirectAge ?? acceptedDirectAge) : (app.announcedDirectAge ?? acceptedDirectAge)} />}
               {stage.key === "lottery" && <StageLottery app={app} draw={draw} elapsed={elapsed} />}
-              {stage.key === "notAccepted" && <StageNotAccepted age={ageOf(applicant.person)} app={app} draw={draw} />}
+              {stage.key === "notAccepted" && <StageNotAccepted app={app} draw={draw} />}
               {accepted && rejected && (
                 <div className="flex items-center gap-4 rounded-3xl bg-white p-6 ring-1 ring-maroon/20">
                   <AlertOctagon className="size-12 shrink-0 text-maroon" />

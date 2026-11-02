@@ -22,7 +22,7 @@ export function useRegistrationDesk() {
   const now = useNowKey();
   const live = useLiveVersion();
   const draft = useDraft(ACTIVE_SEASON);
-  const { fees, acceptedDirectAge } = useSeason();
+  const { fees } = useSeason();
   const applications = useStore((s) => s.applications);
   const drafts = useStore((s) => s.drafts);
   const reviews = useStore((s) => s.reviews);
@@ -38,7 +38,7 @@ export function useRegistrationDesk() {
     const drift = validateConfig(live.config, { hajjCost: fees.hajjCost }).filter((i) => i.level === "error" && i.where === "الدفعات");
 
     const apps = Object.values(applications).filter((a) => (a.season ?? ACTIVE_SEASON) === ACTIVE_SEASON);
-    const accepted = apps.filter((a) => outcomeOf(a, draw, a.policy?.acceptedDirectAge ?? acceptedDirectAge).accepted && reviews[a.applicantId]?.status !== "rejected");
+    const accepted = apps.filter((a) => outcomeOf(a, draw).accepted && reviews[a.applicantId]?.status !== "rejected");
     const inProgress = Object.entries(drafts).filter(([id]) => !applications[id] || trackOf(applications[id]) === "direct");
     const waiting = inProgress.filter(([, d]) => Object.values(d.consents).some((c) => c.status === "pending"));
     const onOlder = inProgress.filter(([, d]) => d.configVersion && d.configVersion !== live.id);
@@ -82,7 +82,7 @@ export function useRegistrationDesk() {
         applications: waiting.length,
       },
     };
-  }, [reg, now, live, draft, fees.hajjCost, acceptedDirectAge, applications, drafts, reviews, draw]);
+  }, [reg, now, live, draft, fees.hajjCost, applications, drafts, reviews, draw]);
 }
 
 export type RegistrationDesk = ReturnType<typeof useRegistrationDesk>;

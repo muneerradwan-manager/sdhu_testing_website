@@ -47,8 +47,7 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
     const escort = people.find((o) => o.companionOf === p.id);
     return member(p.person!, p.relation, escort ? { companionId: escort.id } : {});
   });
-  // «notDrawn» registered on direct acceptance first: that application closed, and this one is the lottery's
-  const number = applicationNumberFor(notDrawn ? `${id}-L` : id);
+  const number = applicationNumberFor(id);
   // Direct acceptance: the fee and the first installment (two-installment plan) were paid with the registration.
   // Lottery: the fee only — the first installment confirms the registration, now that the main applicant's birth
   // year (1980) was drawn.
@@ -75,9 +74,6 @@ export function seedPilgrimScenario(id: string, state: Pick<StoreState, "applica
     firstPaid: lottery ? undefined : { amount: first, at, receipt: `1448-P-${number.padStart(6, "0")}-1` },
     payMethod: "shamcash",
     ratings: {},
-    // Not accepted on direct registration: the direct seats ran out at 69, above those born in 1958
-    ...(notDrawn && { announcedDirectAge: 69 }),
-    ...(notDrawn && { previous: { number: applicationNumberFor(id), track: "direct" as const, submittedAt: at - 40 * 86_400_000, closedAt: at - 30 * 86_400_000 } }),
   };
   actions.saveApplication(app);
   if (complete) completeSteps(id, app, now);

@@ -1,5 +1,7 @@
 "use client";
 
+import { maskPhone } from "@/lib/phone";
+import { CountryPhoneInput } from "@/components/ui/phone-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -50,7 +52,7 @@ import { cn, formatUSD } from "@/lib/utils";
 import { BookletPicker, type Book } from "./booklet";
 import { EligibilityCheck } from "./eligibility";
 import { PayWindow } from "../../application/_components/post/pay-window";
-import { Consents, Payment, consentPeople } from "./finalize";
+import { Consents, Payment, cleanPhone, consentPeople, demoPhone, validPhone } from "./finalize";
 import { PersonAdder, relationWord } from "./person-adder";
 import { Choice, DigitsDisplay, NumberPad, PersonChip, Question } from "./ui";
 
@@ -199,7 +201,8 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
   const [book, setBook] = useState<Book | null>((draft0?.book as Book | null) ?? null);
   // Where the applicant lives decides the office: the registry governorate inside Syria, or the country office abroad
   const [residence, setResidence] = useState<Residence>((draft0?.residence === "تركيا" ? "تركيا — إسطنبول" : (draft0?.residence as Residence)) ?? "سوريا");
-  const [other, setOther] = useState({ id: "", stage: "id" as "id" | "loading" | "confirm" | "otp", person: null as Person | null, otp: "", error: "" });
+  // Filing for someone else: his code goes to the mobile on his account, else to the one the filer enters for him
+  const [other, setOther] = useState({ id: "", stage: "id" as "id" | "loading" | "confirm" | "phone" | "otp", person: null as Person | null, otp: "", error: "", phone: "" });
   // How many times the eligibility check has run — only the first run reveals row by row
   const [checks, setChecks] = useState(0);
   // Furthest phase reached — completed phases can be reopened from the progress bar
@@ -384,19 +387,26 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
     const at = stamp();
     const people = consentPeople(list, sessionId);
     if (preview) {
-      setPreviewConsents((c) => Object.fromEntries(people.map((m) => [m.person.id, c[m.person.id] ?? { status: "pending" as const, sentAt: at, via: "sms" as const }])));
+      setPreviewConsents((c) => Object.fromEntries(people.filter((m) => c[m.person.id]).map((m) => [m.person.id, c[m.person.id]])));
       return;
     }
     // A save first, so the approvals have a draft to live in even if nothing else changed
     actions.saveDraft(sessionId, { history, track, members: list, book: book ? { ...book } : null, residence, maxPhase, configVersion: versionId, answers, memberAnswers }, at);
+    // Whoever has an account is invited in it, and by a code to the mobile on it when there is one; whoever has none
+    // waits for the applicant to enter the number his code goes to (Consents)
     for (const m of people) {
       if (consents[m.person.id]) continue;
-      actions.setConsent(sessionId, m.person.id, { status: "pending", sentAt: at, via: accounts[m.person.id] ? "app" : "sms" });
+      const acc = accounts[m.person.id];
+      if (acc) actions.setConsent(sessionId, m.person.id, { status: "pending", sentAt: at, via: "app", ...(acc.phone && { phone: acc.phone }) });
     }
     // Requests to people who are no longer in the application are withdrawn
     for (const id of Object.keys(consents)) if (!people.some((m) => m.person.id === id)) actions.setConsent(sessionId, id, null);
-    if (people.some((m) => !consents[m.person.id])) {
-      toast({ title: "أُرسلت طلبات الموافقة", body: "يوافق كل فرد من هاتفه متى تيسّر له، وطلبك محفوظ حتى ذلك الحين.", icon: "📨", tone: "info" });
+    const fresh = people.filter((m) => !consents[m.person.id]);
+    if (fresh.some((m) => accounts[m.person.id])) {
+      toast({ title: "أُرسلت طلبات الموافقة", body: "يجد من له حساب الطلب في حسابه ويوافق منه، وطلبك محفوظ حتى ذلك الحين.", icon: "📨", tone: "info" });
+    }
+    if (fresh.some((m) => !accounts[m.person.id]?.phone)) {
+      toast({ title: "أدخل أرقام الهواتف", body: "من لا حساب له على المنصة، أو حسابه بلا رقم هاتف، يصله رمز الموافقة على الرقم الذي تدخله له.", icon: "📱", tone: "gold" });
     }
   };
 
@@ -821,7 +831,7 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                       label="لشخص آخر"
                       description="مثل والدك أو والدتك. يصل صاحب الطلب رمز موافقة على هاتفه."
                       onClick={() => {
-                        setOther({ id: "", stage: "id", person: null, otp: "", error: "" });
+                        setOther({ id: "", stage: "id", person: null, otp: "", error: "", phone: "" });
                         go("otherId");
                       }}
                     />
@@ -879,16 +889,58 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                           label="نعم"
                           tone="primary"
                           onClick={() => {
-                            setOther((o) => ({ ...o, stage: "otp" }));
+                            const onFile = accounts[other.person!.id]?.phone;
+                            if (!onFile) return setOther((o) => ({ ...o, stage: "phone", error: "" }));
+                            setOther((o) => ({ ...o, stage: "otp", phone: onFile }));
                             setTimeout(() => toast({ title: `رسالة إلى هاتف ${other.person?.firstName}`, body: `طلب تقديم حج باسمك من ${me.firstName}. رمز الموافقة: ${DEMO_OTP}`, icon: "💬", tone: "gold" }), 800);
                           }}
                         />
-                        <Choice index={1} icon="↩️" label="لا، رقم آخر" onClick={() => setOther({ id: "", stage: "id", person: null, otp: "", error: "" })} />
+                        <Choice index={1} icon="↩️" label="لا، رقم آخر" onClick={() => setOther({ id: "", stage: "id", person: null, otp: "", error: "", phone: "" })} />
+                      </div>
+                    </Question>
+                  )}
+                  {other.stage === "phone" && other.person && (
+                    <Question
+                      title={`رقم هاتف ${other.person.firstName} ليصله رمز الموافقة`}
+                      hint={accounts[other.person.id] ? "له حساب على المنصة دون رقم هاتف: أدخل رقمه ليصله الرمز." : "ليس له حساب على المنصة: أدخل رقم هاتفه ليصله الرمز."}
+                    >
+                      <CountryPhoneInput
+                        value={other.phone}
+                        onChange={(v) => setOther((o) => ({ ...o, phone: v, error: "" }))}
+                        ariaLabel={`رقم هاتف ${other.person.firstName}`}
+                        invalid={!!other.error}
+                        className="h-16 w-full rounded-2xl border-2 border-gold/50 bg-white"
+                        inputClassName="text-2xl"
+                      />
+                      {other.error && <p className="mt-4 rounded-2xl bg-maroon/8 p-4 text-center font-bold text-maroon">{other.error}</p>}
+                      <div className="mt-8 text-center">
+                        <Button
+                          size="xl"
+                          onClick={() => {
+                            if (!validPhone(other.phone)) return setOther((o) => ({ ...o, error: "رقم هاتف غير صحيح لهذه الدولة" }));
+                            setOther((o) => ({ ...o, stage: "otp", phone: cleanPhone(o.phone), error: "" }));
+                            setTimeout(() => toast({ title: `رسالة إلى هاتف ${other.person?.firstName}`, body: `طلب تقديم حج باسمك من ${me.firstName}. رمز الموافقة: ${DEMO_OTP}`, icon: "💬", tone: "gold" }), 800);
+                          }}
+                        >
+                          إرسال رمز الموافقة <ArrowLeft className="size-6" />
+                        </Button>
+                        <p className="mt-3 text-sm">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOther((o) => ({ ...o, stage: "otp", phone: demoPhone(o.person!.id), error: "" }));
+                              setTimeout(() => toast({ title: `رسالة إلى هاتف ${other.person?.firstName}`, body: `طلب تقديم حج باسمك من ${me.firstName}. رمز الموافقة: ${DEMO_OTP}`, icon: "💬", tone: "gold" }), 800);
+                            }}
+                            className="rounded-full border border-dashed border-gold-dark bg-gold/15 px-3 py-1.5 font-semibold text-maroon"
+                          >
+                            محاكاة: رقم تجريبي وإرسال
+                          </button>
+                        </p>
                       </div>
                     </Question>
                   )}
                   {other.stage === "otp" && other.person && (
-                    <Question title={`أدخل رمز الموافقة الذي وصل إلى هاتف ${other.person.firstName}`} hint={`على الهاتف المنتهي بـ ${other.person.phoneTail}`}>
+                    <Question title={`أدخل رمز الموافقة الذي وصل إلى هاتف ${other.person.firstName}`} hint={`على الهاتف ${maskPhone(other.phone)}`}>
                       <OtpInput value={other.otp} onChange={(v) => setOther((o) => ({ ...o, otp: v }))} />
                       <p className="mt-3 text-center text-sm text-hint">رمز تجريبي: <button className="font-mono font-bold underline" onClick={() => setOther((o) => ({ ...o, otp: DEMO_OTP }))}>{DEMO_OTP}</button></p>
                       <div className="mt-8 text-center">
@@ -1264,13 +1316,21 @@ export function ApplyFlow({ preview }: { preview?: { config: RegConfig; personId
                   members={members}
                   filerId={sessionId}
                   consents={consents}
+                  accounts={accounts}
+                  onSendCode={(id, phone) => {
+                    const consent = { ...consents[id], status: "pending" as const, sentAt: stamp(), via: consents[id]?.via ?? ("sms" as const), phone };
+                    if (preview) setPreviewConsents((c) => ({ ...c, [id]: consent }));
+                    else actions.setConsent(sessionId, id, consent);
+                    const who = members.find((m) => m.person.id === id)?.person.firstName;
+                    setTimeout(() => toast({ title: `رسالة إلى هاتف ${who} (${maskPhone(phone)})`, body: `طلب تقديم حج يضمّك من ${me.firstName}. رمز الموافقة: ${DEMO_OTP}`, icon: "💬", tone: "gold" }), 600);
+                  }}
                   onSimulate={(id, status) =>
                     preview
                       ? setPreviewConsents((c) => ({ ...c, [id]: { ...c[id], status, respondedAt: stamp() } }))
                       : actions.respondConsent(sessionId, id, status, stamp())
                   }
                   onResend={(id) => {
-                    if (!preview) actions.setConsent(sessionId, id, { status: "pending", sentAt: stamp(), via: accounts[id] ? "app" : "sms" });
+                    if (!preview && consents[id]) actions.setConsent(sessionId, id, { ...consents[id], status: "pending", sentAt: stamp() });
                     toast({ title: "أُعيد إرسال طلب الموافقة", icon: "📨" });
                   }}
                   onRemove={(id) => {
