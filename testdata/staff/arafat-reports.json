@@ -1,0 +1,37 @@
+[
+  {
+    "group": 27,
+    "cluster": "النور",
+    "inArafat": 48,
+    "of": 48,
+    "report": "13:00"
+  },
+  {
+    "group": 14,
+    "cluster": "النور",
+    "inArafat": 49,
+    "of": 50,
+    "report": "13:40"
+  },
+  {
+    "group": 31,
+    "cluster": "النور",
+    "inArafat": 50,
+    "of": 50,
+    "report": "12:55"
+  },
+  {
+    "group": 19,
+    "cluster": "اليقين",
+    "inArafat": 44,
+    "of": 45,
+    "report": "13:20"
+  },
+  {
+    "group": 8,
+    "cluster": "الشهباء",
+    "inArafat": 44,
+    "of": 45,
+    "report": "14:05"
+  }
+]

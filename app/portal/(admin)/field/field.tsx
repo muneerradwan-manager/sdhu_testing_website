@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Badge, Modal, useToast } from "@/components/ui/widgets";
 import { actions, getState, useStore, type DailyReport, type Ticket, type TicketKind } from "@/lib/store";
 import { groupName } from "@/lib/groups";
+import { withNames } from "@/lib/demo-text";
+import CHANNEL_TEMPLATES from "@/testdata/admins/channel-templates.json";
 import { CmsImage } from "@/components/cms/image";
 import { groupSeed } from "@/lib/group-profile";
 import { CATALOG, JAMARAT, JAMARAT_DAYS, MINA_NIGHTS, MUZDALIFA_LEVELS, doneWhen, performed, performedText, riteOf, umrahLabel, useGroupRites, type FieldRecordKind, type GroupMuster } from "@/lib/musters";
@@ -583,12 +585,8 @@ function RiteLog({ W, records, expected, roster, canAct }: { W: (typeof WORDS)[F
 
 // ───────────────────────── Channel ─────────────────────────
 
-const TEMPLATES = [
-  { k: "درس", icon: "📖", text: "درس الليلة 20:30 مع الشيخ خالد الرفاعي في قاعة الطابق 12 — الموضوع: أعمال يوم التروية." },
-  { k: "تجمّع", icon: "📍", text: "تجمّع المجموعة في بهو الفندق 21:00 — الحافلة 21:30. لا تنسَ بطاقتك الرقمية." },
-  { k: "وجبات", icon: "🍽️", text: "العشاء اليوم 19:30 – 22:00 في مطعم الطابق (م). الوجبات الخاصة يسلّمها ياسر عبد الله." },
-  { k: "رحلة", icon: "🚌", text: "حافلة التنعيم غداً 16:00 — التجمّع: البوابة الجنوبية 15:45 — المشرف: ياسر عبد الله." },
-];
+/** Ready messages for the group's channel (testdata/admins/channel-templates.json): people by national number */
+const TEMPLATES = CHANNEL_TEMPLATES.map((t) => ({ ...t, text: withNames(t.text) }));
 
 type Post = GroupPost & { reach: number };
 

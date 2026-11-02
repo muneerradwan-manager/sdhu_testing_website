@@ -156,7 +156,7 @@ MODULE = M("post", "ما بعد القبول: الخطوات السبع والس
         c("min_age", "TINYINT UNSIGNED", "لا تُطلب إلا ممن بلغ هذا العمر (60 للإنفلونزا)", null=True),
         c("only_if_medications", "TINYINT(1)", "لا تُطلب إلا ممن له أدوية دائمة (الوصفة)", d="0"),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
-    ], uq=[("season_year", "doc_key")], src="lib/season.ts:129 SEASON.medicalDocuments؛ post.ts medicalDocsFor"),
+    ], uq=[("season_year", "doc_key")], src="testdata/settings/season.json medicalDocuments؛ post.ts medicalDocsFor"),
 
     T("member_medical_documents", "الوثائق الطبية لكل فرد", "حالة كل وثيقة طبية مطلوبة من كل فرد، يراجعها «الفريق الطبي».", [
         pk(), ref("application_id", "applications", "الطلب", od="CASCADE"),

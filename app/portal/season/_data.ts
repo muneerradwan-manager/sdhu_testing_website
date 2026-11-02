@@ -4,7 +4,10 @@
  */
 import { DEFAULT_MEALS, type MealTimes } from "@/lib/season-live";
 import { groupName } from "@/lib/groups";
-import { GROUP, PLACES } from "@/lib/journey";
+import { GROUP, GROUP_GUIDE_ID, PLACES } from "@/lib/journey";
+import { withNames } from "@/lib/demo-text";
+import HOTEL_MENUS_DATA from "@/testdata/journey/hotel-menus.json";
+import TRIPS_DATA from "@/testdata/journey/trips.json";
 
 export type Where = "damascus" | "jeddah" | "makkah" | "mina" | "arafat" | "muzdalifah" | "madinah" | "home";
 
@@ -127,10 +130,8 @@ export function nextBus(where: Where, i: number): string {
 
 export type Meal = { key: "breakfast" | "lunch"; name: string; time: string; start: string; place: string; menu: string };
 
-const HOTEL_MENUS: Record<Meal["key"], string[]> = {
-  breakfast: ["فول، بيض، جبن، زيتون، خبز، فواكه، شاي وقهوة", "فتة حمص، لبنة، زعتر وزيت، عسل، فواكه، شاي", "مسبّحة، بيض مسلوق، حلاوة، مربى، خبز، حليب"],
-  lunch: ["كبسة دجاج، شوربة عدس، سلطة، أرز، لبن", "مقلوبة باذنجان، سلطة عربية، شوربة خضار، لبن", "كبة بالصينية، أرز بشعيرية، فتوش، عصير"],
-};
+/** The hotels' menus of the day, in turn (testdata/journey/hotel-menus.json) */
+const HOTEL_MENUS: Record<Meal["key"], string[]> = HOTEL_MENUS_DATA;
 
 /**
  * The season's meals are two, breakfast and lunch, served at the Makkah hotel and at the Madinah hotel at the
@@ -164,20 +165,16 @@ export function nextMeal(meals: Meal[], time: string) {
 
 export type Trip = { id: string; title: string; when: string; gather: string; back: string; seats: number; booked: number; lead: string; days: number[]; mandatory?: boolean; note?: string };
 
-export const TRIPS: Trip[] = [
-  { id: "umrah", title: "العمرة الأولى (تمتّع)", when: "الليلة 21:30", gather: "بهو الفندق 21:00", back: "02:00", seats: 50, booked: 47, lead: "أحمد سليمان + الشيخ خالد", days: [0], mandatory: true, note: "كبار السن بالكرسي مع مرافقيهم" },
-  { id: "haram", title: "رحلة إلى المسجد الحرام", when: "12:00", gather: "البوابة الجنوبية", back: "حافلات كل ساعة من موقف (ب) — آخر حافلة 24:00", seats: 50, booked: 37, lead: "ياسر عبد الله", days: [1, 2, 3, 5, 6, 8, 9, 11, 12, 19, 20] },
-  { id: "taneem", title: "التنعيم — عمرة عن الغير", when: "28 ذو القعدة 16:00", gather: "البوابة الجنوبية 15:45", back: "21:00", seats: 50, booked: 30, lead: "ياسر عبد الله", days: [3, 4], note: "«من أراد العمرة عن غيره فليتحلل من عمرته السابقة أولاً» — الشيخ خالد" },
-  { id: "landmarks", title: "زيارة معالم مكة (جبل النور، غار ثور من بعيد، المتحف)", when: "2 ذو الحجة 08:00", gather: "البوابة الجنوبية", back: "13:00", seats: 90, booked: 81, lead: `ياسر + معاون ${groupName(31)}`, days: [6, 7] },
-  { id: "mashaer-visit", title: "زيارة المشاعر قبل الحج (تعرّف على المخيم)", when: "5 ذو الحجة 15:00", gather: "البوابة الجنوبية", back: "18:00", seats: 50, booked: 47, lead: "أحمد سليمان", days: [9, 10], mandatory: true },
-  { id: "ifadah", title: "طواف الإفاضة والسعي", when: "13 ذو الحجة 03:30", gather: "بهو الفندق 03:15", back: "08:00", seats: 50, booked: 47, lead: "الشيخ خالد الرفاعي", days: [17, 18], mandatory: true, note: "كبار السن بالكرسي في الدور المخصص" },
-  { id: "rawdah", title: "زيارة الروضة الشريفة", when: "18 ذو الحجة — 02:00 رجال / 10:00 سيدات", gather: "بهو الفندق قبل الموعد بنصف ساعة", back: "بعد الزيارة", seats: 50, booked: 46, lead: "أحمد سليمان", days: [21, 22, 23], note: "اطلب الكرسي المتحرك مسبقاً من هنا" },
-  { id: "quba", title: "قباء وأحد والقبلتين", when: "19 ذو الحجة 08:00", gather: "بهو الفندق", back: "12:30", seats: 50, booked: 43, lead: "ياسر + الشيخ خالد", days: [22, 23, 24] },
-];
+/** The group's trips (testdata/journey/trips.json): their leaders by national number, «{group:N}» a group's name */
+const tripText = (text: string) => withNames(text).replace(/\{group:(\d+)\}/g, (_, n: string) => groupName(Number(n)));
+export const TRIPS: Trip[] = TRIPS_DATA.map((t) => ({ ...t, lead: tripText(t.lead), ...(t.note && { note: tripText(t.note) }) }));
 
 // ───────────────────────── Zone notifications ─────────────────────────
 
 export type Notice = { time: string; scope: "رسمي" | "حسب المنطقة" | "حسب المجموعة" | "حسب الفرد" | "حسب الحالة"; text: string; tone: "heat" | "crowd" | "info" | "good" | "personal" };
+
+/** The group's guide as the notices call him: «الشيخ خالد» */
+const SHEIKH = withNames("{title} {first}", GROUP_GUIDE_ID);
 
 /** `companion.name` is "أنت" when the signed-in pilgrim is the official companion */
 export function noticesFor(i: number, n: number, companion?: { name: string; elder: string }): Notice[] {
@@ -208,7 +205,7 @@ export function noticesFor(i: number, n: number, companion?: { name: string; eld
     case 15:
       add("06:30", "حسب المنطقة", "كثافة عالية في الدور الأرضي للجمرات حتى 10:00 — مسار تكتل النور: الدور الثالث من الجهة الشرقية.", "crowd");
       add("10:20", "حسب الحالة", `تم ذبح الهدي عن أفراد طلبك (${n}) — رقم القسيمة H-1448-27-${String(n).padStart(2, "0")}.`, "good");
-      add("11:00", "حسب المجموعة", "بعد الحلق يجوز لكم لبس المخيط — الشيخ خالد.");
+      add("11:00", "حسب المجموعة", `بعد الحلق يجوز لكم لبس المخيط — ${SHEIKH}.`);
       add("12:00", "رسمي", "تقبّل الله منكم. كل عام وأنتم بخير.", "good");
       break;
     case 16:
@@ -246,7 +243,7 @@ export function noticesFor(i: number, n: number, companion?: { name: string; eld
         if (i === 2 || i === 8) add("11:20", "حسب المنطقة", "ازدحام على طريق العزيزية المؤدي إلى الحرم. حافلة 12:00 قد تتأخر 20 دقيقة.", "crowd");
         if (i === 3) add("16:00", "حسب الفرد", "تذكير: رحلة التنعيم غداً 16:00. نقطة التجمّع: البوابة الجنوبية.", "personal");
         add("12:45", "حسب المنطقة", "الغداء يبدأ خلال 15 دقيقة في مطعم الطابق (م).");
-        add("20:00", "حسب المجموعة", "الدرس اليومي 20:30 في قاعة الطابق (م) مع الشيخ خالد.");
+        add("20:00", "حسب المجموعة", `الدرس اليومي 20:30 في قاعة الطابق (م) مع ${SHEIKH}.`);
       } else if (i >= 22) {
         add("05:00", "حسب المنطقة", "الفطور مبكر اليوم من 05:30 لمن يصلي الفجر في المسجد النبوي.");
       } else {

@@ -5,6 +5,7 @@ import { can } from "./permissions";
 import type { StaffUser } from "./staff";
 import { useStore } from "./store";
 import { gregorianDate, hijriDate } from "./utils";
+import OPERATIONS_DATA from "@/testdata/settings/operations.json";
 
 /**
  * The season's operations, each one a tab of its own: registering pilgrims on the Hajj, registering as an
@@ -55,26 +56,10 @@ export type OperationDef = {
  * In the season's order, on the real calendar of season 1448 as the Hajj and Umrah administration announced
  * it (SANA, August–October 2026): registering pilgrims on the Hajj 12 August – 10 September, administrators'
  * applications 20–24 September, the lottery 26 September, the first installment 11–27 October. What it had
- * not announced yet (`estimate`) follows last season's pattern, and says so on the screens.
+ * not announced yet (`estimate`) follows last season's pattern, and says so on the screens. The operations and
+ * their dates are testdata/settings/operations.json.
  */
-export const OPERATIONS: OperationDef[] = [
-  { key: "hajj-direct", label: "التسجيل على الحج — القبول المباشر", desc: "لمواليد 1958 فما قبل ومرافقيهم. يسجّل الحاج نفسه، أو يسجّله من يملك صلاحية التسجيل. لا يضعه في أي مجموعة.", start: "2026-08-12", end: "2026-08-25" },
-  { key: "hajj-lottery", label: "التسجيل على الحج — التسجيل الأولي على القرعة", desc: "طلب مستقل بعد القبول المباشر، برسم التسجيل فقط. لا يضع أحداً في مجموعة.", start: "2026-08-26", end: "2026-09-10" },
-  { key: "admin-registration", label: "التسجيل كإداري", desc: "طلب المشاركة في الموسم لصفة واحدة من الصفات المفتوحة للتقدم: رئيس مجموعة، أو موجّه ديني بدرجته (أ، ب، ج)، أو معاون، أو منسق تقني، أو موجّهة دينية بدرجتها…", start: "2026-09-20", end: "2026-09-24" },
-  { key: "admin-exams", label: "الاختبارات", desc: "الاختبار المؤتمت لكل صفة في قاعات المراكز الامتحانية، بإشراف مشرفي القاعات، قبل تشكيل المجموعات.", start: "2026-09-27", end: "2026-10-25", estimate: true },
-  { key: "admin-orals", label: "الامتحانات الشفهية", desc: "بعد الاختبار المؤتمت: يختار الناجح فيه موعده أمام لجنة صفته في مركزه، فتسجّل اللجنة نتيجته. لا يتأهل إلا بنجاحه فيهما معاً.", start: "2026-10-11", end: "2026-10-22", estimate: true },
-  { key: "group-formation", label: "تشكيل المجموعات", desc: "يحضر الناجح في التأهيل وفريقه إلى المكتب: يشكّل موظف إدارة الإداريين المجموعة باسمها وفئتها، ويُجلس موجّهها ومعاونها، ويقبض رسمها، ويرفع عقدها الموقّع.", start: "2026-11-01", end: "2026-11-10", estimate: true },
-  { key: "group-joining", label: "إلحاق الحجاج بالمجموعات", desc: "يتفق الحاج مع مجموعة ويوقّع عقده معها في المكتب، فيلحقه موظف المكتب بها، والطلب العائلي كاملاً. يرى رئيس المجموعة ومنسقها حجاجها. يبدأ مع تشكيل التكتلات ويستمر بعده.", start: "2026-11-12", end: "2027-01-15", estimate: true },
-  { key: "cluster-formation", label: "تشكيل التكتلات", desc: "في المكتب بحضور رئيس التكتل وكل من فيه، بالتوازي مع إلحاق الحجاج: تدخل المجموعات بفرقها، ويختار رئيسه كادره ويوزّعه، ويُدفع رسمه، ويرفع الموظف عقده الموقّع، فيُنشأ معتمداً. الموعد الأول لشارة الالتزام بالمواعيد.", start: "2026-11-12", startTime: "09:00", end: "2026-11-30", endTime: "23:59", estimate: true },
-  { key: "group-management", label: "إدارة المجموعات", desc: "المجموعة المعتمدة وحجاجها والفريق في مقاعدها. دائمة ما دامت المجموعة قائمة." },
-  { key: "cluster-management", label: "إدارة التكتل", desc: "التكتل المعتمد: مجموعاته وحجاجها وكادره وتوزيع منسقيه وموجّهاته على مجموعاته وبرنامجه. دائمة ما دام التكتل قائماً." },
-  // After the season: the pilgrims rate as they come home; the administrators rate themselves once the last of them landed; then the staff and the clusters' heads rate them
-  { key: "pilgrim-evaluation", label: "تقييم الحجاج بعد العودة", desc: "اختياري: يقيّم الحاج بعد عودته رحلته كلها، ومجموعته وتكتله عموماً. لا يقيّم أشخاصاً بأسمائهم، ولا يدخل في تقييم الإداريين.", start: "2027-05-22", end: "2027-06-15", estimate: true },
-  { key: "self-evaluation", label: "التقييم الذاتي للإداريين", desc: "بعد هبوط آخر رحلات العودة في دمشق: يقيّم رئيس المجموعة ورئيس التكتل والموجّه والموجّهة أنفسهم في كل مرحلة من مراحل الموسم، بأسئلة صفاتهم، ويرسلون تقييمهم مرة واحدة. وفي الوقت نفسه يقيّمهم الموظفون.", start: "2027-06-04", end: "2027-06-10", estimate: true },
-  { key: "peer-evaluation", label: "تقييم الموظفين للإداريين", desc: "بالتوازي مع التقييم الذاتي: يقيّم موظفو البعثة من كانوا معهم في ملفاتهم، بالأسئلة نفسها: موظفو فندق مكة مرحلة مكة، وفندق المدينة مرحلة المدينة، والمخيمات المشاعر، ومشرفو الطيران (ملف الطيران) مرحلتي المطار والسفر لكل التكتلات. تقييم رئيس المجموعة تقييم لمجموعته، ورئيس التكتل لتكتله، والموجّه لنفسه. وللموظف أيضاً أن يضيف للإداري إيجابيات أو سلبيات: عدد نقاط يختاره، مع سببه وصورة أو دليل. هوية المقيِّم سرّية عن الإداري والإدارة، وتعرفها لجنة التقييم وحدها.", start: "2027-06-04", end: "2027-06-10", estimate: true },
-  { key: "evaluation-objection", label: "الاعتراض على التقييم", desc: "بعد التقييمين: يرى الإداري تقييمه لنفسه وتقييم الموظفين له، وله أن يعترض على تقييم الموظفين في مراحل يحددها، بسببه وبأدلته (صور أو صوت أو فيديو أو مستندات). وله أن يعترض كذلك على أي سلبية أضافها له موظف، بسببها وبأدلته. ويردّ المقيِّمون وأصحاب النقاط بأدلتهم هم، دون أن يُعرفوا للإداري.", start: "2027-06-11", end: "2027-06-17", estimate: true },
-  { key: "evaluation-committee", label: "قرار لجنة التقييم", desc: "بعد الاعتراضات: تقرأ لجنة التقييم (ملف تشغيلي أعضاؤه مُسندون عليه) أدلة الطرفين، وتقرّر لكل مرحلة معترض عليها: درجة الإداري، أو درجة الموظفين، أو درجة ثالثة من عندها، وتعدّل قيمة أي إيجابية أو سلبية صعوداً أو نزولاً بتعليل. ومن لم يعترض تُعتمد درجة الموظفين وقيمة النقاط كما وُضعت. ثم تعتمد اللجنة النتيجة النهائية: مراحله من 100 زائد صافي النقاط.", start: "2027-06-18", end: "2027-06-27", estimate: true },
-];
+export const OPERATIONS = OPERATIONS_DATA as OperationDef[];
 
 export const OPERATION_KEYS = OPERATIONS.map((o) => o.key);
 
@@ -95,7 +80,7 @@ export type OperationState = OperationDef & {
 };
 
 /** The season's first day: the opening of the Hajj registration */
-export const DEMO_START = "2026-08-12";
+export const DEMO_START = OPERATIONS.find((o) => o.key === "hajj-direct")?.start ?? "2026-08-12";
 
 /** Today as a day, local time */
 export function dayOf(d: Date) {

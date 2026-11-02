@@ -27,6 +27,9 @@ export const GROUP = {
   team: GROUP_DATA.team.map((t) => ({ role: t.role, name: withNames(t.name ?? "{short}", t.id), phone: phoneOf(t.id, true), note: t.note })),
 };
 
+/** Its religious guide, by national number: the season's texts that name him (the trips, the notices) */
+export const GROUP_GUIDE_ID = GROUP_DATA.team.find((t) => t.role === "الموجّه الديني")?.id ?? "";
+
 /** Its hotels, camps and the places of the rites (testdata/journey/places.json); مزدلفة's point is its group's */
 export const PLACES = { ...PLACES_DATA, muzdalifah: { name: `نقطة مبيت ${groupName(GROUP.number)}`, ...PLACES_DATA.muzdalifah } };
 

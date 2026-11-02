@@ -181,7 +181,7 @@ MODULE = M("field", "العمل الميداني: المناسك والقناة 
         c("description", "VARCHAR(300)", "الشرح («من الفندق في مكة إلى مخيم المجموعة في منى، يوم الثامن.»…)"),
         c("when_label", "VARCHAR(80)", "الموعد («8 ذو الحجة — بعد صلاة الفجر»…)"),
         c("unit_label", "VARCHAR(20)", "الوحدة: «حافلة» أو «قائمة»"),
-    ], src="lib/rite-lists.ts:15 ListKind"),
+    ], src="lib/rite-lists.ts:16 ListKind"),
 
     T("rite_list_units", "الحافلات وقوائم الروضة", "حافلة لكل 49 مقعداً من حجاج التكتل وفريقه، أو قائمتا الروضة (للرجال وللنساء). يضيفها فريق المواصلات ويزيلها.", [
         pk(), ref("cluster_id", "clusters", "التكتل", od="CASCADE"),
@@ -221,7 +221,7 @@ MODULE = M("field", "العمل الميداني: المناسك والقناة 
         c("decided_at", "DATETIME(3)", "الوقت", null=True),
         c("reason", "VARCHAR(300)", "سبب الرفض (إلزامي عند الرفض)", null=True),
         ref("unit_id", "rite_list_units", "الحافلة المنشأة عند الاعتماد", null=True),
-    ], src="lib/rite-lists.ts:44 BusRequest؛ approveBus، rejectBus",
+    ], src="lib/rite-lists.ts:45 BusRequest؛ approveBus، rejectBus",
        rules=["لا يطلب المنسق وله طلب معلّق في القائمة نفسها."]),
 ], flow=[
     "يسجّل فريق المجموعة كل منسك أو مزار أو محطة (field_records + field_record_persons)؛ يقرؤها الحاج في «أداء المناسك» وتغذي التقييم «الالتزام بالمراحل».",

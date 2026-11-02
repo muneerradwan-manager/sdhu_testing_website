@@ -6,6 +6,7 @@ import en from "react-phone-number-input/locale/en.json";
 import "react-phone-number-input/style.css";
 import { useLang } from "@/lib/i18n";
 import { toInternational } from "@/lib/phone";
+import { useHydrated } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,12 +17,18 @@ import { cn } from "@/lib/utils";
  */
 export function CountryPhoneInput({ value, onChange, className, inputClassName, ariaLabel, invalid }: { value: string; onChange: (v: string) => void; className?: string; inputClassName?: string; ariaLabel: string; invalid?: boolean }) {
   const lang = useLang();
+  // The list is sorted by the countries' names, and Node and the browser order Arabic names differently: until the
+  // page is hydrated it holds Syria alone, so the server's HTML and the browser's first render are the same. The field
+  // keeps its countries from its first render, so it is mounted again (`key`) with all of them once hydrated
+  const hydrated = useHydrated();
   return (
     <div dir="ltr" aria-invalid={invalid || undefined} className={cn("phone-field flex items-center gap-2 px-3", className)}>
       <PhoneInput
+        key={hydrated ? "all" : "ssr"}
         international
         countryCallingCodeEditable={false}
         defaultCountry="SY"
+        countries={hydrated ? undefined : ["SY"]}
         labels={lang === "en" ? en : ar}
         value={toInternational(value) || undefined}
         onChange={(v) => onChange(v ?? "")}

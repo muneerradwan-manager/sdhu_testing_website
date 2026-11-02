@@ -98,7 +98,7 @@ MODULE = M("season", "الحاج في الموسم وبعد العودة: الب
         c("menu", "TEXT", "القائمة (فارغة = «قائمة الفندق اليومية»)", null=True),
         person("set_by_national_id", "المنسق التقني الذي ضبطها"),
         updated(),
-    ], uq=[("season_year", "cluster_id", "city", "meal")], new=True, src="app/portal/(admin)/meals؛ lib/season-live.ts mealsOfCluster وDEFAULT_MEALS",
+    ], uq=[("season_year", "cluster_id", "city", "meal")], new=True, src="app/portal/(admin)/meals؛ lib/season-live.ts mealsOfCluster وDEFAULT_MEALS (testdata/settings/meals.json)",
        seed="الافتراضي حتى يضبطه المنسق: مكة 06:00–09:00 و13:00–15:00؛ المدينة 05:30–08:30 و13:00–15:00."),
 ], flow=[
     "زر الطوارئ والشكوى والمفقودات وبلاغ فريق المجموعة كلها تكتب tickets، وكل معالجة تكتب ticket_updates.",

@@ -51,7 +51,7 @@ MODULE = M("exams", "الاختبارات: المؤتمت في القاعات و
         c("capacity", "SMALLINT UNSIGNED", "السعة (120 لدمشق…)", null=True),
         c("display_no", "SMALLINT UNSIGNED", "رقم شاشة العرض /exam-display/<n> (1–9999)", uq=True),
         c("active", "TINYINT(1)", "فعّال (لا يُعطَّل وفيه جلسة جارية)", d="1"),
-    ], src="admin-exam.ts:739 ExamCenter؛ halls.ts:28 EXAM_CENTERS",
+    ], src="admin-exam.ts:739 ExamCenter؛ testdata/exams/centers.json",
        seed="9 مراكز.",
        rules=["مشرف القاعة من يملك صلاحية «قاعة الامتحان» (hall.*) لهذا المركز في staff_user_permission_scopes، ولا يُسند من شاشة القاعات. مشرفة مركز دمشق نسرين الحكيم."]),
 
@@ -85,7 +85,7 @@ MODULE = M("exams", "الاختبارات: المؤتمت في القاعات و
         c("all_centers", "TINYINT(1)", "1 = في كل المراكز الفعالة؛ 0 = المراكز في exam_center_links", d="1"),
         c("instructions", "JSON", "تعليمات الاختبار سطراً سطراً"),
         *stamps(),
-    ], uq=[("season_year", "code")], src="admin-exam.ts:703 ExamDef؛ examHalls.exams؛ halls.ts:47 DEFAULT_SESSIONS",
+    ], uq=[("season_year", "code")], src="admin-exam.ts:703 ExamDef؛ examHalls.exams؛ testdata/exams/sessions.json",
        rules=["النشر يحتاج يوماً وبنكاً يكفي سحب كل قسم. ولا يُترك published وفيه جلسة مفتوحة أو جارية.",
               "يُحذف فقط الاستدراكي الذي لم يُجلس ولا جلسة له."],
        seed="موسم 1448: guide-m 4 تشرين الأول 09:00، guide-f 12:00، group-deputy 6 تشرين الأول، group-head 7، tech 8."),

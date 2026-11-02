@@ -1,0 +1,172 @@
+{
+  "branches": [
+    "إدلب",
+    "اسطنبول",
+    "الرقة",
+    "اللاذقية",
+    "حلب",
+    "حماة",
+    "حمص",
+    "درعا",
+    "دمشق",
+    "دير الزور",
+    "غازي عنتاب",
+    "مصر"
+  ],
+  "tiers": [
+    {
+      "id": "eco",
+      "name": "اقتصادي"
+    },
+    {
+      "id": "eco-plus",
+      "name": "اقتصادي محسن"
+    },
+    {
+      "id": "five",
+      "name": "خمس نجوم"
+    }
+  ],
+  "defaultTier": "eco",
+  "earlyDeadline": {
+    "date": "2026-11-19",
+    "time": "23:59"
+  },
+  "categories": [
+    {
+      "id": "c1",
+      "name": "الفئة الأولى",
+      "weight": 1
+    },
+    {
+      "id": "c2",
+      "name": "الفئة الثانية",
+      "weight": 2
+    },
+    {
+      "id": "c3",
+      "name": "الفئة الثالثة",
+      "weight": 3
+    },
+    {
+      "id": "c4",
+      "name": "الفئة الرابعة",
+      "weight": 4
+    }
+  ],
+  "categoryRules": {
+    "eco": {
+      "c1": {
+        "guides": 1,
+        "assistants": 0,
+        "free": 0,
+        "pilgrims": 45,
+        "active": true
+      },
+      "c2": {
+        "guides": 1,
+        "assistants": 1,
+        "free": 0,
+        "pilgrims": 90,
+        "active": true
+      },
+      "c3": {
+        "guides": 1,
+        "assistants": 1,
+        "free": 1,
+        "pilgrims": 135,
+        "active": true
+      },
+      "c4": {
+        "guides": 2,
+        "assistants": 2,
+        "free": 0,
+        "pilgrims": 200,
+        "active": true
+      }
+    },
+    "eco-plus": {
+      "c1": {
+        "guides": 1,
+        "assistants": 0,
+        "free": 0,
+        "pilgrims": 45,
+        "active": true
+      },
+      "c2": {
+        "guides": 1,
+        "assistants": 1,
+        "free": 0,
+        "pilgrims": 135,
+        "active": true
+      },
+      "c3": {
+        "guides": 1,
+        "assistants": 1,
+        "free": 1,
+        "pilgrims": 135,
+        "active": true
+      },
+      "c4": {
+        "guides": 2,
+        "assistants": 2,
+        "free": 1,
+        "pilgrims": 200,
+        "active": true
+      }
+    },
+    "five": {
+      "c1": {
+        "guides": 0,
+        "assistants": 0,
+        "free": 0,
+        "pilgrims": 30,
+        "active": true
+      },
+      "c2": {
+        "guides": 0,
+        "assistants": 0,
+        "free": 0,
+        "pilgrims": 60,
+        "active": true
+      },
+      "c3": {
+        "guides": 0,
+        "assistants": 0,
+        "free": 0,
+        "pilgrims": 90,
+        "active": true
+      },
+      "c4": {
+        "guides": 0,
+        "assistants": 0,
+        "free": 0,
+        "pilgrims": 120,
+        "active": true
+      }
+    }
+  },
+  "composition": {
+    "eco": {
+      "min": 5,
+      "max": 24,
+      "assistants": 1,
+      "perCoordinator": 6,
+      "perGuide": 7
+    },
+    "eco-plus": {
+      "min": 5,
+      "max": 21,
+      "assistants": 1,
+      "perCoordinator": 6,
+      "perGuide": 7
+    },
+    "five": {
+      "min": 5,
+      "max": 21,
+      "assistants": 0,
+      "perCoordinator": 20,
+      "perGuide": 100
+    }
+  }
+}

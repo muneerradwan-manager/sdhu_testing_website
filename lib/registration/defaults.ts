@@ -5,9 +5,11 @@
  * على الحج» publishes a change. A system stage with an empty title keeps the platform's own wording, which
  * follows the case (the applicant himself, or someone he files for).
  */
-import { staffName } from "../staff";
+import { withStaffNames } from "../staff";
 import { SEASON } from "../season";
 import type { PostStepDef, RegConfig, RegSeason, RegVersion, StageDef } from "./types";
+import SEASONS_DATA from "@/testdata/registration/seasons.json";
+import VERSIONS_DATA from "@/testdata/registration/versions.json";
 
 const system = (id: StageDef["system"] & string, name: string, phase: string): StageDef => ({
   id,
@@ -99,10 +101,8 @@ export function defaultConfig(): RegConfig {
 /** The season pilgrims apply in */
 export const ACTIVE_SEASON = SEASON.hijriYear;
 
-export const SEED_SEASONS: RegSeason[] = [
-  { year: 1447, label: "موسم 1447هـ", status: "archived", createdAt: new Date(2025, 5, 2).getTime(), createdBy: staffName("nour.a"), archivedApplications: 18_940 },
-  { year: 1448, label: "موسم 1448هـ", status: "active", createdAt: new Date(2026, 6, 1).getTime(), createdBy: staffName("hiba"), copiedFrom: "1447-v2" },
-];
+/** The seasons the registration was set up in (testdata/registration/seasons.json): who created each by his account */
+export const SEED_SEASONS: RegSeason[] = withStaffNames(SEASONS_DATA).map((s) => ({ ...s, status: s.status as RegSeason["status"], createdAt: new Date(s.createdAt).getTime() }));
 
 /** Last season as it was published: one payment of the whole cost, no lottery, fewer words */
 function season1447(intro: string): RegConfig {
@@ -114,28 +114,9 @@ function season1447(intro: string): RegConfig {
   return c;
 }
 
-export const SEED_VERSIONS: RegVersion[] = [
-  { id: "1447-v1", season: 1447, number: 1, config: season1447("أهلاً {firstName}، لنقدّم طلبك"), publishedAt: new Date(2025, 6, 20, 10).getTime(), publishedBy: staffName("nour.a"), effectiveFrom: "2025-07-25T00:00", note: "إعدادات موسم 1447 عند فتح التسجيل" },
-  {
-    id: "1447-v2",
-    season: 1447,
-    number: 2,
-    config: season1447("أهلاً {firstName}، لنقدّم طلبك معاً خطوة بخطوة"),
-    publishedAt: new Date(2025, 7, 3, 9).getTime(),
-    publishedBy: staffName("nour.a"),
-    effectiveFrom: "2025-08-03T09:00",
-    note: "تصحيح نص صفحة البداية",
-    basedOn: "1447-v1",
-  },
-  {
-    id: "1448-v1",
-    season: 1448,
-    number: 1,
-    config: defaultConfig(),
-    publishedAt: new Date(2026, 6, 28, 11).getTime(),
-    publishedBy: staffName("hiba"),
-    effectiveFrom: "2026-07-01T00:00",
-    note: "إعدادات موسم 1448: القبول المباشر ثم القرعة، ودفعتان",
-    basedOn: "1447-v2",
-  },
-];
+/** Their published versions (testdata/registration/versions.json): last season's from its preset, season 1448's the defaults */
+export const SEED_VERSIONS: RegVersion[] = withStaffNames(VERSIONS_DATA).map(({ preset, intro, publishedAt, ...v }) => ({
+  ...v,
+  config: preset === "1447" ? season1447(intro ?? "") : defaultConfig(),
+  publishedAt: new Date(publishedAt).getTime(),
+}));

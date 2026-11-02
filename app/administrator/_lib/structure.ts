@@ -127,29 +127,26 @@ export const DEFAULT_LABELS: RoleLabel[] = [
 export type SeasonalRole = { role: string; label?: string; reason: string; by: string; at: number };
 
 // ───────────────────────── Branches, tiers, categories ─────────────────────────
+// As the administration's platform ships them: testdata/settings/structure.json (./structure-defaults)
 
 export type Branch = { id: string; name: string; active: boolean };
 
 /** The administration's branches and offices: a cluster head picks his groups and people from his branches */
-export const DEFAULT_BRANCHES: Branch[] = ["إدلب", "اسطنبول", "الرقة", "اللاذقية", "حلب", "حماة", "حمص", "درعا", "دمشق", "دير الزور", "غازي عنتاب", "مصر"].map((name) => ({ id: name, name, active: true }));
+export const DEFAULT_BRANCHES: Branch[] = STRUCTURE.branches.map((name) => ({ id: name, name, active: true }));
 
 /** A cluster's tier («مستوى التكتل»): it sets the pilgrims and the seats of each category of group */
 export type Tier = { id: string; name: string };
-export const DEFAULT_TIERS: Tier[] = [
-  { id: "eco", name: "اقتصادي" },
-  { id: "eco-plus", name: "اقتصادي محسن" },
-  { id: "five", name: "خمس نجوم" },
-];
+export const DEFAULT_TIERS: Tier[] = STRUCTURE.tiers;
 
 export { DEFAULT_CATEGORIES, DEFAULT_CATEGORY_RULES, DEFAULT_COMPOSITION, type Category, type CategoryRule, type Composition } from "./structure-defaults";
-import { DEFAULT_CATEGORIES, DEFAULT_CATEGORY_RULES, DEFAULT_COMPOSITION, type Category, type CategoryRule, type Composition } from "./structure-defaults";
+import { DEFAULT_CATEGORIES, DEFAULT_CATEGORY_RULES, DEFAULT_COMPOSITION, STRUCTURE, type Category, type CategoryRule, type Composition } from "./structure-defaults";
 
 /** The default tier a group's numbers are read in before it is in a cluster */
-export const DEFAULT_TIER = "eco";
+export const DEFAULT_TIER = STRUCTURE.defaultTier;
 
 /** Until this day and hour a request sent earns the cluster «شارة الالتزام بالمواعيد» (the early deadline) */
-export const DEFAULT_EARLY_DEADLINE = "2026-11-19";
-export const DEFAULT_EARLY_TIME = "23:59";
+export const DEFAULT_EARLY_DEADLINE = STRUCTURE.earlyDeadline.date;
+export const DEFAULT_EARLY_TIME = STRUCTURE.earlyDeadline.time;
 
 // ───────────────────────── The structure, as the administration left it ─────────────────────────
 

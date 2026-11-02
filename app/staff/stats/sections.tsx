@@ -23,6 +23,7 @@ import { cn, countOf, formatNumber } from "@/lib/utils";
 import { useContentSummary } from "../content/_components/summary";
 import { useAllEvents, useReviewQueue, useTicketQueue } from "../_components/data";
 import { ago, BarList, Columns, Donut, fmtDateTime, Legend, Panel, useNow } from "../_components/kit";
+import ARAFAT_REPORTS from "@/testdata/staff/arafat-reports.json";
 
 /**
  * Each system's statistics: its figures, and what waits in it. They were «لوحتي», one page gathering the figures
@@ -66,13 +67,8 @@ function headOfGroup(no: number) {
   return HEADS_POOL.find((h) => h.group === no)?.name ?? "";
 }
 
-const GROUP_REPORTS = [
-  { group: 27, cluster: "النور", inArafat: 48, of: 48, report: "13:00" },
-  { group: 14, cluster: "النور", inArafat: 49, of: 50, report: "13:40" },
-  { group: 31, cluster: "النور", inArafat: 50, of: 50, report: "12:55" },
-  { group: 19, cluster: "اليقين", inArafat: 44, of: 45, report: "13:20" },
-  { group: 8, cluster: "الشهباء", inArafat: 44, of: 45, report: "14:05" },
-];
+/** The groups' reports from Arafat on the day of Arafat (testdata/staff/arafat-reports.json) */
+const GROUP_REPORTS = ARAFAT_REPORTS;
 
 /** Everything the statistics read, once: each system takes its part */
 function useStatsData(user: StaffUser) {

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "1447-v1",
+    "season": 1447,
+    "number": 1,
+    "preset": "1447",
+    "intro": "أهلاً {firstName}، لنقدّم طلبك",
+    "publishedAt": "2025-07-20T10:00",
+    "publishedBy": "@nour.a",
+    "effectiveFrom": "2025-07-25T00:00",
+    "note": "إعدادات موسم 1447 عند فتح التسجيل"
+  },
+  {
+    "id": "1447-v2",
+    "season": 1447,
+    "number": 2,
+    "preset": "1447",
+    "intro": "أهلاً {firstName}، لنقدّم طلبك معاً خطوة بخطوة",
+    "publishedAt": "2025-08-03T09:00",
+    "publishedBy": "@nour.a",
+    "effectiveFrom": "2025-08-03T09:00",
+    "note": "تصحيح نص صفحة البداية",
+    "basedOn": "1447-v1"
+  },
+  {
+    "id": "1448-v1",
+    "season": 1448,
+    "number": 1,
+    "preset": "default",
+    "publishedAt": "2026-07-28T11:00",
+    "publishedBy": "@hiba",
+    "effectiveFrom": "2026-07-01T00:00",
+    "note": "إعدادات موسم 1448: القبول المباشر ثم القرعة، ودفعتان",
+    "basedOn": "1447-v2"
+  }
+]

@@ -49,20 +49,20 @@ MODULE = M("admins", "الإداريون: البنية المرجعية والم
     T("branches", "الفروع", "فروع الإدارة التي ينتمي إليها الكادر (دمشق، حلب، اسطنبول، مصر…). يختار رئيس التكتل كادره من فروعه.", [
         pk(), c("name", "VARCHAR(60)", "اسم الفرع", uq=True),
         c("active", "TINYINT(1)", "فعّال", d="1"),
-    ], src="structure.ts Branch", seed="12 فرعاً: إدلب، اسطنبول، الرقة، اللاذقية، حلب، حماة، حمص، درعا، دمشق، دير الزور، غازي عنتاب، مصر."),
+    ], src="structure.ts Branch (testdata/settings/structure.json)", seed="12 فرعاً: إدلب، اسطنبول، الرقة، اللاذقية، حلب، حماة، حمص، درعا، دمشق، دير الزور، غازي عنتاب، مصر."),
 
     T("service_tiers", "مستويات التكتلات", "مستوى خدمة التكتل، يحدد أعداد المجموعات ومقاعد فريقها.", [
         c("tier_key", "VARCHAR(20)", "المفتاح: eco، eco-plus، five، أو tier-<…>", pk=True),
         c("name", "VARCHAR(60)", "الاسم: «اقتصادي»، «اقتصادي محسن»، «خمس نجوم»", uq=True),
         c("is_default", "TINYINT(1)", "المستوى الذي تُقرأ به أعداد المجموعة قبل انضمامها لتكتل (eco)", d="0"),
         c("sort_order", "TINYINT", "الترتيب", d="0"),
-    ], src="structure.ts Tier؛ DEFAULT_TIER"),
+    ], src="structure.ts Tier؛ DEFAULT_TIER (testdata/settings/structure.json)"),
 
     T("group_categories", "فئات المجموعات", "فئة رئيس المجموعة، وهي فئة مجموعته. الوزن يُجمع في وزن التكتل ويُحمَّل على المنسقين والموجّهات.", [
         c("category_key", "VARCHAR(20)", "المفتاح: c1..c4 أو cat-<…>", pk=True),
         c("name", "VARCHAR(60)", "الاسم: «الفئة الأولى» … «الفئة الرابعة»", uq=True),
         c("weight", "TINYINT UNSIGNED", "الوزن (1..4)", ck="weight >= 1"),
-    ], src="structure.ts Category"),
+    ], src="structure.ts Category (testdata/settings/structure.json)"),
 
     T("category_rules", "أعداد كل فئة في كل مستوى", "لكل مستوى وفئة: مقاعد الموجّهين والمعاونين والمقاعد الحرة وعدد الحجاج.", [
         season(),
@@ -73,7 +73,7 @@ MODULE = M("admins", "الإداريون: البنية المرجعية والم
         c("free_seats", "TINYINT UNSIGNED", "مقاعد حرة (موجّه أو معاون)"),
         c("pilgrims", "SMALLINT UNSIGNED", "عدد الحجاج"),
         c("active", "TINYINT(1)", "مفعّلة", d="1"),
-    ], uq=[("season_year", "tier_key", "category_key")], src="structure.ts CategoryRule",
+    ], uq=[("season_year", "tier_key", "category_key")], src="structure.ts CategoryRule (testdata/settings/structure.json)",
        rules=["أعضاء الفريق مع الرئيس = 1 + guides + assistants + free_seats."],
        seed="اقتصادي: c1 1/0/0 و45 حاجاً؛ c2 1/1/0 و90؛ c3 1/1/1 و135؛ c4 2/2/0 و200. محسن: 45، 135، 135، 200. خمس نجوم: 0/0/0 و30، 60، 90، 120."),
 
@@ -85,7 +85,7 @@ MODULE = M("admins", "الإداريون: البنية المرجعية والم
         c("cluster_assistants", "TINYINT UNSIGNED", "معاونو التكتل المطلوبون بالضبط («معاون بعدد» لا يُحسب)"),
         c("units_per_coordinator", "TINYINT UNSIGNED", "حد وحدات المنسق التقني (مجموع أوزان مجموعاته)"),
         c("units_per_female_guide", "SMALLINT UNSIGNED", "حد وحدات الموجّهة"),
-    ], uq=[("season_year", "tier_key")], src="structure.ts composition",
+    ], uq=[("season_year", "tier_key")], src="structure.ts composition (testdata/settings/structure.json)",
        checks=["min_weight <= max_weight"], seed="اقتصادي 5–24، 1، 6، 7؛ محسن 5–21، 1، 6، 7؛ خمس نجوم 5–21، 0، 20، 100."),
 
     T("admin_season_rules", "قواعد الإداريين في الموسم", "قيم موسمية متفرقة لملف الإداريين.", [

@@ -37,6 +37,7 @@
 | `admins/admin-calendar.json` | مواعيد مسار الإداري في الموسم (إنشاء الحساب، التسجيل، الرسم، الاختبار…) | `app/administrator/_lib/admin.ts` |
 | `admins/cadre-events.json` | أحداث ملفات الكادر قبل العرض (نقل فرع، ترقية، ملاحظة): الشخص برقمه، والمسجِّل بحسابه | `app/administrator/_lib/cadre.ts` |
 | `admins/channel-messages.json` | رسائل قناة التكتل الأولى؛ أوقاتها إزاحات عن يوم العرض {daysAgo, h, m} | `app/administrator/_lib/channel.ts` |
+| `admins/channel-templates.json` | رسائل جاهزة يرسلها رئيس المجموعة إلى قناة مجموعته؛ الأشخاص فيها بأرقامهم («{short:ID}») | `app/portal/(admin)/field/field.tsx` |
 | `admins/clusters.json` | تكتلات القصة الأربعة: رئيسها ومجموعاتها وكادرها ومقاعدها وفرز منسقيها، كلهم بأرقامهم | `app/administrator/_lib/cluster.ts` |
 | `admins/coordinator-work.json` | حالات عمل المنسق التقني الجاهزة للعرض | `app/administrator/_lib/coordinator.ts` |
 | `admins/demo-admins.json` | الإداريون التجريبيون في صفحة الدخول: الرقم الوطني، الصفة، الحال، العنوان دون الاسم، الشرح | `app/administrator/_lib/admin.ts` |
@@ -76,6 +77,7 @@
 | `content/faq.json` | الأسئلة الشائعة | `lib/data/faq.ts` |
 | `content/guide-days.json` | أيام المناسك في دليل الحاج | `lib/data/guide.ts` |
 | `content/guide-duas.json` | بطاقات الأدعية (دعاء الصفا مرجع إلى guide-sai) | `lib/data/guide.ts` |
+| `content/guide-en.json` | الترجمة الإنجليزية لنصوص الدليل الثابتة (الأنساك، المحظورات، الطواف والسعي، الحقيبة، النصائح الصحية) بترتيبها ومعرّفاتها | `app/guide/_components/guide-en.ts` |
 | `content/guide-haram.json` | موقع المسجد الحرام | `lib/data/guide.ts` |
 | `content/guide-health-tips.json` | نصائح صحية | `lib/data/guide.ts` |
 | `content/guide-heatstroke-signs.json` | علامات ضربة الشمس | `lib/data/guide.ts` |
@@ -108,6 +110,9 @@
 | الملف | ما فيه | يقرؤه |
 |---|---|---|
 | `exams/blueprints.json` | تركيب اختبار كل صفة | `lib/data/admin-exam.ts` |
+| `exams/centers.json` | المراكز الامتحانية: المحافظات التي يخدمها كل مركز، وقاعته وموقعه وسعته | `app/administrator/_lib/halls.ts` |
+| `exams/hall-pins.json` | رمز التأكيد الأول لمشرف القاعة التجريبي، بحسابه | `app/administrator/_lib/halls.ts` |
+| `exams/sessions.json` | موعد الاختبار الرئيسي لكل صفة (اليوم والتاريخ الهجري والساعة) | `app/administrator/_lib/halls.ts` |
 | `exams/questions.json` | بنك الأسئلة | `lib/data/admin-exam.ts` |
 
 ### flights — الطيران
@@ -137,8 +142,10 @@
 | `journey/cluster.json` | تكتل الحاج المثال | `lib/journey.ts` |
 | `journey/flights.json` | رحلتا الحاج المثال | `lib/journey.ts` |
 | `journey/group.json` | مجموعة 27 وفريقها بأرقامهم | `lib/journey.ts`، `lib/flights.ts` |
+| `journey/hotel-menus.json` | قوائم طعام فندقَي مكة والمدينة بالتناوب (الفطور والغداء) ما لم يكتب المنسق قائمته | `app/portal/season/_data.ts` |
 | `journey/itinerary.json` | برنامج رحلة الحاج | `lib/journey.ts` |
 | `journey/places.json` | أماكن المناسك | `lib/journey.ts` |
+| `journey/trips.json` | رحلات المجموعة في الموسم: الموعد والتجمّع والمقاعد والمحجوز وأيام ظهورها؛ المشرفون بأرقامهم («{first:ID}»، «{title:ID}»)، و«{group:N}» اسم مجموعة | `app/portal/season/_data.ts` |
 
 ### ops — الملفات التشغيلية والبيانات المرجعية
 
@@ -146,6 +153,7 @@
 |---|---|---|
 | `ops/camps.json` | مخيمات منى وعرفات | `lib/data/ops-seed.ts` |
 | `ops/centers.json` | مراكز المشاعر | `lib/data/ops-seed.ts` |
+| `ops/drivers.json` | أسماء سائقي الحافلات التي توزَّع على وحدات النقل المخططة | `lib/rite-lists.ts` |
 | `ops/files.json` | الملفات التشغيلية وإسناداتها (الموظفون بمعرّفاتهم، والمنشئ بحسابه) | `lib/data/ops-seed.ts` |
 | `ops/hotels.json` | الفنادق | `lib/data/ops-seed.ts` |
 | `ops/sectors.json` | قطاعات مكة | `lib/data/ops-seed.ts` |
@@ -165,7 +173,9 @@
 | `registration/direct-acceptance.json` | القبول المباشر: المؤهلون والمقاعد وشرائح الأعمار | `lib/data/staff-seed.ts` |
 | `registration/public-results.json` | إعلان النتائج العام | `lib/data/public-results.ts` |
 | `registration/seed-applications.json` | طلبات تنتظر المراجعة بأعضائها بأرقامهم | `lib/data/staff-seed.ts` |
+| `registration/seasons.json` | مواسم التسجيل (1447 المؤرشف و1448 الفعّال)؛ `createdAt` نص وقت محلي «YYYY-MM-DDTHH:mm»، والمنشئ بحسابه | `lib/registration/defaults.ts` |
 | `registration/stats.json` | أرقام التسجيل | `lib/data/staff-seed.ts` |
+| `registration/versions.json` | النسخ المنشورة من إعدادات التسجيل: `preset` «1447» تُبنى من إعدادات الموسم السابق بنص البداية `intro`، و«default» هي الإعدادات الافتراضية؛ `publishedAt` وقت محلي، والناشر بحسابه | `lib/registration/defaults.ts` |
 
 ### religious — الدروس والنشاطات
 
@@ -179,13 +189,26 @@
 | الملف | ما فيه | يقرؤه |
 |---|---|---|
 | `staff/accounts.json` | حسابات بوابة الموظفين وأنماط صلاحياتها (الاسم من سجل الموظفين) | `lib/staff.ts` |
+| `staff/arafat-reports.json` | تقارير المجموعات يوم عرفة: الحاضرون في عرفة من العدد ووقت التقرير | `app/staff/stats/sections.tsx` |
 | `staff/audit-events.json` | سجل الأحداث السابق (الفاعل بحسابه) | `lib/data/staff-seed.ts` |
 | `staff/circulars.json` | القرارات والتعميمات (المُصدر بحسابه) | `lib/circulars.ts` |
 | `staff/employees.json` | سجل الموظفين: الاسم واللقب والكنية والمسمى والمواسم — مصدر أسماء الموظفين الوحيد | `lib/staff.ts`، `lib/data/employees-seed.ts` |
-| `staff/executive.json` | أرقام نهاية الموسم في لوحة الإدارة العليا | `lib/data/staff-seed.ts` |
+| `staff/executive.json` | أرقام نهاية الموسم في لوحة الإدارة العليا، ومنها التقييم العام للحجاج (`rating`) | `lib/data/staff-seed.ts` |
 | `staff/incidents.json` | بلاغات غرفة العمليات | `lib/data/staff-seed.ts` |
 | `staff/seed-admins.json` | المتقدمون لصفات الإداريين واختباراتهم (الاسم والهاتف من السجل المدني) | `lib/data/staff-seed.ts` |
 | `staff/tasks.json` | مهام غرفة العمليات | `lib/data/staff-seed.ts` |
+
+### settings — إعدادات الموسم الافتراضية
+
+ما تضبطه الإدارة لكل موسم ويعدّله الموظفون من البوابة. الكود يقرأ هذه القيم أولاً، ثم يضع فوقها ما عدّله الموظف (المخزن). عند الربط تأتي من إعدادات الموسم في الخادم.
+
+| الملف | ما فيه | يقرؤه |
+|---|---|---|
+| `settings/meals.json` | مواعيد الفطور والغداء في فندقَي مكة والمدينة قبل أن يضبطها منسق التكتل | `lib/season-live.ts` |
+| `settings/offices.json` | مكاتب التسجيل: مكتب لكل محافظة داخل سوريا ومكتب لكل بلد في الخارج | `lib/season.ts` |
+| `settings/operations.json` | عمليات الموسم ومواعيدها الافتراضية (`estimate`: لم تُعلَن بعد) | `lib/operations.ts` |
+| `settings/season.json` | إعدادات موسم 1448: الحصة والمقاعد، شروط الأعمار، الرسوم والدفعات، نوافذ التسجيل، التصنيف، الوثائق الطبية، تقويم الحاج | `lib/season.ts` |
+| `settings/structure.json` | هيكلية الإدارة: الفروع، مستويات التكتل والمستوى الافتراضي، الموعد المبكر، فئات المجموعات ومقاعدها، وتركيب التكتل لكل مستوى | `app/administrator/_lib/structure-defaults.ts` |
 
 ## مراجع الموظفين
 
@@ -195,5 +218,6 @@
 
 - **ما يُحسب من ساعة العرض:** أوقات «قبل يومين» في الحالات الجاهزة (`lib/demo-scenarios.ts`)، وأحداث القناة تُبنى من إزاحاتها في JSON.
 - **المولّدات التي تأخذ مدخلاً:** فرق المجموعات وعائلاتها على الرحلات، وقوائم حجاج المجموعة (`app/administrator/_lib/group.ts`)، وأي رقم وطني غير معروف (`lib/registry.ts` generate).
-- **إعدادات المنصة وتسمياتها، وهي ليست بيانات تجريبية:** الصفات وشروطها، وأنواع البلاغات، وتسميات الحالات، وأقسام الاختبار، والمستندات المطلوبة.
+- **إعدادات المنصة وتسمياتها، وهي ليست بيانات تجريبية:** الصفات وشروطها، وأنواع البلاغات، وتسميات الحالات، وأقسام الاختبار، والمستندات المطلوبة، ومراحل نموذج التسجيل الافتراضية (`lib/registration/defaults.ts`)، وقائمة المناسك والزيارات (`lib/musters.ts`)، ومدن مواقيت الصلاة (`lib/prayer.ts`). أما قيم الموسم التي يعدّلها الموظفون فهي في `settings/`.
+- **سيناريو «حالتي الآن» في موسم الحاج المثال** (`app/portal/season/_data.ts`): أحداث كل يوم وإشعاراته وحافلاته نص مكتوب ليوم العرض، فيه حساب من اليوم ورقم الطلب؛ الأشخاص فيه يُسمَّون من السجل المدني.
 - **محتوى الموقع الافتراضي** في `lib/cms` (نصوص الصفحات العامة وفريق «من نحن»): يعدّله موظف المحتوى من البوابة، وهو محتوى لا بيانات اختبار.

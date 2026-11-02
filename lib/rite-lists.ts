@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { familiesOfGroup, groupsOfCluster, teamOfGroup, type GroupRef, type Traveler } from "./flights";
 import { actions, getState, setState, useStore } from "./store";
 import { seeded } from "./utils";
+import DRIVERS_DATA from "@/testdata/ops/drivers.json";
 
 /**
  * القوائم: before each rite, who of a cluster goes, and on which of its buses. The Hajj and Umrah staff (فريق
@@ -71,7 +72,8 @@ export type ListsState = {
   seats?: Record<string, string[]>;
 };
 
-const DRIVERS = ["عبد الله الغامدي", "سعيد الزهراني", "فهد القحطاني", "ماجد الحربي", "خالد العتيبي", "ناصر الشهري", "تركي المطيري", "بندر الدوسري"];
+/** The bus drivers a planned unit is given (testdata/ops/drivers.json) */
+const DRIVERS: string[] = DRIVERS_DATA;
 
 /** The cluster's travellers: every pilgrim and administrator of its groups */
 export function clusterTravellers(clusterId: string, post = getState().post, applications = getState().applications, admins = getState().admins) {

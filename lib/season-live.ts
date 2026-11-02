@@ -9,6 +9,7 @@ import type { RoomPrices } from "./rooms";
 import type { SeasonRules } from "./rules";
 import { SEASON } from "./season";
 import { useStore, type ClusterMeals, type SeasonOverrides } from "./store";
+import MEALS_DATA from "@/testdata/settings/meals.json";
 
 export type LiveSeason = {
   rules: SeasonRules;
@@ -41,8 +42,8 @@ export type LiveSeason = {
 
 export type MealTimes = { makkah: { breakfast: string; lunch: string }; madinah: { breakfast: string; lunch: string }; menus?: { makkah: { breakfast?: string; lunch?: string }; madinah: { breakfast?: string; lunch?: string } } };
 
-/** The meal times before a cluster's technical coordinator sets its own */
-export const DEFAULT_MEALS: MealTimes = { makkah: { breakfast: "06:00 – 09:00", lunch: "13:00 – 15:00" }, madinah: { breakfast: "05:30 – 08:30", lunch: "13:00 – 15:00" } };
+/** The meal times before a cluster's technical coordinator sets its own (testdata/settings/meals.json) */
+export const DEFAULT_MEALS: MealTimes = MEALS_DATA;
 
 /**
  * The meals of a cluster's two hotels, breakfast and lunch in each, as its technical coordinator timed them

@@ -38,6 +38,10 @@
       "draw": "notAcceptedSeats"
     }
   ],
+  "rating": {
+    "y1447": 4.0,
+    "y1448": 4.3
+  },
   "stages": [
     {
       "stage": "إنشاء الحساب",

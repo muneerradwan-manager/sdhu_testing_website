@@ -1,0 +1,18 @@
+[
+  {
+    "year": 1447,
+    "label": "موسم 1447هـ",
+    "status": "archived",
+    "createdAt": "2025-06-02T00:00",
+    "createdBy": "@nour.a",
+    "archivedApplications": 18940
+  },
+  {
+    "year": 1448,
+    "label": "موسم 1448هـ",
+    "status": "active",
+    "createdAt": "2026-07-01T00:00",
+    "createdBy": "@hiba",
+    "copiedFrom": "1447-v2"
+  }
+]

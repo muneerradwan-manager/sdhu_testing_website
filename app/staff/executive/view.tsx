@@ -135,17 +135,17 @@ function SeasonReport() {
           <div className="flex flex-col items-center justify-center gap-3 rounded-3xl bg-white/5 p-6 text-center ring-1 ring-white/10">
             <p className="text-sm text-white/70">التقييم العام للحجاج</p>
             <p className="font-display text-7xl font-bold text-gold">
-              4.3<span className="text-2xl text-white/50"> / 5</span>
+              {EXEC.rating.y1448.toFixed(1)}<span className="text-2xl text-white/50"> / 5</span>
             </p>
             <div className="flex gap-1" dir="ltr">
               {[1, 2, 3, 4, 5].map((n) => (
                 <motion.span key={n} initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.4 + n * 0.08, type: "spring" }}>
-                  <Star className={cn("size-6", n <= 4 ? "fill-gold text-gold" : "fill-gold/30 text-gold")} />
+                  <Star className={cn("size-6", n <= Math.round(EXEC.rating.y1448) ? "fill-gold text-gold" : "fill-gold/30 text-gold")} />
                 </motion.span>
               ))}
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-green-light/30 px-3 py-1 text-xs font-bold text-white ring-1 ring-green-light/50">
-              <ArrowUpRight className="size-3.5 text-gold" /> من 4.0 في موسم 1447
+              <ArrowUpRight className="size-3.5 text-gold" /> من {EXEC.rating.y1447.toFixed(1)} في موسم 1447
             </span>
           </div>
         </div>
@@ -383,7 +383,7 @@ function ExecutivePrint() {
       title="تقرير نهاية الموسم — موسم 1448"
       source="لوحة الإدارة العليا"
       meta={[
-        { label: "التقييم العام للحجاج", value: "4.3 / 5 (من 4.0 في 1447)" },
+        { label: "التقييم العام للحجاج", value: `${EXEC.rating.y1448.toFixed(1)} / 5 (من ${EXEC.rating.y1447.toFixed(1)} في 1447)` },
         { label: "المتقدمون", value: formatNumber(applied) },
         { label: "أدّوا الحج فعلاً", value: formatNumber(EXEC.headline[EXEC.headline.length - 1].value) },
         { label: "الشكاوى", value: formatNumber(EXEC.complaints.total) },

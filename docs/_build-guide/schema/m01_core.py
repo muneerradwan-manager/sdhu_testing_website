@@ -4,8 +4,8 @@ from .dsl import *
 MODULE = M("core", "المرجعيات العامة: المواسم والمكاتب والمواعيد والملفات والسجل", [
     "هذه الجداول يستعملها كل ما بعدها. الموسم هو المحور: كل ما يتجدد سنوياً (الطلبات، الملفات الإدارية، "
     "التشكيلات، الرحلات، الملفات التشغيلية، التقييمات) يحمل عمود season_year يشير إلى جدول seasons.",
-    "في النسخة التجريبية إعدادات الموسم كائن واحد عام (SeasonOverrides) فوق ثوابت الكود (SEASON في lib/season.ts)، "
-    "ومواعيد العمليات ثابتة في الكود مع تعديلات فوقها. هنا تصير كلها صفوفاً لكل موسم، فلا يضيع تاريخ موسم سابق حين يُعدَّل الحالي.",
+    "في النسخة التجريبية إعدادات الموسم كائن واحد عام (SeasonOverrides) فوق إعدادات ثابتة (SEASON من testdata/settings/season.json)، "
+    "ومواعيد العمليات ثابتة (testdata/settings/operations.json) مع تعديلات فوقها. هنا تصير كلها صفوفاً لكل موسم، فلا يضيع تاريخ موسم سابق حين يُعدَّل الحالي.",
     "وكل رفع لملف في المنصة (صورة، PDF، عقد، تأشيرة، وثيقة صحية، إشعار مصرفي، صورة في المحتوى) يمر بجدول واحد هو files، "
     "وتشير إليه الجداول الأخرى بعمود file_id. وسجل الأحداث audit_events لا يُعدَّل ولا يُحذف منه شيء.",
 ], [
@@ -19,7 +19,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("archived_applications", "INT UNSIGNED", "عدد الطلبات المؤرشفة عند إغلاق الموسم (للعرض فقط)", null=True),
         staff("created_by_staff_id", "الموظف الذي أنشأ الموسم"),
         *stamps(),
-    ], src="lib/registration/types.ts:206 RegSeason؛ lib/season.ts:6 SEASON",
+    ], src="lib/registration/types.ts:206 RegSeason؛ testdata/registration/seasons.json؛ lib/season.ts SEASON (testdata/settings/season.json)",
        rules=["لا يكون أكثر من موسم واحد بالحالة active (يُفرض في طبقة التطبيق أو بقيد على عمود محسوب).",
               "الموسم المؤرشف للقراءة فقط: لا يُعدَّل شيء من جداوله الموسمية.",
               "إنشاء موسم جديد ينسخ إعدادات التسجيل من إصدار سابق (copied_from_version_id) ويبدأ preparing."],
@@ -71,7 +71,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("gregorian_label", "VARCHAR(120)", "التاريخ الميلادي كما يُعرض"),
         c("audience", "VARCHAR(120)", "لمن: «الحاج أو من يسجّله»، «الجميع»، «رؤساء المجموعات والتكتلات»…"),
         c("sort_order", "SMALLINT", "الترتيب", d="0"),
-    ], src="lib/season.ts:142 SEASON.dates", seed="11 صفاً لموسم 1448 (من 12 آب 2026 إلى العودة 29 أيار 2027)."),
+    ], src="testdata/settings/season.json dates", seed="11 صفاً لموسم 1448 (من 12 آب 2026 إلى العودة 29 أيار 2027)."),
 
     T("governorates", "المحافظات السورية", "قائمة المحافظات الأربع عشرة، تُستعمل في السجل المدني والمكاتب ومراكز الامتحان والموظفين.", [
         c("code", "VARCHAR(20)", "رمز ثابت بالإنجليزية (damascus، rif-damascus، aleppo…)", pk=True),
@@ -90,7 +90,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("address", "VARCHAR(300)", "العنوان", null=True),
         c("phone", "VARCHAR(30)", "هاتف المكتب", null=True),
         c("active", "TINYINT(1)", "فعّال", d="1"),
-    ], src="lib/season.ts:163 OFFICES", seed="9 مكاتب داخل سوريا و4 خارجها."),
+    ], src="testdata/settings/offices.json (lib/season.ts OFFICES)", seed="9 مكاتب داخل سوريا و4 خارجها."),
 
     T("operations", "العمليات الموسمية ومواعيدها", "كل عملية في المنصة تُفتح وتُغلق بمواعيد: التسجيل بنوعيه، التسجيل كإداري، الاختبارات، "
       "التشكيل، الإلحاق، التقييمات. التعريف ثابت (المفتاح والاسم)، والمواعيد لكل موسم في operation_windows.", [
@@ -98,7 +98,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("label", "VARCHAR(120)", "الاسم، مثل «التسجيل على الحج — القبول المباشر»"),
         c("description", "TEXT", "الشرح المعروض للموظف"),
         c("permanent", "TINYINT(1)", "1 = عملية دائمة بلا مواعيد (group-management، cluster-management)", d="0"),
-    ], src="lib/operations.ts:38 OperationDef، :59 OPERATIONS", seed="14 عملية.",
+    ], src="lib/operations.ts OperationDef؛ testdata/settings/operations.json", seed="15 عملية.",
        rules=["يتحكم بمواعيد العملية من يملك season.windows.PUT لها (نطاق operation في staff_user_permission_scopes)، أو بلا نطاق لكل العمليات."]),
 
     T("operation_windows", "مواعيد العمليات في الموسم", "موعد كل عملية في موسم بعينه ووضعها: تلقائي بالتواريخ، أو فتحتها الإدارة، أو أوقفتها.", [
@@ -112,7 +112,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("is_estimate", "TINYINT(1)", "1 = موعد تقديري يُعلَن لاحقاً", d="0"),
         staff("updated_by_staff_id", "آخر من عدّل"),
         updated(),
-    ], uq=[("season_year", "operation_code")], src="lib/operations.ts:82 OperationOverride؛ State.operations",
+    ], uq=[("season_year", "operation_code")], src="lib/operations.ts:69 OperationOverride؛ State.operations",
        rules=["الحالة المعروضة محسوبة لا تُخزَّن: open «مفتوحة حتى…»، upcoming «تفتح…»، closed «أُغلقت…»، on «فتحتها الإدارة»، off «أوقفتها الإدارة»، always «دائمة».",
               "تُفتح العملية إن كان الوضع on، أو auto والوقت الحالي بين البداية والنهاية.",
               "كل تعديل حدث مهم في audit_events (important=1) مرجعه مفتاح العملية."],
@@ -124,7 +124,7 @@ MODULE = M("core", "المرجعيات العامة: المواسم والمكا
         c("season_year", "SMALLINT UNSIGNED", "الموسم (0 للعدّادات غير الموسمية)", pk=True, d="0"),
         c("next_value", "BIGINT UNSIGNED", "القيمة التالية", d="1"),
         c("pattern", "VARCHAR(60)", "صيغة الرقم، مثل {season}-R-{n:06} للإيصال 1448-R-004512", null=True),
-    ], new=True, src="lib/journey.ts:235 applicationNumberFor (مشتق، غير فريد)",
+    ], new=True, src="lib/journey.ts:115 applicationNumberFor (مشتق، غير فريد)",
        rules=["الأرقام المعتمدة: الطلب (4 أرقام فأكثر)، إيصال رسم التسجيل {season}-R-{n:06}، إيصال دفعات الحج {season}-P-{رقم الطلب:06}-{n}، رسم الإداري {season}-A-{n:06}، رسم المجموعة {season}-G-{رقم المجموعة:06}، شهادة الحج {season}-C-{رقم الطلب:06}، المراسلة م-{season}-{n:04}."]),
 
     T("files", "الملفات المرفوعة", "كل ملف يُرفع إلى المنصة: صور شخصية، جوازات، عقود موقّعة، تأشيرات، وثائق صحية، إشعارات مصرفية، صور ومقاطع المحتوى. "

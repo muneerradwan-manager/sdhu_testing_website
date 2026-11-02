@@ -9,7 +9,8 @@ import { Modal, SpeakButton, useToast } from "@/components/ui/widgets";
 import { cn } from "@/lib/utils";
 import { TRIPS, type Trip } from "../_data";
 import { AUDIENCE_LABEL, fits, lessonsActions, lessonsOfGroups, useLessons } from "@/lib/lessons";
-import { fullName } from "@/lib/registry";
+import { fullName, personName } from "@/lib/registry";
+import { GROUP_GUIDE_ID } from "@/lib/journey";
 import { useStore } from "@/lib/store";
 import type { SeasonCtx } from "./ctx";
 import { logPilgrimSeason } from "./meals";
@@ -186,7 +187,7 @@ export function LessonsSection({ ctx }: { ctx: SeasonCtx }) {
 
       <Modal open={ask} onClose={() => setAsk(false)}>
         <p className="font-display text-2xl font-bold text-green-dark">سؤال إلى الموجّه الديني</p>
-        <p className="mt-1 text-ink-soft">يصل سؤالك إلى الشيخ خالد الرفاعي، وتصلك الإجابة خلال ساعات.</p>
+        <p className="mt-1 text-ink-soft">يصل سؤالك إلى {personName(GROUP_GUIDE_ID)}، وتصلك الإجابة خلال ساعات.</p>
         <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={4} className="mt-4 w-full rounded-2xl border-2 border-gold/50 p-4 text-lg leading-8 outline-none focus:border-green-light" />
         <Button
           size="xl"
@@ -194,9 +195,9 @@ export function LessonsSection({ ctx }: { ctx: SeasonCtx }) {
           disabled={question.trim().length < 5}
           onClick={() => {
             logPilgrimSeason(ctx, "سؤال شرعي إلى الموجّه", question.trim());
-            toast({ title: "أُرسل سؤالك", body: "إلى الشيخ خالد الرفاعي.", icon: "📨", tone: "info" });
+            toast({ title: "أُرسل سؤالك", body: `إلى ${personName(GROUP_GUIDE_ID)}.`, icon: "📨", tone: "info" });
             setAsk(false);
-            setTimeout(() => toast({ title: "أجاب الشيخ خالد الرفاعي عن سؤالك", body: defaultQuestion && question.includes("رأسها") ? "يجب على المرأة المحرمة تغطية رأسها، وإحرامها في وجهها وكفيها. تقبّل الله منكم." : "وصلتك الإجابة في رسائل المجموعة. تقبّل الله منكم.", icon: "🕌", tone: "gold" }), 7000);
+            setTimeout(() => toast({ title: `أجاب ${personName(GROUP_GUIDE_ID)} عن سؤالك`, body: defaultQuestion && question.includes("رأسها") ? "يجب على المرأة المحرمة تغطية رأسها، وإحرامها في وجهها وكفيها. تقبّل الله منكم." : "وصلتك الإجابة في رسائل المجموعة. تقبّل الله منكم.", icon: "🕌", tone: "gold" }), 7000);
           }}
         >
           <Send className="size-5" /> إرسال السؤال
